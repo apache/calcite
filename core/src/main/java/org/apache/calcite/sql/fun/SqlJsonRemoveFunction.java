@@ -35,33 +35,29 @@ import java.util.Locale;
 public class SqlJsonRemoveFunction extends SqlFunction {
 
   public SqlJsonRemoveFunction() {
-    super("JSON_REMOVE",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(ReturnTypes.VARCHAR_2000,
-            SqlTypeTransforms.FORCE_NULLABLE),
-        null,
-        null,
-        SqlFunctionCategory.SYSTEM);
+    super("JSON_REMOVE", SqlKind.OTHER_FUNCTION,
+        ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        null, null, SqlFunctionCategory.SYSTEM);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.from(2);
   }
 
-  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+      boolean throwOnFailure) {
     final int operandCount = callBinding.getOperandCount();
     assert operandCount >= 2;
     if (!OperandTypes.ANY.checkSingleOperandType(
         callBinding, callBinding.operand(0), 0, throwOnFailure)) {
       return false;
     }
+    final SqlTypeFamily[] families = new SqlTypeFamily[operandCount];
+    families[0] = SqlTypeFamily.ANY;
     for (int i = 1; i < operandCount; i++) {
-      if (!OperandTypes.CHARACTER.checkSingleOperandType(
-          callBinding, callBinding.operand(i), 0, throwOnFailure)) {
-        return false;
-      }
+      families[i] = SqlTypeFamily.CHARACTER;
     }
-    return true;
+    return OperandTypes.family(families).checkOperandTypes(callBinding, throwOnFailure);
   }
 
   @Override public String getAllowedSignatures(String opNameToUse) {
@@ -69,5 +65,3 @@ public class SqlJsonRemoveFunction extends SqlFunction {
         SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER);
   }
 }
-
-// End SqlJsonRemoveFunction.java

@@ -19,9 +19,4 @@
  * Contains generated code for the
  * {@link org.apache.calcite.sql.parser Calcite SQL parser}.
  */
-@PackageMarker
 package org.apache.calcite.sql.parser.impl;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

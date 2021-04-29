@@ -22,12 +22,15 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.SqlValidatorTestCase;
 
 import java.sql.ResultSet;
+import java.util.function.UnaryOperator;
 
 /**
  * SqlTester defines a callback for testing SQL queries and expressions.
@@ -81,12 +84,21 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
   /** Returns a tester that tests with implicit type coercion on/off. */
   SqlTester enableTypeCoercion(boolean enabled);
 
+  /** Returns a tester that does not fail validation if it encounters an
+   * unknown function. */
+  SqlTester withLenientOperatorLookup(boolean lenient);
+
   /** Returns a tester that gets connections from a given factory. */
   SqlTester withConnectionFactory(
       CalciteAssert.ConnectionFactory connectionFactory);
 
   /** Returns a tester that uses a given operator table. */
   SqlTester withOperatorTable(SqlOperatorTable operatorTable);
+
+  /** Returns a tester that applies the given transform to a validator before
+   * using it. */
+  SqlTester withValidatorTransform(UnaryOperator<UnaryOperator<SqlValidator>>
+      transform);
 
   /**
    * Tests that a scalar SQL expression returns the expected result and the
@@ -360,6 +372,20 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
       double delta);
 
   /**
+   * Tests that an aggregate expression fails at run time.
+   * @param expr An aggregate expression
+   * @param inputValues Array of input values
+   * @param expectedError Pattern for expected error
+   * @param runtime       If true, must fail at runtime; if false, must fail at
+   *                      validate time
+   */
+  void checkAggFails(
+      String expr,
+      String[] inputValues,
+      String expectedError,
+      boolean runtime);
+
+  /**
    * Tests that a scalar SQL expression fails at run time.
    *
    * @param expression    SQL scalar expression
@@ -369,20 +395,27 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    *                      validate time
    */
   void checkFails(
-      String expression,
+      StringAndPos expression,
       String expectedError,
       boolean runtime);
+
+  /** As {@link #checkFails(StringAndPos, String, boolean)}, but with a string
+   * that contains carets. */
+  default void checkFails(
+      String expression,
+      String expectedError,
+      boolean runtime) {
+    checkFails(StringAndPos.of(expression), expectedError, runtime);
+  }
 
   /**
    * Tests that a SQL query fails at prepare time.
    *
-   * @param sql           SQL query
+   * @param sap           SQL query and error position
    * @param expectedError Pattern for expected error. Must
    *                      include an error location.
    */
-  void checkQueryFails(
-      String sql,
-      String expectedError);
+  void checkQueryFails(StringAndPos sap, String expectedError);
 
   /**
    * Tests that a SQL query succeeds at prepare time.
@@ -408,5 +441,3 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
     void checkResult(ResultSet result) throws Exception;
   }
 }
-
-// End SqlTester.java

@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.sql.SqlOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +38,7 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RexSqlConvertlet get(RexCall call) {
+  @Override public @Nullable RexSqlConvertlet get(RexCall call) {
     RexSqlConvertlet convertlet;
     final SqlOperator op = call.getOperator();
 
@@ -49,7 +51,7 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
 
     // Is there a convertlet for this class of operator
     // (e.g. SqlBinaryOperator)?
-    Class<? extends Object> clazz = op.getClass();
+    @Nullable Class<?> clazz = op.getClass();
     while (clazz != null) {
       convertlet = (RexSqlConvertlet) map.get(clazz);
       if (convertlet != null) {
@@ -72,7 +74,7 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
   }
 
   /**
-   * Registers a convertlet for a given operator instance
+   * Registers a convertlet for a given operator instance.
    *
    * @param op         Operator instance, say
    * {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#MINUS}
@@ -82,5 +84,3 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
     map.put(op, convertlet);
   }
 }
-
-// End RexSqlReflectiveConvertletTable.java

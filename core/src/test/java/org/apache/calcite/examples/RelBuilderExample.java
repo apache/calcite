@@ -163,5 +163,3 @@ public class RelBuilderExample {
         .join(JoinRelType.INNER, "ORDER_ID");
   }
 }
-
-// End RelBuilderExample.java

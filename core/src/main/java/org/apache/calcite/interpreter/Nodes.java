@@ -18,18 +18,22 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 
 /**
  * Helper methods for {@link Node} and implementations for core relational
@@ -41,7 +45,7 @@ public class Nodes {
    * that knows how to handle the core logical
    * {@link org.apache.calcite.rel.RelNode}s. */
   public static class CoreCompiler extends Interpreter.CompilerImpl {
-    CoreCompiler(Interpreter interpreter, RelOptCluster cluster) {
+    CoreCompiler(@UnknownInitialization Interpreter interpreter, RelOptCluster cluster) {
       super(interpreter, cluster);
     }
 
@@ -74,8 +78,8 @@ public class Nodes {
       node = new SortNode(this, sort);
     }
 
-    public void visit(Union union) {
-      node = new UnionNode(this, union);
+    public void visit(SetOp setOp) {
+      node = new SetOpNode(this, setOp);
     }
 
     public void visit(Join join) {
@@ -89,7 +93,13 @@ public class Nodes {
     public void visit(Match match) {
       node = new MatchNode(this, match);
     }
+
+    public void visit(Collect collect) {
+      node = new CollectNode(this, collect);
+    }
+
+    public void visit(Uncollect uncollect) {
+      node = new UncollectNode(this, uncollect);
+    }
   }
 }
-
-// End Nodes.java

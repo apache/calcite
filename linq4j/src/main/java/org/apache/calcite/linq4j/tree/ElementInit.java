@@ -22,5 +22,3 @@ package org.apache.calcite.linq4j.tree;
  */
 public class ElementInit {
 }
-
-// End ElementInit.java

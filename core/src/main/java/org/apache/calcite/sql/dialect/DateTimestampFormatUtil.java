@@ -34,7 +34,7 @@ import org.apache.calcite.util.DateString;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
- * Support unparse logic for DateTimestamp function
+ * Support unparse logic for DateTimestamp function.
  */
 public class DateTimestampFormatUtil {
 
@@ -90,7 +90,7 @@ public class DateTimestampFormatUtil {
     }
   }
 
-  /** returns day of the year for given date */
+  /** returns day of the year for given date. */
   private SqlCall unparseDayNumber(SqlCall call) {
     return SqlStdOperatorTable.EXTRACT.createCall(SqlParserPos.ZERO,
       getDayOfYearLiteral(),
@@ -165,11 +165,11 @@ public class DateTimestampFormatUtil {
     SqlCall equalsSqlCall = new SqlBasicCall(SqlStdOperatorTable.EQUALS, equalsOperands,
         SqlParserPos.ZERO);
     SqlNode[] ifOperands = new SqlNode[] { equalsSqlCall, quarterLiteral, modSqlCall };
-    return new SqlBasicCall(SqlStdOperatorTable.IF, ifOperands, SqlParserPos.ZERO);
+    return new SqlBasicCall(SqlLibraryOperators.IF, ifOperands, SqlParserPos.ZERO);
   }
 
   /**
-   * DateTime Unit for supporting different categories of date and time
+   * DateTime Unit for supporting different categories of date and time.
    */
   private enum DateTimeUnit {
     DAY("DAY"),
@@ -187,5 +187,3 @@ public class DateTimestampFormatUtil {
     }
   }
 }
-
-// End DateTimestampFormatUtil.java

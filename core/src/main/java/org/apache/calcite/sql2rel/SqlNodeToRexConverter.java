@@ -56,5 +56,3 @@ public interface SqlNodeToRexConverter {
       SqlRexContext cx,
       SqlIntervalQualifier intervalQualifier);
 }
-
-// End SqlNodeToRexConverter.java

@@ -29,5 +29,3 @@ public final class LogicalChi extends Chi {
     super(cluster, traits, input);
   }
 }
-
-// End LogicalChi.java

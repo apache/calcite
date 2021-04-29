@@ -25,6 +25,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 import java.util.TimeZone;
 
@@ -34,35 +36,43 @@ import java.util.TimeZone;
  * <p>A <code>SqlDataTypeSpec</code> is immutable; once created, you cannot
  * change any of the fields.</p>
  *
- * <p>todo: This should really be a subtype of {@link SqlCall}.</p>
+ * <p>We support the following data type expressions:
  *
- * <p>we support complex type expressions
- * like:</p>
- *
- * <blockquote><code>ROW(<br>
- *   foo NUMBER(5, 2) NOT NULL,<br>
- *   rec ROW(b BOOLEAN, i MyUDT NOT NULL))</code></blockquote>
- *
- * <p>Internally we use {@link SqlRowTypeNameSpec} to specify row data type name.
- *
- * <p>We support simple data types like CHAR, VARCHAR and DOUBLE,
- * with optional precision and scale.</p>
- *
- * <p>Internally we use {@link SqlBasicTypeNameSpec} to specify basic sql data type name.
+ * <ul>
+ *   <li>Complex data type expression like:
+ *   <blockquote><code>ROW(<br>
+ *     foo NUMBER(5, 2) NOT NULL,<br>
+ *       rec ROW(b BOOLEAN, i MyUDT NOT NULL))</code></blockquote>
+ *   Internally we use {@link SqlRowTypeNameSpec} to specify row data type name.
+ *   </li>
+ *   <li>Simple data type expression like CHAR, VARCHAR and DOUBLE
+ *   with optional precision and scale;
+ *   Internally we use {@link SqlBasicTypeNameSpec} to specify basic sql data type name.
+ *   </li>
+ *   <li>Collection data type expression like:
+ *   <blockquote><code>
+ *     INT ARRAY;
+ *     VARCHAR(20) MULTISET;
+ *     INT ARRAY MULTISET;</code></blockquote>
+ *   Internally we use {@link SqlCollectionTypeNameSpec} to specify collection data type name.
+ *   </li>
+ *   <li>User defined data type expression like `My_UDT`;
+ *   Internally we use {@link SqlUserDefinedTypeNameSpec} to specify user defined data type name.
+ *   </li>
+ * </ul>
  */
 public class SqlDataTypeSpec extends SqlNode {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlTypeNameSpec typeNameSpec;
-  private final SqlTypeNameSpec baseTypeName;
-  private final TimeZone timeZone;
+  private final @Nullable TimeZone timeZone;
 
-  /** Whether data type is allows nulls.
+  /** Whether data type allows nulls.
    *
    * <p>Nullable is nullable! Null means "not specified". E.g.
-   * {@code CAST(x AS INTEGER)} preserves has the same nullability as {@code x}.
+   * {@code CAST(x AS INTEGER)} preserves the same nullability as {@code x}.
    */
-  private Boolean nullable;
+  private final @Nullable Boolean nullable;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -70,7 +80,7 @@ public class SqlDataTypeSpec extends SqlNode {
    * Creates a type specification representing a type.
    *
    * @param typeNameSpec The type name can be basic sql type, row type,
-   *                     collections type and user defined type.
+   *                     collections type and user defined type
    */
   public SqlDataTypeSpec(
       final SqlTypeNameSpec typeNameSpec,
@@ -82,31 +92,14 @@ public class SqlDataTypeSpec extends SqlNode {
    * Creates a type specification representing a type, with time zone specified.
    *
    * @param typeNameSpec The type name can be basic sql type, row type,
-   *                     collections type and user defined type.
-   * @param timeZone     Specified time zone.
+   *                     collections type and user defined type
+   * @param timeZone     Specified time zone
    */
   public SqlDataTypeSpec(
       final SqlTypeNameSpec typeNameSpec,
-      TimeZone timeZone,
+      @Nullable TimeZone timeZone,
       SqlParserPos pos) {
     this(typeNameSpec, timeZone, null, pos);
-  }
-
-  /**
-   * Creates a type specification representing a type, with time zone
-   * and nullability specified.
-   *
-   * @param typeNameSpec The type name can be basic sql type, row type,
-   *                     collections type and user defined type.
-   * @param timeZone     Specified time zone.
-   * @param nullable     The nullability.
-   */
-  public SqlDataTypeSpec(
-      SqlTypeNameSpec typeNameSpec,
-      TimeZone timeZone,
-      Boolean nullable,
-      SqlParserPos pos) {
-    this(typeNameSpec, typeNameSpec, timeZone, nullable, pos);
   }
 
   /**
@@ -114,35 +107,32 @@ public class SqlDataTypeSpec extends SqlNode {
    * nullability and base type name specified.
    *
    * @param typeNameSpec The type name can be basic sql type, row type,
-   *                     collections type and user defined type.
-   * @param baseTypeName The base type name.
-   * @param timeZone     Specified time zone.
-   * @param nullable     The nullability.
+   *                     collections type and user defined type
+   * @param timeZone     Specified time zone
+   * @param nullable     The nullability
    */
   public SqlDataTypeSpec(
       SqlTypeNameSpec typeNameSpec,
-      SqlTypeNameSpec baseTypeName,
-      TimeZone timeZone,
-      Boolean nullable,
+      @Nullable TimeZone timeZone,
+      @Nullable Boolean nullable,
       SqlParserPos pos) {
     super(pos);
     this.typeNameSpec = typeNameSpec;
-    this.baseTypeName = baseTypeName;
     this.timeZone = timeZone;
     this.nullable = nullable;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode clone(SqlParserPos pos) {
+  @Override public SqlNode clone(SqlParserPos pos) {
     return new SqlDataTypeSpec(typeNameSpec, timeZone, pos);
   }
 
-  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
-  public SqlIdentifier getCollectionsTypeName() {
+  public @Nullable SqlIdentifier getCollectionsTypeName() {
     if (typeNameSpec instanceof SqlCollectionTypeNameSpec) {
       return typeNameSpec.getTypeName();
     }
@@ -157,21 +147,30 @@ public class SqlDataTypeSpec extends SqlNode {
     return typeNameSpec;
   }
 
-  public TimeZone getTimeZone() {
+  public @Nullable TimeZone getTimeZone() {
     return timeZone;
   }
 
-  public Boolean getNullable() {
+  public @Nullable Boolean getNullable() {
     return nullable;
   }
 
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
-    if (Objects.equals(nullable, this.nullable)) {
+    return withNullable(nullable, SqlParserPos.ZERO);
+  }
+
+  /** Returns a copy of this data type specification with a given
+   * nullability, extending the parser position. */
+  public SqlDataTypeSpec withNullable(Boolean nullable, SqlParserPos pos) {
+    final SqlParserPos newPos = pos == SqlParserPos.ZERO ? this.pos
+        : this.pos.plus(pos);
+    if (Objects.equals(nullable, this.nullable)
+        && newPos.equals(this.pos)) {
       return this;
     }
-    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, getParserPosition());
+    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, newPos);
   }
 
   /**
@@ -186,19 +185,19 @@ public class SqlDataTypeSpec extends SqlNode {
     return new SqlDataTypeSpec(elementTypeName, timeZone, getParserPosition());
   }
 
-  public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     typeNameSpec.unparse(writer, leftPrec, rightPrec);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateDataType(this);
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDataTypeSpec)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -227,7 +226,7 @@ public class SqlDataTypeSpec extends SqlNode {
    * <p>Throws an error if the type is not found.
    *
    * @param nullable Whether the type is nullable if the type specification
-   *                 does not explicitly state.
+   *                 does not explicitly state
    */
   public RelDataType deriveType(SqlValidator validator, boolean nullable) {
     RelDataType type;
@@ -243,11 +242,12 @@ public class SqlDataTypeSpec extends SqlNode {
 
   /**
    * Fix up the nullability of the {@code type}.
-   * @param typeFactory Type factory.
-   * @param type        The type to coerce nullability.
+   *
+   * @param typeFactory Type factory
+   * @param type        The type to coerce nullability
    * @param nullable    Default nullability to use if this type specification does not
-   *                    specify nullability.
-   * @return type with specified nullability or the default.
+   *                    specify nullability
+   * @return Type with specified nullability or the default(false)
    */
   private RelDataType fixUpNullability(RelDataTypeFactory typeFactory,
       RelDataType type, boolean nullable) {
@@ -257,5 +257,3 @@ public class SqlDataTypeSpec extends SqlNode {
     return typeFactory.createTypeWithNullability(type, nullable);
   }
 }
-
-// End SqlDataTypeSpec.java

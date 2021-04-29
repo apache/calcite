@@ -118,5 +118,3 @@ public class JavaTypeFactoryExtImpl
   }
 
 }
-
-// End JavaTypeFactoryExtImpl.java

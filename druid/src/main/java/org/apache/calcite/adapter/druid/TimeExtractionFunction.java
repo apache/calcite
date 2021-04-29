@@ -28,12 +28,14 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.util.Locale;
 import java.util.TimeZone;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
+import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 
 /**
  * Implementation of Druid time format extraction function.
@@ -64,8 +66,6 @@ public class TimeExtractionFunction implements ExtractionFunction {
       TimeUnitRange.HOUR,
       TimeUnitRange.MINUTE,
       TimeUnitRange.SECOND);
-
-  public static final String ISO_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   private final String format;
   private final Granularity granularity;
@@ -104,7 +104,8 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @return the time extraction function
    */
   public static TimeExtractionFunction createDefault(String timeZone) {
-    return new TimeExtractionFunction(ISO_TIME_FORMAT, null, timeZone, null);
+    return new TimeExtractionFunction(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT,
+        null, timeZone, null);
   }
 
   /**
@@ -145,7 +146,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
    */
   public static TimeExtractionFunction createFloorFromGranularity(
       Granularity granularity, String timeZone) {
-    return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity, timeZone,
+    return new TimeExtractionFunction(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT, granularity, timeZone,
         Locale.ROOT.toLanguageTag());
   }
 
@@ -189,14 +190,13 @@ public class TimeExtractionFunction implements ExtractionFunction {
     return timeUnit != null && VALID_TIME_FLOOR.contains(timeUnit);
   }
 
-  /**
-   * @param rexNode cast RexNode
-   * @param timeZone timezone
+  /** Translates a CAST expression to a Druid Time extraction function, or null
+   * when can not translate the cast.
    *
-   * @return Druid Time extraction function or null when can not translate the cast.
+   * @param rexNode CAST RexNode
+   * @param timeZone Timezone
    */
-  @Nullable
-  public static TimeExtractionFunction translateCastToTimeExtract(RexNode rexNode,
+  public static @Nullable TimeExtractionFunction translateCastToTimeExtract(RexNode rexNode,
       TimeZone timeZone) {
     assert rexNode.getKind() == SqlKind.CAST;
     final RexCall rexCall = (RexCall) rexNode;
@@ -241,5 +241,3 @@ public class TimeExtractionFunction implements ExtractionFunction {
   }
 
 }
-
-// End TimeExtractionFunction.java

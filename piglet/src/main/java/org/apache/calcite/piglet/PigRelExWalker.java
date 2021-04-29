@@ -80,5 +80,3 @@ class PigRelExWalker extends PlanWalker {
     return new PigRelExWalker(operatorPlan);
   }
 }
-
-// End PigRelExWalker.java

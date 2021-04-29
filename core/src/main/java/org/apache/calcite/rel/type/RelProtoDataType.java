@@ -27,5 +27,3 @@ import org.apache.calcite.linq4j.function.Function1;
 public interface RelProtoDataType
     extends Function1<RelDataTypeFactory, RelDataType> {
 }
-
-// End RelProtoDataType.java

@@ -33,6 +33,10 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.framework.qual.Covariant;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 
@@ -41,13 +45,14 @@ import java.util.Comparator;
  *
  * @param <T> Element type
  */
+@Covariant(0)
 public interface QueryableFactory<T> {
 
   /**
    * Applies an accumulator function over a sequence.
    */
-  T aggregate(Queryable<T> source,
-      FunctionExpression<Function2<T, T, T>> selector);
+  @Nullable T aggregate(Queryable<T> source,
+      FunctionExpression<Function2<@Nullable T, T, T>> selector);
 
   /**
    * Applies an accumulator function over a
@@ -201,14 +206,16 @@ public interface QueryableFactory<T> {
    * the type parameter's default value in a singleton collection if
    * the sequence is empty.
    */
-  Queryable<T> defaultIfEmpty(Queryable<T> source);
+  Queryable<@Nullable T> defaultIfEmpty(Queryable<T> source);
 
   /**
    * Returns the elements of the specified sequence or
    * the specified value in a singleton collection if the sequence
    * is empty.
+   *
+   * <p>If {@code value} is not null, the result is never null.
    */
-  Queryable<T> defaultIfEmpty(Queryable<T> source, T value);
+  Queryable<@PolyNull T> defaultIfEmpty(Queryable<T> source, @PolyNull T value);
 
   /**
    * Returns distinct elements from a sequence by using
@@ -237,18 +244,34 @@ public interface QueryableFactory<T> {
 
   /**
    * Produces the set difference of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Queryable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Queryable.)
    */
   Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable);
 
   /**
    * Produces the set difference of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Queryable.)
+   */
+  Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable, boolean all);
+
+  /**
+   * Produces the set difference of two sequences by
    * using the specified {@code EqualityComparer<T>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
   Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable,
       EqualityComparer<T> comparer);
+
+  /**
+   * Produces the set difference of two sequences by
+   * using the specified {@code EqualityComparer<T>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable,
+      EqualityComparer<T> comparer, boolean all);
 
   /**
    * Returns the first element of a sequence. (Defined
@@ -266,14 +289,14 @@ public interface QueryableFactory<T> {
    * Returns the first element of a sequence, or a
    * default value if the sequence contains no elements.
    */
-  T firstOrDefault(Queryable<T> source);
+  @Nullable T firstOrDefault(Queryable<T> source);
 
   /**
    * Returns the first element of a sequence that
    * satisfies a specified condition or a default value if no such
    * element is found.
    */
-  T firstOrDefault(Queryable<T> source,
+  @Nullable T firstOrDefault(Queryable<T> source,
       FunctionExpression<Predicate1<T>> predicate);
 
   /**
@@ -380,18 +403,34 @@ public interface QueryableFactory<T> {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Queryable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Queryable.)
    */
   Queryable<T> intersect(Queryable<T> source, Enumerable<T> enumerable);
 
   /**
    * Produces the set intersection of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Queryable.)
+   */
+  Queryable<T> intersect(Queryable<T> source, Enumerable<T> enumerable, boolean all);
+
+  /**
+   * Produces the set intersection of two sequences by
    * using the specified EqualityComparer to compare
-   * values.
+   * values, eliminate duplicates.
    */
   Queryable<T> intersect(Queryable<T> source, Enumerable<T> enumerable,
       EqualityComparer<T> comparer);
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the specified EqualityComparer to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  Queryable<T> intersect(Queryable<T> source, Enumerable<T> enumerable,
+      EqualityComparer<T> comparer, boolean all);
 
   /**
    * Correlates the elements of two sequences based on
@@ -805,5 +844,3 @@ public interface QueryableFactory<T> {
       Enumerable<T1> source1,
       FunctionExpression<Function2<T, T1, TResult>> resultSelector);
 }
-
-// End QueryableFactory.java

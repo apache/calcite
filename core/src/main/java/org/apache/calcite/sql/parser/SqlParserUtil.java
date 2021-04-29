@@ -22,6 +22,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -46,7 +47,9 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -64,6 +67,8 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utility methods relating to parsing SQL.
  */
@@ -79,11 +84,9 @@ public final class SqlParserUtil {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return the character-set prefix of an sql string literal; returns null
-   * if there is none
-   */
-  public static String getCharacterSet(String s) {
+  /** Returns the character-set prefix of a SQL string literal; returns null if
+   * there is none. */
+  public static @Nullable String getCharacterSet(String s) {
     if (s.charAt(0) == '\'') {
       return null;
     }
@@ -115,25 +118,22 @@ public final class SqlParserUtil {
     return new BigDecimal(s);
   }
 
-  /**
-   * @deprecated this method is not localized for Farrago standards
-   */
+  // CHECKSTYLE: IGNORE 1
+  /** @deprecated this method is not localized for Farrago standards */
   @Deprecated // to be removed before 2.0
   public static java.sql.Date parseDate(String s) {
     return java.sql.Date.valueOf(s);
   }
 
-  /**
-   * @deprecated Does not parse SQL:99 milliseconds
-   */
+  // CHECKSTYLE: IGNORE 1
+  /** @deprecated Does not parse SQL:99 milliseconds */
   @Deprecated // to be removed before 2.0
   public static java.sql.Time parseTime(String s) {
     return java.sql.Time.valueOf(s);
   }
 
-  /**
-   * @deprecated this method is not localized for Farrago standards
-   */
+  // CHECKSTYLE: IGNORE 1
+  /** @deprecated this method is not localized for Farrago standards */
   @Deprecated // to be removed before 2.0
   public static java.sql.Timestamp parseTimestamp(String s) {
     return java.sql.Timestamp.valueOf(s);
@@ -142,7 +142,7 @@ public final class SqlParserUtil {
   public static SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
     final String dateStr = parseString(s);
     final Calendar cal =
-        DateTimeUtils.parseDateFormat(dateStr, Format.PER_THREAD.get().date,
+        DateTimeUtils.parseDateFormat(dateStr, Format.get().date,
             DateTimeUtils.UTC_ZONE);
     if (cal == null) {
       throw SqlUtil.newContextException(pos,
@@ -157,7 +157,7 @@ public final class SqlParserUtil {
     final String dateStr = parseString(s);
     final DateTimeUtils.PrecisionTime pt =
         DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
-            Format.PER_THREAD.get().time, DateTimeUtils.UTC_ZONE, -1);
+            Format.get().time, DateTimeUtils.UTC_ZONE, -1);
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
           RESOURCE.illegalLiteral("TIME", s,
@@ -171,7 +171,7 @@ public final class SqlParserUtil {
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
     final String dateStr = parseString(s);
-    final Format format = Format.PER_THREAD.get();
+    final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
     // PostgreSQL); TODO: require time fields except in Babel's lenient mode
@@ -206,7 +206,7 @@ public final class SqlParserUtil {
   }
 
   /**
-   * Checks if the date/time format is valid
+   * Checks if the date/time format is valid, throws if not.
    *
    * @param pattern {@link SimpleDateFormat}  pattern
    */
@@ -315,12 +315,12 @@ public final class SqlParserUtil {
    */
   @Deprecated // to be removed before 2.0
   public static byte[] parseBinaryString(String s) {
-    s = s.replaceAll(" ", "");
-    s = s.replaceAll("\n", "");
-    s = s.replaceAll("\t", "");
-    s = s.replaceAll("\r", "");
-    s = s.replaceAll("\f", "");
-    s = s.replaceAll("'", "");
+    s = s.replace(" ", "");
+    s = s.replace("\n", "");
+    s = s.replace("\t", "");
+    s = s.replace("\r", "");
+    s = s.replace("\f", "");
+    s = s.replace("'", "");
 
     if (s.length() == 0) {
       return new byte[0];
@@ -341,18 +341,41 @@ public final class SqlParserUtil {
   }
 
   /**
+   * Converts a quoted identifier, unquoted identifier, or quoted string to a
+   * string of its contents.
+   *
+   * <p>First, if {@code startQuote} is provided, {@code endQuote} and
+   * {@code escape} must also be provided, and this method removes quotes.
+   *
+   * <p>Finally, converts the string to the provided casing.
+   */
+  public static String strip(String s, @Nullable String startQuote,
+      @Nullable String endQuote, @Nullable String escape, Casing casing) {
+    if (startQuote != null) {
+      return stripQuotes(s, Objects.requireNonNull(startQuote),
+          Objects.requireNonNull(endQuote), Objects.requireNonNull(escape),
+          casing);
+    } else {
+      return toCase(s, casing);
+    }
+  }
+
+  /**
    * Unquotes a quoted string, using different quotes for beginning and end.
    */
-  public static String strip(String s, String startQuote, String endQuote,
+  public static String stripQuotes(String s, String startQuote, String endQuote,
       String escape, Casing casing) {
-    if (startQuote != null) {
-      assert endQuote != null;
-      assert startQuote.length() == 1;
-      assert endQuote.length() == 1;
-      assert escape != null;
-      assert s.startsWith(startQuote) && s.endsWith(endQuote) : s;
-      s = s.substring(1, s.length() - 1).replace(escape, endQuote);
-    }
+    assert startQuote.length() == 1;
+    assert endQuote.length() == 1;
+    assert s.startsWith(startQuote) && s.endsWith(endQuote) : s;
+    s = s.substring(1, s.length() - 1).replace(escape, endQuote);
+    return toCase(s, casing);
+  }
+
+  /**
+   * Converts an identifier to a particular casing.
+   */
+  public static String toCase(String s, Casing casing) {
     switch (casing) {
     case TO_UPPER:
       return s.toUpperCase(Locale.ROOT);
@@ -397,53 +420,9 @@ public final class SqlParserUtil {
     return s.substring(start, stop);
   }
 
-  /**
-   * Looks for one or two carets in a SQL string, and if present, converts
-   * them into a parser position.
-   *
-   * <p>Examples:
-   *
-   * <ul>
-   * <li>findPos("xxx^yyy") yields {"xxxyyy", position 3, line 1 column 4}
-   * <li>findPos("xxxyyy") yields {"xxxyyy", null}
-   * <li>findPos("xxx^yy^y") yields {"xxxyyy", position 3, line 4 column 4
-   * through line 1 column 6}
-   * </ul>
-   */
+  @Deprecated // to be removed before 2.0
   public static StringAndPos findPos(String sql) {
-    int firstCaret = sql.indexOf('^');
-    if (firstCaret < 0) {
-      return new StringAndPos(sql, -1, null);
-    }
-    int secondCaret = sql.indexOf('^', firstCaret + 1);
-    if (secondCaret < 0) {
-      String sqlSansCaret =
-          sql.substring(0, firstCaret)
-              + sql.substring(firstCaret + 1);
-      int[] start = indexToLineCol(sql, firstCaret);
-      SqlParserPos pos = new SqlParserPos(start[0], start[1]);
-      return new StringAndPos(sqlSansCaret, firstCaret, pos);
-    } else {
-      String sqlSansCaret =
-          sql.substring(0, firstCaret)
-              + sql.substring(firstCaret + 1, secondCaret)
-              + sql.substring(secondCaret + 1);
-      int[] start = indexToLineCol(sql, firstCaret);
-
-      // subtract 1 because the col position needs to be inclusive
-      --secondCaret;
-      int[] end = indexToLineCol(sql, secondCaret);
-
-      // if second caret is on same line as first, decrement its column,
-      // because first caret pushed the string out
-      if (start[0] == end[0]) {
-        --end[1];
-      }
-
-      SqlParserPos pos =
-          new SqlParserPos(start[0], start[1], end[0], end[1]);
-      return new StringAndPos(sqlSansCaret, firstCaret, pos);
-    }
+    return StringAndPos.of(sql);
   }
 
   /**
@@ -514,7 +493,9 @@ public final class SqlParserUtil {
         + sql.substring(cut);
     if ((col != endCol) || (line != endLine)) {
       cut = lineColToIndex(sqlWithCarets, endLine, endCol);
-      ++cut; // for caret
+      if (line == endLine) {
+        ++cut; // for caret
+      }
       if (cut < sqlWithCarets.length()) {
         sqlWithCarets =
             sqlWithCarets.substring(0, cut)
@@ -526,7 +507,7 @@ public final class SqlParserUtil {
     return sqlWithCarets;
   }
 
-  public static String getTokenVal(String token) {
+  public static @Nullable String getTokenVal(String token) {
     // We don't care about the token which are not string
     if (!token.startsWith("\"")) {
       return null;
@@ -563,7 +544,7 @@ public final class SqlParserUtil {
           CalciteSystemProperty.DEFAULT_COLLATION_STRENGTH.value();
     }
 
-    Charset charset = Charset.forName(charsetStr);
+    Charset charset = SqlUtil.getCharset(charsetStr);
     String[] localeParts = localeStr.split("_");
     Locale locale;
     if (1 == localeParts.length) {
@@ -588,7 +569,21 @@ public final class SqlParserUtil {
   }
 
   public static SqlNode[] toNodeArray(SqlNodeList list) {
-    return list.toArray();
+    return list.toArray(new SqlNode[0]);
+  }
+
+  /** Converts "ROW (1, 2)" to "(1, 2)"
+   * and "3" to "(3)". */
+  public static SqlNodeList stripRow(SqlNode n) {
+    final List<SqlNode> list;
+    switch (n.getKind()) {
+    case ROW:
+      list = ((SqlCall) n).getOperandList();
+      break;
+    default:
+      list = ImmutableList.of(n);
+    }
+    return new SqlNodeList(list, n.getParserPosition());
   }
 
   @Deprecated // to be removed before 2.0
@@ -617,7 +612,7 @@ public final class SqlParserUtil {
       int start,
       int end,
       T o) {
-    Objects.requireNonNull(list);
+    requireNonNull(list);
     Preconditions.checkArgument(start < end);
     for (int i = end - 1; i > start; --i) {
       list.remove(i);
@@ -629,7 +624,7 @@ public final class SqlParserUtil {
    * Converts a list of {expression, operator, expression, ...} into a tree,
    * taking operator precedence and associativity into account.
    */
-  public static SqlNode toTree(List<Object> list) {
+  public static @Nullable SqlNode toTree(List<@Nullable Object> list) {
     if (list.size() == 1
         && list.get(0) instanceof SqlNode) {
       // Short-cut for the simple common case
@@ -658,12 +653,13 @@ public final class SqlParserUtil {
    *                    we encounter a token of this kind.
    * @return the root node of the tree which the list condenses into
    */
-  public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
+  public static @Nullable SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
       int start, final int minPrec, final SqlKind stopperKind) {
     PrecedenceClimbingParser parser = list.parser(start,
         token -> {
           if (token instanceof PrecedenceClimbingParser.Op) {
-            final SqlOperator op = ((ToTreeListItem) token.o).op;
+            PrecedenceClimbingParser.Op tokenOp = (PrecedenceClimbingParser.Op) token;
+            final SqlOperator op = ((ToTreeListItem) tokenOp.o()).op;
             return stopperKind != SqlKind.OTHER
                 && op.kind == stopperKind
                 || minPrec > 0
@@ -680,28 +676,29 @@ public final class SqlParserUtil {
     return node;
   }
 
-  private static SqlNode convert(PrecedenceClimbingParser.Token token) {
+  private static @Nullable SqlNode convert(PrecedenceClimbingParser.Token token) {
     switch (token.type) {
     case ATOM:
       return (SqlNode) token.o;
     case CALL:
       final PrecedenceClimbingParser.Call call =
           (PrecedenceClimbingParser.Call) token;
-      final List<SqlNode> list = new ArrayList<>();
+      final List<@Nullable SqlNode> list = new ArrayList<>();
       for (PrecedenceClimbingParser.Token arg : call.args) {
         list.add(convert(arg));
       }
-      final ToTreeListItem item = (ToTreeListItem) call.op.o;
-      if (item.op == SqlStdOperatorTable.UNARY_MINUS
-          && list.size() == 1
-          && list.get(0) instanceof SqlNumericLiteral) {
-        return SqlLiteral.createNegative((SqlNumericLiteral) list.get(0),
-            item.pos.plusAll(list));
-      }
-      if (item.op == SqlStdOperatorTable.UNARY_PLUS
-          && list.size() == 1
-          && list.get(0) instanceof SqlNumericLiteral) {
-        return list.get(0);
+      final ToTreeListItem item = (ToTreeListItem) call.op.o();
+      if (list.size() == 1) {
+        SqlNode firstItem = list.get(0);
+        if (item.op == SqlStdOperatorTable.UNARY_MINUS
+            && firstItem instanceof SqlNumericLiteral) {
+          return SqlLiteral.createNegative((SqlNumericLiteral) firstItem,
+              item.pos.plusAll(list));
+        }
+        if (item.op == SqlStdOperatorTable.UNARY_PLUS
+            && firstItem instanceof SqlNumericLiteral) {
+          return firstItem;
+        }
       }
       return item.op.createCall(item.pos.plusAll(list), list);
     default:
@@ -730,6 +727,30 @@ public final class SqlParserUtil {
       throw RESOURCE.unicodeEscapeCharIllegal(s).ex();
     }
     return c;
+  }
+
+  /**
+   * Returns whether the reported ParseException tokenImage
+   * allows SQL identifier.
+   *
+   * @param tokenImage The allowed tokens from the ParseException
+   * @param expectedTokenSequences Expected token sequences
+   *
+   * @return true if SQL identifier is allowed
+   */
+  public static boolean allowsIdentifier(String[] tokenImage, int[][] expectedTokenSequences) {
+    // Compares from tailing tokens first because the <IDENTIFIER>
+    // was very probably at the tail.
+    for (int i = expectedTokenSequences.length - 1; i >= 0; i--) {
+      int[] expectedTokenSequence = expectedTokenSequences[i];
+      for (int j = expectedTokenSequence.length - 1; j >= 0; j--) {
+        if (tokenImage[expectedTokenSequence[j]].equals("<IDENTIFIER>")) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -778,7 +799,7 @@ public final class SqlParserUtil {
       this.pos = pos;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return op.toString();
     }
 
@@ -788,22 +809,6 @@ public final class SqlParserUtil {
 
     public SqlParserPos getPos() {
       return pos;
-    }
-  }
-
-  /**
-   * Contains a string, the offset of a token within the string, and a parser
-   * position containing the beginning and end line number.
-   */
-  public static class StringAndPos {
-    public final String sql;
-    public final int cursor;
-    public final SqlParserPos pos;
-
-    StringAndPos(String sql, int cursor, SqlParserPos pos) {
-      this.sql = sql;
-      this.cursor = cursor;
-      this.pos = pos;
     }
   }
 
@@ -820,49 +825,51 @@ public final class SqlParserUtil {
       this.list = parser.all();
     }
 
-    public PrecedenceClimbingParser parser(int start,
+    @Override public PrecedenceClimbingParser parser(int start,
         Predicate<PrecedenceClimbingParser.Token> predicate) {
       return parser.copy(start, predicate);
     }
 
-    public int size() {
+    @Override public int size() {
       return list.size();
     }
 
-    public SqlOperator op(int i) {
-      return ((ToTreeListItem) list.get(i).o).getOperator();
+    @Override public SqlOperator op(int i) {
+      ToTreeListItem o = (ToTreeListItem) requireNonNull(list.get(i).o,
+          () -> "list.get(" + i + ").o is null in " + list);
+      return o.getOperator();
     }
 
     private static SqlParserPos pos(PrecedenceClimbingParser.Token token) {
       switch (token.type) {
       case ATOM:
-        return ((SqlNode) token.o).getParserPosition();
+        return requireNonNull((SqlNode) token.o, "token.o").getParserPosition();
       case CALL:
         final PrecedenceClimbingParser.Call call =
             (PrecedenceClimbingParser.Call) token;
-        SqlParserPos pos = ((ToTreeListItem) call.op.o).pos;
+        SqlParserPos pos = ((ToTreeListItem) call.op.o()).pos;
         for (PrecedenceClimbingParser.Token arg : call.args) {
           pos = pos.plus(pos(arg));
         }
         return pos;
       default:
-        return ((ToTreeListItem) token.o).getPos();
+        return requireNonNull((ToTreeListItem) token.o, "token.o").getPos();
       }
     }
 
-    public SqlParserPos pos(int i) {
+    @Override public SqlParserPos pos(int i) {
       return pos(list.get(i));
     }
 
-    public boolean isOp(int i) {
+    @Override public boolean isOp(int i) {
       return list.get(i).o instanceof ToTreeListItem;
     }
 
-    public SqlNode node(int i) {
+    @Override public @Nullable SqlNode node(int i) {
       return convert(list.get(i));
     }
 
-    public void replaceSublist(int start, int end, SqlNode e) {
+    @Override public void replaceSublist(int start, int end, @Nullable SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, parser.atom(e));
     }
   }
@@ -871,9 +878,9 @@ public final class SqlParserUtil {
    * {@link org.apache.calcite.sql.SqlSpecialOperator.TokenSequence}. */
   private static class OldTokenSequenceImpl
       implements SqlSpecialOperator.TokenSequence {
-    final List<Object> list;
+    final List<@Nullable Object> list;
 
-    private OldTokenSequenceImpl(List<Object> list) {
+    private OldTokenSequenceImpl(List<@Nullable Object> list) {
       this.list = list;
     }
 
@@ -898,7 +905,7 @@ public final class SqlParserUtil {
                   final List<PrecedenceClimbingParser.Token> tokens =
                       parser.all();
                   final SqlSpecialOperator op1 =
-                      (SqlSpecialOperator) ((ToTreeListItem) op2.o).op;
+                      (SqlSpecialOperator) requireNonNull((ToTreeListItem) op2.o, "op2.o").op;
                   SqlSpecialOperator.ReduceResult r =
                       op1.reduceExpr(tokens.indexOf(op2),
                           new TokenSequenceImpl(parser));
@@ -917,30 +924,33 @@ public final class SqlParserUtil {
       return builder.build();
     }
 
-    public int size() {
+    @Override public int size() {
       return list.size();
     }
 
-    public SqlOperator op(int i) {
-      return ((ToTreeListItem) list.get(i)).op;
+    @Override public SqlOperator op(int i) {
+      ToTreeListItem item = (ToTreeListItem) requireNonNull(list.get(i),
+          () -> "list.get(" + i + ")");
+      return item.op;
     }
 
-    public SqlParserPos pos(int i) {
+    @Override public SqlParserPos pos(int i) {
       final Object o = list.get(i);
       return o instanceof ToTreeListItem
           ? ((ToTreeListItem) o).pos
-          : ((SqlNode) o).getParserPosition();
+          : requireNonNull((SqlNode) o, () -> "item " + i + " is null in " + list)
+              .getParserPosition();
     }
 
-    public boolean isOp(int i) {
+    @Override public boolean isOp(int i) {
       return list.get(i) instanceof ToTreeListItem;
     }
 
-    public SqlNode node(int i) {
-      return (SqlNode) list.get(i);
+    @Override public @Nullable SqlNode node(int i) {
+      return (@Nullable SqlNode) list.get(i);
     }
 
-    public void replaceSublist(int start, int end, SqlNode e) {
+    @Override public void replaceSublist(int start, int end, @Nullable SqlNode e) {
       SqlParserUtil.replaceSublist(list, start, end, e);
     }
   }
@@ -948,8 +958,13 @@ public final class SqlParserUtil {
   /** Pre-initialized {@link DateFormat} objects, to be used within the current
    * thread, because {@code DateFormat} is not thread-safe. */
   private static class Format {
-    private static final ThreadLocal<Format> PER_THREAD =
+    private static final ThreadLocal<@Nullable Format> PER_THREAD =
         ThreadLocal.withInitial(Format::new);
+
+    private static Format get() {
+      return requireNonNull(PER_THREAD.get(), "PER_THREAD.get()");
+    }
+
     final DateFormat timestamp =
         new SimpleDateFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING,
             Locale.ROOT);
@@ -959,5 +974,3 @@ public final class SqlParserUtil {
         new SimpleDateFormat(DateTimeUtils.DATE_FORMAT_STRING, Locale.ROOT);
   }
 }
-
-// End SqlParserUtil.java

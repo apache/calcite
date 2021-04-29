@@ -43,7 +43,7 @@ public class SqlColumnListConstructor extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -57,5 +57,3 @@ public class SqlColumnListConstructor extends SqlSpecialOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlColumnListConstructor.java

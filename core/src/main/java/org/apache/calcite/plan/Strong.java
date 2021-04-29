@@ -23,6 +23,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -84,10 +85,37 @@ public class Strong {
     return of(nullColumns).isNotTrue(node);
   }
 
-  /** Returns how to deduce whether a particular kind of expression is null,
-   * given whether its arguments are null. */
+  /**
+   * Returns how to deduce whether a particular kind of expression is null,
+   * given whether its arguments are null.
+   *
+   * @deprecated Use {@link Strong#policy(RexNode)} or {@link Strong#policy(SqlOperator)}
+   */
+  @Deprecated // to be removed before 2.0
   public static Policy policy(SqlKind kind) {
     return MAP.getOrDefault(kind, Policy.AS_IS);
+  }
+
+  /**
+   * Returns how to deduce whether a particular {@link RexNode} expression is null,
+   * given whether its arguments are null.
+   */
+  public static Policy policy(RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      return policy(((RexCall) rexNode).getOperator());
+    }
+    return MAP.getOrDefault(rexNode.getKind(), Policy.AS_IS);
+  }
+
+  /**
+   * Returns how to deduce whether a particular {@link SqlOperator} expression is null,
+   * given whether its arguments are null.
+   */
+  public static Policy policy(SqlOperator operator) {
+    if (operator.getStrongPolicyInference() != null) {
+      return operator.getStrongPolicyInference().get();
+    }
+    return MAP.getOrDefault(operator.getKind(), Policy.AS_IS);
   }
 
   /**
@@ -108,7 +136,7 @@ public class Strong {
     final ImmutableBitSet.Builder nullColumns = ImmutableBitSet.builder();
     e.accept(
         new RexVisitorImpl<Void>(true) {
-          public Void visitInputRef(RexInputRef inputRef) {
+          @Override public Void visitInputRef(RexInputRef inputRef) {
             nullColumns.set(inputRef.getIndex());
             return super.visitInputRef(inputRef);
           }
@@ -137,7 +165,7 @@ public class Strong {
    * expressions, and you may override methods to test hypotheses such as
    * "if {@code x} is null, is {@code x + y} null? */
   public boolean isNull(RexNode node) {
-    final Policy policy = policy(node.getKind());
+    final Policy policy = policy(node);
     switch (policy) {
     case NOT_NULL:
       return false;
@@ -264,6 +292,7 @@ public class Strong {
     map.put(SqlKind.LEAST, Policy.ANY);
     map.put(SqlKind.TIMESTAMP_ADD, Policy.ANY);
     map.put(SqlKind.TIMESTAMP_DIFF, Policy.ANY);
+    map.put(SqlKind.ITEM, Policy.ANY);
 
     // Assume that any other expressions cannot be simplified.
     for (SqlKind k
@@ -294,5 +323,3 @@ public class Strong {
     AS_IS,
   }
 }
-
-// End Strong.java

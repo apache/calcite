@@ -25,5 +25,3 @@ import java.math.BigDecimal;
  */
 public interface BigDecimalFunction1<T0> extends Function1<T0, BigDecimal> {
 }
-
-// End BigDecimalFunction1.java

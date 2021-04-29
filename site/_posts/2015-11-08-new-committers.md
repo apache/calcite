@@ -27,5 +27,5 @@ limitations under the License.
 The Calcite project management committee today added two new
 committers for their work on Calcite. Welcome!
 
-* [Josh Elser](http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201511.mbox/%3CCAPSgeEQ4%2Bj8MNjYFaa%3D15QjJV%2BiVDwG6bAhW1muk8Gdo0UAYWg%40mail.gmail.com%3E)
-* [Maryann Xue](http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201511.mbox/%3CCAPSgeEQg7ACNWfPXiPY69PNPqA9ov%2BKGzzrNe7t7mMyOEV7hYQ%40mail.gmail.com%3E)
+* [Josh Elser](https://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201511.mbox/%3CCAPSgeEQ4%2Bj8MNjYFaa%3D15QjJV%2BiVDwG6bAhW1muk8Gdo0UAYWg%40mail.gmail.com%3E)
+* [Maryann Xue](https://mail-archives.apache.org/mod_mbox/incubator-calcite-dev/201511.mbox/%3CCAPSgeEQg7ACNWfPXiPY69PNPqA9ov%2BKGzzrNe7t7mMyOEV7hYQ%40mail.gmail.com%3E)

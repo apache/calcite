@@ -16,27 +16,40 @@
  */
 package org.apache.calcite.rel;
 
-import org.junit.Test;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
+
+import com.google.common.collect.Lists;
+
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.calcite.rel.RelCollations.EMPTY;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.ASCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.CLUSTERED;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.DESCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.STRICTLY_ASCENDING;
+import static org.apache.calcite.rel.RelFieldCollation.Direction.STRICTLY_DESCENDING;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for {@link RelCollation} and {@link RelFieldCollation}.
  */
-public class RelCollationTest {
-  /** Unit test for {@link RelCollations#contains}. */
+class RelCollationTest {
+  /** Unit test for {@link RelCollations#contains(List, ImmutableIntList)}. */
   @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
-  @Test public void testCollationContains() {
+  @Test void testCollationContains() {
     final RelCollation collation21 =
         RelCollations.of(
-            new RelFieldCollation(2, RelFieldCollation.Direction.ASCENDING),
-            new RelFieldCollation(1, RelFieldCollation.Direction.DESCENDING));
+            new RelFieldCollation(2, ASCENDING),
+            new RelFieldCollation(1, DESCENDING));
     assertThat(RelCollations.contains(collation21, Arrays.asList(2)), is(true));
     assertThat(RelCollations.contains(collation21, Arrays.asList(1)),
         is(false));
@@ -65,7 +78,7 @@ public class RelCollationTest {
 
     final RelCollation collation1 =
         RelCollations.of(
-            new RelFieldCollation(1, RelFieldCollation.Direction.DESCENDING));
+            new RelFieldCollation(1, DESCENDING));
     assertThat(RelCollations.contains(collation1, Arrays.asList(1, 1)),
         is(true));
     assertThat(RelCollations.contains(collation1, Arrays.asList(2, 2)),
@@ -76,9 +89,74 @@ public class RelCollationTest {
         is(true));
   }
 
-  /** Unit test for
-   *  {@link org.apache.calcite.rel.RelCollationImpl#compareTo}. */
-  @Test public void testCollationCompare() {
+  /** Unit test for {@link RelCollations#collationsContainKeysOrderless(List, List)}. */
+  @Test void testCollationsContainKeysOrderless() {
+    final List<RelCollation> collations = Lists.newArrayList(collation(2, 3, 1));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(2, 2)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(2, 3)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 2)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 2, 1)), is(true));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 2, 1, 0)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(2, 3, 0)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(1)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(3, 1)), is(false));
+    assertThat(
+        RelCollations.collationsContainKeysOrderless(
+        collations, Arrays.asList(0)), is(false));
+  }
+
+  /** Unit test for {@link RelCollations#keysContainCollationsOrderless(List, List)}. */
+  @Test void testKeysContainCollationsOrderless() {
+    final List<Integer> keys = Arrays.asList(2, 3, 1);
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(2, 2))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(2, 3))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 2))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 2, 1))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 2, 1, 0))), is(false));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(2, 3, 0))), is(false));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(1))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(3, 1))), is(true));
+    assertThat(
+        RelCollations.keysContainCollationsOrderless(
+            keys, Lists.newArrayList(collation(0))), is(false));
+  }
+
+  /**
+   * Unit test for {@link org.apache.calcite.rel.RelCollationImpl#compareTo}.
+   */
+  @Test void testCollationCompare() {
     assertThat(collation(1, 2).compareTo(collation(1, 2)), equalTo(0));
     assertThat(collation(1, 2).compareTo(collation(1)), equalTo(1));
     assertThat(collation(1).compareTo(collation(1, 2)), equalTo(-1));
@@ -88,6 +166,60 @@ public class RelCollationTest {
     assertThat(collation(1).compareTo(collation()), equalTo(1));
   }
 
+  @Test void testCollationMapping() {
+    final int n = 10; // Mapping source count.
+    // [0]
+    RelCollation collation0 = collation(0);
+    assertThat(collation0.apply(mapping(n, 0)), is(collation0));
+    assertThat(collation0.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation0.apply(mapping(n, 0, 1)), is(collation0));
+    assertThat(collation0.apply(mapping(n, 1, 0)), is(collation(1)));
+    assertThat(collation0.apply(mapping(n, 3, 1, 0)), is(collation(2)));
+
+    // [0,1]
+    RelCollation collation01 = collation(0, 1);
+    assertThat(collation01.apply(mapping(n, 0)), is(collation(0)));
+    assertThat(collation01.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation01.apply(mapping(n, 2)), is(EMPTY));
+    assertThat(collation01.apply(mapping(n, 0, 1)), is(collation01));
+    assertThat(collation01.apply(mapping(n, 1, 0)), is(collation(1, 0)));
+    assertThat(collation01.apply(mapping(n, 3, 1, 0)), is(collation(2, 1)));
+    assertThat(collation01.apply(mapping(n, 3, 2, 0)), is(collation(2)));
+
+    // [2,3,4]
+    RelCollation collation234 = collation(2, 3, 4);
+    assertThat(collation234.apply(mapping(n, 0)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 2)), is(collation(0)));
+    assertThat(collation234.apply(mapping(n, 3)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 4)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 5)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 0, 1, 2)), is(collation(2)));
+    assertThat(collation234.apply(mapping(n, 3, 2)), is(collation(1, 0)));
+    assertThat(collation234.apply(mapping(n, 3, 2, 4)), is(collation(1, 0, 2)));
+    assertThat(collation234.apply(mapping(n, 3, 2, 4)), is(collation(1, 0, 2)));
+    assertThat(collation234.apply(mapping(n, 4, 3, 2, 0)), is(collation(2, 1, 0)));
+    assertThat(collation234.apply(mapping(n, 3, 4, 0)), is(EMPTY));
+
+    // [9] , 9 < mapping.sourceCount()
+    RelCollation collation9 = collation(n - 1);
+    assertThat(collation9.apply(mapping(n, 0)), is(EMPTY));
+    assertThat(collation9.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation9.apply(mapping(n, 2)), is(EMPTY));
+    assertThat(collation9.apply(mapping(n, n - 1)), is(collation(0)));
+  }
+
+  /**
+   * Unit test for {@link RelFieldCollation.Direction#reverse()}.
+   */
+  @Test void testDirectionReverse() {
+    assertThat(ASCENDING.reverse(), is(DESCENDING));
+    assertThat(DESCENDING.reverse(), is(ASCENDING));
+    assertThat(STRICTLY_ASCENDING.reverse(), is(STRICTLY_DESCENDING));
+    assertThat(STRICTLY_DESCENDING.reverse(), is(STRICTLY_ASCENDING));
+    assertThat(CLUSTERED.reverse(), is(CLUSTERED));
+  }
+
   private static RelCollation collation(int... ordinals) {
     final List<RelFieldCollation> list = new ArrayList<>();
     for (int ordinal : ordinals) {
@@ -95,6 +227,8 @@ public class RelCollationTest {
     }
     return RelCollations.of(list);
   }
-}
 
-// End RelCollationTest.java
+  private static Mapping mapping(int sourceCount, int... sources) {
+    return Mappings.target(ImmutableIntList.of(sources), sourceCount);
+  }
+}

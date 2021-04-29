@@ -18,9 +18,4 @@
 /**
  * Graph-theoretic algorithms and data structures.
  */
-@PackageMarker
 package org.apache.calcite.util.graph;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

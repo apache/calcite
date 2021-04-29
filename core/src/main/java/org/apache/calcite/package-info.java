@@ -18,9 +18,4 @@
 /**
  * Main package for Calcite, the dynamic data management platform.
  */
-@PackageMarker
 package org.apache.calcite;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

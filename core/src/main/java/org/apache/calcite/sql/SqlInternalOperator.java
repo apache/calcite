@@ -25,6 +25,8 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Generic operator for nodes with internal syntax.
  *
@@ -60,7 +62,7 @@ public class SqlInternalOperator extends SqlSpecialOperator {
       int prec,
       boolean isLeftAssoc,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
@@ -74,8 +76,8 @@ public class SqlInternalOperator extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
-    return SqlSyntax.FUNCTION;
+  @Override public SqlSyntax getSyntax() {
+    return SqlSyntax.INTERNAL;
   }
 
   @Override public RelDataType deriveType(SqlValidator validator,
@@ -83,5 +85,3 @@ public class SqlInternalOperator extends SqlSpecialOperator {
     return validateOperands(validator, scope, call);
   }
 }
-
-// End SqlInternalOperator.java

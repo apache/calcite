@@ -34,7 +34,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 
 /**
- * This class is specific to Hive, Spark and bigQuery to unparse CURRENT_TIMESTAMP function
+ * This class is specific to Hive, Spark and bigQuery to unparse CURRENT_TIMESTAMP function.
  */
 public class CurrentTimestampHandler {
 
@@ -52,7 +52,7 @@ public class CurrentTimestampHandler {
     sqlDialect.unparseCall(writer, castCall, leftPrec, rightPrec);
   }
 
-  private SqlCall makeFormatTimestampCall(SqlCall call) {
+  public SqlCall makeFormatTimestampCall(SqlCall call) {
     SqlCharStringLiteral formatNode = makeSqlNodeForFormatTimestamp(call);
     SqlNode timestampCall = new SqlBasicCall(CURRENT_TIMESTAMP, SqlNode.EMPTY_ARRAY,
             SqlParserPos.ZERO);
@@ -71,12 +71,10 @@ public class CurrentTimestampHandler {
     return SqlLiteral.createCharString(dateFormat, SqlParserPos.ZERO);
   }
 
-  private SqlCall makeCastCall(SqlCall call) {
+  public SqlCall makeCastCall(SqlCall call) {
     SqlNode sqlTypeNode = sqlDialect.getCastSpec(
             new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     SqlNode[] castOperands = new SqlNode[]{call, sqlTypeNode};
     return new SqlBasicCall(CAST, castOperands, SqlParserPos.ZERO);
   }
 }
-
-// End CurrentTimestampHandler.java

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-
 /**
  * A class that describes how many operands an operator can take.
  */
@@ -37,5 +36,3 @@ public interface SqlOperandCountRange {
   int getMax();
 
 }
-
-// End SqlOperandCountRange.java

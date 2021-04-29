@@ -25,9 +25,12 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.concurrent.ExecutionException;
 
-/** Implementation of {@link MetadataFactory} that gets providers from a
+/**
+ * Implementation of {@link MetadataFactory} that gets providers from a
  * {@link RelMetadataProvider} and stores them in a cache.
  *
  * <p>The cache does not store metadata. It remembers which providers can
@@ -36,38 +39,39 @@ import java.util.concurrent.ExecutionException;
  */
 public class MetadataFactoryImpl implements MetadataFactory {
   @SuppressWarnings("unchecked")
-  public static final UnboundMetadata<Metadata> DUMMY = (rel, mq) -> null;
+  public static final UnboundMetadata<@Nullable Metadata> DUMMY = (rel, mq) -> null;
 
   private final LoadingCache<
-      Pair<Class<RelNode>, Class<Metadata>>, UnboundMetadata<Metadata>> cache;
+      Pair<Class<RelNode>, Class<Metadata>>,
+      UnboundMetadata<@Nullable Metadata>> cache;
 
   public MetadataFactoryImpl(RelMetadataProvider provider) {
     this.cache = CacheBuilder.newBuilder().build(loader(provider));
   }
 
   private static CacheLoader<Pair<Class<RelNode>, Class<Metadata>>,
-      UnboundMetadata<Metadata>> loader(final RelMetadataProvider provider) {
-    return CacheLoader.from(key -> {
-      final UnboundMetadata<Metadata> function =
-          provider.apply(key.left, key.right);
-      // Return DUMMY, not null, so the cache knows to not ask again.
-      return function != null ? function : DUMMY;
-    });
+      UnboundMetadata<@Nullable Metadata>> loader(final RelMetadataProvider provider) {
+    //noinspection RedundantTypeArguments
+    return CacheLoader.<Pair<Class<RelNode>, Class<Metadata>>,
+        UnboundMetadata<@Nullable Metadata>>from(key -> {
+          final UnboundMetadata<@Nullable Metadata> function =
+              provider.apply(key.left, key.right);
+          // Return DUMMY, not null, so the cache knows to not ask again.
+          return function != null ? function : DUMMY;
+        });
   }
 
-  public <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq,
+  @Override public <@Nullable M extends @Nullable Metadata> M query(
+      RelNode rel, RelMetadataQuery mq,
       Class<M> metadataClazz) {
     try {
       //noinspection unchecked
       final Pair<Class<RelNode>, Class<Metadata>> key =
-          (Pair) Pair.of(rel.getClass(), metadataClazz);
+          Pair.of((Class<RelNode>) rel.getClass(), (Class<Metadata>) metadataClazz);
       final Metadata apply = cache.get(key).bind(rel, mq);
       return metadataClazz.cast(apply);
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 }
-
-// End MetadataFactoryImpl.java

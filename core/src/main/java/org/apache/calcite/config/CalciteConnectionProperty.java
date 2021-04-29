@@ -21,16 +21,17 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.util.Bug;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 
 import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
+import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
 
 /**
  * Properties that may be specified on the JDBC connect string.
@@ -79,8 +80,8 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   LEX("lex", Type.ENUM, Lex.ORACLE, false),
 
   /** Collection of built-in functions and operators. Valid values include
-   * "standard", "mysql", "oracle", "postgresql" and "spatial", and also
-   * comma-separated lists, for example "oracle,spatial". */
+   * "standard", "bigquery", "mysql", "oracle", "postgresql" and "spatial",
+   * and also comma-separated lists, for example "oracle,spatial". */
   FUN("fun", Type.STRING, "standard", true),
 
   /** How identifiers are quoted.
@@ -150,18 +151,41 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * default constructor or an {@code INSTANCE} constant. */
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
-  /** SQL conformance level. */
+  /** SQL conformance level.
+   *
+   * <p>Controls the semantics of ISO standard SQL features that are implemented
+   * in non-standard ways in some other systems.
+   *
+   * <p>For example, the {@code SUBSTRING(string FROM start [FOR length])}
+   * operator treats negative {@code start} values as 1, but BigQuery's
+   * implementation regards negative {@code starts} as counting from the end.
+   * If {@code conformance=BIG_QUERY} we will use BigQuery's behavior.
+   *
+   * <p>This property only affects ISO standard SQL features. For example, the
+   * {@code SUBSTR} function is non-standard, so is controlled by the
+   * {@link #FUN fun} property. If you set {@code fun=oracle} you will get
+   * {@code SUBSTR} with Oracle's semantics; if you set {@code fun=postgres} you
+   * will get {@code SUBSTR} with PostgreSQL's (slightly different)
+   * semantics. */
   CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false),
 
   /** Whether to make implicit type coercion when type mismatch
    * for validation, default true. */
-  TYPE_COERCION("typeCoercion", Type.BOOLEAN, true, false);
+  TYPE_COERCION("typeCoercion", Type.BOOLEAN, true, false),
+
+  /** Whether to make create implicit functions if functions do not exist
+   * in the operator table, default false. */
+  LENIENT_OPERATOR_LOOKUP("lenientOperatorLookup", Type.BOOLEAN, false, false),
+
+  /** Whether to enable top-down optimization in Volcano planner. */
+  TOPDOWN_OPT("topDownOpt", Type.BOOLEAN, CalciteSystemProperty.TOPDOWN_OPT.value(), false);
 
   private final String camelName;
   private final Type type;
-  private final Object defaultValue;
+  @SuppressWarnings("ImmutableEnumChecker")
+  private final @Nullable Object defaultValue;
   private final boolean required;
-  private final Class valueClass;
+  private final @Nullable Class valueClass;
 
   private static final Map<String, CalciteConnectionProperty> NAME_TO_PROPS;
 
@@ -177,13 +201,13 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     }
   }
 
-  CalciteConnectionProperty(String camelName, Type type, Object defaultValue,
+  CalciteConnectionProperty(String camelName, Type type, @Nullable Object defaultValue,
       boolean required) {
     this(camelName, type, defaultValue, required, null);
   }
 
-  CalciteConnectionProperty(String camelName, Type type, Object defaultValue,
-      boolean required, Class valueClass) {
+  CalciteConnectionProperty(String camelName, Type type, @Nullable Object defaultValue,
+      boolean required, @Nullable Class valueClass) {
     this.camelName = camelName;
     this.type = type;
     this.defaultValue = defaultValue;
@@ -194,50 +218,27 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     }
   }
 
-  public String camelName() {
+  @Override public String camelName() {
     return camelName;
   }
 
-  public Object defaultValue() {
+  @Override public @Nullable Object defaultValue() {
     return defaultValue;
   }
 
-  public Type type() {
+  @Override public Type type() {
     return type;
   }
 
-  public Class valueClass() {
+  @Override public @Nullable Class valueClass() {
     return valueClass;
   }
 
-  public boolean required() {
+  @Override public boolean required() {
     return required;
   }
 
-  public PropEnv wrap(Properties properties) {
-    return new PropEnv(parse2(properties, NAME_TO_PROPS), this);
+  @Override public PropEnv wrap(Properties properties) {
+    return new PropEnv(parse(properties, NAME_TO_PROPS), this);
   }
-
-  /** Fixed version of
-   * {@link org.apache.calcite.avatica.ConnectionConfigImpl#parse}
-   * until we upgrade Avatica. */
-  private static Map<ConnectionProperty, String> parse2(Properties properties,
-      Map<String, ? extends ConnectionProperty> nameToProps) {
-    Bug.upgrade("avatica-1.10");
-    final Map<ConnectionProperty, String> map = new LinkedHashMap<>();
-    for (String name : properties.stringPropertyNames()) {
-      final ConnectionProperty connectionProperty =
-          nameToProps.get(name.toUpperCase(Locale.ROOT));
-      if (connectionProperty == null) {
-        // For now, don't throw. It messes up sub-projects.
-        //throw new RuntimeException("Unknown property '" + name + "'");
-        continue;
-      }
-      map.put(connectionProperty, properties.getProperty(name));
-    }
-    return map;
-  }
-
 }
-
-// End CalciteConnectionProperty.java

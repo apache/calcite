@@ -33,5 +33,3 @@ public class SqlRegrCountAggFunction extends SqlCountAggFunction {
     Preconditions.checkArgument(SqlKind.REGR_COUNT == kind, "unsupported sql kind: " + kind);
   }
 }
-
-// End SqlRegrCountAggFunction.java

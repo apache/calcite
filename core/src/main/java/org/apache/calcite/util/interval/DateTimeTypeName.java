@@ -17,7 +17,7 @@
 package org.apache.calcite.util.interval;
 
 /**
- * DateTime interval
+ * DateTime interval.
  */
 public enum DateTimeTypeName {
   YEAR(1, "YEAR"),
@@ -35,5 +35,3 @@ public enum DateTimeTypeName {
     this.dateTime = dateTime;
   }
 }
-
-// End DateTimeTypeName.java

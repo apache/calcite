@@ -22,6 +22,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
  * RelTraitDef may be singletons under the following conditions:
@@ -57,6 +59,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    *
    * <p>Uses weak interner to allow GC.
    */
+  @SuppressWarnings("BetaApi")
   private final Interner<T> interner = Interners.newWeakInterner();
 
   //~ Constructors -----------------------------------------------------------
@@ -76,15 +79,11 @@ public abstract class RelTraitDef<T extends RelTrait> {
     return false;
   }
 
-  /**
-   * @return the specific RelTrait type associated with this RelTraitDef.
-   */
+  /** Returns the specific RelTrait type associated with this RelTraitDef. */
   public abstract Class<T> getTraitClass();
 
-  /**
-   * @return a simple name for this RelTraitDef (for use in
-   * {@link org.apache.calcite.rel.RelNode#explain}).
-   */
+  /** Returns a simple name for this RelTraitDef (for use in
+   * {@link org.apache.calcite.rel.RelNode#explain}). */
   public abstract String getSimpleName();
 
   /**
@@ -99,6 +98,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * @param trait a possibly non-canonical RelTrait
    * @return a canonical RelTrait.
    */
+  @SuppressWarnings("BetaApi")
   public final T canonize(T trait) {
     if (!(trait instanceof RelCompositeTrait)) {
       assert getTraitClass().isInstance(trait)
@@ -119,7 +119,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    *                                    converters are allowed
    * @return a converted RelNode or null if conversion is not possible
    */
-  public abstract RelNode convert(
+  public abstract @Nullable RelNode convert(
       RelOptPlanner planner,
       RelNode rel,
       T toTrait,
@@ -137,23 +137,6 @@ public abstract class RelTraitDef<T extends RelTrait> {
       RelOptPlanner planner,
       T fromTrait,
       T toTrait);
-
-  /**
-   * Tests whether the given RelTrait can be converted to another RelTrait.
-   *
-   * @param planner   the planner requesting the conversion test
-   * @param fromTrait the RelTrait to convert from
-   * @param toTrait   the RelTrait to convert to
-   * @param fromRel   the RelNode to convert from (with fromTrait)
-   * @return true if fromTrait can be converted to toTrait
-   */
-  public boolean canConvert(
-      RelOptPlanner planner,
-      T fromTrait,
-      T toTrait,
-      RelNode fromRel) {
-    return canConvert(planner, fromTrait, toTrait);
-  }
 
   /**
    * Provides notification of the registration of a particular
@@ -186,5 +169,3 @@ public abstract class RelTraitDef<T extends RelTrait> {
    */
   public abstract T getDefault();
 }
-
-// End RelTraitDef.java

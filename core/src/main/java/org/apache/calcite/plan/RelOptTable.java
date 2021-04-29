@@ -22,12 +22,15 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -59,7 +62,7 @@ public interface RelOptTable extends Wrapper {
   /**
    * Returns the {@link RelOptSchema} this table belongs to.
    */
-  RelOptSchema getRelOptSchema();
+  @Nullable RelOptSchema getRelOptSchema();
 
   /**
    * Converts this table into a {@link RelNode relational expression}.
@@ -80,7 +83,7 @@ public interface RelOptTable extends Wrapper {
    *
    * @see RelMetadataQuery#collations(RelNode)
    */
-  List<RelCollation> getCollationList();
+  @Nullable List<RelCollation> getCollationList();
 
   /**
    * Returns a description of the physical distribution of the rows
@@ -88,7 +91,7 @@ public interface RelOptTable extends Wrapper {
    *
    * @see RelMetadataQuery#distribution(RelNode)
    */
-  RelDistribution getDistribution();
+  @Nullable RelDistribution getDistribution();
 
   /**
    * Returns whether the given columns are a key or a superset of a unique key
@@ -100,17 +103,25 @@ public interface RelOptTable extends Wrapper {
   boolean isKey(ImmutableBitSet columns);
 
   /**
+   * Returns a list of unique keys, empty list if no key exist,
+   * the result should be consistent with {@code isKey}.
+   */
+  @Nullable List<ImmutableBitSet> getKeys();
+
+  /**
    * Returns the referential constraints existing for this table. These constraints
    * are represented over other tables using {@link RelReferentialConstraint} nodes.
    */
-  List<RelReferentialConstraint> getReferentialConstraints();
+  @Nullable List<RelReferentialConstraint> getReferentialConstraints();
 
   /**
    * Generates code for this table.
    *
    * @param clazz The desired collection class; for example {@code Queryable}.
+   *
+   * @return the code for the table, or null if code generation is not supported
    */
-  Expression getExpression(Class clazz);
+  @Nullable Expression getExpression(Class clazz);
 
   /** Returns a table with the given extra fields.
    *
@@ -137,14 +148,20 @@ public interface RelOptTable extends Wrapper {
      * @return Relational expression
      */
     RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath, List<String> viewPath);
+        List<String> schemaPath, @Nullable List<String> viewPath);
   }
 
   /** Contains the context needed to convert a a table into a relational
    * expression. */
   interface ToRelContext extends ViewExpander {
     RelOptCluster getCluster();
+
+    /**
+     * Returns the table hints of the table to convert,
+     * usually you can use the hints to pass along some dynamic params.
+     *
+     * @return the hints attached to the table, never null
+     */
+    List<RelHint> getTableHints();
   }
 }
-
-// End RelOptTable.java

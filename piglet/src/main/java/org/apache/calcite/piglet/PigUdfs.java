@@ -43,5 +43,3 @@ public class PigUdfs {
     return new BigDecimalMax().exec(input);
   }
 }
-
-// End PigUdfs.java

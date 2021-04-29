@@ -40,5 +40,3 @@ public interface Lookup<K, V>
   <TResult> Enumerable<TResult> applyResultSelector(
       Function2<K, Enumerable<V>, TResult> resultSelector);
 }
-
-// End Lookup.java

@@ -66,7 +66,7 @@ public abstract class SortExchange extends Exchange {
   /**
    * Creates a SortExchange by parsing serialized output.
    */
-  public SortExchange(RelInput input) {
+  protected SortExchange(RelInput input) {
     this(input.getCluster(),
         input.getTraitSet().plus(input.getCollation())
             .plus(input.getDistribution()),
@@ -103,10 +103,8 @@ public abstract class SortExchange extends Exchange {
     return collation;
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("collation", collation);
   }
 }
-
-// End SortExchange.java

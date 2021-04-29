@@ -59,5 +59,3 @@ public class SqlUploadJarNode extends SqlAlter {
     writer.endList(frame);
   }
 }
-
-// End SqlUploadJarNode.java

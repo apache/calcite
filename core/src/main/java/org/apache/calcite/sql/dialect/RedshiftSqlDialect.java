@@ -21,27 +21,28 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Redshift database.
  */
 public class RedshiftSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new RedshiftSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.REDSHIFT)
-          .withIdentifierQuoteString("\"")
-          .withQuotedCasing(Casing.TO_LOWER)
-          .withUnquotedCasing(Casing.TO_LOWER)
-          .withCaseSensitive(false));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.REDSHIFT)
+      .withIdentifierQuoteString("\"")
+      .withQuotedCasing(Casing.TO_LOWER)
+      .withUnquotedCasing(Casing.TO_LOWER)
+      .withCaseSensitive(false);
+
+  public static final SqlDialect DEFAULT = new RedshiftSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a RedshiftSqlDialect. */
   public RedshiftSqlDialect(Context context) {
     super(context);
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 }
-
-// End RedshiftSqlDialect.java

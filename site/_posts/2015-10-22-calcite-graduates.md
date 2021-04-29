@@ -26,7 +26,7 @@ limitations under the License.
 -->
 
 On October 21st, 2015 the board of the
-[Apache Software Foundation](http://www.apache.org)
+[Apache Software Foundation](https://www.apache.org)
 voted to establish Calcite as a top-level Apache project.
 
 ![Calcite's graduation cake]({{ site.baseurl }}/img/cake.jpg)
@@ -49,14 +49,14 @@ Calcite's committers have delivered eight releases during incubation
 
 The project has become a key component in many high-performance
 databases, including the
-[Apache Drill](http://drill.apache.org),
-[Apache Hive](http://hive.apache.org),
-[Apache Kylin](http://kylin.apache.org) and
-[Apache Phoenix](http://phoenix.apache.org) open source projects,
+[Apache Drill](https://drill.apache.org),
+[Apache Hive](https://hive.apache.org),
+[Apache Kylin](https://kylin.apache.org) and
+[Apache Phoenix](https://phoenix.apache.org) open source projects,
 and several commercial products.
 
-Also, in collaboration with [Apache Samza](http://samza.apache.org) and
-[Apache Storm](http://storm.apache.org), Calcite is developing
+Also, in collaboration with [Apache Samza](https://samza.apache.org) and
+[Apache Storm](https://storm.apache.org), Calcite is developing
 [streaming extensions to standard SQL]({{ site.baseurl }}/docs/stream.html).
 
 The Calcite community met at a hangout on October 27th, 2015, and

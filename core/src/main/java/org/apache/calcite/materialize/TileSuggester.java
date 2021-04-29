@@ -21,6 +21,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.pentaho.aggdes.algorithm.Algorithm;
 import org.pentaho.aggdes.algorithm.Progress;
 import org.pentaho.aggdes.algorithm.Result;
@@ -101,31 +102,31 @@ public class TileSuggester {
       this.attributes = attributeBuilder.build();
     }
 
-    public List<? extends Table> getTables() {
+    @Override public List<? extends Table> getTables() {
       return ImmutableList.of(table);
     }
 
-    public List<Measure> getMeasures() {
+    @Override public List<Measure> getMeasures() {
       throw new UnsupportedOperationException();
     }
 
-    public List<? extends Dimension> getDimensions() {
+    @Override public List<? extends Dimension> getDimensions() {
       throw new UnsupportedOperationException();
     }
 
-    public List<? extends Attribute> getAttributes() {
+    @Override public List<? extends Attribute> getAttributes() {
       return attributes;
     }
 
-    public StatisticsProvider getStatisticsProvider() {
+    @Override public StatisticsProvider getStatisticsProvider() {
       return statisticsProvider;
     }
 
-    public Dialect getDialect() {
+    @Override public Dialect getDialect() {
       throw new UnsupportedOperationException();
     }
 
-    public String generateAggregateSql(Aggregate aggregate,
+    @Override public String generateAggregateSql(Aggregate aggregate,
         List<String> columnNameList) {
       throw new UnsupportedOperationException();
     }
@@ -135,11 +136,11 @@ public class TileSuggester {
    * There is only one table (in this sense of table) in a lattice.
    * The algorithm does not really care about tables. */
   private static class TableImpl implements Table {
-    public String getLabel() {
+    @Override public String getLabel() {
       return "TABLE";
     }
 
-    public Table getParent() {
+    @Override public @Nullable Table getParent() {
       return null;
     }
   }
@@ -158,27 +159,27 @@ public class TileSuggester {
       return getLabel();
     }
 
-    public String getLabel() {
+    @Override public String getLabel() {
       return column.alias;
     }
 
-    public Table getTable() {
+    @Override public Table getTable() {
       return table;
     }
 
-    public double estimateSpace() {
+    @Override public double estimateSpace() {
       return 0;
     }
 
-    public String getCandidateColumnName() {
+    @Override public @Nullable String getCandidateColumnName() {
       return null;
     }
 
-    public String getDatatype(Dialect dialect) {
+    @Override public @Nullable String getDatatype(Dialect dialect) {
       return null;
     }
 
-    public List<Attribute> getAncestorAttributes() {
+    @Override public List<Attribute> getAncestorAttributes() {
       return ImmutableList.of();
     }
   }
@@ -192,23 +193,21 @@ public class TileSuggester {
       this.lattice = lattice;
     }
 
-    public double getFactRowCount() {
+    @Override public double getFactRowCount() {
       return lattice.getFactRowCount();
     }
 
-    public double getRowCount(List<Attribute> attributes) {
+    @Override public double getRowCount(List<Attribute> attributes) {
       return lattice.getRowCount(
           Util.transform(attributes, input -> ((AttributeImpl) input).column));
     }
 
-    public double getSpace(List<Attribute> attributes) {
+    @Override public double getSpace(List<Attribute> attributes) {
       return attributes.size();
     }
 
-    public double getLoadTime(List<Attribute> attributes) {
+    @Override public double getLoadTime(List<Attribute> attributes) {
       return getSpace(attributes) * getRowCount(attributes);
     }
   }
 }
-
-// End TileSuggester.java

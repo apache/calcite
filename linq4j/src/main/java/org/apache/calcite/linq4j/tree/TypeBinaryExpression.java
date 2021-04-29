@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Objects;
 
@@ -24,6 +26,7 @@ import java.util.Objects;
  */
 public class TypeBinaryExpression extends Expression {
   public final Expression expression;
+  @SuppressWarnings("HidingField")
   public final Type type;
 
   public TypeBinaryExpression(ExpressionType nodeType, Expression expression,
@@ -40,11 +43,11 @@ public class TypeBinaryExpression extends Expression {
     return shuttle.visit(this, expression);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     if (writer.requireParentheses(this, lprec, rprec)) {
       return;
     }
@@ -53,7 +56,7 @@ public class TypeBinaryExpression extends Expression {
     writer.append(type);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -80,5 +83,3 @@ public class TypeBinaryExpression extends Expression {
     return Objects.hash(nodeType, super.type, type, expression);
   }
 }
-
-// End TypeBinaryExpression.java

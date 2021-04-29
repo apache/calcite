@@ -18,13 +18,13 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.util.Util;
 
+import java.util.Arrays;
+import java.util.EnumSet;
+
 import static org.apache.calcite.sql.SqlFunctionCategory.Property.FUNCTION;
 import static org.apache.calcite.sql.SqlFunctionCategory.Property.SPECIFIC;
 import static org.apache.calcite.sql.SqlFunctionCategory.Property.TABLE_FUNCTION;
 import static org.apache.calcite.sql.SqlFunctionCategory.Property.USER_DEFINED;
-
-import java.util.Arrays;
-import java.util.EnumSet;
 
 /**
  * Enumeration of the categories of
@@ -49,6 +49,7 @@ public enum SqlFunctionCategory {
       TABLE_FUNCTION, SPECIFIC),
   MATCH_RECOGNIZE("MATCH_RECOGNIZE", "MATCH_RECOGNIZE function", TABLE_FUNCTION);
 
+  @SuppressWarnings("ImmutableEnumChecker")
   private final EnumSet<Property> properties;
 
   SqlFunctionCategory(String abbrev, String description,
@@ -87,5 +88,3 @@ public enum SqlFunctionCategory {
     USER_DEFINED, TABLE_FUNCTION, SPECIFIC, FUNCTION
   }
 }
-
-// End SqlFunctionCategory.java

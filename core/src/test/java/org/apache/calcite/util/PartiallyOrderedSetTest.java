@@ -16,12 +16,8 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.test.SlowTests;
-
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -35,20 +31,19 @@ import java.util.TreeSet;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link PartiallyOrderedSet}.
  */
-@Category(SlowTests.class)
-public class PartiallyOrderedSetTest {
+class PartiallyOrderedSetTest {
   private static final boolean DEBUG = false;
 
   // 100, 250, 1000, 3000 are reasonable
-  private static final int SCALE = CalciteSystemProperty.TEST_SLOW.value() ? 250 : 50;
+  private static final int SCALE = 250;
 
   final long seed = new Random().nextLong();
   final Random random = new Random(seed);
@@ -87,7 +82,7 @@ public class PartiallyOrderedSetTest {
     return (e2 & e1) == e1;
   }
 
-  @Test public void testPoset() {
+  @Test void testPoset() {
     String empty = "''";
     String abcd = "'abcd'";
     final PartiallyOrderedSet<String> poset =
@@ -183,7 +178,7 @@ public class PartiallyOrderedSetTest {
     assertEqualsList("['ab', 'abcd']", poset.getAncestors("'a'"));
   }
 
-  @Test public void testPosetTricky() {
+  @Test void testPosetTricky() {
     final PartiallyOrderedSet<String> poset =
         new PartiallyOrderedSet<>(STRING_SUBSET_ORDERING);
 
@@ -200,7 +195,7 @@ public class PartiallyOrderedSetTest {
     printValidate(poset);
   }
 
-  @Test public void testPosetBits() {
+  @Test void testPosetBits() {
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset);
     poset.add(2112); // {6, 11} i.e. 64 + 2048
@@ -213,17 +208,16 @@ public class PartiallyOrderedSetTest {
     printValidate(poset);
   }
 
-  @Test public void testPosetBitsLarge() {
-    Assume.assumeTrue(
-        "it takes 80 seconds, and the computations are exactly the same every time",
-        CalciteSystemProperty.TEST_SLOW.value());
+  @Tag("slow")
+  @Test void testPosetBitsLarge() {
+    // It takes 80 seconds, and the computations are exactly the same every time
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset);
     checkPosetBitsLarge(poset, 30000, 2921, 164782);
   }
 
-  @Test public void testPosetBitsLarge2() {
-    Assume.assumeTrue("too slow to run every day", CalciteSystemProperty.TEST_SLOW.value());
+  @Tag("slow")
+  @Test void testPosetBitsLarge2() {
     final int n = 30000;
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset,
@@ -271,7 +265,7 @@ public class PartiallyOrderedSetTest {
     assertThat(parentCount, is(expectedParentCount));
   }
 
-  @Test public void testPosetBitsRemoveParent() {
+  @Test void testPosetBitsRemoveParent() {
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset);
     poset.add(66); // {bit 2, bit 6}
@@ -283,7 +277,7 @@ public class PartiallyOrderedSetTest {
     printValidate(poset);
   }
 
-  @Test public void testDivisorPoset() {
+  @Test void testDivisorPoset() {
     PartiallyOrderedSet<Integer> integers =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isDivisor,
             range(1, 1000));
@@ -300,12 +294,12 @@ public class PartiallyOrderedSetTest {
     assertTrue(integers.isValid(true));
   }
 
-  @Test public void testDivisorSeries() {
+  @Test void testDivisorSeries() {
     checkPoset(PartiallyOrderedSetTest::isDivisor, DEBUG, range(1, SCALE * 3),
         false);
   }
 
-  @Test public void testDivisorRandom() {
+  @Test void testDivisorRandom() {
     boolean ok = false;
     try {
       checkPoset(PartiallyOrderedSetTest::isDivisor, DEBUG,
@@ -318,7 +312,7 @@ public class PartiallyOrderedSetTest {
     }
   }
 
-  @Test public void testDivisorRandomWithRemoval() {
+  @Test void testDivisorRandomWithRemoval() {
     boolean ok = false;
     try {
       checkPoset(PartiallyOrderedSetTest::isDivisor, DEBUG,
@@ -331,12 +325,12 @@ public class PartiallyOrderedSetTest {
     }
   }
 
-  @Test public void testDivisorInverseSeries() {
+  @Test void testDivisorInverseSeries() {
     checkPoset(PartiallyOrderedSetTest::isDivisorInverse, DEBUG,
         range(1, SCALE * 3), false);
   }
 
-  @Test public void testDivisorInverseRandom() {
+  @Test void testDivisorInverseRandom() {
     boolean ok = false;
     try {
       checkPoset(PartiallyOrderedSetTest::isDivisorInverse, DEBUG, random(random, SCALE, SCALE * 3),
@@ -349,7 +343,7 @@ public class PartiallyOrderedSetTest {
     }
   }
 
-  @Test public void testDivisorInverseRandomWithRemoval() {
+  @Test void testDivisorInverseRandomWithRemoval() {
     boolean ok = false;
     try {
       checkPoset(PartiallyOrderedSetTest::isDivisorInverse, DEBUG, random(random, SCALE, SCALE * 3),
@@ -362,11 +356,11 @@ public class PartiallyOrderedSetTest {
     }
   }
 
-  @Test public void testSubsetSeries() {
+  @Test void testSubsetSeries() {
     checkPoset(PartiallyOrderedSetTest::isBitSubset, DEBUG, range(1, SCALE / 2), false);
   }
 
-  @Test public void testSubsetRandom() {
+  @Test void testSubsetRandom() {
     boolean ok = false;
     try {
       checkPoset(PartiallyOrderedSetTest::isBitSubset, DEBUG,
@@ -464,5 +458,3 @@ public class PartiallyOrderedSetTest {
   }
 
 }
-
-// End PartiallyOrderedSetTest.java

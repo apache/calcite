@@ -32,7 +32,7 @@ import java.util.Queue;
 import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.generateQueueForInterval;
 
 /**
- * Handle Snowflake date timestamp interval
+ * Handle Snowflake date timestamp interval.
  */
 public class SnowflakeDateTimestampInterval {
   public boolean handlePlus(SqlWriter writer, SqlCall call,
@@ -279,7 +279,8 @@ public class SnowflakeDateTimestampInterval {
     final SqlWriter.Frame dateAddFrame = writer.startFunCall("DATEADD");
     writer.print(((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
         .replace("INTERVAL_", ""));
-    String intervalSign = String.valueOf(((SqlIntervalLiteral.IntervalValue)
+    String intervalSign = String.valueOf(
+        ((SqlIntervalLiteral.IntervalValue)
         ((SqlIntervalLiteral) call.operand(1))
             .getValue()).getSign()).replace("1", "");
     if ("-".equals(intervalSign)) {
@@ -301,5 +302,3 @@ public class SnowflakeDateTimestampInterval {
     writer.print(", ");
   }
 }
-
-// End SnowflakeDateTimestampInterval.java

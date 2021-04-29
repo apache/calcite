@@ -19,6 +19,8 @@ package org.apache.calcite.util;
 import java.util.AbstractList;
 import java.util.List;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Converts a list whose members are automatically down-cast to a given type.
  *
@@ -47,26 +49,26 @@ public class CastingList<E> extends AbstractList<E> implements List<E> {
 
   //~ Methods ----------------------------------------------------------------
 
-  public E get(int index) {
-    return clazz.cast(list.get(index));
+  @Override public E get(int index) {
+    Object o = list.get(index);
+    return clazz.cast(castNonNull(o));
   }
 
-  public int size() {
+  @Override public int size() {
     return list.size();
   }
 
-  public E set(int index, E element) {
+  @Override public E set(int index, E element) {
     final Object o = list.set(index, element);
-    return clazz.cast(o);
+    return clazz.cast(castNonNull(o));
   }
 
-  public E remove(int index) {
-    return clazz.cast(list.remove(index));
+  @Override public E remove(int index) {
+    Object o = list.remove(index);
+    return clazz.cast(castNonNull(o));
   }
 
-  public void add(int pos, E o) {
+  @Override public void add(int pos, E o) {
     list.add(pos, o);
   }
 }
-
-// End CastingList.java

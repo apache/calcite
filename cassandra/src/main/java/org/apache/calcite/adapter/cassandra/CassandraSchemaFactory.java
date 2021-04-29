@@ -23,14 +23,14 @@ import org.apache.calcite.schema.SchemaPlus;
 import java.util.Map;
 
 /**
- * Factory that creates a {@link CassandraSchema}
+ * Factory that creates a {@link CassandraSchema}.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CassandraSchemaFactory implements SchemaFactory {
   public CassandraSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
     String host = (String) map.get("host");
@@ -52,5 +52,3 @@ public class CassandraSchemaFactory implements SchemaFactory {
     }
   }
 }
-
-// End CassandraSchemaFactory.java

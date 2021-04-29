@@ -753,7 +753,7 @@ public class RexSimplify {
     if (a.getKind() == SqlKind.CAST) {
       return null;
     }
-    switch (Strong.policy(a.getKind())) {
+    switch (Strong.policy(a)) {
     case NOT_NULL:
       return rexBuilder.makeLiteral(true);
     case ANY:
@@ -802,7 +802,7 @@ public class RexSimplify {
     if (a.getKind() == SqlKind.CAST) {
       return null;
     }
-    switch (Strong.policy(a.getKind())) {
+    switch (Strong.policy(a)) {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);
     case ANY:
@@ -977,7 +977,7 @@ public class RexSimplify {
             && oldType.isNullable());
   }
 
-  /** Object to describe a Case branch */
+  /** Object to describe a Case branch.*/
   static final class CaseBranch {
 
     private final RexNode cond;
@@ -1020,7 +1020,7 @@ public class RexSimplify {
   }
 
   /**
-   * Decides whether it is safe to flatten the given case part into AND/ORs
+   * Decides whether it is safe to flatten the given case part into AND/ORs.
    */
   enum SafeRexVisitor implements RexVisitor<Boolean> {
     INSTANCE;
@@ -2342,5 +2342,3 @@ public class RexSimplify {
     return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
   }
 }
-
-// End RexSimplify.java

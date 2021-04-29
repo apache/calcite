@@ -77,5 +77,3 @@ public final class KafkaTableOptions {
     return this;
   }
 }
-
-// End KafkaTableOptions.java

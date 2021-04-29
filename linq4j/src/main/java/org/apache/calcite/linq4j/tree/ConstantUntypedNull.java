@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Represents a constant null of unknown type
  * Java allows type inference for such nulls, thus "null" cannot always be
@@ -36,7 +38,7 @@ public class ConstantUntypedNull extends ConstantExpression {
     writer.append("null");
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return o == INSTANCE;
   }
 
@@ -44,5 +46,3 @@ public class ConstantUntypedNull extends ConstantExpression {
     return ConstantUntypedNull.class.hashCode();
   }
 }
-
-// End ConstantUntypedNull.java

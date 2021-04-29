@@ -87,5 +87,3 @@ public interface AggContext {
   /** Returns the grouping sets we are aggregating on. */
   List<ImmutableBitSet> groupSets();
 }
-
-// End AggContext.java

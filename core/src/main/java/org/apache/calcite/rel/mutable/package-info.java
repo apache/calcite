@@ -31,9 +31,4 @@
  *
  * </ul>
  */
-@PackageMarker
 package org.apache.calcite.rel.mutable;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

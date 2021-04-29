@@ -40,5 +40,3 @@ public interface Function {
    */
   List<FunctionParameter> getParameters();
 }
-
-// End Function.java

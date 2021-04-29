@@ -44,8 +44,11 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +56,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Interpreter node that implements an
@@ -84,12 +91,14 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     ImmutableList.Builder<AccumulatorFactory> builder = ImmutableList.builder();
     for (AggregateCall aggregateCall : rel.getAggCallList()) {
-      builder.add(getAccumulator(aggregateCall, false));
+      @SuppressWarnings("method.invocation.invalid")
+      AccumulatorFactory accumulator = getAccumulator(aggregateCall, false);
+      builder.add(accumulator);
     }
     accumulatorFactories = builder.build();
   }
 
-  public void run() throws InterruptedException {
+  @Override public void run() throws InterruptedException {
     Row r;
     while ((r = source.receive()) != null) {
       for (Grouping group : groups) {
@@ -122,6 +131,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       case FLOAT:
         clazz = DoubleSum.class;
         break;
+      case DECIMAL:
+        clazz = BigDecimalSum.class;
+        break;
       case INTEGER:
         clazz = IntSum.class;
         break;
@@ -132,10 +144,10 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       if (call.getAggregation() == SqlStdOperatorTable.SUM) {
         return new UdaAccumulatorFactory(
-            AggregateFunctionImpl.create(clazz), call, true);
+            getAggFunction(clazz), call, true);
       } else {
         return new UdaAccumulatorFactory(
-            AggregateFunctionImpl.create(clazz), call, false);
+            getAggFunction(clazz), call, false);
       }
     } else if (call.getAggregation() == SqlStdOperatorTable.MIN) {
       final Class<?> clazz;
@@ -150,12 +162,18 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       case REAL:
         clazz = MinDouble.class;
         break;
+      case DECIMAL:
+        clazz = MinBigDecimal.class;
+        break;
+      case BOOLEAN:
+        clazz = MinBoolean.class;
+        break;
       default:
         clazz = MinLong.class;
         break;
       }
       return new UdaAccumulatorFactory(
-          AggregateFunctionImpl.create(clazz), call, true);
+          getAggFunction(clazz), call, true);
     } else if (call.getAggregation() == SqlStdOperatorTable.MAX) {
       final Class<?> clazz;
       switch (call.getType().getSqlTypeName()) {
@@ -169,18 +187,21 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       case REAL:
         clazz = MaxDouble.class;
         break;
+      case DECIMAL:
+        clazz = MaxBigDecimal.class;
+        break;
       default:
         clazz = MaxLong.class;
         break;
       }
       return new UdaAccumulatorFactory(
-          AggregateFunctionImpl.create(clazz), call, true);
+          getAggFunction(clazz), call, true);
     } else {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
       int stateOffset = 0;
       final AggImpState agg = new AggImpState(0, call, false);
-      int stateSize = agg.state.size();
+      int stateSize = requireNonNull(agg.state, "agg.state").size();
 
       final BlockBuilder builder2 = new BlockBuilder();
       final PhysType inputPhysType =
@@ -206,7 +227,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
       AggAddContext addContext =
           new AggAddContextImpl(builder2, accumulator) {
-            public List<RexNode> rexArguments() {
+            @Override public List<RexNode> rexArguments() {
               List<RexNode> args = new ArrayList<>();
               for (int index : agg.call.getArgList()) {
                 args.add(RexInputRef.of(index, inputPhysType.getRowType()));
@@ -214,14 +235,14 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
               return args;
             }
 
-            public RexNode rexFilterArgument() {
+            @Override public @Nullable RexNode rexFilterArgument() {
               return agg.call.filterArg < 0
                   ? null
                   : RexInputRef.of(agg.call.filterArg,
                       inputPhysType.getRowType());
             }
 
-            public RexToLixTranslator rowTranslator() {
+            @Override public RexToLixTranslator rowTranslator() {
               final SqlConformance conformance =
                   SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
               return RexToLixTranslator.forAggregation(typeFactory,
@@ -229,12 +250,11 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
                   new RexToLixTranslator.InputGetterImpl(
                       Collections.singletonList(
                           Pair.of((Expression) inParameter, inputPhysType))),
-                  conformance)
-                  .setNullable(currentNullables());
+                  conformance);
             }
           };
 
-      agg.implementor.implementAdd(agg.context, addContext);
+      agg.implementor.implementAdd(requireNonNull(agg.context, "agg.context"), addContext);
 
       final ParameterExpression context_ =
           Expressions.parameter(Context.class, "context");
@@ -242,9 +262,15 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
           Expressions.parameter(Object[].class, "outputValues");
       Scalar addScalar =
           JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock());
-      return new ScalarAccumulatorDef(null, addScalar, null,
+      return new ScalarAccumulatorDef(castNonNull(null), addScalar, castNonNull(null),
           rel.getInput().getRowType().getFieldCount(), stateSize, dataContext);
     }
+  }
+
+  private static AggregateFunctionImpl getAggFunction(Class<?> clazz) {
+    return requireNonNull(
+        AggregateFunctionImpl.create(clazz),
+        () -> "Unable to create AggregateFunctionImpl for " + clazz);
   }
 
   /** Accumulator for calls to the COUNT function. */
@@ -257,7 +283,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       cnt = 0;
     }
 
-    public void send(Row row) {
+    @Override public void send(Row row) {
       boolean notNull = true;
       for (Integer i : call.getArgList()) {
         if (row.getObject(i) == null) {
@@ -270,7 +296,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
     }
 
-    public Object end() {
+    @Override public Object end() {
       return cnt;
     }
   }
@@ -303,7 +329,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.endContext.values = new Object[accumulatorLength];
     }
 
-    public Accumulator get() {
+    @Override public Accumulator get() {
       return new ScalarAccumulator(this, new Object[accumulatorLength]);
     }
   }
@@ -318,17 +344,21 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.values = values;
     }
 
-    public void send(Row row) {
-      System.arraycopy(row.getValues(), 0, def.sendContext.values, 0,
+    @Override public void send(Row row) {
+      @Nullable Object[] sendValues = requireNonNull(def.sendContext.values,
+          "def.sendContext.values");
+      System.arraycopy(row.getValues(), 0, sendValues, 0,
           def.rowLength);
-      System.arraycopy(values, 0, def.sendContext.values, def.rowLength,
-          values.length);
-      def.addScalar.execute(def.sendContext, values);
+      System.arraycopy(this.values, 0, sendValues, def.rowLength,
+          this.values.length);
+      def.addScalar.execute(def.sendContext, this.values);
     }
 
-    public Object end() {
-      System.arraycopy(values, 0, def.endContext.values, 0, values.length);
-      return def.endScalar.execute(def.endContext);
+    @Override public @Nullable Object end() {
+      Context endContext = requireNonNull(def.endContext, "def.endContext");
+      @Nullable Object[] values = requireNonNull(endContext.values, "endContext.values");
+      System.arraycopy(this.values, 0, values, 0, this.values.length);
+      return def.endScalar.execute(endContext);
     }
   }
 
@@ -410,7 +440,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
    */
   private interface Accumulator {
     void send(Row row);
-    Object end();
+    @Nullable Object end();
   }
 
   /** Implementation of {@code SUM} over INTEGER values as a user-defined
@@ -466,6 +496,29 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       return accumulator0 + accumulator1;
     }
     public double result(double accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Implementation of {@code SUM} over BigDecimal values as a user-defined
+   * aggregate. */
+  public static class BigDecimalSum {
+    public BigDecimalSum(){
+    }
+
+    public BigDecimal init() {
+      return new BigDecimal("0");
+    }
+
+    public BigDecimal add(BigDecimal accumulator, BigDecimal v) {
+      return accumulator.add(v);
+    }
+
+    public BigDecimal merge(BigDecimal accumulator0, BigDecimal accumulator01) {
+      return add(accumulator0, accumulator01);
+    }
+
+    public BigDecimal result(BigDecimal accumulator) {
       return accumulator;
     }
   }
@@ -536,7 +589,43 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code BigDecimal} values as a user-defined aggregate.
+   */
+  public static class MinBigDecimal extends NumericComparison<BigDecimal> {
+    public MinBigDecimal() {
+      super(new BigDecimal(Double.MAX_VALUE), MinBigDecimal::min);
+    }
+
+    public static BigDecimal min(BigDecimal a, BigDecimal b) {
+      return a.min(b);
+    }
+  }
+
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code boolean} values as a user-defined aggregate.
+   */
+  public static class MinBoolean {
+    public MinBoolean() { }
+
+    public Boolean init() {
+      return Boolean.TRUE;
+    }
+
+    public Boolean add(Boolean accumulator, Boolean value) {
+      return accumulator.compareTo(value) < 0 ? accumulator : value;
+    }
+
+    public Boolean merge(Boolean accumulator0, Boolean accumulator1) {
+      return add(accumulator0, accumulator1);
+    }
+
+    public Boolean result(Boolean accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code integer} values as a user-defined aggregate.
    */
   public static class MaxInt extends NumericComparison<Integer> {
@@ -545,7 +634,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code long} values as a user-defined aggregate.
    */
   public static class MaxLong extends NumericComparison<Long> {
@@ -554,7 +643,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code float} values as a user-defined aggregate.
    */
   public static class MaxFloat extends NumericComparison<Float> {
@@ -563,7 +652,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code double} and {@code real} values as a user-defined aggregate.
    */
   public static class MaxDouble extends NumericComparison<Double> {
@@ -572,11 +661,24 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
+  /** Implementation of {@code MAX} function to calculate the maximum of
+   * {@code BigDecimal} values as a user-defined aggregate.
+   */
+  public static class MaxBigDecimal extends NumericComparison<BigDecimal> {
+    public MaxBigDecimal() {
+      super(new BigDecimal(Double.MIN_VALUE), MaxBigDecimal::max);
+    }
+
+    public static BigDecimal max(BigDecimal a, BigDecimal b) {
+      return a.max(b);
+    }
+  }
+
   /** Accumulator factory based on a user-defined aggregate function. */
   private static class UdaAccumulatorFactory implements AccumulatorFactory {
     final AggregateFunctionImpl aggFunction;
     final int argOrdinal;
-    public final Object instance;
+    public final @Nullable Object instance;
     public final boolean nullIfEmpty;
 
     UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
@@ -602,7 +704,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.nullIfEmpty = nullIfEmpty;
     }
 
-    public Accumulator get() {
+    @Override public Accumulator get() {
       return new UdaAccumulator(this);
     }
   }
@@ -610,7 +712,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   /** Accumulator based upon a user-defined aggregate. */
   private static class UdaAccumulator implements Accumulator {
     private final UdaAccumulatorFactory factory;
-    private Object value;
+    private @Nullable Object value;
     private boolean empty;
 
     UdaAccumulator(UdaAccumulatorFactory factory) {
@@ -623,8 +725,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.empty = true;
     }
 
-    public void send(Row row) {
-      final Object[] args = {value, row.getValues()[factory.argOrdinal]};
+    @Override public void send(Row row) {
+      final @Nullable Object[] args = {value, row.getValues()[factory.argOrdinal]};
       for (int i = 1; i < args.length; i++) {
         if (args[i] == null) {
           return; // one of the arguments is null; don't add to the total
@@ -638,13 +740,16 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       empty = false;
     }
 
-    public Object end() {
+    @Override public @Nullable Object end() {
       if (factory.nullIfEmpty && empty) {
         return null;
       }
-      final Object[] args = {value};
+      final @Nullable Object[] args = {value};
       try {
-        return factory.aggFunction.resultMethod.invoke(factory.instance, args);
+        AggregateFunctionImpl aggFunction = requireNonNull(factory.aggFunction,
+            "factory.aggFunction");
+        return requireNonNull(aggFunction.resultMethod, "aggFunction.resultMethod")
+            .invoke(factory.instance, args);
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
       }
@@ -662,16 +767,14 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.filterArg = filterArg;
     }
 
-    public void send(Row row) {
+    @Override public void send(Row row) {
       if (row.getValues()[filterArg] == Boolean.TRUE) {
         accumulator.send(row);
       }
     }
 
-    public Object end() {
+    @Override public @Nullable Object end() {
       return accumulator.end();
     }
   }
 }
-
-// End AggregateNode.java

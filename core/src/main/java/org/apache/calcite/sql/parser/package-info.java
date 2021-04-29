@@ -18,9 +18,4 @@
 /**
  * Provides a SQL parser.
  */
-@PackageMarker
 package org.apache.calcite.sql.parser;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

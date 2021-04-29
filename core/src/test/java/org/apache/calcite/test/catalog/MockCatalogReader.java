@@ -25,6 +25,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.CalciteCatalogReader;
@@ -93,6 +94,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
@@ -111,15 +114,9 @@ import java.util.Set;
  * and a view "EMP_20".
  */
 public abstract class MockCatalogReader extends CalciteCatalogReader {
-  //~ Static fields/initializers ---------------------------------------------
-
   static final String DEFAULT_CATALOG = "CATALOG";
   static final String DEFAULT_SCHEMA = "SALES";
   static final List<String> PREFIX = ImmutableList.of(DEFAULT_SCHEMA);
-
-  //~ Instance fields --------------------------------------------------------
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a MockCatalogReader.
@@ -266,7 +263,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /** Column resolver*/
+  /** Column resolver. */
   public interface ColumnResolver {
     List<Pair<RelDataTypeField, List<String>>> resolveColumn(
         RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names);
@@ -317,12 +314,18 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     protected final InitializerExpressionFactory initializerFactory;
     protected final Set<String> rolledUpColumns = new HashSet<>();
 
+    /** Wrapped objects that can be obtained by calling
+     * {@link #unwrap(Class)}. Initially an immutable list, but converted to
+     * a mutable array list on first assignment. */
+    protected List<Object> wraps;
+
     public MockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, boolean temporal,
         double rowCount, ColumnResolver resolver,
         InitializerExpressionFactory initializerFactory) {
       this(catalogReader, ImmutableList.of(catalogName, schemaName, name),
-          stream, temporal, rowCount, resolver, initializerFactory);
+          stream, temporal, rowCount, resolver, initializerFactory,
+          ImmutableList.of());
     }
 
     public void registerRolledUpColumn(String columnName) {
@@ -332,7 +335,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     private MockTable(MockCatalogReader catalogReader, List<String> names,
         boolean stream, boolean temporal, double rowCount,
         ColumnResolver resolver,
-        InitializerExpressionFactory initializerFactory) {
+        InitializerExpressionFactory initializerFactory, List<Object> wraps) {
       this.catalogReader = catalogReader;
       this.stream = stream;
       this.temporal = temporal;
@@ -340,6 +343,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.names = names;
       this.resolver = resolver;
       this.initializerFactory = initializerFactory;
+      this.wraps = ImmutableList.copyOf(wraps);
     }
 
     /**
@@ -364,6 +368,14 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       for (String name : monotonicColumnSet) {
         addMonotonic(name);
       }
+      this.wraps = ImmutableList.of();
+    }
+
+    void addWrap(Object wrap) {
+      if (wraps instanceof ImmutableList) {
+        wraps = new ArrayList<>(wraps);
+      }
+      wraps.add(wrap);
     }
 
     /** Implementation of AbstractModifiableTable. */
@@ -426,7 +438,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       }
 
       @Override public boolean rolledUpColumnValidInsideAgg(String column,
-          SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+          SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         // For testing
         return call.getKind() != SqlKind.MAX
             && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);
@@ -435,7 +447,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
     @Override protected RelOptTable extend(final Table extendedTable) {
       return new MockTable(catalogReader, names, stream, temporal, rowCount,
-          resolver, initializerFactory) {
+          resolver, initializerFactory, wraps) {
         @Override public RelDataType getRowType() {
           return extendedTable.getRowType(catalogReader.typeFactory);
         }
@@ -450,7 +462,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     public static MockTable create(MockCatalogReader catalogReader,
         List<String> names, boolean stream, double rowCount) {
       return new MockTable(catalogReader, names, stream, false, rowCount, null,
-          NullInitializerExpressionFactory.INSTANCE);
+          NullInitializerExpressionFactory.INSTANCE, ImmutableList.of());
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
@@ -486,6 +498,11 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
                 : new ModifiableTableWithCustomColumnResolving(Util.last(names));
         return clazz.cast(table);
       }
+      for (Object handler : wraps) {
+        if (clazz.isInstance(handler)) {
+          return clazz.cast(handler);
+        }
+      }
       return null;
     }
 
@@ -498,7 +515,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     public RelNode toRel(ToRelContext context) {
-      return LogicalTableScan.create(context.getCluster(), this);
+      return LogicalTableScan.create(context.getCluster(), this, context.getTableHints());
     }
 
     public List<RelCollation> getCollationList() {
@@ -512,6 +529,13 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     public boolean isKey(ImmutableBitSet columns) {
       return !keyList.isEmpty()
           && columns.contains(ImmutableBitSet.of(keyList));
+    }
+
+    public List<ImmutableBitSet> getKeys() {
+      if (keyList.isEmpty()) {
+        return ImmutableList.of();
+      }
+      return ImmutableList.of(ImmutableBitSet.of(keyList));
     }
 
     public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -551,7 +575,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     public Expression getExpression(Class clazz) {
-      throw new UnsupportedOperationException();
+      // Return a true constant just to pass the tests in EnumerableTableScanRule.
+      return Expressions.constant(true);
     }
 
     public void addColumn(String name, RelDataType type) {
@@ -609,7 +634,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         boolean stream, double rowCount, ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory) {
       super(catalogReader, ImmutableList.of(catalogName, schemaName, name),
-          stream, false, rowCount, resolver, initializerExpressionFactory);
+          stream, false, rowCount, resolver, initializerExpressionFactory,
+          ImmutableList.of());
       this.modifiableViewTable = modifiableViewTable;
     }
 
@@ -721,7 +747,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         boolean stream, double rowCount, ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory) {
       super(catalogReader, ImmutableList.of(catalogName, schemaName, name),
-          stream, false, rowCount, resolver, initializerExpressionFactory);
+          stream, false, rowCount, resolver, initializerExpressionFactory,
+          ImmutableList.of());
       this.viewTable = viewTable;
     }
 
@@ -861,7 +888,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public RelNode toRel(ToRelContext context) {
-      RelNode rel = LogicalTableScan.create(context.getCluster(), fromTable);
+      RelNode rel = LogicalTableScan.create(context.getCluster(), fromTable,
+          context.getTableHints());
       final RexBuilder rexBuilder = context.getCluster().getRexBuilder();
       rel = LogicalFilter.create(
           rel, getConstraint(rexBuilder, rel.getRowType()));
@@ -877,7 +905,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
               return mapping.size();
             }
           };
-      return LogicalProject.create(rel, Pair.left(projects),
+      return LogicalProject.create(rel,
+          ImmutableList.of(),
+          Pair.left(projects),
           Pair.right(projects));
     }
 
@@ -916,7 +946,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-      return LogicalTableScan.create(context.getCluster(), relOptTable);
+      return LogicalTableScan.create(context.getCluster(), relOptTable, context.getTableHints());
     }
   }
 
@@ -1050,6 +1080,10 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           return table.isKey(columns);
         }
 
+        public List<ImmutableBitSet> getKeys() {
+          return table.getKeys();
+        }
+
         public List<RelReferentialConstraint> getReferentialConstraints() {
           return table.getReferentialConstraints();
         }
@@ -1069,7 +1103,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       // For testing
       return call.getKind() != SqlKind.MAX
               && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);
@@ -1094,5 +1128,3 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   }
 
 }
-
-// End MockCatalogReader.java

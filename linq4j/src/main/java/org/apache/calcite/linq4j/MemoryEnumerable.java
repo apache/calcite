@@ -44,5 +44,3 @@ public class MemoryEnumerable<E> extends AbstractEnumerable<MemoryFactory.Memory
   }
 
 }
-
-// End MemoryEnumerable.java

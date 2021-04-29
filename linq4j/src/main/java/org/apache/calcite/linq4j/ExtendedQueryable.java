@@ -33,6 +33,9 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.framework.qual.Covariant;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 
@@ -41,13 +44,14 @@ import java.util.Comparator;
  *
  * @param <TSource> Element type
  */
+@Covariant(0)
 interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Applies an accumulator function over a sequence.
    */
-  TSource aggregate(
-      FunctionExpression<Function2<TSource, TSource, TSource>> selector);
+  @Nullable TSource aggregate(
+      FunctionExpression<Function2<@Nullable TSource, TSource, TSource>> selector);
 
   /**
    * Applies an accumulator function over a
@@ -159,7 +163,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   /**
    * Concatenates two sequences.
    */
-  Queryable<TSource> concat(Enumerable<TSource> source2);
+  @Override Queryable<TSource> concat(Enumerable<TSource> source2);
 
   /**
    * Returns the number of elements in the specified
@@ -172,35 +176,50 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * the type parameter's default value in a singleton collection if
    * the sequence is empty.
    */
-  Queryable<TSource> defaultIfEmpty();
+  @Override Queryable<@Nullable TSource> defaultIfEmpty();
 
   /**
    * Returns distinct elements from a sequence by using
    * the default equality comparer to compare values.
    */
-  Queryable<TSource> distinct();
+  @Override Queryable<TSource> distinct();
 
   /**
    * Returns distinct elements from a sequence by using
    * a specified EqualityComparer&lt;TSource&gt; to compare values.
    */
-  Queryable<TSource> distinct(EqualityComparer<TSource> comparer);
+  @Override Queryable<TSource> distinct(EqualityComparer<TSource> comparer);
 
   /**
    * Produces the set difference of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Queryable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Enumerable.)
    */
-  Queryable<TSource> except(Enumerable<TSource> enumerable);
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable);
+
+  /**
+   * Produces the set difference of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
+   */
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable, boolean all);
 
   /**
    * Produces the set difference of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
-  Queryable<TSource> except(Enumerable<TSource> enumerable,
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer);
 
+  /**
+   * Produces the set difference of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  @Override Queryable<TSource> except(Enumerable<TSource> enumerable,
+      EqualityComparer<TSource> comparer, boolean all);
   /**
    * Returns the first element of a sequence that
    * satisfies a specified condition.
@@ -212,7 +231,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * satisfies a specified condition or a default value if no such
    * element is found.
    */
-  TSource firstOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
+  @Nullable TSource firstOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
 
   /**
    * Groups the elements of a sequence according to a
@@ -324,18 +343,34 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Queryable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates.(Defined by Queryable.)
    */
-  Queryable<TSource> intersect(Enumerable<TSource> enumerable);
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable);
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Queryable.)
+   */
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable, boolean all);
 
   /**
    * Produces the set intersection of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
-  Queryable<TSource> intersect(Enumerable<TSource> enumerable,
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer);
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  @Override Queryable<TSource> intersect(Enumerable<TSource> enumerable,
+      EqualityComparer<TSource> comparer, boolean all);
 
   /**
    * Correlates the elements of two sequences based on
@@ -369,7 +404,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * satisfies a condition or a default value if no such element is
    * found.
    */
-  TSource lastOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
+  @Nullable TSource lastOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
 
   /**
    * Returns an long that represents the number of
@@ -382,7 +417,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * generic {@code IQueryable<TSource>} and returns the maximum resulting
    * value.
    */
-  <TResult extends Comparable<TResult>> TResult max(
+  <TResult extends Comparable<TResult>> @Nullable TResult max(
       FunctionExpression<Function1<TSource, TResult>> selector);
 
   /**
@@ -390,7 +425,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * generic {@code IQueryable<TSource>} and returns the minimum resulting
    * value.
    */
-  <TResult extends Comparable<TResult>> TResult min(
+  <TResult extends Comparable<TResult>> @Nullable TResult min(
       FunctionExpression<Function1<TSource, TResult>> selector);
 
   /**
@@ -412,9 +447,9 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * <p>NOTE: clazz parameter not present in C# LINQ; necessary because of
    * Java type erasure.</p>
    */
-  <TResult> Queryable<TResult> ofType(Class<TResult> clazz);
+  @Override <TResult> Queryable<TResult> ofType(Class<TResult> clazz);
 
-  <T2> Queryable<T2> cast(Class<T2> clazz);
+  @Override <T2> Queryable<T2> cast(Class<T2> clazz);
 
   /**
    * Sorts the elements of a sequence in ascending
@@ -449,7 +484,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   /**
    * Inverts the order of the elements in a sequence.
    */
-  Queryable<TSource> reverse();
+  @Override Queryable<TSource> reverse();
 
 
   /**
@@ -533,7 +568,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * exception if there is more than one element in the
    * sequence.
    */
-  TSource singleOrDefault();
+  @Override @Nullable TSource singleOrDefault();
 
   /**
    * Returns the only element of a sequence that
@@ -541,13 +576,13 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * element exists; this method throws an exception if more than
    * one element satisfies the condition.
    */
-  TSource singleOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
+  @Nullable TSource singleOrDefault(FunctionExpression<Predicate1<TSource>> predicate);
 
   /**
    * Bypasses a specified number of elements in a
    * sequence and then returns the remaining elements.
    */
-  Queryable<TSource> skip(int count);
+  @Override Queryable<TSource> skip(int count);
 
   /**
    * Bypasses elements in a sequence as long as a
@@ -646,7 +681,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * Returns a specified number of contiguous elements
    * from the start of a sequence.
    */
-  Queryable<TSource> take(int count);
+  @Override Queryable<TSource> take(int count);
 
   /**
    * Returns elements from a sequence as long as a
@@ -667,13 +702,13 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * Produces the set union of two sequences by using
    * the default equality comparer.
    */
-  Queryable<TSource> union(Enumerable<TSource> source1);
+  @Override Queryable<TSource> union(Enumerable<TSource> source1);
 
   /**
    * Produces the set union of two sequences by using a
    * specified {@code EqualityComparer<TSource>}.
    */
-  Queryable<TSource> union(Enumerable<TSource> source1,
+  @Override Queryable<TSource> union(Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer);
 
   /**
@@ -698,5 +733,3 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   <T1, TResult> Queryable<TResult> zip(Enumerable<T1> source1,
       FunctionExpression<Function2<TSource, T1, TResult>> resultSelector);
 }
-
-// End ExtendedQueryable.java

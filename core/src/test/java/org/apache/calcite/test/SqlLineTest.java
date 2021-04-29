@@ -21,7 +21,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -36,12 +36,12 @@ import sqlline.SqlLine;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests that we can invoke SqlLine on a Calcite connection.
  */
-public class SqlLineTest {
+class SqlLineTest {
   /**
    * Execute a script with "sqlline -f".
    *
@@ -107,9 +107,7 @@ public class SqlLineTest {
     assertThat(delete, is(true));
   }
 
-  @Test public void testSqlLine() throws Throwable {
+  @Test void testSqlLine() throws Throwable {
     checkScriptFile("!tables", false, equalTo(SqlLine.Status.OK), equalTo(""));
   }
 }
-
-// End SqlLineTest.java

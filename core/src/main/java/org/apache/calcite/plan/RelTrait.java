@@ -16,12 +16,18 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.rel.RelDistributions;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.util.mapping.Mappings;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * RelTrait represents the manifestation of a relational expression trait within
  * a trait definition. For example, a {@code CallingConvention.JAVA} is a trait
  * of the {@link ConventionTraitDef} trait definition.
  *
- * <h3><a id="EqualsHashCodeNote">Note about equals() and hashCode()</a></h3>
+ * <h2><a id="EqualsHashCodeNote">Note about equals() and hashCode()</a></h2>
  *
  * <p>If all instances of RelTrait for a particular RelTraitDef are defined in
  * an {@code enum} and no new RelTraits can be introduced at runtime, you need
@@ -44,12 +50,12 @@ public interface RelTrait {
   /**
    * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
    */
-  int hashCode();
+  @Override int hashCode();
 
   /**
    * See <a href="#EqualsHashCodeNote">note about equals() and hashCode()</a>.
    */
-  boolean equals(Object o);
+  @Override boolean equals(@Nullable Object o);
 
   /**
    * Returns whether this trait satisfies a given trait.
@@ -74,7 +80,7 @@ public interface RelTrait {
    * Returns a succinct name for this trait. The planner may use this String
    * to describe the trait.
    */
-  String toString();
+  @Override String toString();
 
   /**
    * Registers a trait instance with the planner.
@@ -85,6 +91,33 @@ public interface RelTrait {
    * @param planner Planner
    */
   void register(RelOptPlanner planner);
-}
 
-// End RelTrait.java
+  /**
+   * Applies a mapping to this trait.
+   *
+   * <p>Some traits may be changed if the columns order is changed by a mapping
+   * of the {@link Project} operator. </p>
+   *
+   * <p>For example, if relation {@code SELECT a, b ORDER BY a, b} is sorted by
+   * columns [0, 1], then the project {@code SELECT b, a} over this relation
+   * will be sorted by columns [1, 0]. In the same time project {@code SELECT b}
+   * will not be sorted at all because it doesn't contain the collation
+   * prefix and this method will return an empty collation. </p>
+   *
+   * <p>Other traits are independent from the columns remapping. For example
+   * {@link Convention} or {@link RelDistributions#SINGLETON}.</p>
+   *
+   * @param mapping   Mapping
+   * @return trait with mapping applied
+   */
+  default <T extends RelTrait> T apply(Mappings.TargetMapping mapping) {
+    return (T) this;
+  }
+
+  /**
+   * Returns whether this trait is the default trait value.
+   */
+  default boolean isDefault() {
+    return this == getTraitDef().getDefault();
+  }
+}

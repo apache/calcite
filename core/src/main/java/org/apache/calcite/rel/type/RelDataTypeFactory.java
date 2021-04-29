@@ -23,6 +23,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -183,9 +185,7 @@ public interface RelDataTypeFactory {
       Charset charset,
       SqlCollation collation);
 
-  /**
-   * @return the default {@link Charset} for string types
-   */
+  /** Returns the default {@link Charset} (valid if this is a string type). */
   Charset getDefaultCharset();
 
   /**
@@ -198,7 +198,7 @@ public interface RelDataTypeFactory {
    * @param types input types to be combined using union (not null, not empty)
    * @return canonical union type descriptor
    */
-  RelDataType leastRestrictive(List<RelDataType> types);
+  @Nullable RelDataType leastRestrictive(List<RelDataType> types);
 
   /**
    * Creates a SQL type with no precision or scale.
@@ -274,7 +274,7 @@ public interface RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalMultiplyType(RelDataTypeFactory, RelDataType, RelDataType)}
    */
   @Deprecated // to be removed before 2.0
-  RelDataType createDecimalProduct(
+  @Nullable RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2);
 
@@ -306,7 +306,7 @@ public interface RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalDivideType(RelDataTypeFactory, RelDataType, RelDataType)}
    */
   @Deprecated // to be removed before 2.0
-  RelDataType createDecimalQuotient(
+  @Nullable RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2);
 
@@ -423,6 +423,7 @@ public interface RelDataTypeFactory {
     private final List<RelDataType> types = new ArrayList<>();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
     private final RelDataTypeFactory typeFactory;
+    private boolean nullableRecord = false;
 
     /**
      * Creates a Builder with the given type factory.
@@ -549,6 +550,12 @@ public interface RelDataTypeFactory {
       return this;
     }
 
+    /** Sets whether the record type will be nullable. */
+    public Builder nullableRecord(boolean nullableRecord) {
+      this.nullableRecord = nullableRecord;
+      return this;
+    }
+
     /**
      * Makes sure that field names are unique.
      */
@@ -566,7 +573,9 @@ public interface RelDataTypeFactory {
      * Creates a struct type with the current contents of this builder.
      */
     public RelDataType build() {
-      return typeFactory.createStructType(kind, types, names);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createStructType(kind, types, names),
+          nullableRecord);
     }
 
     /** Creates a dynamic struct type with the current contents of this
@@ -584,5 +593,3 @@ public interface RelDataTypeFactory {
     }
   }
 }
-
-// End RelDataTypeFactory.java

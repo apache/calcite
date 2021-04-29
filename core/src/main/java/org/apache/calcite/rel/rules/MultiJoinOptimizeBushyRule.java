@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
@@ -38,6 +38,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -56,7 +58,8 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  * {@link org.apache.calcite.rel.logical.LogicalProject} ({@link MultiJoin}).
  *
  * <p>It is similar to
- * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule}.
+ * {@link org.apache.calcite.rel.rules.LoptOptimizeJoinRule}
+ * ({@link CoreRules#MULTI_JOIN_OPTIMIZE}).
  * {@code LoptOptimizeJoinRule} is only capable of producing left-deep joins;
  * this rule is capable of producing bushy joins.
  *
@@ -67,18 +70,26 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  *   <li>More than 1 join conditions that touch the same pair of factors,
  *       e.g. {@code t0.c1 = t1.c1 and t1.c2 = t0.c3}
  * </ol>
+ *
+ * @see CoreRules#MULTI_JOIN_OPTIMIZE_BUSHY
  */
-public class MultiJoinOptimizeBushyRule extends RelOptRule {
-  public static final MultiJoinOptimizeBushyRule INSTANCE =
-      new MultiJoinOptimizeBushyRule(RelFactories.LOGICAL_BUILDER);
+public class MultiJoinOptimizeBushyRule
+    extends RelRule<MultiJoinOptimizeBushyRule.Config>
+    implements TransformationRule {
 
-  private final PrintWriter pw = CalciteSystemProperty.DEBUG.value()
+  private final @Nullable PrintWriter pw = CalciteSystemProperty.DEBUG.value()
       ? Util.printWriter(System.out)
       : null;
 
-  /** Creates an MultiJoinOptimizeBushyRule. */
+  /** Creates a MultiJoinOptimizeBushyRule. */
+  protected MultiJoinOptimizeBushyRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public MultiJoinOptimizeBushyRule(RelBuilderFactory relBuilderFactory) {
-    super(operand(MultiJoin.class, any()), relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   @Deprecated // to be removed before 2.0
@@ -114,7 +125,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     // a large difference in the number of rows on LHS and RHS.
     final Comparator<LoptMultiJoin.Edge> edgeComparator =
         new Comparator<LoptMultiJoin.Edge>() {
-          public int compare(LoptMultiJoin.Edge e0, LoptMultiJoin.Edge e1) {
+          @Override public int compare(LoptMultiJoin.Edge e0, LoptMultiJoin.Edge e1) {
             return Double.compare(rowCountDiff(e0), rowCountDiff(e1));
           }
 
@@ -279,7 +290,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 
-  private void trace(List<Vertex> vertexes,
+  private static void trace(List<Vertex> vertexes,
       List<LoptMultiJoin.Edge> unusedEdges, List<LoptMultiJoin.Edge> usedEdges,
       int edgeOrdinal, PrintWriter pw) {
     pw.println("bestEdge: " + edgeOrdinal);
@@ -386,6 +397,15 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
           + ")";
     }
   }
-}
 
-// End MultiJoinOptimizeBushyRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs())
+        .as(Config.class);
+
+    @Override default MultiJoinOptimizeBushyRule toRule() {
+      return new MultiJoinOptimizeBushyRule(this);
+    }
+  }
+}

@@ -68,5 +68,3 @@ public class DefaultDimensionSpec implements DimensionSpec {
     return dimension;
   }
 }
-
-// End DefaultDimensionSpec.java

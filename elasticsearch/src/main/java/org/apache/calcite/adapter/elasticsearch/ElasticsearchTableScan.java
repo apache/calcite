@@ -25,8 +25,12 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
+
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -53,7 +57,7 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
   ElasticsearchTableScan(RelOptCluster cluster, RelTraitSet traitSet,
        RelOptTable table, ElasticsearchTable elasticsearchTable,
        RelDataType projectRowType) {
-    super(cluster, traitSet, table);
+    super(cluster, traitSet, ImmutableList.of(), table);
     this.elasticsearchTable = Objects.requireNonNull(elasticsearchTable, "elasticsearchTable");
     this.projectRowType = projectRowType;
 
@@ -69,7 +73,8 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
     return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     final float f = projectRowType == null ? 1f : (float) projectRowType.getFieldCount() / 100f;
     return super.computeSelfCost(planner, mq).multiplyBy(.1 * f);
   }
@@ -82,7 +87,7 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
 
     // remove this rule otherwise elastic can't correctly interpret approx_count_distinct()
     // it is converted to cardinality aggregation in Elastic
-    planner.removeRule(AggregateExpandDistinctAggregatesRule.INSTANCE);
+    planner.removeRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES);
   }
 
   @Override public void implement(Implementor implementor) {
@@ -90,5 +95,3 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
     implementor.table = table;
   }
 }
-
-// End ElasticsearchTableScan.java

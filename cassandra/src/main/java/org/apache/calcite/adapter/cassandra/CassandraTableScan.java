@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -45,7 +47,7 @@ public class CassandraTableScan extends TableScan implements CassandraRel {
    */
   protected CassandraTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, CassandraTable cassandraTable, RelDataType projectRowType) {
-    super(cluster, traitSet, table);
+    super(cluster, traitSet, ImmutableList.of(), table);
     this.cassandraTable = cassandraTable;
     this.projectRowType = projectRowType;
 
@@ -63,16 +65,14 @@ public class CassandraTableScan extends TableScan implements CassandraRel {
   }
 
   @Override public void register(RelOptPlanner planner) {
-    planner.addRule(CassandraToEnumerableConverterRule.INSTANCE);
+    planner.addRule(CassandraRules.TO_ENUMERABLE);
     for (RelOptRule rule : CassandraRules.RULES) {
       planner.addRule(rule);
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.cassandraTable = cassandraTable;
     implementor.table = table;
   }
 }
-
-// End CassandraTableScan.java

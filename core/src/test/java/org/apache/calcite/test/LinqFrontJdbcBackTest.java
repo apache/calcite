@@ -23,7 +23,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.Util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -31,8 +31,8 @@ import java.sql.SQLException;
 /**
  * Tests for a linq4j front-end and JDBC back-end.
  */
-public class LinqFrontJdbcBackTest {
-  @Test public void testTableWhere() throws SQLException,
+class LinqFrontJdbcBackTest {
+  @Test void testTableWhere() throws SQLException,
       ClassNotFoundException {
     final Connection connection =
         CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
@@ -56,5 +56,3 @@ public class LinqFrontJdbcBackTest {
     Util.discard(s);
   }
 }
-
-// End LinqFrontJdbcBackTest.java

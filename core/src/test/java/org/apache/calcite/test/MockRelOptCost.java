@@ -87,5 +87,3 @@ public class MockRelOptCost implements RelOptCost {
     return "MockRelOptCost(0)";
   }
 }
-
-// End MockRelOptCost.java

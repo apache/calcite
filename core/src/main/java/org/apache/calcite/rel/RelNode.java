@@ -17,11 +17,12 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelDigest;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptNode;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.Metadata;
@@ -29,8 +30,12 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
+
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 import java.util.Set;
@@ -80,28 +85,13 @@ public interface RelNode extends RelOptNode, Cloneable {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Returns a list of this relational expression's child expressions.
-   * (These are scalar expressions, and so do not include the relational
-   * inputs that are returned by {@link #getInputs}.
-   *
-   * <p>The caller should treat the list as unmodifiable; typical
-   * implementations will return an immutable list. If there are no
-   * child expressions, returns an empty list, not <code>null</code>.
-   *
-   * @deprecated use #accept(org.apache.calcite.rex.RexShuttle)
-   * @return List of this relational expression's child expressions
-   * @see #accept(org.apache.calcite.rex.RexShuttle)
-   */
-  @Deprecated // to be removed before 2.0
-  List<RexNode> getChildExps();
-
-  /**
    * Return the CallingConvention trait from this RelNode's
    * {@link #getTraitSet() trait set}.
    *
    * @return this RelNode's CallingConvention
    */
-  Convention getConvention();
+  @Pure
+  @Nullable Convention getConvention();
 
   /**
    * Returns the name of the variable which is to be implicitly set at runtime
@@ -110,18 +100,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Name of correlating variable, or null
    */
-  String getCorrelVariable();
-
-  /**
-   * Returns whether the same value will not come out twice. Default value is
-   * <code>false</code>, derived classes should override.
-   *
-   * @return Whether the same value will not come out twice
-   *
-   * @deprecated Use {@link RelMetadataQuery#areRowsUnique(RelNode)}
-   */
-  @Deprecated // to be removed before 2.0
-  boolean isDistinct();
+  @Nullable String getCorrelVariable();
 
   /**
    * Returns the <code>i</code><sup>th</sup> input relational expression.
@@ -132,17 +111,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelNode getInput(int i);
 
   /**
-   * Returns the sub-query this relational expression belongs to.
-   *
-   * @return Sub-query
-   */
-  @Deprecated // to be removed before 2.0
-  RelOptQuery getQuery();
-
-  /**
    * Returns the type of the rows returned by this relational expression.
    */
-  RelDataType getRowType();
+  @Override RelDataType getRowType();
 
   /**
    * Returns the type of the rows expected for an input. Defaults to
@@ -160,7 +131,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Array of this relational expression's inputs
    */
-  List<RelNode> getInputs();
+  @Override List<RelNode> getInputs();
 
   /**
    * Returns an estimate of the number of rows this relational expression will
@@ -175,35 +146,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    *   return
    */
   double estimateRowCount(RelMetadataQuery mq);
-
-  /**
-   * @deprecated Call {@link RelMetadataQuery#getRowCount(RelNode)};
-   * if you wish to override the default row count formula, override the
-   * {@link #estimateRowCount(RelMetadataQuery)} method.
-   */
-  @Deprecated // to be removed before 2.0
-  double getRows();
-
-  /**
-   * Returns the names of variables that are set in this relational
-   * expression but also used and therefore not available to parents of this
-   * relational expression.
-   *
-   * <p>Note: only {@link org.apache.calcite.rel.core.Correlate} should set
-   * variables.
-   *
-   * <p>Note: {@link #getVariablesSet()} is equivalent but returns
-   * {@link CorrelationId} rather than their names. It is preferable except for
-   * calling old methods that require a set of strings.
-   *
-   * @return Names of variables which are set in this relational
-   *   expression
-   *
-   * @deprecated Use {@link #getVariablesSet()}
-   * and {@link CorrelationId#names(Set)}
-   */
-  @Deprecated // to be removed before 2.0
-  Set<String> getVariablesStopped();
 
   /**
    * Returns the variables that are set in this relational
@@ -258,15 +200,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @param mq Metadata query
    * @return Cost of this plan (not including children)
    */
-  RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq);
-
-  /**
-   * @deprecated Call {@link RelMetadataQuery#getNonCumulativeCost(RelNode)};
-   * if you wish to override the default cost formula, override the
-   * {@link #computeSelfCost(RelOptPlanner, RelMetadataQuery)} method.
-   */
-  @Deprecated // to be removed before 2.0
-  RelOptCost computeSelfCost(RelOptPlanner planner);
+  @Nullable RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq);
 
   /**
    * Returns a metadata interface.
@@ -279,19 +213,35 @@ public interface RelNode extends RelOptNode, Cloneable {
    *     although if the information is not present the metadata object may
    *     return null from all methods)
    */
-  <M extends Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
+  <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
 
   /**
    * Describes the inputs and attributes of this relational expression.
    * Each node should call {@code super.explain}, then call the
    * {@link org.apache.calcite.rel.externalize.RelWriterImpl#input(String, RelNode)}
    * and
-   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#item(String, Object)}
+   * {@link RelWriter#item(String, Object)}
    * methods for each input and attribute.
    *
    * @param pw Plan writer
    */
   void explain(RelWriter pw);
+
+  /**
+   * Returns a relational expression string of this {@code RelNode}.
+   * The string returned is the same as
+   * {@link RelOptUtil#toString(org.apache.calcite.rel.RelNode)}.
+   *
+   * This method is intended mainly for use while debugging in an IDE,
+   * as a convenient short-hand for RelOptUtil.toString.
+   * We recommend that classes implementing this interface
+   * do not override this method.
+   *
+   * @return Relational expression string of this {@code RelNode}
+   */
+  default String explain() {
+    return RelOptUtil.toString(this);
+  }
 
   /**
    * Receives notification that this expression is about to be registered. The
@@ -304,11 +254,58 @@ public interface RelNode extends RelOptNode, Cloneable {
   RelNode onRegister(RelOptPlanner planner);
 
   /**
-   * Computes the digest, assigns it, and returns it. For planner use only.
+   * Returns a digest string of this {@code RelNode}.
    *
-   * @return Digest of this relational expression
+   * <p>Each call creates a new digest string,
+   * so don't forget to cache the result if necessary.
+   *
+   * @return Digest string of this {@code RelNode}
+   *
+   * @see #getRelDigest()
    */
-  String recomputeDigest();
+  @Override default String getDigest() {
+    return getRelDigest().toString();
+  }
+
+  /**
+   * Returns a digest of this {@code RelNode}.
+   *
+   * <p>INTERNAL USE ONLY. For use by the planner.
+   *
+   * @return Digest of this {@code RelNode}
+   * @see #getDigest()
+   */
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  RelDigest getRelDigest();
+
+  /**
+   * Recomputes the digest.
+   *
+   * <p>INTERNAL USE ONLY. For use by the planner.
+   *
+   * @see #getDigest()
+   */
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  void recomputeDigest();
+
+  /**
+   * Deep equality check for RelNode digest.
+   *
+   * <p>By default this method collects digest attributes from
+   * explain terms, then compares each attribute pair.</p>
+   *
+   * @return Whether the 2 RelNodes are equivalent or have the same digest.
+   * @see #deepHashCode()
+   */
+  @EnsuresNonNullIf(expression = "#1", result = true)
+  boolean deepEquals(@Nullable Object obj);
+
+  /**
+   * Compute deep hash code for RelNode digest.
+   *
+   * @see #deepEquals(Object)
+   */
+  int deepHashCode();
 
   /**
    * Replaces the <code>ordinalInParent</code><sup>th</sup> input. You must
@@ -328,7 +325,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return If this relational expression represents an access to a table,
    *   returns that table, otherwise returns null
    */
-  RelOptTable getTable();
+  @Nullable RelOptTable getTable();
 
   /**
    * Returns the name of this relational expression's class, sans package
@@ -360,29 +357,14 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @throws AssertionError if this relational expression is invalid and
    *                        litmus is THROW
    */
-  boolean isValid(Litmus litmus, Context context);
-
-  @Deprecated // to be removed before 2.0
-  boolean isValid(boolean fail);
-
-  /**
-   * Returns a description of the physical ordering (or orderings) of this
-   * relational expression. Never null.
-   *
-   * @return Description of the physical ordering (or orderings) of this
-   *   relational expression. Never null
-   *
-   * @deprecated Use {@link RelMetadataQuery#distribution(RelNode)}
-   */
-  @Deprecated // to be removed before 2.0
-  List<RelCollation> getCollationList();
+  boolean isValid(Litmus litmus, @Nullable Context context);
 
   /**
    * Creates a copy of this relational expression, perhaps changing traits and
    * inputs.
    *
    * <p>Sub-classes with other important attributes are encouraged to create
-   * variants of this method with more parameters.</p>
+   * variants of this method with more parameters.
    *
    * @param traitSet Trait set
    * @param inputs   Inputs
@@ -408,20 +390,15 @@ public interface RelNode extends RelOptNode, Cloneable {
   void register(RelOptPlanner planner);
 
   /**
-   * Returns whether the result of this relational expression is uniquely
-   * identified by this columns with the given ordinals.
+   * Indicates whether it is an enforcer operator, e.g. PhysicalSort,
+   * PhysicalHashDistribute, etc. As an enforcer, the operator must be
+   * created only when required traitSet is not satisfied by its input.
    *
-   * <p>For example, if this relational expression is a LogicalTableScan to
-   * T(A, B, C, D) whose key is (A, B), then isKey([0, 1]) yields true,
-   * and isKey([0]) and isKey([0, 2]) yields false.</p>
-   *
-   * @param columns Ordinals of key columns
-   * @return Whether the given columns are a key or a superset of a key
-   *
-   * @deprecated Use {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
+   * @return Whether it is an enforcer operator
    */
-  @Deprecated // to be removed before 2.0
-  boolean isKey(ImmutableBitSet columns);
+  default boolean isEnforcer() {
+    return false;
+  }
 
   /**
    * Accepts a visit from a shuttle.
@@ -448,5 +425,3 @@ public interface RelNode extends RelOptNode, Cloneable {
     Set<CorrelationId> correlationIds();
   }
 }
-
-// End RelNode.java

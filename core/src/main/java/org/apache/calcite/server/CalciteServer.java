@@ -40,5 +40,3 @@ public interface CalciteServer {
   CalciteServerStatement getStatement(Meta.StatementHandle h)
       throws NoSuchStatementException;
 }
-
-// End CalciteServer.java

@@ -17,44 +17,64 @@
 package org.apache.calcite.sql.test;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 
-import static org.junit.Assert.assertNotNull;
+import java.util.function.UnaryOperator;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Tester of {@link SqlValidator} and runtime execution of the input SQL.
  */
-public class SqlRuntimeTester extends AbstractSqlTester {
-  public SqlRuntimeTester(SqlTestFactory factory) {
-    super(factory);
+class SqlRuntimeTester extends AbstractSqlTester {
+  SqlRuntimeTester(SqlTestFactory factory,
+      UnaryOperator<SqlValidator> validatorTransform) {
+    super(factory, validatorTransform);
   }
 
   @Override protected SqlTester with(SqlTestFactory factory) {
-    return new SqlRuntimeTester(factory);
+    return new SqlRuntimeTester(factory, validatorTransform);
   }
 
-  @Override public void checkFails(String expression, String expectedError,
+  public SqlTester withValidatorTransform(
+      UnaryOperator<UnaryOperator<SqlValidator>> transform) {
+    return new SqlRuntimeTester(factory,
+        transform.apply(validatorTransform));
+  }
+
+  @Override public void checkFails(StringAndPos sap, String expectedError,
       boolean runtime) {
-    final String sql =
-        runtime ? buildQuery2(expression) : buildQuery(expression);
-    assertExceptionIsThrown(sql, expectedError, runtime);
+    final StringAndPos sap2 =
+        StringAndPos.of(runtime ? buildQuery2(sap.addCarets())
+            : buildQuery(sap.addCarets()));
+    assertExceptionIsThrown(sap2, expectedError, runtime);
+  }
+
+  @Override public void checkAggFails(
+      String expr,
+      String[] inputValues,
+      String expectedError,
+      boolean runtime) {
+    String query =
+        SqlTests.generateAggQuery(expr, inputValues);
+    final StringAndPos sap = StringAndPos.of(query);
+    assertExceptionIsThrown(sap, expectedError, runtime);
   }
 
   public void assertExceptionIsThrown(
-      String sql,
+      StringAndPos sap,
       String expectedMsgPattern) {
-    assertExceptionIsThrown(sql, expectedMsgPattern, false);
+    assertExceptionIsThrown(sap, expectedMsgPattern, false);
   }
 
-  public void assertExceptionIsThrown(String sql, String expectedMsgPattern,
-      boolean runtime) {
+  public void assertExceptionIsThrown(StringAndPos sap,
+      String expectedMsgPattern, boolean runtime) {
     final SqlNode sqlNode;
-    final SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     try {
       sqlNode = parseQuery(sap.sql);
     } catch (Throwable e) {
-      checkParseEx(e, expectedMsgPattern, sap.sql);
+      checkParseEx(e, expectedMsgPattern, sap);
       return;
     }
 
@@ -84,5 +104,3 @@ public class SqlRuntimeTester extends AbstractSqlTester {
     SqlTests.checkEx(thrown, expectedMsgPattern, sap, stage);
   }
 }
-
-// End SqlRuntimeTester.java

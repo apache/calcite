@@ -42,7 +42,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
    * @param accumulator accumulator variables that store the intermediate
    *                    aggregate state
    */
-  public WinAggResultContextImpl(BlockBuilder block,
+  protected WinAggResultContextImpl(BlockBuilder block,
       List<Expression> accumulator,
       Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
     super(block, null, accumulator, null, null);
@@ -51,7 +51,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
-  public WinAggResultContextImpl(BlockBuilder block,
+  protected WinAggResultContextImpl(BlockBuilder block,
       List<Expression> accumulator,
       com.google.common.base.Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
     this(block, accumulator,
@@ -62,55 +62,52 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
     return frame.apply(currentBlock());
   }
 
-  public final List<Expression> arguments(Expression rowIndex) {
+  @Override public final List<Expression> arguments(Expression rowIndex) {
     return rowTranslator(rowIndex).translateList(rexArguments());
   }
 
-  public Expression computeIndex(Expression offset,
+  @Override public Expression computeIndex(Expression offset,
       WinAggImplementor.SeekType seekType) {
     return getFrame().computeIndex(offset, seekType);
   }
 
-  public Expression rowInFrame(Expression rowIndex) {
+  @Override public Expression rowInFrame(Expression rowIndex) {
     return getFrame().rowInFrame(rowIndex);
   }
 
-  public Expression rowInPartition(Expression rowIndex) {
+  @Override public Expression rowInPartition(Expression rowIndex) {
     return getFrame().rowInPartition(rowIndex);
   }
 
-  public RexToLixTranslator rowTranslator(Expression rowIndex) {
-    return getFrame().rowTranslator(rowIndex)
-        .setNullable(currentNullables());
+  @Override public RexToLixTranslator rowTranslator(Expression rowIndex) {
+    return getFrame().rowTranslator(rowIndex);
   }
 
-  public Expression compareRows(Expression a, Expression b) {
+  @Override public Expression compareRows(Expression a, Expression b) {
     return getFrame().compareRows(a, b);
   }
 
-  public Expression index() {
+  @Override public Expression index() {
     return getFrame().index();
   }
 
-  public Expression startIndex() {
+  @Override public Expression startIndex() {
     return getFrame().startIndex();
   }
 
-  public Expression endIndex() {
+  @Override public Expression endIndex() {
     return getFrame().endIndex();
   }
 
-  public Expression hasRows() {
+  @Override public Expression hasRows() {
     return getFrame().hasRows();
   }
 
-  public Expression getFrameRowCount() {
+  @Override public Expression getFrameRowCount() {
     return getFrame().getFrameRowCount();
   }
 
-  public Expression getPartitionRowCount() {
+  @Override public Expression getPartitionRowCount() {
     return getFrame().getPartitionRowCount();
   }
 }
-
-// End WinAggResultContextImpl.java

@@ -16,11 +16,15 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Serializable wrapper around a {@link Charset}.
@@ -63,10 +67,12 @@ public class SerializableCharset implements Serializable {
   /**
    * Per {@link Serializable}.
    */
+  @SuppressWarnings("JdkObsolete")
   private void readObject(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
     charsetName = (String) in.readObject();
-    charset = Charset.availableCharsets().get(this.charsetName);
+    charset = requireNonNull(Charset.availableCharsets().get(this.charsetName),
+        () -> "charset is not found: " + charsetName);
   }
 
   /**
@@ -85,12 +91,10 @@ public class SerializableCharset implements Serializable {
    * @param charset Character set to wrap, or null
    * @return Wrapped charset
    */
-  public static SerializableCharset forCharset(Charset charset) {
+  public static @PolyNull SerializableCharset forCharset(@PolyNull Charset charset) {
     if (charset == null) {
       return null;
     }
     return new SerializableCharset(charset);
   }
 }
-
-// End SerializableCharset.java

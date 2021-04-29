@@ -25,6 +25,10 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Standard implementation of {@link RexToSqlNodeConverter}.
  */
@@ -41,8 +45,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RexToSqlNodeConverter
-  public SqlNode convertNode(RexNode node) {
+  @Override public @Nullable SqlNode convertNode(RexNode node) {
     if (node instanceof RexLiteral) {
       return convertLiteral((RexLiteral) node);
     } else if (node instanceof RexInputRef) {
@@ -54,7 +57,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
   }
 
   // implement RexToSqlNodeConverter
-  public SqlNode convertCall(RexCall call) {
+  @Override public @Nullable SqlNode convertCall(RexCall call) {
     final RexSqlConvertlet convertlet = convertletTable.get(call);
     if (convertlet != null) {
       return convertlet.convertCall(this, call);
@@ -63,20 +66,19 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     return null;
   }
 
-  // implement RexToSqlNodeConverter
-  public SqlNode convertLiteral(RexLiteral literal) {
+  @Override public @Nullable SqlNode convertLiteral(RexLiteral literal) {
     // Numeric
     if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createExactNumeric(
-          literal.getValue().toString(),
+          String.valueOf(literal.getValue()),
           SqlParserPos.ZERO);
     }
 
     if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createApproxNumeric(
-          literal.getValue().toString(),
+          String.valueOf(literal.getValue()),
           SqlParserPos.ZERO);
     }
 
@@ -84,7 +86,8 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.TIMESTAMP.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createTimestamp(
-          literal.getValueAs(TimestampString.class),
+          requireNonNull(literal.getValueAs(TimestampString.class),
+              "literal.getValueAs(TimestampString.class)"),
           0,
           SqlParserPos.ZERO);
     }
@@ -93,7 +96,8 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.DATE.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createDate(
-          literal.getValueAs(DateString.class),
+          requireNonNull(literal.getValueAs(DateString.class),
+              "literal.getValueAs(DateString.class)"),
           SqlParserPos.ZERO);
     }
 
@@ -101,7 +105,8 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.TIME.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createTime(
-          literal.getValueAs(TimeString.class),
+          requireNonNull(literal.getValueAs(TimeString.class),
+              "literal.getValueAs(TimeString.class)"),
           0,
           SqlParserPos.ZERO);
     }
@@ -110,7 +115,8 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.CHARACTER.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createCharString(
-          ((NlsString) (literal.getValue())).getValue(),
+          requireNonNull((NlsString) literal.getValue(), "literal.getValue()")
+              .getValue(),
           SqlParserPos.ZERO);
     }
 
@@ -118,7 +124,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.BOOLEAN.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createBoolean(
-          (Boolean) literal.getValue(),
+          (Boolean) requireNonNull(literal.getValue(), "literal.getValue()"),
           SqlParserPos.ZERO);
     }
 
@@ -130,10 +136,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     return null;
   }
 
-  // implement RexToSqlNodeConverter
-  public SqlNode convertInputRef(RexInputRef ref) {
+  @Override public @Nullable SqlNode convertInputRef(RexInputRef ref) {
     return null;
   }
 }
-
-// End RexToSqlNodeConverterImpl.java

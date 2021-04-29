@@ -30,5 +30,3 @@ public interface SearchResultListener {
 
   void setFieldNames(String[] fieldNames);
 }
-
-// End SearchResultListener.java

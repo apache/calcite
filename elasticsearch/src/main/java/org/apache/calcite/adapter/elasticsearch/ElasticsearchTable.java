@@ -40,9 +40,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -62,8 +59,6 @@ import java.util.stream.Collectors;
  * Table based on an Elasticsearch index.
  */
 public class ElasticsearchTable extends AbstractQueryableTable implements TranslatableTable {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchTable.class);
 
   /**
    * Used for constructing (possibly nested) Elastic aggregation nodes.
@@ -186,6 +181,11 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     query.put("_source", false);
     query.put("size", 0);
     query.remove("script_fields");
+    // set _source = false and size = 0, `FetchPhase` would still be executed
+    // to fetch the metadata fields and visit the Lucene stored_fields,
+    // which would lead to performance declined dramatically.
+    // `stored_fields = _none` can prohibit such behavior entirely
+    query.put("stored_fields", "_none_");
 
     // allows to detect aggregation for count(*)
     final Predicate<Map.Entry<String, String>> isCountStar = e -> e.getValue()
@@ -340,7 +340,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       super(queryProvider, schema, table, tableName);
     }
 
-    public Enumerator<T> enumerator() {
+    @Override public Enumerator<T> enumerator() {
       return null;
     }
 
@@ -371,5 +371,3 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
   }
 }
-
-// End ElasticsearchTable.java

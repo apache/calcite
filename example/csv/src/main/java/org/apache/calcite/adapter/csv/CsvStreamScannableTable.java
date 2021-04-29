@@ -17,20 +17,25 @@
 package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.file.CsvEnumerator;
+import org.apache.calcite.adapter.file.CsvFieldType;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
-import java.util.ArrayList;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a CSV file.
@@ -45,29 +50,23 @@ public class CsvStreamScannableTable extends CsvScannableTable
     super(source, protoRowType);
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    if (protoRowType != null) {
-      return protoRowType.apply(typeFactory);
-    }
-    if (fieldTypes == null) {
-      fieldTypes = new ArrayList<>();
-      return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, fieldTypes, true);
-    } else {
-      return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, null, true);
-    }
+  @Override protected boolean isStream() {
+    return true;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "CsvStreamScannableTable";
   }
 
-  public Enumerable<Object[]> scan(DataContext root) {
-    final int[] fields = CsvEnumerator.identityList(fieldTypes.size());
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
+    final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, true, null,
-            new CsvEnumerator.ArrayRowConverter(fieldTypes, fields, true));
+            CsvEnumerator.arrayConverter(fieldTypes, fields, true));
       }
     };
   }
@@ -76,5 +75,3 @@ public class CsvStreamScannableTable extends CsvScannableTable
     return this;
   }
 }
-
-// End CsvStreamScannableTable.java

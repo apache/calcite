@@ -65,7 +65,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     this.rexBuilder = rexBuilder;
   }
 
-  public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+  @Override public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
     final RexProgramBuilder programBuilder =
         new RexProgramBuilder(inputRowType, rexBuilder);
     for (RexNode node : nodes) {
@@ -176,5 +176,3 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     return (Scalar) cbe.createInstance(new StringReader(s));
   }
 }
-
-// End JaninoRexCompiler.java

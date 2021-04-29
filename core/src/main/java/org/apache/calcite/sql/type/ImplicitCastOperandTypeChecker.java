@@ -50,5 +50,3 @@ public interface ImplicitCastOperandTypeChecker {
    */
   SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand);
 }
-
-// End ImplicitCastOperandTypeChecker.java

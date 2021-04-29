@@ -51,9 +51,7 @@ public class ExplicitReturnTypeInference implements SqlReturnTypeInference {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     return protoType.apply(opBinding.getTypeFactory());
   }
 }
-
-// End ExplicitReturnTypeInference.java

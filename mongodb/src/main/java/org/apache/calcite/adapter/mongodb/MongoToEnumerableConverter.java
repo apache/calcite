@@ -38,8 +38,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -62,12 +63,12 @@ public class MongoToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generates a call to "find" or "aggregate", depending upon whether
     // an aggregate is present.
     //
@@ -79,25 +80,9 @@ public class MongoToEnumerableConverter
     //     "{$filter: {state: 'CA'}}",
     //     "{$group: {_id: '$city', c: {$sum: 1}, p: {$sum: "$pop"}}")
     final BlockBuilder list = new BlockBuilder();
-    final MongoRel.Implementor mongoImplementor = new MongoRel.Implementor();
+    final MongoRel.Implementor mongoImplementor =
+        new MongoRel.Implementor(getCluster().getRexBuilder());
     mongoImplementor.visitChild(0, getInput());
-    int aggCount = 0;
-    int findCount = 0;
-    String project = null;
-    String filter = null;
-    for (Pair<String, String> op : mongoImplementor.list) {
-      if (op.left == null) {
-        ++aggCount;
-      }
-      if (op.right.startsWith("{$match:")) {
-        filter = op.left;
-        ++findCount;
-      }
-      if (op.right.startsWith("{$project:")) {
-        project = op.left;
-        ++findCount;
-      }
-    }
     final RelDataType rowType = getRowType();
     final PhysType physType =
         PhysTypeImpl.of(
@@ -155,8 +140,6 @@ public class MongoToEnumerableConverter
   /** E.g. {@code constantList("x", "y")} returns
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}. */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Lists.transform(values, Expressions::constant);
+    return Util.transform(values, Expressions::constant);
   }
 }
-
-// End MongoToEnumerableConverter.java

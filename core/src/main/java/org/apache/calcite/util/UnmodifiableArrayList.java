@@ -54,5 +54,3 @@ public class UnmodifiableArrayList<E>
     return elements.length;
   }
 }
-
-// End UnmodifiableArrayList.java

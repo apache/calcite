@@ -33,7 +33,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 /**
- * Support unparse logic for Extract function of Decade , Century , DOY , DOW
+ * Support unparse logic for Extract function of Decade , Century , DOY , DOW.
  */
 public class ExtractFunctionFormatUtil {
 
@@ -87,13 +87,13 @@ public class ExtractFunctionFormatUtil {
     SqlNumericLiteral unfixedLiteral = SqlLiteral.createExactNumeric(literalValue,
             SqlParserPos.ZERO);
     SqlNode[] substrOperand = new SqlNode[] { castCall, zeroLiteral, unfixedLiteral};
-    SqlCall substrCall =  new SqlBasicCall(SqlLibraryOperators.SUBSTR, substrOperand,
+    SqlCall substrCall =  new SqlBasicCall(SqlLibraryOperators.SUBSTR_BIG_QUERY, substrOperand,
             SqlParserPos.ZERO);
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
     return CAST.createCall(SqlParserPos.ZERO, substrCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }
   /**
-   * DateTime Unit for supporting different categories of date and time
+   * DateTime Unit for supporting different categories of date and time.
    */
   private enum DateTimeUnit {
     DAYOFYEAR("DAYOFYEAR"),
@@ -108,4 +108,3 @@ public class ExtractFunctionFormatUtil {
     }
   }
 }
-// End ExtractFunctionFormatUtil.java

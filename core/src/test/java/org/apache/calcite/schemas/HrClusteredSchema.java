@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,7 +51,6 @@ public final class HrClusteredSchema extends AbstractSchema {
   private final ImmutableMap<String, Table> tables;
 
   public HrClusteredSchema() {
-    super();
     tables = ImmutableMap.<String, Table>builder()
         .put("emps",
             new PkClusteredTable(
@@ -120,11 +121,9 @@ public final class HrClusteredSchema extends AbstractSchema {
       return typeBuilder.apply(typeFactory);
     }
 
-    @Override public Enumerable<Object[]> scan(final DataContext root) {
+    @Override public Enumerable<@Nullable Object[]> scan(final DataContext root) {
       return Linq4j.asEnumerable(data);
     }
 
   }
 }
-
-// End HrClusteredSchema.java

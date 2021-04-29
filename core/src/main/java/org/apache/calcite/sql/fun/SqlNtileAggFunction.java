@@ -47,5 +47,3 @@ public class SqlNtileAggFunction extends SqlAggFunction {
   }
 
 }
-
-// End SqlNtileAggFunction.java

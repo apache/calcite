@@ -94,5 +94,3 @@ public class MockCatalogReaderDynamic extends MockCatalogReader {
     return this;
   }
 }
-
-// End MockCatalogReaderDynamic.java

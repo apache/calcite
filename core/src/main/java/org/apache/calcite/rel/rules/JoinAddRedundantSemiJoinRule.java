@@ -16,16 +16,16 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -33,34 +33,38 @@ import com.google.common.collect.ImmutableSet;
  *
  * <p>LogicalJoin(X, Y) &rarr; LogicalJoin(SemiJoin(X, Y), Y)
  *
- * <p>The constructor is parameterized to allow any sub-class of
+ * <p>Can be configured to match any sub-class of
  * {@link org.apache.calcite.rel.core.Join}, not just
  * {@link org.apache.calcite.rel.logical.LogicalJoin}.
+ *
+ * @see CoreRules#JOIN_ADD_REDUNDANT_SEMI_JOIN
  */
-public class JoinAddRedundantSemiJoinRule extends RelOptRule {
-  public static final JoinAddRedundantSemiJoinRule INSTANCE =
-      new JoinAddRedundantSemiJoinRule(LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+public class JoinAddRedundantSemiJoinRule
+    extends RelRule<JoinAddRedundantSemiJoinRule.Config>
+    implements TransformationRule {
 
-  //~ Constructors -----------------------------------------------------------
+  /** Creates a JoinAddRedundantSemiJoinRule. */
+  protected JoinAddRedundantSemiJoinRule(Config config) {
+    super(config);
+  }
 
-  /**
-   * Creates an JoinAddRedundantSemiJoinRule.
-   */
+  @Deprecated // to be removed before 2.0
   public JoinAddRedundantSemiJoinRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory) {
-    super(operand(clazz, any()), relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(clazz));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     Join origJoinRel = call.rel(0);
     if (origJoinRel.isSemiJoinDone()) {
       return;
     }
 
-    // can't process outer joins using semijoins
+    // can't process outer joins using semi-joins
     if (origJoinRel.getJoinType() != JoinRelType.INNER) {
       return;
     }
@@ -74,6 +78,7 @@ public class JoinAddRedundantSemiJoinRule extends RelOptRule {
     RelNode semiJoin =
         LogicalJoin.create(origJoinRel.getLeft(),
             origJoinRel.getRight(),
+            ImmutableList.of(),
             origJoinRel.getCondition(),
             ImmutableSet.of(),
             JoinRelType.SEMI);
@@ -89,6 +94,20 @@ public class JoinAddRedundantSemiJoinRule extends RelOptRule {
 
     call.transformTo(newJoinRel);
   }
-}
 
-// End JoinAddRedundantSemiJoinRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalJoin.class);
+
+    @Override default JoinAddRedundantSemiJoinRule toRule() {
+      return new JoinAddRedundantSemiJoinRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass) {
+      return withOperandSupplier(b -> b.operand(joinClass).anyInputs())
+          .as(Config.class);
+    }
+  }
+}

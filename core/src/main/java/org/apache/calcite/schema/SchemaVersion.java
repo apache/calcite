@@ -38,5 +38,3 @@ public interface SchemaVersion {
    */
   boolean isBefore(SchemaVersion other);
 }
-
-// End SchemaVersion.java

@@ -27,5 +27,3 @@ public interface Typed {
    */
   Type getElementType();
 }
-
-// End Typed.java

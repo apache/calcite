@@ -34,7 +34,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMultiset;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -48,15 +48,15 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Test case for issue 85. */
-public class TableInRootSchemaTest {
+class TableInRootSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-85">[CALCITE-85]
    * Adding a table to the root schema causes breakage in
    * CalcitePrepareImpl</a>. */
-  @Test public void testAddingTableInRootSchema() throws Exception {
+  @Test void testAddingTableInRootSchema() throws Exception {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
@@ -181,5 +181,3 @@ public class TableInRootSchemaTest {
     }
   }
 }
-
-// End TableInRootSchemaTest.java

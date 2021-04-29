@@ -191,5 +191,3 @@ class PigRelUdfConverter {
     return null;
   }
 }
-
-// End PigRelUdfConverter.java

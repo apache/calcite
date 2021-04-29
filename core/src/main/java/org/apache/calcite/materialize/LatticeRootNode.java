@@ -29,6 +29,7 @@ public class LatticeRootNode extends LatticeNode {
   public final ImmutableList<LatticeNode> descendants;
   final ImmutableList<Path> paths;
 
+  @SuppressWarnings("method.invocation.invalid")
   LatticeRootNode(LatticeSpace space, MutableNode mutableNode) {
     super(space, null, mutableNode);
 
@@ -46,7 +47,7 @@ public class LatticeRootNode extends LatticeNode {
     return ImmutableList.copyOf(paths);
   }
 
-  void use(List<LatticeNode> usedNodes) {
+  @Override void use(List<LatticeNode> usedNodes) {
     if (!usedNodes.contains(this)) {
       usedNodes.add(this);
     }
@@ -82,5 +83,3 @@ public class LatticeRootNode extends LatticeNode {
   }
 
 }
-
-// End LatticeRootNode.java

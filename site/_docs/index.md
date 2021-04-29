@@ -142,5 +142,3 @@ The following features are complete.
   more details in the [SQL reference](reference.html)
 * Local and remote JDBC drivers; see [Avatica](avatica_overview.html)
 * Several [adapters](adapter.html)
-
-

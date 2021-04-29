@@ -30,7 +30,7 @@ import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.getType
 import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.intValue;
 
 /**
- * Datetimestamp with interval unparse for Hive
+ * Datetimestamp with interval unparse for Hive.
  */
 public class HiveDateTimestampInterval {
 
@@ -91,7 +91,8 @@ public class HiveDateTimestampInterval {
       writer.print("-".equals(sign) ? "DATE_SUB(" : "DATE_ADD(");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
-      String valueSign = String.valueOf(((SqlIntervalLiteral.IntervalValue)
+      String valueSign = String.valueOf(
+          ((SqlIntervalLiteral.IntervalValue)
           ((SqlIntervalLiteral) call.operand(1)).
               getValue()).getSign()).replace("1", "");
       writer.print(valueSign);
@@ -117,7 +118,9 @@ public class HiveDateTimestampInterval {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep(",");
     if (call.operand(1) instanceof SqlIntervalLiteral) {
-      String valueSign = String.valueOf(((SqlIntervalLiteral.IntervalValue) (
+      String valueSign = String.valueOf(
+          (
+              (SqlIntervalLiteral.IntervalValue) (
           (SqlIntervalLiteral) call.operand(1)).getValue()).getSign()).replace("1", "");
       writer.print("-".equals(valueSign) ? valueSign : "");
       writer.print(((SqlIntervalLiteral) call.operand(1)).getValue().toString());
@@ -125,7 +128,9 @@ public class HiveDateTimestampInterval {
       SqlBasicCall sqlBasicCall = call.operand(1);
       sqlBasicCall.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(sqlBasicCall.getOperator().getName());
-      String valueSign = String.valueOf(((SqlIntervalLiteral.IntervalValue) (
+      String valueSign = String.valueOf(
+          (
+              (SqlIntervalLiteral.IntervalValue) (
           (SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue()).getSign()).replace("1", "");
       writer.print("-".equals(valueSign) ? valueSign : "" + " ");
       writer.print(((SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue().toString());
@@ -217,5 +222,3 @@ public class HiveDateTimestampInterval {
     writer.print(")");
   }
 }
-
-// End HiveDateTimestampInterval.java

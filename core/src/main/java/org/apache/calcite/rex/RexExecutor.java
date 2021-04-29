@@ -33,5 +33,3 @@ public interface RexExecutor {
    */
   void reduce(RexBuilder rexBuilder, List<RexNode> constExps, List<RexNode> reducedValues);
 }
-
-// End RexExecutor.java

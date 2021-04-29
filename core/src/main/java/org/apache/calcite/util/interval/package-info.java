@@ -22,5 +22,3 @@
 package org.apache.calcite.util.interval;
 
 import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

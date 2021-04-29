@@ -17,10 +17,12 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -31,9 +33,9 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -53,9 +55,12 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 /**
  * Extension to {@link RelBuilder} for Pig logical operators.
@@ -78,9 +83,18 @@ public class PigRelBuilder extends RelBuilder {
   /** Creates a PigRelBuilder. */
   public static PigRelBuilder create(FrameworkConfig config) {
     final RelBuilder relBuilder = RelBuilder.create(config);
-    Hook.REL_BUILDER_SIMPLIFY.add(Hook.propertyJ(false));
-    return new PigRelBuilder(config.getContext(), relBuilder.getCluster(),
+    Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false));
+    return new PigRelBuilder(
+        transform(config.getContext(), c -> c.withBloat(-1)),
+        relBuilder.getCluster(),
         relBuilder.getRelOptSchema());
+  }
+
+  private static Context transform(Context context,
+      UnaryOperator<RelBuilder.Config> transform) {
+    final Config config =
+        context.maybeUnwrap(Config.class).orElse(Config.DEFAULT);
+    return Contexts.of(transform.apply(config), context);
   }
 
   public RelNode getRel(String alias) {
@@ -223,6 +237,7 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder scan(RelOptTable userSchema, String... tableNames) {
     // First, look up the database schema to find the table schema with the given names
     final List<String> names = ImmutableList.copyOf(tableNames);
+    Objects.requireNonNull(relOptSchema, "relOptSchema");
     final RelOptTable systemSchema = relOptSchema.getTableForMember(names);
 
     // Now we may end up with two different schemas.
@@ -253,13 +268,14 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   private RelBuilder scan(RelOptTable tableSchema) {
-    final RelNode scan = getScanFactory().createScan(cluster, tableSchema);
+    final RelNode scan = getScanFactory().createScan(
+        ViewExpanders.simpleContext(cluster), tableSchema);
     push(scan);
     return this;
   }
 
   /**
-   * Makes a table scan operator for a given row type and names
+   * Makes a table scan operator for a given row type and names.
    *
    * @param rowType Row type
    * @param tableNames Table names
@@ -270,7 +286,7 @@ public class PigRelBuilder extends RelBuilder {
   }
 
   /**
-   * Makes a table scan operator for a given row type and names
+   * Makes a table scan operator for a given row type and names.
    *
    * @param rowType Row type
    * @param tableNames Table names
@@ -361,11 +377,6 @@ public class PigRelBuilder extends RelBuilder {
     return projectionExprs;
   }
 
-  public AggCall aggregateCall(SqlAggFunction aggFunction, String alias, RexNode... operands) {
-    return aggregateCall(aggFunction, false, false, false, null,
-        ImmutableList.of(), alias, ImmutableList.copyOf(operands));
-  }
-
   /**
    * Cogroups relations on top of the stack. The number of relations and the
    * group key are specified in groupKeys
@@ -374,9 +385,8 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   public RelBuilder cogroup(Iterable<? extends GroupKey> groupKeys) {
-    @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
-        ImmutableList.copyOf((Iterable) groupKeys);
-    final int groupCount = groupKeyList.get(0).nodes.size();
+    final List<GroupKey> groupKeyList = ImmutableList.copyOf(groupKeys);
+    final int groupCount = groupKeyList.get(0).groupKeyCount();
 
     // Pull out all relations needed for the group
     final int numRels = groupKeyList.size();
@@ -501,8 +511,11 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder multiSetFlatten() {
     // [CALCITE-3193] Add RelBuilder.uncollect method, and interface
     // UncollectFactory, to instantiate Uncollect
-    Uncollect uncollect = new Uncollect(cluster,
-        cluster.traitSetOf(Convention.NONE), build(), false);
+    Uncollect uncollect = Uncollect.create(
+        cluster.traitSetOf(Convention.NONE),
+        build(),
+        false,
+        Collections.emptyList());
     push(uncollect);
     return this;
   }
@@ -562,10 +575,10 @@ public class PigRelBuilder extends RelBuilder {
     return super.dot(node, (String) field);
   }
 
-  public RexNode literal(Object value, RelDataType type) {
+  public RexLiteral literal(Object value, RelDataType type) {
     if (value instanceof Tuple) {
       assert type.isStruct();
-      return getRexBuilder().makeLiteral(((Tuple) value).getAll(), type, false);
+      return getRexBuilder().makeLiteral(((Tuple) value).getAll(), type);
     }
 
     if (value instanceof DataBag) {
@@ -574,13 +587,13 @@ public class PigRelBuilder extends RelBuilder {
       for (Tuple tuple : (DataBag) value) {
         multisetObj.add(tuple.getAll());
       }
-      return getRexBuilder().makeLiteral(multisetObj, type, false);
+      return getRexBuilder().makeLiteral(multisetObj, type);
     }
-    return getRexBuilder().makeLiteral(value, type, false);
+    return getRexBuilder().makeLiteral(value, type);
   }
 
   /**
-   * Save the store alias with the corresponding relational algebra node
+   * Saves the store alias with the corresponding relational algebra node.
    *
    * @param storeAlias alias of the Pig store operator
    * @return This builder
@@ -650,9 +663,7 @@ public class PigRelBuilder extends RelBuilder {
   /**
    * Context constructed during Pig-to-{@link RelNode} translation process.
    */
-  public class PigRelTranslationContext {
+  public static class PigRelTranslationContext {
     final Map<String, FuncSpec> pigUdfs = new HashMap<>();
   }
 }
-
-// End PigRelBuilder.java

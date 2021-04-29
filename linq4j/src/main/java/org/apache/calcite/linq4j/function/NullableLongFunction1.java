@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j.function;
  */
 public interface NullableLongFunction1<T0> extends Function1<T0, Long> {
 }
-
-// End NullableLongFunction1.java

@@ -16,11 +16,6 @@
  */
 
 /**
- * Query provider based on Apache Geode (Gemfire) In Memory Data Grid
+ * Query evaluation runtime for Apache Geode adapter.
  */
-@PackageMarker
 package org.apache.calcite.adapter.geode.simple;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

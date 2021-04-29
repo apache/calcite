@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Namespace representing the row type produced by joining two relations.
  */
@@ -38,11 +40,11 @@ class JoinNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  protected RelDataType validateImpl(RelDataType targetRowType) {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     RelDataType leftType =
-        validator.getNamespace(join.getLeft()).getRowType();
+        validator.getNamespaceOrThrow(join.getLeft()).getRowType();
     RelDataType rightType =
-        validator.getNamespace(join.getRight()).getRowType();
+        validator.getNamespaceOrThrow(join.getRight()).getRowType();
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     switch (join.getJoinType()) {
     case LEFT:
@@ -55,13 +57,13 @@ class JoinNamespace extends AbstractNamespace {
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;
+    default:
+      break;
     }
     return typeFactory.createJoinType(leftType, rightType);
   }
 
-  public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return join;
   }
 }
-
-// End JoinNamespace.java

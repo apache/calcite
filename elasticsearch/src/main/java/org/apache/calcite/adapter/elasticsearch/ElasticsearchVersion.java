@@ -64,5 +64,3 @@ enum ElasticsearchVersion {
     }
   }
 }
-
-// End ElasticsearchVersion.java

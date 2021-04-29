@@ -34,6 +34,7 @@ class ElasticsearchEnumerators {
 
   private ElasticsearchEnumerators() {}
 
+  @SuppressWarnings("unused")
   private static Function1<ElasticsearchJson.SearchHit, Map> mapGetter() {
     return ElasticsearchJson.SearchHit::sourceOrFields;
   }
@@ -117,6 +118,7 @@ class ElasticsearchEnumerators {
     return getter;
   }
 
+  @SuppressWarnings("JdkObsolete")
   private static Object convert(Object o, Class clazz) {
     if (o == null) {
       return null;
@@ -139,5 +141,3 @@ class ElasticsearchEnumerators {
     return o;
   }
 }
-
-// End ElasticsearchEnumerators.java

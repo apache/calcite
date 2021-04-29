@@ -29,6 +29,8 @@ import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +51,7 @@ public class MongoAggregate
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == input.getConvention();
 
@@ -90,7 +92,7 @@ public class MongoAggregate
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     List<String> list = new ArrayList<>();
     final List<String> inNames =
@@ -154,7 +156,7 @@ public class MongoAggregate
     }
   }
 
-  private String toMongo(SqlAggFunction aggregation, List<String> inNames,
+  private static String toMongo(SqlAggFunction aggregation, List<String> inNames,
       List<Integer> args) {
     if (aggregation == SqlStdOperatorTable.COUNT) {
       if (args.size() == 0) {
@@ -188,5 +190,3 @@ public class MongoAggregate
     }
   }
 }
-
-// End MongoAggregate.java

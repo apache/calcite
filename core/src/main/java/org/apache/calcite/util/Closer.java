@@ -34,7 +34,7 @@ public final class Closer implements AutoCloseable {
     return e;
   }
 
-  public void close() {
+  @Override public void close() {
     for (AutoCloseable closeable : list) {
       try {
         closeable.close();
@@ -46,5 +46,3 @@ public final class Closer implements AutoCloseable {
     }
   }
 }
-
-// End Closer.java

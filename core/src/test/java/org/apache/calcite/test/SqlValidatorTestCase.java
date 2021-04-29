@@ -16,30 +16,38 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
-import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
+import org.apache.calcite.testlib.annotations.WithLex;
 
-import org.junit.rules.MethodRule;
-import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.Statement;
+import com.google.common.base.Preconditions;
+
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.platform.commons.support.AnnotationSupport;
 
 import java.nio.charset.Charset;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * An abstract base class for implementing tests against {@link SqlValidator}.
@@ -53,8 +61,6 @@ import static org.junit.Assert.assertThat;
  * validator to use.</p>
  */
 public class SqlValidatorTestCase {
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final SqlTestFactory EXTENDED_TEST_FACTORY =
       SqlTestFactory.INSTANCE.withCatalogReader(MockCatalogReaderExtended::new);
 
@@ -69,13 +75,7 @@ public class SqlValidatorTestCase {
       new SqlValidatorTester(EXTENDED_TEST_FACTORY)
           .withConformance(SqlConformanceEnum.LENIENT);
 
-  public static final MethodRule TESTER_CONFIGURATION_RULE = new TesterConfigurationRule();
-
-  //~ Instance fields --------------------------------------------------------
-
   protected SqlTester tester;
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a test case.
@@ -94,21 +94,20 @@ public class SqlValidatorTestCase {
     return new SqlValidatorTester(SqlTestFactory.INSTANCE);
   }
 
+  /** Creates a test context with a SQL query. */
   public final Sql sql(String sql) {
-    return new Sql(tester, sql, true);
+    return new Sql(tester, StringAndPos.of(sql), true, false);
   }
 
-  public final Sql sql(String sql, boolean typeCoercion) {
-    final SqlTester tester1 = tester.enableTypeCoercion(typeCoercion);
-    return new Sql(tester1, sql, true);
-  }
-
+  /** Creates a test context with a SQL expression. */
   public final Sql expr(String sql) {
-    return new Sql(tester, sql, false);
+    return new Sql(tester, StringAndPos.of(sql), false, false);
   }
 
-  public final Sql winSql(String sql, boolean typeCoercion) {
-    return sql(sql, typeCoercion);
+  /** Creates a test context with a SQL expression.
+   * If an error occurs, the error is expected to span the entire expression. */
+  public final Sql wholeExpr(String sql) {
+    return expr(sql).withWhole(true);
   }
 
   public final Sql winSql(String sql) {
@@ -126,192 +125,6 @@ public class SqlValidatorTestCase {
   public Sql winExp2(String sql) {
     return winSql("select " + sql + " from emp");
   }
-
-  public Sql winExp2(String sql, boolean typeCoercion) {
-    return winSql("select " + sql + " from emp", typeCoercion);
-  }
-
-  public void check(String sql) {
-    sql(sql).ok();
-  }
-
-  public void checkExp(String sql) {
-    tester.assertExceptionIsThrown(
-        AbstractSqlTester.buildQuery(sql),
-        null);
-  }
-
-  /**
-   * Checks that a SQL query gives a particular error, or succeeds if {@code
-   * expected} is null.
-   */
-  public final void checkFails(
-      String sql,
-      String expected) {
-    sql(sql).fails(expected);
-  }
-
-  /**
-   * Checks that a SQL query gives a particular error, or succeeds if {@code
-   * expected} is null, with specified type coercion flag.
-   */
-  public final void checkFails(
-      String sql,
-      String expected,
-      boolean typeCoercion) {
-    sql(sql, typeCoercion).fails(expected);
-  }
-
-  /**
-   * Checks that a SQL expression gives a particular error.
-   */
-  public final void checkExpFails(
-      String sql,
-      String expected) {
-    tester.assertExceptionIsThrown(
-        AbstractSqlTester.buildQuery(sql),
-        expected);
-  }
-
-  /**
-   * Checks that a SQL expression gives a particular error,
-   * with specified type coercion flag.
-   */
-  public final void checkExpFails(
-      String sql,
-      String expected,
-      boolean typeCoercion) {
-    final SqlTester tester1 = tester.enableTypeCoercion(typeCoercion);
-    tester1.assertExceptionIsThrown(
-        AbstractSqlTester.buildQuery(sql),
-        expected);
-  }
-
-  /**
-   * Checks that a SQL expression gives a particular error, and that the
-   * location of the error is the whole expression.
-   */
-  public final void checkWholeExpFails(
-      String sql,
-      String expected) {
-    assert sql.indexOf('^') < 0;
-    checkExpFails("^" + sql + "^", expected);
-  }
-
-  /**
-   * Checks that a SQL expression gives a particular error, and that the
-   * location of the error is the whole expression, with specified type coercion flag.
-   */
-  public final void checkWholeExpFails(
-      String sql,
-      String expected,
-      boolean typeCoercion) {
-    assert sql.indexOf('^') < 0;
-    checkExpFails("^" + sql + "^", expected, typeCoercion);
-  }
-
-  public final void checkExpType(
-      String sql,
-      String expected) {
-    checkColumnType(
-        AbstractSqlTester.buildQuery(sql),
-        expected);
-  }
-
-  /**
-   * Checks that a query returns a single column, and that the column has the
-   * expected type. For example,
-   *
-   * <blockquote><code>checkColumnType("SELECT empno FROM Emp", "INTEGER NOT
-   * NULL");</code></blockquote>
-   *
-   * @param sql      Query
-   * @param expected Expected type, including nullability
-   */
-  public final void checkColumnType(
-      String sql,
-      String expected) {
-    tester.checkColumnType(sql, expected);
-  }
-
-  /**
-   * Checks that a query returns a row of the expected type. For example,
-   *
-   * <blockquote><code>checkResultType("select empno, name from emp","{EMPNO
-   * INTEGER NOT NULL, NAME VARCHAR(10) NOT NULL}");</code></blockquote>
-   *
-   * @param sql      Query
-   * @param expected Expected row type
-   */
-  public final void checkResultType(
-      String sql,
-      String expected) {
-    tester.checkResultType(sql, expected);
-  }
-
-  /**
-   * Checks that the first column returned by a query has the expected type.
-   * For example,
-   *
-   * <blockquote><code>checkQueryType("SELECT empno FROM Emp", "INTEGER NOT
-   * NULL");</code></blockquote>
-   *
-   * @param sql      Query
-   * @param expected Expected type, including nullability
-   */
-  public final void checkIntervalConv(
-      String sql,
-      String expected) {
-    tester.checkIntervalConv(
-        AbstractSqlTester.buildQuery(sql),
-        expected);
-  }
-
-  protected final void assertExceptionIsThrown(
-      String sql,
-      String expectedMsgPattern) {
-    assert expectedMsgPattern != null;
-    tester.assertExceptionIsThrown(sql, expectedMsgPattern);
-  }
-
-  protected final void assertExceptionIsThrown(
-      String sql,
-      String expectedMsgPattern,
-      boolean typeCoercion) {
-    assert expectedMsgPattern != null;
-    final SqlTester tester1 = tester.enableTypeCoercion(typeCoercion);
-    tester1.assertExceptionIsThrown(sql, expectedMsgPattern);
-  }
-
-  public void checkCharset(
-      String sql,
-      Charset expectedCharset) {
-    tester.checkCharset(sql, expectedCharset);
-  }
-
-  public void checkCollation(
-      String sql,
-      String expectedCollationName,
-      SqlCollation.Coercibility expectedCoercibility) {
-    tester.checkCollation(sql, expectedCollationName, expectedCoercibility);
-  }
-
-  /**
-   * Checks whether an exception matches the expected pattern. If <code>
-   * sap</code> contains an error location, checks this too.
-   *
-   * @param ex                 Exception thrown
-   * @param expectedMsgPattern Expected pattern
-   * @param sap                Query and (optional) position in query
-   */
-  public static void checkEx(
-      Throwable ex,
-      String expectedMsgPattern,
-      SqlParserUtil.StringAndPos sap) {
-    SqlTests.checkEx(ex, expectedMsgPattern, sap, SqlTests.Stage.VALIDATE);
-  }
-
-  //~ Inner Interfaces -------------------------------------------------------
 
   /**
    * Encapsulates differences between test environments, for example, which
@@ -337,15 +150,13 @@ public class SqlValidatorTestCase {
      * <p>If <code>expectedMsgPattern</code> is not null, the query must
      * fail, and give an error location of (expectedLine, expectedColumn)
      * through (expectedEndLine, expectedEndColumn).
-     *
-     * @param sql                SQL statement
+     *  @param sap                SQL statement
      * @param expectedMsgPattern If this parameter is null the query must be
      *                           valid for the test to pass; If this parameter
      *                           is not null the query must be malformed and the
-     *                           message given must match the pattern
      */
     void assertExceptionIsThrown(
-        String sql,
+        StringAndPos sap,
         String expectedMsgPattern);
 
     /**
@@ -399,14 +210,10 @@ public class SqlValidatorTestCase {
     /**
      * Checks that a query gets rewritten to an expected form.
      *
-     * @param validator       validator to use; null for default
      * @param query           query to test
      * @param expectedRewrite expected SQL text after rewrite and unparse
      */
-    void checkRewrite(
-        SqlValidator validator,
-        String query,
-        String expectedRewrite);
+    void checkRewrite(String query, String expectedRewrite);
 
     /**
      * Checks that a query returns one column of an expected type. For
@@ -441,49 +248,91 @@ public class SqlValidatorTestCase {
   /** Fluent testing API. */
   static class Sql {
     private final SqlTester tester;
-    private final String sql;
+    private final StringAndPos sap;
+    private final boolean query;
+    private final boolean whole;
 
     /** Creates a Sql.
      *
      * @param tester Tester
-     * @param sql SQL query or expression
+     * @param sap SQL query or expression
      * @param query True if {@code sql} is a query, false if it is an expression
+     * @param whole Whether the failure location is the whole query or
+     *              expression
      */
-    Sql(SqlTester tester, String sql, boolean query) {
+    Sql(SqlTester tester, StringAndPos sap, boolean query,
+        boolean whole) {
       this.tester = tester;
-      this.sql = query ? sql : AbstractSqlTester.buildQuery(sql);
+      this.query = query;
+      this.sap = sap;
+      this.whole = whole;
     }
 
-    Sql tester(SqlTester tester) {
-      return new Sql(tester, sql, true);
+    Sql withTester(UnaryOperator<SqlTester> transform) {
+      return new Sql(transform.apply(tester), sap, query, whole);
     }
 
     public Sql sql(String sql) {
-      return new Sql(tester, sql, true);
+      return new Sql(tester, StringAndPos.of(sql), true, false);
+    }
+
+    public Sql expr(String sql) {
+      return new Sql(tester, StringAndPos.of(sql), false, false);
+    }
+
+    public StringAndPos toSql(boolean withCaret) {
+      final String sql2 = withCaret && sap.cursor >= 0
+          ? sap.sql.substring(0, sap.cursor)
+          + "^" + sap.sql.substring(sap.cursor)
+          : sap.sql;
+      return query ? sap
+          : StringAndPos.of(AbstractSqlTester.buildQuery(sap.addCarets()));
     }
 
     Sql withExtendedCatalog() {
-      return tester(EXTENDED_CATALOG_TESTER);
+      return withTester(tester -> EXTENDED_CATALOG_TESTER);
     }
 
-    Sql withExtendedCatalog2003() {
-      return tester(EXTENDED_CATALOG_TESTER_2003);
+    public Sql withQuoting(Quoting quoting) {
+      return withTester(tester -> tester.withQuoting(quoting));
     }
 
-    Sql withExtendedCatalogLenient() {
-      return tester(EXTENDED_CATALOG_TESTER_LENIENT);
+    Sql withLex(Lex lex) {
+      return withTester(tester -> tester.withLex(lex));
+    }
+
+    Sql withConformance(SqlConformance conformance) {
+      return withTester(tester -> tester.withConformance(conformance));
+    }
+
+    Sql withTypeCoercion(boolean typeCoercion) {
+      return withTester(tester -> tester.enableTypeCoercion(typeCoercion));
+    }
+
+    Sql withWhole(boolean whole) {
+      Preconditions.checkArgument(sap.cursor < 0);
+      return new Sql(tester, StringAndPos.of("^" + sap.sql + "^"),
+          query, whole);
     }
 
     Sql ok() {
-      tester.assertExceptionIsThrown(sql, null);
+      tester.assertExceptionIsThrown(toSql(false), null);
       return this;
     }
 
+    /**
+     * Checks that a SQL expression gives a particular error.
+     */
     Sql fails(String expected) {
-      tester.assertExceptionIsThrown(sql, expected);
+      Objects.requireNonNull(expected);
+      tester.assertExceptionIsThrown(toSql(true), expected);
       return this;
     }
 
+    /**
+     * Checks that a SQL expression fails, giving an {@code expected} error,
+     * if {@code b} is true, otherwise succeeds.
+     */
     Sql failsIf(boolean b, String expected) {
       if (b) {
         fails(expected);
@@ -493,59 +342,128 @@ public class SqlValidatorTestCase {
       return this;
     }
 
+    /**
+     * Checks that a query returns a row of the expected type. For example,
+     *
+     * <blockquote>
+     *   <code>sql("select empno, name from emp")<br>
+     *     .type("{EMPNO INTEGER NOT NULL, NAME VARCHAR(10) NOT NULL}");</code>
+     * </blockquote>
+     *
+     * @param expectedType Expected row type
+     */
     public Sql type(String expectedType) {
-      tester.checkResultType(sql, expectedType);
+      tester.checkResultType(sap.sql, expectedType);
       return this;
     }
 
+    /**
+     * Checks that a query returns a single column, and that the column has the
+     * expected type. For example,
+     *
+     * <blockquote>
+     * <code>sql("SELECT empno FROM Emp").columnType("INTEGER NOT NULL");</code>
+     * </blockquote>
+     *
+     * @param expectedType Expected type, including nullability
+     */
     public Sql columnType(String expectedType) {
-      tester.checkColumnType(sql, expectedType);
+      tester.checkColumnType(toSql(false).sql, expectedType);
       return this;
     }
 
     public Sql monotonic(SqlMonotonicity expectedMonotonicity) {
-      tester.checkMonotonic(sql, expectedMonotonicity);
+      tester.checkMonotonic(toSql(false).sql, expectedMonotonicity);
       return this;
     }
 
     public Sql bindType(final String bindType) {
-      tester.check(sql, null, parameterRowType ->
+      tester.check(sap.sql, null, parameterRowType ->
           assertThat(parameterRowType.toString(), is(bindType)),
           result -> { });
       return this;
     }
 
-    /** Removes the carets from the SQL string. Useful if you want to run
-     * a test once at a conformance level where it fails, then run it again
-     * at a conformance level where it succeeds. */
-    public Sql sansCarets() {
-      return new Sql(tester, sql.replace("^", ""), true);
+    public void charset(Charset expectedCharset) {
+      tester.checkCharset(sap.sql, expectedCharset);
+    }
+
+    public void collation(String expectedCollationName,
+        SqlCollation.Coercibility expectedCoercibility) {
+      tester.checkCollation(sap.sql, expectedCollationName, expectedCoercibility);
+    }
+
+    /**
+     * Checks if the interval value conversion to milliseconds is valid. For
+     * example,
+     *
+     * <blockquote>
+     *   <code>sql("VALUES (INTERVAL '1' Minute)").intervalConv("60000");</code>
+     * </blockquote>
+     */
+    public void intervalConv(String expected) {
+      tester.checkIntervalConv(toSql(false).sql, expected);
+    }
+
+    public Sql withCaseSensitive(boolean caseSensitive) {
+      return withTester(tester -> tester.withCaseSensitive(caseSensitive));
+    }
+
+    public Sql withOperatorTable(SqlOperatorTable operatorTable) {
+      return withTester(tester -> tester.withOperatorTable(operatorTable));
+    }
+
+    public Sql withUnquotedCasing(Casing casing) {
+      return withTester(tester -> tester.withUnquotedCasing(casing));
+    }
+
+    private SqlTester addTransform(SqlTester tester, UnaryOperator<SqlValidator> after) {
+      return this.tester.withValidatorTransform(transform ->
+          validator -> after.apply(transform.apply(validator)));
+    }
+
+    public Sql withValidatorIdentifierExpansion(boolean expansion) {
+      final UnaryOperator<SqlValidator> after = sqlValidator ->
+          sqlValidator.transform(config -> config.withIdentifierExpansion(expansion));
+      return withTester(tester -> addTransform(tester, after));
+    }
+
+    public Sql withValidatorCallRewrite(boolean rewrite) {
+      final UnaryOperator<SqlValidator> after = sqlValidator ->
+          sqlValidator.transform(config -> config.withCallRewrite(rewrite));
+      return withTester(tester -> addTransform(tester, after));
+    }
+
+    public Sql withValidatorColumnReferenceExpansion(boolean expansion) {
+      final UnaryOperator<SqlValidator> after = sqlValidator ->
+          sqlValidator.transform(config -> config.withColumnReferenceExpansion(expansion));
+      return withTester(tester -> addTransform(tester, after));
+    }
+
+    public Sql rewritesTo(String expected) {
+      tester.checkRewrite(toSql(false).sql, expected);
+      return this;
     }
   }
 
   /**
    * Enables to configure {@link #tester} behavior on a per-test basis.
-   * {@code tester} object is created in the test object constructor, and there's no
-   * trivial way to override its features.
-   * <p>This JUnit rule enables post-process test object on a per test method basis</p>
+   * {@code tester} object is created in the test object constructor, and
+   * there's no trivial way to override its features.
+   *
+   * <p>This JUnit rule enables post-process test object on a per test method
+   * basis.
    */
-  private static class TesterConfigurationRule implements MethodRule {
-    @Override public Statement apply(Statement statement, FrameworkMethod frameworkMethod,
-        Object o) {
-      return new Statement() {
-        @Override public void evaluate() throws Throwable {
-          SqlValidatorTestCase tc = (SqlValidatorTestCase) o;
-          SqlTester tester = tc.tester;
-          WithLex lex = frameworkMethod.getAnnotation(WithLex.class);
-          if (lex != null) {
+  public static class LexConfiguration implements BeforeEachCallback {
+    @Override public void beforeEach(ExtensionContext context) {
+      context.getElement()
+          .flatMap(element -> AnnotationSupport.findAnnotation(element, WithLex.class))
+          .ifPresent(lex -> {
+            SqlValidatorTestCase tc = (SqlValidatorTestCase) context.getTestInstance().get();
+            SqlTester tester = tc.tester;
             tester = tester.withLex(lex.value());
-          }
-          tc.tester = tester;
-          statement.evaluate();
-        }
-      };
+            tc.tester = tester;
+          });
     }
   }
 }
-
-// End SqlValidatorTestCase.java

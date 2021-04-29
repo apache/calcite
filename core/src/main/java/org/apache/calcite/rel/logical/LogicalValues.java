@@ -20,11 +20,13 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
@@ -83,14 +85,16 @@ public class LogicalValues extends Values {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
-            () -> RelMdCollation.values(mq, rowType, tuples));
+            () -> RelMdCollation.values(mq, rowType, tuples))
+        .replaceIf(RelDistributionTraitDef.INSTANCE,
+            () -> RelMdDistribution.values(rowType, tuples));
     return new LogicalValues(cluster, traitSet, rowType, tuples);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
-    return new LogicalValues(getCluster(), traitSet, rowType, tuples);
+    return new LogicalValues(getCluster(), traitSet, getRowType(), tuples);
   }
 
   /** Creates a LogicalValues that outputs no rows of a given row type. */
@@ -118,5 +122,3 @@ public class LogicalValues extends Values {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalValues.java

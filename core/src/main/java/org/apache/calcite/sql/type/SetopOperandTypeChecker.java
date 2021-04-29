@@ -32,6 +32,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parameter type-checking strategy for a set operator (UNION, INTERSECT,
  * EXCEPT).
@@ -42,11 +44,11 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return false;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     assert callBinding.getOperandCount() == 2
@@ -79,7 +81,7 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
           if (node instanceof SqlSelect) {
             node = ((SqlSelect) node).getSelectList();
           }
-          throw validator.newValidationError(node,
+          throw validator.newValidationError(requireNonNull(node, "node"),
               RESOURCE.columnCountMismatchInSetop(
                   callBinding.getOperator().getName()));
         } else {
@@ -100,12 +102,12 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
       // and record type (f3: VARCHAR, f4: DECIMAL, f5: INT),
       // the list would be [[INT, VARCHAR], [BIGINT, DECIMAL], [VARCHAR, INT]].
       final List<RelDataType> columnIthTypes = new AbstractList<RelDataType>() {
-        public RelDataType get(int index) {
+        @Override public RelDataType get(int index) {
           return argTypes[index].getFieldList().get(i2)
               .getType();
         }
 
-        public int size() {
+        @Override public int size() {
           return argTypes.length;
         }
       };
@@ -114,7 +116,7 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
           callBinding.getTypeFactory().leastRestrictive(columnIthTypes);
       if (type == null) {
         boolean coerced = false;
-        if (validator.isTypeCoercionEnabled()) {
+        if (callBinding.isTypeCoercionEnabled()) {
           for (int j = 0; j < callBinding.getOperandCount(); j++) {
             TypeCoercion typeCoercion = validator.getTypeCoercion();
             RelDataType widenType = typeCoercion.getWiderTypeFor(columnIthTypes, true);
@@ -143,17 +145,15 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
     return true;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "{0} " + opName + " {1}";
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 }
-
-// End SetopOperandTypeChecker.java

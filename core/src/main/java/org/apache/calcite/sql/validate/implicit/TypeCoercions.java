@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.validate.implicit;
 
-import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
@@ -25,11 +25,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 public class TypeCoercions {
   private TypeCoercions() {}
 
-  // All the SqlConformance would have default TypeCoercion instance.
-  public static TypeCoercion getTypeCoercion(SqlValidator validator,
-      SqlConformance conformance) {
-    return new TypeCoercionImpl(validator);
+  /** Creates a default type coercion instance. */
+  public static TypeCoercion createTypeCoercion(RelDataTypeFactory typeFactory,
+      SqlValidator validator) {
+    return new TypeCoercionImpl(typeFactory, validator);
   }
 }
-
-// End TypeCoercions.java

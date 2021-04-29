@@ -25,9 +25,11 @@ import org.apache.calcite.test.CalciteAssert;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -38,16 +40,17 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Checks renaming of fields (also upper, lower cases) during projections
+ * Checks renaming of fields (also upper, lower cases) during projections.
  */
-public class ProjectionTest {
+@Disabled("RestClient often timeout in PR CI")
+@ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
+class ProjectionTest {
 
-  @ClassRule
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
-  private static final String NAME = "docs";
+  private static final String NAME = "projectiontest";
 
-  @BeforeClass
+  @BeforeAll
   public static void setupInstance() throws Exception {
 
     final Map<String, String> mappings = ImmutableMap.of("A", "keyword",
@@ -84,8 +87,7 @@ public class ProjectionTest {
     };
   }
 
-  @Test
-  public void projection() {
+  @Test void projection() {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select * from view")
@@ -119,5 +121,3 @@ public class ProjectionTest {
   }
 
 }
-
-// End ProjectionTest.java

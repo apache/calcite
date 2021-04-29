@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.util.mapping.Mappings;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Description of the physical distribution of a relational expression.
@@ -37,7 +36,7 @@ import javax.annotation.Nonnull;
  */
 public interface RelDistribution extends RelMultipleTrait {
   /** Returns the type of distribution. */
-  @Nonnull Type getType();
+  Type getType();
 
   /**
    * Returns the ordinals of the key columns.
@@ -46,9 +45,27 @@ public interface RelDistribution extends RelMultipleTrait {
    * it unimportant but impose an arbitrary order; other types (BROADCAST,
    * SINGLETON) never have keys.
    */
-  @Nonnull List<Integer> getKeys();
+  List<Integer> getKeys();
 
-  RelDistribution apply(Mappings.TargetMapping mapping);
+  /**
+   * Applies mapping to this distribution trait.
+   *
+   * <p>Mapping can change the distribution trait only if it depends on distribution keys.
+   *
+   * <p>For example if relation is HASH distributed by keys [0, 1], after applying
+   * a mapping (3, 2, 1, 0), the relation will have a distribution HASH(2,3) because
+   * distribution keys changed their ordinals.
+   *
+   * <p>If mapping eliminates one of the distribution keys, the {@link Type#ANY}
+   * distribution will be returned.
+   *
+   * <p>If distribution doesn't have keys (BROADCAST or SINGLETON), method will return
+   * the same distribution.
+   *
+   * @param mapping   Mapping
+   * @return distribution with mapping applied
+   */
+  @Override RelDistribution apply(Mappings.TargetMapping mapping);
 
   /** Type of distribution. */
   enum Type {
@@ -90,5 +107,3 @@ public interface RelDistribution extends RelMultipleTrait {
     }
   }
 }
-
-// End RelDistribution.java

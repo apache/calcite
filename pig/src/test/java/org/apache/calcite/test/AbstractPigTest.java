@@ -27,5 +27,3 @@ public abstract class AbstractPigTest {
     return Sources.of(getClass().getResource("/" + fileName)).file().getAbsolutePath();
   }
 }
-
-// End AbstractPigTest.java

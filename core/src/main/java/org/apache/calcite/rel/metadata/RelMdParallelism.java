@@ -45,7 +45,7 @@ public class RelMdParallelism
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.Parallelism> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.Parallelism> getDef() {
     return BuiltInMetadata.Parallelism.DEF;
   }
 
@@ -81,5 +81,3 @@ public class RelMdParallelism
     return 1;
   }
 }
-
-// End RelMdParallelism.java

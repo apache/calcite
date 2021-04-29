@@ -34,6 +34,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -49,7 +51,7 @@ class FileTableScan extends TableScan implements EnumerableRel {
 
   protected FileTableScan(RelOptCluster cluster, RelOptTable table,
       FileTable webTable, int[] fields) {
-    super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), table);
+    super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), ImmutableList.of(), table);
     this.webTable = webTable;
     this.fields = fields;
 
@@ -76,7 +78,7 @@ class FileTableScan extends TableScan implements EnumerableRel {
     return builder.build();
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),
@@ -90,5 +92,3 @@ class FileTableScan extends TableScan implements EnumerableRel {
                 Expressions.constant(fields))));
   }
 }
-
-// End FileTableScan.java

@@ -53,7 +53,7 @@ public class SqlNullifFunction extends SqlFunction {
   //~ Methods ----------------------------------------------------------------
 
   // override SqlOperator
-  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+  @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     List<SqlNode> operands = call.getOperandList();
     SqlParserPos pos = call.getParserPosition();
 
@@ -71,5 +71,3 @@ public class SqlNullifFunction extends SqlFunction {
         SqlNode.clone(operands.get(0)));
   }
 }
-
-// End SqlNullifFunction.java

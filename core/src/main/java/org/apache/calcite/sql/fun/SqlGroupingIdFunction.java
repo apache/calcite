@@ -40,5 +40,3 @@ class SqlGroupingIdFunction extends SqlAbstractGroupFunction {
         OperandTypes.ONE_OR_MORE, SqlFunctionCategory.SYSTEM);
   }
 }
-
-// End SqlGroupingIdFunction.java

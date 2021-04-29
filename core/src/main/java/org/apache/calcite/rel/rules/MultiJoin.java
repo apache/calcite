@@ -35,6 +35,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,13 +51,14 @@ public final class MultiJoin extends AbstractRelNode {
 
   private final List<RelNode> inputs;
   private final RexNode joinFilter;
+  @SuppressWarnings("HidingField")
   private final RelDataType rowType;
   private final boolean isFullOuterJoin;
-  private final List<RexNode> outerJoinConditions;
+  private final List<@Nullable RexNode> outerJoinConditions;
   private final ImmutableList<JoinRelType> joinTypes;
-  private final List<ImmutableBitSet> projFields;
+  private final List<@Nullable ImmutableBitSet> projFields;
   public final ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap;
-  private final RexNode postJoinFilter;
+  private final @Nullable RexNode postJoinFilter;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -90,11 +93,11 @@ public final class MultiJoin extends AbstractRelNode {
       RexNode joinFilter,
       RelDataType rowType,
       boolean isFullOuterJoin,
-      List<RexNode> outerJoinConditions,
+      List<? extends @Nullable RexNode> outerJoinConditions,
       List<JoinRelType> joinTypes,
-      List<ImmutableBitSet> projFields,
+      List<? extends @Nullable ImmutableBitSet> projFields,
       ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
-      RexNode postJoinFilter) {
+      @Nullable RexNode postJoinFilter) {
     super(cluster, cluster.traitSetOf(Convention.NONE));
     this.inputs = Lists.newArrayList(inputs);
     this.joinFilter = joinFilter;
@@ -113,6 +116,7 @@ public final class MultiJoin extends AbstractRelNode {
 
   @Override public void replaceInput(int ordinalInParent, RelNode p) {
     inputs.set(ordinalInParent, p);
+    recomputeDigest();
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -141,21 +145,23 @@ public final class MultiJoin extends AbstractRelNode {
     return clonedMap;
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     List<String> joinTypeNames = new ArrayList<>();
     List<String> outerJoinConds = new ArrayList<>();
     List<String> projFieldObjects = new ArrayList<>();
     for (int i = 0; i < inputs.size(); i++) {
       joinTypeNames.add(joinTypes.get(i).name());
-      if (outerJoinConditions.get(i) == null) {
+      RexNode outerJoinCondition = outerJoinConditions.get(i);
+      if (outerJoinCondition == null) {
         outerJoinConds.add("NULL");
       } else {
-        outerJoinConds.add(outerJoinConditions.get(i).toString());
+        outerJoinConds.add(outerJoinCondition.toString());
       }
-      if (projFields.get(i) == null) {
+      ImmutableBitSet projField = projFields.get(i);
+      if (projField == null) {
         projFieldObjects.add("ALL");
       } else {
-        projFieldObjects.add(projFields.get(i).toString());
+        projFieldObjects.add(projField.toString());
       }
     }
 
@@ -171,21 +177,17 @@ public final class MultiJoin extends AbstractRelNode {
         .itemIf("postJoinFilter", postJoinFilter, postJoinFilter != null);
   }
 
-  public RelDataType deriveRowType() {
+  @Override public RelDataType deriveRowType() {
     return rowType;
   }
 
-  public List<RelNode> getInputs() {
+  @Override public List<RelNode> getInputs() {
     return inputs;
   }
 
-  @Override public List<RexNode> getChildExps() {
-    return ImmutableList.of(joinFilter);
-  }
-
-  public RelNode accept(RexShuttle shuttle) {
+  @Override public RelNode accept(RexShuttle shuttle) {
     RexNode joinFilter = shuttle.apply(this.joinFilter);
-    List<RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);
+    List<@Nullable RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);
     RexNode postJoinFilter = shuttle.apply(this.postJoinFilter);
 
     if (joinFilter == this.joinFilter
@@ -208,61 +210,61 @@ public final class MultiJoin extends AbstractRelNode {
   }
 
   /**
-   * @return join filters associated with this MultiJoin
+   * Returns join filters associated with this MultiJoin.
    */
   public RexNode getJoinFilter() {
     return joinFilter;
   }
 
   /**
-   * @return true if the MultiJoin corresponds to a full outer join.
+   * Returns true if the MultiJoin corresponds to a full outer join.
    */
   public boolean isFullOuterJoin() {
     return isFullOuterJoin;
   }
 
   /**
-   * @return outer join conditions for null-generating inputs
+   * Returns outer join conditions for null-generating inputs.
    */
-  public List<RexNode> getOuterJoinConditions() {
+  public List<@Nullable RexNode> getOuterJoinConditions() {
     return outerJoinConditions;
   }
 
   /**
-   * @return join types of each input
+   * Returns join types of each input.
    */
   public List<JoinRelType> getJoinTypes() {
     return joinTypes;
   }
 
   /**
-   * @return bitmaps representing the fields projected from each input; if an
-   * entry is null, all fields are projected
+   * Returns bitmaps representing the fields projected from each input; if an
+   * entry is null, all fields are projected.
    */
-  public List<ImmutableBitSet> getProjFields() {
+  public List<@Nullable ImmutableBitSet> getProjFields() {
     return projFields;
   }
 
   /**
-   * @return the map of reference counts for each input, representing the
-   * fields accessed in join conditions
+   * Returns the map of reference counts for each input, representing the fields
+   * accessed in join conditions.
    */
   public ImmutableMap<Integer, ImmutableIntList> getJoinFieldRefCountsMap() {
     return joinFieldRefCountsMap;
   }
 
   /**
-   * @return a copy of the map of reference counts for each input,
-   * representing the fields accessed in join conditions
+   * Returns a copy of the map of reference counts for each input, representing
+   * the fields accessed in join conditions.
    */
   public Map<Integer, int[]> getCopyJoinFieldRefCountsMap() {
     return cloneJoinFieldRefCountsMap();
   }
 
   /**
-   * @return post-join filter associated with this MultiJoin
+   * Returns post-join filter associated with this MultiJoin.
    */
-  public RexNode getPostJoinFilter() {
+  public @Nullable RexNode getPostJoinFilter() {
     return postJoinFilter;
   }
 
@@ -275,5 +277,3 @@ public final class MultiJoin extends AbstractRelNode {
     return false;
   }
 }
-
-// End MultiJoin.java

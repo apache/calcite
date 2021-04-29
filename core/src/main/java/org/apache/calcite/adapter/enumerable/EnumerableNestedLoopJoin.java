@@ -19,12 +19,14 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -33,9 +35,13 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
@@ -46,7 +52,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   protected EnumerableNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition,
       Set<CorrelationId> variablesSet, JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
   }
 
   @Deprecated // to be removed before 2.0
@@ -81,7 +87,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
         variablesSet, joinType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
@@ -89,11 +95,15 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     // and have the same cost. To make the results stable between versions of
     // the planner, make one of the versions slightly more expensive.
     switch (joinType) {
+    case SEMI:
+    case ANTI:
+      // SEMI and ANTI join cannot be flipped
+      break;
     case RIGHT:
       rowCount = RelMdUtil.addEpsilon(rowCount);
       break;
     default:
-      if (left.getId() > right.getId()) {
+      if (RelNodes.COMPARATOR.compare(left, right) > 0) {
         rowCount = RelMdUtil.addEpsilon(rowCount);
       }
     }
@@ -106,10 +116,41 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     if (Double.isInfinite(rightRowCount)) {
       rowCount = rightRowCount;
     }
-    return planner.getCostFactory().makeCost(rowCount, 0, 0);
+
+    RelOptCost cost = planner.getCostFactory().makeCost(rowCount, 0, 0);
+    // Give it some penalty
+    cost = cost.multiplyBy(10);
+    return cost;
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    // EnumerableNestedLoopJoin traits passdown shall only pass through collation to
+    // left input. It is because for EnumerableNestedLoopJoin always
+    // uses left input as the outer loop, thus only left input can preserve ordering.
+    // Push sort both to left and right inputs does not help right outer join. It's because in
+    // implementation, EnumerableNestedLoopJoin produces (null, right_unmatched) all together,
+    // which does not preserve ordering from right side.
+    return EnumerableTraitsUtils.passThroughTraitsForJoin(
+        required, joinType, getLeft().getRowType().getFieldCount(), traitSet);
+  }
+
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    return EnumerableTraitsUtils.deriveTraitsForJoin(
+        childTraits, childId, joinType, traitSet, right.getTraitSet()
+    );
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    if (joinType == JoinRelType.FULL || joinType == JoinRelType.RIGHT) {
+      return DeriveMode.PROHIBITED;
+    }
+
+    return DeriveMode.LEFT_FIRST;
+  }
+
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);
@@ -141,5 +182,3 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
             .toBlock());
   }
 }
-
-// End EnumerableNestedLoopJoin.java

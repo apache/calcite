@@ -65,5 +65,3 @@ public class SqlSequenceValueOperator extends SqlSpecialOperator {
     validator.validateSequenceValue(scope, id);
   }
 }
-
-// End SqlSequenceValueOperator.java

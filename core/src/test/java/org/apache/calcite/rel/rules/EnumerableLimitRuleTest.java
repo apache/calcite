@@ -37,25 +37,25 @@ import org.apache.calcite.tools.RuleSets;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests the application of the {@code EnumerableLimitRule}.
  */
-public class EnumerableLimitRuleTest {
+class EnumerableLimitRuleTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2941">[CALCITE-2941]
    * EnumerableLimitRule on Sort with no collation creates EnumerableLimit with
    * wrong traitSet and cluster</a>.
    */
-  @Test public void enumerableLimitOnEmptySort() throws Exception {
+  @Test void enumerableLimitOnEmptySort() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
             EnumerableRules.ENUMERABLE_FILTER_RULE,
@@ -99,5 +99,3 @@ public class EnumerableLimitRuleTest {
     assertThat(fieldCollationList.get(0).getFieldIndex(), is(0));
   }
 }
-
-// End EnumerableLimitRuleTest.java

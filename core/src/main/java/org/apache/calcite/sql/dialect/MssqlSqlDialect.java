@@ -38,7 +38,6 @@ import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -48,25 +47,29 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ToNumberUtils;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ISNULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
  * database.
  */
 public class MssqlSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new MssqlSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.MSSQL)
-          .withNullCollation(NullCollation.LOW)
-          .withIdentifierQuoteString("[")
-          .withCaseSensitive(false));
+  public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.MSSQL)
+      .withIdentifierQuoteString("[")
+      .withCaseSensitive(false)
+      .withNullCollation(NullCollation.LOW);
 
-  private final boolean emulateNullDirection;
+  public static final SqlDialect DEFAULT = new MssqlSqlDialect(DEFAULT_CONTEXT);
+
   private static final SqlFunction MSSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
@@ -76,34 +79,85 @@ public class MssqlSqlDialect extends SqlDialect {
       TimeUnit.MINUTE.name(),
       TimeUnit.SECOND.name());
 
+  /** Whether to generate "SELECT TOP(fetch)" rather than
+   * "SELECT ... FETCH NEXT fetch ROWS ONLY". */
+  private final boolean top;
+
   /** Creates a MssqlSqlDialect. */
   public MssqlSqlDialect(Context context) {
     super(context);
-    emulateNullDirection = true;
+    // MSSQL 2008 (version 10) and earlier only supports TOP
+    // MSSQL 2012 (version 11) and higher supports OFFSET and FETCH
+    top = context.databaseMajorVersion() < 11;
   }
 
-  @Override public SqlNode emulateNullDirection(
-          SqlNode node, boolean nullsFirst, boolean desc) {
-    if (emulateNullDirection) {
-      return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
-    }
-    return null;
-  }
-
-  @Override protected SqlNode emulateNullDirectionWithIsNull(
-          SqlNode node, boolean nullsFirst, boolean desc) {
+  /** {@inheritDoc}
+   *
+   * <p>MSSQL does not support NULLS FIRST, so we emulate using CASE
+   * expressions. For example,
+   *
+   * <blockquote>{@code ORDER BY x NULLS FIRST}</blockquote>
+   *
+   * <p>becomes
+   *
+   * <blockquote>
+   *   {@code ORDER BY CASE WHEN x IS NULL THEN 0 ELSE 1 END, x}
+   * </blockquote>
+   */
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
+      boolean nullsFirst, boolean desc) {
+    // Default ordering preserved
     if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
       return null;
     }
-    String caseThenOperand = (nullsFirst && desc) ? "0" : "1";
-    String caseElseOperand = caseThenOperand.equals("1") ? "0" : "1";
-    node = new SqlCase(
-            SqlParserPos.ZERO, null,
-            SqlNodeList.of(SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO, node)),
-            SqlNodeList.of(SqlLiteral.createExactNumeric(caseThenOperand, SqlParserPos.ZERO)),
-            SqlLiteral.createExactNumeric(caseElseOperand, SqlParserPos.ZERO)
-    );
-    return node;
+
+    // Grouping node should preserve grouping, no emulation needed
+    if (node.getKind() == SqlKind.GROUPING) {
+      return node;
+    }
+
+    // Emulate nulls first/last with case ordering
+    final SqlParserPos pos = SqlParserPos.ZERO;
+    final SqlNodeList whenList =
+        SqlNodeList.of(SqlStdOperatorTable.IS_NULL.createCall(pos, node));
+
+    final SqlNode oneLiteral = SqlLiteral.createExactNumeric("1", pos);
+    final SqlNode zeroLiteral = SqlLiteral.createExactNumeric("0", pos);
+
+    if (nullsFirst) {
+      // IS NULL THEN 0 ELSE 1 END
+      return SqlStdOperatorTable.CASE.createCall(null, pos,
+          null, whenList, SqlNodeList.of(zeroLiteral), oneLiteral);
+    } else {
+      // IS NULL THEN 1 ELSE 0 END
+      return SqlStdOperatorTable.CASE.createCall(null, pos,
+          null, whenList, SqlNodeList.of(oneLiteral), zeroLiteral);
+    }
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
+    if (!top) {
+      super.unparseOffsetFetch(writer, offset, fetch);
+    }
+  }
+
+  @Override public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
+    if (top) {
+      // Per Microsoft:
+      //   "For backward compatibility, the parentheses are optional in SELECT
+      //   statements. We recommend that you always use parentheses for TOP in
+      //   SELECT statements. Doing so provides consistency with its required
+      //   use in INSERT, UPDATE, MERGE, and DELETE statements."
+      //
+      // Note that "fetch" is ignored.
+      writer.keyword("TOP");
+      writer.keyword("(");
+      requireNonNull(fetch, "fetch");
+      fetch.unparse(writer, -1, -1);
+      writer.keyword(")");
+    }
   }
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
@@ -129,11 +183,11 @@ public class MssqlSqlDialect extends SqlDialect {
       if (call.operandCount() != 3) {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
-      SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
+      SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call, false);
     } else {
       switch (call.getKind()) {
       case TO_NUMBER:
-        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
+        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
         break;
       case FLOOR:
         if (call.operandCount() != 2) {
@@ -273,6 +327,14 @@ public class MssqlSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsGroupByWithRollup() {
+    return true;
+  }
+
+  @Override public boolean supportsGroupByWithCube() {
+    return true;
+  }
+
   /**
    * Unparses datetime floor for Microsoft SQL Server.
    * There is no TRUNC function, so simulate this using calls to CONVERT.
@@ -280,9 +342,10 @@ public class MssqlSqlDialect extends SqlDialect {
    * @param writer Writer
    * @param call Call
    */
-  private void unparseFloor(SqlWriter writer, SqlCall call) {
+  private static void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
-    TimeUnitRange unit = (TimeUnitRange) node.getValue();
+    TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+
     switch (unit) {
     case YEAR:
       unparseFloorWithUnit(writer, call, 4, "-01-01");
@@ -367,17 +430,17 @@ public class MssqlSqlDialect extends SqlDialect {
   private void unparseSqlIntervalLiteralMssql(
       SqlWriter writer, SqlIntervalLiteral literal, int sign) {
     final SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
         RelDataTypeSystem.DEFAULT);
     writer.sep(",", true);
     if (interval.getSign() * sign == -1) {
       writer.print("-");
     }
-    writer.literal(literal.getValue().toString());
+    writer.literal(interval.getIntervalLiteral());
   }
 
-  private void unparseFloorWithUnit(SqlWriter writer, SqlCall call, int charLen,
+  private static void unparseFloorWithUnit(SqlWriter writer, SqlCall call, int charLen,
       String offset) {
     writer.print("CONVERT");
     SqlWriter.Frame frame = writer.startList("(", ")");
@@ -392,7 +455,7 @@ public class MssqlSqlDialect extends SqlDialect {
   }
 
   /**
-   * For usage of TRIM in MSSQL
+   * For usage of TRIM in MSSQL.
    */
   private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (((SqlLiteral) call.operand(0)).getValueAs(SqlTrimFunction.Flag.class)) {
@@ -464,5 +527,3 @@ public class MssqlSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 }
-
-// End MssqlSqlDialect.java

@@ -84,5 +84,3 @@ public class BasicAggregateLambdaFactory<TSource, TAccumulate, TResult, TKey>
     }
   }
 }
-
-// End BasicAggregateLambdaFactory.java

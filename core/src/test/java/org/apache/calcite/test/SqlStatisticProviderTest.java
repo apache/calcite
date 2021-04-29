@@ -34,7 +34,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,14 +43,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for {@link org.apache.calcite.materialize.SqlStatisticProvider}
  * and implementations of it.
  */
-public class SqlStatisticProviderTest {
+class SqlStatisticProviderTest {
   /** Creates a config based on the "foodmart" schema. */
   public static Frameworks.ConfigBuilder config() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
@@ -63,18 +63,18 @@ public class SqlStatisticProviderTest {
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
 
-  @Test public void testMapProvider() {
+  @Test void testMapProvider() {
     check(MapSqlStatisticProvider.INSTANCE);
   }
 
-  @Test public void testQueryProvider() {
+  @Test void testQueryProvider() {
     final boolean debug = CalciteSystemProperty.DEBUG.value();
     final Consumer<String> sqlConsumer =
         debug ? System.out::println : Util::discard;
     check(new QuerySqlStatisticProvider(sqlConsumer));
   }
 
-  @Test public void testQueryProviderWithCache() {
+  @Test void testQueryProviderWithCache() {
     Cache<List, Object> cache = CacheBuilder.newBuilder()
         .expireAfterAccess(5, TimeUnit.MINUTES)
         .build();
@@ -131,5 +131,3 @@ public class SqlStatisticProviderTest {
         .collect(Collectors.toList());
   }
 }
-
-// End SqlStatisticProviderTest.java

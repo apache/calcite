@@ -24,7 +24,8 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,7 +50,7 @@ public abstract class ListScope extends DelegatingScope {
 
   //~ Constructors -----------------------------------------------------------
 
-  public ListScope(SqlValidatorScope parent) {
+  protected ListScope(SqlValidatorScope parent) {
     super(parent);
   }
 
@@ -67,7 +68,7 @@ public abstract class ListScope extends DelegatingScope {
    * @return list of child namespaces
    */
   public List<SqlValidatorNamespace> getChildren() {
-    return Lists.transform(children, scopeChild -> scopeChild.namespace);
+    return Util.transform(children, scopeChild -> scopeChild.namespace);
   }
 
   /**
@@ -75,11 +76,11 @@ public abstract class ListScope extends DelegatingScope {
    *
    * @return list of child namespaces
    */
-  List<String> getChildNames() {
-    return Lists.transform(children, scopeChild -> scopeChild.name);
+  List<@Nullable String> getChildNames() {
+    return Util.transform(children, scopeChild -> scopeChild.name);
   }
 
-  private ScopeChild findChild(List<String> names,
+  private @Nullable ScopeChild findChild(List<String> names,
       SqlNameMatcher nameMatcher) {
     for (ScopeChild child : children) {
       String lastName = Util.last(names);
@@ -101,26 +102,32 @@ public abstract class ListScope extends DelegatingScope {
       if (table != null) {
         final ResolvedImpl resolved = new ResolvedImpl();
         resolveTable(names, nameMatcher, Path.EMPTY, resolved);
-        if (resolved.count() == 1
-            && resolved.only().remainingNames.isEmpty()
-            && resolved.only().namespace instanceof TableNamespace
-            && resolved.only().namespace.getTable().getQualifiedName().equals(
-                table.getQualifiedName())) {
-          return child;
+        if (resolved.count() == 1) {
+          Resolve only = resolved.only();
+          List<String> qualifiedName = table.getQualifiedName();
+          if (only.remainingNames.isEmpty()
+              && only.namespace instanceof TableNamespace
+              && Objects.equals(qualifiedName, getQualifiedName(only.namespace.getTable()))) {
+            return child;
+          }
         }
       }
     }
     return null;
   }
 
-  public void findAllColumnNames(List<SqlMoniker> result) {
+  private static @Nullable List<String> getQualifiedName(@Nullable SqlValidatorTable table) {
+    return table == null ? null : table.getQualifiedName();
+  }
+
+  @Override public void findAllColumnNames(List<SqlMoniker> result) {
     for (ScopeChild child : children) {
       addColumnNames(child.namespace, result);
     }
     parent.findAllColumnNames(result);
   }
 
-  public void findAliases(Collection<SqlMoniker> result) {
+  @Override public void findAliases(Collection<SqlMoniker> result) {
     for (ScopeChild child : children) {
       result.add(new SqlMonikerImpl(child.name, SqlMonikerType.TABLE));
     }
@@ -201,7 +208,7 @@ public abstract class ListScope extends DelegatingScope {
     super.resolve(names, nameMatcher, deep, resolved);
   }
 
-  public RelDataType resolveColumn(String columnName, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String columnName, SqlNode ctx) {
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     int found = 0;
     RelDataType type = null;
@@ -227,5 +234,3 @@ public abstract class ListScope extends DelegatingScope {
   }
 
 }
-
-// End ListScope.java

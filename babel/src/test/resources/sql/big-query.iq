@@ -1,0 +1,137 @@
+# big-query.iq - Babel test for BigQuery dialect of SQL
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use scott-big-query
+!set outputformat csv
+
+# TIMESTAMP_SECONDS, TIMESTAMP_MILLIS, TIMESTAMP_MICROS
+select v,
+  timestamp_seconds(v) as t0,
+  timestamp_millis(v * 1000) as t1,
+  timestamp_micros(v * 1000 * 1000) as t2
+from (values cast(0 as bigint),
+   cast(null as bigint),
+   cast(1230219000 as bigint),
+   cast(-1230219000 as bigint)) as t (v)
+order by v;
+V, T0, T1, T2
+-1230219000, 1931-01-07 08:30:00, 1931-01-07 08:30:00, 1931-01-07 08:30:00
+0, 1970-01-01 00:00:00, 1970-01-01 00:00:00, 1970-01-01 00:00:00
+1230219000, 2008-12-25 15:30:00, 2008-12-25 15:30:00, 2008-12-25 15:30:00
+null, null, null, null
+!ok
+
+select timestamp_seconds(1234567890) as t;
+T
+2009-02-13 23:31:30
+!ok
+
+select timestamp_millis(1234567890) as t;
+T
+1970-01-15 06:56:07
+!ok
+
+select timestamp_micros(1234567890) as t;
+T
+1970-01-01 00:20:34
+!ok
+
+# UNIX_SECONDS, UNIX_MILLIS, UNIX_MICROS
+select v,
+  unix_seconds(v) as t0,
+  unix_millis(v) as t1,
+  unix_micros(v) as t2
+from (values TIMESTAMP '1970-01-01 00:00:00',
+   cast(null as timestamp),
+   TIMESTAMP '2008-12-25 15:30:00',
+   TIMESTAMP '1931-01-07 08:30:00') as t (v)
+order by v;
+V, T0, T1, T2
+1931-01-07 08:30:00, -1230219000, -1230219000000, -1230219000000000
+1970-01-01 00:00:00, 0, 0, 0
+2008-12-25 15:30:00, 1230219000, 1230219000000, 1230219000000000
+null, null, null, null
+!ok
+
+select unix_seconds(timestamp '2008-12-25 15:30:00') as t;
+T
+1230219000
+!ok
+
+select unix_millis(timestamp '2008-12-25 15:30:00') as t;
+T
+1230219000000
+!ok
+
+select unix_micros(timestamp '2008-12-25 15:30:00') as t;
+T
+1230219000000000
+!ok
+
+# DATE_FROM_UNIX_DATE
+select v,
+  date_from_unix_date(v) as d
+from (values 0,
+   cast(null as integer),
+   1230219000 / 86400,
+   -1230219000 / 86400) as t (v)
+order by v;
+V, D
+-14238, 1931-01-08
+0, 1970-01-01
+14238, 2008-12-25
+null, null
+!ok
+
+select date_from_unix_date(14238);
+EXPR$0
+2008-12-25
+!ok
+
+# UNIX_DATE
+select v,
+  unix_date(v) as d
+from (values date '1970-01-01',
+   cast(null as date),
+   DATE '2008-12-25',
+   DATE '1931-01-07') as t (v)
+order by v;
+V, D
+1931-01-07, -14239
+1970-01-01, 0
+2008-12-25, 14238
+null, null
+!ok
+
+select unix_date(timestamp '2008-12-25');
+EXPR$0
+14238
+!ok
+
+# DATE
+# 'date(x) is shorthand for 'cast(x as date)'
+select date('1970-01-01') as d;
+D
+1970-01-01
+!ok
+
+select date(cast(null as varchar(10))) as d;
+D
+null
+!ok
+
+# End big-query.iq

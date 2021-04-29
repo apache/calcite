@@ -46,5 +46,3 @@ public interface ExtensibleTable extends Table {
    * counted in the row-type field count. */
   int getExtendedColumnOffset();
 }
-
-// End ExtensibleTable.java

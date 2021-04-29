@@ -29,10 +29,10 @@ public abstract class SqlCreate extends SqlDdl {
   boolean replace;
 
   /** Whether "IF NOT EXISTS" was specified. */
-  protected final boolean ifNotExists;
+  public final boolean ifNotExists;
 
   /** Creates a SqlCreate. */
-  public SqlCreate(SqlOperator operator, SqlParserPos pos, boolean replace,
+  protected SqlCreate(SqlOperator operator, SqlParserPos pos, boolean replace,
       boolean ifNotExists) {
     super(operator, pos);
     this.replace = replace;
@@ -40,7 +40,7 @@ public abstract class SqlCreate extends SqlDdl {
   }
 
   @Deprecated // to be removed before 2.0
-  public SqlCreate(SqlParserPos pos, boolean replace) {
+  protected SqlCreate(SqlParserPos pos, boolean replace) {
     this(SqlDdl.DDL_OPERATOR, pos, replace, false);
   }
 
@@ -53,5 +53,3 @@ public abstract class SqlCreate extends SqlDdl {
   }
 
 }
-
-// End SqlCreate.java

@@ -20,18 +20,14 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.sql.SqlKind;
 
 /**
- * Used to store information about available complex metrics in the Druid Adapter
- * */
+ * Stores information about available complex metrics in the Druid Adapter.
+ */
 public class ComplexMetric {
 
-  /**
-   * The underlying metric column this complex metric represents
-   * */
+  /** The underlying metric column that this complex metric represents. */
   private final String metricName;
 
-  /**
-   * The type of this metric
-   * */
+  /** The type of this metric. */
   private final DruidType type;
 
   public ComplexMetric(String metricName, DruidType type) {
@@ -40,7 +36,7 @@ public class ComplexMetric {
     this.type = type;
   }
 
-  private void validate(DruidType type) {
+  private static void validate(DruidType type) {
     if (!type.isComplex()) {
       throw new IllegalArgumentException("Druid type: " + type + " is not complex");
     }
@@ -82,5 +78,3 @@ public class ComplexMetric {
     }
   }
 }
-
-// End ComplexMetric.java

@@ -51,5 +51,3 @@ public class MutableUnion extends MutableSetOp {
     return MutableUnion.of(rowType, cloneChildren(), all);
   }
 }
-
-// End MutableUnion.java

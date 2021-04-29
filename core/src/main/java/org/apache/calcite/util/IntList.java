@@ -66,5 +66,3 @@ public class IntList extends ArrayList<Integer> {
     return ImmutableIntList.copyOf(this);
   }
 }
-
-// End IntList.java

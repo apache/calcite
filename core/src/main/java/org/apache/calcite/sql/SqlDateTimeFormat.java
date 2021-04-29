@@ -20,7 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Enumeration of Standard date time format
+ * Enumeration of Standard date time format.
  */
 
 public enum SqlDateTimeFormat {
@@ -94,5 +94,3 @@ public enum SqlDateTimeFormat {
   }
 
 }
-
-// End SqlDateTimeFormat.java

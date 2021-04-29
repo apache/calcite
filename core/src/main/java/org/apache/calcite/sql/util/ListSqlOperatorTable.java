@@ -24,6 +24,8 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,13 +54,13 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
     operatorList.add(op);
   }
 
-  public void lookupOperatorOverloads(SqlIdentifier opName,
-      SqlFunctionCategory category,
+  @Override public void lookupOperatorOverloads(SqlIdentifier opName,
+      @Nullable SqlFunctionCategory category,
       SqlSyntax syntax,
       List<SqlOperator> operatorList,
       SqlNameMatcher nameMatcher) {
     for (SqlOperator operator : this.operatorList) {
-      if (operator.getSyntax() != syntax) {
+      if (operator.getSyntax().family != syntax) {
         continue;
       }
       if (!opName.isSimple()
@@ -82,9 +84,7 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
     }
   }
 
-  public List<SqlOperator> getOperatorList() {
+  @Override public List<SqlOperator> getOperatorList() {
     return operatorList;
   }
 }
-
-// End ListSqlOperatorTable.java

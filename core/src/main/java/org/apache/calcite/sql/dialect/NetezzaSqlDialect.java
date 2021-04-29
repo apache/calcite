@@ -22,15 +22,14 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Netezza database.
  */
 public class NetezzaSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new NetezzaSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.NETEZZA)
-          .withIdentifierQuoteString("\""));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.NETEZZA)
+      .withIdentifierQuoteString("\"");
+
+  public static final SqlDialect DEFAULT = new NetezzaSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a NetezzaSqlDialect. */
   public NetezzaSqlDialect(Context context) {
     super(context);
   }
 }
-
-// End NetezzaSqlDialect.java

@@ -18,9 +18,4 @@
 /**
  * Tracing services.
  */
-@PackageMarker
 package org.apache.calcite.util.trace;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

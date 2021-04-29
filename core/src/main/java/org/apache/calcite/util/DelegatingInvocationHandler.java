@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -51,10 +53,10 @@ import java.lang.reflect.Method;
 public abstract class DelegatingInvocationHandler implements InvocationHandler {
   //~ Methods ----------------------------------------------------------------
 
-  public Object invoke(
+  @Override public @Nullable Object invoke(
       Object proxy,
       Method method,
-      Object[] args) throws Throwable {
+      @Nullable Object[] args) throws Throwable {
     Class clazz = getClass();
     Method matchingMethod;
     try {
@@ -76,7 +78,7 @@ public abstract class DelegatingInvocationHandler implements InvocationHandler {
             args);
       }
     } catch (InvocationTargetException e) {
-      throw e.getTargetException();
+      throw Util.first(e.getCause(), e);
     }
   }
 
@@ -87,5 +89,3 @@ public abstract class DelegatingInvocationHandler implements InvocationHandler {
    */
   protected abstract Object getTarget();
 }
-
-// End DelegatingInvocationHandler.java
