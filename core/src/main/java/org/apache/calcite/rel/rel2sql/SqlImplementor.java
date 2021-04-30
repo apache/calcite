@@ -2039,12 +2039,12 @@ public abstract class SqlImplementor {
       if (rel instanceof LogicalSort && rel.getInput(0) instanceof LogicalIntersect) {
         return true;
       }
-
-      if (rel instanceof Project
+      //commenting this if condition since it was causing additional subquery.
+     /* if (rel instanceof Project
           && clauses.contains(Clause.HAVING)
           && dialect.getConformance().isHavingAlias()) {
         return true;
-      }
+      }*/
 
       if (rel instanceof Project
           && ((Project) rel).containsOver()
