@@ -1863,26 +1863,27 @@ public abstract class SqlImplementor {
     private boolean hasAliasUsedInHavingClause() {
       SqlSelect sqlNode = (SqlSelect) this.node;
       List<String> aliases = getAliases(sqlNode.getSelectList());
-      return ifAliasUsedInHavingClause(aliases,(SqlBasicCall) sqlNode.getHaving());
+      return ifAliasUsedInHavingClause(aliases, (SqlBasicCall) sqlNode.getHaving());
     }
 
-   private boolean ifAliasUsedInHavingClause(List<String> aliases, SqlBasicCall havingClauseCall){
-    List<SqlNode> sqlNodes = havingClauseCall.getOperandList();
-    for(SqlNode node : sqlNodes){
-      if(node instanceof SqlBasicCall){
-        return ifAliasUsedInHavingClause(aliases, (SqlBasicCall) node);
-      } else if(node instanceof SqlIdentifier){
-        return aliases.contains(((SqlIdentifier)node).toString());
+    private boolean ifAliasUsedInHavingClause(List<String> aliases, SqlBasicCall havingClauseCall) {
+      List<SqlNode> sqlNodes = havingClauseCall.getOperandList();
+      for (SqlNode node : sqlNodes) {
+        if (node instanceof SqlBasicCall) {
+          return ifAliasUsedInHavingClause(aliases, (SqlBasicCall) node);
+        } else if (node instanceof SqlIdentifier) {
+          return aliases.contains(((SqlIdentifier) node).toString());
+        }
       }
+      return false;
     }
-     return false;
-   }
 
 
     private List<String> getAliases(SqlNodeList sqlNodes) {
       List<String> aliases = new ArrayList<>();
-      for(SqlNode node : sqlNodes){
-        if (node instanceof SqlBasicCall && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
+      for (SqlNode node : sqlNodes) {
+        if (node instanceof SqlBasicCall && ((SqlBasicCall) node).getOperator()
+            == SqlStdOperatorTable.AS) {
           aliases.add(((SqlBasicCall) node).getOperands()[1].toString());
         }
       }
