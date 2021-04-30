@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 
+import static org.apache.calcite.rex.RexUtil.EXECUTOR;
 import static org.apache.calcite.test.Matchers.isRangeSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -3223,5 +3224,45 @@ class RexProgramTest extends RexProgramTestBase {
 
   @Test void testSimplifyVarbinary() {
     checkSimplifyUnchanged(cast(cast(vInt(), tVarchar(true, 100)), tVarbinary(true)));
+  }
+
+  @Test public void testEliminateCommonExprInCondition() {
+    RexSimplify rexSimplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR);
+
+    // (a=b && c=7) || (a=b && c=7 && d=8) => (a=b && c=7)
+    RexNode or1 = or(
+        and(vBool(0), vBool(1)),
+        and(vBool(0), vBool(1), vBool(2))
+    );
+    RexNode orSimplified1 = rexSimplify.eliminateCommonExprInCondition(or1);
+    checkDigest(orSimplified1, "AND(?0.bool0, ?0.bool1)");
+
+    // (a=b && c=7) || (a=b && d=8) || (a=b && d=9) =>
+    // (a=b) && (c=7 || d=8 || d=9)
+    RexNode or2 = or(
+        and(vBool(0), vBool(1)),
+        and(vBool(0), vBool(2)),
+        and(vBool(0), vBool(3))
+    );
+    RexNode orSimplified2 = rexSimplify.eliminateCommonExprInCondition(or2);
+    checkDigest(orSimplified2, "AND(?0.bool0, OR(?0.bool1, ?0.bool2, ?0.bool3))");
+
+    // (a=b || c=7) && (a=b || c=7 || d=8) => (a=b || c=7)
+    RexNode and1 = and(
+        or(vBool(0), vBool(1)),
+        or(vBool(0), vBool(1), vBool(2))
+    );
+    RexNode andSimplified1 = rexSimplify.eliminateCommonExprInCondition(and1);
+    checkDigest(andSimplified1, "OR(?0.bool0, ?0.bool1)");
+
+    // (a=b || c=7 || d=8) && (a=b || c=9 || d=10) =>
+    // (a=b) || ((c=7 || d=8) && (c=9 || d=10))
+    RexNode and2 = and(
+        or(vBool(0), vBool(1), vBool(2)),
+        or(vBool(0), vBool(3), vBool(4))
+    );
+    RexNode andSimplified2 = rexSimplify.eliminateCommonExprInCondition(and2);
+    checkDigest(andSimplified2,
+        "OR(?0.bool0, AND(OR(?0.bool1, ?0.bool2), OR(?0.bool3, ?0.bool4)))");
   }
 }

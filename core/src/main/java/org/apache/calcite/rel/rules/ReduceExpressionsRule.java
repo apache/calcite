@@ -82,6 +82,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.rex.RexUtil.EXECUTOR;
+
 /**
  * Collection of planner rules that apply various simplifying transformations on
  * RexNode trees. Currently, there are two transformations:
@@ -366,14 +368,18 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
 
     @Override public void onMatch(RelOptRuleCall call) {
       final Join join = call.rel(0);
-      final List<RexNode> expList = Lists.newArrayList(join.getCondition());
+      final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
+      final RexSimplify rexSimplify =
+          new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR);
+      final RexNode condition = rexSimplify.eliminateCommonExprInCondition(join.getCondition());
+
+      final List<RexNode> expList = Lists.newArrayList(condition);
       final int fieldCount = join.getLeft().getRowType().getFieldCount();
       final RelMetadataQuery mq = call.getMetadataQuery();
       final RelOptPredicateList leftPredicates =
           mq.getPulledUpPredicates(join.getLeft());
       final RelOptPredicateList rightPredicates =
           mq.getPulledUpPredicates(join.getRight());
-      final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
       final RelOptPredicateList predicates =
           leftPredicates.union(rexBuilder,
               rightPredicates.shift(rexBuilder, fieldCount));

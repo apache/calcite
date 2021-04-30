@@ -60,6 +60,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rex.RexUnknownAs.FALSE;
@@ -1757,6 +1758,113 @@ public class RexSimplify {
       // range has been reduced but it's not worth simplifying
       return e;
     }
+  }
+
+  /**
+   * <p>Simplifies AND/OR condition that has common expressions,
+   * extracts and eliminates/merges them as much as possible.</p>
+   * <ul>
+   * <li>(a OR b) AND (a OR b OR c OR d) =&gt; (a OR b)
+   * <li>(a OR b OR c OR d) AND (a OR b OR e OR f) =&gt; (a OR b) OR ((c OR d) AND (e OR f))
+
+   * <li>(a AND b) OR (a AND b AND c) =&gt; (a AND b)
+   * <li>(a AND b AND c AND d) OR (a AND b AND e AND f) =&gt;
+   * (a AND b) AND ((c AND d) OR (e AND f))
+   * </ul>
+   * <p> The difference between {@link #simplifyAnd} is that {@link #simplifyAnd} mainly
+   * simplifies expressions whose answer can be determined without evaluating both sides,
+   * like: FALSE AND (xxx) =&gt; FALSE</p>
+   */
+  public RexNode eliminateCommonExprInCondition(RexNode node) {
+    if (node.getKind() != SqlKind.AND && node.getKind() != SqlKind.OR) {
+      return node;
+    }
+    // Simplify children recursively
+    // so that when we simplify parent node
+    // the child node should be simplified
+    List<RexNode> operands = ((RexCall) node).getOperands();
+    List<RexNode> simplifiedChildren = operands.stream()
+        .map(this::eliminateCommonExprInCondition)
+        .collect(Collectors.toList());
+
+    switch (node.getKind()) {
+    case AND: {
+      // Split the children to get the disjunctive predicates.
+      List<Set<RexNode>> disjunctions = simplifiedChildren.stream()
+          .map(RelOptUtil::disjunctionSet)
+          .collect(Collectors.toList());
+
+      // Find the common predict among the list by retainAll.
+      Set<RexNode> common = new HashSet<>(disjunctions.get(0));
+      disjunctions.forEach(common::retainAll);
+
+      if (common.isEmpty()) {
+        // no common, return the original but with child simplified
+        return and(simplifiedChildren);
+      }
+
+      // Get the predicates that without the common part.
+      disjunctions.forEach(p -> p.removeAll(common));
+
+      if (disjunctions.stream().anyMatch(Collection::isEmpty)) {
+        // (a || b) && (a || b || c || d) => (a || b)
+        return or(common);
+      }
+      // (a || b || c || d) && (a || b || e || f) =>
+      // (a || b) || ((c || d) && (e || f))
+      List<RexNode> splice = disjunctions.stream()
+          .map(this::or)
+          .collect(Collectors.toList());
+      return or(or(common), and(splice));
+    }
+    case OR: {
+      // Split the children to get the conjunctions predicates.
+      List<Set<RexNode>> conjunctions = simplifiedChildren.stream()
+          .map(RelOptUtil::conjunctionSet)
+          .collect(Collectors.toList());
+
+      // Find the common predict among the list by retainAll.
+      Set<RexNode> common = new HashSet<>(conjunctions.get(0));
+      conjunctions.forEach(common::retainAll);
+
+      if (common.isEmpty()) {
+        // no common, return the original but with child simplified
+        return or(simplifiedChildren);
+      }
+
+      // Get the predicates that without the common part.
+      conjunctions.forEach(p -> p.removeAll(common));
+
+      if (conjunctions.stream().anyMatch(Collection::isEmpty)) {
+        // (a && b) || (a && b && c) => (a && b)
+        return and(common);
+      }
+      // (a && b && c && d) || (a && b && e && f) =>
+      // (a && b) && ((c && d) || (e && f))
+      List<RexNode> splice = conjunctions.stream()
+          .map(this::and)
+          .collect(Collectors.toList());
+      return and(and(common), or(splice));
+    }
+    default:
+      return node;
+    }
+  }
+
+  private RexNode and(RexNode... nodes) {
+    return and(ImmutableList.copyOf(nodes));
+  }
+
+  private RexNode and(Iterable<? extends RexNode> nodes) {
+    return RexUtil.composeConjunction(rexBuilder, nodes);
+  }
+
+  private RexNode or(RexNode... nodes) {
+    return or(ImmutableList.copyOf(nodes));
+  }
+
+  private RexNode or(Iterable<? extends RexNode> nodes) {
+    return RexUtil.composeDisjunction(rexBuilder, nodes);
   }
 
   /** Weakens a term so that it checks only what is not implied by predicates.

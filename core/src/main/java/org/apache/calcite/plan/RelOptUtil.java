@@ -2469,7 +2469,7 @@ public abstract class RelOptUtil {
    */
   public static void decomposeConjunction(
       @Nullable RexNode rexPredicate,
-      List<RexNode> rexList) {
+      Collection<RexNode> rexList) {
     if (rexPredicate == null || rexPredicate.isAlwaysTrue()) {
       return;
     }
@@ -2557,7 +2557,7 @@ public abstract class RelOptUtil {
    */
   public static void decomposeDisjunction(
       @Nullable RexNode rexPredicate,
-      List<RexNode> rexList) {
+      Collection<RexNode> rexList) {
     if (rexPredicate == null || rexPredicate.isAlwaysFalse()) {
       return;
     }
@@ -2583,6 +2583,15 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Same with {@link #conjunctions} but returns a set instead of list.
+   */
+  public static Set<RexNode> conjunctionSet(@Nullable RexNode rexPredicate) {
+    final Set<RexNode> set = new HashSet<>();
+    decomposeConjunction(rexPredicate, set);
+    return set;
+  }
+
+  /**
    * Returns a condition decomposed by OR.
    *
    * <p>For example, {@code disjunctions(FALSE)} returns the empty list.</p>
@@ -2591,6 +2600,15 @@ public abstract class RelOptUtil {
     final List<RexNode> list = new ArrayList<>();
     decomposeDisjunction(rexPredicate, list);
     return list;
+  }
+
+  /**
+   * Same with {@link #disjunctions} but returns a set instead of list.
+   */
+  public static Set<RexNode> disjunctionSet(RexNode rexPredicate) {
+    final Set<RexNode> set = new HashSet<>();
+    decomposeDisjunction(rexPredicate, set);
+    return set;
   }
 
   /**
