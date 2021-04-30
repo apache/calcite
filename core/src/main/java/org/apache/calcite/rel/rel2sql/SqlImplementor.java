@@ -1860,6 +1860,35 @@ public abstract class SqlImplementor {
       return present;
     }
 
+    private boolean hasAliasUsedInHavingClause() {
+      SqlSelect sqlNode = (SqlSelect) this.node;
+      List<String> aliases = getAliases(sqlNode.getSelectList());
+      return ifAliasUsedInHavingClause(aliases,(SqlBasicCall) sqlNode.getHaving());
+    }
+
+   private boolean ifAliasUsedInHavingClause(List<String> aliases, SqlBasicCall havingClauseCall){
+    List<SqlNode> sqlNodes = havingClauseCall.getOperandList();
+    for(SqlNode node : sqlNodes){
+      if(node instanceof SqlBasicCall){
+        return ifAliasUsedInHavingClause(aliases, (SqlBasicCall) node);
+      } else if(node instanceof SqlIdentifier){
+        return aliases.contains(((SqlIdentifier)node).toString());
+      }
+    }
+     return false;
+   }
+
+
+    private List<String> getAliases(SqlNodeList sqlNodes) {
+      List<String> aliases = new ArrayList<>();
+      for(SqlNode node : sqlNodes){
+        if (node instanceof SqlBasicCall && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
+          aliases.add(((SqlBasicCall) node).getOperands()[1].toString());
+        }
+      }
+      return aliases;
+    }
+
     private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlBasicCall call) {
       SqlNode sqlNode = call.operand(0);
       if (sqlNode instanceof SqlCall) {
@@ -2039,12 +2068,13 @@ public abstract class SqlImplementor {
       if (rel instanceof LogicalSort && rel.getInput(0) instanceof LogicalIntersect) {
         return true;
       }
-      //commenting this if condition since it was causing additional subquery.
-     /* if (rel instanceof Project
+
+      if (rel instanceof Project
           && clauses.contains(Clause.HAVING)
-          && dialect.getConformance().isHavingAlias()) {
+          && dialect.getConformance().isHavingAlias()
+          && hasAliasUsedInHavingClause()) {
         return true;
-      }*/
+      }
 
       if (rel instanceof Project
           && ((Project) rel).containsOver()
