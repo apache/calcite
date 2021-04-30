@@ -312,6 +312,30 @@ class RexExecutorTest {
     });
   }
 
+  @Test void testNonDeterministicFunc() throws Exception {
+    check((rexBuilder, executor) -> {
+      // SqlRandFunction
+      final RexNode rand = rexBuilder.makeCall(SqlStdOperatorTable.RAND);
+      assertThat(RexUtil.isDeterministic(rand), equalTo(false));
+
+      // SqlRandIntegerFunction
+      final RexNode randInteger = rexBuilder.makeCall(SqlStdOperatorTable.RAND_INTEGER);
+      assertThat(RexUtil.isDeterministic(randInteger), equalTo(false));
+
+      // SqlCurrentDateFunction
+      final RexNode currentDate = rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_DATE);
+      assertThat(RexUtil.isDeterministic(currentDate), equalTo(false));
+
+      // SqlBaseContextVariable
+      final RexNode user = rexBuilder.makeCall(SqlStdOperatorTable.USER);
+      assertThat(RexUtil.isDeterministic(user), equalTo(false));
+
+      // SqlAbstractTimeFunction
+      final RexNode localtime = rexBuilder.makeCall(SqlStdOperatorTable.LOCALTIME);
+      assertThat(RexUtil.isDeterministic(localtime), equalTo(false));
+    });
+  }
+
   private static final SqlBinaryOperator PLUS_RANDOM =
       new SqlMonotonicBinaryOperator(
           "+",

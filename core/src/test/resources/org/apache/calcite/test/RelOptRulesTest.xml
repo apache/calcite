@@ -11782,17 +11782,6 @@ LogicalProject(HIREDATE=[$1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-LogicalProject(HIREDATE=[$1])
-  LogicalFilter(condition=[>($2, 3)])
-    LogicalProject(SAL=[$0], HIREDATE=[CURRENT_TIMESTAMP], $f2=[$1])
-      LogicalAggregate(group=[{0}], agg#0=[COUNT()])
-        LogicalProject(SAL=[$5])
-          LogicalFilter(condition=[AND(IS NULL($5), =($4, CURRENT_TIMESTAMP))])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
     </TestCase>
     <TestCase name="testExpandProjectInNullable">
         <Resource name="sql">
