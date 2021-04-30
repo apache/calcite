@@ -1863,8 +1863,18 @@ public abstract class SqlImplementor {
     private boolean hasAliasUsedInHavingClause() {
       SqlSelect sqlNode = (SqlSelect) this.node;
       List<String> aliases = getAliases(sqlNode.getSelectList());
+      if (aliases.size() != getSqlBasicCallCount(sqlNode)) {
+        return false;
+      }
       return ifAliasUsedInHavingClause(aliases, (SqlBasicCall) sqlNode.getHaving());
     }
+
+    private Long getSqlBasicCallCount(SqlSelect sqlNode) {
+      return sqlNode.getSelectList().stream().
+          filter(sqlNode1 -> sqlNode1 instanceof SqlBasicCall).count();
+    }
+
+
 
     private boolean ifAliasUsedInHavingClause(List<String> aliases, SqlBasicCall havingClauseCall) {
       List<SqlNode> sqlNodes = havingClauseCall.getOperandList();
