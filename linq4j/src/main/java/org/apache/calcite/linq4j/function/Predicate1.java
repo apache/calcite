@@ -38,5 +38,3 @@ public interface Predicate1<T0> extends Function<Boolean> {
 
   boolean apply(T0 v0);
 }
-
-// End Predicate1.java

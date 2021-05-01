@@ -36,5 +36,3 @@ public class ValidationException extends Exception {
     super(cause);
   }
 }
-
-// End ValidationException.java

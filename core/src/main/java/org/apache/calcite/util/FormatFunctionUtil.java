@@ -31,7 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 
 /**
- * Format Function Support
+ * Format Function Support.
  */
 public class FormatFunctionUtil {
 
@@ -174,5 +174,3 @@ public class FormatFunctionUtil {
     return modifiedOperand;
   }
 }
-
-// End FormatFunctionUtil.java

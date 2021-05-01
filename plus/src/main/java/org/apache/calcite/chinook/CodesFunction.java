@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /**
- * Example Table Function for lateral join checks
+ * Example Table Function for lateral join checks.
  */
 public class CodesFunction {
 
@@ -62,5 +62,3 @@ public class CodesFunction {
     };
   }
 }
-
-// End CodesFunction.java

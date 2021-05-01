@@ -23,7 +23,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 /**
- * Utility for Datetimestamp interval
+ * Utility for Datetimestamp interval.
  */
 public class DateTimestampIntervalUtil {
 
@@ -88,5 +88,3 @@ public class DateTimestampIntervalUtil {
     return Integer.valueOf(value);
   }
 }
-
-// End DateTimestampIntervalUtil.java

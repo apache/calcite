@@ -270,5 +270,3 @@ public class SqlBuilder {
     return this;
   }
 }
-
-// End SqlBuilder.java

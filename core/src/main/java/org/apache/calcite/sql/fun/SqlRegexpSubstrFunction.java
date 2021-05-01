@@ -70,5 +70,3 @@ public class SqlRegexpSubstrFunction extends SqlFunction {
     return true;
   }
 }
-
-// End SqlRegexpSubstrFunction.java

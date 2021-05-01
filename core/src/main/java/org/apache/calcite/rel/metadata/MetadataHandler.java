@@ -24,5 +24,3 @@ package org.apache.calcite.rel.metadata;
 public interface MetadataHandler<M extends Metadata> {
   MetadataDef<M> getDef();
 }
-
-// End MetadataHandler.java

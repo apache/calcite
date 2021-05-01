@@ -33,7 +33,9 @@ public class JdbcImplementor extends RelToSqlConverter {
     Util.discard(typeFactory);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @see #dispatch */
+  @SuppressWarnings("MissingSummary")
   public Result visit(JdbcTableScan scan) {
     return result(scan.jdbcTable.tableName(),
         ImmutableList.of(Clause.FROM), scan, null);
@@ -43,5 +45,3 @@ public class JdbcImplementor extends RelToSqlConverter {
     return dispatch(node);
   }
 }
-
-// End JdbcImplementor.java

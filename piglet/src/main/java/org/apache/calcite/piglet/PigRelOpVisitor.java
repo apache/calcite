@@ -27,12 +27,10 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -78,7 +76,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -93,9 +90,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   protected final PigRelBuilder builder;
   private Operator currentRoot;
 
-  /**
-   * Type of Pig groups
-   */
+  /** Type of Pig groups. */
   private enum GroupType {
     CUBE,
     ROLLUP,
@@ -318,7 +313,8 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     final ImmutableList<ImmutableBitSet> groupSets =
         (groupType == GroupType.CUBE)
             ? ImmutableList.copyOf(groupSet.powerSet()) : groupsetBuilder.build();
-    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet, groupSets);
+    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet,
+        (Iterable<ImmutableBitSet>) groupSets);
 
     // Finally, do COLLECT aggregate.
     builder.cogroup(ImmutableList.of(groupKey));
@@ -338,7 +334,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   }
 
   /**
-   * Projects out group key and the row for each relation
+   * Projects out group key and the row for each relation.
    *
    * @param loCogroup Pig logical group operator
    * @throws FrontendException Exception during processing Pig operator
@@ -414,7 +410,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
           cubeRowFields.add(field);
         }
       }
-      return cubeRowFields;
+      return ImmutableList.copyOf(cubeRowFields);
     }
     return rowFields;
   }
@@ -513,7 +509,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     boolean[] innerFlags = new boolean[numInputs];
     for (int i = 0; i < numInputs; i++) {
       // Adding empty join keys
-      joinPlans.put(i, new LinkedList<>());
+      joinPlans.put(i, Collections.emptyList());
       innerFlags[i] = true;
     }
     joinInternal(joinPlans, innerFlags);
@@ -693,12 +689,8 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
         Collections.emptyList(), // Operands for the aggregate function, empty here
         Collections.emptyList(), // No partition keys
         ImmutableList.copyOf(orderNodes), // order keys
-        RexWindowBound.create(
-            SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO),
-            null), // window with unbounded lower
-        RexWindowBound.create(
-            SqlWindow.createCurrentRow(SqlParserPos.ZERO),
-            null), // till current
+        RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.CURRENT_ROW,
         false, // Range-based
         true, // allow partial
         false, // not return null when count is zero
@@ -718,5 +710,3 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     return builder.checkMap(root);
   }
 }
-
-// End PigRelOpVisitor.java

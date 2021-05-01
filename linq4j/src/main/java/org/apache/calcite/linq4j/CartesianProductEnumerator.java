@@ -35,7 +35,7 @@ public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> 
     this.elements = (T[]) new Object[enumerators.size()];
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     if (first) {
       int i = 0;
       for (Enumerator<T> enumerator : enumerators) {
@@ -65,11 +65,14 @@ public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> 
     return false;
   }
 
-  public void reset() {
+  @Override public void reset() {
     first = true;
+    for (Enumerator<T> enumerator : enumerators) {
+      enumerator.reset();
+    }
   }
 
-  public void close() {
+  @Override public void close() {
     // If there is one or more exceptions, carry on and close all enumerators,
     // then throw the first.
     Throwable rte = null;
@@ -77,7 +80,11 @@ public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> 
       try {
         enumerator.close();
       } catch (Throwable e) {
-        rte = e;
+        if (rte == null) {
+          rte = e;
+        } else {
+          rte.addSuppressed(e);
+        }
       }
     }
     if (rte != null) {
@@ -89,5 +96,3 @@ public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> 
     }
   }
 }
-
-// End CartesianProductEnumerator.java

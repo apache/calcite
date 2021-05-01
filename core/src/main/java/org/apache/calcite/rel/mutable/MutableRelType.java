@@ -40,5 +40,3 @@ enum MutableRelType {
   WINDOW,
   HOLDER
 }
-
-// End MutableRelType.java

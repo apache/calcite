@@ -24,7 +24,7 @@ import java.util.ArrayList;
 public abstract class ConcurrentTestPlugin {
 
   /**
-   * Should containing test be disabled?
+   * Returns whether the containing test should be disabled.
    *
    * @return true if containing test should be disabled
    */
@@ -71,5 +71,3 @@ public abstract class ConcurrentTestPlugin {
   public void preSetupFor(String name, String params) {
   }
 }
-
-// End ConcurrentTestPlugin.java

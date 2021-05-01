@@ -41,8 +41,10 @@ import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.linq4j.tree.VisitorImpl;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
@@ -68,6 +70,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Subclass of {@link org.apache.calcite.plan.RelImplementor} for relational
  * operators of {@link EnumerableConvention} calling convention.
@@ -79,6 +83,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   private final Map<Object, ParameterExpression> stashedParameters =
       new IdentityHashMap<>();
 
+  @SuppressWarnings("methodref.receiver.bound.invalid")
   protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
       this::getCorrelVariableGetter;
 
@@ -101,7 +106,15 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
 
   public ClassDeclaration implementRoot(EnumerableRel rootRel,
       EnumerableRel.Prefer prefer) {
-    EnumerableRel.Result result = rootRel.implement(this, prefer);
+    EnumerableRel.Result result;
+    try {
+      result = rootRel.implement(this, prefer);
+    } catch (RuntimeException e) {
+      IllegalStateException ex = new IllegalStateException("Unable to implement "
+          + RelOptUtil.toString(rootRel, SqlExplainLevel.ALL_ATTRIBUTES));
+      ex.addSuppressed(e);
+      throw ex;
+    }
     switch (prefer) {
     case ARRAY:
       if (result.physType.getFormat() == JavaRowFormat.ARRAY
@@ -110,7 +123,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         Expression e = null;
         for (Statement statement : result.block.statements) {
           if (statement instanceof GotoStatement) {
-            e = bb.append("v", ((GotoStatement) statement).expression);
+            e = bb.append("v",
+                requireNonNull(((GotoStatement) statement).expression, "expression"));
           } else {
             bb.add(statement);
           }
@@ -123,6 +137,9 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         result = new EnumerableRel.Result(bb.toBlock(), result.physType,
             JavaRowFormat.SCALAR);
       }
+      break;
+    default:
+      break;
     }
 
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
@@ -165,7 +182,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         memberDeclarations);
   }
 
-  private ClassDeclaration classDecl(
+  private static ClassDeclaration classDecl(
       JavaTypeFactoryImpl.SyntheticRecordType type) {
     ClassDeclaration classDeclaration =
         Expressions.classDecl(
@@ -462,7 +479,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         block, physType, ((PhysTypeImpl) physType).format);
   }
 
-  public SqlConformance getConformance() {
+  @Override public SqlConformance getConformance() {
     return (SqlConformance) map.getOrDefault("_conformance",
         SqlConformanceEnum.DEFAULT);
   }
@@ -528,7 +545,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   }
 
   /** Adds a declaration of each synthetic type found in a code block. */
-  private class TypeRegistrar {
+  private static class TypeRegistrar {
     private final List<MemberDeclaration> memberDeclarations;
     private final Set<Type> seen = new HashSet<>();
 
@@ -561,5 +578,3 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     }
   }
 }
-
-// End EnumerableRelImplementor.java

@@ -27,7 +27,7 @@ public class MatchNode extends AbstractSingleNode<Match> {
     super(compiler, rel);
   }
 
-  public void run() throws InterruptedException {
+  @Override public void run() throws InterruptedException {
     Row row;
     while ((row = source.receive()) != null) {
       sink.send(row);
@@ -35,5 +35,3 @@ public class MatchNode extends AbstractSingleNode<Match> {
     sink.end();
   }
 }
-
-// End MatchNode.java

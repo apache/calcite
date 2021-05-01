@@ -19,6 +19,8 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Returns the rowtype of a cursor of the operand at a particular 0-based
  * ordinal position.
@@ -38,10 +40,8 @@ public class CursorReturnTypeInference implements SqlReturnTypeInference {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(
+  @Override public @Nullable RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     return opBinding.getCursorOperand(ordinal);
   }
 }
-
-// End CursorReturnTypeInference.java

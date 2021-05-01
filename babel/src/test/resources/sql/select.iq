@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use scott
+!use scott-babel
 !set outputformat mysql
 
 # ORDER BY column not in SELECT clause
@@ -25,7 +25,7 @@ ORDER BY emp.deptno;
 
 SELECT "EMP"."ENAME"
 FROM "scott"."EMP" AS "EMP",
-        "scott"."DEPT" AS "DEPT"
+    "scott"."DEPT" AS "DEPT"
 ORDER BY "EMP"."DEPTNO"
 !explain-validated-on all
 

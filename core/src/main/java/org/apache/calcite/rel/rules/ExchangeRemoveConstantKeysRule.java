@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -26,17 +27,18 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Exchange;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.util.ImmutableBeans;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -46,29 +48,18 @@ import java.util.stream.Collectors;
  * <p>For example,
  * <code>SELECT key,value FROM (SELECT 1 AS key, value FROM src) r DISTRIBUTE
  * BY key</code> can be reduced to
- * <code>SELECT 1 AS key, value FROM src</code>.</p>
+ * <code>SELECT 1 AS key, value FROM src</code>.
  *
+ * @see CoreRules#EXCHANGE_REMOVE_CONSTANT_KEYS
+ * @see CoreRules#SORT_EXCHANGE_REMOVE_CONSTANT_KEYS
  */
-public class ExchangeRemoveConstantKeysRule extends RelOptRule {
-  /**
-   * Singleton rule that removes constants inside a
-   * {@link LogicalExchange}.
-   */
-  public static final ExchangeRemoveConstantKeysRule EXCHANGE_INSTANCE =
-      new ExchangeRemoveConstantKeysRule(LogicalExchange.class,
-          "ExchangeRemoveConstantKeysRule");
+public class ExchangeRemoveConstantKeysRule
+    extends RelRule<ExchangeRemoveConstantKeysRule.Config>
+    implements SubstitutionRule {
 
-  /**
-   * Singleton rule that removes constants inside a
-   * {@link LogicalSortExchange}.
-   */
-  public static final ExchangeRemoveConstantKeysRule SORT_EXCHANGE_INSTANCE =
-      new SortExchangeRemoveConstantKeysRule(LogicalSortExchange.class,
-          "SortExchangeRemoveConstantKeysRule");
-
-  private ExchangeRemoveConstantKeysRule(Class<? extends RelNode> clazz,
-      String description) {
-    super(operand(clazz, any()), RelFactories.LOGICAL_BUILDER, description);
+  /** Creates an ExchangeRemoveConstantKeysRule. */
+  protected ExchangeRemoveConstantKeysRule(Config config) {
+    super(config);
   }
 
   /** Removes constant in distribution keys. */
@@ -79,18 +70,17 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule {
         .collect(Collectors.toList());
   }
 
-  @Override public boolean matches(RelOptRuleCall call) {
-    final Exchange exchange = call.rel(0);
-    return exchange.getDistribution().getType()
-        == RelDistribution.Type.HASH_DISTRIBUTED;
+  @Override public void onMatch(RelOptRuleCall call) {
+    config.matchHandler().accept(this, call);
   }
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  private static void matchExchange(ExchangeRemoveConstantKeysRule rule,
+      RelOptRuleCall call) {
     final Exchange exchange = call.rel(0);
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelNode input = exchange.getInput();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(input);
-    if (predicates == null) {
+    if (RelOptPredicateList.isEmpty(predicates)) {
       return;
     }
 
@@ -115,87 +105,107 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule {
               ? RelDistributions.SINGLETON
               : RelDistributions.hash(distributionKeys))
           .build());
-      call.getPlanner().setImportance(exchange, 0.0);
+      call.getPlanner().prune(exchange);
     }
   }
 
-  /**
-   * Rule that reduces constants inside a {@link SortExchange}.
-   */
-  public static class SortExchangeRemoveConstantKeysRule
-      extends ExchangeRemoveConstantKeysRule {
-
-    private SortExchangeRemoveConstantKeysRule(Class<? extends RelNode> clazz,
-            String description) {
-      super(clazz, description);
+  private static void matchSortExchange(ExchangeRemoveConstantKeysRule rule,
+      RelOptRuleCall call) {
+    final SortExchange sortExchange = call.rel(0);
+    final RelMetadataQuery mq = call.getMetadataQuery();
+    final RelNode input = sortExchange.getInput();
+    final RelOptPredicateList predicates = mq.getPulledUpPredicates(input);
+    if (RelOptPredicateList.isEmpty(predicates)) {
+      return;
     }
 
-    @Override public boolean matches(RelOptRuleCall call) {
-      final SortExchange sortExchange = call.rel(0);
-      return  sortExchange.getDistribution().getType()
-          == RelDistribution.Type.HASH_DISTRIBUTED
-          || !sortExchange.getCollation().getFieldCollations().isEmpty();
+    final Set<Integer> constants = new HashSet<>();
+    predicates.constantMap.keySet().forEach(key -> {
+      if (key instanceof RexInputRef) {
+        constants.add(((RexInputRef) key).getIndex());
+      }
+    });
+
+    if (constants.isEmpty()) {
+      return;
     }
 
-    @Override public void onMatch(RelOptRuleCall call) {
-      final SortExchange sortExchange = call.rel(0);
-      final RelMetadataQuery mq = call.getMetadataQuery();
-      final RelNode input = sortExchange.getInput();
-      final RelOptPredicateList predicates = mq.getPulledUpPredicates(input);
-      if (predicates == null) {
-        return;
-      }
+    List<Integer> distributionKeys = new ArrayList<>();
+    boolean distributionSimplified = false;
+    boolean hashDistribution = sortExchange.getDistribution().getType()
+        == RelDistribution.Type.HASH_DISTRIBUTED;
+    if (hashDistribution) {
+      distributionKeys = simplifyDistributionKeys(
+          sortExchange.getDistribution(), constants);
+      distributionSimplified =
+          distributionKeys.size() != sortExchange.getDistribution().getKeys()
+              .size();
+    }
 
-      final Set<Integer> constants = new HashSet<>();
-      predicates.constantMap.keySet().forEach(key -> {
-        if (key instanceof RexInputRef) {
-          constants.add(((RexInputRef) key).getIndex());
-        }
-      });
+    final List<RelFieldCollation> fieldCollations = sortExchange
+        .getCollation().getFieldCollations().stream().filter(
+            fc -> !constants.contains(fc.getFieldIndex()))
+        .collect(Collectors.toList());
 
-      if (constants.isEmpty()) {
-        return;
-      }
+    boolean collationSimplified =
+        fieldCollations.size() != sortExchange.getCollation()
+            .getFieldCollations().size();
+    if (distributionSimplified
+        || collationSimplified) {
+      RelDistribution distribution = distributionSimplified
+          ? (distributionKeys.isEmpty()
+          ? RelDistributions.SINGLETON
+          : RelDistributions.hash(distributionKeys))
+          : sortExchange.getDistribution();
+      RelCollation collation = collationSimplified
+          ? RelCollations.of(fieldCollations)
+          : sortExchange.getCollation();
 
-      List<Integer> distributionKeys = new ArrayList<>();
-      boolean distributionSimplified = false;
-      boolean hashDistribution = sortExchange.getDistribution().getType()
-          == RelDistribution.Type.HASH_DISTRIBUTED;
-      if (hashDistribution) {
-        distributionKeys = simplifyDistributionKeys(
-            sortExchange.getDistribution(), constants);
-        distributionSimplified =
-            distributionKeys.size() != sortExchange.getDistribution().getKeys()
-                .size();
-      }
+      call.transformTo(call.builder()
+          .push(sortExchange.getInput())
+          .sortExchange(distribution, collation)
+          .build());
+      call.getPlanner().prune(sortExchange);
+    }
+  }
 
-      final List<RelFieldCollation> fieldCollations = sortExchange
-          .getCollation().getFieldCollations().stream().filter(
-              fc -> !constants.contains(fc.getFieldIndex()))
-           .collect(Collectors.toList());
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .as(Config.class)
+        .withOperandFor(LogicalExchange.class,
+            exchange -> exchange.getDistribution().getType()
+                == RelDistribution.Type.HASH_DISTRIBUTED)
+        .withMatchHandler(ExchangeRemoveConstantKeysRule::matchExchange);
 
-      boolean collationSimplified =
-           fieldCollations.size() != sortExchange.getCollation()
-               .getFieldCollations().size();
-      if (distributionSimplified
-           || collationSimplified) {
-        RelDistribution distribution = distributionSimplified
-            ? (distributionKeys.isEmpty()
-                ? RelDistributions.SINGLETON
-                : RelDistributions.hash(distributionKeys))
-            : sortExchange.getDistribution();
-        RelCollation collation = collationSimplified
-            ? RelCollations.of(fieldCollations)
-            : sortExchange.getCollation();
+    Config SORT = EMPTY
+        .withDescription("SortExchangeRemoveConstantKeysRule")
+        .as(Config.class)
+        .withOperandFor(LogicalSortExchange.class,
+            sortExchange -> sortExchange.getDistribution().getType()
+                == RelDistribution.Type.HASH_DISTRIBUTED
+                || !sortExchange.getCollation().getFieldCollations()
+                .isEmpty())
+        .withMatchHandler(ExchangeRemoveConstantKeysRule::matchSortExchange);
 
-        call.transformTo(call.builder()
-            .push(sortExchange.getInput())
-            .sortExchange(distribution, collation)
-            .build());
-        call.getPlanner().setImportance(sortExchange, 0.0);
-      }
+    @Override default ExchangeRemoveConstantKeysRule toRule() {
+      return new ExchangeRemoveConstantKeysRule(this);
+    }
+
+    /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
+    @ImmutableBeans.Property
+    <R extends RelOptRule> MatchHandler<R> matchHandler();
+
+    /** Sets {@link #matchHandler()}. */
+    <R extends RelOptRule> Config withMatchHandler(MatchHandler<R> matchHandler);
+
+    /** Defines an operand tree for the given classes. */
+    default <R extends Exchange> Config withOperandFor(Class<R> exchangeClass,
+        Predicate<R> predicate) {
+      return withOperandSupplier(b ->
+          b.operand(exchangeClass).predicate(predicate)
+              .anyInputs())
+          .as(Config.class);
     }
   }
 }
-
-// End ExchangeRemoveConstantKeysRule.java

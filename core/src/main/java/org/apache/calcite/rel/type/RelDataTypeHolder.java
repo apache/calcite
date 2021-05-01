@@ -83,5 +83,3 @@ class RelDataTypeHolder {
   }
 
 }
-
-// End RelDataTypeHolder.java

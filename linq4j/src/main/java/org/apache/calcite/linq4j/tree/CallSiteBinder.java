@@ -22,5 +22,3 @@ package org.apache.calcite.linq4j.tree;
  */
 public interface CallSiteBinder {
 }
-
-// End CallSiteBinder.java

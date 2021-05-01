@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -27,7 +26,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -43,7 +41,7 @@ import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -52,6 +50,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -64,28 +63,23 @@ import java.util.stream.Collectors;
  * the wrapped {@link RelNode} will contain a {@link RexCorrelVariable} before
  * the rewrite, and the product of the rewrite will be a {@link Correlate}.
  * The Correlate can be removed using {@link RelDecorrelator}.
+ *
+ * @see CoreRules#FILTER_SUB_QUERY_TO_CORRELATE
+ * @see CoreRules#PROJECT_SUB_QUERY_TO_CORRELATE
+ * @see CoreRules#JOIN_SUB_QUERY_TO_CORRELATE
  */
-public abstract class SubQueryRemoveRule extends RelOptRule {
-  public static final SubQueryRemoveRule PROJECT =
-      new SubQueryProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
+public class SubQueryRemoveRule
+    extends RelRule<SubQueryRemoveRule.Config>
+    implements TransformationRule {
 
-  public static final SubQueryRemoveRule FILTER =
-      new SubQueryFilterRemoveRule(RelFactories.LOGICAL_BUILDER);
+  /** Creates a SubQueryRemoveRule. */
+  protected SubQueryRemoveRule(Config config) {
+    super(config);
+    Objects.requireNonNull(config.matchHandler());
+  }
 
-  public static final SubQueryRemoveRule JOIN =
-      new SubQueryJoinRemoveRule(RelFactories.LOGICAL_BUILDER);
-
-  /**
-   * Creates a SubQueryRemoveRule.
-   *
-   * @param operand     root operand, must not be null
-   * @param description Description, or null to guess description
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public SubQueryRemoveRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory,
-      String description) {
-    super(operand, relBuilderFactory, description);
+  @Override public void onMatch(RelOptRuleCall call) {
+    config.matchHandler().accept(this, call);
   }
 
   protected RexNode apply(RexSubQuery e, Set<CorrelationId> variablesSet,
@@ -117,7 +111,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteScalarQuery(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteScalarQuery(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder, int inputCount, int offset) {
     builder.push(e.rel);
     final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
@@ -140,7 +134,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
@@ -208,13 +202,13 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
               builder.literal(0)),
           literalFalse,
           builder.call(SqlStdOperatorTable.IS_TRUE,
-              builder.call(RelOptUtil.op(op.comparisonKind, null),
+              builder.call(RexUtil.op(op.comparisonKind),
                   e.operands.get(0), builder.field("q", "m"))),
           literalTrue,
           builder.call(SqlStdOperatorTable.GREATER_THAN,
               builder.field("q", "c"), builder.field("q", "d")),
           literalUnknown,
-          builder.call(RelOptUtil.op(op.comparisonKind, null),
+          builder.call(RexUtil.op(op.comparisonKind),
               e.operands.get(0), builder.field("q", "m")));
     } else {
       // for correlated case queries such as
@@ -235,17 +229,16 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       //   end as v
       // from emp as e
       // left outer join (
-      //   select max(deptno) as m, count(*) as c, count(deptno) as d,
+      //   select name, max(deptno) as m, count(*) as c, count(deptno) as d,
       //       "alwaysTrue" as indicator
-      //   group by name from emp) as q on e.name = q.name
+      //   from emp group by name) as q on e.name = q.name
       builder.push(e.rel)
           .aggregate(builder.groupKey(),
               builder.aggregateCall(minMax, builder.field(0)).as("m"),
               builder.count(false, "c"),
               builder.count(false, "d", builder.field(0)));
 
-      final List<RexNode> parentQueryFields = new ArrayList<>();
-      parentQueryFields.addAll(builder.fields());
+      final List<RexNode> parentQueryFields = new ArrayList<>(builder.fields());
       String indicator = "trueLiteral";
       parentQueryFields.add(builder.alias(literalTrue, indicator));
       builder.project(parentQueryFields).as("q");
@@ -258,13 +251,13 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
               builder.literal(0)),
           literalFalse,
           builder.call(SqlStdOperatorTable.IS_TRUE,
-              builder.call(RelOptUtil.op(op.comparisonKind, null),
+              builder.call(RexUtil.op(op.comparisonKind),
                   e.operands.get(0), builder.field("q", "m"))),
           literalTrue,
           builder.call(SqlStdOperatorTable.GREATER_THAN,
               builder.field("q", "c"), builder.field("q", "d")),
           literalUnknown,
-          builder.call(RelOptUtil.op(op.comparisonKind, null),
+          builder.call(RexUtil.op(op.comparisonKind),
               e.operands.get(0), builder.field("q", "m")));
     }
 
@@ -290,7 +283,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteExists(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteExists(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder) {
     builder.push(e.rel);
 
@@ -327,7 +320,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
-  private RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
+  private static RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder, int offset) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
@@ -418,8 +411,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         .map(builder::isNull)
         .collect(Collectors.toList());
 
-    final RexLiteral trueLiteral = (RexLiteral) builder.literal(true);
-    final RexLiteral falseLiteral = (RexLiteral) builder.literal(false);
+    final RexLiteral trueLiteral = builder.literal(true);
+    final RexLiteral falseLiteral = builder.literal(false);
     final RexLiteral unknownLiteral =
         builder.getRexBuilder().makeNullLiteral(trueLiteral.getType());
     if (allLiterals) {
@@ -435,15 +428,15 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         builder.distinct();
         break;
       default:
-        List<RexNode> isNullOpperands = fields.stream()
+        List<RexNode> isNullOperands = fields.stream()
             .map(builder::isNull)
             .collect(Collectors.toList());
         // uses keyIsNulls conditions in the filter to avoid empty results
-        isNullOpperands.addAll(keyIsNulls);
+        isNullOperands.addAll(keyIsNulls);
         builder.filter(
             builder.or(
                 builder.and(conditions),
-                builder.or(isNullOpperands)));
+                builder.or(isNullOperands)));
         RexNode project = builder.and(
             fields.stream()
                 .map(builder::isNotNull)
@@ -507,6 +500,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     case TRUE:
       builder.join(JoinRelType.INNER, builder.and(conditions), variablesSet);
       return trueLiteral;
+    default:
+      break;
     }
     // Now the left join
     builder.join(JoinRelType.LEFT, builder.and(conditions), variablesSet);
@@ -535,6 +530,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             falseLiteral);
       }
       break;
+    default:
+      break;
     }
 
     if (!keyIsNulls.isEmpty()) {
@@ -557,6 +554,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             builder.call(SqlStdOperatorTable.LESS_THAN,
                 builder.field("ct", "ck"), builder.field("ct", "c")),
             b);
+        break;
+      default:
+        break;
       }
     }
     operands.add(falseLiteral);
@@ -565,7 +565,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
 
   /** Returns a reference to a particular field, by offset, across several
    * inputs on a {@link RelBuilder}'s stack. */
-  private RexInputRef field(RelBuilder builder, int inputCount, int offset) {
+  private static RexInputRef field(RelBuilder builder, int inputCount, int offset) {
     for (int inputOrdinal = 0;;) {
       final RelNode r = builder.peek(inputCount, inputOrdinal);
       if (offset < r.getRowType().getFieldCount()) {
@@ -586,105 +586,76 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     return projects;
   }
 
-  /** Rule that converts sub-queries from project expressions into
-   * {@link Correlate} instances. */
-  public static class SubQueryProjectRemoveRule extends SubQueryRemoveRule {
-    public SubQueryProjectRemoveRule(RelBuilderFactory relBuilderFactory) {
-      super(
-          operandJ(Project.class, null,
-              RexUtil.SubQueryFinder::containsSubQuery, any()),
-          relBuilderFactory, "SubQueryRemoveRule:Project");
-    }
-
-    public void onMatch(RelOptRuleCall call) {
-      final Project project = call.rel(0);
-      final RelBuilder builder = call.builder();
-      final RexSubQuery e =
-          RexUtil.SubQueryFinder.find(project.getProjects());
-      assert e != null;
-      final RelOptUtil.Logic logic =
-          LogicVisitor.find(RelOptUtil.Logic.TRUE_FALSE_UNKNOWN,
-              project.getProjects(), e);
-      builder.push(project.getInput());
-      final int fieldCount = builder.peek().getRowType().getFieldCount();
-      final Set<CorrelationId>  variablesSet =
-          RelOptUtil.getVariablesUsed(e.rel);
-      final RexNode target = apply(e, variablesSet,
-          logic, builder, 1, fieldCount);
-      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-      builder.project(shuttle.apply(project.getProjects()),
-          project.getRowType().getFieldNames());
-      call.transformTo(builder.build());
-    }
+  private static void matchProject(SubQueryRemoveRule rule,
+      RelOptRuleCall call) {
+    final Project project = call.rel(0);
+    final RelBuilder builder = call.builder();
+    final RexSubQuery e =
+        RexUtil.SubQueryFinder.find(project.getProjects());
+    assert e != null;
+    final RelOptUtil.Logic logic =
+        LogicVisitor.find(RelOptUtil.Logic.TRUE_FALSE_UNKNOWN,
+            project.getProjects(), e);
+    builder.push(project.getInput());
+    final int fieldCount = builder.peek().getRowType().getFieldCount();
+    final Set<CorrelationId>  variablesSet =
+        RelOptUtil.getVariablesUsed(e.rel);
+    final RexNode target = rule.apply(e, variablesSet,
+        logic, builder, 1, fieldCount);
+    final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+    builder.project(shuttle.apply(project.getProjects()),
+        project.getRowType().getFieldNames());
+    call.transformTo(builder.build());
   }
 
-  /** Rule that converts a sub-queries from filter expressions into
-   * {@link Correlate} instances. */
-  public static class SubQueryFilterRemoveRule extends SubQueryRemoveRule {
-    public SubQueryFilterRemoveRule(RelBuilderFactory relBuilderFactory) {
-      super(
-          operandJ(Filter.class, null, RexUtil.SubQueryFinder::containsSubQuery,
-              any()), relBuilderFactory, "SubQueryRemoveRule:Filter");
-    }
-
-    public void onMatch(RelOptRuleCall call) {
-      final Filter filter = call.rel(0);
-      final RelBuilder builder = call.builder();
-      builder.push(filter.getInput());
-      int count = 0;
-      RexNode c = filter.getCondition();
-      while (true) {
-        final RexSubQuery e = RexUtil.SubQueryFinder.find(c);
-        if (e == null) {
-          assert count > 0;
-          break;
-        }
-        ++count;
-        final RelOptUtil.Logic logic =
-            LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
-        final Set<CorrelationId>  variablesSet =
-            RelOptUtil.getVariablesUsed(e.rel);
-        final RexNode target = apply(e, variablesSet, logic,
-            builder, 1, builder.peek().getRowType().getFieldCount());
-        final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-        c = c.accept(shuttle);
+  private static void matchFilter(SubQueryRemoveRule rule,
+      RelOptRuleCall call) {
+    final Filter filter = call.rel(0);
+    final RelBuilder builder = call.builder();
+    builder.push(filter.getInput());
+    int count = 0;
+    RexNode c = filter.getCondition();
+    while (true) {
+      final RexSubQuery e = RexUtil.SubQueryFinder.find(c);
+      if (e == null) {
+        assert count > 0;
+        break;
       }
-      builder.filter(c);
-      builder.project(fields(builder, filter.getRowType().getFieldCount()));
-      call.transformTo(builder.build());
-    }
-  }
-
-  /** Rule that converts sub-queries from join expressions into
-   * {@link Correlate} instances. */
-  public static class SubQueryJoinRemoveRule extends SubQueryRemoveRule {
-    public SubQueryJoinRemoveRule(RelBuilderFactory relBuilderFactory) {
-      super(
-          operandJ(Join.class, null, RexUtil.SubQueryFinder::containsSubQuery,
-              any()), relBuilderFactory, "SubQueryRemoveRule:Join");
-    }
-
-    public void onMatch(RelOptRuleCall call) {
-      final Join join = call.rel(0);
-      final RelBuilder builder = call.builder();
-      final RexSubQuery e =
-          RexUtil.SubQueryFinder.find(join.getCondition());
-      assert e != null;
+      ++count;
       final RelOptUtil.Logic logic =
-          LogicVisitor.find(RelOptUtil.Logic.TRUE,
-              ImmutableList.of(join.getCondition()), e);
-      builder.push(join.getLeft());
-      builder.push(join.getRight());
-      final int fieldCount = join.getRowType().getFieldCount();
+          LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
       final Set<CorrelationId>  variablesSet =
           RelOptUtil.getVariablesUsed(e.rel);
-      final RexNode target = apply(e, variablesSet,
-          logic, builder, 2, fieldCount);
+      final RexNode target = rule.apply(e, variablesSet, logic,
+          builder, 1, builder.peek().getRowType().getFieldCount());
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-      builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
-      builder.project(fields(builder, join.getRowType().getFieldCount()));
-      call.transformTo(builder.build());
+      c = c.accept(shuttle);
     }
+    builder.filter(c);
+    builder.project(fields(builder, filter.getRowType().getFieldCount()));
+    call.transformTo(builder.build());
+  }
+
+  private static void matchJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
+    final Join join = call.rel(0);
+    final RelBuilder builder = call.builder();
+    final RexSubQuery e =
+        RexUtil.SubQueryFinder.find(join.getCondition());
+    assert e != null;
+    final RelOptUtil.Logic logic =
+        LogicVisitor.find(RelOptUtil.Logic.TRUE,
+            ImmutableList.of(join.getCondition()), e);
+    builder.push(join.getLeft());
+    builder.push(join.getRight());
+    final int fieldCount = join.getRowType().getFieldCount();
+    final Set<CorrelationId>  variablesSet =
+        RelOptUtil.getVariablesUsed(e.rel);
+    final RexNode target = rule.apply(e, variablesSet,
+        logic, builder, 2, fieldCount);
+    final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+    builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
+    builder.project(fields(builder, join.getRowType().getFieldCount()));
+    call.transformTo(builder.build());
   }
 
   /** Shuttle that replaces occurrences of a given
@@ -703,6 +674,42 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       return subQuery.equals(this.subQuery) ? replacement : subQuery;
     }
   }
-}
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config PROJECT = EMPTY
+        .withOperandSupplier(b ->
+            b.operand(Project.class)
+                .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
+        .withDescription("SubQueryRemoveRule:Project")
+        .as(Config.class)
+        .withMatchHandler(SubQueryRemoveRule::matchProject);
 
-// End SubQueryRemoveRule.java
+    Config FILTER = EMPTY
+        .withOperandSupplier(b ->
+            b.operand(Filter.class)
+                .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
+        .withDescription("SubQueryRemoveRule:Filter")
+        .as(Config.class)
+        .withMatchHandler(SubQueryRemoveRule::matchFilter);
+
+    Config JOIN = EMPTY
+        .withOperandSupplier(b ->
+            b.operand(Join.class)
+                .predicate(RexUtil.SubQueryFinder::containsSubQuery)
+                .anyInputs())
+        .withDescription("SubQueryRemoveRule:Join")
+        .as(Config.class)
+        .withMatchHandler(SubQueryRemoveRule::matchJoin);
+
+    @Override default SubQueryRemoveRule toRule() {
+      return new SubQueryRemoveRule(this);
+    }
+
+    /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
+    @ImmutableBeans.Property
+    MatchHandler<SubQueryRemoveRule> matchHandler();
+
+    /** Sets {@link #matchHandler()}. */
+    Config withMatchHandler(MatchHandler<SubQueryRemoveRule> matchHandler);
+  }
+}

@@ -25,25 +25,28 @@ import org.apache.calcite.rel.logical.LogicalMinus;
 /**
  * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalMinus} to an
  * {@link EnumerableMinus}.
+ *
+ * @see EnumerableRules#ENUMERABLE_MINUS_RULE
  */
 class EnumerableMinusRule extends ConverterRule {
-  EnumerableMinusRule() {
-    super(LogicalMinus.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableMinusRule");
+  /** Default configuration. */
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalMinus.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableMinusRule")
+      .withRuleFactory(EnumerableMinusRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableMinusRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     final LogicalMinus minus = (LogicalMinus) rel;
-    if (minus.all) {
-      return null; // EXCEPT ALL not implemented
-    }
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
     final RelTraitSet traitSet =
         rel.getTraitSet().replace(
             EnumerableConvention.INSTANCE);
     return new EnumerableMinus(rel.getCluster(), traitSet,
-        convertList(minus.getInputs(), out), false);
+        convertList(minus.getInputs(), out), minus.all);
   }
 }
-
-// End EnumerableMinusRule.java

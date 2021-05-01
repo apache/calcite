@@ -51,5 +51,3 @@ public class MutableIntersect extends MutableSetOp {
     return MutableIntersect.of(rowType, cloneChildren(), all);
   }
 }
-
-// End MutableIntersect.java

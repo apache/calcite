@@ -22,6 +22,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableIntList;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.Objects;
 import java.util.Set;
 
@@ -49,10 +51,10 @@ public abstract class EquiJoin extends Join {
   public final ImmutableIntList rightKeys;
 
   /** Creates an EquiJoin. */
-  public EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
+  protected EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
       RelNode right, RexNode condition, Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     this.leftKeys = Objects.requireNonNull(joinInfo.leftKeys);
     this.rightKeys = Objects.requireNonNull(joinInfo.rightKeys);
     assert joinInfo.isEqui() : "Create EquiJoin with non-equi join condition.";
@@ -60,20 +62,20 @@ public abstract class EquiJoin extends Join {
 
   /** Creates an EquiJoin. */
   @Deprecated // to be removed before 2.0
-  public EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
+  protected EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
       RelNode right, RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     this.leftKeys = Objects.requireNonNull(leftKeys);
     this.rightKeys = Objects.requireNonNull(rightKeys);
   }
 
   @Deprecated // to be removed before 2.0
-  public EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
-      RelNode right, RexNode condition, ImmutableIntList leftKeys,
-      ImmutableIntList rightKeys, JoinRelType joinType,
-      Set<String> variablesStopped) {
+  protected EquiJoin(RelOptCluster cluster, RelTraitSet traits, RelNode left,
+          RelNode right, RexNode condition, ImmutableIntList leftKeys,
+          ImmutableIntList rightKeys, JoinRelType joinType,
+          Set<String> variablesStopped) {
     this(cluster, traits, left, right, condition, leftKeys, rightKeys,
         CorrelationId.setOf(variablesStopped), joinType);
   }
@@ -86,5 +88,3 @@ public abstract class EquiJoin extends Join {
     return rightKeys;
   }
 }
-
-// End EquiJoin.java

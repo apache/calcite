@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import java.util.function.UnaryOperator;
+
 /**
  * A mutable slot that can contain one object.
  *
@@ -46,10 +48,14 @@ public class Holder<E> {
     return e;
   }
 
+  /** Applies a transform to the value. */
+  public Holder<E> accept(UnaryOperator<E> transform) {
+    e = transform.apply(e);
+    return this;
+  }
+
   /** Creates a holder containing a given value. */
   public static <E> Holder<E> of(E e) {
     return new Holder<>(e);
   }
 }
-
-// End Holder.java

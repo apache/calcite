@@ -35,5 +35,3 @@ final class CompoundNameColumn {
         + ("\"" + second + "\"");
   }
 }
-
-// End CompoundNameColumn.java

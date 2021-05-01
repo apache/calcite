@@ -39,11 +39,11 @@ public class KafkaMockConsumer extends MockConsumer {
     updateBeginningOffsets(beginningOffsets);
 
     for (int idx = 0; idx < 10; ++idx) {
-      addRecord(new ConsumerRecord<byte[], byte[]>("testtopic",
-          0, idx, ("mykey" + idx).getBytes(StandardCharsets.UTF_8),
-          ("myvalue" + idx).getBytes(StandardCharsets.UTF_8)));
+      addRecord(
+          new ConsumerRecord<>("testtopic",
+              0, idx,
+              ("mykey" + idx).getBytes(StandardCharsets.UTF_8),
+              ("myvalue" + idx).getBytes(StandardCharsets.UTF_8)));
     }
   }
 }
-
-// End KafkaMockConsumer.java

@@ -17,18 +17,21 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelCollation}
@@ -52,7 +55,7 @@ public class RelCollations {
       RelCollationTraitDef.INSTANCE.canonize(
           new RelCollationImpl(
               ImmutableList.of(new RelFieldCollation(-1))) {
-            public String toString() {
+            @Override public String toString() {
               return "PRESERVE";
             }
           });
@@ -64,19 +67,22 @@ public class RelCollations {
   }
 
   public static RelCollation of(List<RelFieldCollation> fieldCollations) {
+    RelCollation collation;
     if (Util.isDistinct(ordinals(fieldCollations))) {
-      return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
-    }
-    // Remove field collations whose field has already been seen
-    final ImmutableList.Builder<RelFieldCollation> builder =
-        ImmutableList.builder();
-    final Set<Integer> set = new HashSet<>();
-    for (RelFieldCollation fieldCollation : fieldCollations) {
-      if (set.add(fieldCollation.getFieldIndex())) {
-        builder.add(fieldCollation);
+      collation = new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+    } else {
+      // Remove field collations whose field has already been seen
+      final ImmutableList.Builder<RelFieldCollation> builder =
+          ImmutableList.builder();
+      final Set<Integer> set = new HashSet<>();
+      for (RelFieldCollation fieldCollation : fieldCollations) {
+        if (set.add(fieldCollation.getFieldIndex())) {
+          builder.add(fieldCollation);
+        }
       }
+      collation = new RelCollationImpl(builder.build());
     }
-    return new RelCollationImpl(builder.build());
+    return RelCollationTraitDef.INSTANCE.canonize(collation);
   }
 
   /**
@@ -84,6 +90,16 @@ public class RelCollations {
    */
   public static RelCollation of(int fieldIndex) {
     return of(new RelFieldCollation(fieldIndex));
+  }
+
+  /**
+   * Creates a collation containing multiple fields.
+   */
+  public static RelCollation of(ImmutableIntList keys) {
+    List<RelFieldCollation> cols = keys.stream()
+        .map(k -> new RelFieldCollation(k))
+        .collect(Collectors.toList());
+    return of(cols);
   }
 
   /**
@@ -132,7 +148,7 @@ public class RelCollations {
   /** Returns the indexes of the fields in a list of field collations. */
   public static List<Integer> ordinals(
       List<RelFieldCollation> fieldCollations) {
-    return Lists.transform(fieldCollations, RelFieldCollation::getFieldIndex);
+    return Util.transform(fieldCollations, RelFieldCollation::getFieldIndex);
   }
 
   /** Returns whether a collation indicates that the collection is sorted on
@@ -177,6 +193,74 @@ public class RelCollations {
     return false;
   }
 
+  /** Returns whether a collation contains a given list of keys regardless
+   * the order.
+   *
+   * @param collation Collation
+   * @param keys List of keys
+   * @return Whether the collection contains the given keys
+   */
+  public static boolean containsOrderless(RelCollation collation,
+      List<Integer> keys) {
+    final List<Integer> distinctKeys = Util.distinctList(keys);
+    final ImmutableBitSet keysBitSet = ImmutableBitSet.of(distinctKeys);
+    List<Integer> colKeys = Util.distinctList(collation.getKeys());
+
+    if (colKeys.size() < distinctKeys.size()) {
+      return false;
+    } else {
+      ImmutableBitSet bitset = ImmutableBitSet.of(
+          colKeys.subList(0, distinctKeys.size()));
+      return bitset.equals(keysBitSet);
+    }
+  }
+
+  /** Returns whether a collation is contained by a given list of keys regardless ordering.
+   *
+   * @param collation Collation
+   * @param keys List of keys
+   * @return Whether the collection contains the given keys
+   */
+  public static boolean containsOrderless(
+      List<Integer> keys, RelCollation collation) {
+    final List<Integer> distinctKeys = Util.distinctList(keys);
+    List<Integer> colKeys = Util.distinctList(collation.getKeys());
+
+    if (colKeys.size() > distinctKeys.size()) {
+      return false;
+    } else {
+      return colKeys.stream().allMatch(i -> distinctKeys.contains(i));
+    }
+  }
+
+  /**
+   * Returns whether one of a list of collations contains the given list of keys
+   * regardless the order.
+   */
+  public static boolean collationsContainKeysOrderless(
+      List<RelCollation> collations, List<Integer> keys) {
+    for (RelCollation collation : collations) {
+      if (containsOrderless(collation, keys)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether one of a list of collations is contained by the given list of keys
+   * regardless the order.
+   */
+  public static boolean keysContainCollationsOrderless(
+      List<Integer> keys,  List<RelCollation> collations) {
+    for (RelCollation collation : collations) {
+      if (containsOrderless(keys, collation)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static RelCollation shift(RelCollation collation, int offset) {
     if (offset == 0) {
       return collation; // save some effort
@@ -195,7 +279,9 @@ public class RelCollations {
       Map<Integer, Integer> mapping) {
     return of(
         Util.transform(collation.getFieldCollations(),
-            fc -> fc.withFieldIndex(mapping.get(fc.getFieldIndex()))));
+            fc -> fc.withFieldIndex(
+                requireNonNull(mapping.get(fc.getFieldIndex()),
+                    () -> "no entry for " + fc.getFieldIndex() + " in " + mapping))));
   }
 
   /** Creates a copy of this collation that changes the ordinals of input
@@ -207,5 +293,3 @@ public class RelCollations {
             fc -> fc.withFieldIndex(mapping.getTarget(fc.getFieldIndex()))));
   }
 }
-
-// End RelCollations.java

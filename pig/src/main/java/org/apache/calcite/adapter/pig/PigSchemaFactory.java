@@ -36,10 +36,8 @@ public class PigSchemaFactory implements SchemaFactory {
   private PigSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     return new PigSchema();
   }
 }
-
-// End PigSchemaFactory.java

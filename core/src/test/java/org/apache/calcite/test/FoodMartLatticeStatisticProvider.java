@@ -102,5 +102,3 @@ public class FoodMartLatticeStatisticProvider
     return Lattice.getRowCount(lattice.getFactRowCount(), cardinalityList);
   }
 }
-
-// End FoodMartLatticeStatisticProvider.java

@@ -24,6 +24,10 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -39,17 +43,36 @@ import java.util.Objects;
 class Step extends DefaultEdge {
   final List<IntPair> keys;
 
-  Step(LatticeTable source, LatticeTable target, List<IntPair> keys) {
+  /** String representation of {@link #keys}. Computing the string requires a
+   * {@link LatticeSpace}, so we pre-compute it before construction. */
+  final String keyString;
+
+  private Step(LatticeTable source, LatticeTable target,
+      List<IntPair> keys, String keyString) {
     super(source, target);
     this.keys = ImmutableList.copyOf(keys);
+    this.keyString = Objects.requireNonNull(keyString);
     assert IntPair.ORDERING.isStrictlyOrdered(keys); // ordered and unique
+  }
+
+  /** Creates a Step. */
+  static Step create(LatticeTable source, LatticeTable target,
+      List<IntPair> keys, LatticeSpace space) {
+    final StringBuilder b = new StringBuilder();
+    for (IntPair key : keys) {
+      b.append(' ')
+          .append(space.fieldName(source, key.source))
+          .append(':')
+          .append(space.fieldName(target, key.target));
+    }
+    return new Step(source, target, keys, b.toString());
   }
 
   @Override public int hashCode() {
     return Objects.hash(source, target, keys);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof Step
         && ((Step) obj).source.equals(source)
@@ -58,20 +81,7 @@ class Step extends DefaultEdge {
   }
 
   @Override public String toString() {
-    final StringBuilder b = new StringBuilder()
-        .append("Step(")
-        .append(source)
-        .append(", ")
-        .append(target)
-        .append(",");
-    for (IntPair key : keys) {
-      b.append(' ')
-          .append(source().field(key.source).getName())
-          .append(':')
-          .append(target().field(key.target).getName());
-    }
-    return b.append(")")
-        .toString();
+    return "Step(" + source + ", " + target + "," + keyString + ")";
   }
 
   LatticeTable source() {
@@ -87,13 +97,21 @@ class Step extends DefaultEdge {
     final List<Integer> sourceColumns = IntPair.left(keys);
     final RelOptTable targetTable = target().t;
     final List<Integer> targetColumns = IntPair.right(keys);
-    final boolean forwardForeignKey =
-        statisticProvider.isForeignKey(sourceTable, sourceColumns, targetTable,
-            targetColumns)
+    final boolean noDerivedSourceColumns =
+        sourceColumns.stream().allMatch(i ->
+            i < sourceTable.getRowType().getFieldCount());
+    final boolean noDerivedTargetColumns =
+        targetColumns.stream().allMatch(i ->
+            i < targetTable.getRowType().getFieldCount());
+    final boolean forwardForeignKey = noDerivedSourceColumns
+        && noDerivedTargetColumns
+        && statisticProvider.isForeignKey(sourceTable, sourceColumns,
+            targetTable, targetColumns)
         && statisticProvider.isKey(targetTable, targetColumns);
-    final boolean backwardForeignKey =
-        statisticProvider.isForeignKey(targetTable, targetColumns, sourceTable,
-            sourceColumns)
+    final boolean backwardForeignKey = noDerivedSourceColumns
+        && noDerivedTargetColumns
+        && statisticProvider.isForeignKey(targetTable, targetColumns,
+            sourceTable, sourceColumns)
         && statisticProvider.isKey(sourceTable, sourceColumns);
     if (backwardForeignKey != forwardForeignKey) {
       return backwardForeignKey;
@@ -116,7 +134,8 @@ class Step extends DefaultEdge {
 
   /** Temporary method. We should use (inferred) primary keys to figure out
    * the direction of steps. */
-  private double cardinality(SqlStatisticProvider statisticProvider,
+  @SuppressWarnings("unused")
+  private static double cardinality(SqlStatisticProvider statisticProvider,
       LatticeTable table) {
     return statisticProvider.tableCardinality(table.t);
   }
@@ -124,17 +143,22 @@ class Step extends DefaultEdge {
   /** Creates {@link Step} instances. */
   static class Factory implements AttributedDirectedGraph.AttributedEdgeFactory<
       LatticeTable, Step> {
-    public Step createEdge(LatticeTable source, LatticeTable target) {
+    private final @NotOnlyInitialized LatticeSpace space;
+
+    @SuppressWarnings("type.argument.type.incompatible")
+    Factory(@UnderInitialization LatticeSpace space) {
+      this.space = Objects.requireNonNull(space);
+    }
+
+    @Override public Step createEdge(LatticeTable source, LatticeTable target) {
       throw new UnsupportedOperationException();
     }
 
-    public Step createEdge(LatticeTable source, LatticeTable target,
+    @Override public Step createEdge(LatticeTable source, LatticeTable target,
         Object... attributes) {
       @SuppressWarnings("unchecked") final List<IntPair> keys =
           (List) attributes[0];
-      return new Step(source, target, keys);
+      return Step.create(source, target, keys, space);
     }
   }
 }
-
-// End Step.java

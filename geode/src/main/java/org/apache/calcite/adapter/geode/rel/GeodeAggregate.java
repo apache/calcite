@@ -29,8 +29,10 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +51,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
 
     assert getConvention() == GeodeRel.CONVENTION;
     assert getConvention() == this.input.getConvention();
@@ -82,7 +84,8 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
         groupSets, aggCalls);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
@@ -100,7 +103,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     geodeImplementContext.addGroupBy(groupByFields);
 
     // Find the aggregate functions (e.g. MAX, SUM ...)
-    Builder<String, String> aggregateFunctionMap = ImmutableMap.builder();
+    ImmutableMap.Builder<String, String> aggregateFunctionMap = ImmutableMap.builder();
     for (AggregateCall aggCall : aggCalls) {
 
       List<String> aggCallFieldNames = new ArrayList<>();
@@ -126,7 +129,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
 
   }
 
-  private List<String> fieldNames(RelDataType relDataType) {
+  private static List<String> fieldNames(RelDataType relDataType) {
     ArrayList<String> names = new ArrayList<>();
 
     for (RelDataTypeField rdtf : relDataType.getFieldList()) {
@@ -135,5 +138,3 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     return names;
   }
 }
-
-// End GeodeAggregate.java

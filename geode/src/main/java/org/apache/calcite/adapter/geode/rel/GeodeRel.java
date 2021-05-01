@@ -122,5 +122,3 @@ public interface GeodeRel extends RelNode {
     }
   }
 }
-
-// End GeodeRel.java

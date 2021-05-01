@@ -20,14 +20,7 @@ package org.apache.calcite.sql.parser;
  * Extension to {@link SqlParserTest} which ensures that every expression can
  * un-parse successfully.
  */
-public class SqlUnParserTest extends SqlParserTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlUnParserTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
+class SqlUnParserTest extends SqlParserTest {
   @Override protected Tester getTester() {
     return new UnparsingTesterImpl();
   }
@@ -36,5 +29,3 @@ public class SqlUnParserTest extends SqlParserTest {
     return true;
   }
 }
-
-// End SqlUnParserTest.java

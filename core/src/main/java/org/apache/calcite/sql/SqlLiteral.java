@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
@@ -38,13 +39,18 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Calendar;
 import java.util.Objects;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlLiteral</code> is a constant. It is, appropriately, immutable.
@@ -155,7 +161,7 @@ public class SqlLiteral extends SqlNode {
    * The value of this literal. The type of the value must be appropriate for
    * the typeName, as defined by the {@link #valueMatchesType} method.
    */
-  protected final Object value;
+  protected final @Nullable Object value;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -163,7 +169,7 @@ public class SqlLiteral extends SqlNode {
    * Creates a <code>SqlLiteral</code>.
    */
   protected SqlLiteral(
-      Object value,
+      @Nullable Object value,
       SqlTypeName typeName,
       SqlParserPos pos) {
     super(pos);
@@ -175,19 +181,15 @@ public class SqlLiteral extends SqlNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return value of {@link #typeName}
-   */
+  /** Returns the value of {@link #typeName}. */
   public SqlTypeName getTypeName() {
     return typeName;
   }
 
-  /**
-   * @return whether value is appropriate for its type (we have rules about
-   * these things)
-   */
+  /** Returns whether value is appropriate for its type. (We have rules about
+   * these things!) */
   public static boolean valueMatchesType(
-      Object value,
+      @Nullable Object value,
       SqlTypeName typeName) {
     switch (typeName) {
     case BOOLEAN:
@@ -234,11 +236,11 @@ public class SqlLiteral extends SqlNode {
     }
   }
 
-  public SqlLiteral clone(SqlParserPos pos) {
+  @Override public SqlLiteral clone(SqlParserPos pos) {
     return new SqlLiteral(value, typeName, pos);
   }
 
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.LITERAL;
   }
 
@@ -252,14 +254,40 @@ public class SqlLiteral extends SqlNode {
    * @see #booleanValue()
    * @see #symbolValue(Class)
    */
-  public Object getValue() {
+  public @Nullable Object getValue() {
     return value;
   }
 
-  public <T> T getValueAs(Class<T> clazz) {
+  /**
+   * Returns the value of this literal as a given Java type.
+   *
+   * <p>Which type you may ask for depends on {@link #typeName}.
+   * You may always ask for the type where we store the value internally
+   * (as defined by {@link #valueMatchesType(Object, SqlTypeName)}), but may
+   * ask for other convenient types.
+   *
+   * <p>For example, numeric literals' values are stored internally as
+   * {@link BigDecimal}, but other numeric types such as {@link Long} and
+   * {@link Double} are also allowed.
+   *
+   * <p>The result is never null. For the NULL literal, returns
+   * a {@link NullSentinel#INSTANCE}.
+   *
+   * @param clazz Desired value type
+   * @param <T> Value type
+   * @return Value of the literal in desired type, never null
+   *
+   * @throws AssertionError if the value type is not supported
+   */
+  public <T extends Object> T getValueAs(Class<T> clazz) {
+    Object value = this.value;
     if (clazz.isInstance(value)) {
       return clazz.cast(value);
     }
+    if (typeName == SqlTypeName.NULL) {
+      return clazz.cast(NullSentinel.INSTANCE);
+    }
+    requireNonNull(value, "value");
     switch (typeName) {
     case CHAR:
       if (clazz == String.class) {
@@ -273,7 +301,7 @@ public class SqlLiteral extends SqlNode {
       break;
     case DECIMAL:
       if (clazz == Long.class) {
-        return clazz.cast(((BigDecimal) value).unscaledValue().longValue());
+        return clazz.cast(((BigDecimal) value).longValueExact());
       }
       // fall through
     case BIGINT:
@@ -284,13 +312,13 @@ public class SqlLiteral extends SqlNode {
     case REAL:
     case FLOAT:
       if (clazz == Long.class) {
-        return clazz.cast(((BigDecimal) value).longValue());
+        return clazz.cast(((BigDecimal) value).longValueExact());
       } else if (clazz == Integer.class) {
-        return clazz.cast(((BigDecimal) value).intValue());
+        return clazz.cast(((BigDecimal) value).intValueExact());
       } else if (clazz == Short.class) {
-        return clazz.cast(((BigDecimal) value).shortValue());
+        return clazz.cast(((BigDecimal) value).shortValueExact());
       } else if (clazz == Byte.class) {
-        return clazz.cast(((BigDecimal) value).byteValue());
+        return clazz.cast(((BigDecimal) value).byteValueExact());
       } else if (clazz == Double.class) {
         return clazz.cast(((BigDecimal) value).doubleValue());
       } else if (clazz == Float.class) {
@@ -324,6 +352,8 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
         return clazz.cast(valMonth.getIntervalQualifier().timeUnitRange);
+      } else if (clazz == SqlIntervalQualifier.class) {
+        return clazz.cast(valMonth.getIntervalQualifier());
       }
       break;
     case INTERVAL_DAY:
@@ -345,7 +375,11 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
         return clazz.cast(valTime.getIntervalQualifier().timeUnitRange);
+      } else if (clazz == SqlIntervalQualifier.class) {
+        return clazz.cast(valTime.getIntervalQualifier());
       }
+      break;
+    default:
       break;
     }
     throw new AssertionError("cannot cast " + value + " as " + clazz);
@@ -353,19 +387,19 @@ public class SqlLiteral extends SqlNode {
 
   /** Returns the value as a symbol. */
   @Deprecated // to be removed before 2.0
-  public <E extends Enum<E>> E symbolValue_() {
+  public <E extends Enum<E>> @Nullable E symbolValue_() {
     //noinspection unchecked
-    return (E) value;
+    return (@Nullable E) value;
   }
 
   /** Returns the value as a symbol. */
-  public <E extends Enum<E>> E symbolValue(Class<E> class_) {
+  public <E extends Enum<E>> @Nullable E symbolValue(Class<E> class_) {
     return class_.cast(value);
   }
 
   /** Returns the value as a boolean. */
   public boolean booleanValue() {
-    return (Boolean) value;
+    return getValueAs(Boolean.class);
   }
 
   /**
@@ -375,7 +409,7 @@ public class SqlLiteral extends SqlNode {
    * @see #createSymbol(Enum, SqlParserPos)
    */
   public static SqlSampleSpec sampleValue(SqlNode node) {
-    return (SqlSampleSpec) ((SqlLiteral) node).value;
+    return ((SqlLiteral) node).getValueAs(SqlSampleSpec.class);
   }
 
   /**
@@ -402,26 +436,29 @@ public class SqlLiteral extends SqlNode {
    * <li>Otherwise throws {@link IllegalArgumentException}.
    * </ul>
    */
-  public static Comparable value(SqlNode node)
+  public static @Nullable Comparable value(SqlNode node)
       throws IllegalArgumentException {
     if (node instanceof SqlLiteral) {
       final SqlLiteral literal = (SqlLiteral) node;
       if (literal.getTypeName() == SqlTypeName.SYMBOL) {
-        return (Enum) literal.value;
+        return (Enum<?>) literal.value;
       }
-      switch (literal.getTypeName().getFamily()) {
+      // Literals always have non-null family
+      switch (requireNonNull(literal.getTypeName().getFamily())) {
       case CHARACTER:
         return (NlsString) literal.value;
       case NUMERIC:
         return (BigDecimal) literal.value;
       case INTERVAL_YEAR_MONTH:
         final SqlIntervalLiteral.IntervalValue valMonth =
-            (SqlIntervalLiteral.IntervalValue) literal.value;
+            literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
         return valMonth.getSign() * SqlParserUtil.intervalToMonths(valMonth);
       case INTERVAL_DAY_TIME:
         final SqlIntervalLiteral.IntervalValue valTime =
-            (SqlIntervalLiteral.IntervalValue) literal.value;
+            literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
         return valTime.getSign() * SqlParserUtil.intervalToMillis(valTime);
+      default:
+        break;
       }
     }
     if (SqlUtil.isLiteralChain(node)) {
@@ -431,17 +468,16 @@ public class SqlLiteral extends SqlNode {
       assert SqlTypeUtil.inCharFamily(literal.getTypeName());
       return (NlsString) literal.value;
     }
-    if (node instanceof SqlIntervalQualifier) {
-      SqlIntervalQualifier qualifier = (SqlIntervalQualifier) node;
-      return qualifier.timeUnitRange;
-    }
     switch (node.getKind()) {
+    case INTERVAL_QUALIFIER:
+      //noinspection ConstantConditions
+      return ((SqlIntervalQualifier) node).timeUnitRange;
     case CAST:
       assert node instanceof SqlCall;
       return value(((SqlCall) node).operand(0));
     case MINUS_PREFIX:
       assert node instanceof SqlCall;
-      Comparable o = value(((SqlCall) node).operand(0));
+      Comparable<?> o = value(((SqlCall) node).operand(0));
       if (o instanceof BigDecimal) {
         BigDecimal bigDecimal = (BigDecimal) o;
         return bigDecimal.negate();
@@ -463,15 +499,14 @@ public class SqlLiteral extends SqlNode {
     if (node instanceof SqlLiteral) {
       SqlLiteral literal = (SqlLiteral) node;
       assert SqlTypeUtil.inCharFamily(literal.getTypeName());
-      return literal.value.toString();
+      return requireNonNull(literal.value).toString();
     } else if (SqlUtil.isLiteralChain(node)) {
       final SqlLiteral literal =
           SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
       assert SqlTypeUtil.inCharFamily(literal.getTypeName());
-      return literal.value.toString();
+      return requireNonNull(literal.value).toString();
     } else if (node instanceof SqlCall
         && ((SqlCall) node).getOperator() == SqlStdOperatorTable.CAST) {
-      //noinspection deprecation
       return stringValue(((SqlCall) node).operand(0));
     } else {
       throw new AssertionError("invalid string literal: " + node);
@@ -485,22 +520,23 @@ public class SqlLiteral extends SqlNode {
    * and cannot be unchained.
    */
   public static SqlLiteral unchain(SqlNode node) {
-    if (node instanceof SqlLiteral) {
+    switch (node.getKind()) {
+    case LITERAL:
       return (SqlLiteral) node;
-    } else if (SqlUtil.isLiteralChain(node)) {
+    case LITERAL_CHAIN:
       return SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
-    } else if (node instanceof SqlIntervalQualifier) {
+    case INTERVAL_QUALIFIER:
       final SqlIntervalQualifier q = (SqlIntervalQualifier) node;
       return new SqlLiteral(
           new SqlIntervalLiteral.IntervalValue(q, 1, q.toString()),
           q.typeName(), q.pos);
-    } else {
+    default:
       throw new IllegalArgumentException("invalid literal: " + node);
     }
   }
 
   /**
-   * For calc program builder - value may be different than {@link #unparse}
+   * For calc program builder - value may be different than {@link #unparse}.
    * Typical values:
    *
    * <ul>
@@ -512,7 +548,7 @@ public class SqlLiteral extends SqlNode {
    *
    * @return string representation of the value
    */
-  public String toValue() {
+  public @Nullable String toValue() {
     if (value == null) {
       return null;
     }
@@ -526,15 +562,15 @@ public class SqlLiteral extends SqlNode {
     }
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateLiteral(this);
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlLiteral)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -545,7 +581,7 @@ public class SqlLiteral extends SqlNode {
     return litmus.succeed();
   }
 
-  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
@@ -581,7 +617,7 @@ public class SqlLiteral extends SqlNode {
    *
    * @see #symbolValue(Class)
    */
-  public static SqlLiteral createSymbol(Enum<?> o, SqlParserPos pos) {
+  public static SqlLiteral createSymbol(@Nullable Enum<?> o, SqlParserPos pos) {
     return new SqlLiteral(o, SqlTypeName.SYMBOL, pos);
   }
 
@@ -594,7 +630,7 @@ public class SqlLiteral extends SqlNode {
     return new SqlLiteral(sampleSpec, SqlTypeName.SYMBOL, pos);
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (!(obj instanceof SqlLiteral)) {
       return false;
     }
@@ -602,7 +638,7 @@ public class SqlLiteral extends SqlNode {
     return Objects.equals(value, that.value);
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     return (value == null) ? 0 : value.hashCode();
   }
 
@@ -618,7 +654,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
-      BigDecimal bd = (BigDecimal) value;
+      BigDecimal bd = (BigDecimal) requireNonNull(value);
       if (exact) {
         try {
           return bd.intValueExact();
@@ -646,7 +682,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
-      BigDecimal bd = (BigDecimal) value;
+      BigDecimal bd = (BigDecimal) requireNonNull(value);
       if (exact) {
         try {
           return bd.longValueExact();
@@ -669,14 +705,14 @@ public class SqlLiteral extends SqlNode {
    */
   @Deprecated // to be removed before 2.0
   public int signum() {
-    return bigDecimalValue().compareTo(
+    return castNonNull(bigDecimalValue()).compareTo(
         BigDecimal.ZERO);
   }
 
   /**
    * Returns a numeric literal's value as a {@link BigDecimal}.
    */
-  public BigDecimal bigDecimalValue() {
+  public @Nullable BigDecimal bigDecimalValue() {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
@@ -688,10 +724,10 @@ public class SqlLiteral extends SqlNode {
 
   @Deprecated // to be removed before 2.0
   public String getStringValue() {
-    return ((NlsString) value).getValue();
+    return ((NlsString) requireNonNull(value)).getValue();
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
@@ -711,15 +747,10 @@ public class SqlLiteral extends SqlNode {
       throw Util.unexpected(typeName);
 
     case SYMBOL:
-      if (value instanceof Enum) {
-        Enum enumVal = (Enum) value;
-        writer.keyword(enumVal.toString());
-      } else {
-        writer.keyword(String.valueOf(value));
-      }
+      writer.keyword(String.valueOf(value));
       break;
     default:
-      writer.literal(value.toString());
+      writer.literal(String.valueOf(value));
     }
   }
 
@@ -732,11 +763,11 @@ public class SqlLiteral extends SqlNode {
       ret = typeFactory.createTypeWithNullability(ret, null == value);
       return ret;
     case BINARY:
-      bitString = (BitString) value;
+      bitString = (BitString) requireNonNull(value);
       int bitCount = bitString.getBitCount();
       return typeFactory.createSqlType(SqlTypeName.BINARY, bitCount / 8);
     case CHAR:
-      NlsString string = (NlsString) value;
+      NlsString string = (NlsString) requireNonNull(value);
       Charset charset = string.getCharset();
       if (null == charset) {
         charset = typeFactory.getDefaultCharset();
@@ -770,7 +801,7 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       SqlIntervalLiteral.IntervalValue intervalValue =
-          (SqlIntervalLiteral.IntervalValue) value;
+          (SqlIntervalLiteral.IntervalValue) requireNonNull(value);
       return typeFactory.createSqlIntervalType(
           intervalValue.getIntervalQualifier());
 
@@ -851,7 +882,7 @@ public class SqlLiteral extends SqlNode {
       SqlNumericLiteral num,
       SqlParserPos pos) {
     return new SqlNumericLiteral(
-        ((BigDecimal) num.getValue()).negate(),
+        ((BigDecimal) requireNonNull(num.getValue())).negate(),
         num.getPrec(),
         num.getScale(),
         num.isExact(),
@@ -958,7 +989,7 @@ public class SqlLiteral extends SqlNode {
    */
   public static SqlCharStringLiteral createCharString(
       String s,
-      String charSet,
+      @Nullable String charSet,
       SqlParserPos pos) {
     NlsString slit = new NlsString(s, charSet, null);
     return new SqlCharStringLiteral(slit, pos);
@@ -978,7 +1009,7 @@ public class SqlLiteral extends SqlNode {
       return this;
     }
     assert SqlTypeUtil.inCharFamily(getTypeName());
-    NlsString ns = (NlsString) value;
+    NlsString ns = (NlsString) requireNonNull(value);
     String s = ns.getValue();
     StringBuilder sb = new StringBuilder();
     int n = s.length();
@@ -1037,5 +1068,3 @@ public class SqlLiteral extends SqlNode {
     int ordinal();
   }
 }
-
-// End SqlLiteral.java

@@ -19,6 +19,8 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.AvaticaPreparedStatement;
 import org.apache.calcite.avatica.Meta;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 
 /**
@@ -42,7 +44,7 @@ abstract class CalcitePreparedStatement extends AvaticaPreparedStatement {
    * @throws SQLException if database error occurs
    */
   protected CalcitePreparedStatement(CalciteConnectionImpl connection,
-      Meta.StatementHandle h, Meta.Signature signature, int resultSetType,
+      Meta.@Nullable StatementHandle h, Meta.Signature signature, int resultSetType,
       int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     super(connection, h, signature, resultSetType, resultSetConcurrency,
         resultSetHoldability);
@@ -52,5 +54,3 @@ abstract class CalcitePreparedStatement extends AvaticaPreparedStatement {
     return (CalciteConnectionImpl) super.getConnection();
   }
 }
-
-// End CalcitePreparedStatement.java

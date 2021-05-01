@@ -77,5 +77,3 @@ public class MongoSchema extends AbstractSchema {
     return builder.build();
   }
 }
-
-// End MongoSchema.java

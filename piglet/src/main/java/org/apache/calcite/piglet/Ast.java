@@ -587,5 +587,3 @@ public class Ast {
     NOT_SPECIFIED
   }
 }
-
-// End Ast.java

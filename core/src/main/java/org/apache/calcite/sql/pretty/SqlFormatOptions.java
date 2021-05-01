@@ -173,5 +173,3 @@ public class SqlFormatOptions {
     this.indentation = indentation;
   }
 }
-
-// End SqlFormatOptions.java

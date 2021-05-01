@@ -37,5 +37,3 @@ public class PigSchema extends AbstractSchema {
     tableMap.put(name, table);
   }
 }
-
-// End PigSchema.java

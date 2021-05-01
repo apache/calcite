@@ -18,12 +18,14 @@ package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeField;
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
+import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 
 /**
  * Implementation of extraction function DimensionSpec.
@@ -75,13 +77,12 @@ public class ExtractionDimensionSpec implements DimensionSpec {
     generator.writeEndObject();
   }
 
-  /**
-   * @param dimensionSpec Druid Dimesion spec object
+  /** Returns a valid {@link Granularity} of floor extract, or null when not
+   * possible.
    *
-   * @return valid {@link Granularity} of floor extract or null when not possible.
+   * @param dimensionSpec Druid Dimension specification
    */
-  @Nullable
-  public static Granularity toQueryGranularity(DimensionSpec dimensionSpec) {
+  public static @Nullable Granularity toQueryGranularity(DimensionSpec dimensionSpec) {
     if (!DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(dimensionSpec.getDimension())) {
       // Only __time column can be substituted by granularity
       return null;
@@ -94,7 +95,7 @@ public class ExtractionDimensionSpec implements DimensionSpec {
     if (extractionFunction instanceof TimeExtractionFunction) {
       Granularity granularity = ((TimeExtractionFunction) extractionFunction).getGranularity();
       String format = ((TimeExtractionFunction) extractionFunction).getFormat();
-      if (!TimeExtractionFunction.ISO_TIME_FORMAT.equals(format)) {
+      if (!ISO_DATETIME_FRACTIONAL_SECOND_FORMAT.equals(format)) {
         return null;
       }
       return granularity;
@@ -103,5 +104,3 @@ public class ExtractionDimensionSpec implements DimensionSpec {
   }
 
 }
-
-// End ExtractionDimensionSpec.java

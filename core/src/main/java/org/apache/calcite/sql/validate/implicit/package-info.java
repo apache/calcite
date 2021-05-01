@@ -16,10 +16,13 @@
  */
 
 /**
- * Sql implicit type cast.
- * <h2>Work Flow</h2>
- * This package contains rules for implicit type coercion, it works during the process of sql
- * validation. The transformation entrance are all kinds of checkers. i.e.
+ * <h2>SQL Implicit Type Cast</h2>
+ *
+ * <h3>Work Flow</h3>
+ *
+ * <p>This package contains rules for implicit type coercion, it works during
+ * the process of SQL validation. The transformation entrance are all kinds of
+ * checkers. i.e.
  * {@link org.apache.calcite.sql.type.AssignableOperandTypeChecker AssignableOperandTypeChecker},
  * {@link org.apache.calcite.sql.type.ComparableOperandTypeChecker ComparableOperandTypeChecker}
  * {@link org.apache.calcite.sql.type.CompositeOperandTypeChecker CompositeOperandTypeChecker},
@@ -47,35 +50,33 @@
  *   the exception as is before.</li>
  * </ul>
  *
- * <p> For some cases, although the validation passes, we still need the type coercion, e.g. for
+ * <p>For some cases, although the validation passes, we still need the type coercion, e.g. for
  * expression 1 &gt; '1', Calcite will just return false without type coercion, we do type coercion
  * eagerly here: the result expression would be transformed to "1 &gt; cast('1' as int)" and
  * the result would be true.
  *
- * <h2>Conversion Expressions</h2>
- * The supported conversion contexts are:
+ * <h3>Conversion SQL Contexts</h3>
+ *
+ * <p>The supported conversion contexts are:
  * <a href="https://docs.google.com/document/d/1g2RUnLXyp_LjUlO-wbblKuP5hqEu3a_2Mt2k4dh6RwU/edit?usp=sharing">Conversion Expressions</a>
- * <p>Strategies for finding common type:</p>
+ *
+ * <p>Strategies for Finding Common Type:</p>
  * <ul>
  *   <li>If the operator has expected data types, just take them as the desired one. i.e. the UDF.
  *   </li>
  *   <li>If there is no expected data type but data type families are registered, try to coerce
- *   operand to the family's default data type, i.e. the String family will have a VARCHAR type.
+ *   operand to the family's default data type, i.e. the STRING family will have a VARCHAR type.
  *   </li>
  *   <li>If neither expected data type nor families are specified, try to find the tightest common
- *   type of the node types, i.e. int and double will return double, the numeric precision does not
- *   lose for this case.</li>
- *   <li>If no tightest common type found, try to find a wider type, i.e. string and int
- *   will return int, we allow some precision loss when widening decimal to fractional,
- *   or promote to string type.</li>
+ *   type of the node types, i.e. INTEGER and DOUBLE will return DOUBLE, the numeric precision
+ *   does not lose for this case.</li>
+ *   <li>If no tightest common type is found, try to find a wider type, i.e. STRING and INT
+ *   will return int, we allow some precision loss when widening DECIMAL to fractional,
+ *   or promote to STRING.</li>
  * </ul>
  *
- * <h2>Types Conversion Matrix</h2>
- * See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
+ * <h3>Type Conversion Matrix</h3>
+ *
+ * <p>See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>.
  */
-@PackageMarker
 package org.apache.calcite.sql.validate.implicit;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -25,24 +27,24 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents an expression that has a constant value.
  */
 public class ConstantExpression extends Expression {
-  public final Object value;
+  public final @Nullable Object value;
 
-  public ConstantExpression(Type type, Object value) {
+  public ConstantExpression(Type type, @Nullable Object value) {
     super(ExpressionType.Constant, type);
     this.value = value;
     if (value != null) {
       if (type instanceof Class) {
         Class clazz = (Class) type;
-        Primitive primitive = Primitive.of(clazz);
-        if (primitive != null) {
-          clazz = primitive.boxClass;
-        }
+        clazz = Primitive.box(clazz);
         if (!clazz.isInstance(value)
             && !((clazz == Float.class || clazz == Double.class)
                 && value instanceof BigDecimal)) {
@@ -53,7 +55,7 @@ public class ConstantExpression extends Expression {
     }
   }
 
-  public Object evaluate(Evaluator evaluator) {
+  @Override public @Nullable Object evaluate(Evaluator evaluator) {
     return value;
   }
 
@@ -61,7 +63,7 @@ public class ConstantExpression extends Expression {
     return shuttle.visit(this);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -76,15 +78,13 @@ public class ConstantExpression extends Expression {
   }
 
   private static ExpressionWriter write(ExpressionWriter writer,
-      final Object value, Type type) {
+      final Object value, @Nullable Type type) {
     if (value == null) {
       return writer.append("null");
     }
     if (type == null) {
       type = value.getClass();
-      if (Primitive.isBox(type)) {
-        type = Primitive.ofBox(type).primitiveClass;
-      }
+      type = Primitive.unbox(type);
     }
     if (value instanceof String) {
       escapeString(writer.getBuf(), (String) value);
@@ -146,7 +146,7 @@ public class ConstantExpression extends Expression {
       try {
         final int scale = bigDecimal.scale();
         final long exact = bigDecimal.scaleByPowerOfTen(scale).longValueExact();
-        writer.append("new java.math.BigDecimal(").append(exact).append("L");
+        writer.append("java.math.BigDecimal.valueOf(").append(exact).append("L");
         if (scale != 0) {
           writer.append(", ").append(scale);
         }
@@ -170,7 +170,7 @@ public class ConstantExpression extends Expression {
       return writer.append(recordType.getName()).append(".class");
     }
     if (value.getClass().isArray()) {
-      writer.append("new ").append(value.getClass().getComponentType());
+      writer.append("new ").append(requireNonNull(value.getClass().getComponentType()));
       list(writer, Primitive.asList(value), "[] {\n", ",\n", "}");
       return writer;
     }
@@ -185,12 +185,17 @@ public class ConstantExpression extends Expression {
     if (value instanceof Map) {
       return writeMap(writer, (Map) value);
     }
+    if (value instanceof Set) {
+      return writeSet(writer, (Set) value);
+    }
+
     Constructor constructor = matchingConstructor(value);
     if (constructor != null) {
       writer.append("new ").append(value.getClass());
       list(writer,
           Arrays.stream(value.getClass().getFields())
-              .map(field -> {
+              // <@Nullable Object> is needed for CheckerFramework
+              .<@Nullable Object>map(field -> {
                 try {
                   return field.get(value);
                 } catch (IllegalAccessException e) {
@@ -245,7 +250,32 @@ public class ConstantExpression extends Expression {
     return writer.append(end);
   }
 
-  private static Constructor matchingConstructor(Object value) {
+  private static ExpressionWriter writeSet(ExpressionWriter writer, Set set) {
+    writer.append("com.google.common.collect.ImmutableSet.");
+    if (set.isEmpty()) {
+      return writer.append("of()");
+    }
+    if (set.size() < 5) {
+      return set(writer, set, "of(", ",", ")");
+    }
+    return set(writer, set, "builder().add(", ")\n.add(", ").build()");
+  }
+
+  private static ExpressionWriter set(ExpressionWriter writer, Set set,
+                                      String begin, String entrySep, String end) {
+    writer.append(begin);
+    boolean comma = false;
+    for (Object o : set.toArray()) {
+      if (comma) {
+        writer.append(entrySep).indent();
+      }
+      write(writer, o, null);
+      comma = true;
+    }
+    return writer.append(end);
+  }
+
+  private static @Nullable Constructor matchingConstructor(Object value) {
     final Field[] fields = value.getClass().getFields();
     for (Constructor<?> constructor : value.getClass().getConstructors()) {
       if (argsMatchFields(fields, constructor.getParameterTypes())) {
@@ -298,7 +328,7 @@ public class ConstantExpression extends Expression {
     buf.append('"');
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     // REVIEW: Should constants with the same value and different type
     // (e.g. 3L and 3) be considered equal.
     if (this == o) {
@@ -324,5 +354,3 @@ public class ConstantExpression extends Expression {
     return Objects.hash(nodeType, type, value);
   }
 }
-
-// End ConstantExpression.java

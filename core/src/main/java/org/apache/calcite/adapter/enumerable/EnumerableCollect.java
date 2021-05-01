@@ -40,7 +40,7 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
     return new EnumerableCollect(getCluster(), traitSet, newInput, fieldName);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
     // REVIEW zabetak January 7, 2019: Even if we ask the implementor to provide a result
@@ -79,5 +79,3 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableCollect.java

@@ -228,5 +228,3 @@ public enum MappingType {
    */
   private static final int MULTIPLE_TARGET = 8;
 }
-
-// End MappingType.java

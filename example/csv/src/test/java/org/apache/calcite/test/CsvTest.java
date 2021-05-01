@@ -28,9 +28,11 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -53,19 +55,23 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.sql.Timestamp.valueOf;
 
 /**
  * Unit test of the Calcite adapter for CSV.
  */
-public class CsvTest {
+class CsvTest {
   private void close(Connection connection, Statement statement) {
     if (statement != null) {
       try {
@@ -120,11 +126,15 @@ public class CsvTest {
     return buf.append('"');
   }
 
+  static Stream<String> explainFormats() {
+    return Stream.of("text", "dot");
+  }
+
   /**
    * Tests the vanity driver.
    */
-  @Ignore
-  @Test public void testVanityDriver() throws SQLException {
+  @Disabled
+  @Test void testVanityDriver() throws SQLException {
     Properties info = new Properties();
     Connection connection =
         DriverManager.getConnection("jdbc:csv:", info);
@@ -134,8 +144,8 @@ public class CsvTest {
   /**
    * Tests the vanity driver with properties in the URL.
    */
-  @Ignore
-  @Test public void testVanityDriverArgsInUrl() throws SQLException {
+  @Disabled
+  @Test void testVanityDriverArgsInUrl() throws SQLException {
     Connection connection =
         DriverManager.getConnection("jdbc:csv:"
             + "directory='foo'");
@@ -143,7 +153,7 @@ public class CsvTest {
   }
 
   /** Tests an inline schema with a non-existent directory. */
-  @Test public void testBadDirectory() throws SQLException {
+  @Test void testBadDirectory() throws SQLException {
     Properties info = new Properties();
     info.put("model",
         "inline:"
@@ -174,22 +184,22 @@ public class CsvTest {
   /**
    * Reads from a table.
    */
-  @Test public void testSelect() throws SQLException {
+  @Test void testSelect() throws SQLException {
     sql("model", "select * from EMPS").ok();
   }
 
-  @Test public void testSelectSingleProjectGz() throws SQLException {
+  @Test void testSelectSingleProjectGz() throws SQLException {
     sql("smart", "select name from EMPS").ok();
   }
 
-  @Test public void testSelectSingleProject() throws SQLException {
+  @Test void testSelectSingleProject() throws SQLException {
     sql("smart", "select name from DEPTS").ok();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-898">[CALCITE-898]
    * Type inference multiplying Java long by SQL INTEGER</a>. */
-  @Test public void testSelectLongMultiplyInteger() throws SQLException {
+  @Test void testSelectLongMultiplyInteger() throws SQLException {
     final String sql = "select empno * 3 as e3\n"
         + "from long_emps where empno = 100";
 
@@ -205,26 +215,25 @@ public class CsvTest {
     }).ok();
   }
 
-  @Test public void testCustomTable() throws SQLException {
+  @Test void testCustomTable() throws SQLException {
     sql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS").ok();
   }
 
-  @Test public void testPushDownProjectDumb() throws SQLException {
+  @Test void testPushDownProjectDumb() throws SQLException {
     // rule does not fire, because we're using 'dumb' tables in simple model
     final String sql = "explain plan for select * from EMPS";
-    final String expected = "PLAN=EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[SALES, EMPS]])\n";
+    final String expected = "PLAN=EnumerableTableScan(table=[[SALES, EMPS]])\n";
     sql("model", sql).returns(expected).ok();
   }
 
-  @Test public void testPushDownProject() throws SQLException {
+  @Test void testPushDownProject() throws SQLException {
     final String sql = "explain plan for select * from EMPS";
     final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
         + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
-  @Test public void testPushDownProject2() throws SQLException {
+  @Test void testPushDownProject2() throws SQLException {
     sql("smart", "explain plan for select name, empno from EMPS")
         .returns("PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n")
         .ok();
@@ -238,51 +247,105 @@ public class CsvTest {
         .ok();
   }
 
-  @Test public void testPushDownProjectAggregate() throws SQLException {
-    final String sql = "explain plan for\n"
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testPushDownProjectAggregate(String format) throws SQLException {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [3]\\n\" -> "
+          + "\"EnumerableAggregate\\ngroup = {0}\\nEXPR$1 = COUNT()\\n\" [label=\"0\"]\n"
+          + "}\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = "PLAN="
+          + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
+          + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[3]])\n";
+      extra = "";
+      break;
+    }
+    final String sql = "explain plan " + extra + "for\n"
         + "select gender, count(*) from EMPS group by gender";
-    final String expected = "PLAN="
-        + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
-        + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
-  @Test public void testPushDownProjectAggregateWithFilter() throws SQLException {
-    final String sql = "explain plan for\n"
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testPushDownProjectAggregateWithFilter(String format) throws SQLException {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
+          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" -> \"EnumerableAggregate\\ngroup = "
+          + "{}\\nEXPR$0 = MAX($0)\\n\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [0, 3]\\n\" -> "
+          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
+          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" [label=\"0\"]\n"
+          + "}\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = "PLAN="
+          + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
+          + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
+          + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+          + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
+      extra = "";
+      break;
+    }
+    final String sql = "explain plan " + extra + " for\n"
         + "select max(empno) from EMPS where gender='F'";
-    final String expected = "PLAN="
-        + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
-        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F':VARCHAR], "
-        + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-        + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
-  @Test public void testPushDownProjectAggregateNested() throws SQLException {
-    final String sql = "explain plan for\n"
+  @ParameterizedTest
+  @MethodSource("explainFormats")
+  void testPushDownProjectAggregateNested(String format) throws SQLException {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableAggregate\\ngroup = {0, 1}\\nQTY = COUNT()\\n\" -> "
+          + "\"EnumerableAggregate\\ngroup = {1}\\nEXPR$1 = MAX($2)\\n\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [1, 3]\\n\" -> "
+          + "\"EnumerableAggregate\\ngroup = {0, 1}\\nQTY = COUNT()\\n\" [label=\"0\"]\n"
+          + "}\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = "PLAN="
+          + "EnumerableAggregate(group=[{1}], EXPR$1=[MAX($2)])\n"
+          + "  EnumerableAggregate(group=[{0, 1}], QTY=[COUNT()])\n"
+          + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 3]])\n";
+      extra = "";
+      break;
+    }
+    final String sql = "explain plan " + extra + " for\n"
         + "select gender, max(qty)\n"
         + "from (\n"
         + "  select name, gender, count(*) qty\n"
         + "  from EMPS\n"
         + "  group by name, gender) t\n"
         + "group by gender";
-    final String expected = "PLAN="
-        + "EnumerableAggregate(group=[{1}], EXPR$1=[MAX($2)])\n"
-        + "  EnumerableAggregate(group=[{0, 1}], QTY=[COUNT()])\n"
-        + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 3]])\n";
     sql("smart", sql).returns(expected).ok();
   }
 
-  @Test public void testFilterableSelect() throws SQLException {
+  @Test void testFilterableSelect() throws SQLException {
     sql("filterable-model", "select name from EMPS").ok();
   }
 
-  @Test public void testFilterableSelectStar() throws SQLException {
+  @Test void testFilterableSelectStar() throws SQLException {
     sql("filterable-model", "select * from EMPS").ok();
   }
 
   /** Filter that can be fully handled by CsvFilterableTable. */
-  @Test public void testFilterableWhere() throws SQLException {
+  @Test void testFilterableWhere() throws SQLException {
     final String sql =
         "select empno, gender, name from EMPS where name = 'John'";
     sql("filterable-model", sql)
@@ -290,7 +353,7 @@ public class CsvTest {
   }
 
   /** Filter that can be partly handled by CsvFilterableTable. */
-  @Test public void testFilterableWhere2() throws SQLException {
+  @Test void testFilterableWhere2() throws SQLException {
     final String sql = "select empno, gender, name from EMPS\n"
         + " where gender = 'F' and empno > 125";
     sql("filterable-model", sql)
@@ -298,7 +361,7 @@ public class CsvTest {
   }
 
   /** Filter that can be slightly handled by CsvFilterableTable. */
-  @Test public void testFilterableWhere3() throws SQLException {
+  @Test void testFilterableWhere3() throws SQLException {
     final String sql = "select empno, gender, name from EMPS\n"
             + " where gender <> 'M' and empno > 125";
     sql("filterable-model", sql)
@@ -310,7 +373,7 @@ public class CsvTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2272">[CALCITE-2272]
    * Incorrect result for {@code name like '%E%' and city not like '%W%'}</a>.
    */
-  @Test public void testFilterableWhereWithNot1() throws SQLException {
+  @Test void testFilterableWhereWithNot1() throws SQLException {
     sql("filterable-model",
         "select name, empno from EMPS "
             + "where name like '%E%' and city not like '%W%' ")
@@ -320,7 +383,7 @@ public class CsvTest {
 
   /** Similar to {@link #testFilterableWhereWithNot1()};
    * But use the same column. */
-  @Test public void testFilterableWhereWithNot2() throws SQLException {
+  @Test void testFilterableWhereWithNot2() throws SQLException {
     sql("filterable-model",
         "select name, empno from EMPS "
             + "where name like '%i%' and name not like '%W%' ")
@@ -329,7 +392,7 @@ public class CsvTest {
         .ok();
   }
 
-  @Test public void testJson() throws SQLException {
+  @Test void testJson() throws SQLException {
     final String sql = "select * from archers\n";
     final String[] lines = {
         "id=19990101; dow=Friday; longDate=New Years Day; title=Tractor trouble.; "
@@ -357,7 +420,7 @@ public class CsvTest {
       try {
         final List<String> lines = new ArrayList<>();
         CsvTest.collect(lines, resultSet);
-        Assert.assertEquals(Arrays.asList(expected), lines);
+        assertEquals(Arrays.asList(expected), lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -374,7 +437,7 @@ public class CsvTest {
         final List<String> lines = new ArrayList<>();
         CsvTest.collect(lines, resultSet);
         Collections.sort(lines);
-        Assert.assertEquals(expectedLines, lines);
+        assertEquals(expectedLines, lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -442,13 +505,13 @@ public class CsvTest {
     }
   }
 
-  @Test public void testJoinOnString() throws SQLException {
+  @Test void testJoinOnString() throws SQLException {
     final String sql = "select * from emps\n"
         + "join depts on emps.name = depts.name";
     sql("smart", sql).ok();
   }
 
-  @Test public void testWackyColumns() throws SQLException {
+  @Test void testWackyColumns() throws SQLException {
     final String sql = "select * from wacky_column_names where false";
     sql("bug", sql).returns().ok();
 
@@ -465,7 +528,7 @@ public class CsvTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1754">[CALCITE-1754]
    * In Csv adapter, convert DATE and TIME values to int, and TIMESTAMP values
    * to long</a>. */
-  @Test public void testGroupByTimestampAdd() throws SQLException {
+  @Test void testGroupByTimestampAdd() throws SQLException {
     final String sql = "select count(*) as c,\n"
         + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } as t\n"
         + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
@@ -489,19 +552,19 @@ public class CsvTest {
         .ok();
   }
 
-  @Test public void testUnionGroupByWithoutGroupKey() {
+  @Test void testUnionGroupByWithoutGroupKey() {
     final String sql = "select count(*) as c1 from EMPS group by NAME\n"
         + "union\n"
         + "select count(*) as c1 from EMPS group by NAME";
     sql("model", sql).ok();
   }
 
-  @Test public void testBoolean() {
+  @Test void testBoolean() {
     sql("smart", "select empno, slacker from emps where slacker")
         .returns("EMPNO=100; SLACKER=true").ok();
   }
 
-  @Test public void testReadme() throws SQLException {
+  @Test void testReadme() throws SQLException {
     final String sql = "SELECT d.name, COUNT(*) cnt"
         + " FROM emps AS e"
         + " JOIN depts AS d ON e.deptno = d.deptno"
@@ -513,7 +576,7 @@ public class CsvTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-824">[CALCITE-824]
    * Type inference when converting IN clause to semijoin</a>. */
-  @Test public void testInToSemiJoinWithCast() throws SQLException {
+  @Test void testInToSemiJoinWithCast() throws SQLException {
     // Note that the IN list needs at least 20 values to trigger the rewrite
     // to a semijoin. Try it both ways.
     final String sql = "SELECT e.name\n"
@@ -531,7 +594,7 @@ public class CsvTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1051">[CALCITE-1051]
    * Underflow exception due to scaling IN clause literals</a>. */
-  @Test public void testInToSemiJoinWithoutCast() throws SQLException {
+  @Test void testInToSemiJoinWithoutCast() throws SQLException {
     final String sql = "SELECT e.name\n"
         + "FROM emps AS e\n"
         + "WHERE e.empno in "
@@ -547,7 +610,7 @@ public class CsvTest {
     return sb.append(')').toString();
   }
 
-  @Test public void testDateType() throws SQLException {
+  @Test void testDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
@@ -556,17 +619,17 @@ public class CsvTest {
       ResultSet res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINEDAT");
       res.next();
-      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
 
       res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINTIME");
       res.next();
-      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
 
       res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINTIMES");
       res.next();
-      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
 
       Statement statement = connection.createStatement();
       ResultSet resultSet = statement.executeQuery(
@@ -574,19 +637,19 @@ public class CsvTest {
       resultSet.next();
 
       // date
-      Assert.assertEquals(java.sql.Date.class, resultSet.getDate(1).getClass());
-      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
+      assertEquals(java.sql.Date.class, resultSet.getDate(1).getClass());
+      assertEquals(java.sql.Date.valueOf("1996-08-03"),
           resultSet.getDate(1));
 
       // time
-      Assert.assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
-      Assert.assertEquals(java.sql.Time.valueOf("00:01:02"),
+      assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
+      assertEquals(java.sql.Time.valueOf("00:01:02"),
           resultSet.getTime(2));
 
       // timestamp
-      Assert.assertEquals(java.sql.Timestamp.class,
+      assertEquals(java.sql.Timestamp.class,
           resultSet.getTimestamp(3).getClass());
-      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
+      assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
           resultSet.getTimestamp(3));
 
     }
@@ -595,7 +658,7 @@ public class CsvTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1072">[CALCITE-1072]
    * CSV adapter incorrectly parses TIMESTAMP values after noon</a>. */
-  @Test public void testDateType2() throws SQLException {
+  @Test void testDateType2() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
@@ -636,7 +699,7 @@ public class CsvTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1673">[CALCITE-1673]
    * Query with ORDER BY or GROUP BY on TIMESTAMP column throws
    * CompileException</a>. */
-  @Test public void testTimestampGroupBy() throws SQLException {
+  @Test void testTimestampGroupBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
     // Use LIMIT to ensure that results are deterministic without ORDER BY
@@ -649,16 +712,15 @@ public class CsvTest {
          ResultSet resultSet = statement.executeQuery(sql)) {
       assertThat(resultSet.next(), is(true));
       final Timestamp timestamp = resultSet.getTimestamp(2);
-      Assert.assertThat(timestamp, isA(java.sql.Timestamp.class));
+      assertThat(timestamp, isA(Timestamp.class));
       // Note: This logic is time zone specific, but the same time zone is
       // used in the CSV adapter and this test, so they should cancel out.
-      Assert.assertThat(timestamp,
-          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02.0")));
+      assertThat(timestamp, is(valueOf("1996-08-03 00:01:02.0")));
     }
   }
 
   /** As {@link #testTimestampGroupBy()} but with ORDER BY. */
-  @Test public void testTimestampOrderBy() throws SQLException {
+  @Test void testTimestampOrderBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
     final String sql = "select \"EMPNO\",\"JOINTIMES\" from \"DATE\"\n"
@@ -669,14 +731,13 @@ public class CsvTest {
          ResultSet resultSet = statement.executeQuery(sql)) {
       assertThat(resultSet.next(), is(true));
       final Timestamp timestamp = resultSet.getTimestamp(2);
-      Assert.assertThat(timestamp,
-          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+      assertThat(timestamp, is(valueOf("1996-08-03 00:01:02")));
     }
   }
 
   /** As {@link #testTimestampGroupBy()} but with ORDER BY as well as GROUP
    * BY. */
-  @Test public void testTimestampGroupByAndOrderBy() throws SQLException {
+  @Test void testTimestampGroupByAndOrderBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
     final String sql = "select \"EMPNO\", \"JOINTIMES\" from \"DATE\"\n"
@@ -687,8 +748,7 @@ public class CsvTest {
          ResultSet resultSet = statement.executeQuery(sql)) {
       assertThat(resultSet.next(), is(true));
       final Timestamp timestamp = resultSet.getTimestamp(2);
-      Assert.assertThat(timestamp,
-          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+      assertThat(timestamp, is(valueOf("1996-08-03 00:01:02")));
     }
   }
 
@@ -697,7 +757,7 @@ public class CsvTest {
    * In prepared statement, CsvScannableTable.scan is called twice</a>. To see
    * the bug, place a breakpoint in CsvScannableTable.scan, and note that it is
    * called twice. It should only be called once. */
-  @Test public void testPrepared() throws SQLException {
+  @Test void testPrepared() throws SQLException {
     final Properties properties = new Properties();
     properties.setProperty("caseSensitive", "true");
     try (Connection connection =
@@ -725,7 +785,7 @@ public class CsvTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
    * NPE caused by wrong code generation for Timestamp fields</a>. */
-  @Test public void testFilterOnNullableTimestamp() throws Exception {
+  @Test void testFilterOnNullableTimestamp() throws Exception {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
@@ -777,7 +837,7 @@ public class CsvTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1118">[CALCITE-1118]
    * NullPointerException in EXTRACT with WHERE ... IN clause if field has null
    * value</a>. */
-  @Test public void testFilterOnNullableTimestamp2() throws Exception {
+  @Test void testFilterOnNullableTimestamp2() throws Exception {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
@@ -809,7 +869,7 @@ public class CsvTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
    * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP
    * fields</a>. */
-  @Test public void testNonNullFilterOnDateType() throws SQLException {
+  @Test void testNonNullFilterOnDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
@@ -849,7 +909,7 @@ public class CsvTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
    * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP
    * fields</a>. */
-  @Test public void testGreaterThanFilterOnDateType() throws SQLException {
+  @Test void testGreaterThanFilterOnDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
 
@@ -885,8 +945,8 @@ public class CsvTest {
     }
   }
 
-  @Ignore("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
-  @Test(timeout = 10000) public void testCsvStream() throws Exception {
+  @Disabled("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
+  @Test @Timeout(10) public void testCsvStream() throws Exception {
     final File file = File.createTempFile("stream", "csv");
     final String model = "{\n"
         + "  version: '1.0',\n"
@@ -1076,5 +1136,3 @@ public class CsvTest {
     }
   }
 }
-
-// End CsvTest.java

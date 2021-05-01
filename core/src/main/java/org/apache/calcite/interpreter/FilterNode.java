@@ -36,7 +36,7 @@ public class FilterNode extends AbstractSingleNode<Filter> {
     this.context = compiler.createContext();
   }
 
-  public void run() throws InterruptedException {
+  @Override public void run() throws InterruptedException {
     Row row;
     while ((row = source.receive()) != null) {
       context.values = row.getValues();
@@ -47,5 +47,3 @@ public class FilterNode extends AbstractSingleNode<Filter> {
     }
   }
 }
-
-// End FilterNode.java

@@ -49,14 +49,12 @@ import org.apache.calcite.util.interval.SnowflakeDateTimestampInterval;
 
 import org.apache.commons.lang3.StringUtils;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
@@ -72,12 +70,14 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
  * A <code>SqlDialect</code> implementation for the Snowflake database.
  */
 public class SnowflakeSqlDialect extends SqlDialect {
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.SNOWFLAKE)
+      .withIdentifierQuoteString("\"")
+      .withUnquotedCasing(Casing.TO_UPPER)
+      .withConformance(SqlConformanceEnum.SNOWFLAKE);
+
   public static final SqlDialect DEFAULT =
-      new SnowflakeSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.SNOWFLAKE)
-          .withIdentifierQuoteString("\"")
-          .withUnquotedCasing(Casing.TO_UPPER)
-          .withConformance(SqlConformanceEnum.SNOWFLAKE));
+      new SnowflakeSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a SnowflakeSqlDialect. */
   public SnowflakeSqlDialect(Context context) {
@@ -141,14 +141,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final
   int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
-    case SUBSTRING:
-      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(substringFrame);
-      break;
     case TO_NUMBER:
       if (ToNumberUtils.needsCustomUnparsing(call)) {
         ToNumberUtils.unparseToNumberSnowFlake(writer, call, leftPrec, rightPrec);
@@ -352,6 +344,14 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "REGEXP_CONTAINS":
       unparseRegexContains(writer, call, leftPrec, rightPrec);
       break;
+    case "SUBSTRING":
+      final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(substringFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -448,7 +448,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   /**
-   * unparse method for round function
+   * unparse method for round function.
    */
   private void unparseRoundfunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame castFrame = writer.startFunCall("TO_DECIMAL");
@@ -459,7 +459,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   /**
    * unparse method for random funtion
-   * within the range of specific values
+   * within the range of specific values.
    */
   private void unparseRandom(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame randFrame = writer.startFunCall("UNIFORM");
@@ -520,7 +520,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   /**
    * unparse function for math functions
    * SF can support precision and scale within specific range
-   * handled precision range using 'case', 'when', 'then'
+   * handled precision range using 'case', 'when', 'then'.
    */
   private void handleMathFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame mathFun = writer.startFunCall(call.getOperator().getName());
@@ -642,7 +642,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
     /**
-     * For usage of TRIM, LTRIM and RTRIM in SnowFlake
+     * For usage of TRIM, LTRIM and RTRIM in SnowFlake.
      */
   private void unparseTrim(
       SqlWriter writer, SqlCall call, int leftPrec,
@@ -671,7 +671,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   /**
-   * For usage of IFF() in snowflake
+   * For usage of IFF() in snowflake.
    */
   private void unparseIf(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame iffFrame = writer.startFunCall("IFF");
@@ -715,7 +715,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
           SqlLiteral.createCharString(it, SqlParserPos.ZERO))
       ));
 
-      ArrayList<String> weekDays = new ArrayList<>(Arrays.asList("Sunday", "Monday", "Tuesday",
+      ArrayList<String> weekDays = new ArrayList<>(
+          Arrays.asList("Sunday", "Monday", "Tuesday",
               "Wednesday", "Thursday", "Friday", "Saturday"));
       SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
       weekDays.forEach(it ->
@@ -754,5 +755,3 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
 }
-
-// End SnowflakeSqlDialect.java

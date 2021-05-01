@@ -152,6 +152,14 @@ public abstract class Bug {
    * Decorrelate sub-queries in Project and Join</a> is fixed. */
   public static final boolean CALCITE_1045_FIXED = false;
 
+  /**
+   * Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2223">[CALCITE-2223]
+   * ProjectMergeRule is infinitely matched when is applied after ProjectReduceExpressions Rule</a>
+   * is fixed.
+   */
+  public static final boolean CALCITE_2223_FIXED = false;
+
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2400">[CALCITE-2400]
    * Allow standards-compliant column ordering for NATURAL JOIN and JOIN USING
@@ -160,8 +168,7 @@ public abstract class Bug {
 
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2401">[CALCITE-2401]
-   * Improve RelMdPredicates performance</a>
-   */
+   * Improve RelMdPredicates performance</a> is fixed. */
   public static final boolean CALCITE_2401_FIXED = false;
 
   /** Whether
@@ -173,6 +180,26 @@ public abstract class Bug {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2869">[CALCITE-2869]
    * JSON data type support</a> is fixed. */
   public static final boolean CALCITE_2869_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3243">[CALCITE-3243]
+   * Incomplete validation of operands in JSON functions</a> is fixed. */
+  public static final boolean CALCITE_3243_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4204">[CALCITE-4204]
+   * Intermittent precision in Druid results when using aggregation functions over columns of type
+   * DOUBLE</a> is fixed. */
+  public static final boolean CALCITE_4204_FIXED = false;
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4205">[CALCITE-4205]
+   * DruidAdapterIT#testDruidTimeFloorAndTimeParseExpressions2 fails</a> is fixed. */
+  public static final boolean CALCITE_4205_FIXED = false;
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4213">[CALCITE-4213]
+   * Druid plans with small intervals should be chosen over full interval scan plus filter</a> is
+   * fixed. */
+  public static final boolean CALCITE_4213_FIXED = false;
 
   /**
    * Use this to flag temporary code.
@@ -211,5 +238,3 @@ public abstract class Bug {
     return false;
   }
 }
-
-// End Bug.java

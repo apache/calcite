@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Abstract implementation of {@link Converter}.
  */
@@ -33,7 +35,7 @@ public abstract class ConverterImpl extends SingleRel
   //~ Instance fields --------------------------------------------------------
 
   protected RelTraitSet inTraits;
-  protected final RelTraitDef traitDef;
+  protected final @Nullable RelTraitDef traitDef;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -47,7 +49,7 @@ public abstract class ConverterImpl extends SingleRel
    */
   protected ConverterImpl(
       RelOptCluster cluster,
-      RelTraitDef traitDef,
+      @Nullable RelTraitDef traitDef,
       RelTraitSet traits,
       RelNode child) {
     super(cluster, traits, child);
@@ -57,7 +59,7 @@ public abstract class ConverterImpl extends SingleRel
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(getInput());
     double dCpu = dRows;
@@ -71,14 +73,12 @@ public abstract class ConverterImpl extends SingleRel
         + inTraits + " traits");
   }
 
-  public RelTraitSet getInputTraits() {
+  @Override public RelTraitSet getInputTraits() {
     return inTraits;
   }
 
-  public RelTraitDef getTraitDef() {
+  @Override public @Nullable RelTraitDef getTraitDef() {
     return traitDef;
   }
 
 }
-
-// End ConverterImpl.java

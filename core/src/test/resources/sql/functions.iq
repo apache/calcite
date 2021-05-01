@@ -1,0 +1,183 @@
+# functions.iq - Queries involving Functions
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use mysqlfunc
+!set outputformat mysql
+
+# MATH Functions
+
+# CBRT
+select cbrt(-8);
++--------+
+| EXPR$0 |
++--------+
+|   -2.0 |
++--------+
+(1 row)
+
+!ok
+
+# STRCMP
+select strcmp('mytesttext', 'mytesttext');
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# XML Functions
+
+SELECT ExtractValue('<a>c</a>', '//a');
++--------+
+| EXPR$0 |
++--------+
+| c      |
++--------+
+(1 row)
+
+!ok
+
+# STRING Functions
+
+#CONCAT
+SELECT CONCAT('c', 'h', 'a', 'r');
++--------+
+| EXPR$0 |
++--------+
+| char   |
++--------+
+(1 row)
+
+!ok
+
+# Compression Functions
+
+SELECT COMPRESS('sample');
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 06000000789c2b4ecc2dc849050008de0283 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+
+!use oraclefunc
+
+# COSH
+select cosh(1);
++-------------------+
+| EXPR$0            |
++-------------------+
+| 1.543080634815244 |
++-------------------+
+(1 row)
+
+!ok
+
+# TANH
+select tanh(1);
++--------------------+
+| EXPR$0             |
++--------------------+
+| 0.7615941559557649 |
++--------------------+
+(1 row)
+
+!ok
+
+# SINH
+select sinh(1);
++--------------------+
+| EXPR$0             |
++--------------------+
+| 1.1752011936438014 |
++--------------------+
+(1 row)
+
+!ok
+
+#CONCAT
+select concat('a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+SELECT XMLTRANSFORM(
+                   '<?xml version="1.0"?>
+                    <Article>
+                      <Title>My Article</Title>
+                      <Authors>
+                        <Author>Mr. Foo</Author>
+                        <Author>Mr. Bar</Author>
+                      </Authors>
+                      <Body>This is my article text.</Body>
+                    </Article>'
+                   ,
+                   '<?xml version="1.0"?><xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                      <xsl:output method="text"/><xsl:template match="/">Article - <xsl:value-of select="/Article/Title"/>Authors: <xsl:apply-templates select="/Article/Authors/Author"/>
+                      </xsl:template>
+                      <xsl:template match="Author">- <xsl:value-of select="." /></xsl:template>
+                    </xsl:stylesheet>'
+                   );
++-------------------------------------------------+
+| EXPR$0                                          |
++-------------------------------------------------+
+| Article - My ArticleAuthors: - Mr. Foo- Mr. Bar |
++-------------------------------------------------+
+(1 row)
+
+!ok
+
+
+SELECT "EXTRACT"(
+            '<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar</Author></Authors><Body>article text</Body></Article>'
+            , '/Article/Title'
+        );
++-------------------------+
+| EXPR$0                  |
++-------------------------+
+| <Title>Article1</Title> |
++-------------------------+
+(1 row)
+
+!ok
+
+SELECT EXISTSNODE(
+            '<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar</Author></Authors><Body>article text</Body></Article>'
+            , '/Article/Title'
+        );
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+
+# End functions.iq

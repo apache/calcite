@@ -20,7 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRepeatUnion;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
@@ -31,9 +31,9 @@ import java.util.Arrays;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
-public class EnumerableRepeatUnionTest {
+class EnumerableRepeatUnionTest {
 
-  @Test public void testGenerateNumbers() {
+  @Test void testGenerateNumbers() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -59,7 +59,73 @@ public class EnumerableRepeatUnionTest {
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
   }
 
-  @Test public void testFactorial() {
+  @Test void testGenerateNumbers2() {
+    CalciteAssert.that()
+        .query("?")
+        .withRel(
+            //   WITH RECURSIVE aux(i) AS (
+            //     VALUES (0)
+            //     UNION -- (ALL would generate an infinite loop!)
+            //     SELECT (i+1)%10 FROM aux WHERE i < 10
+            //   )
+            //   SELECT * FROM aux
+            builder -> builder
+                .values(new String[] { "i" }, 0)
+                .transientScan("AUX")
+                .filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(0),
+                        builder.literal(10)))
+                .project(
+                    builder.call(SqlStdOperatorTable.MOD,
+                        builder.call(SqlStdOperatorTable.PLUS,
+                            builder.field(0),
+                            builder.literal(1)),
+                        builder.literal(10)))
+                .repeatUnion("AUX", false)
+                .build())
+        .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
+  }
+
+  @Test void testGenerateNumbers3() {
+    CalciteAssert.that()
+        .query("?")
+        .withRel(
+            //   WITH RECURSIVE aux(i, j) AS (
+            //     VALUES (0, 0)
+            //     UNION -- (ALL would generate an infinite loop!)
+            //     SELECT (i+1)%10, j FROM aux WHERE i < 10
+            //   )
+            //   SELECT * FROM aux
+            builder -> builder
+                .values(new String[] { "i", "j" }, 0, 0)
+                .transientScan("AUX")
+                .filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(0),
+                        builder.literal(10)))
+                .project(
+                    builder.call(SqlStdOperatorTable.MOD,
+                        builder.call(SqlStdOperatorTable.PLUS,
+                            builder.field(0),
+                            builder.literal(1)),
+                        builder.literal(10)),
+                    builder.field(1))
+                .repeatUnion("AUX", false)
+                .build())
+        .returnsOrdered("i=0; j=0",
+            "i=1; j=0",
+            "i=2; j=0",
+            "i=3; j=0",
+            "i=4; j=0",
+            "i=5; j=0",
+            "i=6; j=0",
+            "i=7; j=0",
+            "i=8; j=0",
+            "i=9; j=0");
+  }
+
+  @Test void testFactorial() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -99,7 +165,7 @@ public class EnumerableRepeatUnionTest {
             "n=7; fact=5040");
   }
 
-  @Test public void testGenerateNumbersNestedRecursion() {
+  @Test void testGenerateNumbersNestedRecursion() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -144,6 +210,27 @@ public class EnumerableRepeatUnionTest {
             "n=100", "n=200", "n=300", "n=400", "n=500", "n=600", "n=700", "n=800", "n=900");
   }
 
-}
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4139">[CALCITE-4139]
+   * Prevent NPE in ListTransientTable</a>. */
+  @Test void testGenerateNumbersWithNull() {
+    CalciteAssert.that()
+        .query("?")
+        .withRel(
+            builder -> builder
+                .values(new String[] { "i" }, 1, 2, null, 3)
+                .transientScan("DELTA")
+                .filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(0),
+                        builder.literal(3)))
+                .project(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field(0),
+                        builder.literal(1)))
+                .repeatUnion("DELTA", true)
+                .build())
+        .returnsOrdered("i=1", "i=2", "i=null", "i=3", "i=2", "i=3", "i=3");
+  }
 
-// End EnumerableRepeatUnionTest.java
+}

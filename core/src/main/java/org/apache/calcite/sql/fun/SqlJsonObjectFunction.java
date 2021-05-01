@@ -36,9 +36,13 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Locale;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>JSON_OBJECT</code> function.
@@ -49,12 +53,13 @@ public class SqlJsonObjectFunction extends SqlFunction {
         (callBinding, returnType, operandTypes) -> {
           RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
           for (int i = 0; i < operandTypes.length; i++) {
-            if (i % 2 == 0) {
-              operandTypes[i] = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-              continue;
-            }
-            operandTypes[i] = typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.ANY), true);
+              operandTypes[i] =
+                  i == 0
+                      ? typeFactory.createSqlType(SqlTypeName.SYMBOL)
+                      : i % 2 == 1
+                          ? typeFactory.createSqlType(SqlTypeName.VARCHAR)
+                          : typeFactory.createTypeWithNullability(
+                              typeFactory.createSqlType(SqlTypeName.ANY), true);
           }
         }, null, SqlFunctionCategory.SYSTEM);
   }
@@ -64,7 +69,7 @@ public class SqlJsonObjectFunction extends SqlFunction {
   }
 
   @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
+      @Nullable SqlOperandTypeChecker argType, SqlCall call) {
     assert call.operandCount() % 2 == 1;
   }
 
@@ -91,8 +96,8 @@ public class SqlJsonObjectFunction extends SqlFunction {
     return true;
   }
 
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
+  @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+      SqlParserPos pos, @Nullable SqlNode... operands) {
     if (operands[0] == null) {
       operands[0] = SqlLiteral.createSymbol(
           SqlJsonConstructorNullClause.NULL_ON_NULL, pos);
@@ -100,7 +105,7 @@ public class SqlJsonObjectFunction extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 
-  @Override public String getSignatureTemplate(int operandsCount) {
+  @Override public @Nullable String getSignatureTemplate(int operandsCount) {
     assert operandsCount % 2 == 1;
     StringBuilder sb = new StringBuilder();
     sb.append("{0}(");
@@ -126,22 +131,12 @@ public class SqlJsonObjectFunction extends SqlFunction {
     writer.endList(listFrame);
 
     SqlJsonConstructorNullClause nullClause = getEnumValue(call.operand(0));
-    switch (nullClause) {
-    case ABSENT_ON_NULL:
-      writer.keyword("ABSENT ON NULL");
-      break;
-    case NULL_ON_NULL:
-      writer.keyword("NULL ON NULL");
-      break;
-    default:
-      throw new IllegalStateException("unreachable code");
-    }
+    writer.keyword(nullClause.sql);
     writer.endFunCall(frame);
   }
 
-  private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
-    return (E) ((SqlLiteral) operand).getValue();
+  @SuppressWarnings("unchecked")
+  private static <E extends Enum<E>> E getEnumValue(SqlNode operand) {
+    return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
   }
 }
-
-// End SqlJsonObjectFunction.java

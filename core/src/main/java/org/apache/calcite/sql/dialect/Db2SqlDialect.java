@@ -26,9 +26,10 @@ import org.apache.calcite.sql.SqlWriter;
  * A <code>SqlDialect</code> implementation for the IBM DB2 database.
  */
 public class Db2SqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new Db2SqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.DB2));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.DB2);
+
+  public static final SqlDialect DEFAULT = new Db2SqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a Db2SqlDialect. */
   public Db2SqlDialect(Context context) {
@@ -83,15 +84,13 @@ public class Db2SqlDialect extends SqlDialect {
     // If one operand is a timestamp, the other operand can be any of teh duration.
 
     SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    writer.literal(literal.getValue().toString());
+    writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
         RelDataTypeSystem.DEFAULT);
   }
 
 }
-
-// End Db2SqlDialect.java

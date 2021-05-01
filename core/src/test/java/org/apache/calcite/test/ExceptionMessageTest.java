@@ -20,8 +20,8 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -30,8 +30,8 @@ import java.sql.Statement;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test cases to check that necessary information from underlying exceptions
@@ -68,7 +68,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setUp() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -94,13 +94,13 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testValidQuery() throws SQLException {
+  @Test void testValidQuery() throws SQLException {
     // Just ensure that we're actually dealing with a valid connection
     // to be sure that the results of the other tests can be trusted
     runQuery("select * from \"entries\"");
   }
 
-  @Test public void testNonSqlException() throws SQLException {
+  @Test void testNonSqlException() throws SQLException {
     try {
       runQuery("select * from \"badEntries\"");
       fail("Query badEntries should result in an exception");
@@ -111,7 +111,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testSyntaxError() {
+  @Test void testSyntaxError() {
     try {
       runQuery("invalid sql");
       fail("Query should fail");
@@ -122,7 +122,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testSemanticError() {
+  @Test void testSemanticError() {
     try {
       // implicit type coercion.
       runQuery("select \"name\" - \"id\" from \"entries\"");
@@ -132,7 +132,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testNonexistentTable() {
+  @Test void testNonexistentTable() {
     try {
       runQuery("select name from \"nonexistentTable\"");
       fail("Query should fail");
@@ -142,5 +142,3 @@ public class ExceptionMessageTest {
     }
   }
 }
-
-// End ExceptionMessageTest.java

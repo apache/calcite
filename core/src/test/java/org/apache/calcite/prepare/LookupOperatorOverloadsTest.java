@@ -37,7 +37,7 @@ import org.apache.calcite.util.Smalls;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -56,12 +56,12 @@ import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_TABLE_SPEC
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test for lookupOperatorOverloads() in {@link CalciteCatalogReader}.
  */
-public class LookupOperatorOverloadsTest {
+class LookupOperatorOverloadsTest {
 
   private void checkFunctionType(int size, String name,
       List<SqlOperator> operatorList) {
@@ -78,7 +78,7 @@ public class LookupOperatorOverloadsTest {
     assertThat(actuals, is(Arrays.asList(expecteds)));
   }
 
-  @Test public void testIsUserDefined() throws SQLException {
+  @Test void testIsUserDefined() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isUserDefined()) {
@@ -90,7 +90,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_FUNCTION, USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test public void testIsTableFunction() throws SQLException {
+  @Test void testIsTableFunction() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isTableFunction()) {
@@ -101,7 +101,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION, MATCH_RECOGNIZE);
   }
 
-  @Test public void testIsSpecific() throws SQLException {
+  @Test void testIsSpecific() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isSpecific()) {
@@ -112,7 +112,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test public void testIsUserDefinedNotSpecificFunction() throws SQLException {
+  @Test void testIsUserDefinedNotSpecificFunction() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
       if (sqlFunctionCategory.isUserDefinedNotSpecificFunction()) {
@@ -122,11 +122,11 @@ public class LookupOperatorOverloadsTest {
     check(cats, USER_DEFINED_FUNCTION, USER_DEFINED_TABLE_FUNCTION);
   }
 
-  @Test public void testLookupCaseSensitively() throws SQLException {
+  @Test void testLookupCaseSensitively() throws SQLException {
     checkInternal(true);
   }
 
-  @Test public void testLookupCaseInSensitively() throws SQLException {
+  @Test void testLookupCaseInSensitively() throws SQLException {
     checkInternal(false);
   }
 
@@ -184,5 +184,3 @@ public class LookupOperatorOverloadsTest {
     }
   }
 }
-
-// End LookupOperatorOverloadsTest.java

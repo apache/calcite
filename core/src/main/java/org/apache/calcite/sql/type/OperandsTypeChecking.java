@@ -21,5 +21,3 @@ package org.apache.calcite.sql.type;
  */
 public abstract class OperandsTypeChecking {
 }
-
-// End OperandsTypeChecking.java

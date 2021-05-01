@@ -17,36 +17,27 @@
 package org.apache.calcite.test;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests the generated implementation of
  * {@link org.apache.calcite.runtime.CalciteResource} (mostly a sanity check for
  * the resource-generation infrastructure).
  */
-public class CalciteResourceTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public CalciteResourceTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
+class CalciteResourceTest {
   /**
    * Verifies that resource properties such as SQLSTATE are available at
    * runtime.
    */
-  @Test public void testSqlstateProperty() {
+  @Test void testSqlstateProperty() {
     Map<String, String> props =
         RESOURCE.illegalIntervalLiteral("", "").getProperties();
     assertThat(props.get("SQLSTATE"), CoreMatchers.equalTo("42000"));
   }
 }
-
-// End CalciteResourceTest.java

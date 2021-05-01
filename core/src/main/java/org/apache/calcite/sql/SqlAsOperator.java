@@ -51,7 +51,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
         true,
         ReturnTypes.ARG0,
         InferTypes.RETURN_TYPE,
-        OperandTypes.ANY_ANY);
+        OperandTypes.ANY_IGNORE);
   }
 
   protected SqlAsOperator(String name, SqlKind kind, int prec,
@@ -64,7 +64,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -72,7 +72,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     assert call.operandCount() >= 2;
     final SqlWriter.Frame frame =
         writer.startList(
-            SqlWriter.FrameTypeEnum.SIMPLE);
+            SqlWriter.FrameTypeEnum.AS);
     call.operand(0).unparse(writer, leftPrec, getLeftPrec());
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
@@ -93,7 +93,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -111,7 +111,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     }
   }
 
-  public <R> void acceptCall(
+  @Override public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -124,7 +124,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     }
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -139,5 +139,3 @@ public class SqlAsOperator extends SqlSpecialOperator {
     return call.getOperandMonotonicity(0);
   }
 }
-
-// End SqlAsOperator.java

@@ -43,7 +43,7 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
     this.cache = cache;
   }
 
-  public double tableCardinality(RelOptTable table) {
+  @Override public double tableCardinality(RelOptTable table) {
     try {
       final ImmutableList<Object> key =
           ImmutableList.of("tableCardinality",
@@ -51,12 +51,11 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
       return (Double) cache.get(key,
           () -> provider.tableCardinality(table));
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 
-  public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
+  @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
     try {
       final ImmutableList<Object> key =
@@ -69,22 +68,18 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
           () -> provider.isForeignKey(fromTable, fromColumns, toTable,
               toColumns));
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 
-  public boolean isKey(RelOptTable table, List<Integer> columns) {
+  @Override public boolean isKey(RelOptTable table, List<Integer> columns) {
     try {
       final ImmutableList<Object> key =
           ImmutableList.of("isKey", table.getQualifiedName(),
               ImmutableIntList.copyOf(columns));
       return (Boolean) cache.get(key, () -> provider.isKey(table, columns));
     } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+      throw Util.throwAsRuntime(Util.causeOrSelf(e));
     }
   }
 }
-
-// End CachingSqlStatisticProvider.java

@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -41,6 +40,9 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
+
+import java.text.Collator;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -91,7 +93,7 @@ public class SqlCastFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     assert opBinding.getOperandCount() == 2;
     RelDataType ret = opBinding.getOperandType(1);
@@ -106,8 +108,7 @@ public class SqlCastFunction extends SqlFunction {
 
       // dynamic parameters and null constants need their types assigned
       // to them using the type they are casted to.
-      if (((operand0 instanceof SqlLiteral)
-          && (((SqlLiteral) operand0).getValue() == null))
+      if (SqlUtil.isNullLiteral(operand0, false)
           || (operand0 instanceof SqlDynamicParam)) {
         final SqlValidatorImpl validator =
             (SqlValidatorImpl) callBinding.getValidator();
@@ -117,12 +118,12 @@ public class SqlCastFunction extends SqlFunction {
     return ret;
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     assert operandsCount == 2;
     return "{0}({1} AS {2})";
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 
@@ -131,7 +132,7 @@ public class SqlCastFunction extends SqlFunction {
    * Operators (such as "ROW" and "AS") which do not check their arguments can
    * override this method.
    */
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final SqlNode left = callBinding.operand(0);
@@ -142,8 +143,7 @@ public class SqlCastFunction extends SqlFunction {
     }
     RelDataType validatedNodeType =
         callBinding.getValidator().getValidatedNodeType(left);
-    RelDataType returnType =
-        callBinding.getValidator().deriveType(callBinding.getScope(), right);
+    RelDataType returnType = SqlTypeUtil.deriveType(callBinding, right);
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true)) {
       if (throwOnFailure) {
         throw callBinding.newError(
@@ -167,11 +167,11 @@ public class SqlCastFunction extends SqlFunction {
     return true;
   }
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -188,16 +188,25 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    RelDataTypeFamily castFrom = call.getOperandType(0).getFamily();
-    RelDataTypeFamily castTo = call.getOperandType(1).getFamily();
-    if (castFrom instanceof SqlTypeFamily
-        && castTo instanceof SqlTypeFamily
-        && nonMonotonicCasts.containsEntry(castFrom, castTo)) {
+    final RelDataType castFromType = call.getOperandType(0);
+    final RelDataTypeFamily castFromFamily = castFromType.getFamily();
+    final Collator castFromCollator = castFromType.getCollation() == null
+        ? null
+        : castFromType.getCollation().getCollator();
+    final RelDataType castToType = call.getOperandType(1);
+    final RelDataTypeFamily castToFamily = castToType.getFamily();
+    final Collator castToCollator = castToType.getCollation() == null
+        ? null
+        : castToType.getCollation().getCollator();
+    if (!Objects.equals(castFromCollator, castToCollator)) {
+      // Cast between types compared with different collators: not monotonic.
+      return SqlMonotonicity.NOT_MONOTONIC;
+    } else if (castFromFamily instanceof SqlTypeFamily
+        && castToFamily instanceof SqlTypeFamily
+        && nonMonotonicCasts.containsEntry(castFromFamily, castToFamily)) {
       return SqlMonotonicity.NOT_MONOTONIC;
     } else {
       return call.getOperandMonotonicity(0);
     }
   }
 }
-
-// End SqlCastFunction.java

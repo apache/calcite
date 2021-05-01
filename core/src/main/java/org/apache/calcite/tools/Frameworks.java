@@ -35,6 +35,7 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
@@ -42,6 +43,8 @@ import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -99,12 +102,12 @@ public class Frameworks {
   public abstract static class PrepareAction<R>
       implements BasePrepareAction<R> {
     private final FrameworkConfig config;
-    public PrepareAction() {
+    protected PrepareAction() {
       this.config = newConfigBuilder()
           .defaultSchema(Frameworks.createRootSchema(true)).build();
     }
 
-    public PrepareAction(FrameworkConfig config) {
+    protected PrepareAction(FrameworkConfig config) {
       this.config = config;
     }
 
@@ -216,16 +219,17 @@ public class Frameworks {
     private SqlOperatorTable operatorTable;
     private ImmutableList<Program> programs;
     private Context context;
-    private ImmutableList<RelTraitDef> traitDefs;
+    private @Nullable ImmutableList<RelTraitDef> traitDefs;
     private SqlParser.Config parserConfig;
+    private SqlValidator.Config sqlValidatorConfig;
     private SqlToRelConverter.Config sqlToRelConverterConfig;
-    private SchemaPlus defaultSchema;
-    private RexExecutor executor;
-    private RelOptCostFactory costFactory;
+    private @Nullable SchemaPlus defaultSchema;
+    private @Nullable RexExecutor executor;
+    private @Nullable RelOptCostFactory costFactory;
     private RelDataTypeSystem typeSystem;
     private boolean evolveLattice;
     private SqlStatisticProvider statisticProvider;
-    private RelOptTable.ViewExpander viewExpander;
+    private RelOptTable.@Nullable ViewExpander viewExpander;
 
     /** Creates a ConfigBuilder, initializing to defaults. */
     private ConfigBuilder() {
@@ -234,7 +238,8 @@ public class Frameworks {
       programs = ImmutableList.of();
       context = Contexts.empty();
       parserConfig = SqlParser.Config.DEFAULT;
-      sqlToRelConverterConfig = SqlToRelConverter.Config.DEFAULT;
+      sqlValidatorConfig = SqlValidator.Config.DEFAULT;
+      sqlToRelConverterConfig = SqlToRelConverter.config();
       typeSystem = RelDataTypeSystem.DEFAULT;
       evolveLattice = false;
       statisticProvider = QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE;
@@ -248,6 +253,7 @@ public class Frameworks {
       context = config.getContext();
       traitDefs = config.getTraitDefs();
       parserConfig = config.getParserConfig();
+      sqlValidatorConfig = config.getSqlValidatorConfig();
       sqlToRelConverterConfig = config.getSqlToRelConverterConfig();
       defaultSchema = config.getDefaultSchema();
       executor = config.getExecutor();
@@ -259,7 +265,7 @@ public class Frameworks {
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
-          programs, traitDefs, parserConfig, sqlToRelConverterConfig,
+          programs, traitDefs, parserConfig, sqlValidatorConfig, sqlToRelConverterConfig,
           defaultSchema, costFactory, typeSystem, executor, evolveLattice,
           statisticProvider, viewExpander);
     }
@@ -285,7 +291,7 @@ public class Frameworks {
       return this;
     }
 
-    public ConfigBuilder traitDefs(List<RelTraitDef> traitDefs) {
+    public ConfigBuilder traitDefs(@Nullable List<RelTraitDef> traitDefs) {
       if (traitDefs == null) {
         this.traitDefs = null;
       } else {
@@ -301,6 +307,11 @@ public class Frameworks {
 
     public ConfigBuilder parserConfig(SqlParser.Config parserConfig) {
       this.parserConfig = Objects.requireNonNull(parserConfig);
+      return this;
+    }
+
+    public ConfigBuilder sqlValidatorConfig(SqlValidator.Config sqlValidatorConfig) {
+      this.sqlValidatorConfig = Objects.requireNonNull(sqlValidatorConfig);
       return this;
     }
 
@@ -370,37 +381,40 @@ public class Frameworks {
     private final SqlRexConvertletTable convertletTable;
     private final SqlOperatorTable operatorTable;
     private final ImmutableList<Program> programs;
-    private final ImmutableList<RelTraitDef> traitDefs;
+    private final @Nullable ImmutableList<RelTraitDef> traitDefs;
     private final SqlParser.Config parserConfig;
+    private final SqlValidator.Config sqlValidatorConfig;
     private final SqlToRelConverter.Config sqlToRelConverterConfig;
-    private final SchemaPlus defaultSchema;
-    private final RelOptCostFactory costFactory;
+    private final @Nullable SchemaPlus defaultSchema;
+    private final @Nullable RelOptCostFactory costFactory;
     private final RelDataTypeSystem typeSystem;
-    private final RexExecutor executor;
+    private final @Nullable RexExecutor executor;
     private final boolean evolveLattice;
     private final SqlStatisticProvider statisticProvider;
-    private final RelOptTable.ViewExpander viewExpander;
+    private final RelOptTable.@Nullable ViewExpander viewExpander;
 
     StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
         SqlOperatorTable operatorTable,
         ImmutableList<Program> programs,
-        ImmutableList<RelTraitDef> traitDefs,
+        @Nullable ImmutableList<RelTraitDef> traitDefs,
         SqlParser.Config parserConfig,
+        SqlValidator.Config sqlValidatorConfig,
         SqlToRelConverter.Config sqlToRelConverterConfig,
-        SchemaPlus defaultSchema,
-        RelOptCostFactory costFactory,
+        @Nullable SchemaPlus defaultSchema,
+        @Nullable RelOptCostFactory costFactory,
         RelDataTypeSystem typeSystem,
-        RexExecutor executor,
+        @Nullable RexExecutor executor,
         boolean evolveLattice,
         SqlStatisticProvider statisticProvider,
-        RelOptTable.ViewExpander viewExpander) {
+        RelOptTable.@Nullable ViewExpander viewExpander) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
       this.programs = programs;
       this.traitDefs = traitDefs;
       this.parserConfig = parserConfig;
+      this.sqlValidatorConfig = sqlValidatorConfig;
       this.sqlToRelConverterConfig = sqlToRelConverterConfig;
       this.defaultSchema = defaultSchema;
       this.costFactory = costFactory;
@@ -411,62 +425,64 @@ public class Frameworks {
       this.viewExpander = viewExpander;
     }
 
-    public SqlParser.Config getParserConfig() {
+    @Override public SqlParser.Config getParserConfig() {
       return parserConfig;
     }
 
-    public SqlToRelConverter.Config getSqlToRelConverterConfig() {
+    @Override public SqlValidator.Config getSqlValidatorConfig() {
+      return sqlValidatorConfig;
+    }
+
+    @Override public SqlToRelConverter.Config getSqlToRelConverterConfig() {
       return sqlToRelConverterConfig;
     }
 
-    public SchemaPlus getDefaultSchema() {
+    @Override public @Nullable SchemaPlus getDefaultSchema() {
       return defaultSchema;
     }
 
-    public RexExecutor getExecutor() {
+    @Override public @Nullable RexExecutor getExecutor() {
       return executor;
     }
 
-    public ImmutableList<Program> getPrograms() {
+    @Override public ImmutableList<Program> getPrograms() {
       return programs;
     }
 
-    public RelOptCostFactory getCostFactory() {
+    @Override public @Nullable RelOptCostFactory getCostFactory() {
       return costFactory;
     }
 
-    public ImmutableList<RelTraitDef> getTraitDefs() {
+    @Override public @Nullable ImmutableList<RelTraitDef> getTraitDefs() {
       return traitDefs;
     }
 
-    public SqlRexConvertletTable getConvertletTable() {
+    @Override public SqlRexConvertletTable getConvertletTable() {
       return convertletTable;
     }
 
-    public Context getContext() {
+    @Override public Context getContext() {
       return context;
     }
 
-    public SqlOperatorTable getOperatorTable() {
+    @Override public SqlOperatorTable getOperatorTable() {
       return operatorTable;
     }
 
-    public RelDataTypeSystem getTypeSystem() {
+    @Override public RelDataTypeSystem getTypeSystem() {
       return typeSystem;
     }
 
-    public boolean isEvolveLattice() {
+    @Override public boolean isEvolveLattice() {
       return evolveLattice;
     }
 
-    public SqlStatisticProvider getStatisticProvider() {
+    @Override public SqlStatisticProvider getStatisticProvider() {
       return statisticProvider;
     }
 
-    public RelOptTable.ViewExpander getViewExpander() {
+    @Override public RelOptTable.@Nullable ViewExpander getViewExpander() {
       return viewExpander;
     }
   }
 }
-
-// End Frameworks.java

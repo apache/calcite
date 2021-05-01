@@ -29,13 +29,16 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Hsqldb database.
  */
 public class HsqldbSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new HsqldbSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.HSQLDB));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.HSQLDB);
+
+  public static final SqlDialect DEFAULT = new HsqldbSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an HsqldbSqlDialect. */
   public HsqldbSqlDialect(Context context) {
@@ -43,6 +46,10 @@ public class HsqldbSqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsCharSet() {
+    return false;
+  }
+
+  @Override public boolean supportsAggregateFunctionFilter() {
     return false;
   }
 
@@ -73,8 +80,8 @@ public class HsqldbSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
@@ -129,5 +136,3 @@ public class HsqldbSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End HsqldbSqlDialect.java

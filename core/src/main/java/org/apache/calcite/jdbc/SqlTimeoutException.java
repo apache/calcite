@@ -30,5 +30,3 @@ public class SqlTimeoutException
     super("timeout", null, 0);
   }
 }
-
-// End SqlTimeoutException.java

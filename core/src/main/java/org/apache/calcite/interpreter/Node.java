@@ -22,5 +22,3 @@ package org.apache.calcite.interpreter;
 public interface Node {
   void run() throws InterruptedException;
 }
-
-// End Node.java

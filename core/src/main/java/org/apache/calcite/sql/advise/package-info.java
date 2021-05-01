@@ -24,9 +24,4 @@
  * <p>The advisor uses the validation and parser framework set up in
  * <code>org.apache.calcite.sql.validate</code> package.
 */
-@PackageMarker
 package org.apache.calcite.sql.advise;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

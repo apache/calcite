@@ -24,5 +24,3 @@ public enum RexDigestIncludeType {
   OPTIONAL,
   NO_TYPE;
 }
-
-// End RexDigestIncludeType.java

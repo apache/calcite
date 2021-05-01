@@ -18,9 +18,4 @@
 /**
  * Query provider based on a MongoDB database.
  */
-@PackageMarker
 package org.apache.calcite.adapter.mongodb;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

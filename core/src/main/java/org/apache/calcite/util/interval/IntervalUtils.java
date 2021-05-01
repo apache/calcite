@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.util.interval;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
@@ -34,7 +33,7 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
- * util for resolving interval type operands
+ * util for resolving interval type operands.
  */
 public class IntervalUtils {
 
@@ -166,5 +165,3 @@ public class IntervalUtils {
     return  "INTERVAL " + ip + " " + intervalType;
   }
 }
-
-// End IntervalUtils.java

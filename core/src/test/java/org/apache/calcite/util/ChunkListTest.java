@@ -20,7 +20,7 @@ import org.apache.calcite.linq4j.function.Function0;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,21 +32,21 @@ import java.util.ListIterator;
 import java.util.Random;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit and performance test for {@link ChunkList}.
  */
-public class ChunkListTest {
+class ChunkListTest {
   /**
    * Unit test for {@link ChunkList}.
    */
-  @Test public void testChunkList() {
+  @Test void testChunkList() {
     final ChunkList<Integer> list = new ChunkList<>();
     final ChunkList<Integer> list0 = new ChunkList<>(list);
     final ChunkList<Integer> list1 = new ChunkList<>(list);
@@ -190,7 +190,7 @@ public class ChunkListTest {
   }
 
   /** Clears lists of various sizes. */
-  @Test public void testClear() {
+  @Test void testClear() {
     checkListClear(0);
     checkListClear(1);
     checkListClear(2);
@@ -236,7 +236,7 @@ public class ChunkListTest {
   /**
    * Removing via an iterator.
    */
-  @Test public void testIterator() {
+  @Test void testIterator() {
     final ChunkList<String> list = new ChunkList<>();
     list.add("a");
     list.add("b");
@@ -261,7 +261,7 @@ public class ChunkListTest {
    * Unit test for {@link ChunkList} that applies random
    * operations.
    */
-  @Test public void testRandom() {
+  @Test void testRandom() {
     final int iterationCount = 10000;
     checkRandom(new Random(1), new ChunkList<Integer>(),
         new ArrayList<Integer>(), iterationCount);
@@ -375,7 +375,7 @@ public class ChunkListTest {
     }
   }
 
-  @Test public void testPerformance() {
+  @Test void testPerformance() {
     if (!Benchmark.enabled()) {
       return;
     }
@@ -512,5 +512,3 @@ public class ChunkListTest {
     }
   }
 }
-
-// End ChunkListTest.java

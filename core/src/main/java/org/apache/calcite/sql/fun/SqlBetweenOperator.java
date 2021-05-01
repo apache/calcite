@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.ExplicitOperatorBinding;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlInfixOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -34,16 +33,13 @@ import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
-import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import java.util.List;
-
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Defines the BETWEEN operator.
@@ -53,7 +49,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <blockquote><code>X [NOT] BETWEEN [ASYMMETRIC | SYMMETRIC] Y AND
  * Z</code></blockquote>
  *
- * <p>If the asymmetric/symmeteric keywords are left out ASYMMETRIC is default.
+ * <p>If the asymmetric/symmetric keywords are left out ASYMMETRIC is default.
  *
  * <p>This operator is always expanded (into something like <code>Y &lt;= X AND
  * X &lt;= Z</code>) before being converted into Rex nodes.
@@ -117,38 +113,26 @@ public class SqlBetweenOperator extends SqlInfixOperator {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean validRexOperands(int count, Litmus litmus) {
+    return litmus.fail("not a rex operator");
+  }
+
   public boolean isNegated() {
     return negated;
   }
 
-  private List<RelDataType> collectOperandTypes(
-      SqlValidator validator,
-      SqlValidatorScope scope,
-      SqlCall call) {
-    List<RelDataType> argTypes =
-        SqlTypeUtil.deriveAndCollectTypes(
-            validator, scope, call.getOperandList());
-    return ImmutableNullableList.of(
-        argTypes.get(VALUE_OPERAND),
-        argTypes.get(LOWER_OPERAND),
-        argTypes.get(UPPER_OPERAND));
-  }
-
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
-    SqlCallBinding callBinding = (SqlCallBinding) opBinding;
     ExplicitOperatorBinding newOpBinding =
         new ExplicitOperatorBinding(
             opBinding,
-            collectOperandTypes(
-                callBinding.getValidator(),
-                callBinding.getScope(),
-                callBinding.getCall()));
-    return ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(
+            opBinding.collectOperandTypes());
+    RelDataType type = ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(
         newOpBinding);
+    return requireNonNull(type, "inferred BETWEEN element type");
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
     return "{1} {0} {2} AND {3}";
   }
@@ -159,7 +143,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
         + flag.name();
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -191,7 +175,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     writer.endList(frame);
   }
 
-  public ReduceResult reduceExpr(int opOrdinal, TokenSequence list) {
+  @Override public ReduceResult reduceExpr(int opOrdinal, TokenSequence list) {
     SqlOperator op = list.op(opOrdinal);
     assert op == this;
 
@@ -252,7 +236,7 @@ public class SqlBetweenOperator extends SqlInfixOperator {
    * Finds an AND operator in an expression.
    */
   private static class AndFinder extends SqlBasicVisitor<Void> {
-    public Void visit(SqlCall call) {
+    @Override public Void visit(SqlCall call) {
       final SqlOperator operator = call.getOperator();
       if (operator == SqlStdOperatorTable.AND) {
         throw Util.FoundOne.NULL;
@@ -270,5 +254,3 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     }
   }
 }
-
-// End SqlBetweenOperator.java

@@ -39,5 +39,3 @@ public class SqlNthValueAggFunction extends SqlAggFunction {
     return true;
   }
 }
-
-// End SqlNthValueAggFunction.java

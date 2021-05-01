@@ -31,5 +31,3 @@ import java.lang.annotation.Target;
 @Target({ElementType.CONSTRUCTOR, ElementType.METHOD, ElementType.TYPE })
 public @interface Deterministic {
 }
-
-// End Deterministic.java

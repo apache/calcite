@@ -109,5 +109,3 @@ public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
     }
   }
 }
-
-// End RexFieldCollation.java

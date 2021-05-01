@@ -21,7 +21,9 @@ import org.apache.calcite.profile.Profiler;
 import org.apache.calcite.profile.ProfilerImpl;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Suppliers;
@@ -64,7 +66,9 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
       final ImmutableList<ImmutableBitSet> initialGroups =
           ImmutableList.of();
       final Enumerable<List<Comparable>> rows =
-          ((ScannableTable) table).scan(null)
+          ((ScannableTable) table).scan(
+              Schemas.createDataContext(MaterializedViewTable.MATERIALIZATION_CONNECTION,
+                  lattice.rootSchema.plus()))
               .select(values -> {
                 for (int i = 0; i < values.length; i++) {
                   if (values[i] == null) {
@@ -78,12 +82,10 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
     })::get;
   }
 
-  public double cardinality(List<Lattice.Column> columns) {
+  @Override public double cardinality(List<Lattice.Column> columns) {
     final ImmutableBitSet build = Lattice.Column.toBitSet(columns);
     final double cardinality = profile.get().cardinality(build);
 //    System.out.println(columns + ": " + cardinality);
     return cardinality;
   }
 }
-
-// End ProfilerLatticeStatisticProvider.java

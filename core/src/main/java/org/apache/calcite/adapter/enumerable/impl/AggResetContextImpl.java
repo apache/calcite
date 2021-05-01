@@ -26,7 +26,7 @@ import java.util.List;
 
 /**
  * Implementation of
- * {@link org.apache.calcite.adapter.enumerable.AggResetContext}
+ * {@link org.apache.calcite.adapter.enumerable.AggResetContext}.
  */
 public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
     implements AggResetContext {
@@ -39,12 +39,12 @@ public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
    * @param accumulator Accumulator variables that store the intermediate
    *                    aggregate state
    */
-  public AggResetContextImpl(BlockBuilder block, List<Expression> accumulator) {
+  protected AggResetContextImpl(BlockBuilder block, List<Expression> accumulator) {
     super(block);
     this.accumulator = accumulator;
   }
 
-  public List<Expression> accumulator() {
+  @Override public List<Expression> accumulator() {
     return accumulator;
   }
 
@@ -52,5 +52,3 @@ public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
     throw new UnsupportedOperationException();
   }
 }
-
-// End AggResetContextImpl.java

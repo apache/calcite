@@ -59,5 +59,3 @@ class SqlExtendOperator extends SqlInternalOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlExtendOperator.java

@@ -51,7 +51,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     boolean b = true;
@@ -59,19 +59,20 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       RelDataType type = callBinding.getOperandType(i);
       if (!checkType(callBinding, throwOnFailure, type)) {
         b = false;
+        break;
       }
     }
     if (b) {
       // Coerce type first.
-      if (callBinding.getValidator().isTypeCoercionEnabled()) {
+      if (callBinding.isTypeCoercionEnabled()) {
         TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
-        // For comparable operators, e.g. >, <, =, >=, <=.
-        typeCoercion.binaryArithmeticCoercion(callBinding);
+        // For comparison operators, i.e. >, <, =, >=, <=.
+        typeCoercion.binaryComparisonCoercion(callBinding);
       }
       b = super.checkOperandTypes(callBinding, false);
-      if (!b && throwOnFailure) {
-        throw callBinding.newValidationSignatureError();
-      }
+    }
+    if (!b && throwOnFailure) {
+      throw callBinding.newValidationSignatureError();
     }
     return b;
   }
@@ -97,13 +98,14 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
    * {@link #checkOperandTypes(SqlCallBinding, boolean)}, but not part of the
    * interface, and cannot throw an error.
    */
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlOperatorBinding operatorBinding, SqlCallBinding callBinding) {
     boolean b = true;
     for (int i = 0; i < nOperands; ++i) {
       RelDataType type = callBinding.getOperandType(i);
       if (type.getComparability().ordinal() < requiredComparability.ordinal()) {
         b = false;
+        break;
       }
     }
     if (b) {
@@ -120,5 +122,3 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
     return consistency;
   }
 }
-
-// End ComparableOperandTypeChecker.java

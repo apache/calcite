@@ -25,8 +25,12 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * SqlTypeFactoryImpl provides a default implementation of
@@ -41,7 +45,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType createSqlType(SqlTypeName typeName) {
+  @Override public RelDataType createSqlType(SqlTypeName typeName) {
     if (typeName.allowsPrec()) {
       return createSqlType(typeName, typeSystem.getDefaultPrecision(typeName));
     }
@@ -50,7 +54,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createSqlType(
+  @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
@@ -71,7 +75,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createSqlType(
+  @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision,
       int scale) {
@@ -88,11 +92,11 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createUnknownType() {
+  @Override public RelDataType createUnknownType() {
     return canonize(new UnknownSqlType(this));
   }
 
-  public RelDataType createMultisetType(
+  @Override public RelDataType createMultisetType(
       RelDataType type,
       long maxCardinality) {
     assert maxCardinality == -1;
@@ -100,7 +104,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createArrayType(
+  @Override public RelDataType createArrayType(
       RelDataType elementType,
       long maxCardinality) {
     assert maxCardinality == -1;
@@ -108,27 +112,27 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  public RelDataType createMapType(
+  @Override public RelDataType createMapType(
       RelDataType keyType,
       RelDataType valueType) {
     MapSqlType newType = new MapSqlType(keyType, valueType, false);
     return canonize(newType);
   }
 
-  public RelDataType createSqlIntervalType(
+  @Override public RelDataType createSqlIntervalType(
       SqlIntervalQualifier intervalQualifier) {
     RelDataType newType =
         new IntervalSqlType(typeSystem, intervalQualifier, false);
     return canonize(newType);
   }
 
-  public RelDataType createTypeWithCharsetAndCollation(
+  @Override public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type,
       Charset charset,
       SqlCollation collation) {
     assert SqlTypeUtil.inCharFamily(type) : type;
-    assert charset != null;
-    assert collation != null;
+    requireNonNull(charset, "charset");
+    requireNonNull(collation, "collation");
     RelDataType newType;
     if (type instanceof BasicSqlType) {
       BasicSqlType sqlType = (BasicSqlType) type;
@@ -147,7 +151,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  @Override public RelDataType leastRestrictive(List<RelDataType> types) {
+  @Override public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
     assert types != null;
     assert types.size() >= 1;
 
@@ -163,7 +167,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return super.leastRestrictive(types);
   }
 
-  private RelDataType leastRestrictiveByCast(List<RelDataType> types) {
+  private @Nullable RelDataType leastRestrictiveByCast(List<RelDataType> types) {
     RelDataType resultType = types.get(0);
     boolean anyNullable = resultType.isNullable();
     for (int i = 1; i < types.size(); i++) {
@@ -214,19 +218,21 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  private void assertBasic(SqlTypeName typeName) {
+  private static void assertBasic(SqlTypeName typeName) {
     assert typeName != null;
     assert typeName != SqlTypeName.MULTISET
         : "use createMultisetType() instead";
     assert typeName != SqlTypeName.ARRAY
         : "use createArrayType() instead";
+    assert typeName != SqlTypeName.MAP
+        : "use createMapType() instead";
     assert typeName != SqlTypeName.ROW
         : "use createStructType() instead";
     assert !SqlTypeName.INTERVAL_TYPES.contains(typeName)
         : "use createSqlIntervalType() instead";
   }
 
-  private RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
+  private @Nullable RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
     int nullCount = 0;
     int nullableCount = 0;
@@ -298,7 +304,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         SqlCollation collation1 = type.getCollation();
         SqlCollation collation2 = resultType.getCollation();
 
-        // TODO:  refine collation combination rules
         final int precision =
             SqlTypeUtil.maxPrecision(resultType.getPrecision(),
                 type.getPrecision());
@@ -336,6 +341,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
                   precision);
         }
         Charset charset = null;
+        // TODO:  refine collation combination rules
+        SqlCollation collation0 = collation1 != null && collation2 != null
+            ? SqlCollation.getCoercibilityDyadicOperator(collation1, collation2)
+            : null;
         SqlCollation collation = null;
         if ((charset1 != null) || (charset2 != null)) {
           if (charset1 == null) {
@@ -360,7 +369,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               createTypeWithCharsetAndCollation(
                   resultType,
                   charset,
-                  collation);
+                  collation0 != null ? collation0 : requireNonNull(collation, "collation"));
         }
       } else if (SqlTypeUtil.isExactNumeric(type)) {
         if (SqlTypeUtil.isExactNumeric(resultType)) {
@@ -506,11 +515,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   private RelDataType copyIntervalType(RelDataType type, boolean nullable) {
     return new IntervalSqlType(typeSystem,
-        type.getIntervalQualifier(),
+        requireNonNull(type.getIntervalQualifier(),
+            () -> "type.getIntervalQualifier() for " + type),
         nullable);
   }
 
-  private RelDataType copyObjectType(RelDataType type, boolean nullable) {
+  private static RelDataType copyObjectType(RelDataType type, boolean nullable) {
     return new ObjectSqlType(
         type.getSqlTypeName(),
         type.getSqlIdentifier(),
@@ -533,7 +543,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   // override RelDataTypeFactoryImpl
-  protected RelDataType canonize(RelDataType type) {
+  @Override protected RelDataType canonize(RelDataType type) {
     type = super.canonize(type);
     if (!(type instanceof ObjectSqlType)) {
       return type;
@@ -563,5 +573,3 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     }
   }
 }
-
-// End SqlTypeFactoryImpl.java

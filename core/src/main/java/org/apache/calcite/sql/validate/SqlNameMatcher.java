@@ -19,6 +19,10 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
+import com.google.common.collect.Iterables;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +45,7 @@ public interface SqlNameMatcher {
   boolean matches(String string, String name);
 
   /** Looks up an item in a map. */
-  <K extends List<String>, V> V get(Map<K, V> map, List<String> prefixNames,
+  <K extends List<String>, V> @Nullable V get(Map<K, V> map, List<String> prefixNames,
       List<String> names);
 
   /** Returns the most recent match.
@@ -57,15 +61,18 @@ public interface SqlNameMatcher {
    * @param fieldName Field name
    * @return Field, or null if not found
    */
-  RelDataTypeField field(RelDataType rowType, String fieldName);
+  @Nullable RelDataTypeField field(RelDataType rowType, String fieldName);
 
   /** Returns how many times a string occurs in a collection.
    *
    * <p>Similar to {@link java.util.Collections#frequency}. */
   int frequency(Iterable<String> names, String name);
 
+  /** Returns the index of the first element of a collection that matches. */
+  default int indexOf(Iterable<String> names, String name) {
+    return Iterables.indexOf(names, n -> matches(n, name));
+  }
+
   /** Creates a set that has the same case-sensitivity as this matcher. */
   Set<String> createSet();
 }
-
-// End SqlNameMatcher.java

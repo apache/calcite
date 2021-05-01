@@ -45,5 +45,3 @@ public abstract class Delta extends SingleRel {
     this(input.getCluster(), input.getTraitSet(), input.getInput());
   }
 }
-
-// End Delta.java

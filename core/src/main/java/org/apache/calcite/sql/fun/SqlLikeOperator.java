@@ -31,6 +31,9 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Litmus;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
@@ -92,11 +95,11 @@ public class SqlLikeOperator extends SqlSpecialOperator {
     return negated;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(2, 3);
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     switch (callBinding.getOperandCount()) {
@@ -128,7 +131,14 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         throwOnFailure);
   }
 
-  public void unparse(
+  @Override public boolean validRexOperands(int count, Litmus litmus) {
+    if (negated) {
+      litmus.fail("unsupported negated operator {}", this);
+    }
+    return super.validRexOperands(count, litmus);
+  }
+
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -145,7 +155,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  public ReduceResult reduceExpr(
+  @Override public ReduceResult reduceExpr(
       final int opOrdinal,
       TokenSequence list) {
     // Example:
@@ -175,7 +185,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
         }
       }
     }
-    final SqlNode[] operands;
+    final @Nullable SqlNode[] operands;
     int end;
     if (exp2 != null) {
       operands = new SqlNode[]{exp0, exp1, exp2};
@@ -188,5 +198,3 @@ public class SqlLikeOperator extends SqlSpecialOperator {
     return new ReduceResult(opOrdinal - 1, end, call);
   }
 }
-
-// End SqlLikeOperator.java

@@ -16,31 +16,24 @@
  */
 package org.apache.calcite.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * ReflectVisitorTest tests {@link ReflectUtil#invokeVisitor} and
  * {@link ReflectiveVisitor} and provides a contrived example of how to use
  * them.
  */
-public class ReflectVisitorTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public ReflectVisitorTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
+class ReflectVisitorTest {
   /**
    * Tests CarelessNumberNegater.
    */
-  @Test public void testCarelessNegater() {
+  @Test void testCarelessNegater() {
     NumberNegater negater = new CarelessNumberNegater();
     Number result;
 
@@ -54,7 +47,7 @@ public class ReflectVisitorTest {
   /**
    * Tests CarefulNumberNegater.
    */
-  @Test public void testCarefulNegater() {
+  @Test void testCarefulNegater() {
     NumberNegater negater = new CarefulNumberNegater();
     Number result;
 
@@ -78,7 +71,7 @@ public class ReflectVisitorTest {
   /**
    * Tests CluelessNumberNegater.
    */
-  @Test public void testCluelessNegater() {
+  @Test void testCluelessNegater() {
     NumberNegater negater = new CluelessNumberNegater();
     Number result;
 
@@ -98,7 +91,7 @@ public class ReflectVisitorTest {
   /**
    * Tests for ambiguity detection in method lookup.
    */
-  @Test public void testAmbiguity() {
+  @Test void testAmbiguity() {
     NumberNegater negater = new IndecisiveNumberNegater();
     Number result;
 
@@ -116,7 +109,7 @@ public class ReflectVisitorTest {
    * Tests that ambiguity detection in method lookup does not kick in when a
    * better match is available.
    */
-  @Test public void testNonAmbiguity() {
+  @Test void testNonAmbiguity() {
     NumberNegater negater = new SomewhatIndecisiveNumberNegater();
     Number result;
 
@@ -292,5 +285,3 @@ public class ReflectVisitorTest {
       implements DiceyNumber {
   }
 }
-
-// End ReflectVisitorTest.java

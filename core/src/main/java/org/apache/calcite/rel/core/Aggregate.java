@@ -27,6 +27,8 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -48,8 +50,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -70,7 +75,9 @@ import java.util.Set;
  * <li>{@link org.apache.calcite.rel.rules.AggregateReduceFunctionsRule}.
  * </ul>
  */
-public abstract class Aggregate extends SingleRel {
+public abstract class Aggregate extends SingleRel implements Hintable {
+
+  protected final ImmutableList<RelHint> hints;
 
   public static boolean isSimple(Aggregate aggregate) {
     return aggregate.getGroupType() == Group.SIMPLE;
@@ -130,19 +137,23 @@ public abstract class Aggregate extends SingleRel {
    *
    * @param cluster  Cluster
    * @param traitSet Trait set
+   * @param hints    Hints of this relational expression
    * @param input    Input relational expression
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
+      List<RelHint> hints,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, input);
+    this.hints = ImmutableList.copyOf(hints);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = Objects.requireNonNull(groupSet);
     if (groupSets == null) {
@@ -163,9 +174,17 @@ public abstract class Aggregate extends SingleRel {
     }
   }
 
-  /**
-   * Creates an Aggregate.
-   */
+  @Deprecated // to be removed before 2.0
+  protected Aggregate(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    this(cluster, traitSet, new ArrayList<>(), input, groupSet, groupSets, aggCalls);
+  }
+
   @Deprecated // to be removed before 2.0
   protected Aggregate(
       RelOptCluster cluster,
@@ -175,7 +194,7 @@ public abstract class Aggregate extends SingleRel {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    this(cluster, traits, child, groupSet, groupSets, aggCalls);
+    this(cluster, traits, ImmutableList.of(), child, groupSet, groupSets, aggCalls);
     checkIndicator(indicator);
   }
 
@@ -188,7 +207,7 @@ public abstract class Aggregate extends SingleRel {
     return true;
   }
 
-  private boolean isPredicate(RelNode input, int index) {
+  private static boolean isPredicate(RelNode input, int index) {
     final RelDataType type =
         input.getRowType().getFieldList().get(index).getType();
     return type.getSqlTypeName() == SqlTypeName.BOOLEAN
@@ -199,9 +218,9 @@ public abstract class Aggregate extends SingleRel {
    * Creates an Aggregate by parsing serialized output.
    */
   protected Aggregate(RelInput input) {
-    this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        input.getBitSet("group"), input.getBitSetList("groups"),
-        input.getAggregateCalls("aggs"));
+    this(input.getCluster(), input.getTraitSet(), new ArrayList<>(),
+        input.getInput(), input.getBitSet("group"),
+        input.getBitSetList("groups"), input.getAggregateCalls("aggs"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -226,7 +245,7 @@ public abstract class Aggregate extends SingleRel {
    */
   public abstract Aggregate copy(RelTraitSet traitSet, RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
 
   @Deprecated // to be removed before 2.0
   public Aggregate copy(RelTraitSet traitSet, RelNode input,
@@ -302,7 +321,7 @@ public abstract class Aggregate extends SingleRel {
     return groupSets;
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     // We skip the "groups" element if it is a singleton of "group".
     super.explainTerms(pw)
         .item("group", groupSet)
@@ -331,7 +350,7 @@ public abstract class Aggregate extends SingleRel {
     }
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // REVIEW jvs 24-Aug-2008:  This is bogus, but no more bogus
     // than what's currently in Join.
@@ -348,7 +367,7 @@ public abstract class Aggregate extends SingleRel {
     return planner.getCostFactory().makeCost(rowCount * multiplier, 0, 0);
   }
 
-  protected RelDataType deriveRowType() {
+  @Override protected RelDataType deriveRowType() {
     return deriveRowType(getCluster().getTypeFactory(), getInput().getRowType(),
         false, groupSet, groupSets, aggCalls);
   }
@@ -366,7 +385,7 @@ public abstract class Aggregate extends SingleRel {
    */
   public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
       final RelDataType inputRowType, boolean indicator,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      ImmutableBitSet groupSet, @Nullable List<ImmutableBitSet> groupSets,
       final List<AggregateCall> aggCalls) {
     final List<Integer> groupList = groupSet.asList();
     assert groupList.size() == groupSet.cardinality();
@@ -377,7 +396,7 @@ public abstract class Aggregate extends SingleRel {
       final RelDataTypeField field = fieldList.get(groupKey);
       containedNames.add(field.getName());
       builder.add(field);
-      if (groupSets != null && !allContain(groupSets, groupKey)) {
+      if (groupSets != null && !ImmutableBitSet.allContain(groupSets, groupKey)) {
         builder.nullable(true);
       }
     }
@@ -400,17 +419,7 @@ public abstract class Aggregate extends SingleRel {
     return builder.build();
   }
 
-  private static boolean allContain(List<ImmutableBitSet> groupSets,
-      int groupKey) {
-    for (ImmutableBitSet groupSet : groupSets) {
-      if (!groupSet.get(groupKey)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     return super.isValid(litmus, context)
         && litmus.check(Util.isDistinct(getRowType().getFieldNames()),
             "distinct field names: {}", getRowType());
@@ -452,6 +461,10 @@ public abstract class Aggregate extends SingleRel {
     return false;
   }
 
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
+  }
+
   /**
    * Returns the type of roll-up.
    *
@@ -461,7 +474,7 @@ public abstract class Aggregate extends SingleRel {
     return Group.induce(groupSet, groupSets);
   }
 
-  /** What kind of roll-up is it? */
+  /** Describes the kind of roll-up. */
   public enum Group {
     SIMPLE,
     ROLLUP,
@@ -509,12 +522,13 @@ public abstract class Aggregate extends SingleRel {
           // Each subsequent items must be a subset with one fewer bit than the
           // previous item
           if (!g.contains(bitSet)
-              || g.except(bitSet).cardinality() != 1) {
+              || g.cardinality() - bitSet.cardinality() != 1) {
             return false;
           }
         }
         g = bitSet;
       }
+      assert g != null : "groupSet must not be empty";
       assert g.isEmpty();
       return true;
     }
@@ -528,7 +542,7 @@ public abstract class Aggregate extends SingleRel {
      *
      * @see #isRollup(ImmutableBitSet, List) */
     public static List<Integer> getRollup(List<ImmutableBitSet> groupSets) {
-      final Set<Integer> set = new LinkedHashSet<>();
+      final List<Integer> rollUpBits = new ArrayList<>(groupSets.size() - 1);
       ImmutableBitSet g = null;
       for (ImmutableBitSet bitSet : groupSets) {
         if (g == null) {
@@ -536,11 +550,14 @@ public abstract class Aggregate extends SingleRel {
         } else {
           // Each subsequent items must be a subset with one fewer bit than the
           // previous item
-          set.addAll(g.except(bitSet).toList());
+          ImmutableBitSet diff = g.except(bitSet);
+          assert diff.cardinality() == 1;
+          rollUpBits.add(diff.nth(0));
         }
         g = bitSet;
       }
-      return ImmutableList.copyOf(set).reverse();
+      Collections.reverse(rollUpBits);
+      return ImmutableList.copyOf(rollUpBits);
     }
   }
 
@@ -557,7 +574,7 @@ public abstract class Aggregate extends SingleRel {
     private final boolean filter;
 
     /**
-     * Creates an AggCallBinding
+     * Creates an AggCallBinding.
      *
      * @param typeFactory  Type factory
      * @param aggFunction  Aggregate function
@@ -587,19 +604,17 @@ public abstract class Aggregate extends SingleRel {
       return filter;
     }
 
-    public int getOperandCount() {
+    @Override public int getOperandCount() {
       return operands.size();
     }
 
-    public RelDataType getOperandType(int ordinal) {
+    @Override public RelDataType getOperandType(int ordinal) {
       return operands.get(ordinal);
     }
 
-    public CalciteException newError(
+    @Override public CalciteException newError(
         Resources.ExInst<SqlValidatorException> e) {
       return SqlUtil.newContextException(SqlParserPos.ZERO, e);
     }
   }
 }
-
-// End Aggregate.java

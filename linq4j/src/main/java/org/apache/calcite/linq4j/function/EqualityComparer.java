@@ -26,5 +26,3 @@ public interface EqualityComparer<T> {
 
   int hashCode(T t);
 }
-
-// End EqualityComparer.java

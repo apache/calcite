@@ -41,11 +41,13 @@ Site generation currently works best with ruby-2.5.1.
 ### Add javadoc
 
 1. `cd ..`
-2. `mvn -DskipTests site`
-3. `rm -rf site/target/apidocs site/target/testapidocs`
-   `rmdir site\target\apidocs site\target\testapidocs /S /Q` (Windows)
-4. `mv target/site/apidocs target/site/testapidocs site/target`
-   `for /d %a in (target\site\apidocs* target\site\testapidocs*) do move %a site\target` (Windows)
+2. `./gradlew javadocAggregate`
+3. `rm -rf site/target/javadocAggregate`
+   `rmdir site\target\javadocAggregate /S /Q` (Windows)
+4. `mkdir site/target`
+   `mkdir site\target` (Windows)
+5. `mv build/docs/javadocAggregate site/target`
+   `for /d %a in (build\docs\javadocAggregate*) do move %a site\target` (Windows)
 
 ### Running locally
 
@@ -87,20 +89,19 @@ As you make changes to the site, the site will automatically rebuild.
 
 1. `cd site/target`
 2. `git init`
-3. `git remote add origin https://github.com/apache/calcite-site`
-4. `git reset origin/master --soft`
+3. `git remote add origin git@github.com:apache/calcite-site.git`
+4. `git fetch`
+5. `git reset origin/master --soft`
 
 If you have not regenerated the javadoc and they are missing, restore them:
 
-6. `git reset -- apidocs/`
-7. `git reset -- testapidocs/`
-8. `git checkout -- apidocs/`
-9. `git checkout -- testapidocs/`
+6. `git reset -- javadocAggregate/`
+7. `git checkout -- javadocAggregate/`
 
 Restore the avatica site
 
-10. `git reset -- avatica/`
-11. `git checkout -- avatica/`
+8. `git reset -- avatica/`
+9. `git checkout -- avatica/`
 
 10. `git add .`
 11. Commit: `git commit -m "Your commit message goes here"`
@@ -113,7 +114,7 @@ see the results at
 This process also publishes Avatica's web site. Avatica's web site has
 separate source (under `avatica/site`) but configures Jekyll to
 generate files to `site/target/avatica`, which becomes an
-[avatica](http://calcite.apache.org/avatica)
+[avatica](https://calcite.apache.org/avatica)
 sub-directory when deployed. See
 [Avatica site README](../avatica/site/README.md).
 

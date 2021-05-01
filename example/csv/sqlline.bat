@@ -1,5 +1,4 @@
 @echo off
-:: sqlline.bat - Windows script to launch SQL shell
 ::
 :: Licensed to the Apache Software Foundation (ASF) under one or more
 :: contributor license agreements.  See the NOTICE file distributed with
@@ -16,13 +15,23 @@
 :: See the License for the specific language governing permissions and
 :: limitations under the License.
 ::
+
+:: sqlline.bat - Windows script to launch SQL shell
 :: Example:
 :: > sqlline.bat
-:: sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin 
+:: sqlline> !connect jdbc:calcite:model=src\test\resources\model.json admin admin
+:: sqlline> !tables
 
-:: Copy dependency jars on first call. (To force jar refresh, remove target\dependencies)
-if not exist target\dependencies (call mvn -B dependency:copy-dependencies -DoverWriteReleases=false -DoverWriteSnapshots=false -DoverWriteIfNewer=true -DoutputDirectory=target\dependencies)
+:: The script updates the classpath on each execution,
+:: You might add CACHE_SQLLINE_CLASSPATH environment variable to cache it
+:: To build classpath jar manually use gradlew buildSqllineClasspath
+set DIRNAME=%~dp0
+if "%DIRNAME%" == "" set DIRNAME=.
+set CP=%DIRNAME%\build\libs\sqllineClasspath.jar
 
-java -Xmx1G -cp ".\target\test-classes;.\target\classes;.\target\dependencies\*" sqlline.SqlLine --verbose=true %*
+if not defined CACHE_SQLLINE_CLASSPATH (
+  if exist "%CP%" del "%CP%"
+)
+if not exist "%CP%" (call "%DIRNAME%\..\..\gradlew" --console plain -q :example:csv:buildSqllineClasspath)
 
-:: End sqlline.bat
+java -Xmx1g -jar "%CP%" %*

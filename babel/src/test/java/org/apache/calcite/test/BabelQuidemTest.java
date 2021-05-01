@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteConnectionConfig;
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.materialize.MaterializationService;
@@ -25,7 +23,6 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -41,15 +38,11 @@ import net.hydromatic.quidem.Command;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,15 +50,7 @@ import java.util.regex.Pattern;
 /**
  * Unit tests for the Babel SQL parser.
  */
-@RunWith(Parameterized.class)
-@Ignore
-public class BabelQuidemTest extends QuidemTest {
-  /** Creates a BabelQuidemTest. Public per {@link Parameterized}. */
-  @SuppressWarnings("WeakerAccess")
-  public BabelQuidemTest(String path) {
-    super(path);
-  }
-
+class BabelQuidemTest extends QuidemTest {
   /** Runs a test from the command line.
    *
    * <p>For example:
@@ -75,17 +60,15 @@ public class BabelQuidemTest extends QuidemTest {
    * </blockquote> */
   public static void main(String[] args) throws Exception {
     for (String arg : args) {
-      new BabelQuidemTest(arg).test();
+      new BabelQuidemTest().test(arg);
     }
   }
 
-  @Override @Test public void test() throws Exception {
+  @BeforeEach public void setup() {
     MaterializationService.setThreadLocal();
-    super.test();
   }
 
-  /** For {@link Parameterized} runner. */
-  @Parameterized.Parameters(name = "{index}: quidem({0})")
+  /** For {@link QuidemTest#test(String)} parameters. */
   public static Collection<Object[]> data() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
@@ -100,8 +83,37 @@ public class BabelQuidemTest extends QuidemTest {
         switch (name) {
         case "babel":
           return BabelTest.connect();
+        case "scott-babel":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  SqlBabelParserImpl.class.getName() + "#FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .connect();
+        case "scott-redshift":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,postgresql,oracle")
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  SqlBabelParserImpl.class.getName() + "#FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .connect();
+        case "scott-big-query":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,bigquery")
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  SqlBabelParserImpl.class.getName() + "#FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .connect();
+        default:
+          return super.connect(name, reference);
         }
-        return super.connect(name, reference);
       }
     };
   }
@@ -126,16 +138,8 @@ public class BabelQuidemTest extends QuidemTest {
     @Override public void execute(Context x, boolean execute) throws Exception {
       if (execute) {
         // use Babel parser
-        final SqlParser.ConfigBuilder parserConfig =
-            SqlParser.configBuilder()
-                .setParserFactory(SqlBabelParserImpl.FACTORY);
-
-        // use Babel conformance for validation
-        final Properties properties = new Properties();
-        properties.setProperty(CalciteConnectionProperty.CONFORMANCE.name(),
-            SqlConformanceEnum.BABEL.name());
-        final CalciteConnectionConfig connectionConfig =
-            new CalciteConnectionConfigImpl(properties);
+        final SqlParser.Config parserConfig =
+            SqlParser.config().withParserFactory(SqlBabelParserImpl.FACTORY);
 
         // extract named schema from connection and use it in planner
         final CalciteConnection calciteConnection =
@@ -148,16 +152,15 @@ public class BabelQuidemTest extends QuidemTest {
         final Frameworks.ConfigBuilder config =
             Frameworks.newConfigBuilder()
                 .defaultSchema(schema)
-                .parserConfig(parserConfig.build())
-                .context(Contexts.of(connectionConfig));
+                .parserConfig(parserConfig)
+                .context(Contexts.of(calciteConnection.config()));
 
         // parse, validate and un-parse
         final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
         final Planner planner = Frameworks.getPlanner(config.build());
         final SqlNode node = planner.parse(sqlCommand.sql);
         final SqlNode validateNode = planner.validate(node);
-        final SqlWriter sqlWriter =
-            new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+        final SqlWriter sqlWriter = new SqlPrettyWriter();
         validateNode.unparse(sqlWriter, 0, 0);
         x.echo(ImmutableList.of(sqlWriter.toSqlString().getSql()));
       } else {
@@ -189,5 +192,3 @@ public class BabelQuidemTest extends QuidemTest {
     }
   }
 }
-
-// End BabelQuidemTest.java

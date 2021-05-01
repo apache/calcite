@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
@@ -30,7 +31,6 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -39,11 +39,14 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -54,9 +57,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility functions for schemas.
@@ -67,7 +71,7 @@ public final class Schemas {
     throw new AssertionError("no instances!");
   }
 
-  public static CalciteSchema.FunctionEntry resolve(
+  public static CalciteSchema.@Nullable FunctionEntry resolve(
       RelDataTypeFactory typeFactory,
       String name,
       Collection<CalciteSchema.FunctionEntry> functionEntries,
@@ -176,11 +180,11 @@ public final class Schemas {
           Expressions.constant(elementType),
           Expressions.constant(tableName));
     }
-    return Types.castIfNecessary(clazz, expression);
+    return EnumUtils.convert(expression, clazz);
   }
 
   public static DataContext createDataContext(
-      Connection connection, SchemaPlus rootSchema) {
+      Connection connection, @Nullable SchemaPlus rootSchema) {
     return new DummyDataContext((CalciteConnection) connection, rootSchema);
   }
 
@@ -197,8 +201,13 @@ public final class Schemas {
     SchemaPlus schema = root.getRootSchema();
     for (Iterator<? extends String> iterator = names.iterator();;) {
       String name = iterator.next();
+      requireNonNull(schema, "schema");
       if (iterator.hasNext()) {
-        schema = schema.getSubSchema(name);
+        SchemaPlus next = schema.getSubSchema(name);
+        if (next == null) {
+          throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
+        }
+        schema = next;
       } else {
         return queryable(root, schema, clazz, name);
       }
@@ -208,13 +217,17 @@ public final class Schemas {
   /** Returns a {@link Queryable}, given a schema and table name. */
   public static <E> Queryable<E> queryable(DataContext root, SchemaPlus schema,
       Class<E> clazz, String tableName) {
-    QueryableTable table = (QueryableTable) schema.getTable(tableName);
-    return table.asQueryable(root.getQueryProvider(), schema, tableName);
+    QueryableTable table = (QueryableTable) requireNonNull(
+        schema.getTable(tableName),
+        () -> "table " + tableName + " is not found in " + schema);
+    QueryProvider queryProvider = requireNonNull(root.getQueryProvider(),
+        "root.getQueryProvider()");
+    return table.asQueryable(queryProvider, schema, tableName);
   }
 
   /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
    * a given table, representing each row as an object array. */
-  public static Enumerable<Object[]> enumerable(final ScannableTable table,
+  public static Enumerable<@Nullable Object[]> enumerable(final ScannableTable table,
       final DataContext root) {
     return table.scan(root);
   }
@@ -222,18 +235,19 @@ public final class Schemas {
   /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
    * a given table, not applying any filters, representing each row as an object
    * array. */
-  public static Enumerable<Object[]> enumerable(final FilterableTable table,
+  public static Enumerable<@Nullable Object[]> enumerable(final FilterableTable table,
       final DataContext root) {
-    return table.scan(root, ImmutableList.of());
+    return table.scan(root, new ArrayList<>());
   }
 
   /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
    * a given table, not applying any filters and projecting all columns,
    * representing each row as an object array. */
-  public static Enumerable<Object[]> enumerable(
+  public static Enumerable<@Nullable Object[]> enumerable(
       final ProjectableFilterableTable table, final DataContext root) {
-    return table.scan(root, ImmutableList.of(),
-        identity(table.getRowType(root.getTypeFactory()).getFieldCount()));
+    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    return table.scan(root, new ArrayList<>(),
+        identity(table.getRowType(typeFactory).getFieldCount()));
   }
 
   private static int[] identity(int count) {
@@ -247,13 +261,18 @@ public final class Schemas {
   /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over object
    * arrays, given a fully-qualified table name which leads to a
    * {@link ScannableTable}. */
-  public static Table table(DataContext root, String... names) {
+  public static @Nullable Table table(DataContext root, String... names) {
     SchemaPlus schema = root.getRootSchema();
     final List<String> nameList = Arrays.asList(names);
     for (Iterator<? extends String> iterator = nameList.iterator();;) {
       String name = iterator.next();
+      requireNonNull(schema, "schema");
       if (iterator.hasNext()) {
-        schema = schema.getSubSchema(name);
+        SchemaPlus next = schema.getSubSchema(name);
+        if (next == null) {
+          throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
+        }
+        schema = next;
       } else {
         return schema.getTable(name);
       }
@@ -263,7 +282,7 @@ public final class Schemas {
   /** Parses and validates a SQL query. For use within Calcite only. */
   public static CalcitePrepare.ParseResult parse(
       final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath, final String sql) {
+      final @Nullable List<String> schemaPath, final String sql) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
@@ -298,8 +317,8 @@ public final class Schemas {
   /** Analyzes a view. For use within Calcite only. */
   public static CalcitePrepare.AnalyzeViewResult analyzeView(
       final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath, final String viewSql,
-      List<String> viewPath, boolean fail) {
+      final @Nullable List<String> schemaPath, final String viewSql,
+      @Nullable List<String> viewPath, boolean fail) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
@@ -316,7 +335,7 @@ public final class Schemas {
   /** Prepares a SQL query for execution. For use within Calcite only. */
   public static CalcitePrepare.CalciteSignature<Object> prepare(
       final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath, final String sql,
+      final @Nullable List<String> schemaPath, final String sql,
       final ImmutableMap<CalciteConnectionProperty, String> map) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
     final CalcitePrepare.Context context =
@@ -343,7 +362,7 @@ public final class Schemas {
    */
   private static CalcitePrepare.Context makeContext(
       CalciteConnection connection, CalciteSchema schema,
-      List<String> schemaPath, List<String> objectPath,
+      @Nullable List<String> schemaPath, @Nullable List<String> objectPath,
       final ImmutableMap<CalciteConnectionProperty, String> propValues) {
     if (connection == null) {
       final CalcitePrepare.Context context0 = CalcitePrepare.Dummy.peek();
@@ -375,23 +394,23 @@ public final class Schemas {
       final JavaTypeFactory typeFactory,
       final DataContext dataContext,
       final CalciteSchema schema,
-      final List<String> schemaPath, final List<String> objectPath_) {
-    final ImmutableList<String> objectPath =
+      final @Nullable List<String> schemaPath, final @Nullable List<String> objectPath_) {
+    final @Nullable ImmutableList<String> objectPath =
         objectPath_ == null ? null : ImmutableList.copyOf(objectPath_);
     return new CalcitePrepare.Context() {
-      public JavaTypeFactory getTypeFactory() {
+      @Override public JavaTypeFactory getTypeFactory() {
         return typeFactory;
       }
 
-      public CalciteSchema getRootSchema() {
+      @Override public CalciteSchema getRootSchema() {
         return schema.root();
       }
 
-      public CalciteSchema getMutableRootSchema() {
+      @Override public CalciteSchema getMutableRootSchema() {
         return getRootSchema();
       }
 
-      public List<String> getDefaultSchemaPath() {
+      @Override public List<String> getDefaultSchemaPath() {
         // schemaPath is usually null. If specified, it overrides schema
         // as the context within which the SQL is validated.
         if (schemaPath == null) {
@@ -400,23 +419,23 @@ public final class Schemas {
         return schemaPath;
       }
 
-      public List<String> getObjectPath() {
+      @Override public @Nullable List<String> getObjectPath() {
         return objectPath;
       }
 
-      public CalciteConnectionConfig config() {
+      @Override public CalciteConnectionConfig config() {
         return connectionConfig;
       }
 
-      public DataContext getDataContext() {
+      @Override public DataContext getDataContext() {
         return dataContext;
       }
 
-      public RelRunner getRelRunner() {
+      @Override public RelRunner getRelRunner() {
         throw new UnsupportedOperationException();
       }
 
-      public CalcitePrepare.SparkHandler spark() {
+      @Override public CalcitePrepare.SparkHandler spark() {
         final boolean enable = config().spark();
         return CalcitePrepare.Dummy.getSparkHandler(enable);
       }
@@ -443,9 +462,9 @@ public final class Schemas {
   public static List<CalciteSchema.TableEntry> getStarTables(
       CalciteSchema schema) {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
-    return Lists.transform(list, entry -> {
+    return Util.transform(list, entry -> {
       final CalciteSchema.TableEntry starTable =
-          Objects.requireNonNull(entry).getStarTable();
+          requireNonNull(entry).getStarTable();
       assert starTable.getTable().getJdbcTableType()
           == Schema.TableType.STAR;
       return entry.getStarTable();
@@ -457,7 +476,7 @@ public final class Schemas {
    * @param schema Schema */
   public static List<Lattice> getLattices(CalciteSchema schema) {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
-    return Lists.transform(list, CalciteSchema.LatticeEntry::getLattice);
+    return Util.transform(list, LatticeEntry::getLattice);
   }
 
   /** Returns the lattices defined in a schema.
@@ -484,20 +503,21 @@ public final class Schemas {
    * <p>The result is null if the initial schema is null or any sub-schema does
    * not exist.
    */
-  public static CalciteSchema subSchema(CalciteSchema schema,
+  public static @Nullable CalciteSchema subSchema(CalciteSchema schema,
       Iterable<String> names) {
+    @Nullable CalciteSchema current = schema;
     for (String string : names) {
-      if (schema == null) {
+      if (current == null) {
         return null;
       }
-      schema = schema.getSubSchema(string, false);
+      current = current.getSubSchema(string, false);
     }
-    return schema;
+    return current;
   }
 
   /** Generates a table name that is unique within the given schema. */
   public static String uniqueTableName(CalciteSchema schema, String base) {
-    String t = Objects.requireNonNull(base);
+    String t = requireNonNull(base);
     for (int x = 0; schema.getTable(t, true) != null; x++) {
       t = base + x;
     }
@@ -515,6 +535,8 @@ public final class Schemas {
       return PathImpl.EMPTY;
     }
     if (!rootSchema.name.isEmpty()) {
+      // If path starts with the name of the root schema, ignore the first step
+      // in the path.
       Preconditions.checkState(rootSchema.name.equals(iterator.next()));
     }
     for (;;) {
@@ -523,7 +545,11 @@ public final class Schemas {
       if (!iterator.hasNext()) {
         return path(builder.build());
       }
-      schema = schema.getSubSchema(name);
+      Schema next = schema.getSubSchema(name);
+      if (next == null) {
+        throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
+      }
+      schema = next;
     }
   }
 
@@ -543,28 +569,28 @@ public final class Schemas {
   /** Dummy data context that has no variables. */
   private static class DummyDataContext implements DataContext {
     private final CalciteConnection connection;
-    private final SchemaPlus rootSchema;
+    private final @Nullable SchemaPlus rootSchema;
     private final ImmutableMap<String, Object> map;
 
-    DummyDataContext(CalciteConnection connection, SchemaPlus rootSchema) {
+    DummyDataContext(CalciteConnection connection, @Nullable SchemaPlus rootSchema) {
       this.connection = connection;
       this.rootSchema = rootSchema;
       this.map = ImmutableMap.of();
     }
 
-    public SchemaPlus getRootSchema() {
+    @Override public @Nullable SchemaPlus getRootSchema() {
       return rootSchema;
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    @Override public @Nullable JavaTypeFactory getTypeFactory() {
       return connection.getTypeFactory();
     }
 
-    public QueryProvider getQueryProvider() {
+    @Override public QueryProvider getQueryProvider() {
       return connection;
     }
 
-    public Object get(String name) {
+    @Override public @Nullable Object get(String name) {
       return map.get(name);
     }
   }
@@ -581,7 +607,7 @@ public final class Schemas {
       this.pairs = pairs;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof PathImpl
           && pairs.equals(((PathImpl) o).pairs);
@@ -591,37 +617,35 @@ public final class Schemas {
       return pairs.hashCode();
     }
 
-    public Pair<String, Schema> get(int index) {
+    @Override public Pair<String, Schema> get(int index) {
       return pairs.get(index);
     }
 
-    public int size() {
+    @Override public int size() {
       return pairs.size();
     }
 
-    public Path parent() {
+    @Override public Path parent() {
       if (pairs.isEmpty()) {
         throw new IllegalArgumentException("at root");
       }
       return new PathImpl(pairs.subList(0, pairs.size() - 1));
     }
 
-    public List<String> names() {
+    @Override public List<String> names() {
       return new AbstractList<String>() {
-        public String get(int index) {
+        @Override public String get(int index) {
           return pairs.get(index + 1).left;
         }
 
-        public int size() {
+        @Override public int size() {
           return pairs.size() - 1;
         }
       };
     }
 
-    public List<Schema> schemas() {
+    @Override public List<Schema> schemas() {
       return Pair.right(pairs);
     }
   }
 }
-
-// End Schemas.java

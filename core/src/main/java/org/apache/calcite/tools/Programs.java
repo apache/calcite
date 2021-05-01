@@ -37,28 +37,12 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
-import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
-import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
-import org.apache.calcite.rel.rules.AggregateStarTableRule;
-import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
-import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.FilterTableScanRule;
-import org.apache.calcite.rel.rules.JoinAssociateRule;
-import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
-import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
-import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
-import org.apache.calcite.rel.rules.MatchRule;
-import org.apache.calcite.rel.rules.MultiJoinOptimizeBushyRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.SemiJoinRule;
-import org.apache.calcite.rel.rules.SortProjectTransposeRule;
-import org.apache.calcite.rel.rules.SubQueryRemoveRule;
-import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -67,6 +51,8 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Utilities for creating {@link Program}s.
@@ -85,6 +71,7 @@ public class Programs {
 
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
+          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
@@ -100,25 +87,24 @@ public class Programs {
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_MATCH_RULE,
-          SemiJoinRule.PROJECT,
-          SemiJoinRule.JOIN,
-          TableScanRule.INSTANCE,
-          MatchRule.INSTANCE,
+          CoreRules.PROJECT_TO_SEMI_JOIN,
+          CoreRules.JOIN_TO_SEMI_JOIN,
+          CoreRules.MATCH,
           CalciteSystemProperty.COMMUTE.value()
-              ? JoinAssociateRule.INSTANCE
-              : ProjectMergeRule.INSTANCE,
-          AggregateStarTableRule.INSTANCE,
-          AggregateStarTableRule.INSTANCE2,
-          FilterTableScanRule.INSTANCE,
-          FilterProjectTransposeRule.INSTANCE,
-          FilterJoinRule.FILTER_ON_JOIN,
-          AggregateExpandDistinctAggregatesRule.INSTANCE,
-          AggregateReduceFunctionsRule.INSTANCE,
-          FilterAggregateTransposeRule.INSTANCE,
-          JoinCommuteRule.INSTANCE,
+              ? CoreRules.JOIN_ASSOCIATE
+              : CoreRules.PROJECT_MERGE,
+          CoreRules.AGGREGATE_STAR_TABLE,
+          CoreRules.AGGREGATE_PROJECT_STAR_TABLE,
+          CoreRules.FILTER_SCAN,
+          CoreRules.FILTER_PROJECT_TRANSPOSE,
+          CoreRules.FILTER_INTO_JOIN,
+          CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES,
+          CoreRules.AGGREGATE_REDUCE_FUNCTIONS,
+          CoreRules.FILTER_AGGREGATE_TRANSPOSE,
+          CoreRules.JOIN_COMMUTE,
           JoinPushThroughJoinRule.RIGHT,
           JoinPushThroughJoinRule.LEFT,
-          SortProjectTransposeRule.INSTANCE);
+          CoreRules.SORT_PROJECT_TRANSPOSE);
 
   // private constructor for utility class
   private Programs() {}
@@ -130,12 +116,12 @@ public class Programs {
 
   /** Creates a list of programs based on an array of rule sets. */
   public static List<Program> listOf(RuleSet... ruleSets) {
-    return Lists.transform(Arrays.asList(ruleSets), Programs::of);
+    return Util.transform(Arrays.asList(ruleSets), Programs::of);
   }
 
   /** Creates a list of programs based on a list of rule sets. */
   public static List<Program> listOf(List<RuleSet> ruleSets) {
-    return Lists.transform(ruleSets, Programs::of);
+    return Util.transform(ruleSets, Programs::of);
   }
 
   /** Creates a program from a list of rules. */
@@ -206,9 +192,9 @@ public class Programs {
       } else {
         // Create a program that gathers together joins as a MultiJoin.
         final HepProgram hep = new HepProgramBuilder()
-            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
             .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-            .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+            .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
             .build();
         final Program program1 =
             of(hep, false, DefaultRelMetadataProvider.INSTANCE);
@@ -219,13 +205,14 @@ public class Programs {
         // JoinPushThroughJoinRule, because they cause exhaustive search.
         final List<RelOptRule> list = Lists.newArrayList(rules);
         list.removeAll(
-            ImmutableList.of(JoinCommuteRule.INSTANCE,
-                JoinAssociateRule.INSTANCE,
+            ImmutableList.of(
+                CoreRules.JOIN_COMMUTE,
+                CoreRules.JOIN_ASSOCIATE,
                 JoinPushThroughJoinRule.LEFT,
                 JoinPushThroughJoinRule.RIGHT));
         list.add(bushy
-            ? MultiJoinOptimizeBushyRule.INSTANCE
-            : LoptOptimizeJoinRule.INSTANCE);
+            ? CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY
+            : CoreRules.MULTI_JOIN_OPTIMIZE);
         final Program program2 = ofRules(list);
 
         program = sequence(program1, program2);
@@ -246,15 +233,17 @@ public class Programs {
 
   public static Program subQuery(RelMetadataProvider metadataProvider) {
     final HepProgramBuilder builder = HepProgram.builder();
-    builder.addRuleCollection(ImmutableList.of((RelOptRule) SubQueryRemoveRule.FILTER,
-        SubQueryRemoveRule.PROJECT,
-        SubQueryRemoveRule.JOIN));
+    builder.addRuleCollection(
+        ImmutableList.of(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+            CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE));
     return of(builder.build(), true, metadataProvider);
   }
 
+  @Deprecated
   public static Program getProgram() {
     return (planner, rel, requiredOutputTraits, materializations, lattices) ->
-        null;
+        castNonNull(null);
   }
 
   /** Returns the standard program used by Prepare. */
@@ -266,8 +255,6 @@ public class Programs {
   public static Program standard(RelMetadataProvider metadataProvider) {
     final Program program1 =
         (planner, rel, requiredOutputTraits, materializations, lattices) -> {
-          planner.setRoot(rel);
-
           for (RelOptMaterialization materialization : materializations) {
             planner.addMaterialization(materialization);
           }
@@ -275,6 +262,7 @@ public class Programs {
             planner.addLattice(lattice);
           }
 
+          planner.setRoot(rel);
           final RelNode rootRel2 =
               rel.getTraitSet().equals(requiredOutputTraits)
                   ? rel
@@ -306,7 +294,7 @@ public class Programs {
       this.ruleSet = ruleSet;
     }
 
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
@@ -338,7 +326,7 @@ public class Programs {
       this.programs = programs;
     }
 
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
@@ -358,13 +346,14 @@ public class Programs {
    * disable field-trimming in {@link SqlToRelConverter}, and run
    * {@link TrimFieldsProgram} after this program. */
   private static class DecorrelateProgram implements Program {
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
       final CalciteConnectionConfig config =
-          planner.getContext().unwrap(CalciteConnectionConfig.class);
-      if (config != null && config.forceDecorrelate()) {
+          planner.getContext().maybeUnwrap(CalciteConnectionConfig.class)
+              .orElse(CalciteConnectionConfig.DEFAULT);
+      if (config.forceDecorrelate()) {
         final RelBuilder relBuilder =
             RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
         return RelDecorrelator.decorrelateQuery(rel, relBuilder);
@@ -375,7 +364,7 @@ public class Programs {
 
   /** Program that trims fields. */
   private static class TrimFieldsProgram implements Program {
-    public RelNode run(RelOptPlanner planner, RelNode rel,
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
         RelTraitSet requiredOutputTraits,
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
@@ -385,5 +374,3 @@ public class Programs {
     }
   }
 }
-
-// End Programs.java

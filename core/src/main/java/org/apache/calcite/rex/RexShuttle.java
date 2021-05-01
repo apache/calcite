@@ -17,7 +17,9 @@
 package org.apache.calcite.rex;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ import java.util.List;
 public class RexShuttle implements RexVisitor<RexNode> {
   //~ Methods ----------------------------------------------------------------
 
-  public RexNode visitOver(RexOver over) {
+  @Override public RexNode visitOver(RexOver over) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(over.operands, update);
     RexWindow window = visitWindow(over.getWindow());
@@ -62,23 +64,33 @@ public class RexShuttle implements RexVisitor<RexNode> {
         visitFieldCollations(window.orderKeys, update);
     List<RexNode> clonedPartitionKeys =
         visitList(window.partitionKeys, update);
-    RexWindowBound lowerBound = window.getLowerBound().accept(this);
-    RexWindowBound upperBound = window.getUpperBound().accept(this);
-    if (update[0]
-        || (lowerBound != window.getLowerBound() && lowerBound != null)
-        || (upperBound != window.getUpperBound() && upperBound != null)) {
-      return new RexWindow(
-          clonedPartitionKeys,
-          clonedOrderKeys,
-          lowerBound,
-          upperBound,
-          window.isRows());
-    } else {
+    final RexWindowBound lowerBound = window.getLowerBound().accept(this);
+    final RexWindowBound upperBound = window.getUpperBound().accept(this);
+    if (lowerBound == null
+        || upperBound == null
+        || !update[0]
+        && lowerBound == window.getLowerBound()
+        && upperBound == window.getUpperBound()) {
       return window;
     }
+    boolean rows = window.isRows();
+    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
+        && upperBound.isUnbounded() && upperBound.isFollowing()) {
+      // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   is equivalent to
+      // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   but we prefer "RANGE"
+      rows = false;
+    }
+    return new RexWindow(
+        clonedPartitionKeys,
+        clonedOrderKeys,
+        lowerBound,
+        upperBound,
+        rows);
   }
 
-  public RexNode visitSubQuery(RexSubQuery subQuery) {
+  @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(subQuery.operands, update);
     if (update[0]) {
@@ -96,7 +108,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
     return fieldRef;
   }
 
-  public RexNode visitCall(final RexCall call) {
+  @Override public RexNode visitCall(final RexCall call) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(call.operands, update);
     if (update[0]) {
@@ -120,7 +132,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    *               was modified
    * @return Array of visited expressions
    */
-  protected RexNode[] visitArray(RexNode[] exprs, boolean[] update) {
+  protected RexNode[] visitArray(RexNode[] exprs, boolean @Nullable [] update) {
     RexNode[] clonedOperands = new RexNode[exprs.length];
     for (int i = 0; i < exprs.length; i++) {
       RexNode operand = exprs[i];
@@ -143,7 +155,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * @return Array of visited expressions
    */
   protected List<RexNode> visitList(
-      List<? extends RexNode> exprs, boolean[] update) {
+      List<? extends RexNode> exprs, boolean @Nullable [] update) {
     ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
     for (RexNode operand : exprs) {
       RexNode clonedOperand = operand.accept(this);
@@ -156,16 +168,6 @@ public class RexShuttle implements RexVisitor<RexNode> {
   }
 
   /**
-   * Visits a list and writes the results to another list.
-   */
-  public void visitList(
-      List<? extends RexNode> exprs, List<RexNode> outExprs) {
-    for (RexNode expr : exprs) {
-      outExprs.add(expr.accept(this));
-    }
-  }
-
-  /**
    * Visits each of a list of field collations and returns a list of the
    * results.
    *
@@ -175,7 +177,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * @return Array of visited field collations
    */
   protected List<RexFieldCollation> visitFieldCollations(
-      List<RexFieldCollation> collations, boolean[] update) {
+      List<RexFieldCollation> collations, boolean @Nullable [] update) {
     ImmutableList.Builder<RexFieldCollation> clonedOperands =
         ImmutableList.builder();
     for (RexFieldCollation collation : collations) {
@@ -190,11 +192,11 @@ public class RexShuttle implements RexVisitor<RexNode> {
     return clonedOperands.build();
   }
 
-  public RexNode visitCorrelVariable(RexCorrelVariable variable) {
+  @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
     return variable;
   }
 
-  public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+  @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
     RexNode before = fieldAccess.getReferenceExpr();
     RexNode after = before.accept(this);
 
@@ -207,23 +209,23 @@ public class RexShuttle implements RexVisitor<RexNode> {
     }
   }
 
-  public RexNode visitInputRef(RexInputRef inputRef) {
+  @Override public RexNode visitInputRef(RexInputRef inputRef) {
     return inputRef;
   }
 
-  public RexNode visitLocalRef(RexLocalRef localRef) {
+  @Override public RexNode visitLocalRef(RexLocalRef localRef) {
     return localRef;
   }
 
-  public RexNode visitLiteral(RexLiteral literal) {
+  @Override public RexNode visitLiteral(RexLiteral literal) {
     return literal;
   }
 
-  public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+  @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
     return dynamicParam;
   }
 
-  public RexNode visitRangeRef(RexRangeRef rangeRef) {
+  @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
     return rangeRef;
   }
 
@@ -232,7 +234,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    *
    * @return whether any of the expressions changed
    */
-  public final <T extends RexNode> boolean mutate(List<T> exprList) {
+  public final <T extends @Nullable RexNode> boolean mutate(List<T> exprList) {
     int changeCount = 0;
     for (int i = 0; i < exprList.size(); i++) {
       T expr = exprList.get(i);
@@ -248,10 +250,12 @@ public class RexShuttle implements RexVisitor<RexNode> {
   /**
    * Applies this shuttle to each expression in a list and returns the
    * resulting list. Does not modify the initial list.
+   *
+   * <p>Returns null if and only if {@code exprList} is null.
    */
-  public final <T extends RexNode> List<T> apply(List<T> exprList) {
+  public final <T extends @Nullable RexNode> @PolyNull List<T> apply(@PolyNull List<T> exprList) {
     if (exprList == null) {
-      return null;
+      return exprList;
     }
     final List<T> list2 = new ArrayList<>(exprList);
     if (mutate(list2)) {
@@ -262,20 +266,10 @@ public class RexShuttle implements RexVisitor<RexNode> {
   }
 
   /**
-   * Applies this shuttle to each expression in an iterable.
-   */
-  public final Iterable<RexNode> apply(Iterable<? extends RexNode> iterable) {
-    return Iterables.transform(iterable,
-        t -> t == null ? null : t.accept(RexShuttle.this));
-  }
-
-  /**
    * Applies this shuttle to an expression, or returns null if the expression
    * is null.
    */
-  public final RexNode apply(RexNode expr) {
-    return (expr == null) ? null : expr.accept(this);
+  public final @PolyNull RexNode apply(@PolyNull RexNode expr) {
+    return (expr == null) ? expr : expr.accept(this);
   }
 }
-
-// End RexShuttle.java

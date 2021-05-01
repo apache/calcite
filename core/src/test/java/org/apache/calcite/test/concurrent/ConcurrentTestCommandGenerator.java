@@ -60,14 +60,11 @@ import java.util.regex.Pattern;
  * <p>There are no restrictions on the order of command creation.</p>
  */
 public class ConcurrentTestCommandGenerator {
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final char APOS = '\'';
   private static final char COMMA = ',';
   private static final char LEFT_BRACKET = '{';
   private static final char RIGHT_BRACKET = '}';
 
-  //~ Instance fields --------------------------------------------------------
   protected boolean debug = false;
   protected PrintStream debugStream = System.out;
   protected String jdbcURL;
@@ -86,14 +83,14 @@ public class ConcurrentTestCommandGenerator {
   private TreeMap<Integer, String> threadNameMap;
 
   /**
-   * Describes a thread that failed
+   * Describes a thread that failed.
    */
-  public static class FailedThread {
+  static class FailedThread {
     public final String name;
     public final String location;
     public final Throwable failure;
 
-    public FailedThread(String name, String location, Throwable failure) {
+    FailedThread(String name, String location, Throwable failure) {
       this.name = name;
       this.location = location;
       this.failure = failure;
@@ -106,9 +103,6 @@ public class ConcurrentTestCommandGenerator {
    * successful test the list is empty.
    */
   private List<FailedThread> failedThreads;
-
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Constructs a new ConcurrentTestCommandGenerator.
@@ -472,9 +466,7 @@ public class ConcurrentTestCommandGenerator {
     return !failedThreads.isEmpty();
   }
 
-  /**
-   * @return the list of failed threads (unmodifiable)
-   */
+  /** Returns the list of failed threads (unmodifiable). */
   public List<FailedThread> getFailedThreads() {
     return ImmutableList.copyOf(failedThreads);
   }
@@ -633,9 +625,7 @@ public class ConcurrentTestCommandGenerator {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /**
-   * abstract base to handle SQLExceptions
-   */
+  /** Abstract base to handle {@link SQLException}s. */
   protected abstract static class AbstractCommand
       implements ConcurrentTestCommand {
     private boolean shouldFail = false;
@@ -725,7 +715,6 @@ public class ConcurrentTestCommandGenerator {
    */
   static class AutoSynchronizationCommand extends SynchronizationCommand {
     private AutoSynchronizationCommand() {
-      super();
     }
   }
 
@@ -1362,5 +1351,3 @@ public class ConcurrentTestCommandGenerator {
     }
   }
 }
-
-// End ConcurrentTestCommandGenerator.java

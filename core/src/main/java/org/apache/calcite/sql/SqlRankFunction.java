@@ -46,5 +46,3 @@ public class SqlRankFunction extends SqlAggFunction {
   }
 
 }
-
-// End SqlRankFunction.java

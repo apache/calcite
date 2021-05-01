@@ -49,5 +49,3 @@ public interface AggregatingScope extends SqlValidatorScope {
    */
   boolean checkAggregateExpr(SqlNode expr, boolean deep);
 }
-
-// End AggregatingScope.java

@@ -26,5 +26,3 @@ package org.apache.calcite.util;
  */
 public interface ReflectiveVisitor {
 }
-
-// End ReflectiveVisitor.java

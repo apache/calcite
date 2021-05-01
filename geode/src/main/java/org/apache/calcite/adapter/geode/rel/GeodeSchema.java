@@ -63,5 +63,3 @@ public class GeodeSchema extends AbstractSchema {
     return tableMap;
   }
 }
-
-// End GeodeSchema.java

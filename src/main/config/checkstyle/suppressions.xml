@@ -1,4 +1,20 @@
 <?xml version="1.0"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
 <!DOCTYPE suppressions PUBLIC
         "-//Puppy Crawl//DTD Suppressions 1.1//EN"
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
@@ -19,34 +35,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <suppressions>
-  <!-- Suppress checks on generated files. -->
-  <suppress checks="Header" files="LICENSE"/>
-  <suppress checks="Header" files="NOTICE"/>
-  <suppress checks=".*" files="Foo.java"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]maven-archiver[/\\]pom.properties"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]generated-sources[/\\].*"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]generated-test-sources[/\\].*"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]embeddedCassandra[/\\]log4j-embedded-cassandra.properties"/>
-  <suppress checks=".*" files="git.properties"/>
-  <suppress checks=".*" files="release.properties"/>
-  <suppress checks=".*" files="auth-users.properties"/>
-
-  <!-- This file triggers https://github.com/checkstyle/checkstyle/issues/92,
-       through no fault of its own. -->
-  <suppress checks=".*" files="SqlSimpleParser.java"/>
-
   <!-- Don't complain about field names such as cust_id -->
   <suppress checks=".*Name" files="JdbcExample.java"/>
 
   <!-- Don't complain about method names in a class full of UDFs -->
   <suppress checks="MethodName" files="GeoFunctions.java"/>
 
-  <!-- Suppress JavadocPackage in the test packages -->
+  <!-- Suppress JavadocPackage in the test packages,
+       and in the 'org.apache.calcite.server' package, which is split between
+       'core' and 'server'. -->
   <suppress checks="JavadocPackage" files="src[/\\]test[/\\]java[/\\]"/>
-
-  <!-- And likewise in ubenchmark -->
-  <suppress checks="JavadocPackage" files="StatementTest.java"/>
-  <suppress checks="JavadocPackage" files="CodeGenerationBenchmark.java"/>
+  <suppress checks="JavadocPackage" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]calcite[/\\]server[/\\]"/>
 
   <!-- Method names in Resource can have underscores -->
   <suppress checks="MethodName" files="CalciteResource.java"/>

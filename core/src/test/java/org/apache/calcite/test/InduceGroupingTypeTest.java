@@ -19,22 +19,22 @@ package org.apache.calcite.test;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for
  * {@link org.apache.calcite.rel.core.Aggregate.Group#induce(ImmutableBitSet, List)}.
  */
-public class InduceGroupingTypeTest {
-  @Test public void testInduceGroupingType() {
+class InduceGroupingTypeTest {
+  @Test void testInduceGroupingType() {
     final ImmutableBitSet groupSet = ImmutableBitSet.of(1, 2, 4, 5);
 
     // SIMPLE
@@ -155,7 +155,7 @@ public class InduceGroupingTypeTest {
 
   /** Tests a singleton grouping set {2}, whose power set has only two elements,
    * { {2}, {} }. */
-  @Test public void testInduceGroupingType1() {
+  @Test void testInduceGroupingType1() {
     final ImmutableBitSet groupSet = ImmutableBitSet.of(2);
 
     // Could be ROLLUP but we prefer CUBE
@@ -180,7 +180,7 @@ public class InduceGroupingTypeTest {
         Aggregate.Group.induce(groupSet, groupSets));
   }
 
-  @Test public void testInduceGroupingType0() {
+  @Test void testInduceGroupingType0() {
     final ImmutableBitSet groupSet = ImmutableBitSet.of();
 
     // Could be CUBE or ROLLUP but we choose SIMPLE
@@ -194,5 +194,3 @@ public class InduceGroupingTypeTest {
         Aggregate.Group.induce(groupSet, groupSets));
   }
 }
-
-// End InduceGroupingTypeTest.java

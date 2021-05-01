@@ -56,5 +56,3 @@ public class SqlCurrentTimestampFunction extends SqlAbstractTimeFunction {
     return opBinding.getTypeFactory().createSqlType(typeName, precision);
   }
 }
-
-// End SqlCurrentTimestampFunction.java

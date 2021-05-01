@@ -37,7 +37,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 class SqlArgumentAssignmentOperator extends SqlAsOperator {
   SqlArgumentAssignmentOperator() {
     super("=>", SqlKind.ARGUMENT_ASSIGNMENT, 20, true, ReturnTypes.ARG0,
-        InferTypes.RETURN_TYPE, OperandTypes.ANY_ANY);
+        InferTypes.RETURN_TYPE, OperandTypes.ANY_IGNORE);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
@@ -47,6 +47,8 @@ class SqlArgumentAssignmentOperator extends SqlAsOperator {
     writer.keyword(getName());
     call.operand(0).unparse(writer, getRightPrec(), rightPrec);
   }
-}
 
-// End SqlArgumentAssignmentOperator.java
+  @Override public boolean argumentMustBeScalar(int ordinal) {
+    return false;
+  }
+}

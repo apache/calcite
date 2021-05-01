@@ -36,5 +36,3 @@ public interface TranslatableTable extends Table {
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable);
 }
-
-// End TranslatableTable.java

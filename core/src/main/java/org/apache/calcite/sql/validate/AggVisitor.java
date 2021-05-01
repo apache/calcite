@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -25,10 +26,11 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlAbstractGroupFunction;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /** Visitor that can find aggregate and windowed aggregate functions.
  *
@@ -37,7 +39,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
   protected final SqlOperatorTable opTab;
   /** Whether to find windowed aggregates. */
   protected final boolean over;
-  protected final AggFinder delegate;
+  protected final @Nullable AggFinder delegate;
   /** Whether to find regular (non-windowed) aggregates. */
   protected final boolean aggregate;
   /** Whether to find group functions (e.g. {@code TUMBLE})
@@ -66,7 +68,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
     this.nameMatcher = Objects.requireNonNull(nameMatcher);
   }
 
-  public Void visit(SqlCall call) {
+  @Override public Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
     // If nested aggregates disallowed or found an aggregate at invalid level
     if (operator.isAggregator()
@@ -87,15 +89,18 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
       final SqlFunction sqlFunction = (SqlFunction) operator;
       if (sqlFunction.getFunctionType().isUserDefinedNotSpecificFunction()) {
         final List<SqlOperator> list = new ArrayList<>();
-        opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
-            sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list,
-            nameMatcher);
-        for (SqlOperator operator2 : list) {
-          if (operator2.isAggregator() && !operator2.requiresOver()) {
-            // If nested aggregates disallowed or found aggregate at invalid
-            // level
-            if (aggregate) {
-              found(call);
+        final SqlIdentifier identifier = sqlFunction.getSqlIdentifier();
+        if (identifier != null) {
+          opTab.lookupOperatorOverloads(identifier,
+              sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list,
+              nameMatcher);
+          for (SqlOperator operator2 : list) {
+            if (operator2.isAggregator() && !operator2.requiresOver()) {
+              // If nested aggregates disallowed or found aggregate at invalid
+              // level
+              if (aggregate) {
+                found(call);
+              }
             }
           }
         }
@@ -123,5 +128,3 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
 
   protected abstract Void found(SqlCall call);
 }
-
-// End AggVisitor.java

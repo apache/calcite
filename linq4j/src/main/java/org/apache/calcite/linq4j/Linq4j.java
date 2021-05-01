@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function1;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +38,7 @@ public abstract class Linq4j {
 
   private static final Object DUMMY = new Object();
 
-  public static Method getMethod(String className, String methodName,
+  public static @Nullable Method getMethod(String className, String methodName,
       Class... parameterTypes) {
     try {
       return Class.forName(className).getMethod(methodName, parameterTypes);
@@ -50,31 +52,31 @@ public abstract class Linq4j {
    * enumerator method; does not attempt optimization.
    */
   public static final QueryProvider DEFAULT_PROVIDER = new QueryProviderImpl() {
-    public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
+    @Override public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
       return queryable.enumerator();
     }
   };
 
   private static final Enumerator<Object> EMPTY_ENUMERATOR =
       new Enumerator<Object>() {
-        public Object current() {
+        @Override public Object current() {
           throw new NoSuchElementException();
         }
 
-        public boolean moveNext() {
+        @Override public boolean moveNext() {
           return false;
         }
 
-        public void reset() {
+        @Override public void reset() {
         }
 
-        public void close() {
+        @Override public void close() {
         }
       };
 
   public static final Enumerable<?> EMPTY_ENUMERABLE =
       new AbstractEnumerable<Object>() {
-        public Enumerator<Object> enumerator() {
+        @Override public Enumerator<Object> enumerator() {
           return EMPTY_ENUMERATOR;
         }
       };
@@ -203,10 +205,10 @@ public abstract class Linq4j {
    * @param <E> Element type
    * @return Enumerator
    */
-  public static <F, E> Enumerator<E> transform(Enumerator<F> enumerator,
-      final Function1<F, E> func) {
+  public static <F, E> Enumerator<E> transform(Enumerator<? extends F> enumerator,
+      final Function1<? super F, ? extends E> func) {
     return new TransformedEnumerator<F, E>(enumerator) {
-      protected E transform(F from) {
+      @Override protected E transform(F from) {
         return func.apply(from);
       }
     };
@@ -292,7 +294,7 @@ public abstract class Linq4j {
    */
   public static <T> Enumerable<T> singletonEnumerable(final T element) {
     return new AbstractEnumerable<T>() {
-      public Enumerator<T> enumerator() {
+      @Override public Enumerator<T> enumerator() {
         return singletonEnumerator(element);
       }
     };
@@ -423,7 +425,7 @@ public abstract class Linq4j {
   }
 
   /** Closes an iterator, if it can be closed. */
-  private static <T> void closeIterator(Iterator<T> iterator) {
+  private static <T> void closeIterator(@Nullable Iterator<? extends T> iterator) {
     if (iterator instanceof AutoCloseable) {
       try {
         ((AutoCloseable) iterator).close();
@@ -441,7 +443,7 @@ public abstract class Linq4j {
   @SuppressWarnings("unchecked")
   static class IterableEnumerator<T> implements Enumerator<T> {
     private final Iterable<? extends T> iterable;
-    Iterator<? extends T> iterator;
+    @Nullable Iterator<? extends T> iterator;
     T current;
 
     IterableEnumerator(Iterable<? extends T> iterable) {
@@ -450,15 +452,15 @@ public abstract class Linq4j {
       current = (T) DUMMY;
     }
 
-    public T current() {
+    @Override public T current() {
       if (current == DUMMY) {
         throw new NoSuchElementException();
       }
       return current;
     }
 
-    public boolean moveNext() {
-      if (iterator.hasNext()) {
+    @Override public boolean moveNext() {
+      if (Objects.requireNonNull(iterator, "iterator").hasNext()) {
         current = iterator.next();
         return true;
       }
@@ -466,12 +468,12 @@ public abstract class Linq4j {
       return false;
     }
 
-    public void reset() {
+    @Override public void reset() {
       iterator = iterable.iterator();
       current = (T) DUMMY;
     }
 
-    public void close() {
+    @Override public void close() {
       final Iterator<? extends T> iterator1 = this.iterator;
       this.iterator = null;
       closeIterator(iterator1);
@@ -482,22 +484,23 @@ public abstract class Linq4j {
    *
    * @param <E> element type */
   static class CompositeEnumerable<E> extends AbstractEnumerable<E> {
-    private final Enumerator<Enumerable<E>> enumerableEnumerator;
+    private final List<Enumerable<E>> enumerableList;
 
     CompositeEnumerable(List<Enumerable<E>> enumerableList) {
-      enumerableEnumerator = iterableEnumerator(enumerableList);
+      this.enumerableList = enumerableList;
     }
 
-    public Enumerator<E> enumerator() {
+    @Override public Enumerator<E> enumerator() {
       return new Enumerator<E>() {
         // Never null.
         Enumerator<E> current = emptyEnumerator();
+        final Enumerator<Enumerable<E>> enumerableEnumerator = iterableEnumerator(enumerableList);
 
-        public E current() {
+        @Override public E current() {
           return current.current();
         }
 
-        public boolean moveNext() {
+        @Override public boolean moveNext() {
           for (;;) {
             if (current.moveNext()) {
               return true;
@@ -511,12 +514,12 @@ public abstract class Linq4j {
           }
         }
 
-        public void reset() {
+        @Override public void reset() {
           enumerableEnumerator.reset();
           current = emptyEnumerator();
         }
 
-        public void close() {
+        @Override public void close() {
           current.close();
           current = emptyEnumerator();
         }
@@ -534,7 +537,7 @@ public abstract class Linq4j {
       this.iterable = iterable;
     }
 
-    public Iterator<T> iterator() {
+    @Override public Iterator<T> iterator() {
       return iterable.iterator();
     }
 
@@ -563,6 +566,7 @@ public abstract class Linq4j {
       return getCollection().size();
     }
 
+    @SuppressWarnings("argument.type.incompatible")
     @Override public boolean contains(T element) {
       return getCollection().contains(element);
     }
@@ -624,41 +628,41 @@ public abstract class Linq4j {
       this.e = e;
     }
 
-    public E current() {
+    @Override public E current() {
       return e;
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       return i++ == 0;
     }
 
-    public void reset() {
+    @Override public void reset() {
       i = 0;
     }
 
-    public void close() {
+    @Override public void close() {
     }
   }
 
   /** Enumerator that returns one null element.
    *
    * @param <E> element type */
-  private static class SingletonNullEnumerator<E> implements Enumerator<E> {
+  private static class SingletonNullEnumerator<@Nullable E> implements Enumerator<E> {
     int i = 0;
 
-    public E current() {
+    @Override public E current() {
       return null;
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       return i++ == 0;
     }
 
-    public void reset() {
+    @Override public void reset() {
       i = 0;
     }
 
-    public void close() {
+    @Override public void close() {
     }
   }
 
@@ -675,21 +679,21 @@ public abstract class Linq4j {
       hasNext = enumerator.moveNext();
     }
 
-    public boolean hasNext() {
+    @Override public boolean hasNext() {
       return hasNext;
     }
 
-    public T next() {
+    @Override public T next() {
       T t = enumerator.current();
       hasNext = enumerator.moveNext();
       return t;
     }
 
-    public void remove() {
+    @Override public void remove() {
       throw new UnsupportedOperationException();
     }
 
-    public void close() {
+    @Override public void close() {
       enumerator.close();
     }
   }
@@ -705,19 +709,19 @@ public abstract class Linq4j {
       this.list = list;
     }
 
-    public V current() {
+    @Override public V current() {
       return list.get(i);
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       return ++i < list.size();
     }
 
-    public void reset() {
+    @Override public void reset() {
       i = -1;
     }
 
-    public void close() {
+    @Override public void close() {
     }
   }
 
@@ -731,10 +735,8 @@ public abstract class Linq4j {
       super(enumerators);
     }
 
-    public List<E> current() {
+    @Override public List<E> current() {
       return Arrays.asList(elements.clone());
     }
   }
 }
-
-// End Linq4j.java

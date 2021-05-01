@@ -28,6 +28,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +43,7 @@ import java.util.stream.Collectors;
 public class ElasticsearchProject extends Project implements ElasticsearchRel {
   ElasticsearchProject(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() == ElasticsearchRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
@@ -49,7 +53,8 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     return new ElasticsearchProject(getCluster(), traitSet, input, projects, relDataType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
@@ -87,7 +92,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
                 + ":{\"script\":"
                 // _source (ES2) vs params._source (ES5)
                 + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
-                + expr.replaceAll("\"", "") + "\"}");
+                + expr.replace("\"", "") + "\"}");
       }
     }
 
@@ -122,5 +127,3 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     implementor.add("{" + query.toString() + "}");
   }
 }
-
-// End ElasticsearchProject.java

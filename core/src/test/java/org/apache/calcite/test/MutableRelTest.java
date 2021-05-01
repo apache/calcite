@@ -25,113 +25,118 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
-import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
-import org.apache.calcite.rel.rules.SemiJoinRule;
+import org.apache.calcite.rel.mutable.MutableScan;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.MatcherAssert;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.apache.calcite.plan.RelOptUtil.equal;
+import static org.apache.calcite.util.Litmus.IGNORE;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link MutableRel} sub-classes.
  */
-public class MutableRelTest {
+class MutableRelTest {
 
-  @Test public void testConvertAggregate() {
+  @Test void testConvertAggregate() {
     checkConvertMutableRel(
         "Aggregate",
         "select empno, sum(sal) from emp group by empno");
   }
 
-  @Test public void testConvertFilter() {
+  @Test void testConvertFilter() {
     checkConvertMutableRel(
         "Filter",
         "select * from emp where ename = 'DUMMY'");
   }
 
-  @Test public void testConvertProject() {
+  @Test void testConvertProject() {
     checkConvertMutableRel(
         "Project",
         "select ename from emp");
   }
 
-  @Test public void testConvertSort() {
+  @Test void testConvertSort() {
     checkConvertMutableRel(
         "Sort",
         "select * from emp order by ename");
   }
 
-  @Test public void testConvertCalc() {
+  @Test void testConvertCalc() {
     checkConvertMutableRel(
         "Calc",
         "select * from emp where ename = 'DUMMY'",
         false,
-        ImmutableList.of(FilterToCalcRule.INSTANCE));
+        ImmutableList.of(CoreRules.FILTER_TO_CALC));
   }
 
-  @Test public void testConvertWindow() {
+  @Test void testConvertWindow() {
     checkConvertMutableRel(
         "Window",
         "select sal, avg(sal) over (partition by deptno) from emp",
         false,
-        ImmutableList.of(ProjectToWindowRule.PROJECT));
+        ImmutableList.of(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW));
   }
 
-  @Test public void testConvertCollect() {
+  @Test void testConvertCollect() {
     checkConvertMutableRel(
         "Collect",
         "select multiset(select deptno from dept) from (values(true))");
   }
 
-  @Test public void testConvertUncollect() {
+  @Test void testConvertUncollect() {
     checkConvertMutableRel(
         "Uncollect",
         "select * from unnest(multiset[1,2])");
   }
 
-  @Test public void testConvertTableModify() {
+  @Test void testConvertTableModify() {
     checkConvertMutableRel(
         "TableModify",
         "insert into dept select empno, ename from emp");
   }
 
-  @Test public void testConvertSample() {
+  @Test void testConvertSample() {
     checkConvertMutableRel(
         "Sample",
         "select * from emp tablesample system(50) where empno > 5");
   }
 
-  @Test public void testConvertTableFunctionScan() {
+  @Test void testConvertTableFunctionScan() {
     checkConvertMutableRel(
         "TableFunctionScan",
         "select * from table(ramp(3))");
   }
 
-  @Test public void testConvertValues() {
+  @Test void testConvertValues() {
     checkConvertMutableRel(
         "Values",
         "select * from (values (1, 2))");
   }
 
-  @Test public void testConvertJoin() {
+  @Test void testConvertJoin() {
     checkConvertMutableRel(
         "Join",
         "select * from emp join dept using (deptno)");
   }
 
-  @Test public void testConvertSemiJoin() {
+  @Test void testConvertSemiJoin() {
     final String sql = "select * from dept where exists (\n"
         + "  select * from emp\n"
         + "  where emp.deptno = dept.deptno\n"
@@ -141,13 +146,11 @@ public class MutableRelTest {
         sql,
         true,
         ImmutableList.of(
-            FilterProjectTransposeRule.INSTANCE,
-            FilterJoinRule.FILTER_ON_JOIN,
-            ProjectMergeRule.INSTANCE,
-            SemiJoinRule.PROJECT));
+            CoreRules.FILTER_PROJECT_TRANSPOSE, CoreRules.FILTER_INTO_JOIN, CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_TO_SEMI_JOIN));
   }
 
-  @Test public void testConvertCorrelate() {
+  @Test void testConvertCorrelate() {
     final String sql = "select * from dept where exists (\n"
         + "  select * from emp\n"
         + "  where emp.deptno = dept.deptno\n"
@@ -155,28 +158,28 @@ public class MutableRelTest {
     checkConvertMutableRel("Correlate", sql);
   }
 
-  @Test public void testConvertUnion() {
+  @Test void testConvertUnion() {
     checkConvertMutableRel(
         "Union",
         "select * from emp where deptno = 10"
         + "union select * from emp where ename like 'John%'");
   }
 
-  @Test public void testConvertMinus() {
+  @Test void testConvertMinus() {
     checkConvertMutableRel(
         "Minus",
         "select * from emp where deptno = 10"
         + "except select * from emp where ename like 'John%'");
   }
 
-  @Test public void testConvertIntersect() {
+  @Test void testConvertIntersect() {
     checkConvertMutableRel(
         "Intersect",
         "select * from emp where deptno = 10"
         + "intersect select * from emp where ename like 'John%'");
   }
 
-  @Test public void testUpdateInputOfUnion() {
+  @Test void testUpdateInputOfUnion() {
     MutableRel mutableRel = createMutableRel(
         "select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
@@ -195,16 +198,16 @@ public class MutableRelTest {
     MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
   }
 
-  @Test public void testParentInfoOfUnion() {
+  @Test void testParentInfoOfUnion() {
     MutableRel mutableRel = createMutableRel(
         "select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
     for (MutableRel input: mutableRel.getInputs()) {
-      Assert.assertTrue(input.getParent() == mutableRel);
+      assertSame(input.getParent(), mutableRel);
     }
   }
 
-  @Test public void testMutableTableFunctionScanEquals() {
+  @Test void testMutableTableFunctionScanEquals() {
     final String sql = "SELECT * FROM TABLE(RAMP(3))";
     final MutableRel mutableRel1 = createMutableRel(sql);
     final MutableRel mutableRel2 = createMutableRel(sql);
@@ -213,7 +216,31 @@ public class MutableRelTest {
         + "LogicalProject(I=[$0])\n"
         + "  LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])\n";
     MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
-    Assert.assertEquals(mutableRel1, mutableRel2);
+    assertEquals(mutableRel1, mutableRel2);
+  }
+
+  /** Verifies equivalence of {@link MutableScan}. */
+  @Test public void testMutableScanEquivalence() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+
+    assertThat(mutableScanOf(builder, "EMP"),
+        equalTo(mutableScanOf(builder, "EMP")));
+    assertThat(mutableScanOf(builder, "EMP").hashCode(),
+        equalTo(mutableScanOf(builder, "EMP").hashCode()));
+
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        equalTo(mutableScanOf(builder, "scott", "EMP")));
+    assertThat(mutableScanOf(builder, "scott", "EMP").hashCode(),
+        equalTo(mutableScanOf(builder, "scott", "EMP").hashCode()));
+
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        equalTo(mutableScanOf(builder, "EMP")));
+    assertThat(mutableScanOf(builder, "scott", "EMP").hashCode(),
+        equalTo(mutableScanOf(builder, "EMP").hashCode()));
+
+    assertThat(mutableScanOf(builder, "EMP"),
+        not(equalTo(mutableScanOf(builder, "DEPT"))));
   }
 
   /** Verifies that after conversion to and from a MutableRel, the new
@@ -249,7 +276,7 @@ public class MutableRelTest {
     final String mutableRelStr = mutableRel.deep();
     final String msg1 =
         "Mutable rel: " + mutableRelStr + " does not contain target rel: " + rel;
-    Assert.assertTrue(msg1, mutableRelStr.contains(rel));
+    assertTrue(mutableRelStr.contains(rel), msg1);
 
     // Check if the mutable rel's row-type is identical to the original
     // rel's row-type.
@@ -259,12 +286,12 @@ public class MutableRelTest {
         "Mutable rel's row type does not match with the original rel.\n"
         + "Original rel type: " + origRelType
         + ";\nMutable rel type: " + mutableRelType;
-    Assert.assertTrue(
-        msg2,
-        RelOptUtil.equal(
+    assertTrue(
+        equal(
             "origRelType", origRelType,
             "mutableRelType", mutableRelType,
-            Litmus.IGNORE));
+            IGNORE),
+        msg2);
 
     // Check if the new rel converted from the mutable rel is identical
     // to the original rel.
@@ -273,7 +300,7 @@ public class MutableRelTest {
     final String msg3 =
         "The converted new rel is different from the original rel.\n"
         + "Original rel: " + origRelStr + ";\nNew rel: " + newRelStr;
-    Assert.assertEquals(msg3, origRelStr, newRelStr);
+    assertEquals(origRelStr, newRelStr, msg3);
   }
 
   private static MutableRel createMutableRel(String sql) {
@@ -282,6 +309,9 @@ public class MutableRelTest {
     RelNode rel = test.createTester().convertSqlToRel(sql).rel;
     return MutableRels.toMutable(rel);
   }
-}
 
-// End MutableRelTest.java
+  private MutableScan mutableScanOf(RelBuilder builder, String... tableNames) {
+    final RelNode scan = builder.scan(tableNames).build();
+    return (MutableScan) MutableRels.toMutable(scan);
+  }
+}

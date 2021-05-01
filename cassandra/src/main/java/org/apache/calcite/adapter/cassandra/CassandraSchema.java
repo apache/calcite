@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.cassandra;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -30,7 +31,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -43,26 +44,28 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.datastax.driver.core.AbstractTableMetadata;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ClusteringOrder;
+import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.MaterializedViewMetadata;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.TupleType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
- * Schema mapped onto a Cassandra column family
+ * Schema mapped onto a Cassandra column family.
  */
 public class CassandraSchema extends AbstractSchema {
   final Session session;
@@ -70,6 +73,10 @@ public class CassandraSchema extends AbstractSchema {
   private final SchemaPlus parentSchema;
   final String name;
   final Hook.Closeable hook;
+
+  static final CodecRegistry CODEC_REGISTRY = CodecRegistry.DEFAULT_INSTANCE;
+  static final CqlToSqlTypeConversionRules CQL_TO_SQL_TYPE =
+      CqlToSqlTypeConversionRules.instance();
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
@@ -107,7 +114,7 @@ public class CassandraSchema extends AbstractSchema {
    */
   public CassandraSchema(String host, String keyspace, String username, String password,
         SchemaPlus parentSchema, String name) {
-    this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
+    this(host, DEFAULT_CASSANDRA_PORT, keyspace, username, password, parentSchema, name);
   }
 
   /**
@@ -142,7 +149,13 @@ public class CassandraSchema extends AbstractSchema {
     this.parentSchema = parentSchema;
     this.name = name;
 
-    this.hook = Hook.TRIMMED.add(node -> {
+    this.hook = prepareHook();
+  }
+
+  @SuppressWarnings("deprecation")
+  private Hook.Closeable prepareHook() {
+    // It adds a global hook, so it should probably be replaced with a thread-local hook
+    return Hook.TRIMMED.add(node -> {
       CassandraSchema.this.addMaterializedViews();
     });
   }
@@ -162,35 +175,75 @@ public class CassandraSchema extends AbstractSchema {
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
     for (ColumnMetadata column : columns) {
-      final String columnName = column.getName();
-      final DataType type = column.getType();
+      final SqlTypeName typeName =
+          CQL_TO_SQL_TYPE.lookup(column.getType().getName());
 
-      // TODO: This mapping of types can be done much better
-      SqlTypeName typeName = SqlTypeName.ANY;
-      if (type == DataType.uuid() || type == DataType.timeuuid()) {
-        // We currently rely on this in CassandraFilter to detect UUID columns.
-        // That is, these fixed length literals should be unquoted in CQL.
-        typeName = SqlTypeName.CHAR;
-      } else if (type == DataType.ascii() || type == DataType.text()
-            || type == DataType.varchar()) {
-        typeName = SqlTypeName.VARCHAR;
-      } else if (type == DataType.cint() || type == DataType.varint()) {
-        typeName = SqlTypeName.INTEGER;
-      } else if (type == DataType.bigint()) {
-        typeName = SqlTypeName.BIGINT;
-      } else if (type == DataType.cdouble() || type == DataType.cfloat()
-          || type == DataType.decimal()) {
-        typeName = SqlTypeName.DOUBLE;
+      switch (typeName) {
+      case ARRAY:
+        final SqlTypeName arrayInnerType = CQL_TO_SQL_TYPE.lookup(
+            column.getType().getTypeArguments().get(0).getName());
+
+        fieldInfo.add(column.getName(),
+            typeFactory.createArrayType(
+                typeFactory.createSqlType(arrayInnerType), -1))
+            .nullable(true);
+
+        break;
+      case MULTISET:
+        final SqlTypeName multiSetInnerType = CQL_TO_SQL_TYPE.lookup(
+            column.getType().getTypeArguments().get(0).getName());
+
+        fieldInfo.add(column.getName(),
+            typeFactory.createMultisetType(
+                typeFactory.createSqlType(multiSetInnerType), -1)
+        ).nullable(true);
+
+        break;
+      case MAP:
+        final List<DataType> types = column.getType().getTypeArguments();
+        final SqlTypeName keyType =
+            CQL_TO_SQL_TYPE.lookup(types.get(0).getName());
+        final SqlTypeName valueType =
+            CQL_TO_SQL_TYPE.lookup(types.get(1).getName());
+
+        fieldInfo.add(column.getName(),
+            typeFactory.createMapType(
+                typeFactory.createSqlType(keyType),
+                typeFactory.createSqlType(valueType))
+        ).nullable(true);
+
+        break;
+      case STRUCTURED:
+        assert DataType.Name.TUPLE == column.getType().getName();
+
+        final List<DataType> typeArgs =
+            ((TupleType) column.getType()).getComponentTypes();
+        final List<Map.Entry<String, RelDataType>> typesList =
+            IntStream.range(0, typeArgs.size())
+                .mapToObj(
+                    i -> new Pair<>(
+                        Integer.toString(i + 1), // 1 indexed (as ARRAY)
+                        typeFactory.createSqlType(
+                            CQL_TO_SQL_TYPE.lookup(typeArgs.get(i).getName()))))
+                .collect(Collectors.toList());
+
+        fieldInfo.add(column.getName(),
+            typeFactory.createStructType(typesList))
+            .nullable(true);
+
+        break;
+      default:
+        fieldInfo.add(column.getName(), typeName).nullable(true);
+
+        break;
       }
-
-      fieldInfo.add(columnName, typeFactory.createSqlType(typeName)).nullable(true);
     }
 
     return RelDataTypeImpl.proto(fieldInfo.build());
   }
 
   /**
-   * Get all primary key columns from the underlying CQL table
+   * Returns all primary key columns from the underlying CQL table.
    *
    * @return A list of field names that are part of the partition and clustering keys
    */
@@ -252,8 +305,7 @@ public class CassandraSchema extends AbstractSchema {
     return keyCollations;
   }
 
-  /** Add all materialized views defined in the schema to this column family
-   */
+  /** Adds all materialized views defined in the schema to this column family. */
   private void addMaterializedViews() {
     // Close the hook use to get us here
     hook.close();
@@ -269,32 +321,36 @@ public class CassandraSchema extends AbstractSchema {
       }
       queryBuilder.append(Util.toString(columnNames, "", ", ", ""));
 
-      queryBuilder.append(" FROM \"" + tableName + "\"");
+      queryBuilder.append(" FROM \"")
+          .append(tableName)
+          .append("\"");
 
       // Get the where clause from the system schema
       String whereQuery = "SELECT where_clause from system_schema.views "
           + "WHERE keyspace_name='" + keyspace + "' AND view_name='" + view.getName() + "'";
-      queryBuilder.append(" WHERE " + session.execute(whereQuery).one().getString(0));
+      queryBuilder.append(" WHERE ")
+          .append(session.execute(whereQuery).one().getString(0));
 
       // Parse and unparse the view query to get properly quoted field names
       String query = queryBuilder.toString();
-      SqlParser.ConfigBuilder configBuilder = SqlParser.configBuilder();
-      configBuilder.setUnquotedCasing(Casing.UNCHANGED);
+      SqlParser.Config parserConfig = SqlParser.config()
+          .withUnquotedCasing(Casing.UNCHANGED);
 
       SqlSelect parsedQuery;
       try {
-        parsedQuery = (SqlSelect) SqlParser.create(query, configBuilder.build()).parseQuery();
+        parsedQuery = (SqlSelect) SqlParser.create(query, parserConfig).parseQuery();
       } catch (SqlParseException e) {
         LOGGER.warn("Could not parse query {} for CQL view {}.{}",
             query, keyspace, view.getName());
         continue;
       }
 
-      StringWriter stringWriter = new StringWriter(query.length());
-      PrintWriter printWriter = new PrintWriter(stringWriter);
-      SqlWriter writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT, true, printWriter);
+      final StringBuilder buf = new StringBuilder(query.length());
+      final SqlWriterConfig config = SqlPrettyWriter.config()
+          .withAlwaysUseParentheses(true);
+      final SqlWriter writer = new SqlPrettyWriter(config, buf);
       parsedQuery.unparse(writer, 0, 0);
-      query = stringWriter.toString();
+      query = buf.toString();
 
       // Add the view for this query
       String viewName = "$" + getTableNames().size();
@@ -327,5 +383,3 @@ public class CassandraSchema extends AbstractSchema {
     return session.getCluster().getMetadata().getKeyspace(keyspace);
   }
 }
-
-// End CassandraSchema.java

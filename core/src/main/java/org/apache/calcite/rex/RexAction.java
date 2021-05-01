@@ -26,5 +26,3 @@ public interface RexAction {
 
   void onMatch(RexNode[] tokens);
 }
-
-// End RexAction.java

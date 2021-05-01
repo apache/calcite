@@ -47,5 +47,3 @@ public interface RelDataTypePrecedenceList {
    */
   int compareTypePrecedence(RelDataType type1, RelDataType type2);
 }
-
-// End RelDataTypePrecedenceList.java

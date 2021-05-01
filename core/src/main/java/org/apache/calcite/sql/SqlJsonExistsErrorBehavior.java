@@ -19,11 +19,9 @@ package org.apache.calcite.sql;
 /**
  * Categorizing Json exists error behaviors.
  */
-public enum SqlJsonExistsErrorBehavior {
+public enum SqlJsonExistsErrorBehavior implements Symbolizable {
   TRUE,
   FALSE,
   UNKNOWN,
   ERROR
 }
-
-// End SqlJsonExistsErrorBehavior.java

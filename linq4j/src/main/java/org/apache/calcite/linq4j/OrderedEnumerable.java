@@ -25,5 +25,3 @@ package org.apache.calcite.linq4j;
 public interface OrderedEnumerable<T>
     extends Enumerable<T>, ExtendedOrderedEnumerable<T> {
 }
-
-// End OrderedEnumerable.java

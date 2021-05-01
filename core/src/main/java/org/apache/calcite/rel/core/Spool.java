@@ -91,5 +91,3 @@ public abstract class Spool extends SingleRel {
         .item("writeType", writeType);
   }
 }
-
-// End Spool.java

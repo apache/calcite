@@ -35,5 +35,3 @@ public interface ImplementableAggFunction extends AggregateFunction {
    */
   AggImplementor getImplementor(boolean windowContext);
 }
-
-// End ImplementableAggFunction.java

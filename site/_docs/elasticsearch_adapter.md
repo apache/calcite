@@ -63,18 +63,20 @@ $ ./sqlline
 sqlline> !connect jdbc:calcite:model=model.json admin admin
 {% endhighlight %}
 
-You can also specify the index name that is represented by the `index` parameter in the model definition:
+You can also specify the index name and path prefix that is represented by the `index` and `pathPrefix` parameter in the model definition:
 
 {% highlight json %}
 ...
 
       "operand": {
         "coordinates": "{'127.0.0.1': 9200}",
-        "index": "usa"
+        "index": "usa",
+        "pathPrefix": "path"
       }
 
 ...
 {% endhighlight %}
+
 
 `sqlline` will now accept SQL queries which access your Elasticsearch.
 The purpose of this adapter is to compile the query into the most efficient
@@ -147,12 +149,11 @@ sqlline> SELECT _MAP['city'], _MAP['state'] from "elasticsearch"."usa" order by 
 
 For queries without aggregate functions (like `COUNT`, `MAX` etc.) elastic adapter
 uses [scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html), by default.
-This ensures that consistent and full data-set is returned to end user (lazily and in batches). Please note that
-scroll is automatically cleared (removed) when all query resuts are consumed.
+This ensures that consistent and full data-set is returned to the end user (lazily and in batches). Please note that
+scroll is automatically cleared (removed) when all query results are consumed.
 
 ### Supported versions
 
-Currently this adapter supports ElasticSearch versions 6.x (or newer). Generally
-we try to follow official [support schedule](https://www.elastic.co/support/eol).
+Currently, this adapter supports ElasticSearch versions 6.x (or newer). Generally,
+we try to follow the official [support schedule](https://www.elastic.co/support/eol).
 Also, types are not supported (this adapter only supports indices).
-

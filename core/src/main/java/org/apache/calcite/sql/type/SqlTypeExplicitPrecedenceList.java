@@ -22,13 +22,13 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * SqlTypeExplicitPrecedenceList implements the
@@ -39,27 +39,16 @@ public class SqlTypeExplicitPrecedenceList
     implements RelDataTypePrecedenceList {
   //~ Static fields/initializers ---------------------------------------------
 
-  // NOTE jvs 25-Jan-2005:  the null entries delimit equivalence
-  // classes
   private static final List<SqlTypeName> NUMERIC_TYPES =
       ImmutableNullableList.of(
           SqlTypeName.TINYINT,
-          null,
           SqlTypeName.SMALLINT,
-          null,
           SqlTypeName.INTEGER,
-          null,
           SqlTypeName.BIGINT,
-          null,
           SqlTypeName.DECIMAL,
-          null,
           SqlTypeName.REAL,
-          null,
           SqlTypeName.FLOAT,
           SqlTypeName.DOUBLE);
-
-  private static final List<SqlTypeName> COMPACT_NUMERIC_TYPES =
-      ImmutableList.copyOf(Util.filter(NUMERIC_TYPES, Objects::nonNull));
 
   /**
    * Map from SqlTypeName to corresponding precedence list.
@@ -136,19 +125,19 @@ public class SqlTypeExplicitPrecedenceList
   }
 
   private static SqlTypeExplicitPrecedenceList numeric(SqlTypeName typeName) {
-    int i = getListPosition(typeName, COMPACT_NUMERIC_TYPES);
+    int i = getListPosition(typeName, NUMERIC_TYPES);
     return new SqlTypeExplicitPrecedenceList(
-        Util.skip(COMPACT_NUMERIC_TYPES, i));
+        Util.skip(NUMERIC_TYPES, i));
   }
 
   // implement RelDataTypePrecedenceList
-  public boolean containsType(RelDataType type) {
+  @Override public boolean containsType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     return typeName != null && typeNames.contains(typeName);
   }
 
   // implement RelDataTypePrecedenceList
-  public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
+  @Override public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
     assert containsType(type1) : type1;
     assert containsType(type2) : type2;
 
@@ -166,17 +155,10 @@ public class SqlTypeExplicitPrecedenceList
   private static int getListPosition(SqlTypeName type, List<SqlTypeName> list) {
     int i = list.indexOf(type);
     assert i != -1;
-
-    // adjust for precedence equivalence classes
-    for (int j = i - 1; j >= 0; --j) {
-      if (list.get(j) == null) {
-        return j;
-      }
-    }
     return i;
   }
 
-  static RelDataTypePrecedenceList getListForType(RelDataType type) {
+  static @Nullable RelDataTypePrecedenceList getListForType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
       return null;
@@ -184,5 +166,3 @@ public class SqlTypeExplicitPrecedenceList
     return TYPE_NAME_TO_PRECEDENCE_LIST.get(typeName);
   }
 }
-
-// End SqlTypeExplicitPrecedenceList.java

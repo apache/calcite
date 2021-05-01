@@ -26,6 +26,9 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.List;
 
 /**
@@ -54,11 +57,11 @@ public class RelMdPercentageOriginalRows
 
   private RelMdPercentageOriginalRows() {}
 
-  public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
     return BuiltInMetadata.PercentageOriginalRows.DEF;
   }
 
-  public Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that
     // aggregation does not apply any filtering, so it does not modify the
     // percentage.  That's very much oversimplified.
@@ -97,7 +100,7 @@ public class RelMdPercentageOriginalRows
     return quotientForPercentage(numerator, denominator);
   }
 
-  public Double getPercentageOriginalRows(Join rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(Join rel, RelMetadataQuery mq) {
     // Assume any single-table filter conditions have already
     // been pushed down.
 
@@ -118,7 +121,7 @@ public class RelMdPercentageOriginalRows
   }
 
   // Catch-all rule when none of the others apply.
-  public Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
     if (rel.getInputs().size() > 1) {
       // No generic formula available for multiple inputs.
       return null;
@@ -155,28 +158,35 @@ public class RelMdPercentageOriginalRows
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
     RelOptCost cost = mq.getNonCumulativeCost(rel);
+    if (cost == null) {
+      return null;
+    }
     List<RelNode> inputs = rel.getInputs();
     for (RelNode input : inputs) {
-      cost = cost.plus(mq.getCumulativeCost(input));
+      RelOptCost inputCost = mq.getCumulativeCost(input);
+      if (inputCost == null) {
+        return null;
+      }
+      cost = cost.plus(inputCost);
     }
     return cost;
   }
 
-  public RelOptCost getCumulativeCost(EnumerableInterpreter rel,
+  public @Nullable RelOptCost getCumulativeCost(EnumerableInterpreter rel,
       RelMetadataQuery mq) {
     return mq.getNonCumulativeCost(rel);
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
     return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 
-  private static Double quotientForPercentage(
-      Double numerator,
-      Double denominator) {
+  private static @PolyNull Double quotientForPercentage(
+      @PolyNull Double numerator,
+      @PolyNull Double denominator) {
     if ((numerator == null) || (denominator == null)) {
       return null;
     }
@@ -190,5 +200,3 @@ public class RelMdPercentageOriginalRows
     }
   }
 }
-
-// End RelMdPercentageOriginalRows.java

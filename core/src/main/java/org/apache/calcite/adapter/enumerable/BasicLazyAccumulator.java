@@ -41,5 +41,3 @@ public class BasicLazyAccumulator<TAccumulate, TSource>
     }
   }
 }
-
-// End BasicLazyAccumulator.java

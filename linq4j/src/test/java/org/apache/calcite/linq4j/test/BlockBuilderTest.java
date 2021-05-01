@@ -25,8 +25,8 @@ import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.function.Function;
@@ -35,20 +35,20 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests BlockBuilder.
  */
-public class BlockBuilderTest {
+class BlockBuilderTest {
   BlockBuilder b;
 
-  @Before
+  @BeforeEach
   public void prepareBuilder() {
     b = new BlockBuilder(true);
   }
 
-  @Test public void testReuseExpressionsFromUpperLevel() {
+  @Test void testReuseExpressionsFromUpperLevel() {
     Expression x = b.append("x", Expressions.add(ONE, TWO));
     BlockBuilder nested = new BlockBuilder(true, b);
     Expression y = nested.append("y", Expressions.add(ONE, TWO));
@@ -64,7 +64,7 @@ public class BlockBuilderTest {
         b.toBlock().toString());
   }
 
-  @Test public void testTestCustomOptimizer() {
+  @Test void testTestCustomOptimizer() {
     BlockBuilder b = new BlockBuilder() {
       @Override protected Shuttle createOptimizeShuttle() {
         return new OptimizeShuttle() {
@@ -99,38 +99,36 @@ public class BlockBuilderTest {
     return outer;
   }
 
-  @Test public void testRenameVariablesWithEmptyInitializer() {
+  @Test void testRenameVariablesWithEmptyInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(null, null);
 
-    assertEquals("x in the second block should be renamed to avoid name clash",
-        "{\n"
+    assertEquals("{\n"
             + "  int x;\n"
             + "  x = 1;\n"
             + "  int x0;\n"
             + "  x0 = 42;\n"
-            + "}\n",
-        Expressions.toString(outer.toBlock()));
+            + "}\n", Expressions.toString(outer.toBlock()),
+        "x in the second block should be renamed to avoid name clash");
   }
 
-  @Test public void testRenameVariablesWithInitializer() {
+  @Test void testRenameVariablesWithInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(
         Expressions.constant(7), Expressions.constant(8));
 
-    assertEquals("x in the second block should be renamed to avoid name clash",
-        "{\n"
+    assertEquals("{\n"
             + "  int x = 7;\n"
             + "  x = 1;\n"
             + "  int x0 = 8;\n"
             + "  x0 = 42;\n"
-            + "}\n",
-        Expressions.toString(outer.toBlock()));
+            + "}\n", Expressions.toString(outer.toBlock()),
+        "x in the second block should be renamed to avoid name clash");
   }
 
-  /**
-   * CALCITE-2413: RexToLixTranslator does not generate correct declaration of Methods with
-   * generic return types
-   */
-  @Test public void genericMethodCall() throws NoSuchMethodException {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2413">[CALCITE-2413]
+   * RexToLixTranslator does not generate correct declaration of Methods with
+   * generic return types</a>. */
+  @Test void genericMethodCall() throws NoSuchMethodException {
     BlockBuilder bb = new BlockBuilder();
     bb.append("_i",
         Expressions.call(
@@ -147,20 +145,21 @@ public class BlockBuilderTest {
 
   }
 
-  /** CALCITE-2611: unknown on one side of an or may lead to uncompilable code */
-  @Test
-  public void testOptimizeBoxedFalseEqNull() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2611">[CALCITE-2611]
+   * Linq4j code generation failure if one side of an OR contains
+   * UNKNOWN</a>. */
+  @Test void testOptimizeBoxedFalseEqNull() {
     BlockBuilder outer = new BlockBuilder();
     outer.append(
         Expressions.equal(
             OptimizeShuttle.BOXED_FALSE_EXPR,
             Expressions.constant(null)));
 
-    assertEquals("Expected to optimize Boolean.FALSE = null to false",
-        "{\n"
+    assertEquals("{\n"
             + "  return false;\n"
-            + "}\n",
-        Expressions.toString(outer.toBlock()));
+            + "}\n", Expressions.toString(outer.toBlock()),
+        "Expected to optimize Boolean.FALSE = null to false");
   }
 
   /**
@@ -174,5 +173,3 @@ public class BlockBuilderTest {
   }
 
 }
-
-// End BlockBuilderTest.java

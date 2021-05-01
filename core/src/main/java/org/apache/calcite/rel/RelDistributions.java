@@ -26,16 +26,17 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelDistribution}.
  */
 public class RelDistributions {
-  private static final ImmutableIntList EMPTY = ImmutableIntList.of();
+  public static final ImmutableIntList EMPTY = ImmutableIntList.of();
 
   /** The singleton singleton distribution. */
   public static final RelDistribution SINGLETON =
@@ -62,22 +63,29 @@ public class RelDistributions {
 
   /** Creates a hash distribution. */
   public static RelDistribution hash(Collection<? extends Number> numbers) {
-    ImmutableIntList list = ImmutableIntList.copyOf(numbers);
-    if (numbers.size() > 1
-        && !Ordering.natural().isOrdered(list)) {
-      list = ImmutableIntList.copyOf(Ordering.natural().sortedCopy(list));
-    }
-    RelDistributionImpl trait =
-        new RelDistributionImpl(RelDistribution.Type.HASH_DISTRIBUTED, list);
-    return RelDistributionTraitDef.INSTANCE.canonize(trait);
+    ImmutableIntList list = normalizeKeys(numbers);
+    return of(RelDistribution.Type.HASH_DISTRIBUTED, list);
   }
 
   /** Creates a range distribution. */
   public static RelDistribution range(Collection<? extends Number> numbers) {
     ImmutableIntList list = ImmutableIntList.copyOf(numbers);
-    RelDistributionImpl trait =
-        new RelDistributionImpl(RelDistribution.Type.RANGE_DISTRIBUTED, list);
-    return RelDistributionTraitDef.INSTANCE.canonize(trait);
+    return of(RelDistribution.Type.RANGE_DISTRIBUTED, list);
+  }
+
+  public static RelDistribution of(RelDistribution.Type type, ImmutableIntList keys) {
+    RelDistribution distribution = new RelDistributionImpl(type, keys);
+    return RelDistributionTraitDef.INSTANCE.canonize(distribution);
+  }
+
+  /** Creates ordered immutable copy of keys collection.  */
+  private static ImmutableIntList normalizeKeys(Collection<? extends Number> keys) {
+    ImmutableIntList list = ImmutableIntList.copyOf(keys);
+    if (list.size() > 1
+        && !Ordering.natural().isOrdered(list)) {
+      list = ImmutableIntList.copyOf(Ordering.natural().sortedCopy(list));
+    }
+    return list;
   }
 
   /** Implementation of {@link org.apache.calcite.rel.RelDistribution}. */
@@ -103,7 +111,7 @@ public class RelDistributions {
       return Objects.hash(type, keys);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof RelDistributionImpl
           && type == ((RelDistributionImpl) obj).type
@@ -118,29 +126,33 @@ public class RelDistributions {
       }
     }
 
-    @Nonnull public Type getType() {
+    @Override public Type getType() {
       return type;
     }
 
-    @Nonnull public List<Integer> getKeys() {
+    @Override public List<Integer> getKeys() {
       return keys;
     }
 
-    public RelDistributionTraitDef getTraitDef() {
+    @Override public RelDistributionTraitDef getTraitDef() {
       return RelDistributionTraitDef.INSTANCE;
     }
 
-    public RelDistribution apply(Mappings.TargetMapping mapping) {
+    @Override public RelDistribution apply(Mappings.TargetMapping mapping) {
       if (keys.isEmpty()) {
         return this;
       }
-      return getTraitDef().canonize(
-          new RelDistributionImpl(type,
-              ImmutableIntList.copyOf(
-                  Mappings.apply((Mapping) mapping, keys))));
+      for (int key : keys) {
+        if (mapping.getTargetOpt(key) == -1) {
+          return ANY; // Some distribution keys are not mapped => any.
+        }
+      }
+      List<Integer> mappedKeys0 = Mappings.apply2((Mapping) mapping, keys);
+      ImmutableIntList mappedKeys = normalizeKeys(mappedKeys0);
+      return of(type, mappedKeys);
     }
 
-    public boolean satisfies(RelTrait trait) {
+    @Override public boolean satisfies(RelTrait trait) {
       if (trait == this || trait == ANY) {
         return true;
       }
@@ -170,14 +182,14 @@ public class RelDistributions {
       return false;
     }
 
-    public void register(RelOptPlanner planner) {
+    @Override public void register(RelOptPlanner planner) {
     }
 
     @Override public boolean isTop() {
       return type == Type.ANY;
     }
 
-    @Override public int compareTo(@Nonnull RelMultipleTrait o) {
+    @Override public int compareTo(RelMultipleTrait o) {
       final RelDistribution distribution = (RelDistribution) o;
       if (type == distribution.getType()
           && (type == Type.HASH_DISTRIBUTED
@@ -189,5 +201,3 @@ public class RelDistributions {
     }
   }
 }
-
-// End RelDistributions.java

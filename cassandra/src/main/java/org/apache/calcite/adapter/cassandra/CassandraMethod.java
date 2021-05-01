@@ -30,6 +30,7 @@ public enum CassandraMethod {
   CASSANDRA_QUERYABLE_QUERY(CassandraTable.CassandraQueryable.class, "query",
       List.class, List.class, List.class, List.class, Integer.class, Integer.class);
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
 
   public static final ImmutableMap<Method, CassandraMethod> MAP;
@@ -47,5 +48,3 @@ public enum CassandraMethod {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
   }
 }
-
-// End CassandraMethod.java

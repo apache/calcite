@@ -22,5 +22,3 @@ package org.apache.calcite.adapter;
  */
 class Java9Workaround {
 }
-
-// End Java9Workaround.java

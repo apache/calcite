@@ -25,10 +25,8 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 
 import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -38,24 +36,28 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/**
- * Test for {@link org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.TypeFinder}
- */
-public class TypeFinderTest {
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-  @Test public void testConstantExpression() {
+/**
+ * Test for
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.TypeFinder}.
+ */
+class TypeFinderTest {
+
+  @Test void testConstantExpression() {
     ConstantExpression expr = Expressions.constant(null, Integer.class);
     assertJavaCodeContains("(Integer) null\n", expr);
     assertTypeContains(Integer.class, expr);
   }
 
-  @Test public void testConvertExpression() {
+  @Test void testConvertExpression() {
     UnaryExpression expr = Expressions.convert_(Expressions.new_(String.class), Object.class);
     assertJavaCodeContains("(Object) new String()\n", expr);
     assertTypeContains(Arrays.asList(String.class, Object.class), expr);
   }
 
-  @Test public void testFunctionExpression1() {
+  @Test void testFunctionExpression1() {
     ParameterExpression param = Expressions.parameter(String.class, "input");
     FunctionExpression expr = Expressions.lambda(Function1.class,
         Expressions.block(
@@ -73,7 +75,7 @@ public class TypeFinderTest {
     assertTypeContains(String.class, expr);
   }
 
-  @Test public void testFunctionExpression2() {
+  @Test void testFunctionExpression2() {
     FunctionExpression expr = Expressions.lambda(Function1.class,
         Expressions.block(
             Expressions.return_(null, Expressions.constant(1L, Long.class))),
@@ -95,7 +97,7 @@ public class TypeFinderTest {
 
   private void assertJavaCodeContains(String expected, List<Node> nodes) {
     final String javaCode = Expressions.toString(nodes, "\n", false);
-    Assert.assertThat(javaCode, CoreMatchers.containsString(expected));
+    assertThat(javaCode, containsString(expected));
   }
 
   private void assertTypeContains(Type expectedType, Node node) {
@@ -115,7 +117,7 @@ public class TypeFinderTest {
     for (Node node : nodes) {
       node.accept(typeFinder);
     }
-    Assert.assertThat(types, new BaseMatcher<HashSet<Type>>() {
+    assertThat(types, new BaseMatcher<HashSet<Type>>() {
       @Override public boolean matches(Object o) {
         final Set<Type> actual = (HashSet<Type>) o;
         return actual.containsAll(expectedTypes);
@@ -128,5 +130,3 @@ public class TypeFinderTest {
     });
   }
 }
-
-// End TypeFinderTest.java

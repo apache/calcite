@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -29,7 +31,12 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.sql.SqlWindowTableFunction;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -42,47 +49,38 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     implements EnumerableRel {
 
   public EnumerableTableFunctionScan(RelOptCluster cluster,
-      RelTraitSet traits, List<RelNode> inputs, Type elementType,
+      RelTraitSet traits, List<RelNode> inputs, @Nullable Type elementType,
       RelDataType rowType, RexNode call,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Set<RelColumnMapping> columnMappings) {
     super(cluster, traits, inputs, call, elementType, rowType,
-      columnMappings);
+        columnMappings);
   }
 
   @Override public EnumerableTableFunctionScan copy(
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType,
+      @Nullable Type elementType,
       RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Set<RelColumnMapping> columnMappings) {
     return new EnumerableTableFunctionScan(getCluster(), traitSet, inputs,
         elementType, rowType, rexCall, columnMappings);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    BlockBuilder bb = new BlockBuilder();
-     // Non-array user-specified types are not supported yet
-    final JavaRowFormat format;
-    if (getElementType() == null) {
-      format = JavaRowFormat.ARRAY;
-    } else if (rowType.getFieldCount() == 1 && isQueryable()) {
-      format = JavaRowFormat.SCALAR;
-    } else if (getElementType() instanceof Class
-        && Object[].class.isAssignableFrom((Class) getElementType())) {
-      format = JavaRowFormat.ARRAY;
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    if (isImplementorDefined((RexCall) getCall())) {
+      return tvfImplementorBasedImplement(implementor, pref);
     } else {
-      format = JavaRowFormat.CUSTOM;
+      return defaultTableFunctionImplement(implementor, pref);
     }
-    final PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), format,
-            false);
-    RexToLixTranslator t = RexToLixTranslator.forAggregation(
-        (JavaTypeFactory) getCluster().getTypeFactory(), bb, null,
-        implementor.getConformance());
-    t = t.setCorrelates(implementor.allCorrelateVariables);
-    bb.add(Expressions.return_(null, t.translate(getCall())));
-    return implementor.result(physType, bb.toBlock());
+  }
+
+  private static boolean isImplementorDefined(RexCall call) {
+    if (call.getOperator() instanceof SqlWindowTableFunction
+        && RexImpTable.INSTANCE.get((SqlWindowTableFunction) call.getOperator()) != null) {
+      return true;
+    }
+    return false;
   }
 
   private boolean isQueryable() {
@@ -103,6 +101,63 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     final Method method = tableFunction.method;
     return QueryableTable.class.isAssignableFrom(method.getReturnType());
   }
-}
 
-// End EnumerableTableFunctionScan.java
+  private Result defaultTableFunctionImplement(
+      EnumerableRelImplementor implementor,
+      @SuppressWarnings("unused") Prefer pref) { // TODO: remove or use
+    BlockBuilder bb = new BlockBuilder();
+    // Non-array user-specified types are not supported yet
+    final JavaRowFormat format;
+    Type elementType = getElementType();
+    if (elementType == null) {
+      format = JavaRowFormat.ARRAY;
+    } else if (getRowType().getFieldCount() == 1 && isQueryable()) {
+      format = JavaRowFormat.SCALAR;
+    } else if (elementType instanceof Class
+        && Object[].class.isAssignableFrom((Class<?>) elementType)) {
+      format = JavaRowFormat.ARRAY;
+    } else {
+      format = JavaRowFormat.CUSTOM;
+    }
+    final PhysType physType =
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), format,
+            false);
+    RexToLixTranslator t = RexToLixTranslator.forAggregation(
+        (JavaTypeFactory) getCluster().getTypeFactory(), bb, null,
+        implementor.getConformance());
+    t = t.setCorrelates(implementor.allCorrelateVariables);
+    bb.add(Expressions.return_(null, t.translate(getCall())));
+    return implementor.result(physType, bb.toBlock());
+  }
+
+  private Result tvfImplementorBasedImplement(
+      EnumerableRelImplementor implementor, Prefer pref) {
+    final JavaTypeFactory typeFactory = implementor.getTypeFactory();
+    final BlockBuilder builder = new BlockBuilder();
+    final EnumerableRel child = (EnumerableRel) getInputs().get(0);
+    final Result result =
+        implementor.visitChild(this, 0, child, pref);
+    final PhysType physType = PhysTypeImpl.of(
+        typeFactory, getRowType(), pref.prefer(result.format));
+    final Expression inputEnumerable = builder.append(
+        "_input", result.block, false);
+    final SqlConformance conformance =
+        (SqlConformance) implementor.map.getOrDefault("_conformance",
+            SqlConformanceEnum.DEFAULT);
+
+    builder.add(
+        RexToLixTranslator.translateTableFunction(
+            typeFactory,
+            conformance,
+            builder,
+            DataContext.ROOT,
+            (RexCall) getCall(),
+            inputEnumerable,
+            result.physType,
+            physType
+        )
+    );
+
+    return implementor.result(physType, builder.toBlock());
+  }
+}

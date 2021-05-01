@@ -110,5 +110,3 @@ class CalciteHandler extends Handler {
     }
   }
 }
-
-// End CalciteHandler.java

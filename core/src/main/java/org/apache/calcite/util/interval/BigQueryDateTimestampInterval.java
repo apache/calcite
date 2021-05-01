@@ -32,7 +32,7 @@ import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.generat
 import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.getTypeName;
 
 /**
- * Handle BigQuery date timestamp interval
+ * Handle BigQuery date timestamp interval.
  */
 public class BigQueryDateTimestampInterval {
   public boolean handlePlusMinus(SqlWriter writer, SqlCall call,
@@ -236,5 +236,3 @@ public class BigQueryDateTimestampInterval {
     writer.print(")");
   }
 }
-
-// End BigQueryDateTimestampInterval.java
