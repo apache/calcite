@@ -1886,7 +1886,10 @@ public abstract class SqlImplementor {
         if (node instanceof SqlBasicCall) {
           return ifAliasUsedInHavingClause(aliases, (SqlBasicCall) node);
         } else if (node instanceof SqlIdentifier) {
-          return aliases.contains(((SqlIdentifier) node).toString());
+          boolean aliasUsed = aliases.contains(node.toString());
+          if (aliasUsed) {
+            return true;
+          }
         }
       }
       return false;
