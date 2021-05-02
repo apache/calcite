@@ -1205,10 +1205,10 @@ LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
     <Resource name="planAfter">
       <![CDATA[
 EnumerableSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
-  EnumerableProject(CONTACTNO=[$0], EMAIL=[$3], ACCTNO=[$10], TYPE=[$11])
-    EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[right])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+  EnumerableNestedLoopJoin(condition=[AND(>($0, $2), <($1, $3))], joinType=[right])
+    EnumerableProject(CONTACTNO=[$0], EMAIL=[$3])
+      EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+    EnumerableProject(ACCTNO=[$0], TYPE=[$1])
       EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
 ]]>
     </Resource>
@@ -1333,12 +1333,11 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
+EnumerableCorrelate(correlation=[$cor5], joinType=[semi], requiredColumns=[{0}])
   EnumerableSort(sort0=[$1], dir0=[ASC])
     EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
-  EnumerableFilter(condition=[=($cor2.DEPTNO, $0)])
-    EnumerableProject(DEPTNO=[$7], $f0=[true])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableFilter(condition=[=($cor5.DEPTNO, $7)])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

@@ -887,11 +887,12 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")")
         .withChecker(
             resultContains(""
-            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t2])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $4)], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR], proj#0..1=[{exprs}])\n"
+            + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t1])\n"
+            + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
+            + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR], CAST=[$t1])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR], proj#0..2=[{exprs}])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR], "
+            + "empid=[$t0], name0=[$t2])\n"
             + "      EnumerableTableScan(table=[[hr, dependents]])"))
         .ok();
   }
