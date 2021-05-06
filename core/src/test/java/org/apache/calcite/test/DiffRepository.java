@@ -549,7 +549,6 @@ public class DiffRepository {
       try (Writer w = Util.printWriter(logFile)) {
         write(doc, w, indent);
       }
-      System.out.println("write; modCount=" + modCount);
     } catch (IOException e) {
       throw Util.throwAsRuntime("error while writing test reference log '"
           + logFile + "'", e);
