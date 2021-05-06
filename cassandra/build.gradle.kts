@@ -20,6 +20,7 @@ dependencies {
 
     api("com.datastax.cassandra:cassandra-driver-core")
     api("com.google.guava:guava")
+    api("org.checkerframework:checker-qual")
     api("org.slf4j:slf4j-api")
 
     implementation("org.apache.calcite.avatica:avatica-core")

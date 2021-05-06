@@ -22,9 +22,10 @@ plugins {
 
 dependencies {
     api(project(":core"))
-    api(project(":linq4j"))
     api("org.apache.calcite.avatica:avatica-core")
 
+    implementation(project(":linq4j"))
+    implementation("org.checkerframework:checker-qual")
     implementation("com.google.guava:guava")
     implementation("org.slf4j:slf4j-api")
 

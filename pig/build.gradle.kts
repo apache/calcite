@@ -16,9 +16,10 @@
  */
 dependencies {
     api(project(":core"))
-    api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
     api("com.google.guava:guava")
 
+    implementation(project(":linq4j"))
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.pig:pig::h2")
 

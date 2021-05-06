@@ -16,19 +16,19 @@
  */
 dependencies {
     api(project(":core"))
-    api(project(":linq4j"))
     api("net.hydromatic:quidem")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.checkerframework:checker-qual")
 
+    implementation(project(":linq4j"))
     implementation("com.google.guava:guava")
     implementation("com.teradata.tpcds:tpcds")
     implementation("io.prestosql.tpch:tpch")
     implementation("net.hydromatic:chinook-data-hsqldb")
-    implementation("net.hydromatic:tpcds")
     implementation("org.apache.calcite.avatica:avatica-server")
     implementation("org.hsqldb:hsqldb")
 
     testImplementation(project(":core", "testClasses"))
+    testImplementation("net.hydromatic:tpcds")
     testImplementation("org.incava:java-diff")
 }

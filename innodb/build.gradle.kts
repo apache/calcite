@@ -18,6 +18,7 @@ dependencies {
     api(project(":core"))
     api(project(":linq4j"))
     api("com.alibaba.database:innodb-java-reader")
+    api("org.checkerframework:checker-qual")
     api("com.google.guava:guava")
 
     implementation("commons-collections:commons-collections")

@@ -17,6 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
     api("redis.clients:jedis")
 
     implementation("com.fasterxml.jackson.core:jackson-core")
