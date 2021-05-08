@@ -117,6 +117,7 @@ import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
@@ -5988,8 +5989,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public SqlNode expandGroupByOrHavingExpr(SqlNode expr,
       SqlValidatorScope scope, SqlSelect select, boolean havingExpression) {
-    final Expander expander = new ExtendedExpander(this, scope, select, expr,
-        havingExpression);
+    final Expander expander = havingExpression
+        ? new HavingExpander(this, scope, select, expr)
+        : new GroupByExpander(this, scope, select, expr);
     SqlNode newExpr = expander.go(expr);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -6569,24 +6571,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Shuttle which walks over an expression in the GROUP BY/HAVING clause, replacing
    * usages of aliases or ordinals with the underlying expression.
    */
-  static class ExtendedExpander extends Expander {
+  abstract static class ExtendedExpander extends Expander {
     final SqlSelect select;
     final SqlNode root;
-    final boolean havingExpr;
+    // current identifier should be expanded as alias.
+    boolean expandedAsAlias;
+    // record if CUBE, ROLLUP, GROUPING SETS, ROW, GROUP BY, HAVING
+    // top level arguments are expanded as alias.
+    Map<SqlNode, Boolean> expandingTopNodes = Collections.EMPTY_MAP;
 
     ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
-        SqlSelect select, SqlNode root, boolean havingExpr) {
+        SqlSelect select, SqlNode root) {
       super(validator, scope);
       this.select = select;
       this.root = root;
-      this.havingExpr = havingExpr;
+      switch (root.getKind()) {
+      case IDENTIFIER:
+        expandedAsAlias = true;
+        break;
+      default:
+        break;
+      }
     }
 
-    @Override public @Nullable SqlNode visit(SqlIdentifier id) {
-      if (id.isSimple()
-          && (havingExpr
-              ? validator.config().sqlConformance().isHavingAlias()
-              : validator.config().sqlConformance().isGroupByAlias())) {
+    public @Nullable SqlNode expandAlias(SqlIdentifier id) {
+      if (id.isSimple()) {
         String name = id.getSimple();
         SqlNode expr = null;
         final SqlNameMatcher nameMatcher =
@@ -6606,9 +6615,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw validator.newValidationError(id,
               RESOURCE.columnAmbiguous(name));
         }
-        if (havingExpr && validator.isAggregate(root)) {
-          return super.visit(id);
-        }
         expr = stripAs(expr);
         if (expr instanceof SqlIdentifier) {
           SqlIdentifier sid = (SqlIdentifier) expr;
@@ -6617,6 +6623,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         return expr;
       }
+      return super.visit(id);
+    }
+
+    public @Nullable SqlNode expandColumn(SqlIdentifier id) {
       if (id.isSimple()) {
         final SelectScope scope = validator.getRawSelectScope(select);
         SqlNode node = expandCommonColumn(select, id, scope, validator);
@@ -6626,28 +6636,50 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return super.visit(id);
     }
+  }
 
-    @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      if (havingExpr || !validator.config().sqlConformance().isGroupByOrdinal()) {
-        return super.visit(literal);
-      }
-      boolean isOrdinalLiteral = literal == root;
+  /**
+   * Rules for replacing alias:
+   * 1. GROUP BY item is an identifier.
+   * 2. when GROUP BY item is one of GROUPING_SETS, ROLLUP, CUBE, then its top level argument
+   *    should be resolved as rule 1.
+   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-4512">[CALCITE-4512]</a>
+   */
+  static class GroupByExpander extends ExtendedExpander {
+    @SuppressWarnings({"IdentityHashMapUsage", "method.invocation.invalid"})
+    GroupByExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
+        SqlSelect select, SqlNode root) {
+      super(validator, scope, select, root);
       switch (root.getKind()) {
       case GROUPING_SETS:
       case ROLLUP:
       case CUBE:
-        if (root instanceof SqlBasicCall) {
-          List<SqlNode> operandList = ((SqlBasicCall) root).getOperandList();
-          for (SqlNode node : operandList) {
-            if (node.equals(literal)) {
-              isOrdinalLiteral = true;
-              break;
-            }
-          }
-        }
+        expandingTopNodes = new IdentityHashMap<>();
+        recordExpandingTopNodes(root);
         break;
       default:
         break;
+      }
+    }
+
+    @Override public @Nullable SqlNode visit(SqlIdentifier id) {
+      checkExpandedAsAlias(id);
+      if (id.isSimple()
+          && validator.config().sqlConformance().isGroupByAlias()
+          && expandedAsAlias) {
+        return super.expandAlias(id);
+      }
+      return super.expandColumn(id);
+    }
+
+    @Override public @Nullable SqlNode visit(SqlLiteral literal) {
+      if (!validator.config().sqlConformance().isGroupByOrdinal()) {
+        return super.visit(literal);
+      }
+      boolean isOrdinalLiteral = literal == root;
+      if (!isOrdinalLiteral) {
+        checkExpandedAsAlias(literal);
+        isOrdinalLiteral = expandedAsAlias;
       }
       if (isOrdinalLiteral) {
         switch (literal.getTypeName()) {
@@ -6669,8 +6701,96 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           break;
         }
       }
-
       return super.visit(literal);
+    }
+
+    @Override protected SqlNode visitScoped(SqlCall call) {
+      checkExpandedAsAlias(call);
+      return super.visitScoped(call);
+    }
+
+    @RequiresNonNull("expandingTopNodes")
+    void recordExpandingTopNodes(SqlNode root) {
+      List<SqlNode> operands = ((SqlCall) root).getOperandList();
+      for (int i = 0; i < operands.size(); i++) {
+        SqlNode operand = operands.get(i);
+        if (operand.getKind() == SqlKind.ROW) {
+          recordExpandingTopNodes(operand);
+        }
+        if (operand instanceof SqlCall) {
+          expandingTopNodes.put(operand, Boolean.FALSE);
+        } else {
+          expandingTopNodes.put(operand, Boolean.TRUE);
+        }
+      }
+    }
+
+    /**
+     * Checks if top level node should be expanded as alias.
+     */
+    void checkExpandedAsAlias(SqlNode sqlNode) {
+      switch (root.getKind()) {
+      case GROUPING_SETS:
+      case ROLLUP:
+      case CUBE:
+      case ROW:
+        expandedAsAlias = expandingTopNodes.getOrDefault(sqlNode, expandedAsAlias);
+        break;
+      default:
+        break;
+      }
+    }
+  }
+
+  /**
+   * Rules for replacing alias:
+   * 1. having item isn't an aggregate
+   * 2. any identifier whose root node isn't an aggregate.
+   */
+  static class HavingExpander extends ExtendedExpander {
+    @SuppressWarnings({"IdentityHashMapUsage", "method.invocation.invalid"})
+    HavingExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
+        SqlSelect select, SqlNode root) {
+      super(validator, scope, select, root);
+      expandingTopNodes = new IdentityHashMap<>();
+      recordExpandingTopNodes(root);
+    }
+
+    @Override public @Nullable SqlNode visit(SqlIdentifier id) {
+      checkExpandedAsAlias(id);
+      if (id.isSimple()
+          && validator.config().sqlConformance().isHavingAlias()
+          && expandedAsAlias) {
+        return super.expandAlias(id);
+      }
+      return super.expandColumn(id);
+    }
+
+    @Override protected SqlNode visitScoped(SqlCall call) {
+      checkExpandedAsAlias(call);
+      return super.visitScoped(call);
+    }
+
+    @RequiresNonNull({"validator", "expandingTopNodes"})
+    void recordExpandingTopNodes(SqlNode root) {
+      if (root.getKind().belongsTo(SqlKind.AGGREGATE)
+          || validator.aggFinder.findAgg(root) == root) { // an atomic aggregator
+        expandingTopNodes.put(root, Boolean.FALSE);
+      } else {
+        if (root instanceof SqlCall && root.getKind() != SqlKind.SCALAR_QUERY) {
+          for (SqlNode sqlNode : ((SqlCall) root).getOperandList()) {
+            recordExpandingTopNodes(sqlNode);
+          }
+        } else if (root.getKind() == SqlKind.IDENTIFIER) {
+          expandingTopNodes.put(root, Boolean.TRUE);
+        } else {
+          expandingTopNodes.put(root, Boolean.FALSE);
+        }
+      }
+    }
+
+    void checkExpandedAsAlias(SqlNode sqlNode) {
+      expandedAsAlias = expandingTopNodes.getOrDefault(sqlNode, expandedAsAlias);
     }
   }
 

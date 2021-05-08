@@ -6782,6 +6782,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1306">[CALCITE-1306]
    * Allow GROUP BY and HAVING to reference SELECT expressions by ordinal and
    * alias</a>.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4512">[CALCITE-4512]
+   * GROUP BY expression has argument name same with SELECT LIST item alias,
+   * causes validation error</a>.
    *
    * @see SqlConformance#isGroupByAlias()
    */
@@ -6811,6 +6814,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
         + "group by grouping sets ((^dno^), (name, deptno))")
         .withConformance(strict).fails("Column 'DNO' not found in any table")
+        .withConformance(lenient).ok();
+    sql("select empno + deptno as empno, ename name, sum(sal) from emp\n"
+        + "group by grouping sets ((empno), (name, empno + deptno), (name))")
         .withConformance(lenient).ok();
     sql("select ename as deptno from emp as e join dept as d on "
         + "e.deptno = d.deptno group by ^deptno^")
@@ -6847,14 +6853,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno + empno as d, deptno + empno + mgr from emp"
         + " group by d,mgr")
         .withConformance(lenient).ok();
-    // When alias is equal to one or more columns in the query then giving
-    // priority to alias. But Postgres may throw ambiguous column error or give
-    // priority to column name.
+    // When GROUP BY item is an identifier, we prefer to resolve it as alias,
+    // otherwise table column name.
     sql("select count(*) from (\n"
         + "  select ename AS deptno FROM emp GROUP BY deptno) t")
         .withConformance(lenient).ok();
     sql("select count(*) from "
         + "(select ename AS deptno FROM emp, dept GROUP BY deptno) t")
+        .withConformance(lenient).ok();
+    sql("select replace(ename, ' ', '.') from "
+        + "emp group by replace(ename, ' ', '.')")
+        .withConformance(strict).ok()
+        .withConformance(lenient).ok();
+    sql("select empno + deptno as empno from emp group by empno")
+        .withConformance(lenient).ok();
+    sql("select a.deptno + b.deptno as deptno from emp a , dept b group by deptno")
         .withConformance(lenient).ok();
     sql("select empno + deptno AS \"z\" FROM emp GROUP BY \"Z\"")
         .withConformance(lenient).withCaseSensitive(false).ok();
@@ -6899,7 +6912,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(strict).ok()
         .withConformance(lenient).ok();
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
-        + "group by grouping sets ((1), (^name^, deptno))")
+        + "group by grouping sets ((1), (^name^, deptno), (2, 1), (2))")
         .withConformance(strict).fails("Column 'NAME' not found in any table")
         .withConformance(lenient).ok();
     sql("select ^e.deptno^ from emp as e\n"
@@ -6955,6 +6968,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // priority to alias, but PostgreSQL throws ambiguous column error or gives
     // priority to column name.
     sql("select count(empno) as deptno from emp having ^deptno^ > 10")
+        .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
+        .withConformance(lenient).ok();
+    sql("select count(empno) as deptno, count(deptno) as empno from emp having"
+        + " ^deptno^ + empno + count(empno) > 0")
         .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
         .withConformance(lenient).ok();
     // Alias in aggregate is not allowed.

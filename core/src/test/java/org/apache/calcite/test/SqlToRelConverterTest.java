@@ -371,7 +371,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testAliasInHaving() {
-    sql("select count(empno) as e from emp having e > 1")
+    sql("select ename, count(empno) as e, count(deptno) as d from emp"
+        + " group by ename having e > 1 and count(deptno) > 2")
         .conformance(SqlConformanceEnum.LENIENT).ok();
   }
 
