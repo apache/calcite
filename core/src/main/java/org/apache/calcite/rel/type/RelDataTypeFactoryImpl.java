@@ -270,17 +270,16 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     }
     if (sqlTypeName == SqlTypeName.MAP) {
       RelDataType keyType = leastRestrictive(
-          Util.transform(types, RelDataType::getKeyType));
+          Util.transform(types, t -> Objects.requireNonNull(t.getKeyType())));
       RelDataType valueType = leastRestrictive(
-          Util.transform(types, RelDataType::getValueType));
+          Util.transform(types, t -> Objects.requireNonNull(t.getValueType())));
       if (keyType == null || valueType == null) {
         return null;
       }
       return new MapSqlType(keyType, valueType, isNullable);
     } else {
       RelDataType type = leastRestrictive(
-          Util.transform(types, RelDataType::getComponentType)
-      );
+          Util.transform(types, t -> Objects.requireNonNull(t.getComponentType())));
       if (type == null) {
         return null;
       }
