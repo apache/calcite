@@ -83,6 +83,37 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.isNullable(), is(true));
   }
 
+  @Test void testLeastRestrictiveForArrays() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlCharArray10, f.sqlCharArray1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ARRAY));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForMultisets() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlCharMultiset10Nullable, f.sqlCharMultiset1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MULTISET));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForMaps() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlCharMap10Nullable, f.sqlCharMap1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MAP));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getKeyType().getPrecision(), is(10));
+    assertThat(leastRestrictive.getValueType().getPrecision(), is(10));
+  }
+
   /** Unit test for {@link SqlTypeUtil#comparePrecision(int, int)}
    * and  {@link SqlTypeUtil#maxPrecision(int, int)}. */
   @Test void testMaxPrecision() {
