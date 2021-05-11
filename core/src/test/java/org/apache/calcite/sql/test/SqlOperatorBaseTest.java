@@ -5760,6 +5760,44 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
   }
 
+  /** Tests {@code ARRAY_CONCAT} function from BigQuery. */
+  @Test void testArrayConcat() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.setFor(SqlLibraryOperators.ARRAY_CONCAT);
+    tester.checkFails("^array_concat()^", INVALID_ARGUMENTS_NUMBER, false);
+    tester.checkScalar("array_concat(array[1, 2], array[2, 3])", "[1, 2, 2, 3]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("array_concat(array[1, 2], array[2, null])", "[1, 2, 2, null]",
+        "INTEGER ARRAY NOT NULL");
+    tester.checkScalar(
+        "array_concat(array['hello', 'world'], array['!'], array[cast(null as char)])",
+        "[hello, world, !, null]", "CHAR(5) ARRAY NOT NULL");
+    tester.checkNull("array_concat(cast(null as integer array), array[1])");
+  }
+
+  /** Tests {@code ARRAY_REVERSE} function from BigQuery. */
+  @Test void testArrayReverseFunc() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.setFor(SqlLibraryOperators.ARRAY_REVERSE);
+    tester.checkScalar("array_reverse(array[1])", "[1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("array_reverse(array[1, 2])", "[2, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("array_reverse(array[null, 1])", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
+  }
+
+  /** Tests {@code ARRAY_LENGTH} function from BigQuery. */
+  @Test void testArrayLengthFunc() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.setFor(SqlLibraryOperators.ARRAY_LENGTH);
+    tester.checkScalar("array_length(array[1])", "1",
+        "INTEGER NOT NULL");
+    tester.checkScalar("array_length(array[1, 2, null])", "3",
+        "INTEGER NOT NULL");
+    tester.checkNull("array_length(null)");
+  }
+
   /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
   @Test void testUnixSecondsFunc() {
     SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);

@@ -109,7 +109,10 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
@@ -510,10 +513,14 @@ public class RexImpTable {
     // Multisets & arrays
     defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
         NullPolicy.STRICT);
+    defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method,
+        NullPolicy.STRICT);
     defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
     defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
     defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
+    defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
+    map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
     final MethodImplementor isEmptyImplementor =
         new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
             false);
@@ -2654,6 +2661,38 @@ public class RexImpTable {
         final RexCall call, final List<Expression> argValueList) {
       assert call.getOperands().size() == 1;
       return argValueList.get(0);
+    }
+  }
+
+  /** Implementor for a array concat. */
+  private static class ArrayConcatImplementor extends AbstractRexCallImplementor {
+
+    ArrayConcatImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "array_concat";
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      final BlockBuilder blockBuilder = translator.getBlockBuilder();
+      final Expression list =
+          blockBuilder.append("list", Expressions.new_(ArrayList.class), false);
+      final Expression nullValue = Expressions.constant(null);
+      for (Expression expression : argValueList) {
+        blockBuilder.add(
+            Expressions.ifThenElse(
+                Expressions.or(
+                    Expressions.equal(nullValue, list),
+                    Expressions.equal(nullValue, expression)),
+                Expressions.assign(list, nullValue),
+                Expressions.statement(
+                    Expressions.call(list, BuiltInMethod.COLLECTION_ADDALL.method, expression)))
+        );
+      }
+      return list;
     }
   }
 
