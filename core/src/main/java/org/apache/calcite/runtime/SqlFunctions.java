@@ -63,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -2786,6 +2787,12 @@ public class SqlFunctions {
     resultCollection.addAll(collection1);
     resultCollection.addAll(collection2);
     return resultCollection;
+  }
+
+  /** Support the ARRAY_REVERSE function. */
+  public static List reverse(List list) {
+    Collections.reverse(list);
+    return list;
   }
 
   /**

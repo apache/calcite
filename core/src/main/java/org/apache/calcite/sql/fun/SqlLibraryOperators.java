@@ -525,6 +525,36 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_SAME_SAME,
           SqlFunctionCategory.STRING);
 
+  /** The "ARRAY_LENGTH(array)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_LENGTH =
+      new SqlFunction("ARRAY_LENGTH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.SYSTEM);
+
+  /** The "ARRAY_REVERSE(array)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_REVERSE =
+      new SqlFunction("ARRAY_REVERSE",
+          SqlKind.ARRAY_REVERSE,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.SYSTEM);
+
+  /** The "ARRAY_CONCAT(array [, array]*)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_CONCAT =
+      new SqlFunction("ARRAY_CONCAT",
+          SqlKind.ARRAY_CONCAT,
+          ReturnTypes.LEAST_RESTRICTIVE,
+          null,
+          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction REVERSE =
       new SqlFunction("REVERSE",
