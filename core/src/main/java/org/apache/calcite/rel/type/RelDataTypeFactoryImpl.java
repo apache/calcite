@@ -18,7 +18,10 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
+import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -255,6 +258,52 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           type);
     }
     return createTypeWithNullability(builder.build(), isNullable);
+  }
+
+  protected @Nullable RelDataType leastRestrictiveArrayMultisetType(
+      final List<RelDataType> types, SqlTypeName sqlTypeName) {
+    assert sqlTypeName == SqlTypeName.ARRAY || sqlTypeName == SqlTypeName.MULTISET;
+    boolean isNullable = false;
+    for (RelDataType type: types) {
+      if (type.getComponentType() == null) {
+        return null;
+      }
+      isNullable |= type.isNullable();
+    }
+    final RelDataType type = leastRestrictive(
+        Util.transform(types,
+            t -> t instanceof ArraySqlType
+                ? ((ArraySqlType) t).getComponentType()
+                : ((MultisetSqlType) t).getComponentType()));
+    if (type == null) {
+      return null;
+    }
+    return sqlTypeName == SqlTypeName.ARRAY
+        ? new ArraySqlType(type, isNullable)
+        : new MultisetSqlType(type, isNullable);
+  }
+
+  protected @Nullable RelDataType leastRestrictiveMapType(
+      final List<RelDataType> types, SqlTypeName sqlTypeName) {
+    assert sqlTypeName == SqlTypeName.MAP;
+    boolean isNullable = false;
+    for (RelDataType type: types) {
+      if (!(type instanceof MapSqlType)) {
+        return null;
+      }
+      isNullable |= type.isNullable();
+    }
+    final RelDataType keyType = leastRestrictive(
+        Util.transform(types, t -> ((MapSqlType) t).getKeyType()));
+    if (keyType == null) {
+      return null;
+    }
+    final RelDataType valueType = leastRestrictive(
+        Util.transform(types, t -> ((MapSqlType) t).getValueType()));
+    if (valueType == null) {
+      return null;
+    }
+    return new MapSqlType(keyType, valueType, isNullable);
   }
 
   // copy a non-record type, setting nullability
