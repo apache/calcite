@@ -569,6 +569,7 @@ public enum BuiltInMethod {
   IS_EMPTY(Collection.class, "isEmpty"),
   SUBMULTISET_OF(SqlFunctions.class, "submultisetOf", Collection.class,
       Collection.class),
+  ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
   SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
   UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
   AVERAGE_ROW_SIZE(Size.class, "averageRowSize"),
@@ -633,7 +634,9 @@ public enum BuiltInMethod {
       long.class, long.class),
   SESSIONIZATION(EnumUtils.class, "sessionize", Enumerator.class, int.class, int.class,
       long.class),
-  BIG_DECIMAL_NEGATE(BigDecimal.class, "negate");
+  BIG_DECIMAL_ADD(BigDecimal.class, "add", BigDecimal.class),
+  BIG_DECIMAL_NEGATE(BigDecimal.class, "negate"),
+  COMPARE_TO(Comparable.class, "compareTo", Object.class);
 
   @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;

@@ -635,6 +635,12 @@ public enum SqlKind {
   /** {@code EXTRACT} function. */
   EXTRACT,
 
+  /** {@code ARRAY_CONCAT} function (BigQuery semantics). */
+  ARRAY_CONCAT,
+
+  /** {@code ARRAY_REVERSE} function (BigQuery semantics). */
+  ARRAY_REVERSE,
+
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 

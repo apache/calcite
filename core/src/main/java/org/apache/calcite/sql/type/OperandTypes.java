@@ -437,6 +437,18 @@ public abstract class OperandTypes {
       new SameOperandTypeChecker(-1);
 
   /**
+   * Operand type-checking strategy where any positive number of operands must all be
+   * in the same type family.
+   */
+  public static final SqlOperandTypeChecker AT_LEAST_ONE_SAME_VARIADIC =
+      new SameOperandTypeChecker(-1) {
+        @Override public SqlOperandCountRange
+        getOperandCountRange() {
+          return SqlOperandCountRanges.from(1);
+        }
+      };
+
+  /**
    * Operand type-checking strategy where operand types must allow ordered
    * comparisons.
    */
