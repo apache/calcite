@@ -795,6 +795,7 @@ your key to the keyservers used by Nexus, see above.
   `README`, `README.md`
   * Check that the version in `README` is correct
   * Check that the copyright year in `NOTICE` is correct
+  * Check that `LICENSE` is identical to the file checked into git
 * Make sure that the following files do not occur in the source
   distros: `KEYS`, `gradlew`, `gradlew.bat`, `gradle-wrapper.jar`,
   `gradle-wrapper.properties`
