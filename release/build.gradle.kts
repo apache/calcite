@@ -77,12 +77,11 @@ Release artifacts are signed with the following key:
 https://people.apache.org/keys/committer/$committerId.asc
 https://www.apache.org/dist/$tlpUrl/KEYS
 
-N.B.
-To create the jars and test $componentName: "./gradlew build".
+To create the jars and test $componentName: "gradle build".
 
-If you do not have a Java environment available, you can run the tests
-using docker. To do so, install docker and docker-compose, then run
-"docker-compose run test" from the root of the directory.
+If you do not have a Java/Gradle environment available, you can run
+the tests using Docker. To do so, install docker and docker-compose,
+then run "docker-compose run test" from the root of the directory.
 
 Please vote on releasing this package as $componentName $version.
 
@@ -142,6 +141,15 @@ fun CopySpec.excludeLicenseFromSourceRelease() {
     exclude("LICENSE")
 }
 
+fun CopySpec.excludeGradleWrapperFromSourceRelease() {
+    // Source distributions must not include binary files (see LEGAL-288).
+    // The Gradle wrapper requires gradle-wrapper.jar, so exclude the whole
+    // wrapper. Users must install Gradle manually.
+    exclude("gradlew")
+    exclude("gradlew.bat")
+    exclude("gradle/wrapper/**")
+}
+
 fun CopySpec.excludeCategoryBLicensedWorksFromSourceRelease() {
     // The source distribution contains "font-awesome:fonts" which is licensed as
     // http://fontawesome.io/license (Font: SIL OFL 1.1, CSS: MIT License).
@@ -167,6 +175,7 @@ fun CrLfSpec.sourceLayout() = copySpec {
         from(rootDir) {
             gitignore(gitProps)
             excludeLicenseFromSourceRelease()
+            excludeGradleWrapperFromSourceRelease()
             excludeCategoryBLicensedWorksFromSourceRelease()
         }
     }
