@@ -922,7 +922,7 @@ public class SqlDialect {
   public @Nullable SqlNode getCastSpec(RelDataType type) {
     int maxPrecision = -1;
     if (type instanceof AbstractSqlType) {
-      System.out.println("type.getSqlTypeName() = " + type.getSqlTypeName().getName());
+      //System.out.println("type.getSqlTypeName() = " + type.getSqlTypeName().getName());
       switch (type.getSqlTypeName()) {
       case NULL:
         return null;
