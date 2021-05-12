@@ -82,16 +82,16 @@ class SqlTypeFixture {
       typeFactory.createSqlType(SqlTypeName.CHAR, 1), false);
   final RelDataType sqlChar10 = typeFactory.createTypeWithNullability(
       typeFactory.createSqlType(SqlTypeName.CHAR, 10), false);
-  final RelDataType sqlCharArray10 = typeFactory.createTypeWithNullability(
+  final RelDataType arraySqlChar10 = typeFactory.createTypeWithNullability(
       typeFactory.createArrayType(sqlChar10, -1), false);
-  final RelDataType sqlCharArray1 = typeFactory.createTypeWithNullability(
+  final RelDataType arraySqlChar1 = typeFactory.createTypeWithNullability(
       typeFactory.createArrayType(sqlChar1, -1), false);
-  final RelDataType sqlCharMultiset10Nullable = typeFactory.createTypeWithNullability(
+  final RelDataType multisetSqlChar10Nullable = typeFactory.createTypeWithNullability(
       typeFactory.createMultisetType(sqlChar10, -1), true);
-  final RelDataType sqlCharMultiset1 = typeFactory.createTypeWithNullability(
+  final RelDataType multisetSqlChar1 = typeFactory.createTypeWithNullability(
       typeFactory.createMultisetType(sqlChar1, -1), false);
-  final RelDataType sqlCharMap10Nullable = typeFactory.createTypeWithNullability(
+  final RelDataType mapSqlChar10Nullable = typeFactory.createTypeWithNullability(
       typeFactory.createMapType(sqlChar10, sqlChar10), true);
-  final RelDataType sqlCharMap1 = typeFactory.createTypeWithNullability(
+  final RelDataType mapSqlChar1 = typeFactory.createTypeWithNullability(
       typeFactory.createMapType(sqlChar1, sqlChar1), false);
 }

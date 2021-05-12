@@ -88,7 +88,7 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlCharArray10, f.sqlChar));
+            Lists.newArrayList(f.arraySqlChar10, f.sqlChar));
     assertNull(leastRestrictive);
   }
 
@@ -96,7 +96,7 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlCharArray10, f.sqlCharArray1));
+            Lists.newArrayList(f.arraySqlChar10, f.arraySqlChar1));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ARRAY));
     assertThat(leastRestrictive.isNullable(), is(false));
     assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
@@ -106,7 +106,7 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlCharMultiset10Nullable, f.sqlCharMultiset1));
+            Lists.newArrayList(f.multisetSqlChar10Nullable, f.multisetSqlChar1));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MULTISET));
     assertThat(leastRestrictive.isNullable(), is(true));
     assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
@@ -116,7 +116,7 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlCharMultiset10Nullable, f.sqlCharArray1));
+            Lists.newArrayList(f.multisetSqlChar10Nullable, f.arraySqlChar1));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MULTISET));
     assertThat(leastRestrictive.isNullable(), is(true));
     assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
@@ -126,7 +126,7 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlCharMultiset10Nullable, f.sqlCharMap1));
+            Lists.newArrayList(f.multisetSqlChar10Nullable, f.mapSqlChar1));
     assertNull(leastRestrictive);
   }
 
@@ -134,7 +134,7 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlCharMap10Nullable, f.sqlCharMap1));
+            Lists.newArrayList(f.mapSqlChar10Nullable, f.mapSqlChar1));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MAP));
     assertThat(leastRestrictive.isNullable(), is(true));
     assertThat(leastRestrictive.getKeyType().getPrecision(), is(10));
@@ -145,7 +145,7 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
-            Lists.newArrayList(f.sqlCharMap10Nullable, f.sqlCharArray1));
+            Lists.newArrayList(f.mapSqlChar10Nullable, f.arraySqlChar1));
     assertNull(leastRestrictive);
   }
 
