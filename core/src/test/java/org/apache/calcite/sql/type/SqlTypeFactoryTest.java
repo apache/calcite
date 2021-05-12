@@ -34,6 +34,7 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -83,6 +84,14 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.isNullable(), is(true));
   }
 
+  @Test void testLeastRestrictiveForImpossibleWithArray() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlCharArray10, f.sqlChar));
+    assertNull(leastRestrictive);
+  }
+
   @Test void testLeastRestrictiveForArrays() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
@@ -103,6 +112,24 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
   }
 
+  @Test void testLeastRestrictiveForMultisetsAndArrays() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlCharMultiset10Nullable, f.sqlCharArray1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MULTISET));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForImpossibleWithMultisets() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlCharMultiset10Nullable, f.sqlCharMap1));
+    assertNull(leastRestrictive);
+  }
+
   @Test void testLeastRestrictiveForMaps() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
@@ -112,6 +139,14 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.isNullable(), is(true));
     assertThat(leastRestrictive.getKeyType().getPrecision(), is(10));
     assertThat(leastRestrictive.getValueType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForImpossibleWithMaps() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlCharMap10Nullable, f.sqlCharArray1));
+    assertNull(leastRestrictive);
   }
 
   /** Unit test for {@link SqlTypeUtil#comparePrecision(int, int)}

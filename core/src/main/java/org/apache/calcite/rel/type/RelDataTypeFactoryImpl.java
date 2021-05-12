@@ -269,6 +269,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       isNullable |= type.isNullable();
     }
     if (sqlTypeName == SqlTypeName.MAP) {
+      for (RelDataType type: types) {
+        if (type.getKeyType() == null || type.getValueType() == null) {
+          return null;
+        }
+      }
       RelDataType keyType = leastRestrictive(
           Util.transform(types, t -> Objects.requireNonNull(t.getKeyType())));
       RelDataType valueType = leastRestrictive(
@@ -278,6 +283,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
       return new MapSqlType(keyType, valueType, isNullable);
     } else {
+      for (RelDataType type: types) {
+        if (type.getComponentType() == null) {
+          return null;
+        }
+      }
       RelDataType type = leastRestrictive(
           Util.transform(types, t -> Objects.requireNonNull(t.getComponentType())));
       if (type == null) {
