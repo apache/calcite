@@ -265,20 +265,21 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     assert sqlTypeName == SqlTypeName.ARRAY
         || sqlTypeName == SqlTypeName.MULTISET || sqlTypeName == SqlTypeName.MAP;
     boolean isNullable = false;
-    for (RelDataType type : types) {
-      isNullable |= type.isNullable();
-    }
     if (sqlTypeName == SqlTypeName.MAP) {
       for (RelDataType type: types) {
         if (type.getKeyType() == null || type.getValueType() == null) {
           return null;
         }
+        isNullable |= type.isNullable();
       }
-      RelDataType keyType = leastRestrictive(
+      final RelDataType keyType = leastRestrictive(
           Util.transform(types, t -> Objects.requireNonNull(t.getKeyType())));
-      RelDataType valueType = leastRestrictive(
+      if (keyType == null) {
+        return null;
+      }
+      final RelDataType valueType = leastRestrictive(
           Util.transform(types, t -> Objects.requireNonNull(t.getValueType())));
-      if (keyType == null || valueType == null) {
+      if (valueType == null) {
         return null;
       }
       return new MapSqlType(keyType, valueType, isNullable);
@@ -287,8 +288,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         if (type.getComponentType() == null) {
           return null;
         }
+        isNullable |= type.isNullable();
       }
-      RelDataType type = leastRestrictive(
+      final RelDataType type = leastRestrictive(
           Util.transform(types, t -> Objects.requireNonNull(t.getComponentType())));
       if (type == null) {
         return null;
