@@ -273,12 +273,12 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         isNullable |= type.isNullable();
       }
       final RelDataType keyType = leastRestrictive(
-          Util.transform(types, t -> Objects.requireNonNull(t.getKeyType())));
+          Util.transform(types, t -> ((MapSqlType) t).getKeyType()));
       if (keyType == null) {
         return null;
       }
       final RelDataType valueType = leastRestrictive(
-          Util.transform(types, t -> Objects.requireNonNull(t.getValueType())));
+          Util.transform(types, t -> ((MapSqlType) t).getValueType()));
       if (valueType == null) {
         return null;
       }
@@ -291,7 +291,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         isNullable |= type.isNullable();
       }
       final RelDataType type = leastRestrictive(
-          Util.transform(types, t -> Objects.requireNonNull(t.getComponentType())));
+          Util.transform(types,
+              t -> t instanceof ArraySqlType
+                  ? ((ArraySqlType) t).getComponentType()
+                  : ((MultisetSqlType) t).getComponentType()));
       if (type == null) {
         return null;
       }
