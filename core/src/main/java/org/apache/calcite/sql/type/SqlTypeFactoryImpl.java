@@ -292,9 +292,11 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           return leastRestrictiveStructuredType(types);
         }
         if (sqlTypeName == SqlTypeName.ARRAY
-            || sqlTypeName == SqlTypeName.MAP
             || sqlTypeName == SqlTypeName.MULTISET) {
-          return leastRestrictiveCollectionType(types, sqlTypeName);
+          return leastRestrictiveArrayMultisetType(types, sqlTypeName);
+        }
+        if (sqlTypeName == SqlTypeName.MAP) {
+          return leastRestrictiveMapType(types, sqlTypeName);
         }
       }
 
