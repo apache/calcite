@@ -288,7 +288,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     assert sqlTypeName == SqlTypeName.MAP;
     boolean isNullable = false;
     for (RelDataType type: types) {
-      if (type.getKeyType() == null || type.getValueType() == null) {
+      if (!(type instanceof MapSqlType)) {
         return null;
       }
       isNullable |= type.isNullable();
