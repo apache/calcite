@@ -923,7 +923,7 @@ public class SqlLiteral extends SqlNode {
       String s,
       SqlParserPos pos) {
     BigDecimal value = SqlParserUtil.parseDecimal(s);
-    return new SqlNumericLiteral(value, null, null, false, pos);
+    return new SqlNumericLiteral(value, value.precision(), value.scale(), false, pos);
   }
 
   /**
