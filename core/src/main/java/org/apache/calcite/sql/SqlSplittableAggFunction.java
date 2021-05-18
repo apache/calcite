@@ -267,9 +267,7 @@ public interface SqlSplittableAggFunction {
       final int arg = aggregateCall.getArgList().get(0);
       final RelDataTypeField field = inputRowType.getFieldList().get(arg);
       final RelDataType fieldType = field.getType();
-      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-      RelDataType type = typeFactory.getTypeSystem().deriveSumType(typeFactory, fieldType);
-      return rexBuilder.makeInputRef(type, arg);
+      return rexBuilder.makeInputRef(fieldType, arg);
     }
 
     @Override public AggregateCall split(AggregateCall aggregateCall,
