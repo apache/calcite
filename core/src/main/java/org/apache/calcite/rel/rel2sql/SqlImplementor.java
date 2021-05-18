@@ -350,6 +350,16 @@ public abstract class SqlImplementor {
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
+
+    case SEARCH:
+      final RexCall search = (RexCall) node;
+      final RexLiteral literal = (RexLiteral) search.operands.get(1);
+      final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
+      joinContext =
+          leftContext.implementor().joinContext(leftContext, rightContext);
+      return joinContext.toSql(null, search.operands.get(0), literal.getType(),
+          sarg);
+
     case IS_NULL:
     case IS_NOT_NULL:
       operands = ((RexCall) node).getOperands();
