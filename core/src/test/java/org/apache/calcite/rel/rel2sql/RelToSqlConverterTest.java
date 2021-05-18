@@ -2914,6 +2914,29 @@ class RelToSqlConverterTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4610">[CALCITE-4610]
+   * Join on range causes AssertionError in RelToSqlConverter</a>. */
+  @Test void testJoinOnRange() {
+    final String sql = "SELECT d.deptno, e.deptno\n"
+        + "FROM dept d\n"
+        + "LEFT JOIN emp e\n"
+        + " ON d.deptno = e.deptno\n"
+        + " AND d.deptno < 15\n"
+        + " AND d.deptno > 10\n"
+        + "WHERE e.job LIKE 'PRESIDENT'";
+    final String expected = "SELECT \"DEPT\".\"DEPTNO\","
+        + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\" "
+        + "ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\" "
+        + "AND (\"DEPT\".\"DEPTNO\" > 10"
+        + " AND \"DEPT\".\"DEPTNO\" < 15)\n"
+        + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1586">[CALCITE-1586]
