@@ -11751,7 +11751,7 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(DEPTNO=[$0], EMPNO=[$2])
-  LogicalSort(offset=[2], fetch=[10])
+  LogicalSort(fetch=[10])
     LogicalJoin(condition=[=($0, $9)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalSort(offset=[2], fetch=[10])

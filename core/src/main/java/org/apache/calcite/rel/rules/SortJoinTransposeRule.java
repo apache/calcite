@@ -158,7 +158,7 @@ public class SortJoinTransposeRule
     final RelNode joinCopy = join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
         newRightInput, join.getJoinType(), join.isSemiJoinDone());
     final RelNode sortCopy = sort.copy(sort.getTraitSet(), joinCopy, sort.getCollation(),
-        sort.offset, sort.fetch);
+        null, sort.fetch);
 
     call.transformTo(sortCopy);
   }
