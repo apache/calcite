@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
@@ -10149,6 +10150,17 @@ public abstract class SqlOperatorBaseTest {
         }
       }
     }
+  }
+
+  /**
+   * Tests that {@link SqlLiteral#createApproxNumeric} function sets scale and precision of the
+   * numeric value.
+   */
+  @Test void testCreateApproxNumericFunction() {
+    SqlNumericLiteral sqlNumericLiteral =
+        SqlLiteral.createApproxNumeric(Double.toString(Double.MAX_VALUE), SqlParserPos.ZERO);
+    assertEquals(sqlNumericLiteral.getPrec(), 17);
+    assertEquals(sqlNumericLiteral.getScale(), -292);
   }
 
   private Throwable findMostDescriptiveCause(Throwable ex) {
