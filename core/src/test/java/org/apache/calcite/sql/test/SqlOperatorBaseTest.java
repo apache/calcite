@@ -100,6 +100,7 @@ import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -10159,8 +10160,8 @@ public abstract class SqlOperatorBaseTest {
   @Test void testCreateApproxNumericFunction() {
     SqlNumericLiteral sqlNumericLiteral =
         SqlLiteral.createApproxNumeric(Double.toString(Double.MAX_VALUE), SqlParserPos.ZERO);
-    assertEquals(sqlNumericLiteral.getPrec(), 17);
-    assertEquals(sqlNumericLiteral.getScale(), -292);
+    assertThat(sqlNumericLiteral.getPrec(), is(17));
+    assertEquals(sqlNumericLiteral.getScale(), is(-292));
   }
 
   private Throwable findMostDescriptiveCause(Throwable ex) {
