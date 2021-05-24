@@ -10161,7 +10161,7 @@ public abstract class SqlOperatorBaseTest {
     SqlNumericLiteral sqlNumericLiteral =
         SqlLiteral.createApproxNumeric(Double.toString(Double.MAX_VALUE), SqlParserPos.ZERO);
     assertThat(sqlNumericLiteral.getPrec(), is(17));
-    assertEquals(sqlNumericLiteral.getScale(), is(-292));
+    assertThat(sqlNumericLiteral.getScale(), is(-292));
   }
 
   private Throwable findMostDescriptiveCause(Throwable ex) {
