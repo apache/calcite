@@ -212,18 +212,17 @@ public class RelToSqlConverter extends SqlImplementor
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
-    SqlNode sqlCondition = null;
+    final SqlNode sqlCondition;
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
     if (isCrossJoin(e)) {
+      sqlCondition = null;
       joinType = dialect.emulateJoinTypeForCrossJoin();
       condType = JoinConditionType.NONE.symbol(POS);
     } else {
-      sqlCondition = convertConditionToSqlNode(e.getCondition(),
-          leftContext,
-          rightContext,
-          e.getLeft().getRowType().getFieldCount(),
-          dialect);
+      sqlCondition =
+          convertConditionToSqlNode(e.getCondition(), leftContext,
+              rightContext);
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -243,11 +242,8 @@ public class RelToSqlConverter extends SqlImplementor
     final Context rightContext = rightResult.qualifiedContext();
 
     final SqlSelect sqlSelect = leftResult.asSelect();
-    SqlNode sqlCondition = convertConditionToSqlNode(e.getCondition(),
-        leftContext,
-        rightContext,
-        e.getLeft().getRowType().getFieldCount(),
-        dialect);
+    SqlNode sqlCondition =
+        convertConditionToSqlNode(e.getCondition(), leftContext, rightContext);
     if (leftResult.neededAlias != null) {
       SqlShuttle visitor = new AliasReplacementShuttle(leftResult.neededAlias,
           e.getLeft().getRowType(), sqlSelect.getSelectList());
