@@ -5513,6 +5513,45 @@ class RelOptRulesTest extends RelOptTestBase {
     assertEquals(planBefore, planAfter);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4621">[CALCITE-4621]
+   * SemiJoinRule throws AssertionError on ANTI join</a>. */
+  @Test void testJoinToSemiJoinRuleOnAntiJoin() {
+    testSemiJoinRuleOnAntiJoin(CoreRules.JOIN_TO_SEMI_JOIN);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4621">[CALCITE-4621]
+   * SemiJoinRule throws AssertionError on ANTI join</a>. */
+  @Test void testProjectToSemiJoinRuleOnAntiJoin() {
+    testSemiJoinRuleOnAntiJoin(CoreRules.PROJECT_TO_SEMI_JOIN);
+  }
+
+  private void testSemiJoinRuleOnAntiJoin(RelOptRule rule) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode input = relBuilder
+        .scan("DEPT")
+        .scan("EMP")
+        .project(relBuilder.field("DEPTNO"))
+        .distinct()
+        .antiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("DNAME"))
+        .build();
+
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(rule)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(input);
+    final RelNode output = hepPlanner.findBestExp();
+    final String planBefore = RelOptUtil.toString(input);
+    final String planAfter = RelOptUtil.toString(output);
+    assertEquals(planBefore, planAfter);
+  }
+
   @Test void testPushJoinCondDownToProject() {
     final String sql = "select d.deptno, e.deptno from sales.dept d, sales.emp e\n"
         + " where d.deptno + 10 = e.deptno * 2";
