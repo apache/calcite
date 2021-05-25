@@ -129,13 +129,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -1264,22 +1265,21 @@ public abstract class RelOptUtil {
       }
     }
 
-    if (condition instanceof RexCall) {
-      RexCall call = (RexCall) condition;
-      if (call.getKind() == SqlKind.AND) {
-        for (RexNode operand : call.getOperands()) {
-          splitJoinCondition(
-              sysFieldList,
-              inputs,
-              operand,
-              joinKeys,
-              filterNulls,
-              rangeOp,
-              nonEquiList);
-        }
-        return;
+    if (condition.getKind() == SqlKind.AND) {
+      for (RexNode operand : ((RexCall) condition).getOperands()) {
+        splitJoinCondition(
+            sysFieldList,
+            inputs,
+            operand,
+            joinKeys,
+            filterNulls,
+            rangeOp,
+            nonEquiList);
       }
+      return;
+    }
 
+    if (condition instanceof RexCall) {
       RexNode leftKey = null;
       RexNode rightKey = null;
       int leftInput = 0;
@@ -1288,7 +1288,8 @@ public abstract class RelOptUtil {
       List<RelDataTypeField> rightFields = null;
       boolean reverse = false;
 
-      call = collapseExpandedIsNotDistinctFromExpr(call, rexBuilder);
+      final RexCall call =
+          collapseExpandedIsNotDistinctFromExpr((RexCall) condition, rexBuilder);
       SqlKind kind = call.getKind();
 
       // Only consider range operators if we haven't already seen one
@@ -1443,10 +1444,11 @@ public abstract class RelOptUtil {
         if (rangeOp != null
             && kind != SqlKind.EQUALS
             && kind != SqlKind.IS_DISTINCT_FROM) {
+          SqlOperator op = call.getOperator();
           if (reverse) {
-            kind = kind.reverse();
+            op = requireNonNull(op.reverse());
           }
-          rangeOp.add(op(kind, call.getOperator()));
+          rangeOp.add(op);
         }
         return;
       } // else fall through and add this condition as nonEqui condition
@@ -4322,7 +4324,7 @@ public abstract class RelOptUtil {
       } else if (type instanceof MultisetSqlType) {
         // E.g. "INTEGER NOT NULL MULTISET NOT NULL"
         RelDataType componentType =
-            Objects.requireNonNull(
+            requireNonNull(
                 type.getComponentType(),
                 () -> "type.getComponentType() for " + type);
         accept(componentType);
@@ -4419,9 +4421,9 @@ public abstract class RelOptUtil {
       if (call.getOperator() == RexBuilder.GET_OPERATOR) {
         RexLiteral literal = (RexLiteral) call.getOperands().get(1);
         if (extraFields != null) {
-          Objects.requireNonNull(literal, () -> "first operand in " + call);
+          requireNonNull(literal, () -> "first operand in " + call);
           String value2 = (String) literal.getValue2();
-          Objects.requireNonNull(value2, () -> "value of the first operand in " + call);
+          requireNonNull(value2, () -> "value of the first operand in " + call);
           extraFields.add(
               new RelDataTypeFieldImpl(
                   value2,
@@ -4527,11 +4529,11 @@ public abstract class RelOptUtil {
           type = leftDestFields.get(destIndex).getType();
         } else {
           type =
-              Objects.requireNonNull(rightDestFields, "rightDestFields")
+              requireNonNull(rightDestFields, "rightDestFields")
                   .get(destIndex - nLeftDestFields).getType();
         }
       } else {
-        type = Objects.requireNonNull(srcFields, "srcFields").get(srcIndex).getType();
+        type = requireNonNull(srcFields, "srcFields").get(srcIndex).getType();
       }
       if ((adjustments[srcIndex] != 0)
           || (srcFields == null)

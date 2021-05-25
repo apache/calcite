@@ -2611,7 +2611,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * direction. Or returns this, if its kind is not reversible.
    *
    * <p>For example, {@code reverse(GREATER_THAN)} returns {@link #LESS_THAN}.
+   *
+   * @deprecated Use {@link SqlOperator#reverse()}, but beware that it has
+   * slightly different semantics
    */
+  @Deprecated // to be removed before 2.0
   public static SqlOperator reverse(SqlOperator operator) {
     switch (operator.getKind()) {
     case GREATER_THAN:

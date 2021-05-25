@@ -43,8 +43,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Checks whether one condition logically implies another.
@@ -71,9 +72,9 @@ public class RexImplicationChecker {
       RexBuilder builder,
       RexExecutor executor,
       RelDataType rowType) {
-    this.builder = Objects.requireNonNull(builder, "builder");
-    this.executor = Objects.requireNonNull(executor, "executor");
-    this.rowType = Objects.requireNonNull(rowType, "rowType");
+    this.builder = requireNonNull(builder, "builder");
+    this.executor = requireNonNull(executor, "executor");
+    this.rowType = requireNonNull(rowType, "rowType");
   }
 
   /**
@@ -494,12 +495,9 @@ public class RexImplicationChecker {
 
       if (first.isA(SqlKind.LITERAL)
           && second.isA(SqlKind.INPUT_REF)) {
-        updateUsage(reverse(call.getOperator()), (RexInputRef) second, first);
+        updateUsage(requireNonNull(call.getOperator().reverse()),
+            (RexInputRef) second, first);
       }
-    }
-
-    private static SqlOperator reverse(SqlOperator op) {
-      return RelOptUtil.op(op.getKind().reverse(), op);
     }
 
     private void updateUsage(SqlOperator op, RexInputRef inputRef,

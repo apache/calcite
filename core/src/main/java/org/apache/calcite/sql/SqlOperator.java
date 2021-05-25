@@ -965,8 +965,29 @@ public abstract class SqlOperator {
    * {@code SqlStdOperatorTable.NOT_LIKE}, and vice versa.
    *
    * <p>By default, returns {@code null}, which means there is no inverse
-   * operator. */
+   * operator.
+   *
+   * @see #reverse */
   public @Nullable SqlOperator not() {
+    return null;
+  }
+
+  /** Returns the operator that has the same effect as this operator
+   * if its arguments are reversed.
+   *
+   * <p>For example, {@code SqlStdOperatorTable.GREATER_THAN.reverse()} returns
+   * {@code SqlStdOperatorTable.LESS_THAN}, and vice versa,
+   * because {@code a > b} is equivalent to {@code b < a}.
+   *
+   * <p>{@code SqlStdOperatorTable.EQUALS.reverse()} returns itself.
+   *
+   * <p>By default, returns {@code null}, which means there is no inverse
+   * operator.
+   *
+   * @see SqlOperator#not()
+   * @see SqlKind#reverse()
+   */
+  public @Nullable SqlOperator reverse() {
     return null;
   }
 

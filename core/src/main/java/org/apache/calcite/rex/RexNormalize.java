@@ -19,7 +19,6 @@ package org.apache.calcite.rex;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 
@@ -30,6 +29,8 @@ import org.apiguardian.api.API;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Context required to normalize a row-expression.
@@ -82,8 +83,7 @@ public class RexNormalize {
     final SqlKind reversedKind = kind.reverse();
     final int x = reversedKind.compareTo(kind);
     if (x < 0) {
-      return Pair.of(
-          SqlStdOperatorTable.reverse(operator),
+      return Pair.of(requireNonNull(operator.reverse()),
           ImmutableList.of(operand1, operand0));
     }
     if (x > 0) {
@@ -99,8 +99,7 @@ public class RexNormalize {
 
       // When $1 > $0 is normalized, the operation needs to be flipped
       // so we sort arguments first, then flip the sign.
-      return Pair.of(
-          SqlStdOperatorTable.reverse(operator),
+      return Pair.of(requireNonNull(operator.reverse()),
           ImmutableList.of(operand1, operand0));
     }
     return original;
@@ -125,8 +124,7 @@ public class RexNormalize {
     final SqlKind reversedKind = kind.reverse();
     final int x = reversedKind.compareTo(kind);
     if (x < 0) {
-      return Objects.hash(
-          SqlStdOperatorTable.reverse(operator),
+      return Objects.hash(requireNonNull(operator.reverse()),
           Arrays.asList(operands.get(1), operands.get(0)));
     }
     if (isSymmetricalCall(operator, operands.get(0), operands.get(1))) {
