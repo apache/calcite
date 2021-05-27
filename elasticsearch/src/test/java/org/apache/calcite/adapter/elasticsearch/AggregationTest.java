@@ -47,7 +47,6 @@ import java.util.Map;
 /**
  * Testing Elasticsearch aggregation transformations.
  */
-@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class AggregationTest {
 
@@ -112,6 +111,33 @@ class AggregationTest {
     };
   }
 
+  /**
+   * Currently the patterns like below will be converted to Search in range
+   * which is not supported in elastic search adapter.
+   * (val1 >= 10 and val1 <= 20)
+   * (val1 <= 10 or val1 >=20)
+   * (val1 <= 10) or (val1 > 15 and val1 <= 20)
+   * So disable this test case until the translation from Search in range
+   * to rang Query in ES is implemented.
+   */
+  @Disabled
+  @Test void searchInRange() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 >= 10 and val1 <=20")
+        .returns("EXPR$0=1\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 <= 10 or val1 >=20")
+        .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
+        .returns("EXPR$0=2\n");
+  }
+
   @Test void countStar() {
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -130,6 +156,21 @@ class AggregationTest {
         .with(newConnectionFactory())
         .query("select count(*) from view where cat1 in ('a', 'b')")
         .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 in (10, 20)")
+        .returns("EXPR$0=0\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where cat4 in ('2018-01-01', '2019-12-12')")
+        .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where cat4 not in ('2018-01-01', '2019-12-12')")
+        .returns("EXPR$0=1\n");
   }
 
   @Test void all() {
