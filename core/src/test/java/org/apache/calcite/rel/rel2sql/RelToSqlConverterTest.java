@@ -5104,6 +5104,23 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql);
   }
 
+  /** As {@link #testValuesEmpty()} but with extra {@code SUBSTRING}. Before
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4524">[CALCITE-4524]
+   * Make some fields non-nullable</a> was fixed, this case would fail with
+   * {@code java.lang.IndexOutOfBoundsException}. */
+  @Test void testValuesEmpty2() {
+    final String sql0 = "select *\n"
+        + "from (values (1, 'a'), (2, 'bb')) as t(x, y)\n"
+        + "limit 0";
+    final String sql = "SELECT SUBSTRING(y, 1, 1) FROM (" + sql0 + ") t";
+    final RuleSet rules =
+        RuleSets.ofList(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
+    final String expected = "SELECT SUBSTRING(`Y` FROM 1 FOR 1)\n"
+        + "FROM (SELECT NULL AS `X`, NULL AS `Y`) AS `t`\n"
+        + "WHERE 1 = 0";
+    sql(sql).optimize(rules, null).withMysql().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3840">[CALCITE-3840]
    * Re-aliasing of VALUES that has column aliases produces wrong SQL in the
