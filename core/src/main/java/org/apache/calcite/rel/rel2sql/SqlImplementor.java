@@ -161,12 +161,12 @@ public abstract class SqlImplementor {
   }
 
   /** Visits a relational expression that has no parent. */
-  public final Result visitRoot(RelNode e) {
+  public final Result visitRoot(RelNode r) {
     try {
-      return visitInput(holder(e), 0);
+      return visitInput(holder(r), 0);
     } catch (Error | RuntimeException e) {
       throw Util.throwAsRuntime("Error while converting RelNode to SqlNode:\n"
-          + RelOptUtil.toString(rel), e);
+          + RelOptUtil.toString(r), e);
     }
   }
 
