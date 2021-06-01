@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -161,7 +162,12 @@ public abstract class SqlImplementor {
 
   /** Visits a relational expression that has no parent. */
   public final Result visitRoot(RelNode e) {
-    return visitInput(holder(e), 0);
+    try {
+      return visitInput(holder(e), 0);
+    } catch (Error | RuntimeException e) {
+      throw Util.throwAsRuntime("Error while converting RelNode to SqlNode:\n"
+          + RelOptUtil.toString(rel), e);
+    }
   }
 
   /** Creates a relational expression that has {@code r} as its input. */
