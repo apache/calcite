@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apiguardian.api.API;
+
 import java.util.Locale;
 
 /**
@@ -154,26 +156,31 @@ public enum JoinRelType {
   }
 
   /** Returns whether this join type accepts pushing predicates from above into its predicate. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
   public boolean canPushIntoFromAbove() {
     return (this == INNER) || (this == SEMI);
   }
 
   /** Returns whether this join type accepts pushing predicates from above into its left input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
   public boolean canPushLeftFromAbove() {
     return (this == INNER) || (this == LEFT) || (this == SEMI) || (this == ANTI);
   }
 
   /** Returns whether this join type accepts pushing predicates from above into its right input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
   public boolean canPushRightFromAbove() {
     return (this == INNER) || (this == RIGHT);
   }
 
   /** Returns whether this join type accepts pushing predicates from within into its left input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
   public boolean canPushLeftFromWithin() {
     return (this == INNER) || (this == RIGHT) || (this == SEMI);
   }
 
   /** Returns whether this join type accepts pushing predicates from within into its right input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
   public boolean canPushRightFromWithin() {
     return (this == INNER) || (this == LEFT) || (this == SEMI);
   }

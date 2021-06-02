@@ -2920,6 +2920,9 @@ public abstract class RelOptUtil {
    * @param leftFilters  list of filters to push to the left child
    * @param rightFilters list of filters to push to the right child
    * @return whether at least one filter was pushed
+   *
+   * @deprecated Use
+   * {@link RelOptUtil#classifyFilters(RelNode, List, boolean, boolean, boolean, List, List, List)}
    */
   @Deprecated // to be removed before 2.0
   public static boolean classifyFilters(
@@ -2945,8 +2948,8 @@ public abstract class RelOptUtil {
 
     // SemiJoin, CorrelateSemiJoin, CorrelateAntiJoin: right fields are not returned
     assert nTotalFields == (!joinType.projectsRight()
-        ? nSysFields + nFieldsLeft
-        : nSysFields + nFieldsLeft + nFieldsRight);
+            ? nSysFields + nFieldsLeft
+            : nSysFields + nFieldsLeft + nFieldsRight);
 
     // set the reference bitmaps for the left and right children
     ImmutableBitSet leftBitmap =
