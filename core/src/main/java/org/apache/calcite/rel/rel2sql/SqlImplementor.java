@@ -30,6 +30,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.RavenDistinctProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -2113,6 +2114,11 @@ public abstract class SqlImplementor {
         if (clauses.contains(Clause.GROUP_BY)) {
           // Avoid losing the distinct attribute of inner aggregate.
           return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
+        }
+        if (rel instanceof Aggregate
+            && rel.getInput(0) instanceof RavenDistinctProject
+            && ((RavenDistinctProject) rel.getInput(0)).isDistinct()) {
+          return true;
         }
       }
 
