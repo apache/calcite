@@ -27,7 +27,7 @@ For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.27.0">1.27.0</a> / 2020-06-XX
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.27.0">1.27.0</a> / 2021-06-03
 {: #v1-27-0}
 This release comes eight months after [1.26.0](#v1-26-0). It includes more than 150 resolved
 issues, comprising a few new features, three minor breaking changes, many bug-fixes and small
