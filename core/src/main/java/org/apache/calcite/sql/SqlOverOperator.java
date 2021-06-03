@@ -82,7 +82,8 @@ public class SqlOverOperator extends SqlBinaryOperator {
     if (qualifier != null && qualifier.toString().equals("DISTINCT")
         && window.getKind() == SqlKind.WINDOW) {
       throw validator.newValidationError(aggCall,
-          RESOURCE.functionQuantifierNotAllowed(window.toString())); }
+          RESOURCE.functionQuantifierNotAllowed(window.toString()));
+    }
     validator.validateWindow(window, scope, aggCall);
   }
 
