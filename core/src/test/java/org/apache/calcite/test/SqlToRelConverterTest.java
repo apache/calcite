@@ -645,6 +645,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select distinct sal + 5 from emp").ok();
   }
 
+  @Disabled
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-476">[CALCITE-476]
    * DISTINCT flag in windowed aggregates</a>. */
@@ -657,6 +658,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Disabled
   /** As {@link #testSelectOverDistinct()} but for streaming queries. */
   @Test void testSelectStreamPartitionDistinct() {
     final String sql = "select stream\n"
