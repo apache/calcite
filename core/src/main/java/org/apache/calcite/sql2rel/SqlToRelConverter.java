@@ -5758,14 +5758,21 @@ public class SqlToRelConverter {
       if (orderList == null || orderList.size() == 0) {
         collation = RelCollations.EMPTY;
       } else {
-        collation = RelCollations.of(
-            orderList.stream()
-                .map(order ->
-                    bb.convertSortExpression(order,
-                        RelFieldCollation.Direction.ASCENDING,
-                        RelFieldCollation.NullDirection.UNSPECIFIED,
-                        this::sortToFieldCollation))
-                .collect(Collectors.toList()));
+        try {
+          // switch out of agg mode
+          bb.agg = null;
+          collation = RelCollations.of(
+              orderList.stream()
+                  .map(order ->
+                      bb.convertSortExpression(order,
+                          RelFieldCollation.Direction.ASCENDING,
+                          RelFieldCollation.NullDirection.UNSPECIFIED,
+                          this::sortToFieldCollation))
+                  .collect(Collectors.toList()));
+        } finally {
+          // switch back into agg mode
+          bb.agg = this;
+        }
       }
       final AggregateCall aggCall =
           AggregateCall.create(
