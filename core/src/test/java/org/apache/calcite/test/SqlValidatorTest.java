@@ -7180,6 +7180,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Expression 'EMPNO' is not being grouped");
   }
 
+  @Test void testDistinctOnWindowAggregate() {
+    sql("select\n"
+        + " ^count(distinct empno)^ over(partition by empno)\n"
+        + "from emp")
+        .fails("DISTINCT/ALL not allowed with \\(PARTITION BY `EMP`\\.`EMPNO`\\) function");
+  }
+
   @Test void testGroupExpressionEquivalenceId() {
     // identifier equivalence
     sql("select case empno when 10 then deptno else null end from emp "
