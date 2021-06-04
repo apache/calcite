@@ -24,6 +24,9 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.hint.HintPredicates;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -47,6 +50,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -4893,6 +4897,33 @@ class RelToSqlConverterTest {
             c -> c.withIndentation(2)),
         isLinux(expectedSql2));
   }
+
+  @Test void testTableScanHints() {
+    final RelBuilder builder = relBuilder();
+    builder.getCluster().setHintStrategies(HintStrategyTable.builder()
+        .hintStrategy("PLACEHOLDERS", HintPredicates.TABLE_SCAN)
+        .build());
+    final RelNode root = builder
+        .scan("orders")
+        .hints(RelHint.builder("PLACEHOLDERS")
+            .hintOption("a", "b")
+            .build())
+        .project(builder.field("PRODUCT"))
+        .build();
+
+    final String expectedSql = "SELECT \"PRODUCT\"\n"
+        + "FROM \"scott\".\"orders\"";
+    assertThat(
+        toSql(root, DatabaseProduct.CALCITE.getDialect()),
+        isLinux(expectedSql));
+    final String expectedSql2 = "SELECT PRODUCT\n"
+        + "FROM scott.orders\n"
+        + "/*+ PLACEHOLDERS(a = 'b') */";
+    assertThat(
+        toSql(root, new AnsiSqlDialect(SqlDialect.EMPTY_CONTEXT)),
+        isLinux(expectedSql2));
+  }
+
 
   @Test void testSelectWithoutFromEmulationForHiveAndBigQuery() {
     String query = "select 2 + 2";
