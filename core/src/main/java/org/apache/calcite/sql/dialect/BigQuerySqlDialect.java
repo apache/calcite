@@ -122,8 +122,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -135,6 +133,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
@@ -584,18 +583,17 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlCall extractCall;
     switch (call.operandCount()) {
-    case 3:
+    case 2: case 3:
       extractCall = makeExtractSqlCall(call);
-      REGEXP_EXTRACT.unparse(writer, extractCall, leftPrec, rightPrec);
+      REGEXP_SUBSTR.unparse(writer, extractCall, leftPrec, rightPrec);
       break;
-    case 4:
-    case 5:
+    case 4: case 5:
       extractCall = makeExtractSqlCall(call);
-      REGEXP_EXTRACT_ALL.unparse(writer, extractCall, leftPrec, rightPrec);
+      REGEXP_SUBSTR.unparse(writer, extractCall, leftPrec, rightPrec);
       writeOffset(writer, call);
       break;
     default:
-      REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
+      REGEXP_SUBSTR.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 
@@ -605,22 +603,31 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private SqlCall makeExtractSqlCall(SqlCall call) {
-    SqlCall substringCall = makeSubstringSqlCall(call);
-    call.setOperand(0, substringCall);
-    if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
+    if (call.operandCount() == 5 || call.operand(1).toString().contains("\\")) {
       SqlCharStringLiteral regexNode = makeRegexNode(call);
       call.setOperand(1, regexNode);
     }
-    SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
-    return new SqlBasicCall(REGEXP_EXTRACT, extractNodeOperands, SqlParserPos.ZERO);
+    SqlNode[] extractNodeOperands;
+    if (call.operandCount() == 5) {
+      extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1),
+          call.operand(2), call.operand(3)};
+    } else {
+      extractNodeOperands = call.getOperandList().toArray(new SqlNode[0]);
+    }
+    return new SqlBasicCall(REGEXP_SUBSTR, extractNodeOperands, SqlParserPos.ZERO);
   }
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
+    String regexLiteral = null;
     String regexStr = call.operand(1).toString();
     regexStr = regexStr.replace("\\", "\\\\");
-    String regexLiteral = "(?i)".concat(regexStr.substring(1, regexStr.length() - 1));
-    return SqlLiteral.createCharString(regexLiteral,
-        call.operand(1).getParserPosition());
+    if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
+      regexLiteral = "(?i)".concat(regexStr.substring(1, regexStr.length() - 1));
+      return SqlLiteral.createCharString(regexLiteral, call.operand(1).getParserPosition());
+    } else {
+      return SqlLiteral.createCharString(regexStr,
+          call.operand(1).getParserPosition());
+    }
   }
 
   private SqlCall makeSubstringSqlCall(SqlCall call) {
