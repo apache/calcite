@@ -89,6 +89,8 @@ import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -96,6 +98,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -107,6 +110,7 @@ import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -135,6 +139,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -7244,5 +7249,41 @@ class RelOptRulesTest extends RelOptTestBase {
     final DiffRepository diffRepos = getDiffRepos();
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
     SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test void testDistinctCountSumType() {
+    Tester t =
+        new TesterImpl(getDiffRepos(), false, false, false, true, null, null,
+            MockRelOptPlanner::new, UnaryOperator.identity(),
+            SqlConformanceEnum.DEFAULT, UnaryOperator.identity()) {
+          @Override protected RelDataTypeFactory createTypeFactory() {
+            return new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+              /* Expand SUM return type. */
+              @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
+                  RelDataType argumentType) {
+                switch (argumentType.getSqlTypeName()) {
+                case INTEGER:
+                case BIGINT:
+                  return typeFactory.createSqlType(SqlTypeName.DECIMAL);
+
+                default:
+                  return super.deriveSumType(typeFactory, argumentType);
+                }
+              }
+            });
+          }
+        };
+
+    RelNode relNode = t.convertSqlToRel("SELECT count(comm), COUNT(DISTINCT comm) FROM emp").rel;
+
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addMatchOrder(HepMatchOrder.TOP_DOWN)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
   }
 }
