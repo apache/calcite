@@ -7185,6 +7185,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " ^count(distinct empno)^ over(partition by empno)\n"
         + "from emp")
         .fails("DISTINCT/ALL not allowed with \\(PARTITION BY `EMP`\\.`EMPNO`\\) function");
+
+    sql("select ^SUM(DISTINCT deptno)^\n"
+        + "over (ORDER BY empno)\n"
+        + "from emp")
+        .fails("DISTINCT/ALL not allowed with \\(ORDER BY `EMP`\\.`EMPNO`\\) function");
+
+    sql("select ^AVG(DISTINCT deptno)^\n"
+        + "over (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)\n"
+        + "from emp")
+        .fails("DISTINCT/ALL not allowed with "
+            + "\\(ROWS BETWEEN 10 PRECEDING AND CURRENT ROW\\) function");
+
   }
 
   @Test void testGroupExpressionEquivalenceId() {

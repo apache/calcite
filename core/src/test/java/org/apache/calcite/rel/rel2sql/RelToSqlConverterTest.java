@@ -3147,8 +3147,15 @@ class RelToSqlConverterTest {
     sql(query6).optimize(rules, hepPlanner).ok(expected6);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3112">[CALCITE-3112]
+   * Support Window in RelToSqlConverter</a>.
+   * Currently disabled due to
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4635">[CALCITE-4635]
+   * Distinct on aggregate window functions produce wrong result</a>.
+   * Should be enabled again once distinct on window aggregate is properly implemented */
   @Disabled
-  @Test void testConvertWindowToSql2() {
+  @Test void testConvertWindowToSqlWithDistinct() {
     String query7 = "SELECT "
         + "count(distinct \"employee_id\") over (order by \"hire_date\") FROM \"employee\"";
     String expected7 = "SELECT "
