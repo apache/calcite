@@ -78,12 +78,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
       throw validator.newValidationError(aggCall, RESOURCE.overNonAggregate());
     }
     final SqlNode window = call.operand(1);
-    SqlLiteral qualifier = aggCall.getFunctionQuantifier();
-    if (qualifier != null && qualifier.getValue() == SqlSelectKeyword.DISTINCT
-        && window.getKind() == SqlKind.WINDOW) {
-      throw validator.newValidationError(aggCall,
-          RESOURCE.functionQuantifierNotAllowed(window.toString()));
-    }
+    checkDistinctOnWindowAggregate(validator, aggCall, window);
     validator.validateWindow(window, scope, aggCall);
   }
 
@@ -151,6 +146,15 @@ public class SqlOverOperator extends SqlBinaryOperator {
       }
     } else {
       super.acceptCall(visitor, call, onlyExpressions, argHandler);
+    }
+  }
+
+  private void checkDistinctOnWindowAggregate(SqlValidator validator, SqlCall call, SqlNode node) {
+    SqlLiteral qualifier = call.getFunctionQuantifier();
+    if (qualifier != null && qualifier.getValue() == SqlSelectKeyword.DISTINCT
+        && node.getKind() == SqlKind.WINDOW) {
+      throw validator.newValidationError(call,
+          RESOURCE.functionQuantifierNotAllowed(node.toString()));
     }
   }
 }

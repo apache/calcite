@@ -658,8 +658,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Disabled
   /** As {@link #testSelectOverDistinct()} but for streaming queries. */
+  @Disabled
   @Test void testSelectStreamPartitionDistinct() {
     final String sql = "select stream\n"
         + "  count(distinct orderId) over (partition by productId\n"
