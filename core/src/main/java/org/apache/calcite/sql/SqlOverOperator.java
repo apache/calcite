@@ -79,7 +79,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     }
     final SqlNode window = call.operand(1);
     SqlLiteral qualifier = aggCall.getFunctionQuantifier();
-    if (qualifier != null && qualifier.toString().equals("DISTINCT")
+    if (qualifier != null && qualifier.getValue() == SqlSelectKeyword.DISTINCT
         && window.getKind() == SqlKind.WINDOW) {
       throw validator.newValidationError(aggCall,
           RESOURCE.functionQuantifierNotAllowed(window.toString()));

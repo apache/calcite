@@ -3150,18 +3150,18 @@ class RelToSqlConverterTest {
   @Disabled
   @Test void testConvertWindowToSql2() {
     String query7 = "SELECT "
-        + "count(\"employee_id\") over (order by \"hire_date\") FROM \"employee\"";
+        + "count(distinct \"employee_id\") over (order by \"hire_date\") FROM \"employee\"";
     String expected7 = "SELECT "
-        + "COUNT(\"employee_id\") "
+        + "COUNT(DISTINCT \"employee_id\") "
         + "OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$0\""
         + "\nFROM \"foodmart\".\"employee\"";
 
     String query8 = "SELECT "
-        + "sum(\"position_id\") over (order by \"hire_date\") FROM \"employee\"";
+        + "sum(distinct \"position_id\") over (order by \"hire_date\") FROM \"employee\"";
     String expected8 =
-        "SELECT CASE WHEN (COUNT(\"position_id\") OVER (ORDER BY \"hire_date\" "
+        "SELECT CASE WHEN (COUNT(DISTINCT \"position_id\") OVER (ORDER BY \"hire_date\" "
             + "RANGE"
-            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) > 0 THEN COALESCE(SUM("
+            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) > 0 THEN COALESCE(SUM(DISTINCT "
             + "\"position_id\") OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED "
             + "PRECEDING AND CURRENT ROW), 0) ELSE NULL END\n"
             + "FROM \"foodmart\".\"employee\"";

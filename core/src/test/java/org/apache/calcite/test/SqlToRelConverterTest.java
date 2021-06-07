@@ -645,10 +645,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select distinct sal + 5 from emp").ok();
   }
 
-  @Disabled
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-476">[CALCITE-476]
    * DISTINCT flag in windowed aggregates</a>. */
+  @Disabled
   @Test void testSelectOverDistinct() {
     // Checks to see if <aggregate>(DISTINCT x) is set and preserved
     // as a flag for the aggregate call.
