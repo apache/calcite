@@ -119,7 +119,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.executor = config.getExecutor();
     this.context = config.getContext();
     this.connectionConfig = connConfig(context, parserConfig);
-    this.typeSystem = config.getTypeSystem()
+    this.typeSystem = config.getTypeSystem();
     reset();
   }
 
@@ -177,7 +177,7 @@ public class PlannerImpl implements Planner, ViewExpander {
       break;
     }
     ensure(State.STATE_1_RESET);
-    
+
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
     RelOptPlanner planner = this.planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
