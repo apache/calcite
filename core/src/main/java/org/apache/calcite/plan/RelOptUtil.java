@@ -22,6 +22,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
@@ -2836,9 +2837,10 @@ public abstract class RelOptUtil {
       // and therefore cannot be pushed?
 
       // filters can be pushed to the left child if the left child
-      // does not generate NULLs and the only columns referenced in
-      // the filter originate from the left child
-      if (pushLeft && leftBitmap.contains(inputBits)) {
+      // does not generate NULLs and does not contain limit and the only
+      // columns referenced in the filter originate from the left child
+      if (pushLeft && leftBitmap.contains(inputBits)
+          && !containsLimit(joinRel.getInputs().get(0))) {
         // ignore filters that always evaluate to true
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
@@ -2860,9 +2862,10 @@ public abstract class RelOptUtil {
         filtersToRemove.add(filter);
 
         // filters can be pushed to the right child if the right child
-        // does not generate NULLs and the only columns referenced in
-        // the filter originate from the right child
-      } else if (pushRight && rightBitmap.contains(inputBits)) {
+        // does not generate NULLs and does not contain limit and the only
+        // columns referenced in the filter originate from the right child
+      } else if (pushRight && rightBitmap.contains(inputBits)
+          && !containsLimit(joinRel.getInputs().get(1))) {
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
           // that fields in the right now shift over to the left;
@@ -2902,6 +2905,33 @@ public abstract class RelOptUtil {
 
     // Did anything change?
     return !filtersToRemove.isEmpty();
+  }
+
+  private static final RelVisitor LIMIT_FINDER = new RelVisitor() {
+    @Override public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
+      if (isLimit(node)) {
+        throw Util.FoundOne.NULL;
+      }
+
+      if (node instanceof HepRelVertex) {
+        RelNode currentRel = ((HepRelVertex) node).getCurrentRel();
+        if (isLimit(currentRel)) {
+          throw Util.FoundOne.NULL;
+        }
+        super.visit(currentRel, ordinal, parent);
+      } else {
+        super.visit(node, ordinal, parent);
+      }
+    }
+  };
+
+  private static boolean containsLimit(RelNode node) {
+    try {
+      LIMIT_FINDER.go(node);
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
   }
 
   /**
