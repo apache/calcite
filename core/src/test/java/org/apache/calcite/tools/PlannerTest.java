@@ -51,8 +51,10 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -1524,5 +1526,68 @@ class PlannerTest {
     final SqlNode validate = planner.validate(parse);
     final RelRoot root = planner.rel(validate);
     assertThat(toString(root.rel), matcher);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4642">[CALCITE-4642]
+   * Checks that custom type systems can be registered in a planner by
+   * comparing options for converting unions of chars.</a>.
+   */
+  @Test void testCustomTypeSystem() throws Exception {
+    final String sql = "select Case when DEPTNO <> 30 then 'hi' else 'world' end from dept";
+    final String expectedVarying = "LogicalProject("
+        + "EXPR$0=["
+        + "CASE(<>($0, 30),"
+        + " 'hi':VARCHAR(5), "
+        + "'world':VARCHAR(5))])\n"
+        + "  LogicalValues("
+        + "tuples=[[{ 10, 'Sales' },"
+        + " { 20, 'Marketing' },"
+        + " { 30, 'Engineering' },"
+        + " { 40, 'Empty' }]])\n";
+    final String expectedDefault = "LogicalProject("
+        + "EXPR$0=["
+        + "CASE(<>($0, 30),"
+        + " 'hi   ', "
+        + "'world')])\n"
+        + "  LogicalValues("
+        + "tuples=[[{ 10, 'Sales      ' },"
+        + " { 20, 'Marketing  ' },"
+        + " { 30, 'Engineering' },"
+        + " { 40, 'Empty      ' }]])\n";
+    assertValidPlan(sql, new VaryingTypeSystem(DelegatingTypeSystem.DEFAULT), is(expectedVarying));
+    assertValidPlan(sql, DelegatingTypeSystem.DEFAULT, is(expectedDefault));
+  }
+
+  /**
+   *  Asserts a Planner generates the correct plan using the provided
+   *  type system.
+   */
+  private void assertValidPlan(String sql, RelDataTypeSystem typeSystem,
+      Matcher<String> planMatcher)  throws SqlParseException,
+      ValidationException, RelConversionException {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.POST))
+        .typeSystem(typeSystem).build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parse = planner.parse(sql);
+    final SqlNode validate = planner.validate(parse);
+    final RelRoot root = planner.rel(validate);
+    assertThat(toString(root.rel), planMatcher);
+  }
+
+  /**
+   * Custom type system that converts union of chars to varchars.
+   */
+  private static class VaryingTypeSystem extends DelegatingTypeSystem {
+
+    VaryingTypeSystem(RelDataTypeSystem typeSystem) {
+      super(typeSystem);
+    }
+
+    @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+      return true;
+    }
   }
 }
