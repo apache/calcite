@@ -111,7 +111,7 @@ public abstract class SqlToRelTestBase {
     final TesterImpl tester =
         new TesterImpl(getDiffRepos(), false, false, false, true, null, null,
             MockRelOptPlanner::new, UnaryOperator.identity(),
-            SqlConformanceEnum.DEFAULT, UnaryOperator.identity());
+            SqlConformanceEnum.DEFAULT, UnaryOperator.identity(), null);
     return tester.withConfig(c ->
         c.withTrimUnusedFields(true)
             .withExpand(true)
@@ -286,6 +286,9 @@ public abstract class SqlToRelTestBase {
 
     /** Returns a tester that uses a given context. */
     Tester withContext(UnaryOperator<Context> transform);
+
+    /** Returns a tester that uses a type factory. */
+    Tester withTypeFactory(RelDataTypeFactory factory);
 
     /** Trims a RelNode. */
     RelNode trimRelNode(RelNode relNode);
@@ -572,7 +575,7 @@ public abstract class SqlToRelTestBase {
     protected TesterImpl(DiffRepository diffRepos) {
       this(diffRepos, true, true, false, true, null, null,
           MockRelOptPlanner::new, UnaryOperator.identity(),
-          SqlConformanceEnum.DEFAULT, c -> Contexts.empty());
+          SqlConformanceEnum.DEFAULT, c -> Contexts.empty(), null);
     }
 
     /**
@@ -591,7 +594,7 @@ public abstract class SqlToRelTestBase {
         Function<RelOptCluster, RelOptCluster> clusterFactory,
         Function<Context, RelOptPlanner> plannerFactory,
         UnaryOperator<SqlToRelConverter.Config> configTransform,
-        SqlConformance conformance, UnaryOperator<Context> contextTransform) {
+        SqlConformance conformance, UnaryOperator<Context> contextTransform, RelDataTypeFactory typeFactory) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
       this.enableTrim = enableTrim;
@@ -603,6 +606,7 @@ public abstract class SqlToRelTestBase {
       this.plannerFactory = Objects.requireNonNull(plannerFactory, "plannerFactory");
       this.conformance = Objects.requireNonNull(conformance, "conformance");
       this.contextTransform = Objects.requireNonNull(contextTransform, "contextTransform");
+      this.typeFactory = typeFactory;
     }
 
     public RelRoot convertSqlToRel(String sql) {
@@ -899,7 +903,7 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, typeFactory);
     }
 
     public TesterImpl withLateDecorrelation(boolean enableLateDecorrelate) {
@@ -908,7 +912,7 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, typeFactory);
     }
 
     public Tester withConfig(UnaryOperator<SqlToRelConverter.Config> transform) {
@@ -917,7 +921,7 @@ public abstract class SqlToRelTestBase {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, typeFactory);
     }
 
     public TesterImpl withTrim(boolean enableTrim) {
@@ -926,21 +930,21 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, typeFactory);
     }
 
     public TesterImpl withConformance(SqlConformance conformance) {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, typeFactory);
     }
 
     public Tester enableTypeCoercion(boolean enableTypeCoercion) {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, typeFactory);
     }
 
     public Tester withCatalogReaderFactory(
@@ -948,7 +952,7 @@ public abstract class SqlToRelTestBase {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, typeFactory);
     }
 
     public Tester withClusterFactory(
@@ -956,7 +960,7 @@ public abstract class SqlToRelTestBase {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, typeFactory);
     }
 
     public Tester withPlannerFactory(
@@ -966,14 +970,24 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, typeFactory);
+    }
+
+    public Tester withTypeFactory(
+        RelDataTypeFactory typeFactory) {
+      return this.typeFactory == typeFactory
+          ? this
+          : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
+              enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
+              clusterFactory, plannerFactory, configTransform, conformance,
+              contextTransform, typeFactory);
     }
 
     public TesterImpl withContext(UnaryOperator<Context> context) {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          context);
+          context, typeFactory);
     }
 
     public boolean isLateDecorrelate() {

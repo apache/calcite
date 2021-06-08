@@ -20,12 +20,15 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -340,6 +343,7 @@ public final class AggregateExpandDistinctAggregatesRule
     final List<AggregateCall> topAggregateCalls = new ArrayList<>();
     // Use the remapped arguments for the (non)distinct aggregate calls
     int nonDistinctAggCallProcessedSoFar = 0;
+    boolean needProjectionWithCast = false;
     for (AggregateCall aggCall : originalAggCalls) {
       final AggregateCall newCall;
       if (aggCall.isDistinct()) {
@@ -366,12 +370,15 @@ public final class AggregateExpandDistinctAggregatesRule
         final int arg = bottomGroups.size() + nonDistinctAggCallProcessedSoFar;
         final List<Integer> newArgs = ImmutableList.of(arg);
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
+          needProjectionWithCast = true;
+          RelDataTypeFactory typeFactory = aggregate.getCluster().getTypeFactory();
           newCall =
               AggregateCall.create(new SqlSumEmptyIsZeroAggFunction(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   newArgs, -1, aggCall.distinctKeys, aggCall.collation,
                   originalGroupSet.cardinality(), relBuilder.peek(),
-                  aggCall.getType(), aggCall.getName());
+                  typeFactory.getTypeSystem().deriveSumType(typeFactory, aggCall.getType()),
+                  aggCall.getName());
         } else {
           newCall =
               AggregateCall.create(aggCall.getAggregation(), false,
@@ -400,6 +407,28 @@ public final class AggregateExpandDistinctAggregatesRule
     relBuilder.push(
         aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
             ImmutableBitSet.of(topGroupSet), null, topAggregateCalls));
+
+    // Add projection node for case: SUM of COUNT(*):
+    // Type of the SUM may be larger than type of COUNT.
+    // CAST to original type must be added.
+    if (needProjectionWithCast) {
+      RelNode newTopAgg = relBuilder.peek();
+      List<RelDataTypeField> topTypes = newTopAgg.getRowType().getFieldList();
+      final List<RexNode> projList = new ArrayList<>();
+      RexBuilder rexBuilder = relBuilder.getRexBuilder();
+      for (int i = 0; i < topTypes.size(); ++i) {
+        RelDataType origType = aggregate.getRowType().getFieldList().get(i).getType();
+        if (!topTypes.get(i).getType().equals(origType)) {
+          projList.add(rexBuilder.makeCast(origType, rexBuilder.makeInputRef(newTopAgg, i)));
+        }
+        else {
+          projList.add(rexBuilder.makeInputRef(newTopAgg, i));
+        }
+      }
+
+      relBuilder.project(projList, newTopAgg.getRowType().getFieldNames());
+    }
+
     return relBuilder;
   }
 
