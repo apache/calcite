@@ -76,6 +76,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   private final @Nullable RelOptCostFactory costFactory;
   private final Context context;
   private final CalciteConnectionConfig connectionConfig;
+  private final RelDataTypeSystem typeSystem;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final @Nullable ImmutableList<RelTraitDef> traitDefs;
@@ -118,6 +119,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.executor = config.getExecutor();
     this.context = config.getContext();
     this.connectionConfig = connConfig(context, parserConfig);
+    this.typeSystem = config.getTypeSystem();
     reset();
   }
 
@@ -176,9 +178,6 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
     ensure(State.STATE_1_RESET);
 
-    RelDataTypeSystem typeSystem =
-        connectionConfig.typeSystem(RelDataTypeSystem.class,
-            RelDataTypeSystem.DEFAULT);
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
     RelOptPlanner planner = this.planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
