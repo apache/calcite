@@ -420,8 +420,7 @@ public final class AggregateExpandDistinctAggregatesRule
         RelDataType origType = aggregate.getRowType().getFieldList().get(i).getType();
         if (!topTypes.get(i).getType().equals(origType)) {
           projList.add(rexBuilder.makeCast(origType, rexBuilder.makeInputRef(newTopAgg, i)));
-        }
-        else {
+        } else {
           projList.add(rexBuilder.makeInputRef(newTopAgg, i));
         }
       }
