@@ -1045,6 +1045,29 @@ class JdbcAdapterTest {
         .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"EMPNO\" = ?");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4619">[CALCITE-4619]
+   * "Full join" generates an incorrect execution plan under mysql</a>. */
+  @Test void testFullJoinNonSupportedDialect() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.H2
+            || CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL)
+        .query("select empno, ename, e.deptno, dname\n"
+            + "from scott.emp e full join scott.dept d\n"
+            + "on e.deptno = d.deptno")
+        .explainContains("PLAN=EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}],"
+            + " DNAME=[$t4])\n"
+            + "  EnumerableHashJoin(condition=[=($2, $3)], joinType=[full])\n"
+            + "    JdbcToEnumerableConverter\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "    JdbcToEnumerableConverter\n"
+            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
+        .runs();
+  }
+
   /** Acquires a lock, and releases it when closed. */
   static class LockWrapper implements AutoCloseable {
     private final Lock lock;

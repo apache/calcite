@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -1002,6 +1003,13 @@ public class SqlDialect {
    */
   public boolean supportsGroupByWithCube() {
     return false;
+  }
+
+  /**
+   * Returns whether this dialect support the specified type of join.
+   */
+  public boolean supportsJoinType(JoinRelType joinType) {
+    return true;
   }
 
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
