@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -320,6 +321,10 @@ public class MysqlSqlDialect extends SqlDialect {
     } else {
       writer.keyword(start + "_" + qualifier.timeUnitRange.endUnit.name());
     }
+  }
+
+  @Override public boolean supportsJoinType(JoinRelType joinType) {
+    return joinType != JoinRelType.FULL;
   }
 
   private static TimeUnit validate(TimeUnit timeUnit) {
