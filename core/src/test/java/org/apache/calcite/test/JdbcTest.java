@@ -7806,7 +7806,7 @@ public class JdbcTest {
 
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
-
+  
   public static class FoodmartJdbcSchema extends JdbcSchema {
     public FoodmartJdbcSchema(DataSource dataSource, SqlDialect dialect,
         JdbcConvention convention, String catalog, String schema) {

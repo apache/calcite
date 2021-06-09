@@ -92,7 +92,7 @@ public class ReflectiveSchema
     super();
     this.clazz = target.getClass();
     this.target = target;
-    this.fieldsOrdering = Types.FieldsOrdering.ALPHABETICAL_AND_HIERARCHY;
+    this.fieldsOrdering = Types.FieldsOrdering.CONSTRUCTOR;
   }
 
   /**

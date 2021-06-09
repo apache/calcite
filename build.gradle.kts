@@ -71,6 +71,7 @@ val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
 val enableDependencyAnalysis by props()
+val enableParameters by props(true)
 val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
@@ -697,6 +698,9 @@ allprojects {
                 }
                 if (enableCheckerframework) {
                     options.forkOptions.memoryMaximumSize = "2g"
+                }
+                if (enableParameters) {
+                    options.compilerArgs.add("-parameters")
                 }
             }
             configureEach<Test> {

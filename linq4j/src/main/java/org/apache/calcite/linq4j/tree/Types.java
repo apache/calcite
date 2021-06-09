@@ -177,7 +177,7 @@ public abstract class Types {
    * @return the list of fields of a given class.
    */
   public static List<Field> getClassFields(Class type, boolean useHierarchy) {
-    return getClassFields(type, useHierarchy, FieldsOrdering.JVM, null);
+    return getClassFields(type, useHierarchy, FieldsOrdering.CONSTRUCTOR, null);
   }
 
   /**
