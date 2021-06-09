@@ -183,6 +183,8 @@ class RelToSqlConverterTest {
             SqlDialect.DatabaseProduct.POSTGRESQL)
         .put(DatabaseProduct.PRESTO.getDialect(),
             DatabaseProduct.PRESTO)
+        .put(DatabaseProduct.EXASOL.getDialect(),
+            DatabaseProduct.EXASOL)
         .build();
   }
 
@@ -1025,6 +1027,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "GROUP BY product_id) t1";
     final String expectedSpark = expectedHive;
+    final String expectedExasol = expectedBigQuery;
     sql(query)
         .withOracle()
         .ok(expectedOracle)
@@ -1039,7 +1042,9 @@ class RelToSqlConverterTest {
         .withHive()
         .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark);
+        .ok(expectedSpark)
+        .withExasol()
+        .ok(expectedExasol);
   }
 
   /** Test case for
@@ -1603,6 +1608,22 @@ class RelToSqlConverterTest {
     sql(query).withMssql().ok(expected);
   }
 
+  @Test void testExasolCharacterSet() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
+            + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT hire_date, CAST(hire_date AS VARCHAR(10))\n"
+            + "FROM foodmart.reserve_employee";
+    sql(query).withExasol().ok(expected);
+  }
+
+  @Test void testExasolCastToTimestamp() {
+    final String query = "select  * from \"employee\" where  \"hire_date\" - "
+            + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP(0))";
+    final String expected = "SELECT *\nFROM foodmart.employee"
+            + "\nWHERE (hire_date - INTERVAL '19800' SECOND(5)) > CAST(hire_date AS TIMESTAMP)";
+    sql(query).withExasol().ok(expected);
+  }
+
   /**
    * Tests that IN can be un-parsed.
    *
@@ -1724,11 +1745,17 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"days\") AS \"t\"\n"
         + "WHERE \"one\" < \"tWo\" AND \"THREE\" < \"fo$ur\"";
     final String expectedOracle = expectedPostgresql.replace(" AS ", " ");
+    final String expectedExasol = "SELECT *\n"
+            + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
+            + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
+            + "FROM foodmart.days) AS t\n"
+            + "WHERE one < tWo AND THREE < \"fo$ur\"";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withMysql().ok(expectedMysql)
         .withOracle().ok(expectedOracle)
-        .withPostgresql().ok(expectedPostgresql);
+        .withPostgresql().ok(expectedPostgresql)
+        .withExasol().ok(expectedExasol);
   }
 
   @Test void testModFunctionForHive() {
@@ -5812,6 +5839,10 @@ class RelToSqlConverterTest {
 
     Sql withDb2() {
       return dialect(SqlDialect.DatabaseProduct.DB2.getDialect());
+    }
+
+    Sql withExasol() {
+      return dialect(SqlDialect.DatabaseProduct.EXASOL.getDialect());
     }
 
     Sql withHive() {
