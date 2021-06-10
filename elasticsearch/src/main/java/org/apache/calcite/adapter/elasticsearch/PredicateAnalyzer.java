@@ -38,6 +38,7 @@ import com.google.common.collect.Range;
 
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -189,7 +190,7 @@ class PredicateAnalyzer {
       case INTERNAL:
         switch (call.getKind()) {
         case SEARCH:
-          return canBeTranslatedToTermsQuery(call);
+          return true;
         default:
           return false;
         }
@@ -198,22 +199,6 @@ class PredicateAnalyzer {
       default:
         return false;
       }
-    }
-
-    /**
-     * There are three types of the Sarg included in SEARCH RexCall:
-     * 1) Sarg is points (In ('a', 'b', 'c' ...)).
-     *    In this case the search call can be translated to terms Query
-     * 2) Sarg is complementedPoints (Not in ('a', 'b')).
-     *    In this case the search call can be translated to MustNot terms Query
-     * 3) Sarg is real Range( > 1 and <= 10).
-     *    In this case the search call should be translated to rang Query
-     * Currently only the 1) and 2) cases are supported.
-     * @param search SEARCH RexCall
-     * @return true if it isSearchWithPoints or isSearchWithComplementedPoints, other false
-     */
-    static boolean canBeTranslatedToTermsQuery(RexCall search) {
-      return isSearchWithPoints(search) || isSearchWithComplementedPoints(search);
     }
 
     @SuppressWarnings("BetaApi")
@@ -399,8 +384,10 @@ class PredicateAnalyzer {
       case SEARCH:
         if (isSearchWithComplementedPoints(call)) {
           return QueryExpression.create(pair.getKey()).notIn(pair.getValue());
-        } else {
+        } else if (isSearchWithPoints(call)) {
           return QueryExpression.create(pair.getKey()).in(pair.getValue());
+        } else {
+          return QueryExpression.create(pair.getKey()).range(pair.getValue());
         }
       default:
         break;
@@ -589,6 +576,8 @@ class PredicateAnalyzer {
 
     public abstract QueryExpression notIn(LiteralExpression literal);
 
+    public abstract QueryExpression range(LiteralExpression literal);
+
     public abstract QueryExpression notEquals(LiteralExpression literal);
 
     public abstract QueryExpression gt(LiteralExpression literal);
@@ -741,6 +730,10 @@ class PredicateAnalyzer {
     @Override public QueryExpression notIn(LiteralExpression literal) {
       throw new PredicateAnalyzerException("notIn cannot be applied to a compound expression");
     }
+
+    @Override public QueryExpression range(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("range cannot be applied to a compound expression");
+    }
   }
 
   /**
@@ -873,8 +866,37 @@ class PredicateAnalyzer {
       builder = boolQuery().mustNot(termsQuery(getFieldReference(), iterable));
       return this;
     }
-  }
 
+    @Override public QueryExpression range(LiteralExpression literal) {
+      Iterator<?> iterator = ((Iterable<?>) literal.value()).iterator();
+      BoolQueryBuilder boolQuery = boolQuery();
+      while (iterator.hasNext()) {
+        Range range = (Range) iterator.next();
+        RangeQueryBuilder rangeQueryBuilder = rangeQuery(getFieldReference());
+        if (range.hasLowerBound()) {
+          switch (range.lowerBoundType()) {
+          case OPEN:
+            rangeQueryBuilder = rangeQueryBuilder.gt(parseEndpointValue(range.lowerEndpoint()));
+            break;
+          default:
+            rangeQueryBuilder = rangeQueryBuilder.gte(parseEndpointValue(range.lowerEndpoint()));
+          }
+        }
+        if (range.hasUpperBound()) {
+          switch (range.upperBoundType()) {
+          case OPEN:
+            rangeQueryBuilder = rangeQueryBuilder.lt(parseEndpointValue(range.upperEndpoint()));
+            break;
+          default:
+            rangeQueryBuilder = rangeQueryBuilder.lte(parseEndpointValue(range.upperEndpoint()));
+          }
+        }
+        boolQuery = boolQuery.should(rangeQueryBuilder);
+      }
+      builder = boolQuery;
+      return this;
+    }
+  }
 
   /**
    * By default, range queries on date/time need use the format of the source to parse the literal.
@@ -889,6 +911,21 @@ class PredicateAnalyzer {
       rangeQueryBuilder.format("date_time");
     }
     return rangeQueryBuilder;
+  }
+
+  /**
+   * If the endpoint is type of NlsString, we need to replace it with its
+   * string value to let the following json generator to generate the
+   * right query DSL of elastic search.
+   * @param endpoint lowerEndpoint or upperEndpoint in Ranges of Sarg
+   * @return its string value if it is type of NlsString, otherwise itself
+   */
+  private static Object parseEndpointValue(Object endpoint) {
+    if (endpoint instanceof NlsString) {
+      return ((NlsString) endpoint).getValue();
+    } else {
+      return endpoint;
+    }
   }
 
   /**
@@ -1026,29 +1063,25 @@ class PredicateAnalyzer {
     @SuppressWarnings("BetaApi")
     List<Object> sargValue() {
       final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
-      final RelDataType type = literal.getType();
       List<Object> values = new ArrayList<>();
-      final SqlTypeName sqlTypeName = type.getSqlTypeName();
       if (sarg.isPoints()) {
         Set<Range> ranges = sarg.rangeSet.asRanges();
         ranges.forEach(range ->
-            values.add(sargPointValue(range.lowerEndpoint(), sqlTypeName)));
+            values.add(parseEndpointValue(range.lowerEndpoint())));
       } else if (sarg.isComplementedPoints()) {
         Set<Range> ranges = sarg.negate().rangeSet.asRanges();
         ranges.forEach(range ->
-            values.add(sargPointValue(range.lowerEndpoint(), sqlTypeName)));
+            values.add(parseEndpointValue(range.lowerEndpoint())));
+      } else {
+        Set<Range> ranges = sarg.rangeSet.asRanges();
+        ranges.forEach(range -> {
+          if (!range.isEmpty()) {
+            values.add(range);
+          }
+        }
+        );
       }
       return values;
-    }
-
-    Object sargPointValue(Object point, SqlTypeName sqlTypeName) {
-      switch (sqlTypeName) {
-      case CHAR:
-      case VARCHAR:
-        return ((NlsString) point).getValue();
-      default:
-        return point;
-      }
     }
 
     Object rawValue() {
