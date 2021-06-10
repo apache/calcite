@@ -423,15 +423,16 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       String classBody, MetadataDef<M> def,
       List<Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
+    final ClassLoader classLoader = JaninoRexCompiler.class.getClassLoader();
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
     }
 
     final ISimpleCompiler compiler = compilerFactory.newSimpleCompiler();
-    compiler.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
+    compiler.setParentClassLoader(classLoader);
 
     final String s = "public final class " + className
         + " implements " + def.handlerClass.getCanonicalName() + " {\n"

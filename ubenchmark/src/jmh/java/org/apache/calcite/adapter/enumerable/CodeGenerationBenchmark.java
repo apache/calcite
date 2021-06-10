@@ -184,8 +184,9 @@ public class CodeGenerationBenchmark {
             Expressions.toString(info.classExpr.memberDeclarations, "\n", false);
 
         ICompilerFactory compilerFactory;
+        final ClassLoader classLoader = EnumerableInterpretable.class.getClassLoader();
         try {
-          compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+          compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
         } catch (Exception e) {
           throw new IllegalStateException(
               "Unable to instantiate java compiler", e);
@@ -197,7 +198,7 @@ public class CodeGenerationBenchmark {
             plan.getRowType().getFieldCount() == 1
                 ? new Class[]{Bindable.class, Typed.class}
                 : new Class[]{ArrayBindable.class});
-        cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
+        cbe.setParentClassLoader(classLoader);
         info.cbe = cbe;
         planInfos[i] = info;
       }

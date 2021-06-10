@@ -199,8 +199,9 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
   static Scalar.Producer getScalar(ClassDeclaration expr, String s)
       throws CompileException, IOException {
     ICompilerFactory compilerFactory;
+    final ClassLoader classLoader = JaninoRexCompiler.class.getClassLoader();
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
@@ -208,7 +209,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
     cbe.setClassName(expr.name);
     cbe.setImplementedInterfaces(new Class[] {Scalar.Producer.class});
-    cbe.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
+    cbe.setParentClassLoader(classLoader);
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);
