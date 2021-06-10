@@ -371,7 +371,8 @@ public final class AggregateExpandDistinctAggregatesRule
         final List<Integer> newArgs = ImmutableList.of(arg);
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
           RelDataTypeFactory typeFactory = aggregate.getCluster().getTypeFactory();
-          RelDataType sumType = typeFactory.getTypeSystem().deriveSumType(typeFactory, aggCall.getType());
+          RelDataType sumType = typeFactory.getTypeSystem().deriveSumType(typeFactory,
+              aggCall.getType());
           needTopCast |= !sumType.equals(aggCall.getType());
 
           newCall =
