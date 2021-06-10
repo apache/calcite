@@ -343,7 +343,7 @@ public final class AggregateExpandDistinctAggregatesRule
     final List<AggregateCall> topAggregateCalls = new ArrayList<>();
     // Use the remapped arguments for the (non)distinct aggregate calls
     int nonDistinctAggCallProcessedSoFar = 0;
-    boolean needProjectionWithCast = false;
+    boolean needTopCast = false;
     for (AggregateCall aggCall : originalAggCalls) {
       final AggregateCall newCall;
       if (aggCall.isDistinct()) {
@@ -370,14 +370,16 @@ public final class AggregateExpandDistinctAggregatesRule
         final int arg = bottomGroups.size() + nonDistinctAggCallProcessedSoFar;
         final List<Integer> newArgs = ImmutableList.of(arg);
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
-          needProjectionWithCast = true;
           RelDataTypeFactory typeFactory = aggregate.getCluster().getTypeFactory();
+          RelDataType sumType = typeFactory.getTypeSystem().deriveSumType(typeFactory, aggCall.getType());
+          needTopCast = !sumType.equals(aggCall.getType());
+
           newCall =
               AggregateCall.create(new SqlSumEmptyIsZeroAggFunction(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   newArgs, -1, aggCall.distinctKeys, aggCall.collation,
                   originalGroupSet.cardinality(), relBuilder.peek(),
-                  typeFactory.getTypeSystem().deriveSumType(typeFactory, aggCall.getType()),
+                  sumType,
                   aggCall.getName());
         } else {
           newCall =
@@ -411,7 +413,7 @@ public final class AggregateExpandDistinctAggregatesRule
     // Add projection node for case: SUM of COUNT(*):
     // Type of the SUM may be larger than type of COUNT.
     // CAST to original type must be added.
-    if (needProjectionWithCast) {
+    if (needTopCast) {
       RelNode newTopAgg = relBuilder.peek();
       List<RelDataTypeField> topTypes = newTopAgg.getRowType().getFieldList();
       final List<RexNode> projList = new ArrayList<>();
