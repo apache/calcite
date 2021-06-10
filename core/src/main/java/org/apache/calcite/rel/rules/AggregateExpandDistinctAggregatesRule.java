@@ -372,7 +372,7 @@ public final class AggregateExpandDistinctAggregatesRule
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
           RelDataTypeFactory typeFactory = aggregate.getCluster().getTypeFactory();
           RelDataType sumType = typeFactory.getTypeSystem().deriveSumType(typeFactory, aggCall.getType());
-          needTopCast = !sumType.equals(aggCall.getType());
+          needTopCast |= !sumType.equals(aggCall.getType());
 
           newCall =
               AggregateCall.create(new SqlSumEmptyIsZeroAggFunction(), false,
