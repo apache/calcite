@@ -896,8 +896,8 @@ LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$
       <![CDATA[
 EnumerableCalc(expr#0..7=[{inputs}], proj#0..6=[{exprs}])
   EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):VARCHAR NOT NULL], expr#4=[1], expr#5=[+($t2, $t4)], ENAME=[$t0], JOB=[$t3], EXPR$2=[$t5])
-      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):VARCHAR NOT NULL], expr#4=[1], expr#5=[+($t2, $t4)], ENAME=[$t0], JOB=[$t3], EXPR$2=[$t5])
         EnumerableLimit(fetch=[100])
           EnumerableCalc(expr#0..8=[{inputs}], ENAME=[$t1], JOB=[$t2], SAL=[$t5])
             EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1346,8 +1346,8 @@ LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$
       <![CDATA[
 EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
   EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
-      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
         EnumerableLimit(fetch=[100])
           EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
             EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1407,8 +1407,8 @@ LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
-  EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
+EnumerableSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  EnumerableProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
     EnumerableLimit(fetch=[10])
       EnumerableSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
         EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1432,8 +1432,8 @@ LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  EnumerableSort(sort0=[$6], sort1=[$8], dir0=[ASC], dir1=[ASC])
+EnumerableSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  EnumerableProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     EnumerableLimit(fetch=[10])
       EnumerableSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC])
         EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
