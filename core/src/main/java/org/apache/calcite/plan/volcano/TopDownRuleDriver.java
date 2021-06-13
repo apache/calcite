@@ -937,7 +937,7 @@ class TopDownRuleDriver implements RuleDriver {
                 subset.disableEnforcing();
               }
               RelSubset relSubset = planner.register(newRel, rel);
-              assert relSubset.set == planner.getSubsetNonNull(rel).set;
+              assert relSubset.set == VolcanoPlanner.canonize(planner.getSubsetNonNull(rel)).set;
             }
           }
         }
@@ -952,7 +952,8 @@ class TopDownRuleDriver implements RuleDriver {
         List<RelNode> relList = rel.derive(inputTraits);
         for (RelNode relNode : relList) {
           if (!planner.isRegistered(relNode)) {
-            planner.register(relNode, rel);
+            RelSubset relSubset = planner.register(relNode, rel);
+            assert relSubset.set == VolcanoPlanner.canonize(planner.getSubsetNonNull(rel)).set;
           }
         }
       }

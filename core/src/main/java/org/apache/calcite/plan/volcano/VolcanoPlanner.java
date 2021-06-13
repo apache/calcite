@@ -1077,7 +1077,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param subset Subset
    * @return Leader of subset's equivalence class
    */
-  private static RelSubset canonize(final RelSubset subset) {
+  static RelSubset canonize(final RelSubset subset) {
     RelSet set = subset.set;
     if (set.equivalentSet == null) {
       return subset;
