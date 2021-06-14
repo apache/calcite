@@ -4851,6 +4851,64 @@ LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPercentileCont">
+    <Resource name="sql">
+      <![CDATA[select
+ percentile_cont(0.25) within group (order by deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[PERCENTILE_CONT($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[0.25:DECIMAL(3, 2)], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPercentileContWithGroupBy">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+ percentile_cont(0.25) within group (order by empno desc)
+from emp
+group by deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[PERCENTILE_CONT($1) WITHIN GROUP ([2 DESC])])
+  LogicalProject(DEPTNO=[$7], $f1=[0.25:DECIMAL(3, 2)], EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPercentileDisc">
+    <Resource name="sql">
+      <![CDATA[select
+ percentile_disc(0.25) within group (order by deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[PERCENTILE_DISC($0) WITHIN GROUP ([1])])
+  LogicalProject($f0=[0.25:DECIMAL(3, 2)], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPercentileDiscWithGroupBy">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+ percentile_disc(0.25) within group (order by empno)
+from emp
+group by deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[PERCENTILE_DISC($1) WITHIN GROUP ([2])])
+  LogicalProject(DEPTNO=[$7], $f1=[0.25:DECIMAL(3, 2)], EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPivot">
     <Resource name="sql">
       <![CDATA[SELECT *
