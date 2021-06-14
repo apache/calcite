@@ -370,6 +370,49 @@ public abstract class OperandTypes {
       };
 
   /**
+   * Operand type-checking strategy type must be a positive numeric non-NULL
+   * literal in the range 0 - 1.
+   */
+  public static final SqlSingleOperandTypeChecker POSITIVE_NUMERIC_LITERAL =
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),
+          i -> false) {
+        public boolean checkSingleOperandType(
+            SqlCallBinding callBinding,
+            SqlNode node,
+            int iFormalOperand,
+            boolean throwOnFailure) {
+          if (!LITERAL.checkSingleOperandType(
+              callBinding,
+              node,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          if (!super.checkSingleOperandType(
+              callBinding,
+              node,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          final SqlLiteral arg = (SqlLiteral) node;
+          final BigDecimal value = arg.getValueAs(BigDecimal.class);
+          if (value.compareTo(BigDecimal.ZERO) < 0 || value.compareTo(BigDecimal.ONE) > 0) {
+            if (throwOnFailure) {
+              throw callBinding.newError(
+                  RESOURCE.argumentMustBePositiveLiteralInRange(
+                      callBinding.getOperator().getName(),
+                      0, 1));
+            }
+            return false;
+          }
+          return true;
+        }
+      };
+
+  /**
    * Operand type-checking strategy where two operands must both be in the
    * same type family.
    */
