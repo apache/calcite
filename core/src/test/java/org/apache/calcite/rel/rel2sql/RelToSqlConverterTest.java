@@ -5810,7 +5810,7 @@ class RelToSqlConverterTest {
   @Test public void testRegexSubstrFunction2Args() {
     final String query = "select regexp_substr('choco chico chipo', '.*cho*p*c*?.*')"
         + "from \"foodmart\".\"product\"";
-    final String expected = "SELECT REGEXP_EXTRACT('choco chico chipo', '.*cho*p*c*?.*')\n"
+    final String expected = "SELECT REGEXP_SUBSTR('choco chico chipo', '.*cho*p*c*?.*')\n"
         + "FROM foodmart.product";
     sql(query)
         .withBigQuery()
@@ -5821,8 +5821,8 @@ class RelToSqlConverterTest {
     final String query = "select \"product_id\", regexp_substr('choco chico chipo', "
         + "'.*cho*p*c*?.*', 7)\n"
         + "from \"foodmart\".\"product\" where \"product_id\" = 1";
-    final String expected = "SELECT product_id, REGEXP_EXTRACT(SUBSTR('choco chico chipo', 7), "
-        + "'.*cho*p*c*?.*')\n"
+    final String expected = "SELECT product_id, REGEXP_SUBSTR('choco chico chipo', "
+        + "'.*cho*p*c*?.*', 7)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1";
     sql(query)
@@ -5834,8 +5834,8 @@ class RelToSqlConverterTest {
     final String query = "select \"product_id\", regexp_substr('chocolate chip cookies', 'c+.{2}',"
         + " 4, 2)\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3)";
-    final String expected = "SELECT product_id, REGEXP_EXTRACT_ALL(SUBSTR('chocolate chip "
-        + "cookies', 4), 'c+.{2}') [OFFSET(1)]\n"
+    final String expected = "SELECT product_id, REGEXP_SUBSTR('chocolate chip "
+        + "cookies', 'c+.{2}', 4, 2)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3";
     sql(query)
@@ -5848,8 +5848,7 @@ class RelToSqlConverterTest {
         + " 1, 2, 'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
     final String expected = "SELECT "
-        + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)c+.{2}') [OFFSET"
-        + "(1)]\n"
+        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)c+.{2}', 1, 2)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
     sql(query)
@@ -5859,17 +5858,16 @@ class RelToSqlConverterTest {
 
   @Test public void testRegexSubstrFunction5ArgswithBackSlash() {
     final String query = "select regexp_substr('chocolate Chip cookies','[-\\_] V[0-9]+',"
-        + " 1,1,'i')\n"
+        + "1,1,'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
     final String expected = "SELECT "
-        + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)[-\\\\_] V[0-9]+') [OFFSET(0)]\n"
+        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)[-\\\\_] V[0-9]+', 1, 1)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
     sql(query)
         .withBigQuery()
         .ok(expected);
   }
-
 
   @Test public void testTimestampFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
@@ -7887,6 +7885,45 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testFormatTimestampFormatsRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("HH24MI"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode3 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("HH24MISS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode4 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHH24MISS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode5 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHHMISS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode6 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHH24MI"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode7 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHH24"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode2, "FD2"),
+            builder.alias(formatTimestampRexNode3, "FD3"),
+            builder.alias(formatTimestampRexNode4, "FD4"),
+            builder.alias(formatTimestampRexNode5, "FD5"),
+            builder.alias(formatTimestampRexNode6, "FD6"),
+            builder.alias(formatTimestampRexNode7, "FD7"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('HH24MI', \"HIREDATE\") AS \"FD2\", "
+        + "FORMAT_TIMESTAMP('HH24MISS', \"HIREDATE\") AS \"FD3\", "
+        + "FORMAT_TIMESTAMP('YYYYMMDDHH24MISS', \"HIREDATE\") AS \"FD4\", "
+        + "FORMAT_TIMESTAMP('YYYYMMDDHHMISS', \"HIREDATE\") AS \"FD5\", FORMAT_TIMESTAMP"
+        + "('YYYYMMDDHH24MI', \"HIREDATE\") AS \"FD6\", FORMAT_TIMESTAMP('YYYYMMDDHH24', "
+        + "\"HIREDATE\") AS \"FD7\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%H%M', HIREDATE) AS FD2, "
+        + "FORMAT_TIMESTAMP('%H%M%S', HIREDATE) AS FD3, FORMAT_TIMESTAMP('%Y%m%d%H%M%S', "
+        + "HIREDATE) AS FD4, FORMAT_TIMESTAMP('%Y%m%d%I%M%S', HIREDATE) AS FD5, FORMAT_TIMESTAMP"
+        + "('%Y%m%d%H%M', HIREDATE) AS FD6, FORMAT_TIMESTAMP('%Y%m%d%H', HIREDATE) AS FD7\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testFormatTimeRelToSql() {

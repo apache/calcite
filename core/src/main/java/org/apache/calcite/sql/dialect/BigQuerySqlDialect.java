@@ -111,10 +111,16 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOURMIN;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOURMINSEC;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MI;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISS;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHHMISS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
@@ -122,9 +128,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
@@ -135,6 +138,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
@@ -232,6 +236,12 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MILISECONDS_4, "SSSS");
         put(E4, "%A");
         put(E3, "%a");
+        put(TWENTYFOURHOURMIN, "%H%M");
+        put(TWENTYFOURHOURMINSEC, "%H%M%S");
+        put(YYYYMMDDHH24MISS, "%Y%m%d%H%M%S");
+        put(YYYYMMDDHH24MI, "%Y%m%d%H%M");
+        put(YYYYMMDDHH24, "%Y%m%d%H");
+        put(YYYYMMDDHHMISS, "%Y%m%d%I%M%S");
       }};
 
   private static final String OR = "|";
@@ -583,49 +593,33 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlCall extractCall;
-    switch (call.operandCount()) {
-    case 3:
-      extractCall = makeExtractSqlCall(call);
-      REGEXP_EXTRACT.unparse(writer, extractCall, leftPrec, rightPrec);
-      break;
-    case 4:
-    case 5:
-      extractCall = makeExtractSqlCall(call);
-      REGEXP_EXTRACT_ALL.unparse(writer, extractCall, leftPrec, rightPrec);
-      writeOffset(writer, call);
-      break;
-    default:
-      REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
-    }
+    extractCall = makeRegexpSubstrSqlCall(call);
+    REGEXP_SUBSTR.unparse(writer, extractCall, leftPrec, rightPrec);
   }
 
-  private void writeOffset(SqlWriter writer, SqlCall call) {
-    int occurrenceNumber = Integer.parseInt(call.operand(3).toString()) - 1;
-    writer.literal("[OFFSET(" + occurrenceNumber + ")]");
-  }
-
-  private SqlCall makeExtractSqlCall(SqlCall call) {
-    SqlCall substringCall = makeSubstringSqlCall(call);
-    call.setOperand(0, substringCall);
-    if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
+  private SqlCall makeRegexpSubstrSqlCall(SqlCall call) {
+    if (call.operandCount() == 5 || call.operand(1).toString().contains("\\")) {
       SqlCharStringLiteral regexNode = makeRegexNode(call);
       call.setOperand(1, regexNode);
     }
-    SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
-    return new SqlBasicCall(REGEXP_EXTRACT, extractNodeOperands, SqlParserPos.ZERO);
+    SqlNode[] extractNodeOperands;
+    if (call.operandCount() == 5) {
+      extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1),
+          call.operand(2), call.operand(3)};
+    } else {
+      extractNodeOperands = call.getOperandList().toArray(new SqlNode[0]);
+    }
+    return new SqlBasicCall(REGEXP_SUBSTR, extractNodeOperands, SqlParserPos.ZERO);
   }
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
-    String regexStr = call.operand(1).toString();
-    regexStr = regexStr.replace("\\", "\\\\");
-    String regexLiteral = "(?i)".concat(regexStr.substring(1, regexStr.length() - 1));
+    String regexLiteral = call.operand(1).toString();
+    regexLiteral = (regexLiteral.substring(1, regexLiteral.length() - 1)).replace("\\", "\\\\");
+    if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
+      regexLiteral = "(?i)".concat(regexLiteral);
+    }
     return SqlLiteral.createCharString(regexLiteral,
         call.operand(1).getParserPosition());
-  }
-
-  private SqlCall makeSubstringSqlCall(SqlCall call) {
-    SqlNode[] sqlNodes = new SqlNode[]{call.operand(0), call.operand(2)};
-    return new SqlBasicCall(SUBSTR_BIG_QUERY, sqlNodes, SqlParserPos.ZERO);
   }
 
   /**
