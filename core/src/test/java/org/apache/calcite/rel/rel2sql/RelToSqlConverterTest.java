@@ -3843,8 +3843,7 @@ class RelToSqlConverterTest {
     String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
         + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
         + "FROM [foodmart].[employee]";
-    sql(query)
-        .withMssql()
+    sql(query).withMssql()
         .ok(expected);
   }
 
@@ -8822,9 +8821,9 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT FORMAT_TIMESTAMP('SSSS', \"HIREDATE\") AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT CAST(FORMAT_TIMESTAMP('%H', HIREDATE) AS INT64) * "
-        + "3600 + (CAST(FORMAT_TIMESTAMP('%M', HIREDATE) AS INT64) * 60 + "
-        + "CAST(FORMAT_TIMESTAMP('%S', HIREDATE) AS INT64)) AS FD\n"
+    final String expectedBiqQuery = "SELECT CAST(CAST(FORMAT_TIMESTAMP('%H', HIREDATE) AS INT64) "
+        + "* 3600 + (CAST(FORMAT_TIMESTAMP('%M', HIREDATE) AS INT64) * 60 + CAST(FORMAT_TIMESTAMP"
+        + "('%S', HIREDATE) AS INT64)) AS STRING) AS FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
