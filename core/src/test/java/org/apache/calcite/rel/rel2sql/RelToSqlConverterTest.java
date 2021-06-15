@@ -8774,4 +8774,22 @@ class RelToSqlConverterTest {
             .withBigQuery()
             .ok(expectedBQ);
   }
+
+  @Test public void testSSSSFormatTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("SSSS"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('SSSS', \"HIREDATE\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT CAST(FORMAT_TIMESTAMP('%H', HIREDATE) AS INT64) * "
+        + "3600 + (CAST(FORMAT_TIMESTAMP('%M', HIREDATE) AS INT64) * 60 + "
+        + "CAST(FORMAT_TIMESTAMP('%S', HIREDATE) AS INT64)) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }

@@ -229,7 +229,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(ANTE_MERIDIAN_INDICATOR, "%p");
         put(ANTE_MERIDIAN_INDICATOR1, "%p");
         put(MILLISECONDS_5, "*S");
-        put(MILISECONDS_4, "*S");
+        put(MILISECONDS_4, "SSSS");
         put(E4, "%A");
         put(E3, "%a");
       }};
@@ -781,7 +781,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_TIMESTAMP":
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
-      switch (call.operand(0).toString()) {
+      switch (call.operand(0).toString().toUpperCase()) {
       case "'W'":
         TimeUnit dayOfMonth = TimeUnit.DAY;
         unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
@@ -789,6 +789,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       case "'WW'":
         TimeUnit dayOfYear = TimeUnit.DOY;
         unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
+        break;
+      case "'SSSS'":
+        secFromMidnight(writer, call, leftPrec, rightPrec);
         break;
       default:
         unparseFormatCall(writer, call, leftPrec, rightPrec);
@@ -905,6 +908,31 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void secFromMidnight(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode hourToSecCall = timeFromMidnightSec(
+        call, SqlDateTimeFormat.TWENTYFOURHOUR.value, "3600");
+    SqlNode minuteToSecCall = timeFromMidnightSec(call, SqlDateTimeFormat.MINUTE.value, "60");
+    SqlNode secCall = timeFromMidnightSec(call, SqlDateTimeFormat.SECOND.value, "1");
+
+    SqlCall midnightSec = PLUS.createCall(SqlParserPos.ZERO, hourToSecCall,
+        PLUS.createCall(SqlParserPos.ZERO, minuteToSecCall, secCall));
+    unparseCall(writer, midnightSec, leftPrec, rightPrec);
+  }
+
+  private SqlNode timeFromMidnightSec(SqlCall call, String dateFormat, String toSec) {
+    SqlNode intNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER));
+
+    SqlNode timeformatNode = call.getOperator().createCall(SqlParserPos.ZERO,
+        SqlLiteral.createCharString(dateFormat, SqlParserPos.ZERO), call.operand(1));
+
+    SqlNode castedNode = CAST.createCall(SqlParserPos.ZERO, timeformatNode, intNode);
+    if (toSec.equals("1")) {
+      return castedNode;
+    }
+    return MULTIPLY.createCall(SqlParserPos.ZERO, castedNode,
+        SqlLiteral.createExactNumeric(toSec, SqlParserPos.ZERO));
   }
 
   private void unparseFormatCall(SqlWriter writer,
