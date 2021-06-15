@@ -7887,6 +7887,45 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
+  @Test public void testFormatTimestampFormatsRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("HH24MI"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode3 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("HH24MISS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode4 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHH24MISS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode5 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHHMISS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode6 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHH24MI"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode7 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYYMMDDHH24"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode2, "FD2"),
+            builder.alias(formatTimestampRexNode3, "FD3"),
+            builder.alias(formatTimestampRexNode4, "FD4"),
+            builder.alias(formatTimestampRexNode5, "FD5"),
+            builder.alias(formatTimestampRexNode6, "FD6"),
+            builder.alias(formatTimestampRexNode7, "FD7"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('HH24MI', \"HIREDATE\") AS \"FD2\", "
+        + "FORMAT_TIMESTAMP('HH24MISS', \"HIREDATE\") AS \"FD3\", "
+        + "FORMAT_TIMESTAMP('YYYYMMDDHH24MISS', \"HIREDATE\") AS \"FD4\", "
+        + "FORMAT_TIMESTAMP('YYYYMMDDHHMISS', \"HIREDATE\") AS \"FD5\", FORMAT_TIMESTAMP"
+        + "('YYYYMMDDHH24MI', \"HIREDATE\") AS \"FD6\", FORMAT_TIMESTAMP('YYYYMMDDHH24', "
+        + "\"HIREDATE\") AS \"FD7\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%H%M', HIREDATE) AS FD2, "
+        + "FORMAT_TIMESTAMP('%H%M%S', HIREDATE) AS FD3, FORMAT_TIMESTAMP('%Y%m%d%H%M%S', "
+        + "HIREDATE) AS FD4, FORMAT_TIMESTAMP('%Y%m%d%I%M%S', HIREDATE) AS FD5, FORMAT_TIMESTAMP"
+        + "('%Y%m%d%H%M', HIREDATE) AS FD6, FORMAT_TIMESTAMP('%Y%m%d%H', HIREDATE) AS FD7\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testFormatTimeRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimeRexNode = builder.call(SqlLibraryOperators.FORMAT_TIME,
