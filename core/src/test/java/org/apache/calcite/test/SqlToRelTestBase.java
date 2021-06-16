@@ -588,15 +588,13 @@ public abstract class SqlToRelTestBase {
      * @param clusterFactory Called after a cluster has been created
      */
     protected TesterImpl(DiffRepository diffRepos, boolean enableDecorrelate,
-        boolean enableTrim,
-        boolean enableLateDecorrelate,
+        boolean enableTrim, boolean enableLateDecorrelate,
         boolean enableTypeCoercion,
         SqlTestFactory.MockCatalogReaderFactory catalogReaderFactory,
         Function<RelOptCluster, RelOptCluster> clusterFactory,
         Function<Context, RelOptPlanner> plannerFactory,
         UnaryOperator<SqlToRelConverter.Config> configTransform,
-        SqlConformance conformance,
-        UnaryOperator<Context> contextTransform,
+        SqlConformance conformance, UnaryOperator<Context> contextTransform,
         RelDataTypeFactory typeFactory) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
