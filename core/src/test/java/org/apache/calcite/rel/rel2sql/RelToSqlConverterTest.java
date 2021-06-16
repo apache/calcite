@@ -8814,12 +8814,13 @@ class RelToSqlConverterTest {
   @Test public void testSSSSFormatTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("SSSS"), builder.scan("EMP").field(4));
+        builder.literal("SEC_FROM_MIDNIGHT"), builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD"))
         .build();
-    final String expectedSql = "SELECT FORMAT_TIMESTAMP('SSSS', \"HIREDATE\") AS \"FD\"\n"
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('SEC_FROM_MIDNIGHT', \"HIREDATE\") AS"
+        + " \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT CAST(CAST(FORMAT_TIMESTAMP('%H', HIREDATE) AS INT64) "
         + "* 3600 + (CAST(FORMAT_TIMESTAMP('%M', HIREDATE) AS INT64) * 60 + CAST(FORMAT_TIMESTAMP"

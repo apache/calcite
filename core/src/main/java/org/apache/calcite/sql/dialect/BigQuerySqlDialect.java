@@ -109,6 +109,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.SEC_FROM_MIDNIGHT;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOURMIN;
@@ -233,7 +234,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(ANTE_MERIDIAN_INDICATOR, "%p");
         put(ANTE_MERIDIAN_INDICATOR1, "%p");
         put(MILLISECONDS_5, "*S");
-        put(MILISECONDS_4, "SSSS");
+        put(MILISECONDS_4, "*S");
         put(E4, "%A");
         put(E3, "%a");
         put(TWENTYFOURHOURMIN, "%H%M");
@@ -242,6 +243,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(YYYYMMDDHH24MI, "%Y%m%d%H%M");
         put(YYYYMMDDHH24, "%Y%m%d%H");
         put(YYYYMMDDHHMISS, "%Y%m%d%I%M%S");
+        put(SEC_FROM_MIDNIGHT, "SEC_FROM_MIDNIGHT");
       }};
 
   private static final String OR = "|";
@@ -784,7 +786,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         TimeUnit dayOfYear = TimeUnit.DOY;
         unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
         break;
-      case "'SSSS'":
+      case "'SEC_FROM_MIDNIGHT'":
         secFromMidnight(writer, call, leftPrec, rightPrec);
         break;
       default:
