@@ -1265,7 +1265,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 where emp.deptno not in
 (select dept.deptno from dept where emp.deptno > 20)]]>
     </Resource>
-    <Resource name="planAfter">
+    <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $8), >($0, 20))], joinType=[anti])
@@ -1280,7 +1280,7 @@ LogicalProject(EMPNO=[$0])
 where emp.deptno
 not in (select dept.deptno from dept where dept.dname = 'ddd')]]>
     </Resource>
-    <Resource name="planAfter">
+    <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $8), =($9, 'ddd'))], joinType=[anti])
@@ -4078,6 +4078,15 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
     </Resource>
   </TestCase>
   <TestCase name="testJoinAssociateRuleWithBottomAlwaysTrueConditionAllowed">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($2, $12)], joinType=[inner])
+  LogicalJoin(condition=[=($7, $8)], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalJoin(condition=[AND(=($2, $12), =($7, $8))], joinType=[inner])
@@ -4089,7 +4098,7 @@ LogicalJoin(condition=[AND(=($2, $12), =($7, $8))], joinType=[inner])
     </Resource>
   </TestCase>
   <TestCase name="testJoinAssociateRuleWithBottomAlwaysTrueConditionDisallowed">
-    <Resource name="planAfter">
+    <Resource name="planBefore">
       <![CDATA[
 LogicalJoin(condition=[=($2, $12)], joinType=[inner])
   LogicalJoin(condition=[=($7, $8)], joinType=[inner])
@@ -4100,6 +4109,15 @@ LogicalJoin(condition=[=($2, $12)], joinType=[inner])
     </Resource>
   </TestCase>
   <TestCase name="testJoinAssociateRuleWithTopAlwaysTrueConditionAllowed">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($7, $12)], joinType=[inner])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, BONUS]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalJoin(condition=[=($7, $12)], joinType=[inner])
@@ -4111,7 +4129,7 @@ LogicalJoin(condition=[=($7, $12)], joinType=[inner])
     </Resource>
   </TestCase>
   <TestCase name="testJoinAssociateRuleWithTopAlwaysTrueConditionDisallowed">
-    <Resource name="planAfter">
+    <Resource name="planBefore">
       <![CDATA[
 LogicalJoin(condition=[=($7, $12)], joinType=[inner])
   LogicalJoin(condition=[true], joinType=[inner])
@@ -4122,6 +4140,13 @@ LogicalJoin(condition=[=($7, $12)], joinType=[inner])
     </Resource>
   </TestCase>
   <TestCase name="testJoinCommuteRuleWithAlwaysTrueConditionAllowed">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[true], joinType=[inner])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], DEPTNO0=[$0], DNAME=[$1], LOC=[$2])
@@ -4132,7 +4157,7 @@ LogicalProject(EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$
     </Resource>
   </TestCase>
   <TestCase name="testJoinCommuteRuleWithAlwaysTrueConditionDisallowed">
-    <Resource name="planAfter">
+    <Resource name="planBefore">
       <![CDATA[
 LogicalJoin(condition=[true], joinType=[inner])
   LogicalTableScan(table=[[scott, EMP]])
@@ -4468,6 +4493,15 @@ LogicalProject(SAL=[$5])
 (select * from emp join dept ON emp.deptno = emp.deptno) t
 where not exists (select job from bonus where emp.job = bonus.job)]]>
     </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($2, $12)], joinType=[anti])
+  LogicalJoin(condition=[=($7, $8)], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalJoin(condition=[=($2, $12)], joinType=[anti])
@@ -4484,6 +4518,15 @@ LogicalJoin(condition=[=($2, $12)], joinType=[anti])
 (select * from emp join dept ON emp.deptno = emp.deptno) t
 where emp.job in (select job from bonus))]]>
     </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($2, $12)], joinType=[semi])
+  LogicalJoin(condition=[=($7, $8)], joinType=[inner])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalJoin(condition=[=($2, $12)], joinType=[semi])
@@ -4491,6 +4534,18 @@ LogicalJoin(condition=[=($2, $12)], joinType=[semi])
     LogicalTableScan(table=[[scott, EMP]])
     LogicalTableScan(table=[[scott, DEPT]])
   LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinToSemiJoinRuleOnAntiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[anti])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -5583,6 +5638,15 @@ LogicalProject(C_NATIONKEY=[$1], FAKE_COL2=[$2])
     </Resource>
   </TestCase>
   <TestCase name="testProjectCorrelateTransposeRuleAntiCorrelate">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(f=[$0])
+  LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ '1', '2' }]])
+    LogicalProject(f3=[$0], $f1=[$cor0.f])
+      LogicalValues(tuples=[[{ '1', '2' }]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0}])
@@ -5629,6 +5693,15 @@ FROM emp e1 where exists (select empno, deptno from dept d2 where e1.deptno = d2
     </Resource>
   </TestCase>
   <TestCase name="testProjectCorrelateTransposeRuleSemiCorrelate">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(f=[$0])
+  LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0}])
+    LogicalValues(tuples=[[{ '1', '2' }]])
+    LogicalProject(f3=[$0], $f1=[$cor0.f])
+      LogicalValues(tuples=[[{ '1', '2' }]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0}])
@@ -5700,6 +5773,13 @@ LogicalProject(EXPR$0=[SUM($2) OVER (PARTITION BY $0)], EXPR$1=[COUNT($3) OVER (
     </Resource>
   </TestCase>
   <TestCase name="testProjectFilterTransposeRuleOnEmptyRowType">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject
+  LogicalFilter(condition=[=($7, 20)])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject
@@ -6050,6 +6130,18 @@ LogicalProject(JOB=[$0], EXPR$1=[SUM($2) OVER (PARTITION BY $1)])
     LogicalProject(JOB=[$2], DEPTNO=[$7], +=[+($5, 100)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectToSemiJoinRuleOnAntiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[anti])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -8339,20 +8431,6 @@ LogicalProject(SAL=[$5])
           LogicalTableScan(table=[[scott, DEPT]])
 ]]>
     </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(SAL=[$5])
-  LogicalJoin(condition=[=($7, $8)], joinType=[anti])
-    LogicalTableScan(table=[[scott, EMP]])
-    LogicalUnion(all=[true])
-      LogicalProject(DEPTNO=[$0])
-        LogicalFilter(condition=[<($0, 10)])
-          LogicalTableScan(table=[[scott, DEPT]])
-      LogicalProject(DEPTNO=[$0])
-        LogicalFilter(condition=[>($0, 20)])
-          LogicalTableScan(table=[[scott, DEPT]])
-]]>
-    </Resource>
   </TestCase>
   <TestCase name="testPushJoinThroughUnionOnRightDoesNotMatchSemiJoin">
     <Resource name="sql">
@@ -8365,21 +8443,7 @@ LogicalProject(SAL=[$5])
     LogicalTableScan(table=[[scott, EMP]])
     LogicalUnion(all=[true])
       LogicalProject(DEPTNO=[$0])
-        LogicalFilter(condition=[>($0, 100)])
-          LogicalTableScan(table=[[scott, DEPT]])
-      LogicalProject(DEPTNO=[$0])
-        LogicalFilter(condition=[>($0, 20)])
-          LogicalTableScan(table=[[scott, DEPT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(SAL=[$5])
-  LogicalJoin(condition=[=($7, $8)], joinType=[semi])
-    LogicalTableScan(table=[[scott, EMP]])
-    LogicalUnion(all=[true])
-      LogicalProject(DEPTNO=[$0])
-        LogicalFilter(condition=[>($0, 100)])
+        LogicalFilter(condition=[<($0, 10)])
           LogicalTableScan(table=[[scott, DEPT]])
       LogicalProject(DEPTNO=[$0])
         LogicalFilter(condition=[>($0, 20)])
@@ -9134,6 +9198,16 @@ LogicalProject(EXPR$0=[+($1, $5)], EXPR$1=[SUM($6) OVER (PARTITION BY $4)])
     </Resource>
   </TestCase>
   <TestCase name="testPushSemiJoinConditions">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[AND(OR(=($0, $2), AND(IS NULL($0), IS NULL($2))), OR(=($1, $3), AND(IS NULL($1), IS NULL($3))))], joinType=[semi])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
+      LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(DEPTNO=[$0])
@@ -9151,7 +9225,7 @@ LogicalProject(DEPTNO=[$0])
 where emp.deptno
 in (select dept.deptno from dept where emp.empno > 20)]]>
     </Resource>
-    <Resource name="planAfter">
+    <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $8), >($0, 20))], joinType=[semi])
@@ -9705,12 +9779,6 @@ LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
   </TestCase>
   <TestCase name="testReduceCaseWhenWithCast">
     <Resource name="planBefore">
-      <![CDATA[
-LogicalProject($f0=[CAST(CASE(=(MOD($0, 2:BIGINT), 1), <($0, 2:BIGINT), =(MOD($0, 3:BIGINT), 2), <($0, 1:BIGINT), <($0, 3:BIGINT))):BOOLEAN])
-  LogicalValues(tuples=[[{ 1, 2 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
       <![CDATA[
 LogicalProject($f0=[CAST(CASE(=(MOD($0, 2:BIGINT), 1), <($0, 2:BIGINT), =(MOD($0, 3:BIGINT), 2), <($0, 1:BIGINT), <($0, 3:BIGINT))):BOOLEAN])
   LogicalValues(tuples=[[{ 1, 2 }]])
@@ -10285,13 +10353,6 @@ from (select sal, rand() as r from emp)
 where r > 0.5]]>
     </Resource>
     <Resource name="planBefore">
-      <![CDATA[
-LogicalFilter(condition=[>($1, 10)])
-  LogicalProject(SAL=[$5], N=[NDC()])
-    LogicalTableScan(table=[[scott, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
       <![CDATA[
 LogicalFilter(condition=[>($1, 10)])
   LogicalProject(SAL=[$5], N=[NDC()])
@@ -12211,6 +12272,16 @@ EnumerableProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSwapAntiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($7, $8)], joinType=[anti])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSwapOuterJoin">
     <Resource name="sql">
       <![CDATA[select 1 from sales.dept d left outer join sales.emp e
@@ -12254,6 +12325,16 @@ LogicalProject(NAME=[$10], ENAME=[$1])
   LogicalJoin(condition=[=($11.TYPE, $2)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSwapSemiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($7, $8)], joinType=[semi])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
 ]]>
     </Resource>
   </TestCase>
