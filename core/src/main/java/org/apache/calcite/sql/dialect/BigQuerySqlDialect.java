@@ -896,9 +896,25 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_LIKE":
       unparseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
+    case "YEAR":
+      createExtractCall(writer, call.operand(0), TimeUnit.YEAR, leftPrec, rightPrec);
+      break;
+    case "MONTH":
+      createExtractCall(writer, call.operand(0), TimeUnit.MONTH, leftPrec, rightPrec);
+      break;
+    case "DAY":
+      createExtractCall(writer, call.operand(0), TimeUnit.DAY, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void createExtractCall(SqlWriter writer, SqlNode operand, TimeUnit timeUnit,
+      int leftPrec, int rightPrec) {
+    SqlNode extractNode = EXTRACT.createCall(SqlParserPos.ZERO,
+        SqlLiteral.createSymbol(timeUnit, SqlParserPos.ZERO), operand);
+    extractNode.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseFormatCall(SqlWriter writer,

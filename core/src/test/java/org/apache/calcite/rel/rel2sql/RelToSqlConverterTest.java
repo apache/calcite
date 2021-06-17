@@ -8811,4 +8811,24 @@ class RelToSqlConverterTest {
             .withBigQuery()
             .ok(expectedBQ);
   }
+
+  @Test public void testYear() {
+    String query = "SELECT YEAR(CURRENT_DATE), YEAR(CURRENT_TIMESTAMP)";
+    final String expectedBQ = "SELECT EXTRACT(YEAR FROM CURRENT_DATE), "
+        + "EXTRACT(YEAR FROM CURRENT_TIMESTAMP)";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
+  @Test public void testMonth() {
+    String query = "SELECT MONTH(CURRENT_DATE), MONTH(CURRENT_TIMESTAMP)";
+    final String expectedBQ = "SELECT EXTRACT(MONTH FROM CURRENT_DATE), "
+        + "EXTRACT(MONTH FROM CURRENT_TIMESTAMP)";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
 }
