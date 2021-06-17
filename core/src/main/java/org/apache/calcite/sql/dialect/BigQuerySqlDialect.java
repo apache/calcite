@@ -777,7 +777,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_TIMESTAMP":
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
-      switch (call.operand(0).toString().toUpperCase()) {
+      switch (call.operand(0).toString()) {
       case "'W'":
         TimeUnit dayOfMonth = TimeUnit.DAY;
         unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
@@ -929,10 +929,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         SqlLiteral.createCharString(dateFormat, SqlParserPos.ZERO), call.operand(1));
 
     SqlNode castedNode = CAST.createCall(SqlParserPos.ZERO, timeformatNode, intNode);
-    if (toSec.equals("1")) {
-      return castedNode;
-    }
-    return MULTIPLY.createCall(SqlParserPos.ZERO, castedNode,
+
+    return toSec.equals("1") ? castedNode : MULTIPLY.createCall(SqlParserPos.ZERO, castedNode,
         SqlLiteral.createExactNumeric(toSec, SqlParserPos.ZERO));
   }
 
