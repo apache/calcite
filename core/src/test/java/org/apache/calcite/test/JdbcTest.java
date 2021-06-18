@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
@@ -23,6 +24,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Handler;
@@ -102,6 +104,7 @@ import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.hamcrest.comparator.ComparatorMatcherBuilder;
+import org.hamcrest.number.OrderingComparison;
 import org.hsqldb.jdbcDriver;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -1065,6 +1068,18 @@ public class JdbcTest {
     assertEquals(730, resultSet.getInt(1));
     resultSet.close();
     connection.close();
+  }
+
+  @Test void testJdbcTableScan() throws SQLException {
+    final Connection connection =
+        CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
+    final JdbcTable timeByDay = (JdbcTable) foodmart.getTable("time_by_day");
+    final int rows = timeByDay.scan(DataContexts.of(calciteConnection, rootSchema)).count();
+    assertThat(rows, OrderingComparison.greaterThan(0));
   }
 
   @Test void testCloneGroupBy() {
