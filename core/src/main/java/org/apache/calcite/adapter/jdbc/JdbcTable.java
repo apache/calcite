@@ -54,12 +54,15 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Suppliers;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -75,7 +78,9 @@ import static java.util.Objects.requireNonNull;
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
-  private @Nullable RelProtoDataType protoRowType;
+  @SuppressWarnings("methodref.receiver.bound.invalid")
+  private final Supplier<RelProtoDataType> protoRowTypeSupplier =
+      Suppliers.memoize(this::supplyProto);
   public final JdbcSchema jdbcSchema;
   public final String jdbcCatalogName;
   public final String jdbcSchemaName;
@@ -112,25 +117,25 @@ public class JdbcTable extends AbstractQueryableTable
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    if (protoRowType == null) {
-      try {
-        protoRowType =
-            jdbcSchema.getRelDataType(
-                jdbcCatalogName,
-                jdbcSchemaName,
-                jdbcTableName);
-      } catch (SQLException e) {
-        throw new RuntimeException(
-            "Exception while reading definition of table '" + jdbcTableName
-                + "'", e);
-      }
+    return protoRowTypeSupplier.get().apply(typeFactory);
+  }
+
+  private RelProtoDataType supplyProto() {
+    try {
+      return jdbcSchema.getRelDataType(
+          jdbcCatalogName,
+          jdbcSchemaName,
+          jdbcTableName);
+    } catch (SQLException e) {
+      throw new RuntimeException(
+          "Exception while reading definition of table '" + jdbcTableName
+              + "'", e);
     }
-    return protoRowType.apply(typeFactory);
   }
 
   private List<Pair<ColumnMetaData.Rep, Integer>> fieldClasses(
       final JavaTypeFactory typeFactory) {
-    final RelDataType rowType = requireNonNull(protoRowType, "protoRowType").apply(typeFactory);
+    final RelDataType rowType = getRowType(typeFactory);
     return Util.transform(rowType.getFieldList(), f -> {
       final RelDataType type = f.getType();
       final Class clazz = (Class) typeFactory.getJavaClass(type);
