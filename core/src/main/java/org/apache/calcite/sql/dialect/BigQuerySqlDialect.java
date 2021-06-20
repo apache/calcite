@@ -58,6 +58,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
@@ -106,6 +107,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTH_NAME;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERIC_TIME_ZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
@@ -114,6 +116,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOURMIN;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOURMINSEC;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.U;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
@@ -181,12 +184,16 @@ public class BigQuerySqlDialect extends SqlDialect {
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
               "WINDOW", "WITH", "WITHIN"));
 
-  /** An unquoted BigQuery identifier must start with a letter and be followed
-   * by zero or more letters, digits or _. */
+  /**
+   * An unquoted BigQuery identifier must start with a letter and be followed
+   * by zero or more letters, digits or _.
+   */
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
-  /** Creates a BigQuerySqlDialect. */
+  /**
+   * Creates a BigQuerySqlDialect.
+   */
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
   }
@@ -232,16 +239,18 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(POST_MERIDIAN_INDICATOR1, "%p");
         put(ANTE_MERIDIAN_INDICATOR, "%p");
         put(ANTE_MERIDIAN_INDICATOR1, "%p");
-        put(MILLISECONDS_5, "*S");
-        put(MILISECONDS_4, "*S");
-        put(E4, "%A");
         put(E3, "%a");
+        put(E4, "%A");
         put(TWENTYFOURHOURMIN, "%H%M");
         put(TWENTYFOURHOURMINSEC, "%H%M%S");
         put(YYYYMMDDHH24MISS, "%Y%m%d%H%M%S");
         put(YYYYMMDDHH24MI, "%Y%m%d%H%M");
         put(YYYYMMDDHH24, "%Y%m%d%H");
         put(YYYYMMDDHHMISS, "%Y%m%d%I%M%S");
+        put(MILLISECONDS_5, "*S");
+        put(MILISECONDS_4, "4S");
+        put(U, "%u");
+        put(NUMERIC_TIME_ZONE, "%Ez");
       }};
 
   private static final String OR = "|";
@@ -902,9 +911,13 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseFormatCall(SqlWriter writer,
-                                 SqlCall call, int leftPrec, int rightPrec) {
+      SqlCall call, int leftPrec, int rightPrec) {
+    String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
+        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+        .getValue()
+        : call.operand(0).toString();
     SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-        createDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
+        createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
@@ -1080,6 +1093,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     String dateTimeFormat = super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
     return dateTimeFormat
         .replace("%Y-%m-%d", "%F")
+        .replace("'", "")
         .replace("%S.", "%E");
   }
 
@@ -1185,6 +1199,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
     }
   }
+
   private void unparseTimestampIntMul(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.operand(0) instanceof SqlBasicCall) {
       handleSqlBasicCallForTimestampMulti(writer, call);
@@ -1219,6 +1234,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep(secondOperand);
     writer.print(literalValue.toString());
   }
+
   private void unparseExtractFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.operand(0).toString()) {
     case "EPOCH" :
@@ -1236,12 +1252,13 @@ public class BigQuerySqlDialect extends SqlDialect {
   private boolean isIntervalHourAndSecond(SqlCall call) {
     if (call.operand(1) instanceof SqlIntervalLiteral) {
       return ((SqlIntervalLiteral) call.operand(1)).getTypeName()
-              == SqlTypeName.INTERVAL_HOUR_SECOND;
+          == SqlTypeName.INTERVAL_HOUR_SECOND;
     }
     return false;
   }
 
-  /** {@inheritDoc}
+  /**
+   * {@inheritDoc}
    *
    * <p>BigQuery data type reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
