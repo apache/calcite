@@ -150,6 +150,8 @@ class SqlPrettyWriterTest {
     }
   }
 
+  /** Creates a fluent test for a SQL statement that has most common lexical
+   * features. */
   private Sql simple() {
     return sql("select x as a, b as b, c as c, d,"
         + " 'mixed-Case string',"
@@ -165,6 +167,16 @@ class SqlPrettyWriterTest {
         + "   range between interval '2:2' hour to minute preceding"
         + "    and interval '1' day following)) "
         + "order by gg");
+  }
+
+  /** Creates a fluent test for a SQL statement that contains "tableAlias.*". */
+  private Sql tableDotStar() {
+    return sql("select x as a, b, s.*, t.* "
+        + "from"
+        + " (select *"
+        + " from t"
+        + " where x = y and a > 5) "
+        + "order by g desc, h asc, i");
   }
 
   private Sql sql(String sql) {
@@ -190,6 +202,12 @@ class SqlPrettyWriterTest {
 
   @Test void testClausesNotOnNewLine() {
     simple()
+        .withWriter(w -> w.withClauseStartsLine(false))
+        .check();
+  }
+
+  @Test void testTableDotStarClausesNotOnNewLine() {
+    tableDotStar()
         .withWriter(w -> w.withClauseStartsLine(false))
         .check();
   }
