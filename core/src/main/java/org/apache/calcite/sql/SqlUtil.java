@@ -399,6 +399,7 @@ public abstract class SqlUtil {
         final SqlParserPos pos = identifier.getComponentParserPosition(i);
         if (name.equals("")) {
           writer.print("*");
+          writer.setNeedWhitespace(true);
         } else {
           writer.identifier(name, pos.isQuoted());
         }
