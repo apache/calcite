@@ -916,31 +916,18 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void secFromMidnight(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlNode hourToSecCall = convertToSec(call, SqlDateTimeFormat.TWENTYFOURHOUR.value, "3600");
-    SqlNode minuteToSecCall = convertToSec(call, SqlDateTimeFormat.MINUTE.value, "60");
-    SqlNode secCall = convertToSec(call, SqlDateTimeFormat.SECOND.value, "1");
-
-    SqlNode nodeAddition = PLUS.createCall(SqlParserPos.ZERO, hourToSecCall,
-        PLUS.createCall(SqlParserPos.ZERO, minuteToSecCall, secCall));
-
+    SqlNode dateNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE));
+    SqlNode timestampNode = getCastSpec(
+        new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     SqlNode stringNode = getCastSpec(
         new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR));
-
-    SqlCall midnightSec = CAST.createCall(SqlParserPos.ZERO, nodeAddition, stringNode);
-
+    SqlNode secSymbol = SqlLiteral.createSymbol(TimeUnit.SECOND, SqlParserPos.ZERO);
+    SqlNode secondOperand = CAST.createCall(SqlParserPos.ZERO,
+        CAST.createCall(SqlParserPos.ZERO, call.operand(1), dateNode), timestampNode);
+    SqlCall midnightSec = CAST.createCall(
+        SqlParserPos.ZERO, DATE_DIFF.createCall(SqlParserPos.ZERO,
+        call.operand(1), secondOperand, secSymbol), stringNode);
     unparseCall(writer, midnightSec, leftPrec, rightPrec);
-  }
-
-  private SqlNode convertToSec(SqlCall call, String dateFormat, String toSec) {
-    SqlNode intNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER));
-
-    SqlNode timeformatNode = call.getOperator().createCall(SqlParserPos.ZERO,
-        SqlLiteral.createCharString(dateFormat, SqlParserPos.ZERO), call.operand(1));
-
-    SqlNode castedNode = CAST.createCall(SqlParserPos.ZERO, timeformatNode, intNode);
-
-    return toSec.equals("1") ? castedNode : MULTIPLY.createCall(SqlParserPos.ZERO, castedNode,
-        SqlLiteral.createExactNumeric(toSec, SqlParserPos.ZERO));
   }
 
   private void unparseFormatCall(SqlWriter writer,
