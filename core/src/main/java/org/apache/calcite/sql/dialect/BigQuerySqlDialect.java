@@ -833,12 +833,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseCall(writer, parseTimestampCall, leftPrec, rightPrec);
       break;
     case "INSTR":
-      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(frame);
+      unparseInstrFunctionCall(writer, call, leftPrec, rightPrec);
       break;
     case "DATE_MOD":
       unparseDateModule(writer, call, leftPrec, rightPrec);
@@ -908,6 +903,24 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseInstrFunctionCall(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    if (call.getOperandList().size() >= 3) {
+      writer.sep(",");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+    }
+    if (call.getOperandList().size() == 4) {
+      writer.sep(",");
+      call.operand(3).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(frame);
   }
 
   private void unparseFormatCall(SqlWriter writer,

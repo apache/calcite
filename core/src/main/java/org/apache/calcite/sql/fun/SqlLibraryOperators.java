@@ -984,6 +984,8 @@ public abstract class SqlLibraryOperators {
       OperandTypes.ANY_ANY,
       SqlFunctionCategory.TIMEDATE);
 
+  /** Returns the index of search string in source string
+   *  0 is returned when no match is found. */
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction INSTR = new SqlFunction(
           "INSTR",
