@@ -3843,8 +3843,7 @@ class RelToSqlConverterTest {
     String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
         + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
         + "FROM [foodmart].[employee]";
-    sql(query)
-        .withMssql()
+    sql(query).withMssql()
         .ok(expected);
   }
 
@@ -8890,5 +8889,23 @@ class RelToSqlConverterTest {
     sql(query)
             .withBigQuery()
             .ok(expectedBQ);
+  }
+
+  @Test public void testSecFromMidnightFormatTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("SEC_FROM_MIDNIGHT"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('SEC_FROM_MIDNIGHT', \"HIREDATE\") AS"
+        + " \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT CAST(DATE_DIFF(HIREDATE, CAST(CAST(HIREDATE AS DATE) "
+        + "AS TIMESTAMP), SECOND) AS STRING) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
