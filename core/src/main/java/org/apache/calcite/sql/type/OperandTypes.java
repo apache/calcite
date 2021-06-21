@@ -376,7 +376,7 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker POSITIVE_NUMERIC_LITERAL =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),
           i -> false) {
-        public boolean checkSingleOperandType(
+        @Override public boolean checkSingleOperandType(
             SqlCallBinding callBinding,
             SqlNode node,
             int iFormalOperand,
