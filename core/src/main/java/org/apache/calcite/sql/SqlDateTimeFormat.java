@@ -74,7 +74,12 @@ public enum SqlDateTimeFormat {
   MILISECONDS_4("ssss"),
   SEC_FROM_MIDNIGHT("SEC_FROM_MIDNIGHT"),
   E4("E4"),
-  E3("E3");
+  E3("E3"),
+  U("u"),
+  NUMERIC_TIME_ZONE("ZZ"),
+  QUARTER("QUARTER"),
+  WEEK_OF_YEAR("WW"),
+  WEEK_OF_MONTH("W");
 
   public final String value;
 

@@ -7984,19 +7984,31 @@ class RelToSqlConverterTest {
             builder.literal("DDMMYY"), builder.literal("2008-12-25 15:30:00"));
     final RexNode formatDateNode2 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
             builder.literal("YY/MM/DD"), builder.literal("2012-12-25 12:50:10"));
+    final RexNode formatDateNode3 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
+        builder.literal("YY-MM-01"), builder.literal("2012-12-25 12:50:10"));
+    final RexNode formatDateNode4 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
+        builder.literal("YY-MM-DD 00:00:00"), builder.literal("2012-12-25 12:50:10"));
     final RelNode root = builder
             .scan("EMP")
             .project(builder.alias(formatDateNode1, "date1"),
-                    builder.alias(formatDateNode2, "date2"))
+                    builder.alias(formatDateNode2, "date2"),
+                    builder.alias(formatDateNode3, "date3"),
+                    builder.alias(formatDateNode4, "date4"))
             .build();
     final String expectedSql = "SELECT FORMAT_DATETIME('DDMMYY', '2008-12-25 15:30:00') AS "
-            + "\"date1\", FORMAT_DATETIME('YY/MM/DD', '2012-12-25 12:50:10') AS \"date2\"\n"
+            + "\"date1\", FORMAT_DATETIME('YY/MM/DD', '2012-12-25 12:50:10') AS \"date2\", "
+            + "FORMAT_DATETIME('YY-MM-01', '2012-12-25 12:50:10') AS \"date3\", FORMAT_DATETIME"
+            + "('YY-MM-DD 00:00:00', '2012-12-25 12:50:10') AS \"date4\"\n"
             + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT FORMAT_DATETIME('%d%m%y', '2008-12-25 15:30:00') "
-            + "AS date1, FORMAT_DATETIME('%y/%m/%d', '2012-12-25 12:50:10') AS date2\n"
+            + "AS date1, FORMAT_DATETIME('%y/%m/%d', '2012-12-25 12:50:10') AS date2,"
+            + " FORMAT_DATETIME('%y-%m-01', '2012-12-25 12:50:10') AS date3,"
+            + " FORMAT_DATETIME('%y-%m-%d 00:00:00', '2012-12-25 12:50:10') AS date4\n"
             + "FROM scott.EMP";
     final String expectedSpark = "SELECT DATE_FORMAT('2008-12-25 15:30:00', 'ddMMyy') date1, "
-            + "DATE_FORMAT('2012-12-25 12:50:10', 'yy/MM/dd') date2\n"
+            + "DATE_FORMAT('2012-12-25 12:50:10', 'yy/MM/dd') date2,"
+            + " DATE_FORMAT('2012-12-25 12:50:10', 'yy-MM-01') date3,"
+            + " DATE_FORMAT('2012-12-25 12:50:10', 'yy-MM-dd 00:00:00') date4\n"
             + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -8006,20 +8018,88 @@ class RelToSqlConverterTest {
   @Test public void testParseTimestampFunctionFormat() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy-MM-dd HH24:MI:SS"), builder.literal("2009-03-20 12:25:50"));
+        builder.literal("YYYY-MM-dd HH24:MI:SS"), builder.literal("2009-03-20 12:25:50"));
     final RexNode parseTSNode2 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("MI dd-yyyy-MM SS HH24"), builder.literal("25 20-2009-03 50 12"));
+        builder.literal("MI dd-YYYY-MM SS HH24"), builder.literal("25 20-2009-03 50 12"));
+    final RexNode parseTSNode3 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy@MM@dd@hh@mm@ss"), builder.literal("20200903020211"));
+    final RexNode parseTSNode4 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy@MM@dd@HH@mm@ss"), builder.literal("20200903210211"));
+    final RexNode parseTSNode5 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("HH@mm@ss"), builder.literal("215313"));
+    final RexNode parseTSNode6 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("MM@dd@yy"), builder.literal("090415"));
+    final RexNode parseTSNode7 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("MM@dd@yy"), builder.literal("Jun1215"));
+    final RexNode parseTSNode8 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy@MM@dd@HH"), builder.literal("2015061221"));
+    final RexNode parseTSNode9 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy@dd@mm"), builder.literal("20150653"));
+    final RexNode parseTSNode10 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy@mm@dd"), builder.literal("20155308"));
+    final RexNode parseTSNode11 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("YYYY-MM-dd@HH:mm:ss"), builder.literal("2009-03-2021:25:50"));
+    final RexNode parseTSNode12 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("YYYY-MM-dd@hh:mm:ss"), builder.literal("2009-03-2007:25:50"));
+    final RexNode parseTSNode13 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("YYYY-MM-dd@hh:mm:ss z"), builder.literal("2009-03-20 12:25:50.222"));
+    final RexNode parseTSNode14 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("YYYY-MM-dd'T'hh:mm:ss"), builder.literal("2012-05-09T04:12:12"));
+    final RexNode parseTSNode15 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy- MM-dd  HH: -mm:ss"), builder.literal("2015- 09-11  09: -07:23"));
+    final RexNode parseTSNode16 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy- MM-dd@HH: -mm:ss"), builder.literal("2015- 09-1109: -07:23"));
+    final RexNode parseTSNode17 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("yyyy-MM-dd-HH:mm:ss.S(3)@ZZ"), builder.literal("2015-09-11-09:07:23"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(parseTSNode1, "date1"), builder.alias(parseTSNode2, "date2"))
+        .project(builder.alias(parseTSNode1, "date1"), builder.alias(parseTSNode2, "date2"),
+            builder.alias(parseTSNode3, "timestamp1"), builder.alias(parseTSNode4, "timestamp2"),
+            builder.alias(parseTSNode5, "time1"), builder.alias(parseTSNode6, "date1"),
+            builder.alias(parseTSNode7, "date2"), builder.alias(parseTSNode8, "date3"),
+            builder.alias(parseTSNode9, "date5"),
+            builder.alias(parseTSNode10, "date6"), builder.alias(parseTSNode11, "timestamp3"),
+            builder.alias(parseTSNode12, "timestamp4"), builder.alias(parseTSNode13, "timestamp5"),
+            builder.alias(parseTSNode14, "timestamp6"), builder.alias(parseTSNode15, "timestamp7"),
+            builder.alias(parseTSNode16, "timestamp8"), builder.alias(parseTSNode17, "timestamp9"))
         .build();
     final String expectedSql =
-        "SELECT PARSE_TIMESTAMP('yyyy-MM-dd HH24:MI:SS', '2009-03-20 12:25:50') AS \"date1\","
-            + " PARSE_TIMESTAMP('MI dd-yyyy-MM SS HH24', '25 20-2009-03 50 12') AS \"date2\"\n"
+        "SELECT PARSE_TIMESTAMP('YYYY-MM-dd HH24:MI:SS', '2009-03-20 12:25:50') AS \"date1\","
+            + " PARSE_TIMESTAMP('MI dd-YYYY-MM SS HH24', '25 20-2009-03 50 12') AS \"date2\","
+            + " PARSE_TIMESTAMP('yyyy@MM@dd@hh@mm@ss', '20200903020211') AS \"timestamp1\","
+            + " PARSE_TIMESTAMP('yyyy@MM@dd@HH@mm@ss', '20200903210211') AS \"timestamp2\","
+            + " PARSE_TIMESTAMP('HH@mm@ss', '215313') AS \"time1\", "
+            + "PARSE_TIMESTAMP('MM@dd@yy', '090415') AS \"date10\", "
+            + "PARSE_TIMESTAMP('MM@dd@yy', 'Jun1215') AS \"date20\", "
+            + "PARSE_TIMESTAMP('yyyy@MM@dd@HH', '2015061221') AS \"date3\", "
+            + "PARSE_TIMESTAMP('yyyy@dd@mm', '20150653') AS \"date5\", "
+            + "PARSE_TIMESTAMP('yyyy@mm@dd', '20155308') AS \"date6\", "
+            + "PARSE_TIMESTAMP('YYYY-MM-dd@HH:mm:ss', '2009-03-2021:25:50') AS \"timestamp3\", "
+            + "PARSE_TIMESTAMP('YYYY-MM-dd@hh:mm:ss', '2009-03-2007:25:50') AS \"timestamp4\", "
+            + "PARSE_TIMESTAMP('YYYY-MM-dd@hh:mm:ss z', '2009-03-20 12:25:50.222') AS \"timestamp5\", "
+            + "PARSE_TIMESTAMP('YYYY-MM-dd''T''hh:mm:ss', '2012-05-09T04:12:12') AS \"timestamp6\""
+            + ", PARSE_TIMESTAMP('yyyy- MM-dd  HH: -mm:ss', '2015- 09-11  09: -07:23') AS \"timestamp7\""
+            + ", PARSE_TIMESTAMP('yyyy- MM-dd@HH: -mm:ss', '2015- 09-1109: -07:23') AS \"timestamp8\""
+            + ", PARSE_TIMESTAMP('yyyy-MM-dd-HH:mm:ss.S(3)@ZZ', '2015-09-11-09:07:23') AS \"timestamp9\"\n"
             + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery =
-        "SELECT PARSE_TIMESTAMP('%F %H:%M:%S', '2009-03-20 12:25:50') AS date1, "
-            + "PARSE_TIMESTAMP('%M %d-%Y-%m %S %H', '25 20-2009-03 50 12') AS date2\n"
+        "SELECT PARSE_TIMESTAMP('%F %H:%M:%S', '2009-03-20 12:25:50') AS date1,"
+            + " PARSE_TIMESTAMP('%M %d-%Y-%m %S %H', '25 20-2009-03 50 12') AS date2,"
+            + " PARSE_TIMESTAMP('%Y%m%d%I%m%S', '20200903020211') AS timestamp1,"
+            + " PARSE_TIMESTAMP('%Y%m%d%I%m%S', '20200903210211') AS timestamp2,"
+            + " PARSE_TIMESTAMP('%I%m%S', '215313') AS time1,"
+            + " PARSE_TIMESTAMP('%m%d%y', '090415') AS date10,"
+            + " PARSE_TIMESTAMP('%m%d%y', 'Jun1215') AS date20,"
+            + " PARSE_TIMESTAMP('%Y%m%d%I', '2015061221') AS date3,"
+            + " PARSE_TIMESTAMP('%Y%d%m', '20150653') AS date5,"
+            + " PARSE_TIMESTAMP('%Y%m%d', '20155308') AS date6,"
+            + " PARSE_TIMESTAMP('%F%I:%m:%S', '2009-03-2021:25:50') AS timestamp3,"
+            + " PARSE_TIMESTAMP('%F%I:%m:%S', '2009-03-2007:25:50') AS timestamp4, "
+            + "PARSE_TIMESTAMP('%F%I:%m:%S %Z', '2009-03-20 12:25:50.222') AS timestamp5, "
+            + "PARSE_TIMESTAMP('%FT%I:%m:%S', '2012-05-09T04:12:12') AS timestamp6,"
+            + " PARSE_TIMESTAMP('%Y- %m-%d  %I: -%m:%S', '2015- 09-11  09: -07:23') AS timestamp7,"
+            + " PARSE_TIMESTAMP('%Y- %m-%d%I: -%m:%S', '2015- 09-1109: -07:23') AS timestamp8,"
+            + " PARSE_TIMESTAMP('%F-%I:%m:%E3S%Ez', '2015-09-11-09:07:23') AS timestamp9\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
