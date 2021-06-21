@@ -2295,6 +2295,47 @@ where false;
 
 !ok
 
+# [CALCITE-4609] AggregateRemoveRule throws while handling AVG
+# Note that the outer GROUP BY is a no-op, and therefore
+# AggregateRemoveRule kicks in.
+SELECT job, AVG(avg_sal) AS avg_sal2
+FROM (
+    SELECT deptno, job, AVG(sal) AS avg_sal
+    FROM "scott".emp
+    GROUP BY deptno, job) AS EmpAnalytics
+WHERE deptno = 30
+GROUP BY job;
++----------+----------+
+| JOB      | AVG_SAL2 |
++----------+----------+
+| CLERK    |   950.00 |
+| MANAGER  |  2850.00 |
+| SALESMAN |  1400.00 |
++----------+----------+
+(3 rows)
+
+!ok
+
+# Same, using WITH
+WITH EmpAnalytics AS (
+    SELECT deptno, job, AVG(sal) AS avg_sal
+    FROM "scott".emp
+    GROUP BY deptno, job)
+SELECT job, AVG(avg_sal) AS avg_sal2
+FROM EmpAnalytics
+WHERE deptno = 30
+GROUP BY job;
++----------+----------+
+| JOB      | AVG_SAL2 |
++----------+----------+
+| CLERK    |   950.00 |
+| MANAGER  |  2850.00 |
+| SALESMAN |  1400.00 |
++----------+----------+
+(3 rows)
+
+!ok
+
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 +--------+--------+--------+---------+

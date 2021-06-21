@@ -258,6 +258,11 @@ public class SqlWindow extends SqlCall {
     } else {
       return false;
     }
+    return isAlwaysNonEmpty(lower, upper);
+  }
+
+  public static boolean isAlwaysNonEmpty(RexWindowBound lower,
+      RexWindowBound upper) {
     final int lowerKey = lower.getOrderKey();
     final int upperKey = upper.getOrderKey();
     return lowerKey > -1 && lowerKey <= upperKey;

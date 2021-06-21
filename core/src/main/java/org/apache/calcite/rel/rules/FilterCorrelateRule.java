@@ -79,10 +79,9 @@ public class FilterCorrelateRule
     RelOptUtil.classifyFilters(
         corr,
         aboveFilters,
-        corr.getJoinType(),
         false,
         true,
-        !corr.getJoinType().generatesNullsOnRight(),
+        corr.getJoinType().canPushRightFromAbove(),
         aboveFilters,
         leftFilters,
         rightFilters);

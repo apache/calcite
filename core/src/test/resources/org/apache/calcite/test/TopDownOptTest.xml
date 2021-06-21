@@ -16,1085 +16,7 @@
   ~ limitations under the License.
   -->
 <Root>
-  <TestCase name="testSortAgg">
-    <Resource name="sql">
-      <![CDATA[select mgr, count(*) from sales.emp
-group by mgr order by mgr desc nulls last limit 5]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[5])
-  LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
-    LogicalProject(MGR=[$3])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableLimit(fetch=[5])
-  EnumerableSortedAggregate(group=[{3}], EXPR$1=[COUNT()])
-    EnumerableSort(sort0=[$3], dir0=[DESC-nulls-last])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProject">
-    <Resource name="sql">
-      <![CDATA[select mgr from sales.emp order by mgr desc nulls last]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
-  LogicalProject(MGR=[$3])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$0], dir0=[DESC-nulls-last])
-  EnumerableProject(MGR=[$3])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDerive2">
-    <Resource name="sql">
-      <![CDATA[select distinct ename, sal*-2, mgr
-from (select ename, mgr, sal from sales.emp order by ename, mgr, sal limit 100) t]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1, 2}])
-  LogicalProject(ENAME=[$0], EXPR$1=[*($2, -2)], MGR=[$1])
-    LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[100])
-      LogicalProject(ENAME=[$1], MGR=[$3], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSortedAggregate(group=[{0, 1, 2}])
-  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-    EnumerableProject(ENAME=[$0], EXPR$1=[*($2, -2)], MGR=[$1])
-      EnumerableLimit(fetch=[100])
-        EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-          EnumerableProject(ENAME=[$1], MGR=[$3], SAL=[$5])
-            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectOnRexCall">
-    <Resource name="sql">
-      <![CDATA[select ename, sal * -1 as sal, mgr from
-sales.emp order by ename desc, sal desc, mgr desc nulls last]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[DESC-nulls-last])
-  LogicalProject(ENAME=[$1], SAL=[*($5, -1)], MGR=[$3])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[DESC-nulls-last])
-  EnumerableProject(ENAME=[$1], SAL=[*($5, -1)], MGR=[$3])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDeriveOnRexCall">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, sal * -1 as sal, max_job from
-(select ename, sal, max(job) as max_job from sales.emp group by ename, sal) t) r
-join sales.bonus s on r.sal=s.sal and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], SAL=[$1], MAX_JOB=[$2], ENAME0=[$3], JOB=[$4], SAL0=[$5], COMM=[$6])
-  LogicalJoin(condition=[AND(=($1, $5), =($0, $3))], joinType=[inner])
-    LogicalProject(ENAME=[$0], SAL=[*($1, -1)], MAX_JOB=[$2])
-      LogicalAggregate(group=[{0, 1}], MAX_JOB=[MAX($2)])
-        LogicalProject(ENAME=[$1], SAL=[$5], JOB=[$2])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $3))], joinType=[inner])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableProject(ENAME=[$0], SAL=[*($1, -1)], MAX_JOB=[$2])
-      EnumerableSortedAggregate(group=[{1, 5}], MAX_JOB=[MAX($2)])
-        EnumerableSort(sort0=[$1], sort1=[$5], dir0=[ASC], dir1=[ASC])
-          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectWhenCastLeadingToMonotonic">
-    <Resource name="sql">
-      <![CDATA[select deptno from sales.emp order by cast(deptno as float) desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC])
-  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$1], dir0=[DESC])
-  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectWhenCastLeadingToNonMonotonic">
-    <Resource name="sql">
-      <![CDATA[select deptno from sales.emp order by cast(deptno as varchar) desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC])
-  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$1], dir0=[DESC])
-  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDeriveWhenCastLeadingToNonMonotonic">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, cast(job as numeric) as job, max_sal + 1 from
-(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
-  LogicalJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
-    LogicalProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 9) NOT NULL])
-      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
-        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 9) NOT NULL])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
-  EnumerableMergeJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
-    EnumerableSort(sort0=[$3], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 9) NOT NULL])
-        EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
-          EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
-            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 9) NOT NULL])
-        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDeriveWhenCastLeadingToMonotonic">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, cast(job as varchar) as job, max_sal + 1 from
-(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    LogicalProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
-      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
-        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
-      EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
-        EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
-          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
-        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDerive3">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, cast(job as varchar) as job, sal + 1 from
-(select ename, job, sal from sales.emp limit 100) t) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    LogicalProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
-      LogicalSort(fetch=[100])
-        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
-      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-        EnumerableLimit(fetch=[100])
-          EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
-        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDerive4">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, cast(job as bigint) as job, sal + 1 from
-(select ename, job, sal from sales.emp limit 100) t) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    LogicalProject(ENAME=[$0], JOB=[CAST($1):BIGINT NOT NULL], EXPR$2=[+($2, 1)])
-      LogicalSort(fetch=[100])
-        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):BIGINT NOT NULL])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
-    EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[CAST($1):BIGINT NOT NULL], EXPR$2=[+($2, 1)])
-        EnumerableLimit(fetch=[100])
-          EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
-      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):BIGINT NOT NULL])
-        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDerive5">
-    <Resource name="sql">
-      <![CDATA[select ename, empno*-1, job from
-(select * from sales.emp order by ename, empno, job limit 10) order by ename, job]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
-  LogicalProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
-    LogicalSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[10])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
-  EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
-    EnumerableLimit(fetch=[10])
-      EnumerableSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDerive">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, max_sal + 1 from
-(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
-    LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[+($2, 1)])
-      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
-        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
-  EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[+($2, 1)])
-    EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
-      EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectDerive6">
-    <Resource name="sql">
-      <![CDATA[select comm, deptno, slacker from
-(select * from sales.emp order by comm, deptno, slacker limit 10) t
-order by comm, slacker]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
-  LogicalProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[10])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  EnumerableSort(sort0=[$6], sort1=[$8], dir0=[ASC], dir1=[ASC])
-    EnumerableLimit(fetch=[10])
-      EnumerableSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortFilter">
-    <Resource name="sql">
-      <![CDATA[select ename, job, mgr, max_sal from
-(select ename, job, mgr, max(sal) as max_sal from sales.emp group by ename, job, mgr) as t
-where max_sal > 1000
-order by mgr desc, ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$0], dir0=[DESC], dir1=[ASC])
-  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], MAX_SAL=[$3])
-    LogicalFilter(condition=[>($3, 1000)])
-      LogicalAggregate(group=[{0, 1, 2}], MAX_SAL=[MAX($3)])
-        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableFilter(condition=[>($3, 1000)])
-  EnumerableSortedAggregate(group=[{1, 2, 3}], MAX_SAL=[MAX($5)])
-    EnumerableSort(sort0=[$3], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[ASC], dir2=[ASC])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortFilterDerive">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, max_sal from
-(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t where job > 1000) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], MAX_SAL=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
-    LogicalProject(ENAME=[$0], JOB=[$1], MAX_SAL=[$2])
-      LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 1000)])
-        LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
-          LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
-  EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
-    EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
-      EnumerableFilter(condition=[>(CAST($2):INTEGER NOT NULL, 1000)])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortAggPartialKey">
-    <Resource name="sql">
-      <![CDATA[select mgr,deptno,comm,count(*) from sales.emp
-group by mgr,deptno,comm
-order by comm desc nulls last, deptno nulls first]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-  LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[COUNT()])
-    LogicalProject(MGR=[$3], DEPTNO=[$7], COMM=[$6])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(MGR=[$0], DEPTNO=[$2], COMM=[$1], EXPR$3=[$3])
-  EnumerableSortedAggregate(group=[{3, 6, 7}], EXPR$3=[COUNT()])
-    EnumerableSort(sort0=[$6], sort1=[$7], sort2=[$3], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first], dir2=[ASC])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortMergeJoin">
-    <Resource name="sql">
-      <![CDATA[select * from
-sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
-order by r.job desc nulls last, r.ename nulls first]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-    <TestCase name="testSortMergeJoinSubsetKey">
-        <Resource name="sql">
-            <![CDATA[select * from
-        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
-        order by r.job desc nulls last]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testSortMergeJoinSubsetKey2">
-        <Resource name="sql">
-            <![CDATA[select * from
-        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job and r.sal = s.sal
-        order by r.sal, r.ename desc nulls last]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalSort(sort0=[$5], sort1=[$1], dir0=[ASC], dir1=[DESC-nulls-last])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
-  EnumerableSort(sort0=[$5], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$2], sort1=[$0], sort2=[$1], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testSortMergeJoinSupersetKey">
-        <Resource name="sql">
-            <![CDATA[select * from
-        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
-        order by r.job desc nulls last, r.ename, r.sal desc]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$1], sort2=[$5], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-  EnumerableSort(sort0=[$2], sort1=[$1], sort2=[$5], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-    </TestCase>
-  <TestCase name="testSortMergeJoinRight">
-    <Resource name="sql">
-      <![CDATA[select * from
-sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
-order by s.job desc nulls last, s.ename nulls first]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$10], sort1=[$9], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-    <TestCase name="testSortMergeJoinRightSubsetKey">
-        <Resource name="sql">
-            <![CDATA[select * from
-        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
-        order by s.job desc nulls last]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalSort(sort0=[$10], dir0=[DESC-nulls-last])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testSortMergeJoinRightSubsetKey2">
-        <Resource name="sql">
-            <![CDATA[select * from
-        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job and r.sal = s.sal
-        order by s.sal, s.ename desc nulls last]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalSort(sort0=[$11], sort1=[$9], dir0=[ASC], dir1=[DESC-nulls-last])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
-  EnumerableSort(sort0=[$5], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$2], sort1=[$0], sort2=[$1], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testSortMergeJoinRightSupersetKey">
-        <Resource name="sql">
-            <![CDATA[select * from
-        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
-        order by s.job desc nulls last, s.ename, s.sal desc]]>
-        </Resource>
-        <Resource name="planBefore">
-            <![CDATA[
-LogicalSort(sort0=[$10], sort1=[$9], sort2=[$11], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-            <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
-  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-        </Resource>
-    </TestCase>
-  <TestCase name="testMergeJoinDeriveLeft1">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, max(sal) from sales.emp group by ename, job) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
-      LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
-  EnumerableSortedAggregate(group=[{1, 2}], EXPR$2=[MAX($5)])
-    EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testMergeJoinDeriveLeft2">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r
-join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], EXPR$3=[$3], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
-  LogicalJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
-    LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[MAX($3)])
-      LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
-  EnumerableSortedAggregate(group=[{1, 2, 3}], EXPR$3=[MAX($5)])
-    EnumerableSort(sort0=[$2], sort1=[$1], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testMergeJoinDeriveRight1">
-    <Resource name="sql">
-      <![CDATA[select * from sales.bonus s join
-(select ename, job, max(sal) from sales.emp group by ename, job) r
-on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], ENAME0=[$4], JOB0=[$5], EXPR$2=[$6])
-  LogicalJoin(condition=[AND(=($5, $1), =($4, $0))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
-      LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-  EnumerableSortedAggregate(group=[{1, 2}], EXPR$2=[MAX($5)])
-    EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testMergeJoinDeriveRight2">
-    <Resource name="sql">
-      <![CDATA[select * from sales.bonus s join
-(select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r
-on r.job=s.job and r.ename=s.ename]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], ENAME0=[$4], JOB0=[$5], MGR=[$6], EXPR$3=[$7])
-  LogicalJoin(condition=[AND(=($5, $1), =($4, $0))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-    LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[MAX($3)])
-      LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
-  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-  EnumerableSortedAggregate(group=[{1, 2, 3}], EXPR$3=[MAX($5)])
-    EnumerableSort(sort0=[$2], sort1=[$1], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinFullOuterJoinNotPushDownSort">
-    <Resource name="sql">
-      <![CDATA[select * from
-sales.emp r full outer join sales.bonus s on r.ename=s.ename and r.job=s.job
-order by r.job desc nulls last, r.ename nulls first]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
-    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[full])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
-  EnumerableHashJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[full])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinLeftOuterJoinPushDownSort">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select contactno, email from customer.contact_peek) r left outer join
-(select acctno, type from customer.account) s
-on r.contactno=s.acctno and r.email=s.type
-order by r.contactno desc, r.email desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
-  LogicalProject(CONTACTNO=[$0], EMAIL=[$1], ACCTNO=[$2], TYPE=[$3])
-    LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
-      LogicalProject(CONTACTNO=[$0], EMAIL=[$3])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-      LogicalProject(ACCTNO=[$0], TYPE=[$1])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
-  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
-    EnumerableProject(CONTACTNO=[$0], EMAIL=[$3])
-      EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-  EnumerableProject(ACCTNO=[$0], TYPE=[$1])
-    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinLeftOuterJoinPushDownSort2">
-    <Resource name="sql">
-      <![CDATA[select * from
-customer.contact_peek r left outer join
-customer.account s
-on r.contactno=s.acctno and r.email=s.type
-order by r.fname desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  LogicalSort(sort0=[$1], dir0=[DESC])
-    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[$7], COORD_NE8=[$8], COORD_NE9=[$9], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-      LogicalJoin(condition=[AND(=($0, $10), =($3, $11))], joinType=[left])
-        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  EnumerableHashJoin(condition=[AND(=($0, $10), =($3, $11))], joinType=[left])
-    EnumerableSort(sort0=[$1], dir0=[DESC])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinInnerJoinPushDownSort">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select contactno, email from customer.contact_peek) r inner join
-(select acctno, type from customer.account) s
-on r.contactno=s.acctno and r.email=s.type
-order by r.contactno desc, r.email desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
-  LogicalProject(CONTACTNO=[$0], EMAIL=[$1], ACCTNO=[$2], TYPE=[$3])
-    LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
-      LogicalProject(CONTACTNO=[$0], EMAIL=[$3])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-      LogicalProject(ACCTNO=[$0], TYPE=[$1])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
-  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
-    EnumerableProject(CONTACTNO=[$0], EMAIL=[$3])
-      EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-  EnumerableProject(ACCTNO=[$0], TYPE=[$1])
-    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinRightOuterJoinPushDownSort">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select contactno, email from customer.contact_peek) r right outer join
-(select acctno, type from customer.account) s
-on r.contactno=s.acctno and r.email=s.type
-order by s.acctno desc, s.type desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
-  LogicalProject(CONTACTNO=[$0], EMAIL=[$1], ACCTNO=[$2], TYPE=[$3])
-    LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[right])
-      LogicalProject(CONTACTNO=[$0], EMAIL=[$3])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-      LogicalProject(ACCTNO=[$0], TYPE=[$1])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
-  EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[right])
-    EnumerableProject(CONTACTNO=[$0], EMAIL=[$3])
-      EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-    EnumerableProject(ACCTNO=[$0], TYPE=[$1])
-      EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinTraitDerivation">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r
-join sales.bonus s on r.ename=s.ename and r.job=s.job
-order by r.ename desc, r.job desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
-  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-    LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
-      LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC], fetch=[10])
-        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableHashJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
-  EnumerableLimit(fetch=[10])
-    EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])
-      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinTraitDerivation2">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, mgr from sales.emp order by mgr desc limit 10) r
-join sales.bonus s on r.ename=s.ename and r.job=s.job
-order by r.mgr desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], dir0=[DESC])
-  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-    LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
-      LogicalSort(sort0=[$2], dir0=[DESC], fetch=[10])
-        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableHashJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
-  EnumerableLimit(fetch=[10])
-    EnumerableSort(sort0=[$2], dir0=[DESC])
-      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testHashJoinTraitDerivationNegativeCase">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, mgr from sales.emp order by mgr desc limit 10) r
-join sales.bonus s on r.ename=s.ename and r.job=s.job
-order by r.mgr]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], dir0=[ASC])
-  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-    LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
-      LogicalSort(sort0=[$2], dir0=[DESC], fetch=[10])
-        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$2], dir0=[ASC])
-  EnumerableHashJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
-    EnumerableLimit(fetch=[10])
-      EnumerableSort(sort0=[$2], dir0=[DESC])
-        EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testNestedLoopJoinTraitDerivation">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r
-join sales.bonus s on r.ename>s.ename and r.job<s.job
-order by r.ename desc, r.job desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
-  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-    LogicalJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
-      LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC], fetch=[10])
-        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
-  EnumerableLimit(fetch=[10])
-    EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])
-      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testNestedLoopJoinTraitDerivation2">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, mgr from sales.emp order by mgr limit 10) r
-join sales.bonus s on r.ename>s.ename and r.job<s.job
-order by r.mgr]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], dir0=[ASC])
-  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-    LogicalJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
-      LogicalSort(sort0=[$2], dir0=[ASC], fetch=[10])
-        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
-  EnumerableLimit(fetch=[10])
-    EnumerableSort(sort0=[$2], dir0=[ASC])
-      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testNestedLoopJoinTraitDerivationNegativeCase">
-    <Resource name="sql">
-      <![CDATA[select * from
-(select ename, job, mgr from sales.emp order by mgr limit 10) r
-join sales.bonus s on r.ename>s.ename and r.job<s.job
-order by r.mgr desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], dir0=[DESC])
-  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
-    LogicalJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
-      LogicalSort(sort0=[$2], dir0=[ASC], fetch=[10])
-        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$2], dir0=[DESC])
-  EnumerableNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
-    EnumerableLimit(fetch=[10])
-      EnumerableSort(sort0=[$2], dir0=[ASC])
-        EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
-          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testNestedLoopJoinLeftOuterJoinPushDownSort">
+  <TestCase name="testBatchNestedLoopJoinLeftOuterJoinPushDownSort">
     <Resource name="sql">
       <![CDATA[select * from
  customer.contact_peek r left outer join
@@ -1116,100 +38,42 @@ LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5
     <Resource name="planAfter">
       <![CDATA[
 EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
+  EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left], batchSize=[100])
     EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
       EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
         EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testNestedLoopJoinLeftOuterJoinPushDownSort2">
-    <Resource name="sql">
-      <![CDATA[select * from
- customer.contact_peek r left outer join
-customer.account s
-on r.contactno>s.acctno and r.email<s.type
-order by r.fname desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  LogicalSort(sort0=[$1], dir0=[DESC])
-    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[$7], COORD_NE8=[$8], COORD_NE9=[$9], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-      LogicalJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
-        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
-    EnumerableSort(sort0=[$1], dir0=[DESC])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testNestedLoopJoinLeftOuterJoinSortKeyOnRightInput">
-    <Resource name="sql">
-      <![CDATA[select * from
- customer.contact_peek r left outer join
-customer.account s
-on r.contactno>s.acctno and r.email<s.type
-order by s.acctno desc, s.type desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  LogicalSort(sort0=[$10], sort1=[$11], dir0=[DESC], dir1=[DESC])
-    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[$7], COORD_NE8=[$8], COORD_NE9=[$9], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-      LogicalJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
-        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  EnumerableSort(sort0=[$10], sort1=[$11], dir0=[DESC], dir1=[DESC])
-    EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+    EnumerableFilter(condition=[OR(AND(>($cor0.CONTACTNO, $0), <($cor0.EMAIL, $1)), AND(>($cor1.CONTACTNO, $0), <($cor1.EMAIL, $1)), AND(>($cor2.CONTACTNO, $0), <($cor2.EMAIL, $1)), AND(>($cor3.CONTACTNO, $0), <($cor3.EMAIL, $1)), AND(>($cor4.CONTACTNO, $0), <($cor4.EMAIL, $1)), AND(>($cor5.CONTACTNO, $0), <($cor5.EMAIL, $1)), AND(>($cor6.CONTACTNO, $0), <($cor6.EMAIL, $1)), AND(>($cor7.CONTACTNO, $0), <($cor7.EMAIL, $1)), AND(>($cor8.CONTACTNO, $0), <($cor8.EMAIL, $1)), AND(>($cor9.CONTACTNO, $0), <($cor9.EMAIL, $1)), AND(>($cor10.CONTACTNO, $0), <($cor10.EMAIL, $1)), AND(>($cor11.CONTACTNO, $0), <($cor11.EMAIL, $1)), AND(>($cor12.CONTACTNO, $0), <($cor12.EMAIL, $1)), AND(>($cor13.CONTACTNO, $0), <($cor13.EMAIL, $1)), AND(>($cor14.CONTACTNO, $0), <($cor14.EMAIL, $1)), AND(>($cor15.CONTACTNO, $0), <($cor15.EMAIL, $1)), AND(>($cor16.CONTACTNO, $0), <($cor16.EMAIL, $1)), AND(>($cor17.CONTACTNO, $0), <($cor17.EMAIL, $1)), AND(>($cor18.CONTACTNO, $0), <($cor18.EMAIL, $1)), AND(>($cor19.CONTACTNO, $0), <($cor19.EMAIL, $1)), AND(>($cor20.CONTACTNO, $0), <($cor20.EMAIL, $1)), AND(>($cor21.CONTACTNO, $0), <($cor21.EMAIL, $1)), AND(>($cor22.CONTACTNO, $0), <($cor22.EMAIL, $1)), AND(>($cor23.CONTACTNO, $0), <($cor23.EMAIL, $1)), AND(>($cor24.CONTACTNO, $0), <($cor24.EMAIL, $1)), AND(>($cor25.CONTACTNO, $0), <($cor25.EMAIL, $1)), AND(>($cor26.CONTACTNO, $0), <($cor26.EMAIL, $1)), AND(>($cor27.CONTACTNO, $0), <($cor27.EMAIL, $1)), AND(>($cor28.CONTACTNO, $0), <($cor28.EMAIL, $1)), AND(>($cor29.CONTACTNO, $0), <($cor29.EMAIL, $1)), AND(>($cor30.CONTACTNO, $0), <($cor30.EMAIL, $1)), AND(>($cor31.CONTACTNO, $0), <($cor31.EMAIL, $1)), AND(>($cor32.CONTACTNO, $0), <($cor32.EMAIL, $1)), AND(>($cor33.CONTACTNO, $0), <($cor33.EMAIL, $1)), AND(>($cor34.CONTACTNO, $0), <($cor34.EMAIL, $1)), AND(>($cor35.CONTACTNO, $0), <($cor35.EMAIL, $1)), AND(>($cor36.CONTACTNO, $0), <($cor36.EMAIL, $1)), AND(>($cor37.CONTACTNO, $0), <($cor37.EMAIL, $1)), AND(>($cor38.CONTACTNO, $0), <($cor38.EMAIL, $1)), AND(>($cor39.CONTACTNO, $0), <($cor39.EMAIL, $1)), AND(>($cor40.CONTACTNO, $0), <($cor40.EMAIL, $1)), AND(>($cor41.CONTACTNO, $0), <($cor41.EMAIL, $1)), AND(>($cor42.CONTACTNO, $0), <($cor42.EMAIL, $1)), AND(>($cor43.CONTACTNO, $0), <($cor43.EMAIL, $1)), AND(>($cor44.CONTACTNO, $0), <($cor44.EMAIL, $1)), AND(>($cor45.CONTACTNO, $0), <($cor45.EMAIL, $1)), AND(>($cor46.CONTACTNO, $0), <($cor46.EMAIL, $1)), AND(>($cor47.CONTACTNO, $0), <($cor47.EMAIL, $1)), AND(>($cor48.CONTACTNO, $0), <($cor48.EMAIL, $1)), AND(>($cor49.CONTACTNO, $0), <($cor49.EMAIL, $1)), AND(>($cor50.CONTACTNO, $0), <($cor50.EMAIL, $1)), AND(>($cor51.CONTACTNO, $0), <($cor51.EMAIL, $1)), AND(>($cor52.CONTACTNO, $0), <($cor52.EMAIL, $1)), AND(>($cor53.CONTACTNO, $0), <($cor53.EMAIL, $1)), AND(>($cor54.CONTACTNO, $0), <($cor54.EMAIL, $1)), AND(>($cor55.CONTACTNO, $0), <($cor55.EMAIL, $1)), AND(>($cor56.CONTACTNO, $0), <($cor56.EMAIL, $1)), AND(>($cor57.CONTACTNO, $0), <($cor57.EMAIL, $1)), AND(>($cor58.CONTACTNO, $0), <($cor58.EMAIL, $1)), AND(>($cor59.CONTACTNO, $0), <($cor59.EMAIL, $1)), AND(>($cor60.CONTACTNO, $0), <($cor60.EMAIL, $1)), AND(>($cor61.CONTACTNO, $0), <($cor61.EMAIL, $1)), AND(>($cor62.CONTACTNO, $0), <($cor62.EMAIL, $1)), AND(>($cor63.CONTACTNO, $0), <($cor63.EMAIL, $1)), AND(>($cor64.CONTACTNO, $0), <($cor64.EMAIL, $1)), AND(>($cor65.CONTACTNO, $0), <($cor65.EMAIL, $1)), AND(>($cor66.CONTACTNO, $0), <($cor66.EMAIL, $1)), AND(>($cor67.CONTACTNO, $0), <($cor67.EMAIL, $1)), AND(>($cor68.CONTACTNO, $0), <($cor68.EMAIL, $1)), AND(>($cor69.CONTACTNO, $0), <($cor69.EMAIL, $1)), AND(>($cor70.CONTACTNO, $0), <($cor70.EMAIL, $1)), AND(>($cor71.CONTACTNO, $0), <($cor71.EMAIL, $1)), AND(>($cor72.CONTACTNO, $0), <($cor72.EMAIL, $1)), AND(>($cor73.CONTACTNO, $0), <($cor73.EMAIL, $1)), AND(>($cor74.CONTACTNO, $0), <($cor74.EMAIL, $1)), AND(>($cor75.CONTACTNO, $0), <($cor75.EMAIL, $1)), AND(>($cor76.CONTACTNO, $0), <($cor76.EMAIL, $1)), AND(>($cor77.CONTACTNO, $0), <($cor77.EMAIL, $1)), AND(>($cor78.CONTACTNO, $0), <($cor78.EMAIL, $1)), AND(>($cor79.CONTACTNO, $0), <($cor79.EMAIL, $1)), AND(>($cor80.CONTACTNO, $0), <($cor80.EMAIL, $1)), AND(>($cor81.CONTACTNO, $0), <($cor81.EMAIL, $1)), AND(>($cor82.CONTACTNO, $0), <($cor82.EMAIL, $1)), AND(>($cor83.CONTACTNO, $0), <($cor83.EMAIL, $1)), AND(>($cor84.CONTACTNO, $0), <($cor84.EMAIL, $1)), AND(>($cor85.CONTACTNO, $0), <($cor85.EMAIL, $1)), AND(>($cor86.CONTACTNO, $0), <($cor86.EMAIL, $1)), AND(>($cor87.CONTACTNO, $0), <($cor87.EMAIL, $1)), AND(>($cor88.CONTACTNO, $0), <($cor88.EMAIL, $1)), AND(>($cor89.CONTACTNO, $0), <($cor89.EMAIL, $1)), AND(>($cor90.CONTACTNO, $0), <($cor90.EMAIL, $1)), AND(>($cor91.CONTACTNO, $0), <($cor91.EMAIL, $1)), AND(>($cor92.CONTACTNO, $0), <($cor92.EMAIL, $1)), AND(>($cor93.CONTACTNO, $0), <($cor93.EMAIL, $1)), AND(>($cor94.CONTACTNO, $0), <($cor94.EMAIL, $1)), AND(>($cor95.CONTACTNO, $0), <($cor95.EMAIL, $1)), AND(>($cor96.CONTACTNO, $0), <($cor96.EMAIL, $1)), AND(>($cor97.CONTACTNO, $0), <($cor97.EMAIL, $1)), AND(>($cor98.CONTACTNO, $0), <($cor98.EMAIL, $1)), AND(>($cor99.CONTACTNO, $0), <($cor99.EMAIL, $1)))])
       EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testNestedLoopJoinRightOuterJoinSortPushDown">
+  <TestCase name="testBatchNestedLoopJoinTraitDerivation">
     <Resource name="sql">
-      <![CDATA[select r.contactno, r.email, s.acctno, s.type from
- customer.contact_peek r right outer join
-customer.account s
-on r.contactno>s.acctno and r.email<s.type
-order by s.acctno desc, s.type desc]]>
+      <![CDATA[select * from
+(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r
+join sales.bonus s on r.ename>s.ename and r.job<s.job
+order by r.ename desc, r.job desc]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
-  LogicalProject(CONTACTNO=[$0], EMAIL=[$3], ACCTNO=[$10], TYPE=[$11])
-    LogicalJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[right])
-      LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-      LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+    LogicalJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
+      LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC], fetch=[10])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
-  EnumerableProject(CONTACTNO=[$0], EMAIL=[$3], ACCTNO=[$10], TYPE=[$11])
-    EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[right])
-      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
-        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-      EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner], batchSize=[100])
+  EnumerableLimit(fetch=[10])
+    EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])
+      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableFilter(condition=[OR(AND(>($cor0.ENAME, $0), <($cor0.JOB, $1)), AND(>($cor1.ENAME, $0), <($cor1.JOB, $1)), AND(>($cor2.ENAME, $0), <($cor2.JOB, $1)), AND(>($cor3.ENAME, $0), <($cor3.JOB, $1)), AND(>($cor4.ENAME, $0), <($cor4.JOB, $1)), AND(>($cor5.ENAME, $0), <($cor5.JOB, $1)), AND(>($cor6.ENAME, $0), <($cor6.JOB, $1)), AND(>($cor7.ENAME, $0), <($cor7.JOB, $1)), AND(>($cor8.ENAME, $0), <($cor8.JOB, $1)), AND(>($cor9.ENAME, $0), <($cor9.JOB, $1)), AND(>($cor10.ENAME, $0), <($cor10.JOB, $1)), AND(>($cor11.ENAME, $0), <($cor11.JOB, $1)), AND(>($cor12.ENAME, $0), <($cor12.JOB, $1)), AND(>($cor13.ENAME, $0), <($cor13.JOB, $1)), AND(>($cor14.ENAME, $0), <($cor14.JOB, $1)), AND(>($cor15.ENAME, $0), <($cor15.JOB, $1)), AND(>($cor16.ENAME, $0), <($cor16.JOB, $1)), AND(>($cor17.ENAME, $0), <($cor17.JOB, $1)), AND(>($cor18.ENAME, $0), <($cor18.JOB, $1)), AND(>($cor19.ENAME, $0), <($cor19.JOB, $1)), AND(>($cor20.ENAME, $0), <($cor20.JOB, $1)), AND(>($cor21.ENAME, $0), <($cor21.JOB, $1)), AND(>($cor22.ENAME, $0), <($cor22.JOB, $1)), AND(>($cor23.ENAME, $0), <($cor23.JOB, $1)), AND(>($cor24.ENAME, $0), <($cor24.JOB, $1)), AND(>($cor25.ENAME, $0), <($cor25.JOB, $1)), AND(>($cor26.ENAME, $0), <($cor26.JOB, $1)), AND(>($cor27.ENAME, $0), <($cor27.JOB, $1)), AND(>($cor28.ENAME, $0), <($cor28.JOB, $1)), AND(>($cor29.ENAME, $0), <($cor29.JOB, $1)), AND(>($cor30.ENAME, $0), <($cor30.JOB, $1)), AND(>($cor31.ENAME, $0), <($cor31.JOB, $1)), AND(>($cor32.ENAME, $0), <($cor32.JOB, $1)), AND(>($cor33.ENAME, $0), <($cor33.JOB, $1)), AND(>($cor34.ENAME, $0), <($cor34.JOB, $1)), AND(>($cor35.ENAME, $0), <($cor35.JOB, $1)), AND(>($cor36.ENAME, $0), <($cor36.JOB, $1)), AND(>($cor37.ENAME, $0), <($cor37.JOB, $1)), AND(>($cor38.ENAME, $0), <($cor38.JOB, $1)), AND(>($cor39.ENAME, $0), <($cor39.JOB, $1)), AND(>($cor40.ENAME, $0), <($cor40.JOB, $1)), AND(>($cor41.ENAME, $0), <($cor41.JOB, $1)), AND(>($cor42.ENAME, $0), <($cor42.JOB, $1)), AND(>($cor43.ENAME, $0), <($cor43.JOB, $1)), AND(>($cor44.ENAME, $0), <($cor44.JOB, $1)), AND(>($cor45.ENAME, $0), <($cor45.JOB, $1)), AND(>($cor46.ENAME, $0), <($cor46.JOB, $1)), AND(>($cor47.ENAME, $0), <($cor47.JOB, $1)), AND(>($cor48.ENAME, $0), <($cor48.JOB, $1)), AND(>($cor49.ENAME, $0), <($cor49.JOB, $1)), AND(>($cor50.ENAME, $0), <($cor50.JOB, $1)), AND(>($cor51.ENAME, $0), <($cor51.JOB, $1)), AND(>($cor52.ENAME, $0), <($cor52.JOB, $1)), AND(>($cor53.ENAME, $0), <($cor53.JOB, $1)), AND(>($cor54.ENAME, $0), <($cor54.JOB, $1)), AND(>($cor55.ENAME, $0), <($cor55.JOB, $1)), AND(>($cor56.ENAME, $0), <($cor56.JOB, $1)), AND(>($cor57.ENAME, $0), <($cor57.JOB, $1)), AND(>($cor58.ENAME, $0), <($cor58.JOB, $1)), AND(>($cor59.ENAME, $0), <($cor59.JOB, $1)), AND(>($cor60.ENAME, $0), <($cor60.JOB, $1)), AND(>($cor61.ENAME, $0), <($cor61.JOB, $1)), AND(>($cor62.ENAME, $0), <($cor62.JOB, $1)), AND(>($cor63.ENAME, $0), <($cor63.JOB, $1)), AND(>($cor64.ENAME, $0), <($cor64.JOB, $1)), AND(>($cor65.ENAME, $0), <($cor65.JOB, $1)), AND(>($cor66.ENAME, $0), <($cor66.JOB, $1)), AND(>($cor67.ENAME, $0), <($cor67.JOB, $1)), AND(>($cor68.ENAME, $0), <($cor68.JOB, $1)), AND(>($cor69.ENAME, $0), <($cor69.JOB, $1)), AND(>($cor70.ENAME, $0), <($cor70.JOB, $1)), AND(>($cor71.ENAME, $0), <($cor71.JOB, $1)), AND(>($cor72.ENAME, $0), <($cor72.JOB, $1)), AND(>($cor73.ENAME, $0), <($cor73.JOB, $1)), AND(>($cor74.ENAME, $0), <($cor74.JOB, $1)), AND(>($cor75.ENAME, $0), <($cor75.JOB, $1)), AND(>($cor76.ENAME, $0), <($cor76.JOB, $1)), AND(>($cor77.ENAME, $0), <($cor77.JOB, $1)), AND(>($cor78.ENAME, $0), <($cor78.JOB, $1)), AND(>($cor79.ENAME, $0), <($cor79.JOB, $1)), AND(>($cor80.ENAME, $0), <($cor80.JOB, $1)), AND(>($cor81.ENAME, $0), <($cor81.JOB, $1)), AND(>($cor82.ENAME, $0), <($cor82.JOB, $1)), AND(>($cor83.ENAME, $0), <($cor83.JOB, $1)), AND(>($cor84.ENAME, $0), <($cor84.JOB, $1)), AND(>($cor85.ENAME, $0), <($cor85.JOB, $1)), AND(>($cor86.ENAME, $0), <($cor86.JOB, $1)), AND(>($cor87.ENAME, $0), <($cor87.JOB, $1)), AND(>($cor88.ENAME, $0), <($cor88.JOB, $1)), AND(>($cor89.ENAME, $0), <($cor89.JOB, $1)), AND(>($cor90.ENAME, $0), <($cor90.JOB, $1)), AND(>($cor91.ENAME, $0), <($cor91.JOB, $1)), AND(>($cor92.ENAME, $0), <($cor92.JOB, $1)), AND(>($cor93.ENAME, $0), <($cor93.JOB, $1)), AND(>($cor94.ENAME, $0), <($cor94.JOB, $1)), AND(>($cor95.ENAME, $0), <($cor95.JOB, $1)), AND(>($cor96.ENAME, $0), <($cor96.JOB, $1)), AND(>($cor97.ENAME, $0), <($cor97.JOB, $1)), AND(>($cor98.ENAME, $0), <($cor98.JOB, $1)), AND(>($cor99.ENAME, $0), <($cor99.JOB, $1)))])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
   </TestCase>
@@ -1342,7 +206,347 @@ EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testBatchNestedLoopJoinLeftOuterJoinPushDownSort">
+  <TestCase name="testHashJoinFullOuterJoinNotPushDownSort">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r full outer join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by r.job desc nulls last, r.ename nulls first]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[full])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+  EnumerableHashJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[full])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashJoinInnerJoinPushDownSort">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select contactno, email from customer.contact_peek) r inner join
+(select acctno, type from customer.account) s
+on r.contactno=s.acctno and r.email=s.type
+order by r.contactno desc, r.email desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
+  LogicalProject(CONTACTNO=[$0], EMAIL=[$1], ACCTNO=[$2], TYPE=[$3])
+    LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
+      LogicalProject(CONTACTNO=[$0], EMAIL=[$3])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+      LogicalProject(ACCTNO=[$0], TYPE=[$1])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
+  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
+    EnumerableProject(CONTACTNO=[$0], EMAIL=[$3])
+      EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+  EnumerableProject(ACCTNO=[$0], TYPE=[$1])
+    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashJoinLeftOuterJoinPushDownSort">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select contactno, email from customer.contact_peek) r left outer join
+(select acctno, type from customer.account) s
+on r.contactno=s.acctno and r.email=s.type
+order by r.contactno desc, r.email desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
+  LogicalProject(CONTACTNO=[$0], EMAIL=[$1], ACCTNO=[$2], TYPE=[$3])
+    LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+      LogicalProject(CONTACTNO=[$0], EMAIL=[$3])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+      LogicalProject(ACCTNO=[$0], TYPE=[$1])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
+    EnumerableProject(CONTACTNO=[$0], EMAIL=[$3])
+      EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+  EnumerableProject(ACCTNO=[$0], TYPE=[$1])
+    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashJoinLeftOuterJoinPushDownSort2">
+    <Resource name="sql">
+      <![CDATA[select * from
+customer.contact_peek r left outer join
+customer.account s
+on r.contactno=s.acctno and r.email=s.type
+order by r.fname desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  LogicalSort(sort0=[$1], dir0=[DESC])
+    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[$7], COORD_NE8=[$8], COORD_NE9=[$9], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+      LogicalJoin(condition=[AND(=($0, $10), =($3, $11))], joinType=[left])
+        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  EnumerableHashJoin(condition=[AND(=($0, $10), =($3, $11))], joinType=[left])
+    EnumerableSort(sort0=[$1], dir0=[DESC])
+      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashJoinRightOuterJoinPushDownSort">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select contactno, email from customer.contact_peek) r right outer join
+(select acctno, type from customer.account) s
+on r.contactno=s.acctno and r.email=s.type
+order by s.acctno desc, s.type desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
+  LogicalProject(CONTACTNO=[$0], EMAIL=[$1], ACCTNO=[$2], TYPE=[$3])
+    LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[right])
+      LogicalProject(CONTACTNO=[$0], EMAIL=[$3])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+      LogicalProject(ACCTNO=[$0], TYPE=[$1])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
+  EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[right])
+    EnumerableProject(CONTACTNO=[$0], EMAIL=[$3])
+      EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+    EnumerableProject(ACCTNO=[$0], TYPE=[$1])
+      EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashJoinTraitDerivation">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r
+join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by r.ename desc, r.job desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+    LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
+      LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC], fetch=[10])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableHashJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
+  EnumerableLimit(fetch=[10])
+    EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])
+      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashJoinTraitDerivation2">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, mgr from sales.emp order by mgr desc limit 10) r
+join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by r.mgr desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], dir0=[DESC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+    LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
+      LogicalSort(sort0=[$2], dir0=[DESC], fetch=[10])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableHashJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
+  EnumerableLimit(fetch=[10])
+    EnumerableSort(sort0=[$2], dir0=[DESC])
+      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashJoinTraitDerivationNegativeCase">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, mgr from sales.emp order by mgr desc limit 10) r
+join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by r.mgr]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], dir0=[ASC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+    LogicalJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
+      LogicalSort(sort0=[$2], dir0=[DESC], fetch=[10])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$2], dir0=[ASC])
+  EnumerableHashJoin(condition=[AND(=($0, $3), =($1, $4))], joinType=[inner])
+    EnumerableLimit(fetch=[10])
+      EnumerableSort(sort0=[$2], dir0=[DESC])
+        EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeJoinDeriveLeft1">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, max(sal) from sales.emp group by ename, job) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+      LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+  EnumerableSortedAggregate(group=[{1, 2}], EXPR$2=[MAX($5)])
+    EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeJoinDeriveLeft2">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], EXPR$3=[$3], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
+  LogicalJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
+    LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[MAX($3)])
+      LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
+  EnumerableSortedAggregate(group=[{1, 2, 3}], EXPR$3=[MAX($5)])
+    EnumerableSort(sort0=[$2], sort1=[$1], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeJoinDeriveRight1">
+    <Resource name="sql">
+      <![CDATA[select * from sales.bonus s join
+(select ename, job, max(sal) from sales.emp group by ename, job) r
+on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], ENAME0=[$4], JOB0=[$5], EXPR$2=[$6])
+  LogicalJoin(condition=[AND(=($5, $1), =($4, $0))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+      LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+  EnumerableSortedAggregate(group=[{1, 2}], EXPR$2=[MAX($5)])
+    EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeJoinDeriveRight2">
+    <Resource name="sql">
+      <![CDATA[select * from sales.bonus s join
+(select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r
+on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], ENAME0=[$4], JOB0=[$5], MGR=[$6], EXPR$3=[$7])
+  LogicalJoin(condition=[AND(=($5, $1), =($4, $0))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[MAX($3)])
+      LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+  EnumerableSortedAggregate(group=[{1, 2, 3}], EXPR$3=[MAX($5)])
+    EnumerableSort(sort0=[$2], sort1=[$1], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedLoopJoinLeftOuterJoinPushDownSort">
     <Resource name="sql">
       <![CDATA[select * from
  customer.contact_peek r left outer join
@@ -1364,16 +568,104 @@ LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5
     <Resource name="planAfter">
       <![CDATA[
 EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left], batchSize=[100])
+  EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
     EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
       EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
         EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
-    EnumerableFilter(condition=[OR(AND(>($cor0.CONTACTNO, $0), <($cor0.EMAIL, $1)), AND(>($cor1.CONTACTNO, $0), <($cor1.EMAIL, $1)), AND(>($cor2.CONTACTNO, $0), <($cor2.EMAIL, $1)), AND(>($cor3.CONTACTNO, $0), <($cor3.EMAIL, $1)), AND(>($cor4.CONTACTNO, $0), <($cor4.EMAIL, $1)), AND(>($cor5.CONTACTNO, $0), <($cor5.EMAIL, $1)), AND(>($cor6.CONTACTNO, $0), <($cor6.EMAIL, $1)), AND(>($cor7.CONTACTNO, $0), <($cor7.EMAIL, $1)), AND(>($cor8.CONTACTNO, $0), <($cor8.EMAIL, $1)), AND(>($cor9.CONTACTNO, $0), <($cor9.EMAIL, $1)), AND(>($cor10.CONTACTNO, $0), <($cor10.EMAIL, $1)), AND(>($cor11.CONTACTNO, $0), <($cor11.EMAIL, $1)), AND(>($cor12.CONTACTNO, $0), <($cor12.EMAIL, $1)), AND(>($cor13.CONTACTNO, $0), <($cor13.EMAIL, $1)), AND(>($cor14.CONTACTNO, $0), <($cor14.EMAIL, $1)), AND(>($cor15.CONTACTNO, $0), <($cor15.EMAIL, $1)), AND(>($cor16.CONTACTNO, $0), <($cor16.EMAIL, $1)), AND(>($cor17.CONTACTNO, $0), <($cor17.EMAIL, $1)), AND(>($cor18.CONTACTNO, $0), <($cor18.EMAIL, $1)), AND(>($cor19.CONTACTNO, $0), <($cor19.EMAIL, $1)), AND(>($cor20.CONTACTNO, $0), <($cor20.EMAIL, $1)), AND(>($cor21.CONTACTNO, $0), <($cor21.EMAIL, $1)), AND(>($cor22.CONTACTNO, $0), <($cor22.EMAIL, $1)), AND(>($cor23.CONTACTNO, $0), <($cor23.EMAIL, $1)), AND(>($cor24.CONTACTNO, $0), <($cor24.EMAIL, $1)), AND(>($cor25.CONTACTNO, $0), <($cor25.EMAIL, $1)), AND(>($cor26.CONTACTNO, $0), <($cor26.EMAIL, $1)), AND(>($cor27.CONTACTNO, $0), <($cor27.EMAIL, $1)), AND(>($cor28.CONTACTNO, $0), <($cor28.EMAIL, $1)), AND(>($cor29.CONTACTNO, $0), <($cor29.EMAIL, $1)), AND(>($cor30.CONTACTNO, $0), <($cor30.EMAIL, $1)), AND(>($cor31.CONTACTNO, $0), <($cor31.EMAIL, $1)), AND(>($cor32.CONTACTNO, $0), <($cor32.EMAIL, $1)), AND(>($cor33.CONTACTNO, $0), <($cor33.EMAIL, $1)), AND(>($cor34.CONTACTNO, $0), <($cor34.EMAIL, $1)), AND(>($cor35.CONTACTNO, $0), <($cor35.EMAIL, $1)), AND(>($cor36.CONTACTNO, $0), <($cor36.EMAIL, $1)), AND(>($cor37.CONTACTNO, $0), <($cor37.EMAIL, $1)), AND(>($cor38.CONTACTNO, $0), <($cor38.EMAIL, $1)), AND(>($cor39.CONTACTNO, $0), <($cor39.EMAIL, $1)), AND(>($cor40.CONTACTNO, $0), <($cor40.EMAIL, $1)), AND(>($cor41.CONTACTNO, $0), <($cor41.EMAIL, $1)), AND(>($cor42.CONTACTNO, $0), <($cor42.EMAIL, $1)), AND(>($cor43.CONTACTNO, $0), <($cor43.EMAIL, $1)), AND(>($cor44.CONTACTNO, $0), <($cor44.EMAIL, $1)), AND(>($cor45.CONTACTNO, $0), <($cor45.EMAIL, $1)), AND(>($cor46.CONTACTNO, $0), <($cor46.EMAIL, $1)), AND(>($cor47.CONTACTNO, $0), <($cor47.EMAIL, $1)), AND(>($cor48.CONTACTNO, $0), <($cor48.EMAIL, $1)), AND(>($cor49.CONTACTNO, $0), <($cor49.EMAIL, $1)), AND(>($cor50.CONTACTNO, $0), <($cor50.EMAIL, $1)), AND(>($cor51.CONTACTNO, $0), <($cor51.EMAIL, $1)), AND(>($cor52.CONTACTNO, $0), <($cor52.EMAIL, $1)), AND(>($cor53.CONTACTNO, $0), <($cor53.EMAIL, $1)), AND(>($cor54.CONTACTNO, $0), <($cor54.EMAIL, $1)), AND(>($cor55.CONTACTNO, $0), <($cor55.EMAIL, $1)), AND(>($cor56.CONTACTNO, $0), <($cor56.EMAIL, $1)), AND(>($cor57.CONTACTNO, $0), <($cor57.EMAIL, $1)), AND(>($cor58.CONTACTNO, $0), <($cor58.EMAIL, $1)), AND(>($cor59.CONTACTNO, $0), <($cor59.EMAIL, $1)), AND(>($cor60.CONTACTNO, $0), <($cor60.EMAIL, $1)), AND(>($cor61.CONTACTNO, $0), <($cor61.EMAIL, $1)), AND(>($cor62.CONTACTNO, $0), <($cor62.EMAIL, $1)), AND(>($cor63.CONTACTNO, $0), <($cor63.EMAIL, $1)), AND(>($cor64.CONTACTNO, $0), <($cor64.EMAIL, $1)), AND(>($cor65.CONTACTNO, $0), <($cor65.EMAIL, $1)), AND(>($cor66.CONTACTNO, $0), <($cor66.EMAIL, $1)), AND(>($cor67.CONTACTNO, $0), <($cor67.EMAIL, $1)), AND(>($cor68.CONTACTNO, $0), <($cor68.EMAIL, $1)), AND(>($cor69.CONTACTNO, $0), <($cor69.EMAIL, $1)), AND(>($cor70.CONTACTNO, $0), <($cor70.EMAIL, $1)), AND(>($cor71.CONTACTNO, $0), <($cor71.EMAIL, $1)), AND(>($cor72.CONTACTNO, $0), <($cor72.EMAIL, $1)), AND(>($cor73.CONTACTNO, $0), <($cor73.EMAIL, $1)), AND(>($cor74.CONTACTNO, $0), <($cor74.EMAIL, $1)), AND(>($cor75.CONTACTNO, $0), <($cor75.EMAIL, $1)), AND(>($cor76.CONTACTNO, $0), <($cor76.EMAIL, $1)), AND(>($cor77.CONTACTNO, $0), <($cor77.EMAIL, $1)), AND(>($cor78.CONTACTNO, $0), <($cor78.EMAIL, $1)), AND(>($cor79.CONTACTNO, $0), <($cor79.EMAIL, $1)), AND(>($cor80.CONTACTNO, $0), <($cor80.EMAIL, $1)), AND(>($cor81.CONTACTNO, $0), <($cor81.EMAIL, $1)), AND(>($cor82.CONTACTNO, $0), <($cor82.EMAIL, $1)), AND(>($cor83.CONTACTNO, $0), <($cor83.EMAIL, $1)), AND(>($cor84.CONTACTNO, $0), <($cor84.EMAIL, $1)), AND(>($cor85.CONTACTNO, $0), <($cor85.EMAIL, $1)), AND(>($cor86.CONTACTNO, $0), <($cor86.EMAIL, $1)), AND(>($cor87.CONTACTNO, $0), <($cor87.EMAIL, $1)), AND(>($cor88.CONTACTNO, $0), <($cor88.EMAIL, $1)), AND(>($cor89.CONTACTNO, $0), <($cor89.EMAIL, $1)), AND(>($cor90.CONTACTNO, $0), <($cor90.EMAIL, $1)), AND(>($cor91.CONTACTNO, $0), <($cor91.EMAIL, $1)), AND(>($cor92.CONTACTNO, $0), <($cor92.EMAIL, $1)), AND(>($cor93.CONTACTNO, $0), <($cor93.EMAIL, $1)), AND(>($cor94.CONTACTNO, $0), <($cor94.EMAIL, $1)), AND(>($cor95.CONTACTNO, $0), <($cor95.EMAIL, $1)), AND(>($cor96.CONTACTNO, $0), <($cor96.EMAIL, $1)), AND(>($cor97.CONTACTNO, $0), <($cor97.EMAIL, $1)), AND(>($cor98.CONTACTNO, $0), <($cor98.EMAIL, $1)), AND(>($cor99.CONTACTNO, $0), <($cor99.EMAIL, $1)))])
+    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedLoopJoinLeftOuterJoinPushDownSort2">
+    <Resource name="sql">
+      <![CDATA[select * from
+ customer.contact_peek r left outer join
+customer.account s
+on r.contactno>s.acctno and r.email<s.type
+order by r.fname desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  LogicalSort(sort0=[$1], dir0=[DESC])
+    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[$7], COORD_NE8=[$8], COORD_NE9=[$9], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+      LogicalJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
+        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
+    EnumerableSort(sort0=[$1], dir0=[DESC])
+      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+    EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedLoopJoinLeftOuterJoinSortKeyOnRightInput">
+    <Resource name="sql">
+      <![CDATA[select * from
+ customer.contact_peek r left outer join
+customer.account s
+on r.contactno>s.acctno and r.email<s.type
+order by s.acctno desc, s.type desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  LogicalSort(sort0=[$10], sort1=[$11], dir0=[DESC], dir1=[DESC])
+    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[$7], COORD_NE8=[$8], COORD_NE9=[$9], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+      LogicalJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
+        LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+          LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
+  EnumerableSort(sort0=[$10], sort1=[$11], dir0=[DESC], dir1=[DESC])
+    EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left])
+      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
       EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testBatchNestedLoopJoinTraitDerivation">
+  <TestCase name="testNestedLoopJoinRightOuterJoinSortPushDown">
+    <Resource name="sql">
+      <![CDATA[select r.contactno, r.email, s.acctno, s.type from
+ customer.contact_peek r right outer join
+customer.account s
+on r.contactno>s.acctno and r.email<s.type
+order by s.acctno desc, s.type desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
+  LogicalProject(CONTACTNO=[$0], EMAIL=[$3], ACCTNO=[$10], TYPE=[$11])
+    LogicalJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[right])
+      LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+        LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$2], sort1=[$3], dir0=[DESC], dir1=[DESC])
+  EnumerableProject(CONTACTNO=[$0], EMAIL=[$3], ACCTNO=[$10], TYPE=[$11])
+    EnumerableNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[right])
+      EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+        EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+      EnumerableTableScan(table=[[CATALOG, CUSTOMER, ACCOUNT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedLoopJoinTraitDerivation">
     <Resource name="sql">
       <![CDATA[select * from
 (select ename, job, mgr from sales.emp order by ename desc, job desc, mgr limit 10) r
@@ -1393,50 +685,116 @@ LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner], batchSize=[100])
+EnumerableNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
   EnumerableLimit(fetch=[10])
     EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])
       EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
         EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-  EnumerableFilter(condition=[OR(AND(>($cor0.ENAME, $0), <($cor0.JOB, $1)), AND(>($cor1.ENAME, $0), <($cor1.JOB, $1)), AND(>($cor2.ENAME, $0), <($cor2.JOB, $1)), AND(>($cor3.ENAME, $0), <($cor3.JOB, $1)), AND(>($cor4.ENAME, $0), <($cor4.JOB, $1)), AND(>($cor5.ENAME, $0), <($cor5.JOB, $1)), AND(>($cor6.ENAME, $0), <($cor6.JOB, $1)), AND(>($cor7.ENAME, $0), <($cor7.JOB, $1)), AND(>($cor8.ENAME, $0), <($cor8.JOB, $1)), AND(>($cor9.ENAME, $0), <($cor9.JOB, $1)), AND(>($cor10.ENAME, $0), <($cor10.JOB, $1)), AND(>($cor11.ENAME, $0), <($cor11.JOB, $1)), AND(>($cor12.ENAME, $0), <($cor12.JOB, $1)), AND(>($cor13.ENAME, $0), <($cor13.JOB, $1)), AND(>($cor14.ENAME, $0), <($cor14.JOB, $1)), AND(>($cor15.ENAME, $0), <($cor15.JOB, $1)), AND(>($cor16.ENAME, $0), <($cor16.JOB, $1)), AND(>($cor17.ENAME, $0), <($cor17.JOB, $1)), AND(>($cor18.ENAME, $0), <($cor18.JOB, $1)), AND(>($cor19.ENAME, $0), <($cor19.JOB, $1)), AND(>($cor20.ENAME, $0), <($cor20.JOB, $1)), AND(>($cor21.ENAME, $0), <($cor21.JOB, $1)), AND(>($cor22.ENAME, $0), <($cor22.JOB, $1)), AND(>($cor23.ENAME, $0), <($cor23.JOB, $1)), AND(>($cor24.ENAME, $0), <($cor24.JOB, $1)), AND(>($cor25.ENAME, $0), <($cor25.JOB, $1)), AND(>($cor26.ENAME, $0), <($cor26.JOB, $1)), AND(>($cor27.ENAME, $0), <($cor27.JOB, $1)), AND(>($cor28.ENAME, $0), <($cor28.JOB, $1)), AND(>($cor29.ENAME, $0), <($cor29.JOB, $1)), AND(>($cor30.ENAME, $0), <($cor30.JOB, $1)), AND(>($cor31.ENAME, $0), <($cor31.JOB, $1)), AND(>($cor32.ENAME, $0), <($cor32.JOB, $1)), AND(>($cor33.ENAME, $0), <($cor33.JOB, $1)), AND(>($cor34.ENAME, $0), <($cor34.JOB, $1)), AND(>($cor35.ENAME, $0), <($cor35.JOB, $1)), AND(>($cor36.ENAME, $0), <($cor36.JOB, $1)), AND(>($cor37.ENAME, $0), <($cor37.JOB, $1)), AND(>($cor38.ENAME, $0), <($cor38.JOB, $1)), AND(>($cor39.ENAME, $0), <($cor39.JOB, $1)), AND(>($cor40.ENAME, $0), <($cor40.JOB, $1)), AND(>($cor41.ENAME, $0), <($cor41.JOB, $1)), AND(>($cor42.ENAME, $0), <($cor42.JOB, $1)), AND(>($cor43.ENAME, $0), <($cor43.JOB, $1)), AND(>($cor44.ENAME, $0), <($cor44.JOB, $1)), AND(>($cor45.ENAME, $0), <($cor45.JOB, $1)), AND(>($cor46.ENAME, $0), <($cor46.JOB, $1)), AND(>($cor47.ENAME, $0), <($cor47.JOB, $1)), AND(>($cor48.ENAME, $0), <($cor48.JOB, $1)), AND(>($cor49.ENAME, $0), <($cor49.JOB, $1)), AND(>($cor50.ENAME, $0), <($cor50.JOB, $1)), AND(>($cor51.ENAME, $0), <($cor51.JOB, $1)), AND(>($cor52.ENAME, $0), <($cor52.JOB, $1)), AND(>($cor53.ENAME, $0), <($cor53.JOB, $1)), AND(>($cor54.ENAME, $0), <($cor54.JOB, $1)), AND(>($cor55.ENAME, $0), <($cor55.JOB, $1)), AND(>($cor56.ENAME, $0), <($cor56.JOB, $1)), AND(>($cor57.ENAME, $0), <($cor57.JOB, $1)), AND(>($cor58.ENAME, $0), <($cor58.JOB, $1)), AND(>($cor59.ENAME, $0), <($cor59.JOB, $1)), AND(>($cor60.ENAME, $0), <($cor60.JOB, $1)), AND(>($cor61.ENAME, $0), <($cor61.JOB, $1)), AND(>($cor62.ENAME, $0), <($cor62.JOB, $1)), AND(>($cor63.ENAME, $0), <($cor63.JOB, $1)), AND(>($cor64.ENAME, $0), <($cor64.JOB, $1)), AND(>($cor65.ENAME, $0), <($cor65.JOB, $1)), AND(>($cor66.ENAME, $0), <($cor66.JOB, $1)), AND(>($cor67.ENAME, $0), <($cor67.JOB, $1)), AND(>($cor68.ENAME, $0), <($cor68.JOB, $1)), AND(>($cor69.ENAME, $0), <($cor69.JOB, $1)), AND(>($cor70.ENAME, $0), <($cor70.JOB, $1)), AND(>($cor71.ENAME, $0), <($cor71.JOB, $1)), AND(>($cor72.ENAME, $0), <($cor72.JOB, $1)), AND(>($cor73.ENAME, $0), <($cor73.JOB, $1)), AND(>($cor74.ENAME, $0), <($cor74.JOB, $1)), AND(>($cor75.ENAME, $0), <($cor75.JOB, $1)), AND(>($cor76.ENAME, $0), <($cor76.JOB, $1)), AND(>($cor77.ENAME, $0), <($cor77.JOB, $1)), AND(>($cor78.ENAME, $0), <($cor78.JOB, $1)), AND(>($cor79.ENAME, $0), <($cor79.JOB, $1)), AND(>($cor80.ENAME, $0), <($cor80.JOB, $1)), AND(>($cor81.ENAME, $0), <($cor81.JOB, $1)), AND(>($cor82.ENAME, $0), <($cor82.JOB, $1)), AND(>($cor83.ENAME, $0), <($cor83.JOB, $1)), AND(>($cor84.ENAME, $0), <($cor84.JOB, $1)), AND(>($cor85.ENAME, $0), <($cor85.JOB, $1)), AND(>($cor86.ENAME, $0), <($cor86.JOB, $1)), AND(>($cor87.ENAME, $0), <($cor87.JOB, $1)), AND(>($cor88.ENAME, $0), <($cor88.JOB, $1)), AND(>($cor89.ENAME, $0), <($cor89.JOB, $1)), AND(>($cor90.ENAME, $0), <($cor90.JOB, $1)), AND(>($cor91.ENAME, $0), <($cor91.JOB, $1)), AND(>($cor92.ENAME, $0), <($cor92.JOB, $1)), AND(>($cor93.ENAME, $0), <($cor93.JOB, $1)), AND(>($cor94.ENAME, $0), <($cor94.JOB, $1)), AND(>($cor95.ENAME, $0), <($cor95.JOB, $1)), AND(>($cor96.ENAME, $0), <($cor96.JOB, $1)), AND(>($cor97.ENAME, $0), <($cor97.JOB, $1)), AND(>($cor98.ENAME, $0), <($cor98.JOB, $1)), AND(>($cor99.ENAME, $0), <($cor99.JOB, $1)))])
+  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedLoopJoinTraitDerivation2">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, mgr from sales.emp order by mgr limit 10) r
+join sales.bonus s on r.ename>s.ename and r.job<s.job
+order by r.mgr]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], dir0=[ASC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+    LogicalJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
+      LogicalSort(sort0=[$2], dir0=[ASC], fetch=[10])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
+  EnumerableLimit(fetch=[10])
+    EnumerableSort(sort0=[$2], dir0=[ASC])
+      EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedLoopJoinTraitDerivationNegativeCase">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, mgr from sales.emp order by mgr limit 10) r
+join sales.bonus s on r.ename>s.ename and r.job<s.job
+order by r.mgr desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], dir0=[DESC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+    LogicalJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
+      LogicalSort(sort0=[$2], dir0=[ASC], fetch=[10])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$2], dir0=[DESC])
+  EnumerableNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner])
+    EnumerableLimit(fetch=[10])
+      EnumerableSort(sort0=[$2], dir0=[ASC])
+        EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
     EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testValuesTraitRequest">
+  <TestCase name="testSortAgg">
     <Resource name="sql">
-      <![CDATA[SELECT * from (values (1, 1), (2, 1), (1, 2), (2, 2))
-as t(a, b) order by b, a]]>
+      <![CDATA[select mgr, count(*) from sales.emp
+group by mgr order by mgr desc nulls last limit 5]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-  LogicalProject(A=[$0], B=[$1])
-    LogicalValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 }]])
+LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[5])
+  LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalProject(MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 }]])
+EnumerableLimit(fetch=[5])
+  EnumerableSortedAggregate(group=[{3}], EXPR$1=[COUNT()])
+    EnumerableSort(sort0=[$3], dir0=[DESC-nulls-last])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testValuesTraitRequestNeg">
+  <TestCase name="testSortAggPartialKey">
     <Resource name="sql">
-      <![CDATA[SELECT * from (values (1, 1), (2, 1), (3, 2), (2, 2))
-as t(a, b) order by b, a]]>
+      <![CDATA[select mgr,deptno,comm,count(*) from sales.emp
+group by mgr,deptno,comm
+order by comm desc nulls last, deptno nulls first]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-  LogicalProject(A=[$0], B=[$1])
-    LogicalValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 3, 2 }, { 2, 2 }]])
+LogicalSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+  LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[COUNT()])
+    LogicalProject(MGR=[$3], DEPTNO=[$7], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
-  EnumerableValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 3, 2 }, { 2, 2 }]])
+EnumerableProject(MGR=[$0], DEPTNO=[$2], COMM=[$1], EXPR$3=[$3])
+  EnumerableSortedAggregate(group=[{3, 6, 7}], EXPR$3=[COUNT()])
+    EnumerableSort(sort0=[$6], sort1=[$7], sort2=[$3], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first], dir2=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -1569,25 +927,6 @@ EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testSortCalcWhenCastLeadingToNonMonotonic">
-    <Resource name="sql">
-      <![CDATA[select deptno from sales.emp order by cast(deptno as varchar) desc]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC])
-  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-EnumerableSort(sort0=[$1], dir0=[DESC])
-  EnumerableCalc(expr#0..8=[{inputs}], expr#9=[CAST($t7):VARCHAR NOT NULL], DEPTNO=[$t7], EXPR$1=[$t9])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testSortCalcWhenCastLeadingToMonotonic">
     <Resource name="sql">
       <![CDATA[select cast(deptno as float) from sales.emp order by deptno desc]]>
@@ -1603,6 +942,25 @@ LogicalSort(sort0=[$1], dir0=[DESC])
       <![CDATA[
 EnumerableSort(sort0=[$1], dir0=[DESC])
   EnumerableCalc(expr#0..8=[{inputs}], expr#9=[CAST($t7):FLOAT NOT NULL], EXPR$0=[$t9], DEPTNO=[$t7])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortCalcWhenCastLeadingToNonMonotonic">
+    <Resource name="sql">
+      <![CDATA[select deptno from sales.emp order by cast(deptno as varchar) desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], dir0=[DESC])
+  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$1], dir0=[DESC])
+  EnumerableCalc(expr#0..8=[{inputs}], expr#9=[CAST($t7):VARCHAR NOT NULL], DEPTNO=[$t7], EXPR$1=[$t9])
     EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -1630,6 +988,648 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1000], expr#5=[>($t3, $t4)], proj#0
   EnumerableSortedAggregate(group=[{1, 2, 3}], MAX_SAL=[MAX($5)])
     EnumerableSort(sort0=[$3], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[ASC], dir2=[ASC])
       EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortFilter">
+    <Resource name="sql">
+      <![CDATA[select ename, job, mgr, max_sal from
+(select ename, job, mgr, max(sal) as max_sal from sales.emp group by ename, job, mgr) as t
+where max_sal > 1000
+order by mgr desc, ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], sort1=[$0], dir0=[DESC], dir1=[ASC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], MAX_SAL=[$3])
+    LogicalFilter(condition=[>($3, 1000)])
+      LogicalAggregate(group=[{0, 1, 2}], MAX_SAL=[MAX($3)])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableFilter(condition=[>($3, 1000)])
+  EnumerableSortedAggregate(group=[{1, 2, 3}], MAX_SAL=[MAX($5)])
+    EnumerableSort(sort0=[$3], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[ASC], dir2=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortFilterDerive">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, max_sal from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t where job > 1000) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], MAX_SAL=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[$1], MAX_SAL=[$2])
+      LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 1000)])
+        LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+          LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+  EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+    EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableFilter(condition=[>(CAST($2):INTEGER NOT NULL, 1000)])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoin">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by r.job desc nulls last, r.ename nulls first]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoinRight">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by s.job desc nulls last, s.ename nulls first]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$10], sort1=[$9], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoinRightSubsetKey">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by s.job desc nulls last]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$10], dir0=[DESC-nulls-last])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoinRightSubsetKey2">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job and r.sal = s.sal
+order by s.sal, s.ename desc nulls last]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$11], sort1=[$9], dir0=[ASC], dir1=[DESC-nulls-last])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
+  EnumerableSort(sort0=[$5], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$2], sort1=[$0], sort2=[$1], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoinRightSupersetKey">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by s.job desc nulls last, s.ename, s.sal desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$10], sort1=[$9], sort2=[$11], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoinSubsetKey">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by r.job desc nulls last]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], dir0=[DESC-nulls-last])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+  EnumerableSort(sort0=[$2], sort1=[$1], dir0=[DESC-nulls-last], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoinSubsetKey2">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job and r.sal = s.sal
+order by r.sal, r.ename desc nulls last]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$5], sort1=[$1], dir0=[ASC], dir1=[DESC-nulls-last])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10), =($5, $11))], joinType=[inner])
+  EnumerableSort(sort0=[$5], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$2], sort1=[$0], sort2=[$1], dir0=[ASC], dir1=[DESC-nulls-last], dir2=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortMergeJoinSupersetKey">
+    <Resource name="sql">
+      <![CDATA[select * from
+sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+order by r.job desc nulls last, r.ename, r.sal desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], sort1=[$1], sort2=[$5], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], ENAME0=[$9], JOB0=[$10], SAL0=[$11], COMM0=[$12])
+    LogicalJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
+  EnumerableSort(sort0=[$2], sort1=[$1], sort2=[$5], dir0=[DESC-nulls-last], dir1=[ASC], dir2=[DESC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC-nulls-last], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProject">
+    <Resource name="sql">
+      <![CDATA[select mgr from sales.emp order by mgr desc nulls last]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+  LogicalProject(MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$0], dir0=[DESC-nulls-last])
+  EnumerableProject(MGR=[$3])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDerive">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, job, max_sal + 1 from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[+($2, 1)])
+      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+  EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[+($2, 1)])
+    EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+      EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDerive2">
+    <Resource name="sql">
+      <![CDATA[select distinct ename, sal*-2, mgr
+from (select ename, mgr, sal from sales.emp order by ename, mgr, sal limit 100) t]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1, 2}])
+  LogicalProject(ENAME=[$0], EXPR$1=[*($2, -2)], MGR=[$1])
+    LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[100])
+      LogicalProject(ENAME=[$1], MGR=[$3], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSortedAggregate(group=[{0, 1, 2}])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableProject(ENAME=[$0], EXPR$1=[*($2, -2)], MGR=[$1])
+      EnumerableLimit(fetch=[100])
+        EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+          EnumerableProject(ENAME=[$1], MGR=[$3], SAL=[$5])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDerive3">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, cast(job as varchar) as job, sal + 1 from
+(select ename, job, sal from sales.emp limit 100) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      LogicalSort(fetch=[100])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+        EnumerableLimit(fetch=[100])
+          EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDerive4">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, cast(job as bigint) as job, sal + 1 from
+(select ename, job, sal from sales.emp limit 100) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):BIGINT NOT NULL], EXPR$2=[+($2, 1)])
+      LogicalSort(fetch=[100])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):BIGINT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[CAST($1):BIGINT NOT NULL], EXPR$2=[+($2, 1)])
+        EnumerableLimit(fetch=[100])
+          EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):BIGINT NOT NULL])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDerive5">
+    <Resource name="sql">
+      <![CDATA[select ename, empno*-1, job from
+(select * from sales.emp order by ename, empno, job limit 10) order by ename, job]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  LogicalProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
+    LogicalSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[10])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
+  EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
+    EnumerableLimit(fetch=[10])
+      EnumerableSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDerive6">
+    <Resource name="sql">
+      <![CDATA[select comm, deptno, slacker from
+(select * from sales.emp order by comm, deptno, slacker limit 10) t
+order by comm, slacker]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  LogicalProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[10])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  EnumerableSort(sort0=[$6], sort1=[$8], dir0=[ASC], dir1=[ASC])
+    EnumerableLimit(fetch=[10])
+      EnumerableSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDeriveOnRexCall">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, sal * -1 as sal, max_job from
+(select ename, sal, max(job) as max_job from sales.emp group by ename, sal) t) r
+join sales.bonus s on r.sal=s.sal and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], SAL=[$1], MAX_JOB=[$2], ENAME0=[$3], JOB=[$4], SAL0=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $5), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], SAL=[*($1, -1)], MAX_JOB=[$2])
+      LogicalAggregate(group=[{0, 1}], MAX_JOB=[MAX($2)])
+        LogicalProject(ENAME=[$1], SAL=[$5], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $3))], joinType=[inner])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableProject(ENAME=[$0], SAL=[*($1, -1)], MAX_JOB=[$2])
+      EnumerableSortedAggregate(group=[{1, 5}], MAX_JOB=[MAX($2)])
+        EnumerableSort(sort0=[$1], sort1=[$5], dir0=[ASC], dir1=[ASC])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDeriveWhenCastLeadingToMonotonic">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, cast(job as varchar) as job, max_sal + 1 from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+        EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectDeriveWhenCastLeadingToNonMonotonic">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select ename, cast(job as numeric) as job, max_sal + 1 from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
+  LogicalJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 9) NOT NULL])
+      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 9) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
+  EnumerableMergeJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
+    EnumerableSort(sort0=[$3], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 9) NOT NULL])
+        EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+          EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 9) NOT NULL])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectOnRexCall">
+    <Resource name="sql">
+      <![CDATA[select ename, sal * -1 as sal, mgr from
+sales.emp order by ename desc, sal desc, mgr desc nulls last]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[DESC-nulls-last])
+  LogicalProject(ENAME=[$1], SAL=[*($5, -1)], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[DESC-nulls-last])
+  EnumerableProject(ENAME=[$1], SAL=[*($5, -1)], MGR=[$3])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectWhenCastLeadingToMonotonic">
+    <Resource name="sql">
+      <![CDATA[select deptno from sales.emp order by cast(deptno as float) desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], dir0=[DESC])
+  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$1], dir0=[DESC])
+  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectWhenCastLeadingToNonMonotonic">
+    <Resource name="sql">
+      <![CDATA[select deptno from sales.emp order by cast(deptno as varchar) desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], dir0=[DESC])
+  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$1], dir0=[DESC])
+  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testValuesTraitRequest">
+    <Resource name="sql">
+      <![CDATA[SELECT * from (values (1, 1), (2, 1), (1, 2), (2, 2))
+as t(a, b) order by b, a]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+  LogicalProject(A=[$0], B=[$1])
+    LogicalValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testValuesTraitRequestNeg">
+    <Resource name="sql">
+      <![CDATA[SELECT * from (values (1, 1), (2, 1), (3, 2), (2, 2))
+as t(a, b) order by b, a]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+  LogicalProject(A=[$0], B=[$1])
+    LogicalValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 3, 2 }, { 2, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+  EnumerableValues(tuples=[[{ 1, 1 }, { 2, 1 }, { 3, 2 }, { 2, 2 }]])
 ]]>
     </Resource>
   </TestCase>

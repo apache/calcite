@@ -30,6 +30,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFunction;
@@ -42,10 +43,13 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -73,12 +77,12 @@ class InterpreterTest {
   /** Implementation of {@link DataContext} for executing queries without a
    * connection. */
   private static class MyDataContext implements DataContext {
-    private SchemaPlus rootSchema;
-    private final Planner planner;
+    private final SchemaPlus rootSchema;
+    private final JavaTypeFactory typeFactory;
 
-    MyDataContext(SchemaPlus rootSchema, Planner planner) {
+    MyDataContext(SchemaPlus rootSchema, RelNode rel) {
       this.rootSchema = rootSchema;
-      this.planner = planner;
+      this.typeFactory = (JavaTypeFactory) rel.getCluster().getTypeFactory();
     }
 
     public SchemaPlus getRootSchema() {
@@ -86,7 +90,7 @@ class InterpreterTest {
     }
 
     public JavaTypeFactory getTypeFactory() {
-      return (JavaTypeFactory) planner.getTypeFactory();
+      return typeFactory;
     }
 
     public @Nullable QueryProvider getQueryProvider() {
@@ -103,16 +107,23 @@ class InterpreterTest {
     private final String sql;
     private final SchemaPlus rootSchema;
     private final boolean project;
+    private final Function<RelBuilder, RelNode> relFn;
 
-    Sql(String sql, SchemaPlus rootSchema, boolean project) {
+    Sql(String sql, SchemaPlus rootSchema, boolean project,
+        @Nullable Function<RelBuilder, RelNode> relFn) {
       this.sql = sql;
       this.rootSchema = rootSchema;
       this.project = project;
+      this.relFn = relFn;
     }
 
     @SuppressWarnings("SameParameterValue")
     Sql withProject(boolean project) {
-      return new Sql(sql, rootSchema, project);
+      return new Sql(sql, rootSchema, project, relFn);
+    }
+
+    Sql withRel(Function<RelBuilder, RelNode> relFn) {
+      return new Sql(sql, rootSchema, project, relFn);
     }
 
     /** Interprets the sql and checks result with specified rows, ordered. */
@@ -138,14 +149,30 @@ class InterpreterTest {
       return Frameworks.getPlanner(config);
     }
 
+    /** Performs an action that requires a {@link RelBuilder}, and returns the
+     * result. */
+    private <T> T withRelBuilder(Function<RelBuilder, T> fn) {
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .defaultSchema(rootSchema)
+          .build();
+      final RelBuilder relBuilder = RelBuilder.create(config);
+      return fn.apply(relBuilder);
+    }
+
     /** Interprets the sql and checks result with specified rows. */
     private Sql returnsRows(boolean unordered, String[] rows) {
       try (Planner planner = createPlanner()) {
-        SqlNode parse = planner.parse(sql);
-        SqlNode validate = planner.validate(parse);
-        final RelRoot root = planner.rel(validate);
-        RelNode convert = project ? root.project() : root.rel;
-        final MyDataContext dataContext = new MyDataContext(rootSchema, planner);
+        final RelNode convert;
+        if (relFn != null) {
+          convert = withRelBuilder(relFn);
+        } else {
+          SqlNode parse = planner.parse(sql);
+          SqlNode validate = planner.validate(parse);
+          final RelRoot root = planner.rel(validate);
+          convert = project ? root.project() : root.rel;
+        }
+        final MyDataContext dataContext =
+            new MyDataContext(rootSchema, convert);
         assertInterpret(convert, dataContext, unordered, rows);
         return this;
       } catch (ValidationException
@@ -158,7 +185,7 @@ class InterpreterTest {
 
   /** Creates a {@link Sql}. */
   private Sql sql(String sql) {
-    return new Sql(sql, rootSchema, false);
+    return new Sql(sql, rootSchema, false, null);
   }
 
   private void reset() {
@@ -476,7 +503,8 @@ class InterpreterTest {
       final HepPlanner hepPlanner = new HepPlanner(program);
       hepPlanner.setRoot(convert);
       final RelNode relNode = hepPlanner.findBestExp();
-      final MyDataContext dataContext = new MyDataContext(rootSchema, planner);
+      final MyDataContext dataContext =
+          new MyDataContext(rootSchema, relNode);
       assertInterpret(relNode, dataContext, true, "[1, a]", "[3, c]");
     } catch (ValidationException
         | SqlParseException
@@ -673,5 +701,16 @@ class InterpreterTest {
     final String sql = "select *\n"
         + "from table(\"s\".\"t\"('=100='))";
     sql(sql).returnsRows("[1]", "[3]", "[100]");
+  }
+
+  /** Tests projecting zero fields. */
+  @Test void testZeroFields() {
+    final List<RexLiteral> row = ImmutableList.of();
+    sql("?")
+        .withRel(b ->
+            b.values(ImmutableList.of(row, row),
+                b.getTypeFactory().builder().build())
+                .build())
+        .returnsRows("[]", "[]");
   }
 }

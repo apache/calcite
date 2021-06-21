@@ -24,16 +24,14 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
 import org.apache.pig.builtin.CubeDimensions;
 import org.apache.pig.builtin.RollupDimensions;
@@ -670,30 +668,23 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
         loRank.isDenseRank() ? SqlStdOperatorTable.DENSE_RANK : SqlStdOperatorTable.RANK;
 
     // Build the order keys
-    List<RexFieldCollation> orderNodes = new ArrayList<>();
-    for (int i = 0; i < loRank.getRankColPlans().size(); i++) {
+    List<RexNode> orderNodes = new ArrayList<>();
+    for (Pair<LogicalExpressionPlan, Boolean> p
+        : Pair.zip(loRank.getRankColPlans(), loRank.getAscendingCol())) {
       RexNode orderNode =
-          PigRelExVisitor.translatePigEx(builder, loRank.getRankColPlans().get(i));
-      Set<SqlKind> flags = new HashSet<>();
-      if (!loRank.getAscendingCol().get(i)) {
-        flags.add(SqlKind.DESCENDING);
+          PigRelExVisitor.translatePigEx(builder, p.left);
+      final boolean ascending = p.right;
+      if (!ascending) {
+        orderNode = builder.desc(orderNode);
       }
-      orderNodes.add(new RexFieldCollation(orderNode, flags));
+      orderNodes.add(orderNode);
     }
 
-    return builder.getRexBuilder().makeOver(
-        PigTypes.TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT), // Return type
-        rank, // Aggregate function
-        Collections.emptyList(), // Operands for the aggregate function, empty here
-        Collections.emptyList(), // No partition keys
-        ImmutableList.copyOf(orderNodes), // order keys
-        RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.CURRENT_ROW,
-        false, // Range-based
-        true, // allow partial
-        false, // not return null when count is zero
-        false, // no distinct
-        false);
+    return builder.aggregateCall(rank)
+        .over()
+        .rangeFrom(RexWindowBounds.UNBOUNDED_PRECEDING)
+        .orderBy(orderNodes)
+        .toRex();
   }
 
   @Override public void visit(LOStream loStream) throws FrontendException {

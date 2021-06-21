@@ -129,13 +129,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -1283,22 +1284,21 @@ public abstract class RelOptUtil {
       }
     }
 
-    if (condition instanceof RexCall) {
-      RexCall call = (RexCall) condition;
-      if (call.getKind() == SqlKind.AND) {
-        for (RexNode operand : call.getOperands()) {
-          splitJoinCondition(
-              sysFieldList,
-              inputs,
-              operand,
-              joinKeys,
-              filterNulls,
-              rangeOp,
-              nonEquiList);
-        }
-        return;
+    if (condition.getKind() == SqlKind.AND) {
+      for (RexNode operand : ((RexCall) condition).getOperands()) {
+        splitJoinCondition(
+            sysFieldList,
+            inputs,
+            operand,
+            joinKeys,
+            filterNulls,
+            rangeOp,
+            nonEquiList);
       }
+      return;
+    }
 
+    if (condition instanceof RexCall) {
       RexNode leftKey = null;
       RexNode rightKey = null;
       int leftInput = 0;
@@ -1307,7 +1307,8 @@ public abstract class RelOptUtil {
       List<RelDataTypeField> rightFields = null;
       boolean reverse = false;
 
-      call = collapseExpandedIsNotDistinctFromExpr(call, rexBuilder);
+      final RexCall call =
+          collapseExpandedIsNotDistinctFromExpr((RexCall) condition, rexBuilder);
       SqlKind kind = call.getKind();
 
       // Only consider range operators if we haven't already seen one
@@ -1462,10 +1463,11 @@ public abstract class RelOptUtil {
         if (rangeOp != null
             && kind != SqlKind.EQUALS
             && kind != SqlKind.IS_DISTINCT_FROM) {
+          SqlOperator op = call.getOperator();
           if (reverse) {
-            kind = kind.reverse();
+            op = requireNonNull(op.reverse());
           }
-          rangeOp.add(op(kind, call.getOperator()));
+          rangeOp.add(op);
         }
         return;
       } // else fall through and add this condition as nonEqui condition
@@ -2810,6 +2812,125 @@ public abstract class RelOptUtil {
    *
    * @param joinRel      join node
    * @param filters      filters to be classified
+   * @param pushInto     whether filters can be pushed into the join
+   * @param pushLeft     true if filters can be pushed to the left
+   * @param pushRight    true if filters can be pushed to the right
+   * @param joinFilters  list of filters to push to the join
+   * @param leftFilters  list of filters to push to the left child
+   * @param rightFilters list of filters to push to the right child
+   * @return whether at least one filter was pushed
+   */
+  public static boolean classifyFilters(
+      RelNode joinRel,
+      List<RexNode> filters,
+      boolean pushInto,
+      boolean pushLeft,
+      boolean pushRight,
+      List<RexNode> joinFilters,
+      List<RexNode> leftFilters,
+      List<RexNode> rightFilters) {
+    RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
+    List<RelDataTypeField> joinFields = joinRel.getRowType().getFieldList();
+    final int nSysFields = 0; // joinRel.getSystemFieldList().size();
+    final List<RelDataTypeField> leftFields =
+        joinRel.getInputs().get(0).getRowType().getFieldList();
+    final int nFieldsLeft = leftFields.size();
+    final List<RelDataTypeField> rightFields =
+        joinRel.getInputs().get(1).getRowType().getFieldList();
+    final int nFieldsRight = rightFields.size();
+    final int nTotalFields = nFieldsLeft + nFieldsRight;
+
+    // set the reference bitmaps for the left and right children
+    ImmutableBitSet leftBitmap =
+        ImmutableBitSet.range(nSysFields, nSysFields + nFieldsLeft);
+    ImmutableBitSet rightBitmap =
+        ImmutableBitSet.range(nSysFields + nFieldsLeft, nTotalFields);
+
+    final List<RexNode> filtersToRemove = new ArrayList<>();
+    for (RexNode filter : filters) {
+      final InputFinder inputFinder = InputFinder.analyze(filter);
+      final ImmutableBitSet inputBits = inputFinder.build();
+
+      // REVIEW - are there any expressions that need special handling
+      // and therefore cannot be pushed?
+
+      // filters can be pushed to the left child if the left child
+      // does not generate NULLs and the only columns referenced in
+      // the filter originate from the left child
+      if (pushLeft && leftBitmap.contains(inputBits)) {
+        // ignore filters that always evaluate to true
+        if (!filter.isAlwaysTrue()) {
+          // adjust the field references in the filter to reflect
+          // that fields in the left now shift over by the number
+          // of system fields
+          final RexNode shiftedFilter =
+              shiftFilter(
+                  nSysFields,
+                  nSysFields + nFieldsLeft,
+                  -nSysFields,
+                  rexBuilder,
+                  joinFields,
+                  nTotalFields,
+                  leftFields,
+                  filter);
+
+          leftFilters.add(shiftedFilter);
+        }
+        filtersToRemove.add(filter);
+
+        // filters can be pushed to the right child if the right child
+        // does not generate NULLs and the only columns referenced in
+        // the filter originate from the right child
+      } else if (pushRight && rightBitmap.contains(inputBits)) {
+        if (!filter.isAlwaysTrue()) {
+          // adjust the field references in the filter to reflect
+          // that fields in the right now shift over to the left;
+          // since we never push filters to a NULL generating
+          // child, the types of the source should match the dest
+          // so we don't need to explicitly pass the destination
+          // fields to RexInputConverter
+          final RexNode shiftedFilter =
+              shiftFilter(
+                  nSysFields + nFieldsLeft,
+                  nTotalFields,
+                  -(nSysFields + nFieldsLeft),
+                  rexBuilder,
+                  joinFields,
+                  nTotalFields,
+                  rightFields,
+                  filter);
+          rightFilters.add(shiftedFilter);
+        }
+        filtersToRemove.add(filter);
+
+      } else {
+        // If the filter can't be pushed to either child, we may push them into the join
+        if (pushInto) {
+          if (!joinFilters.contains(filter)) {
+            joinFilters.add(filter);
+          }
+          filtersToRemove.add(filter);
+        }
+      }
+    }
+
+    // Remove filters after the loop, to prevent concurrent modification.
+    if (!filtersToRemove.isEmpty()) {
+      filters.removeAll(filtersToRemove);
+    }
+
+    // Did anything change?
+    return !filtersToRemove.isEmpty();
+  }
+
+  /**
+   * Classifies filters according to where they should be processed. They
+   * either stay where they are, are pushed to the join (if they originated
+   * from above the join), or are pushed to one of the children. Filters that
+   * are pushed are added to list passed in as input parameters.
+   *
+   * @param joinRel      join node
+   * @param filters      filters to be classified
    * @param joinType     join type
    * @param pushInto     whether filters can be pushed into the ON clause
    * @param pushLeft     true if filters can be pushed to the left
@@ -2818,7 +2939,11 @@ public abstract class RelOptUtil {
    * @param leftFilters  list of filters to push to the left child
    * @param rightFilters list of filters to push to the right child
    * @return whether at least one filter was pushed
+   *
+   * @deprecated Use
+   * {@link RelOptUtil#classifyFilters(RelNode, List, boolean, boolean, boolean, List, List, List)}
    */
+  @Deprecated // to be removed before 2.0
   public static boolean classifyFilters(
       RelNode joinRel,
       List<RexNode> filters,
@@ -4341,7 +4466,7 @@ public abstract class RelOptUtil {
       } else if (type instanceof MultisetSqlType) {
         // E.g. "INTEGER NOT NULL MULTISET NOT NULL"
         RelDataType componentType =
-            Objects.requireNonNull(
+            requireNonNull(
                 type.getComponentType(),
                 () -> "type.getComponentType() for " + type);
         accept(componentType);
@@ -4438,9 +4563,9 @@ public abstract class RelOptUtil {
       if (call.getOperator() == RexBuilder.GET_OPERATOR) {
         RexLiteral literal = (RexLiteral) call.getOperands().get(1);
         if (extraFields != null) {
-          Objects.requireNonNull(literal, () -> "first operand in " + call);
+          requireNonNull(literal, () -> "first operand in " + call);
           String value2 = (String) literal.getValue2();
-          Objects.requireNonNull(value2, () -> "value of the first operand in " + call);
+          requireNonNull(value2, () -> "value of the first operand in " + call);
           extraFields.add(
               new RelDataTypeFieldImpl(
                   value2,
@@ -4546,11 +4671,11 @@ public abstract class RelOptUtil {
           type = leftDestFields.get(destIndex).getType();
         } else {
           type =
-              Objects.requireNonNull(rightDestFields, "rightDestFields")
+              requireNonNull(rightDestFields, "rightDestFields")
                   .get(destIndex - nLeftDestFields).getType();
         }
       } else {
-        type = Objects.requireNonNull(srcFields, "srcFields").get(srcIndex).getType();
+        type = requireNonNull(srcFields, "srcFields").get(srcIndex).getType();
       }
       if ((adjustments[srcIndex] != 0)
           || (srcFields == null)

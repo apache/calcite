@@ -110,7 +110,9 @@ public class AggregateRemoveRule
           aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
       final RexNode singleton =
           splitter.singleton(rexBuilder, input.getRowType(), aggCall);
-      projects.add(singleton);
+      final RexNode cast =
+          rexBuilder.ensureType(aggCall.type, singleton, false);
+      projects.add(cast);
     }
 
     final RelNode newInput = convert(input, aggregate.getTraitSet().simplify());

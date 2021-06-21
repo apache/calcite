@@ -45,7 +45,6 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
@@ -971,22 +970,44 @@ public class RelBuilderTest {
     return b.call(SqlStdOperatorTable.CASE, list);
   }
 
-  /** Creates a {@link Project} that contains a windowed aggregate function. As
-   * {@link RelBuilder} not explicitly support for {@link RexOver} the syntax is
-   * a bit cumbersome. */
+  /** Creates a {@link Project} that contains a windowed aggregate function.
+   * Repeats the using {@link RelBuilder.AggCall#over} and
+   * {@link RexBuilder#makeOver}. */
   @Test void testProjectOver() {
-    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+    final Function<RelBuilder, RelNode> f = b -> {
+      final RelDataType intType =
+          b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+      return b.scan("EMP")
+          .project(b.field("DEPTNO"),
+              b.alias(
+                  b.getRexBuilder().makeOver(intType,
+                      SqlStdOperatorTable.ROW_NUMBER, ImmutableList.of(),
+                      ImmutableList.of(),
+                      ImmutableList.of(
+                          new RexFieldCollation(b.field("EMPNO"),
+                              ImmutableSet.of())),
+                      RexWindowBounds.UNBOUNDED_PRECEDING,
+                      RexWindowBounds.UNBOUNDED_FOLLOWING,
+                      true, true, false, false, false),
+                  "x"))
+          .build();
+    };
+    final Function<RelBuilder, RelNode> f2 = b -> b.scan("EMP")
         .project(b.field("DEPTNO"),
-            over(b,
-                ImmutableList.of(
-                    new RexFieldCollation(b.field("EMPNO"),
-                        ImmutableSet.of())),
-                "x"))
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.field("EMPNO"))
+                .rowsUnbounded()
+                .allowPartial(true)
+                .nullWhenCountZero(false)
+                .as("x"))
         .build();
     final String expected = ""
         + "LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f2.apply(createBuilder()), hasTree(expected));
   }
 
   /** Tests that RelBuilder does not merge a Project that contains a windowed
@@ -994,36 +1015,25 @@ public class RelBuilderTest {
   @Test void testProjectOverOver() {
     final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
         .project(b.field("DEPTNO"),
-            over(b,
-                ImmutableList.of(
-                    new RexFieldCollation(b.field("EMPNO"),
-                        ImmutableSet.of())),
-                "x"))
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.field("EMPNO"))
+                .rowsUnbounded()
+                .as("x"))
         .project(b.field("DEPTNO"),
-            over(b,
-                ImmutableList.of(
-                    new RexFieldCollation(b.field("DEPTNO"),
-                        ImmutableSet.of())),
-                "y"))
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.field("DEPTNO"))
+                .rowsUnbounded()
+                .as("y"))
         .build();
     final String expected = ""
         + "LogicalProject(DEPTNO=[$0], y=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "  LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
-  }
-
-  private RexNode over(RelBuilder b,
-      ImmutableList<RexFieldCollation> fieldCollations, String alias) {
-    final RelDataType intType =
-        b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-    return b.alias(
-        b.getRexBuilder()
-            .makeOver(intType, SqlStdOperatorTable.ROW_NUMBER,
-                ImmutableList.of(), ImmutableList.of(), fieldCollations,
-                RexWindowBounds.UNBOUNDED_PRECEDING,
-                RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-                false, false), alias);
   }
 
   @Test void testRename() {
@@ -3892,6 +3902,15 @@ public class RelBuilderTest {
   @Test void testSimpleSemiCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.SEMI);
     final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[semi])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSemiCorrelatedViaJoin() {
+    RelNode root = buildCorrelateWithJoin(JoinRelType.SEMI);
+    final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
@@ -3902,6 +3921,15 @@ public class RelBuilderTest {
 
   @Test void testSimpleAntiCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.ANTI);
+    final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[anti])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testAntiCorrelateViaJoin() {
+    RelNode root = buildCorrelateWithJoin(JoinRelType.ANTI);
     final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
@@ -3914,6 +3942,15 @@ public class RelBuilderTest {
   @Test void testSimpleLeftCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.LEFT);
     final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testLeftCorrelateViaJoin() {
+    RelNode root = buildCorrelateWithJoin(JoinRelType.LEFT);
+    final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
@@ -3924,6 +3961,15 @@ public class RelBuilderTest {
 
   @Test void testSimpleInnerCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.INNER);
+    final String expected = ""
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testInnerCorrelateViaJoin() {
+    RelNode root = buildCorrelateWithJoin(JoinRelType.INNER);
     final String expected = ""
         + "LogicalFilter(condition=[=($7, $8)])\n"
         + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
@@ -3944,21 +3990,35 @@ public class RelBuilderTest {
   }
 
   private static RelNode buildSimpleCorrelateWithJoin(JoinRelType type) {
-    final RelBuilder relBuilder = RelBuilder.create(config().build());
-    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    return relBuilder
+    return builder
+        .scan("EMP")
+        .variable(v)
+        .scan("DEPT")
+        .join(type,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")), ImmutableSet.of(v.get().id))
+        .build();
+  }
+
+  private static RelNode buildCorrelateWithJoin(JoinRelType type) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    return builder
         .scan("EMP")
         .variable(v)
         .scan("DEPT")
         .filter(
-            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+            builder.equals(
                 rexBuilder.makeFieldAccess(v.get(), 0),
-                rexBuilder.makeLiteral("NaN")))
+                builder.literal("NaN")))
         .join(type,
-            relBuilder.equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")), ImmutableSet.of(v.get().id))
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")), ImmutableSet.of(v.get().id))
         .build();
   }
 

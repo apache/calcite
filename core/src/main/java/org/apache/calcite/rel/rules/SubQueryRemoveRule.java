@@ -28,7 +28,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -48,7 +47,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -640,46 +638,23 @@ public class SubQueryRemoveRule
 
   private static void matchJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
     final Join join = call.rel(0);
-    switch (join.getJoinType()) {
-    case INNER:
-    case LEFT:
-    case ANTI:
-    case SEMI:
-      break;
-    default:
-      //Incorrect queries will be produced for full and right joins.
-      return;
-    }
-    final RexBuilder rexBuilder = call.builder().getRexBuilder();
     final RelBuilder builder = call.builder();
-    builder
-        .push(join.getLeft())
-        .push(join.getRight());
-    CorrelationId id = join.getCluster().createCorrel();
-    RexNode condition = RelOptUtil.correlateLeftShiftRight(rexBuilder,
-        join.getLeft(), id, join.getRight(), join.getCondition());
-    boolean found = false;
-    while (true) {
-      final RexSubQuery subQuery = RexUtil.SubQueryFinder.find(condition);
-      if (subQuery == null) {
-        assert found;
-        break;
-      }
-      found = true;
-      final Set<CorrelationId>  variablesSet =
-          RelOptUtil.getVariablesUsed(subQuery.rel);
-      final RelOptUtil.Logic logic =
-          LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition), subQuery);
-      int offset = builder.peek().getRowType().getFieldCount();
-      final RexNode target = rule.apply(subQuery, variablesSet, logic,
-          builder, 1, offset);
-      final RexShuttle shuttle = new ReplaceSubQueryShuttle(subQuery, target);
-      condition = shuttle.apply(condition);
-    }
-    builder
-        .filter(condition)
-        .join(join.getJoinType(), rexBuilder.makeLiteral(true), ImmutableSet.of(id))
-        .project(fields(builder, join.getRowType().getFieldCount()));
+    final RexSubQuery e =
+        RexUtil.SubQueryFinder.find(join.getCondition());
+    assert e != null;
+    final RelOptUtil.Logic logic =
+        LogicVisitor.find(RelOptUtil.Logic.TRUE,
+            ImmutableList.of(join.getCondition()), e);
+    builder.push(join.getLeft());
+    builder.push(join.getRight());
+    final int fieldCount = join.getRowType().getFieldCount();
+    final Set<CorrelationId>  variablesSet =
+        RelOptUtil.getVariablesUsed(e.rel);
+    final RexNode target = rule.apply(e, variablesSet,
+        logic, builder, 2, fieldCount);
+    final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+    builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
+    builder.project(fields(builder, join.getRowType().getFieldCount()));
     call.transformTo(builder.build());
   }
 

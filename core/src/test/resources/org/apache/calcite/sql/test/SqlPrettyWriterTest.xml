@@ -16,6 +16,24 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testBetween">
+    <Resource name="formatted">
+      <![CDATA[`X` NOT BETWEEN SYMMETRIC `Y` AND `Z`]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testBlackSubQueryStyle">
+    <Resource name="formatted">
+      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
+FROM
+(   SELECT *
+        FROM `T`
+        WHERE `X` = `Y` AND `A` > 5
+        GROUP BY `Z`, `ZZ`
+        WINDOW `W` AS (PARTITION BY `C`),
+            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+ORDER BY `GG`]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testBlackSubQueryStyleIndent0">
     <Resource name="formatted">
       <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
@@ -26,18 +44,6 @@ WHERE `X` = `Y` AND `A` > 5
 GROUP BY `Z`, `ZZ`
 WINDOW `W` AS (PARTITION BY `C`),
 `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
-ORDER BY `GG`]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testDefault">
-    <Resource name="formatted">
-      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
-FROM (SELECT *
-        FROM `T`
-        WHERE `X` = `Y` AND `A` > 5
-        GROUP BY `Z`, `ZZ`
-        WINDOW `W` AS (PARTITION BY `C`),
-            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
 ORDER BY `GG`]]>
     </Resource>
   </TestCase>
@@ -54,6 +60,16 @@ WHEN 1 = CASE
 THEN 6
 ELSE 7
 END]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCase2">
+    <Resource name="formatted">
+      <![CDATA[CASE WHEN 1 = 2 + 3 THEN 4 WHEN 1 = CASE WHEN `A` = `B` THEN `C` ELSE `D` END THEN 6 ELSE 7 END]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCast">
+    <Resource name="formatted">
+      <![CDATA[CAST(`X` + `Y` AS DECIMAL(5, 10))]]>
     </Resource>
   </TestCase>
   <TestCase name="testChop">
@@ -155,24 +171,21 @@ ORDER BY
     `GG`]]>
     </Resource>
   </TestCase>
-  <TestCase name="testIndent8">
-    <Resource name="desc">
-      <![CDATA[indentation=8]]>
-    </Resource>
+  <TestCase name="testClausesNotOnNewLine">
     <Resource name="formatted">
-      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
-FROM (SELECT *
-                FROM `T`
-                WHERE `X` = `Y` AND `A` > 5
-                GROUP BY `Z`, `ZZ`
-                WINDOW `W` AS (PARTITION BY `C`),
-                        `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id` FROM (SELECT * FROM `T` WHERE `X` = `Y` AND `A` > 5 GROUP BY `Z`, `ZZ` WINDOW `W` AS (PARTITION BY `C`), `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
 ORDER BY `GG`]]>
     </Resource>
   </TestCase>
-  <TestCase name="testClausesNotOnNewLine">
+  <TestCase name="testDefault">
     <Resource name="formatted">
-      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id` FROM (SELECT *FROM `T` WHERE `X` = `Y` AND `A` > 5 GROUP BY `Z`, `ZZ` WINDOW `W` AS (PARTITION BY `C`), `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
+FROM (SELECT *
+        FROM `T`
+        WHERE `X` = `Y` AND `A` > 5
+        GROUP BY `Z`, `ZZ`
+        WINDOW `W` AS (PARTITION BY `C`),
+            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
 ORDER BY `GG`]]>
     </Resource>
   </TestCase>
@@ -190,113 +203,26 @@ FROM (SELECT *
 ORDER BY `GG`]]>
     </Resource>
   </TestCase>
-  <TestCase name="testSelectListItemsOnSeparateLines">
-    <Resource name="formatted">
-      <![CDATA[SELECT `X` AS `A`,
-    `B` AS `B`,
-    `C` AS `C`,
-    `D`,
-    'mixed-Case string',
-    `UNQUOTEDCAMELCASEID`,
-    `quoted id`
-FROM (SELECT *
-        FROM `T`
-        WHERE `X` = `Y` AND `A` > 5
-        GROUP BY `Z`,
-            `ZZ`
-        WINDOW `W` AS (PARTITION BY `C`),
-            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
-ORDER BY `GG`]]>
+  <TestCase name="testIndent8">
+    <Resource name="desc">
+      <![CDATA[indentation=8]]>
     </Resource>
-  </TestCase>
-  <TestCase name="testSelectListNoExtraIndentFlag">
-    <Resource name="formatted">
-      <![CDATA[SELECT
-    `X` AS `A`,
-    `B` AS `B`,
-    `C` AS `C`,
-    `D`,
-    'mixed-Case string',
-    `UNQUOTEDCAMELCASEID`,
-    `quoted id`
-FROM
-    (SELECT
-            *
-        FROM
-            `T`
-        WHERE `X` = `Y` AND `A` > 5
-        GROUP BY
-            `Z`,
-            `ZZ`
-        WINDOW
-            `W` AS (PARTITION BY `C`),
-            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
-ORDER BY
-    `GG`]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testKeywordsLowerCase">
-    <Resource name="formatted">
-      <![CDATA[select `X` as `A`, `B` as `B`, `C` as `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
-from (select *
-        from `T`
-        where `X` = `Y` and `A` > 5
-        group by `Z`, `ZZ`
-        window `W` as (partition by `C`),
-            `W1` as (partition by `C`, `D` order by `A`, `B` range between interval '2:2' hour to minute preceding and interval '1' day following))
-order by `GG`]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testParenthesizeAllExprs">
     <Resource name="formatted">
       <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
 FROM (SELECT *
-        FROM `T`
-        WHERE ((`X` = `Y`) AND (`A` > 5))
-        GROUP BY `Z`, `ZZ`
-        WINDOW `W` AS (PARTITION BY `C`),
-            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+                FROM `T`
+                WHERE `X` = `Y` AND `A` > 5
+                GROUP BY `Z`, `ZZ`
+                WINDOW `W` AS (PARTITION BY `C`),
+                        `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
 ORDER BY `GG`]]>
     </Resource>
   </TestCase>
-  <TestCase name="testOnlyQuoteIdentifiersWhichNeedIt">
+  <TestCase name="testInnerJoin">
     <Resource name="formatted">
-      <![CDATA[SELECT X AS A, B AS B, C AS C, D, 'mixed-Case string', UNQUOTEDCAMELCASEID, `quoted id`
-FROM (SELECT *
-        FROM T
-        WHERE X = Y AND A > 5
-        GROUP BY Z, ZZ
-        WINDOW W AS (PARTITION BY C),
-            W1 AS (PARTITION BY C, D ORDER BY A, B RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
-ORDER BY GG]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testBlackSubQueryStyle">
-    <Resource name="formatted">
-      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
-FROM
-(   SELECT *
-        FROM `T`
-        WHERE `X` = `Y` AND `A` > 5
-        GROUP BY `Z`, `ZZ`
-        WINDOW `W` AS (PARTITION BY `C`),
-            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
-ORDER BY `GG`]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testCase2">
-    <Resource name="formatted">
-      <![CDATA[CASE WHEN 1 = 2 + 3 THEN 4 WHEN 1 = CASE WHEN `A` = `B` THEN `C` ELSE `D` END THEN 6 ELSE 7 END]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testBetween">
-    <Resource name="formatted">
-      <![CDATA[`X` NOT BETWEEN SYMMETRIC `Y` AND `Z`]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testCast">
-    <Resource name="formatted">
-      <![CDATA[CAST(`X` + `Y` AS DECIMAL(5, 10))]]>
+      <![CDATA[SELECT *
+FROM `X`
+    INNER JOIN `Y` ON `X`.`K` = `Y`.`K`]]>
     </Resource>
   </TestCase>
   <TestCase name="testJoinComma">
@@ -346,6 +272,18 @@ FROM
     `X`
     INNER JOIN `Y` ON `X`.`K` = `Y`.`K`
     LEFT JOIN `Z` USING (`A`)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testKeywordsLowerCase">
+    <Resource name="formatted">
+      <![CDATA[select `X` as `A`, `B` as `B`, `C` as `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
+from (select *
+        from `T`
+        where `X` = `Y` and `A` > 5
+        group by `Z`, `ZZ`
+        window `W` as (partition by `C`),
+            `W1` as (partition by `C`, `D` order by `A`, `B` range between interval '2:2' hour to minute preceding and interval '1' day following))
+order by `GG`]]>
     </Resource>
   </TestCase>
   <TestCase name="testLeadingComma">
@@ -401,9 +339,90 @@ ORDER BY
     `GG`]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMultiset">
+    <Resource name="formatted">
+      <![CDATA[VALUES ROW(MULTISET ((SELECT *
+            FROM `T`)))]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOnlyQuoteIdentifiersWhichNeedIt">
+    <Resource name="formatted">
+      <![CDATA[SELECT X AS A, B AS B, C AS C, D, 'mixed-Case string', UNQUOTEDCAMELCASEID, `quoted id`
+FROM (SELECT *
+        FROM T
+        WHERE X = Y AND A > 5
+        GROUP BY Z, ZZ
+        WINDOW W AS (PARTITION BY C),
+            W1 AS (PARTITION BY C, D ORDER BY A, B RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+ORDER BY GG]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOverlaps">
     <Resource name="formatted">
       <![CDATA[PERIOD (`X`, `XX`) OVERLAPS PERIOD (`Y`, `YY`) OR `X` IS NOT NULL]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testParenthesizeAllExprs">
+    <Resource name="formatted">
+      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`
+FROM (SELECT *
+        FROM `T`
+        WHERE ((`X` = `Y`) AND (`A` > 5))
+        GROUP BY `Z`, `ZZ`
+        WINDOW `W` AS (PARTITION BY `C`),
+            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+ORDER BY `GG`]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectListItemsOnSeparateLines">
+    <Resource name="formatted">
+      <![CDATA[SELECT `X` AS `A`,
+    `B` AS `B`,
+    `C` AS `C`,
+    `D`,
+    'mixed-Case string',
+    `UNQUOTEDCAMELCASEID`,
+    `quoted id`
+FROM (SELECT *
+        FROM `T`
+        WHERE `X` = `Y` AND `A` > 5
+        GROUP BY `Z`,
+            `ZZ`
+        WINDOW `W` AS (PARTITION BY `C`),
+            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+ORDER BY `GG`]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectListNoExtraIndentFlag">
+    <Resource name="formatted">
+      <![CDATA[SELECT
+    `X` AS `A`,
+    `B` AS `B`,
+    `C` AS `C`,
+    `D`,
+    'mixed-Case string',
+    `UNQUOTEDCAMELCASEID`,
+    `quoted id`
+FROM
+    (SELECT
+            *
+        FROM
+            `T`
+        WHERE `X` = `Y` AND `A` > 5
+        GROUP BY
+            `Z`,
+            `ZZ`
+        WINDOW
+            `W` AS (PARTITION BY `C`),
+            `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+ORDER BY
+    `GG`]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableDotStarClausesNotOnNewLine">
+    <Resource name="formatted">
+      <![CDATA[SELECT `X` AS `A`, `B`, `S`.*, `T`.* FROM (SELECT * FROM `T` WHERE `X` = `Y` AND `A` > 5)
+ORDER BY `G` DESC, `H`, `I`]]>
     </Resource>
   </TestCase>
   <TestCase name="testUnion">
@@ -421,19 +440,6 @@ UNION
 SELECT *
 FROM `W`
 ORDER BY `A`, `B`]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testMultiset">
-    <Resource name="formatted">
-      <![CDATA[VALUES ROW(MULTISET ((SELECT *
-            FROM `T`)))]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testInnerJoin">
-    <Resource name="formatted">
-      <![CDATA[SELECT *
-FROM `X`
-    INNER JOIN `Y` ON `X`.`K` = `Y`.`K`]]>
     </Resource>
   </TestCase>
   <TestCase name="testUpdate">
@@ -469,15 +475,6 @@ FROM (VALUES ROW(1, 2),
             ROW(3, 4)) AS `T`]]>
     </Resource>
   </TestCase>
-  <TestCase name="testWhereListItemsOnSeparateLinesOr">
-    <Resource name="formatted">
-      <![CDATA[SELECT `X`
-FROM `Y`
-WHERE `H` IS NOT NULL AND `I` < `J`
-    OR (`A` OR `B`) IS TRUE AND `D` NOT IN (`F`, `G`)
-    OR `X` <> `Z`]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testWhereListItemsOnSeparateLinesAnd">
     <Resource name="formatted">
       <![CDATA[SELECT `X`
@@ -497,6 +494,15 @@ WHERE
     `H` IS NOT NULL
     AND (`I` < `J` OR (`A` OR `B`) IS TRUE)
     AND (`D` NOT IN (`F`, `G`) OR `V` <> (`W` * `X` + `Y`) * `Z`)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testWhereListItemsOnSeparateLinesOr">
+    <Resource name="formatted">
+      <![CDATA[SELECT `X`
+FROM `Y`
+WHERE `H` IS NOT NULL AND `I` < `J`
+    OR (`A` OR `B`) IS TRUE AND `D` NOT IN (`F`, `G`)
+    OR `X` <> `Z`]]>
     </Resource>
   </TestCase>
 </Root>

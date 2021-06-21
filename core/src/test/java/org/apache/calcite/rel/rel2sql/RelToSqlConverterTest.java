@@ -36,8 +36,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.rex.RexFieldCollation;
-import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -843,18 +841,13 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(b.field("SAL"))
         .project(
-            b.alias(
-                b.getRexBuilder().makeOver(
-                    b.getTypeFactory().createSqlType(SqlTypeName.INTEGER),
-                    SqlStdOperatorTable.RANK, ImmutableList.of(),
-                    ImmutableList.of(),
-                    ImmutableList.of(
-                        new RexFieldCollation(b.field("SAL"),
-                            ImmutableSet.of())),
-                    RexWindowBounds.UNBOUNDED_PRECEDING,
-                    RexWindowBounds.UNBOUNDED_FOLLOWING,
-                    true, true, false, false, false),
-                "rank"))
+            b.aggregateCall(SqlStdOperatorTable.RANK)
+                .over()
+                .orderBy(b.field("SAL"))
+                .rowsUnbounded()
+                .allowPartial(true)
+                .nullWhenCountZero(false)
+                .as("rank"))
         .as("t")
         .aggregate(b.groupKey(),
             b.count(b.field("t", "rank")).distinct().as("c"))
@@ -2896,17 +2889,17 @@ class RelToSqlConverterTest {
         + "on \"t1\".\"product_id\" = \"t3\".\"product_id\" or "
         + "(\"t1\".\"product_id\" is not null or "
         + "\"t3\".\"product_id\" is not null)";
-    // Some of the "IS NULL" and "IS NOT NULL" are reduced to TRUE or FALSE,
-    // but not all.
-    String expected = "SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
+    String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "INNER JOIN \"foodmart\".\"customer\" "
         + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
-        + " OR FALSE AND FALSE"
+        + " OR \"sales_fact_1997\".\"customer_id\" IS NULL"
+        + " AND \"customer\".\"customer_id\" IS NULL"
         + " OR \"customer\".\"occupation\" IS NULL\n"
         + "INNER JOIN \"foodmart\".\"product\" "
         + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\""
-        + " OR TRUE"
-        + " OR TRUE";
+        + " OR \"sales_fact_1997\".\"product_id\" IS NOT NULL"
+        + " OR \"product\".\"product_id\" IS NOT NULL";
     // The hook prevents RelBuilder from removing "FALSE AND FALSE" and such
     try (Hook.Closeable ignore =
              Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false))) {
@@ -2914,6 +2907,66 @@ class RelToSqlConverterTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4610">[CALCITE-4610]
+   * Join on range causes AssertionError in RelToSqlConverter</a>. */
+  @Test void testJoinOnRange() {
+    final String sql = "SELECT d.deptno, e.deptno\n"
+        + "FROM dept d\n"
+        + "LEFT JOIN emp e\n"
+        + " ON d.deptno = e.deptno\n"
+        + " AND d.deptno < 15\n"
+        + " AND d.deptno > 10\n"
+        + "WHERE e.job LIKE 'PRESIDENT'";
+    final String expected = "SELECT \"DEPT\".\"DEPTNO\","
+        + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\" "
+        + "ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\" "
+        + "AND (\"DEPT\".\"DEPTNO\" > 10"
+        + " AND \"DEPT\".\"DEPTNO\" < 15)\n"
+        + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4620">[CALCITE-4620]
+   * Join on CASE causes AssertionError in RelToSqlConverter</a>. */
+  @Test void testJoinOnCase() {
+    final String sql = "SELECT d.deptno, e.deptno\n"
+        + "FROM dept AS d LEFT JOIN emp AS e\n"
+        + " ON CASE WHEN e.job = 'PRESIDENT' THEN true ELSE d.deptno = 10 END\n"
+        + "WHERE e.job LIKE 'PRESIDENT'";
+    final String expected = "SELECT \"DEPT\".\"DEPTNO\","
+        + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\""
+        + " ON CASE WHEN \"EMP\".\"JOB\" = 'PRESIDENT' THEN TRUE"
+        + " ELSE CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) = 10 END\n"
+        + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
+
+  @Test void testWhereCase() {
+    final String sql = "SELECT d.deptno, e.deptno\n"
+        + "FROM dept AS d LEFT JOIN emp AS e ON d.deptno = e.deptno\n"
+        + "WHERE CASE WHEN e.job = 'PRESIDENT' THEN true\n"
+        + "      ELSE d.deptno = 10 END\n";
+    final String expected = "SELECT \"DEPT\".\"DEPTNO\","
+        + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\""
+        + " ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\"\n"
+        + "WHERE CASE WHEN \"EMP\".\"JOB\" = 'PRESIDENT' THEN TRUE"
+        + " ELSE CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) = 10 END";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1586">[CALCITE-1586]

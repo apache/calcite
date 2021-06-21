@@ -287,8 +287,16 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
       if (resultType == null) {
         resultType = type;
-        if (resultType.getSqlTypeName() == SqlTypeName.ROW) {
+        SqlTypeName sqlTypeName = resultType.getSqlTypeName();
+        if (sqlTypeName == SqlTypeName.ROW) {
           return leastRestrictiveStructuredType(types);
+        }
+        if (sqlTypeName == SqlTypeName.ARRAY
+            || sqlTypeName == SqlTypeName.MULTISET) {
+          return leastRestrictiveArrayMultisetType(types, sqlTypeName);
+        }
+        if (sqlTypeName == SqlTypeName.MAP) {
+          return leastRestrictiveMapType(types, sqlTypeName);
         }
       }
 

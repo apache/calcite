@@ -31,29 +31,31 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15)
+and Gradle (version 6.8.1) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
-then build using the included maven wrapper:
+then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.26.0-src.tar.gz
-$ cd apache-calcite-1.26.0-src
-$ ./gradlew build
+$ tar xvfz apache-calcite-1.27.0-src.tar.gz
+$ cd apache-calcite-1.27.0-src
+$ gradle build
 {% endhighlight %}
 
 [Running tests](#running-tests) describes how to run more or fewer
-tests.
+tests  (but you should use the `gradle` command rather than
+`./gradlew`).
 
 ## Building from Git
 
 Prerequisites are git
 and Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
 
-Create a local copy of the github repository,
+Create a local copy of the GitHub repository,
 `cd` to its root directory,
-then build using the included maven wrapper:
+then build using the included Gradle wrapper:
 
 {% highlight bash %}
 $ git clone git://github.com/apache/calcite.git
@@ -193,9 +195,9 @@ From within IDE:
 
 ### Integration tests technical details
 
-Tests with external data are executed at the maven's integration-test phase.
+Tests with external data are executed during Gradle's integration-test phase.
 We do not currently use pre-integration-test/post-integration-test, however, we could use that in the future.
-The verification of build pass/failure is performed at verify phase.
+The verification of build pass/failure is performed during the verify phase.
 Integration tests should be named `...IT.java`, so they are not picked up on unit test execution.
 
 ## Contributing
@@ -240,7 +242,7 @@ Wait for NetBeans to finish importing all dependencies.
 
 To ensure that the project is configured successfully, navigate to the method `testWinAgg` in `org.apache.calcite.test.JdbcTest`.
 Right-click on the method and select to *Run Focused Test Method*.
-NetBeans will run a Maven process, and you should see in the command output window a line with
+NetBeans will run a Gradle process, and you should see in the command output window a line with
  `Running org.apache.calcite.test.JdbcTest` followed by `"BUILD SUCCESS"`.
 
 Note: it is not clear if NetBeans automatically generates relevant sources on project import,
@@ -606,7 +608,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.26.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.28.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
@@ -653,13 +655,15 @@ asfGitSourcePassword=
 Note: Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
 `asfSvnPassword` are corresponding password.
 
-Note: when https://github.com/vlsi/asflike-release-environment is used, the credentials are taken from
+When
+[asflike-release-environment](https://github.com/vlsi/asflike-release-environment)
+is used, the credentials are taken from
 `asfTest...` (e.g. `asfTestNexusUsername=test`)
 
-Note: `asfGitSourceUsername` is your github id while `asfGitSourcePassword` is not your github password.
+Note: `asfGitSourceUsername` is your GitHub id while `asfGitSourcePassword` is not your GitHub password.
 You need to generate it in https://github.com/settings/tokens choosing `Personal access tokens`.
 
-Note: if you want to uses `gpg-agent`, you need to pass anther properties:
+Note: if you want to use `gpg-agent`, you need to pass some more properties:
 
 {% highlight properties %}
 useGpgCmd=true
@@ -696,6 +700,7 @@ Before you start:
   been applied also to `master`.
   This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
+* Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
 * Check that `calcite.version` has the proper value in `/gradle.properties`.
 * Make sure build and tests succeed
@@ -790,6 +795,10 @@ your key to the keyservers used by Nexus, see above.
   `README`, `README.md`
   * Check that the version in `README` is correct
   * Check that the copyright year in `NOTICE` is correct
+  * Check that `LICENSE` is identical to the file checked into git
+* Make sure that the following files do not occur in the source
+  distros: `KEYS`, `gradlew`, `gradlew.bat`, `gradle-wrapper.jar`,
+  `gradle-wrapper.properties`
 * Make sure that there is no `KEYS` file in the source distros
 * In each .jar (for example
   `core/build/libs/calcite-core-X.Y.Z.jar` and
@@ -823,7 +832,7 @@ gpg --recv-keys key
 # Check keys
 curl -O https://dist.apache.org/repos/dist/release/calcite/KEYS
 
-# Sign/check sha256 hashes
+# Sign/check sha512 hashes
 # (Assumes your O/S has a 'shasum' command.)
 function checkHash() {
   cd "$1"
@@ -831,15 +840,15 @@ function checkHash() {
     if [ ! -f $i ]; then
       continue
     fi
-    if [ -f $i.sha256 ]; then
-      if [ "$(cat $i.sha256)" = "$(shasum -a 256 $i)" ]; then
-        echo $i.sha256 present and correct
+    if [ -f $i.sha512 ]; then
+      if [ "$(cat $i.sha512)" = "$(shasum -a 512 $i)" ]; then
+        echo $i.sha512 present and correct
       else
-        echo $i.sha256 does not match
+        echo $i.sha512 does not match
       fi
     else
-      shasum -a 256 $i > $i.sha256
-      echo $i.sha256 created
+      shasum -a 512 $i > $i.sha512
+      echo $i.sha512 created
     fi
   done
 }
@@ -873,7 +882,7 @@ The artifacts to be voted on are located here:
 https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-X.Y.Z-rcN/
 
 The hashes of the artifacts are as follows:
-src.tar.gz.sha256 XXXX
+src.tar.gz.sha512 XXXX
 
 A staged Maven repository is available for review at:
 https://repository.apache.org/content/repositories/orgapachecalcite-NNNN

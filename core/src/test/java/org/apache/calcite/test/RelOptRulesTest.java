@@ -790,6 +790,52 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4499">[CALCITE-4499]
+   * FilterJoinRule misses opportunity to push filter to semijoin input</a>. */
+  @Test void testPushFilterSemijoin() {
+    final FilterJoinRule.Predicate predicate =
+        (join, joinType, exp) -> joinType != JoinRelType.INNER;
+    final FilterJoinRule.JoinConditionPushRule join =
+        CoreRules.JOIN_CONDITION_PUSH.config
+            .withPredicate(predicate)
+            .withDescription("FilterJoinRule:no-filter")
+            .as(FilterJoinRule.JoinConditionPushRule.Config.class)
+            .toRule();
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    RelNode left = relBuilder.scan("DEPT").build();
+    RelNode right = relBuilder.scan("EMP").build();
+    RelNode plan = relBuilder.push(left)
+        .push(right)
+        .semiJoin(
+            relBuilder.and(
+                relBuilder.call(SqlStdOperatorTable.EQUALS,
+                    relBuilder.field(2, 0, 0),
+                    relBuilder.field(2, 1, 7)),
+                relBuilder.call(SqlStdOperatorTable.EQUALS,
+                    relBuilder.field(2, 1, 5),
+                    relBuilder.literal(100))))
+        .project(relBuilder.field(1))
+        .build();
+
+    final String planBefore = NL + RelOptUtil.toString(plan);
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(join)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(plan);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
   @Test void testSemiJoinProjectTranspose() {
     final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
@@ -5513,6 +5559,45 @@ class RelOptRulesTest extends RelOptTestBase {
     assertEquals(planBefore, planAfter);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4621">[CALCITE-4621]
+   * SemiJoinRule throws AssertionError on ANTI join</a>. */
+  @Test void testJoinToSemiJoinRuleOnAntiJoin() {
+    testSemiJoinRuleOnAntiJoin(CoreRules.JOIN_TO_SEMI_JOIN);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4621">[CALCITE-4621]
+   * SemiJoinRule throws AssertionError on ANTI join</a>. */
+  @Test void testProjectToSemiJoinRuleOnAntiJoin() {
+    testSemiJoinRuleOnAntiJoin(CoreRules.PROJECT_TO_SEMI_JOIN);
+  }
+
+  private void testSemiJoinRuleOnAntiJoin(RelOptRule rule) {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode input = relBuilder
+        .scan("DEPT")
+        .scan("EMP")
+        .project(relBuilder.field("DEPTNO"))
+        .distinct()
+        .antiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("DNAME"))
+        .build();
+
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(rule)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(input);
+    final RelNode output = hepPlanner.findBestExp();
+    final String planBefore = RelOptUtil.toString(input);
+    final String planAfter = RelOptUtil.toString(output);
+    assertEquals(planBefore, planAfter);
+  }
+
   @Test void testPushJoinCondDownToProject() {
     final String sql = "select d.deptno, e.deptno from sales.dept d, sales.emp e\n"
         + " where d.deptno + 10 = e.deptno * 2";
@@ -6050,6 +6135,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinIn() {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
@@ -6057,6 +6143,7 @@ class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinInComposite() {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
@@ -6069,30 +6156,6 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
         + "on exists (select deptno from sales.emp where empno < 20)";
-    checkSubQuery(sql).check();
-  }
-
-  @Test void testJoinOnCorrelated() {
-    final String sql = ""
-        + "SELECT empno\n"
-        + "FROM emp AS e\n"
-        + "LEFT JOIN dept AS d\n"
-        + "  ON d.deptno = e.deptno\n"
-        + "    AND (e.sal in (\n"
-        + "      SELECT e2.sal FROM emp AS e2\n"
-        + "      WHERE e2.deptno > e.deptno)\n"
-        + "    OR e.sal < (\n"
-        + "      SELECT avg(e2.sal) FROM emp AS e2\n"
-        + "      WHERE e2.deptno = d.deptno)\n"
-        + "    OR e.sal > SOME (\n"
-        + "      SELECT MAX(e2.sal) FROM emp AS e2\n"
-        + "      WHERE e2.sal = e.sal"
-        + "      GROUP BY e2.deptno)\n"
-        + "    OR EXISTS (\n"
-        + "      SELECT e2.deptno FROM emp AS e2\n"
-        + "      WHERE e2.deptno = d.deptno\n"
-        + "      GROUP BY e2.deptno\n"
-        + "      HAVING SUM(e2.sal) > 1000000))";
     checkSubQuery(sql).check();
   }
 

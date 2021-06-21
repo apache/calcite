@@ -18,13 +18,16 @@ package org.apache.calcite.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSortedSet;
 
 import org.junit.jupiter.api.Assertions;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.Objects;
+import java.util.SortedSet;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -296,6 +299,20 @@ public abstract class TestUtil {
         .tryClass(23, "com.google.common.util.concurrent.FluentFuture")
         .tryClass(26, "com.google.common.util.concurrent.ExecutionSequencer")
         .bestVersion;
+  }
+
+  /** Given a list, returns the number of elements that are not between an
+   * element that is less and an element that is greater. */
+  public static <E extends Comparable<E>> SortedSet<E> outOfOrderItems(List<E> list) {
+    E previous = null;
+    final ImmutableSortedSet.Builder<E> b = ImmutableSortedSet.naturalOrder();
+    for (E e : list) {
+      if (previous != null && previous.compareTo(e) > 0) {
+        b.add(e);
+      }
+      previous = e;
+    }
+    return b.build();
   }
 
   /** Checks if exceptions have give substring. That is handy to prevent logging SQL text twice */
