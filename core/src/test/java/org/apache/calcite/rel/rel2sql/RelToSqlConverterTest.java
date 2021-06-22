@@ -8891,28 +8891,4 @@ class RelToSqlConverterTest {
             .withBigQuery()
             .ok(expectedBQ);
   }
-
-  @Test public void testInstrFunctionHandlingWithFourArguments() {
-    String query = "select INSTR('Choose a chocolate chip cookie', 'ch', 12, 1)";
-    final String expectedBigQuery = "SELECT INSTR('Choose a chocolate chip cookie', 'ch', 12, 1)";
-    sql(query)
-        .withBigQuery()
-        .ok(expectedBigQuery);
-  }
-
-  @Test public void testInstrFunctionHandlingWithThreeArguments() {
-    String query = "select INSTR('Choose a chocolate chip cookie', 'ch', 12)";
-    final String expectedBigQuery = "SELECT INSTR('Choose a chocolate chip cookie', 'ch', 12)";
-    sql(query)
-        .withBigQuery()
-        .ok(expectedBigQuery);
-  }
-
-  @Test public void testInstrFunctionHandlingWithTwoArguments() {
-    String query = "select INSTR('Choose a chocolate chip cookie', 'ch')";
-    final String expectedBigQuery = "SELECT INSTR('Choose a chocolate chip cookie', 'ch')";
-    sql(query)
-        .withBigQuery()
-        .ok(expectedBigQuery);
-  }
 }
