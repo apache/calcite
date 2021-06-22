@@ -986,7 +986,7 @@ public abstract class SqlLibraryOperators {
 
   /** Returns the index of search string in source string
    *  0 is returned when no match is found. */
-  @LibraryOperator(libraries = {SNOWFLAKE})
+  @LibraryOperator(libraries = {SNOWFLAKE, BIG_QUERY})
   public static final SqlFunction INSTR = new SqlFunction(
           "INSTR",
           SqlKind.OTHER_FUNCTION,

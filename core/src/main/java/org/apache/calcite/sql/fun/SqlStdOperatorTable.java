@@ -161,10 +161,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** CONV function converts the given number n from one base to another base. */
   public static final SqlFunction CONV = SqlLibraryOperators.CONV;
 
-  /** Returns the index of search string in source string
-   *  0 is returned when no match is found. */
-  public static final SqlFunction INSTR = SqlLibraryOperators.INSTR;
-
   //-------------------------------------------------------------
   //                   BINARY OPERATORS
   //-------------------------------------------------------------
