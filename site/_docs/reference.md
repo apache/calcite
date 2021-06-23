@@ -1828,8 +1828,6 @@ and `LISTAGG`).
 | LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
-| PERCENTILE_CONT(numeric)           | Returns a percentile based on a continuous distribution of the column values; argument must be a numeric literal in the range 0.0 - 1.0
-| PERCENTILE_DISC(numeric)           | Returns a percentile based on a discrete distribution of the column values; argument must be a numeric literal in the range 0.0 - 1.0
 | FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
 | INTERSECTION(multiset)             | Returns the multiset intersection of *multiset* across all input values
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
@@ -1862,6 +1860,28 @@ Not implemented:
 * REGR_R2(numeric1, numeric2)
 * REGR_SLOPE(numeric1, numeric2)
 * REGR_SXY(numeric1, numeric2)
+
+#### Ordered-Set Aggregate Functions
+
+Syntax:
+
+{% highlight sql %}
+aggregateCall:
+      agg '(' value ')'
+      [ WITHIN GROUP '(' ORDER BY orderItem ')' ]
+{% endhighlight %}
+
+where *agg* is one of the operators in the following table.
+
+The aggregate function sorts the input rows according to the `ORDER BY` clause
+inside `WITHIN GROUP` before aggregating values. All the aggregate functions which
+take a fraction parameter, the fraction value must be between 0 and 1, an error is
+thrown if not.
+
+| Operator syntax                    | Description
+|:---------------------------------- |:-----------
+| PERCENTILE_CONT(fraction) WITHIN GROUP(ORDER BY sort_expression)  | Returns a percentile based on a continuous distribution of the column values, interpolating between adjacent input items if needed
+| PERCENTILE_DISC(fraction) WITHIN GROUP(ORDER BY sort_expression)  | Returns a percentile based on a discrete distribution of the column values returning the first input value whose position in the ordering equals or exceeds the specified fraction
 
 ### Window functions
 

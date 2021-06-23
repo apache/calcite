@@ -80,6 +80,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.fun.SqlBasicAggFunction;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -1504,7 +1505,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private void validatePercentileFunctions(SqlCall call) {
-    // Percentile functions must have a single argument in the order by clause
     if (call.getOperandList().size() == 2) {
       SqlBasicCall sqlBasicCall = null;
       SqlNodeList list = null;
@@ -1522,11 +1522,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       if (sqlBasicCall != null && list != null
-          && (sqlBasicCall.getOperator().getKind() == SqlKind.PERCENTILE_CONT
-          || sqlBasicCall.getOperator().getKind() == SqlKind.PERCENTILE_DISC)
-          && (list.getList().size() != 1)) {
-        throw newValidationError(call,
-            RESOURCE.invalidArgCount(sqlBasicCall.getOperator().getName(), 1));
+          && sqlBasicCall.getOperator() instanceof SqlBasicAggFunction) {
+        SqlBasicAggFunction agg = (SqlBasicAggFunction) sqlBasicCall.getOperator();
+        if (agg.isPercentile()) {
+          // Validate that Percentile function have a single ORDER BY expression
+          if (list.getList().size() != 1) {
+            throw newValidationError(call,
+                RESOURCE.invalidArgCount(agg.getName(), 1));
+          }
+        }
       }
     }
   }

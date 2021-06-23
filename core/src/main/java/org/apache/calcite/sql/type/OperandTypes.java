@@ -370,10 +370,10 @@ public abstract class OperandTypes {
       };
 
   /**
-   * Operand type-checking strategy type must be a positive numeric non-NULL
+   * Operand type-checking strategy type must be a numeric non-NULL
    * literal in the range 0 - 1.
    */
-  public static final SqlSingleOperandTypeChecker POSITIVE_NUMERIC_LITERAL =
+  public static final SqlSingleOperandTypeChecker UNIT_INTERVAL_NUMERIC_LITERAL =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),
           i -> false) {
         @Override public boolean checkSingleOperandType(

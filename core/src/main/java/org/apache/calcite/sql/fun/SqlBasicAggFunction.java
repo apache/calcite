@@ -51,6 +51,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
   private final SqlSyntax syntax;
   private final boolean allowsNullTreatment;
   private final boolean allowsSeparator;
+  private final boolean isPercentile;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -60,7 +61,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory funcType,
       boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder, Optionality distinctOptionality,
-      SqlSyntax syntax, boolean allowsNullTreatment, boolean allowsSeparator) {
+      SqlSyntax syntax, boolean allowsNullTreatment, boolean allowsSeparator,
+      boolean isPercentile) {
     super(name, sqlIdentifier, kind,
         requireNonNull(returnTypeInference, "returnTypeInference"), operandTypeInference,
         requireNonNull(operandTypeChecker, "operandTypeChecker"),
@@ -70,6 +72,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     this.syntax = requireNonNull(syntax, "syntax");
     this.allowsNullTreatment = allowsNullTreatment;
     this.allowsSeparator = allowsSeparator;
+    this.isPercentile = isPercentile;
   }
 
   /** Creates a SqlBasicAggFunction whose name is the same as its kind. */
@@ -86,7 +89,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return new SqlBasicAggFunction(name, null, kind, returnTypeInference, null,
         operandTypeChecker, SqlFunctionCategory.NUMERIC, false, false,
         Optionality.FORBIDDEN, Optionality.OPTIONAL, SqlSyntax.FUNCTION, false,
-        false);
+        false, false);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -131,7 +134,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment, allowsSeparator);
+        allowsNullTreatment, allowsSeparator, isPercentile);
   }
 
   /** Sets {@link #getFunctionType()}. */
@@ -140,7 +143,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), category, requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment, allowsSeparator);
+        allowsNullTreatment, allowsSeparator, isPercentile);
   }
 
   @Override public SqlSyntax getSyntax() {
@@ -153,7 +156,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment, allowsSeparator);
+        allowsNullTreatment, allowsSeparator, isPercentile);
   }
 
   @Override public boolean allowsNullTreatment() {
@@ -166,7 +169,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment, allowsSeparator);
+        allowsNullTreatment, allowsSeparator, isPercentile);
   }
 
   /** Returns whether this aggregate function allows '{@code SEPARATOR string}'
@@ -181,7 +184,21 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(),  requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment, allowsSeparator);
+        allowsNullTreatment, allowsSeparator, isPercentile);
+  }
+
+  /** Returns whether this aggregate function is a PERCENTILE function. */
+  public boolean isPercentile() {
+    return isPercentile;
+  }
+
+  /** Sets {@link #isPercentile()}. */
+  public SqlBasicAggFunction withPercentile(boolean isPercentile) {
+    return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
+        getReturnTypeInference(), getOperandTypeInference(),
+        getOperandTypeChecker(), getFunctionType(), requiresOrder(),
+        requiresOver(),  requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator, isPercentile);
   }
 
   /** Sets {@link #requiresGroupOrder()}. */
@@ -190,6 +207,6 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), groupOrder, distinctOptionality, syntax,
-        allowsNullTreatment, allowsSeparator);
+        allowsNullTreatment, allowsSeparator, isPercentile);
   }
 }
