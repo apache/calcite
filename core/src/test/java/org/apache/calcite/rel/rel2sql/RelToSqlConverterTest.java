@@ -5701,6 +5701,14 @@ class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test void testCrossJoinEmulationForBigQuery() {
+    String query = "select * from \"employee\", \"department\"";
+    final String expected = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "CROSS JOIN foodmart.department";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
