@@ -1882,7 +1882,10 @@ public class RelBuilder {
           break label;
         }
       }
-      if (registrar.extraNodes.size() == fields().size()) {
+      boolean groupIsSame = groupKey_.nodeLists == null ? true
+          : groupKey_.nodeLists.size() == 1
+          && groupKey_.nodes.size() == groupKey_.nodeLists.get(0).size();
+      if (groupIsSame && registrar.extraNodes.size() == fields().size()) {
         final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
         if (unique != null && unique
             && !config.aggregateUnique()

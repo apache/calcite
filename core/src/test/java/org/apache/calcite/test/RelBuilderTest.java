@@ -1675,6 +1675,45 @@ public class RelBuilderTest {
     }
   }
 
+  @Test public void testAggregateGroupingSetsSameGroup() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root1 =
+        builder.scan("EMP")
+        .aggregate(builder.groupKey(0, 1, 7),
+          builder.aggregateCall(SqlStdOperatorTable.COUNT,
+            builder.field("JOB")).as("job_num"))
+        .aggregate(
+          builder.groupKey(ImmutableBitSet.of(0, 1, 2),
+            (Iterable<ImmutableBitSet>)
+              ImmutableList.of(ImmutableBitSet.of(0, 1))))
+        // GROUP BY 0,1,2 GROUPING SETS((0, 1))
+        .build();
+    String expected1 = ""
+        + "LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1}]])\n"
+        + "  LogicalAggregate(group=[{0, 1, 7}], job_num=[COUNT($2)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root1, hasTree(expected1));
+
+    RelNode root2 =
+        builder.scan("EMP")
+        .aggregate(builder.groupKey(0, 1, 7),
+          builder.aggregateCall(SqlStdOperatorTable.COUNT,
+            builder.field("JOB")).as("job_num"))
+        .aggregate(
+          builder.groupKey(ImmutableBitSet.of(0, 1, 2),
+            (Iterable<ImmutableBitSet>)
+              ImmutableList.of(ImmutableBitSet.of(0, 1),
+                ImmutableBitSet.of(0, 1, 2))))
+        // GROUP BY 0,1,2 GROUPING SETS((0, 1), (0, 1, 2))
+        .build();
+    String expected2 = ""
+        + "LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}]])\n"
+        + "  LogicalAggregate(group=[{0, 1, 7}], job_num=[COUNT($2)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root2, hasTree(expected2));
+  }
+
+
   @Test void testAggregateGroupingSetDuplicateIgnored() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
