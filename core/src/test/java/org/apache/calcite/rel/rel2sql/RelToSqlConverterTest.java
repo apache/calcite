@@ -8917,23 +8917,51 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testYear() {
-    String query = "SELECT YEAR(CURRENT_DATE), YEAR(CURRENT_TIMESTAMP)";
-    final String expectedBQ = "SELECT EXTRACT(YEAR FROM CURRENT_DATE), "
-        + "EXTRACT(YEAR FROM CURRENT_TIMESTAMP)";
+  @Test public void testExtractDay() {
+    String query = "SELECT EXTRACT(DAY FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_TIMESTAMP)";
+    final String expectedSFSql = "SELECT DAY(CURRENT_DATE), DAY(CURRENT_TIMESTAMP)";
+    final String expectedBQSql = "SELECT EXTRACT(DAY FROM CURRENT_DATE), "
+        + "EXTRACT(DAY FROM CURRENT_TIMESTAMP)";
+    final String expectedMsSql = "SELECT DAY(CAST(GETDATE() AS DATE)), DAY(GETDATE())";
 
     sql(query)
+        .withSnowflake()
+        .ok(expectedSFSql)
         .withBigQuery()
-        .ok(expectedBQ);
+        .ok(expectedBQSql)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 
-  @Test public void testMonth() {
-    String query = "SELECT MONTH(CURRENT_DATE), MONTH(CURRENT_TIMESTAMP)";
-    final String expectedBQ = "SELECT EXTRACT(MONTH FROM CURRENT_DATE), "
+  @Test public void testExtractMonth() {
+    String query = "SELECT EXTRACT(MONTH FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_TIMESTAMP)";
+    final String expectedSFSql = "SELECT MONTH(CURRENT_DATE), MONTH(CURRENT_TIMESTAMP)";
+    final String expectedBQSql = "SELECT EXTRACT(MONTH FROM CURRENT_DATE), "
         + "EXTRACT(MONTH FROM CURRENT_TIMESTAMP)";
+    final String expectedMsSql = "SELECT MONTH(CAST(GETDATE() AS DATE)), MONTH(GETDATE())";
 
     sql(query)
+        .withSnowflake()
+        .ok(expectedSFSql)
         .withBigQuery()
-        .ok(expectedBQ);
+        .ok(expectedBQSql)
+        .withMssql()
+        .ok(expectedMsSql);
+  }
+
+  @Test public void testExtractYear() {
+    String query = "SELECT EXTRACT(YEAR FROM CURRENT_DATE), EXTRACT(YEAR FROM CURRENT_TIMESTAMP)";
+    final String expectedSFSql = "SELECT YEAR(CURRENT_DATE), YEAR(CURRENT_TIMESTAMP)";
+    final String expectedBQSql = "SELECT EXTRACT(YEAR FROM CURRENT_DATE), "
+        + "EXTRACT(YEAR FROM CURRENT_TIMESTAMP)";
+    final String expectedMsSql = "SELECT YEAR(CAST(GETDATE() AS DATE)), YEAR(GETDATE())";
+
+    sql(query)
+        .withSnowflake()
+        .ok(expectedSFSql)
+        .withBigQuery()
+        .ok(expectedBQSql)
+        .withMssql()
+        .ok(expectedMsSql);
   }
 }

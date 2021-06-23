@@ -197,6 +197,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case EXTRACT:
+      final SqlWriter.Frame extractFrame = writer.startFunCall(call.operand(0).toString());
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(extractFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
