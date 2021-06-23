@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -111,6 +112,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERIC_TIME_ZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.SEC_FROM_MIDNIGHT;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOURMIN;
@@ -251,6 +253,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MILISECONDS_4, "4S");
         put(U, "%u");
         put(NUMERIC_TIME_ZONE, "%Ez");
+        put(SEC_FROM_MIDNIGHT, "SEC_FROM_MIDNIGHT");
       }};
 
   private static final String OR = "|";
@@ -323,6 +326,10 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public boolean supportsCharSet() {
     return false;
+  }
+
+  @Override public JoinType emulateJoinTypeForCrossJoin() {
+    return JoinType.CROSS;
   }
 
   @Override public boolean castRequiredForStringOperand(RexCall node) {
@@ -793,6 +800,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         TimeUnit dayOfYear = TimeUnit.DOY;
         unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
         break;
+      case "'SEC_FROM_MIDNIGHT'":
+        secFromMidnight(writer, call, leftPrec, rightPrec);
+        break;
       default:
         unparseFormatCall(writer, call, leftPrec, rightPrec);
       }
@@ -905,25 +915,24 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_LIKE":
       unparseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
-    case "YEAR":
-      createExtractCall(writer, call.operand(0), TimeUnit.YEAR, leftPrec, rightPrec);
-      break;
-    case "MONTH":
-      createExtractCall(writer, call.operand(0), TimeUnit.MONTH, leftPrec, rightPrec);
-      break;
-    case "DAY":
-      createExtractCall(writer, call.operand(0), TimeUnit.DAY, leftPrec, rightPrec);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
-  private void createExtractCall(SqlWriter writer, SqlNode operand, TimeUnit timeUnit,
-      int leftPrec, int rightPrec) {
-    SqlNode extractNode = EXTRACT.createCall(SqlParserPos.ZERO,
-        SqlLiteral.createSymbol(timeUnit, SqlParserPos.ZERO), operand);
-    extractNode.unparse(writer, leftPrec, rightPrec);
+  private void secFromMidnight(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode dateNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE));
+    SqlNode timestampNode = getCastSpec(
+        new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+    SqlNode stringNode = getCastSpec(
+        new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR));
+    SqlNode secSymbol = SqlLiteral.createSymbol(TimeUnit.SECOND, SqlParserPos.ZERO);
+    SqlNode secondOperand = CAST.createCall(SqlParserPos.ZERO,
+        CAST.createCall(SqlParserPos.ZERO, call.operand(1), dateNode), timestampNode);
+    SqlCall midnightSec = CAST.createCall(
+        SqlParserPos.ZERO, DATE_DIFF.createCall(SqlParserPos.ZERO,
+        call.operand(1), secondOperand, secSymbol), stringNode);
+    unparseCall(writer, midnightSec, leftPrec, rightPrec);
   }
 
   private void unparseFormatCall(SqlWriter writer,
