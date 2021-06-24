@@ -472,6 +472,9 @@ public interface CalciteResource {
   @BaseMessage("Type ''{0}'' is not supported")
   ExInst<SqlValidatorException> typeNotSupported(String a0);
 
+  @BaseMessage("Invalid type: ''{0}''. Only NUMERIC types are supported")
+  ExInst<SqlValidatorException> typeMustBeNumeric(String a0);
+
   @BaseMessage("DISTINCT/ALL not allowed with {0} function")
   ExInst<SqlValidatorException> functionQuantifierNotAllowed(String a0);
 
