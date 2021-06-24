@@ -7778,6 +7778,36 @@ public class JdbcTest {
         .returns("result=20\n");
   }
 
+  @Test public void testInStrWith4Arguments() {
+    final String sql = "SELECT\n"
+        + "INSTR('Choose a chocolate chip cookie from the chocolate chip jar',"
+        + " 'ch', 12, 2) as \"result\"";
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query(sql)
+        .returns("result=41\n");
+  }
+
+  @Test public void testInStrWith3Arguments() {
+    final String sql = "SELECT\n"
+        + "INSTR('Choose a chocolate chip cookie from the chocolate chip jar',"
+        + " 'ch', 12) as \"result\"";
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query(sql)
+        .returns("result=20\n");
+  }
+
+  @Test public void testInStrWith2Arguments() {
+    final String sql = "SELECT\n"
+        + "INSTR('Choose a chocolate chip cookie from the chocolate chip jar',"
+        + " 'ch') as \"result\"";
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query(sql)
+        .returns("result=10\n");
+  }
+
   @Test public void testCharindex() {
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
         .with(CalciteConnectionProperty.FUN, "mssql")

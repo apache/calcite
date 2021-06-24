@@ -842,14 +842,6 @@ public class BigQuerySqlDialect extends SqlDialect {
           call.operand(1), call.operand(0));
       unparseCall(writer, parseTimestampCall, leftPrec, rightPrec);
       break;
-    case "INSTR":
-      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(frame);
-      break;
     case "DATE_MOD":
       unparseDateModule(writer, call, leftPrec, rightPrec);
       break;

@@ -1155,6 +1155,10 @@ class SqlFunctionsTest {
   @Test public void testInStr() {
     assertThat(instr("Choose a chocolate chip cookie", "ch", 2, 2), is(20));
     assertThat(instr("Choose a chocolate chip cookie", "cc", 2, 2), is(0));
+    assertThat(instr("Choose a chocolate chip cookie", "ch", 2), is(10));
+    assertThat(instr("Choose a chocolate chip cookie", "ch"), is(10));
+    assertThat(instr("Choose a chocolate chip cookie", "cc", 2), is(0));
+    assertThat(instr("Choose a chocolate chip cookie", "cc"), is(0));
   }
 
   /** Test for {@link SqlFunctions#charindex}. */
