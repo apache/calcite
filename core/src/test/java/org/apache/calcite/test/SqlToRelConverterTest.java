@@ -3883,7 +3883,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testPercentileContWithGroupBy() {
     final String sql = "select deptno,\n"
-        + " percentile_cont(0.25) within group (order by hiredate)\n"
+        + " percentile_cont(0.25) within group (order by empno)\n"
         + "from emp\n"
         + "group by deptno";
     sql(sql).ok();
@@ -3898,7 +3898,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testPercentileDiscWithGroupBy() {
     final String sql = "select deptno,\n"
-        + " percentile_disc(0.25) within group (order by hiredate)\n"
+        + " percentile_disc(0.25) within group (order by empno)\n"
         + "from emp\n"
         + "group by deptno";
     sql(sql).ok();
