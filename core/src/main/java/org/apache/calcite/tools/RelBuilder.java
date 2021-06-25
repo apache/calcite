@@ -2409,7 +2409,7 @@ public class RelBuilder {
     Frame right = stack.pop();
     final Frame left = stack.pop();
     final RelNode join;
-    final boolean correlate = variablesSet.size() == 1;
+    final boolean correlate = isCorrelated(variablesSet, joinType, left.rel, right.rel);
     RexNode postCondition = literal(true);
     if (config.simplify()) {
       // Normalize expanded versions IS NOT DISTINCT FROM so that simplifier does not
@@ -2422,10 +2422,6 @@ public class RelBuilder {
     }
     if (correlate) {
       final CorrelationId id = Iterables.getOnlyElement(variablesSet);
-      if (!RelOptUtil.notContainsCorrelation(left.rel, id, Litmus.IGNORE)) {
-        throw new IllegalArgumentException("variable " + id
-            + " must not be used by left input to correlation");
-      }
       // Correlate does not have an ON clause.
       switch (joinType) {
       case LEFT:
@@ -3438,6 +3434,30 @@ public class RelBuilder {
       return nodeLists == null || nodeLists.size() == 1;
     }
   }
+
+  /**Checks for {@link CorrelationId}, then validates the id is not used on left,
+   * and finally checks if id is actually used on right.*/
+  private static boolean isCorrelated(Set<CorrelationId> variablesSet,
+      JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
+    if (variablesSet.size() != 1) {
+      return false;
+    }
+    CorrelationId id = Iterables.getOnlyElement(variablesSet);
+    if (!RelOptUtil.notContainsCorrelation(leftNode, id, Litmus.IGNORE)) {
+      throw new IllegalArgumentException("variable " + id
+          + " must not be used by left input to correlation");
+    }
+    switch (joinType) {
+    case RIGHT:
+    case FULL:
+      throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
+    default:
+      return !RelOptUtil.correlationColumns(
+          Iterables.getOnlyElement(variablesSet),
+          rightRel).isEmpty();
+    }
+  }
+
 
   /** Implementation of {@link AggCall}. */
   private class AggCallImpl implements AggCallPlus {
