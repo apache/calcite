@@ -1875,9 +1875,9 @@ where *agg* is one of the operators in the following table.
 
 The aggregate function sorts the input rows according to the `ORDER BY` clause
 inside `WITHIN GROUP` before aggregating values. The sorting can be ascending or
-descending (ascending by default if not specified). All the aggregate functions which
-take a fraction parameter, the fraction value must be between 0 and 1. An error is
-thrown if not.
+descending (ascending by default if not specified). For all the aggregate functions
+which take a fraction parameter, the fraction value must be between 0 and 1 inclusive.
+An error is thrown if not.
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------

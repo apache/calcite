@@ -2235,7 +2235,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The PERCENTILE_CONT operator. The inverse distribution aggregator function.
-   * The argument must be numeric literal in range 0.0 - 1.0.
+   * The argument must be numeric literal in range [0.0 - 1.0].
    * The return type is a double.
    */
   public static final SqlAggFunction PERCENTILE_CONT =
@@ -2243,22 +2243,21 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           .create(SqlKind.PERCENTILE_CONT, ReturnTypes.DOUBLE,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
       .withFunctionType(SqlFunctionCategory.SYSTEM)
-      .withGroupOrder(Optionality.MANDATORY)
-      .withPercentile(true);
+      .withGroupOrder(Optionality.MANDATORY);
 
   /**
    * The PERCENTILE_DISC operator. The inverse distribution aggregator function.
-   * The argument must be numeric literal in range 0.0 - 1.0.
+   * The argument must be numeric literal in range [0.0 - 1.0].
    * The return type is determined by the type of order by expression which
    * cannot be determined by the function itself, so using double instead.
+   * TODO: Add support for any sortable type for PERCENTILE_DISC
    */
   public static final SqlAggFunction PERCENTILE_DISC =
       SqlBasicAggFunction
           .create(SqlKind.PERCENTILE_DISC, ReturnTypes.DOUBLE,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
-          .withFunctionType(SqlFunctionCategory.SYSTEM)
-          .withGroupOrder(Optionality.MANDATORY)
-          .withPercentile(true);
+      .withFunctionType(SqlFunctionCategory.SYSTEM)
+      .withGroupOrder(Optionality.MANDATORY);
 
   /**
    * The LISTAGG operator. String aggregator function.

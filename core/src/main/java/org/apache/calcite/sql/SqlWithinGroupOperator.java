@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.PercentileValidator;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -79,6 +80,11 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
+    // Validate if this call is on percentile functions
+    PercentileValidator percentileValidator = new PercentileValidator(validator, scope);
+    call.accept(percentileValidator);
+    percentileValidator.validate(call);
+
     // Validate type of the inner aggregate call
     return validateOperands(validator, scope, call);
   }

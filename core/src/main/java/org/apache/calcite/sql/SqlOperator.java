@@ -20,15 +20,12 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.fun.SqlBasicAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -751,61 +748,9 @@ public abstract class SqlOperator {
       }
     }
 
-    validatePercentileFunctionOperands(callBinding);
-
     return operandTypeChecker.checkOperandTypes(
         callBinding,
         throwOnFailure);
-  }
-
-  /**
-   * Validates that the operands for percentile function are valid.
-   *
-   * @param callBinding    description of call
-   */
-  protected void validatePercentileFunctionOperands(
-      SqlCallBinding callBinding) {
-    if (callBinding.getOperator() == SqlStdOperatorTable.WITHIN_GROUP) {
-      List<SqlNode> operands = callBinding.operands();
-      if (operands.size() == 2) {
-        SqlBasicCall sqlBasicCall = null;
-        SqlNodeList list = null;
-        SqlNode node1 = operands.get(0);
-        SqlNode node2 = operands.get(1);
-        if (node1 instanceof SqlBasicCall) {
-          sqlBasicCall = (SqlBasicCall) node1;
-        } else if (node2 instanceof SqlBasicCall) {
-          sqlBasicCall = (SqlBasicCall) node2;
-        }
-        if (node1 instanceof SqlNodeList) {
-          list = (SqlNodeList) node1;
-        } else if (node2 instanceof SqlNodeList) {
-          list = (SqlNodeList) node2;
-        }
-
-        if (sqlBasicCall != null && list != null
-            && sqlBasicCall.getOperator() instanceof SqlBasicAggFunction) {
-          SqlBasicAggFunction agg = (SqlBasicAggFunction) sqlBasicCall.getOperator();
-          if (agg.isPercentile()) {
-            // Validate that percentile function have a single ORDER BY expression
-            if (list.getList().size() != 1) {
-              throw callBinding.newValidationError(
-                  RESOURCE.invalidArgCount(agg.getName(), 1));
-            }
-
-            // Validate that the ORDER BY field is of NUMERIC type
-            SqlNode node = list.getList().get(0);
-            assert node != null;
-
-            RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
-            if (type.getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC) {
-              throw callBinding.newValidationError(
-                  RESOURCE.typeMustBeNumeric(type.getSqlTypeName().getName()));
-            }
-          }
-        }
-      }
-    }
   }
 
   protected void checkOperandCount(
