@@ -3901,8 +3901,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         "This should fail since only numeric fields are supported.");
     assertThat(
         ex.getMessage(),
-        containsString("Invalid type: 'VARCHAR'. " +
-            "Only NUMERIC types are supported"));
+        containsString("Invalid type: 'VARCHAR'. "
+            + "Only NUMERIC types are supported"));
   }
 
   @Test void testPercentileContMultipleOrderByFields() {
@@ -3914,8 +3914,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         "This should fail since only one ORDER BY field is supported.");
     assertThat(
         ex.getMessage(),
-        containsString("Invalid number of arguments to function " +
-            "'PERCENTILE_CONT'. Was expecting 1 arguments"));
+        containsString("Invalid number of arguments to function "
+            + "'PERCENTILE_CONT'. Was expecting 1 arguments"));
   }
 
   @Test void testPercentileDisc() {
@@ -3942,8 +3942,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         "This should fail since only numeric fields are supported.");
     assertThat(
         ex.getMessage(),
-        containsString("Invalid type: 'VARCHAR'. " +
-            "Only NUMERIC types are supported"));
+        containsString("Invalid type: 'VARCHAR'. "
+            + "Only NUMERIC types are supported"));
   }
 
   @Test void testPercentileDiscMultipleOrderByFields() {
@@ -3955,8 +3955,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         "This should fail since only one ORDER BY field is supported.");
     assertThat(
         ex.getMessage(),
-        containsString("Invalid number of arguments to function " +
-            "'PERCENTILE_DISC'. Was expecting 1 arguments"));
+        containsString("Invalid number of arguments to function "
+            + "'PERCENTILE_DISC'. Was expecting 1 arguments"));
   }
 
   @Test void testOrderByRemoval1() {
