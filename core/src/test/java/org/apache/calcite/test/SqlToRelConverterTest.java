@@ -41,6 +41,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -71,10 +72,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.Is.isA;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -3889,6 +3892,32 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testPercentileContNonNumericOrderByField() {
+    final String sql = "select\n"
+        + " percentile_cont(0.25) within group (order by ename)\n"
+        + "from emp";
+    CalciteContextException ex = assertThrows(CalciteContextException.class,
+        () -> sql(sql).ok(),
+        "This should fail since only numeric fields are supported.");
+    assertThat(
+        ex.getMessage(),
+        containsString("Invalid type: 'VARCHAR'. " +
+            "Only NUMERIC types are supported"));
+  }
+
+  @Test void testPercentileContMultipleOrderByFields() {
+    final String sql = "select\n"
+        + " percentile_cont(0.25) within group (order by deptno, empno)\n"
+        + "from emp";
+    CalciteContextException ex = assertThrows(CalciteContextException.class,
+        () -> sql(sql).ok(),
+        "This should fail since only one ORDER BY field is supported.");
+    assertThat(
+        ex.getMessage(),
+        containsString("Invalid number of arguments to function " +
+            "'PERCENTILE_CONT'. Was expecting 1 arguments"));
+  }
+
   @Test void testPercentileDisc() {
     final String sql = "select\n"
         + " percentile_disc(0.25) within group (order by deptno)\n"
@@ -3902,6 +3931,32 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "from emp\n"
         + "group by deptno";
     sql(sql).ok();
+  }
+
+  @Test void testPercentileDiscNonNumericOrderByField() {
+    final String sql = "select\n"
+        + " percentile_disc(0.25) within group (order by ename)\n"
+        + "from emp";
+    CalciteContextException ex = assertThrows(CalciteContextException.class,
+        () -> sql(sql).ok(),
+        "This should fail since only numeric fields are supported.");
+    assertThat(
+        ex.getMessage(),
+        containsString("Invalid type: 'VARCHAR'. " +
+            "Only NUMERIC types are supported"));
+  }
+
+  @Test void testPercentileDiscMultipleOrderByFields() {
+    final String sql = "select\n"
+        + " percentile_disc(0.25) within group (order by deptno, empno)\n"
+        + "from emp";
+    CalciteContextException ex = assertThrows(CalciteContextException.class,
+        () -> sql(sql).ok(),
+        "This should fail since only one ORDER BY field is supported.");
+    assertThat(
+        ex.getMessage(),
+        containsString("Invalid number of arguments to function " +
+            "'PERCENTILE_DISC'. Was expecting 1 arguments"));
   }
 
   @Test void testOrderByRemoval1() {

@@ -371,7 +371,7 @@ public abstract class OperandTypes {
 
   /**
    * Operand type-checking strategy type must be a numeric non-NULL
-   * literal in the range 0 - 1.
+   * literal in the range 0 and 1 inclusive.
    */
   public static final SqlSingleOperandTypeChecker UNIT_INTERVAL_NUMERIC_LITERAL =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),

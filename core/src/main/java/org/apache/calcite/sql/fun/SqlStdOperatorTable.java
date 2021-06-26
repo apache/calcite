@@ -2235,7 +2235,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The PERCENTILE_CONT operator. The inverse distribution aggregator function.
-   * The argument must be numeric literal in range [0.0 - 1.0].
+   * The argument must be numeric literal in range 0 and 1 inclusive.
    * The return type is a double.
    */
   public static final SqlAggFunction PERCENTILE_CONT =
@@ -2247,7 +2247,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * The PERCENTILE_DISC operator. The inverse distribution aggregator function.
-   * The argument must be numeric literal in range [0.0 - 1.0].
+   * The argument must be numeric literal in range 0 and 1 inclusive.
    * The return type is determined by the type of order by expression which
    * cannot be determined by the function itself, so using double instead.
    * TODO: Add support for any sortable type for PERCENTILE_DISC
