@@ -17,11 +17,10 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.fun.SqlBasicAggFunction;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -52,16 +51,11 @@ public class PercentileValidator extends SqlBasicVisitor<Void> {
   //~ Methods ----------------------------------------------------------------
 
   @Override public Void visit(SqlCall call) {
-    if (call instanceof SqlBasicCall) {
-      SqlBasicCall sqlBasicCall = (SqlBasicCall) call;
-      if (sqlBasicCall.getOperator() instanceof SqlBasicAggFunction) {
-        SqlBasicAggFunction agg = (SqlBasicAggFunction) sqlBasicCall.getOperator();
-        if (isPercentile(agg)) {
-          isPercentile = true;
-          functionName = agg.getName();
-          return null;
-        }
-      }
+    SqlOperator operator = call.getOperator();
+    if (isPercentile(operator)) {
+      isPercentile = true;
+      functionName = operator.getName();
+      return null;
     }
     return super.visit(call);
   }
@@ -99,8 +93,8 @@ public class PercentileValidator extends SqlBasicVisitor<Void> {
     return type.getSqlTypeName().getFamily() == SqlTypeFamily.NUMERIC;
   }
 
-  public static boolean isPercentile(SqlBasicAggFunction aggFunc) {
-    return aggFunc == SqlStdOperatorTable.PERCENTILE_CONT
-        || aggFunc == SqlStdOperatorTable.PERCENTILE_DISC;
+  public static boolean isPercentile(SqlOperator sqlOperator) {
+    return sqlOperator == SqlStdOperatorTable.PERCENTILE_CONT
+        || sqlOperator == SqlStdOperatorTable.PERCENTILE_DISC;
   }
 }
