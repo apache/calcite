@@ -3435,8 +3435,15 @@ public class RelBuilder {
     }
   }
 
-  /**Checks for {@link CorrelationId}, then validates the id is not used on left,
-   * and finally checks if id is actually used on right.*/
+  /**
+   * Checks for {@link CorrelationId}, then validates the id is not used on left,
+   * and finally checks if id is actually used on right.
+   *
+   * @return true if a correlate id is present and used
+   *
+   * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side or if the a
+   *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
+   */
   private static boolean isCorrelated(Set<CorrelationId> variablesSet,
       JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
     if (variablesSet.size() != 1) {
