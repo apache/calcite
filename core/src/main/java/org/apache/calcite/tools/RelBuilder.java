@@ -2409,7 +2409,7 @@ public class RelBuilder {
     Frame right = stack.pop();
     final Frame left = stack.pop();
     final RelNode join;
-    final boolean correlate = isCorrelated(variablesSet, joinType, left.rel, right.rel);
+    final boolean correlate = checkIfCorrelated(variablesSet, joinType, left.rel, right.rel);
     RexNode postCondition = literal(true);
     if (config.simplify()) {
       // Normalize expanded versions IS NOT DISTINCT FROM so that simplifier does not
@@ -3444,7 +3444,7 @@ public class RelBuilder {
    * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side or if the a
    *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
    */
-  private static boolean isCorrelated(Set<CorrelationId> variablesSet,
+  private static boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
       JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
     if (variablesSet.size() != 1) {
       return false;
