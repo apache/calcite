@@ -1601,7 +1601,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
 
 # Test filter null IN null correlated
 select sal from "scott".emp e
-  where cast(null as int) IN (
+  where e.sal < 0 OR cast(null as int) IN (
     select cast(null as int)
     from "scott".dept d where e.deptno=d.deptno);
  SAL
@@ -1609,12 +1609,17 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableValues(tuples=[[]])
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t1])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[<($t5, $t8)], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal IN null correlated
 select sal from "scott".emp e
-  where 123 IN (
+  where e.sal < 0 OR 123 IN (
     select cast(null as int)
     from "scott".dept d where e.deptno=d.deptno);
  SAL
@@ -1622,12 +1627,18 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableValues(tuples=[[]])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], expr#7=[IS NOT NULL($t4)], expr#8=[AND($t4, $t7)], expr#9=[OR($t6, $t8)], SAL=[$t1], $condition=[$t9])
+  EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableSort(sort0=[$2], dir0=[ASC])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], DEPTNO=[$t0], $f1=[$t3])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null IN literal correlated
 select sal from "scott".emp e
-  where cast(null as int) IN (
+  where e.sal < 0 OR cast(null as int) IN (
     select 1
     from "scott".dept d where e.deptno=d.deptno);
  SAL
@@ -1635,12 +1646,17 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableValues(tuples=[[]])
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t1])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[<($t5, $t8)], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null IN required correlated
 select sal from "scott".emp e
-  where cast(null as int) IN (
+  where e.sal < 0 OR cast(null as int) IN (
     select deptno
     from "scott".dept d where e.deptno=d.deptno);
  SAL
@@ -1648,12 +1664,17 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableValues(tuples=[[]])
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t1])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[<($t5, $t8)], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null IN nullable correlated
 select sal from "scott".emp e
-  where cast(null as int) IN (
+  where e.sal < 0 OR cast(null as int) IN (
     select case when true then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
  SAL
@@ -1661,7 +1682,12 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableValues(tuples=[[]])
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t1])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[<($t5, $t8)], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal IN required correlated
@@ -2105,13 +2131,13 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t1, $t2)], expr#8=[IS TRUE($t7)]
 !ok
 
 # [CALCITE-4560] Wrong plan when decorrelating EXISTS subquery with COALESCE in the predicate
-# The employee KING has no manager (NULL) so before the fix the following query was missing 
-# this employee from the result set. 
+# The employee KING has no manager (NULL) so before the fix the following query was missing
+# this employee from the result set.
 select ename
 from "scott".emp as e1
-where exists 
+where exists
     (select 1 from "scott".emp as e2 where coalesce(e1.mgr,0)=coalesce(e2.mgr,0));
-# The plan before the fix was wrong but also inefficient since it required the generation of 
+# The plan before the fix was wrong but also inefficient since it required the generation of
 # a value generator (see RelDecorrelator code). The value generator is not present in the
 # following plan (two scans of EMP table instead of three).
 EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
