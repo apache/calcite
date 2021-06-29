@@ -1852,7 +1852,7 @@ and `LISTAGG`).
 | REGR_COUNT(numeric1, numeric2)     | Returns the number of rows where both dependent and independent expressions are not null
 | REGR_SXX(numeric1, numeric2)       | Returns the sum of squares of the dependent expression in a linear regression model
 | REGR_SYY(numeric1, numeric2)       | Returns the sum of squares of the independent expression in a linear regression model
-| MODE( [ ALL &#124; DISTINCT ] value)          | Returns the common value of *value* across all input values
+| MODE( [ ALL &#124; DISTINCT ] value)          | Returns the most frequent value of *value* across all input values
 
 Not implemented:
 
