@@ -782,7 +782,8 @@ public abstract class SqlOperator {
           list = (SqlNodeList) node2;
         }
 
-        if (sqlBasicCall != null && list != null) {
+        if (sqlBasicCall != null && list != null
+            && sqlBasicCall.getOperator() instanceof SqlAggFunction) {
           SqlAggFunction agg = (SqlAggFunction) sqlBasicCall.getOperator();
           if (agg.isPercentile()) {
             // Validate that percentile function have a single ORDER BY expression

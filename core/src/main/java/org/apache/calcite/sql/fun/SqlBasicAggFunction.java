@@ -192,12 +192,12 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
   }
 
   /** Sets {@link #isPercentile()}. */
-  public SqlBasicAggFunction withPercentile(boolean isPercentile) {
+  public SqlBasicAggFunction withPercentile(boolean percentile) {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment, allowsSeparator, isPercentile);
+        allowsNullTreatment, allowsSeparator, percentile);
   }
 
   /** Sets {@link #requiresGroupOrder()}. */
