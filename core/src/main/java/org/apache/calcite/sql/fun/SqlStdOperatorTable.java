@@ -2234,30 +2234,34 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       .withGroupOrder(Optionality.OPTIONAL);
 
   /**
-   * The PERCENTILE_CONT operator. The inverse distribution aggregator function.
-   * The argument must be numeric literal in range 0 and 1 inclusive.
-   * The return type is a double.
+   * {@code PERCENTILE_CONT} inverse distribution aggregate function.
+   *
+   * <p>The argument must be a numeric literal in the range 0 to 1 inclusive
+   * (representing a percentage), and the return type is {@code DOUBLE}.
    */
   public static final SqlAggFunction PERCENTILE_CONT =
       SqlBasicAggFunction
           .create(SqlKind.PERCENTILE_CONT, ReturnTypes.DOUBLE,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
-      .withFunctionType(SqlFunctionCategory.SYSTEM)
-      .withGroupOrder(Optionality.MANDATORY);
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withGroupOrder(Optionality.MANDATORY)
+          .withPercentile(true);
 
   /**
-   * The PERCENTILE_DISC operator. The inverse distribution aggregator function.
-   * The argument must be numeric literal in range 0 and 1 inclusive.
-   * The return type is determined by the type of order by expression which
-   * cannot be determined by the function itself, so using double instead.
-   * TODO: Add support for any sortable type for PERCENTILE_DISC
+   * {@code PERCENTILE_DISC} inverse distribution aggregate function.
+   *
+   * <p>The argument must be a numeric literal in the range 0 to 1 inclusive
+   * (representing a percentage), and the return type is {@code DOUBLE}.
+   * (The return type should determined by the type of the {@code ORDER BY}
+   * expression, but this cannot be determined by the function itself.)
    */
   public static final SqlAggFunction PERCENTILE_DISC =
       SqlBasicAggFunction
           .create(SqlKind.PERCENTILE_DISC, ReturnTypes.DOUBLE,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
-      .withFunctionType(SqlFunctionCategory.SYSTEM)
-      .withGroupOrder(Optionality.MANDATORY);
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withGroupOrder(Optionality.MANDATORY)
+          .withPercentile(true);
 
   /**
    * The LISTAGG operator. String aggregator function.
