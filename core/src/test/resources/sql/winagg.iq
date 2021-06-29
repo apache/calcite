@@ -698,4 +698,47 @@ from emps order by emps."GENDER";
 
 !ok
 
+# [CALCITE-3661] MODE function
+
+# MODE function without ORDER BY.
+select deptno,
+  mode(gender) over (partition by deptno) as m
+from emp;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     10 | F |
+|     10 | F |
+|     20 | M |
+|     30 | F |
+|     30 | F |
+|     50 | M |
+|     50 | M |
+|     60 | F |
+|        | F |
++--------+---+
+(9 rows)
+
+!ok
+
+select deptno,
+  ename,
+  mode(gender) over (partition by deptno order by ENAME) as m
+from emp;
++--------+-------+---+
+| DEPTNO | ENAME | M |
++--------+-------+---+
+|     10 | Bob   | M |
+|     10 | Jane  | M |
+|     20 | Eric  | M |
+|     30 | Alice | F |
+|     30 | Susan | F |
+|     50 | Adam  | M |
+|     50 | Eve   | M |
+|     60 | Grace | F |
+|        | Wilma | F |
++--------+-------+---+
+(9 rows)
+
+!ok
 # End winagg.iq

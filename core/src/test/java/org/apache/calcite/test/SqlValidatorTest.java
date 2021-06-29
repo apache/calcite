@@ -8313,6 +8313,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT MAX(5) FROM emp").ok();
   }
 
+  @Test void testModeFunction() {
+    sql("select MODE(sal) from emp").ok();
+    sql("select MODE(sal) over (order by empno) from emp").ok();
+    sql("select MODE(ename) from emp where sal=3000");
+    sql("select MODE(sal) from emp group by deptno").ok();
+    sql("select MODE(sal) from emp group by deptno order by deptno").ok();
+    sql("select deptno,\n"
+        + "^mode(empno)^ within group(order by 1)\n"
+        + "from emp\n"
+        + "group by deptno")
+        .fails("Aggregate expression 'MODE' must not contain a WITHIN GROUP clause");
+  }
+
   @Test void testSomeEveryAndIntersectionFunctions() {
     sql("select some(sal = 100), every(sal > 0), intersection(multiset[1,2]) from emp").ok();
     sql("select some(sal = 100), ^empno^ from emp")

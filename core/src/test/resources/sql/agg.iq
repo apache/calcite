@@ -2990,4 +2990,149 @@ from (select 1 as a, 2 as b, 3 as c);
 
 !ok
 
+# [CALCITE-3661] Add MODE aggregate function
+
+# MODE without GROUP BY
+select MODE(gender) as m
+from emp;
++---+
+| M |
++---+
+| F |
++---+
+(1 row)
+
+!ok
+
+# MODE with DISTINCT is pretty much useless (because every value occurs once),
+# but we allow it. It returns the first value seen, in this case 'F'.
+select MODE(distinct gender) as m
+from emp;
++---+
+| M |
++---+
+| F |
++---+
+(1 row)
+
+!ok
+
+# MODE function with WHERE.
+select MODE(gender) as m
+from emp
+where deptno <= 20;
++---+
+| M |
++---+
+| M |
++---+
+(1 row)
+
+!ok
+
+# MODE function with WHERE that removes all rows.
+# Result is NULL even though MODE is applied to a not-NULL column.
+select MODE(gender) as m
+from emp
+where deptno > 60;
++---+
+| M |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+# MODE function with GROUP BY.
+select deptno, MODE(gender) as m
+from emp
+where deptno > 10
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     20 | M |
+|     30 | F |
+|     50 | M |
+|     60 | F |
++--------+---+
+(4 rows)
+
+!ok
+
+# MODE function with GROUP BY; note that key is NULL but result is not NULL.
+select deptno, MODE(gender) as m
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|        | F |
++--------+---+
+(1 row)
+
+!ok
+
+# MODE function with GROUP BY; key is NULL and input value is NULL.
+select deptno, MODE(deptno) as m
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|        |   |
++--------+---+
+(1 row)
+
+!ok
+
+# MODE function applied to NULL value.
+# (Calcite requires CAST so that it can deduce type.)
+select deptno, MODE(CAST(null AS INTEGER)) as m
+from emp
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     10 |   |
+|     20 |   |
+|     30 |   |
+|     50 |   |
+|     60 |   |
+|        |   |
++--------+---+
+(6 rows)
+
+!ok
+
+# MODE function with GROUPING SETS.
+select deptno, ename, MODE(gender) as m
+from emp
+group by grouping sets (deptno, ename);
++--------+-------+---+
+| DEPTNO | ENAME | M |
++--------+-------+---+
+|     10 |       | F |
+|     20 |       | M |
+|     30 |       | F |
+|     50 |       | M |
+|     60 |       | F |
+|        | Adam  | M |
+|        | Alice | F |
+|        | Bob   | M |
+|        | Eric  | M |
+|        | Eve   | F |
+|        | Grace | F |
+|        | Jane  | F |
+|        | Susan | F |
+|        | Wilma | F |
+|        |       | F |
++--------+-------+---+
+(15 rows)
+
+!ok
+
 # End agg.iq

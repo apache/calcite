@@ -3747,6 +3747,32 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testModeFunction">
+    <Resource name="sql">
+      <![CDATA[select mode(deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MODE($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testModeFunctionWithWinAgg">
+    <Resource name="sql">
+      <![CDATA[select deptno, ename,
+  mode(job) over (partition by deptno order by ename)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], ENAME=[$1], EXPR$2=[MODE($2) OVER (PARTITION BY $7 ORDER BY $1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModifiableViewDdlExtend">
     <Resource name="sql">
       <![CDATA[select extra from EMP_MODIFIABLEVIEW2]]>

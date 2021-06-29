@@ -307,6 +307,7 @@ public enum BuiltInMethod {
   COLLECTION_SIZE(Collection.class, "size"),
   MAP_CLEAR(Map.class, "clear"),
   MAP_GET(Map.class, "get", Object.class),
+  MAP_GET_OR_DEFAULT(Map.class, "getOrDefault", Object.class, Object.class),
   MAP_PUT(Map.class, "put", Object.class, Object.class),
   COLLECTION_ADD(Collection.class, "add", Object.class),
   COLLECTION_ADDALL(Collection.class, "addAll", Collection.class),
