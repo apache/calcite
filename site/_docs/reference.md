@@ -1863,26 +1863,18 @@ Not implemented:
 
 #### Ordered-Set Aggregate Functions
 
-Syntax:
+The syntax is as for *aggregateCall*, except that `WITHIN GROUP` is
+required.
 
-{% highlight sql %}
-aggregateCall:
-      agg '(' value ')'
-      WITHIN GROUP '(' ORDER BY orderItem [ ASC | DESC ] ')'
-{% endhighlight %}
+In the following:
 
-where *agg* is one of the operators in the following table.
-
-The aggregate function sorts the input rows according to the `ORDER BY` clause
-inside `WITHIN GROUP` before aggregating values. The sorting can be ascending or
-descending (ascending by default if not specified). For all the aggregate functions
-which take a fraction parameter, the fraction value must be between 0 and 1 inclusive.
-An error is thrown if not.
+* *fraction* is a numeric literal between 0 and 1, inclusive, and
+  represents a percentage
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
-| PERCENTILE_CONT(fraction) WITHIN GROUP(ORDER BY sort_expression [ ASC &#124; DESC ])  | Returns a percentile based on a continuous distribution of the column values, interpolating between adjacent input items if needed
-| PERCENTILE_DISC(fraction) WITHIN GROUP(ORDER BY sort_expression [ ASC &#124; DESC ])  | Returns a percentile based on a discrete distribution of the column values returning the first input value whose position in the ordering equals or exceeds the specified fraction
+| PERCENTILE_CONT(fraction) WITHIN GROUP (ORDER BY orderItem) | Returns a percentile based on a continuous distribution of the column values, interpolating between adjacent input items if needed
+| PERCENTILE_DISC(fraction) WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) | Returns a percentile based on a discrete distribution of the column values returning the first input value whose position in the ordering equals or exceeds the specified fraction
 
 ### Window functions
 
