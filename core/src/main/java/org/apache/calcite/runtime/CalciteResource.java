@@ -543,8 +543,8 @@ public interface CalciteResource {
   @BaseMessage("Argument to function ''{0}'' must be a positive integer literal")
   ExInst<SqlValidatorException> argumentMustBePositiveInteger(String a0);
 
-  @BaseMessage("Argument to function ''{0}'' must be a positive literal in range [{1,number,#}, {2,number,#}]")
-  ExInst<SqlValidatorException> argumentMustBePositiveLiteralInRange(String a0, int min, int max);
+  @BaseMessage("Argument to function ''{0}'' must be a numeric literal between {1,number,#} and {2,number,#}")
+  ExInst<SqlValidatorException> argumentMustBeNumericLiteralInRange(String a0, int min, int max);
 
   @BaseMessage("Validation Error: {0}")
   ExInst<CalciteException> validationError(String a0);

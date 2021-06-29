@@ -399,12 +399,12 @@ public abstract class OperandTypes {
 
           final SqlLiteral arg = (SqlLiteral) node;
           final BigDecimal value = arg.getValueAs(BigDecimal.class);
-          if (value.compareTo(BigDecimal.ZERO) < 0 || value.compareTo(BigDecimal.ONE) > 0) {
+          if (value.compareTo(BigDecimal.ZERO) < 0
+              || value.compareTo(BigDecimal.ONE) > 0) {
             if (throwOnFailure) {
               throw callBinding.newError(
-                  RESOURCE.argumentMustBePositiveLiteralInRange(
-                      callBinding.getOperator().getName(),
-                      0, 1));
+                  RESOURCE.argumentMustBeNumericLiteralInRange(
+                      callBinding.getOperator().getName(), 0, 1));
             }
             return false;
           }
