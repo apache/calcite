@@ -662,23 +662,17 @@ public enum BuiltInMethod {
     this.field = castNonNull(field);
   }
 
-  /**
-   * Defines a method.
-   */
+  /** Defines a method. */
   BuiltInMethod(Class clazz, String methodName, Class... argumentTypes) {
     this(Types.lookupMethod(clazz, methodName, argumentTypes), null, null);
   }
 
-  /**
-   * Defines a constructor.
-   */
+  /** Defines a constructor. */
   BuiltInMethod(Class clazz, Class... argumentTypes) {
     this(null, Types.lookupConstructor(clazz, argumentTypes), null);
   }
 
-  /**
-   * Defines a field.
-   */
+  /** Defines a field. */
   BuiltInMethod(Class clazz, String fieldName, boolean dummy) {
     this(null, null, Types.lookupField(clazz, fieldName));
     assert dummy : "dummy value for method overloading must be true";
