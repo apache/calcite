@@ -948,6 +948,16 @@ public abstract class ReturnTypes {
   };
 
   /**
+   * Type-inference strategy for the {@code MODE} aggregate function.
+   */
+  public static final SqlReturnTypeInference MODE = opBinding -> {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final RelDataType type = typeFactory.getTypeSystem()
+        .deriveModeType(typeFactory, opBinding.getOperandType(0));
+    return typeFactory.createTypeWithNullability(type, true);
+  };
+
+  /**
    * Type-inference strategy for the {@code NTILE}, {@code RANK},
    * {@code DENSE_RANK}, and {@code ROW_NUMBER} aggregate functions.
    */

@@ -307,6 +307,7 @@ public enum BuiltInMethod {
   COLLECTION_SIZE(Collection.class, "size"),
   MAP_CLEAR(Map.class, "clear"),
   MAP_GET(Map.class, "get", Object.class),
+  MAP_GET_OR_DEFAULT(Map.class, "getOrDefault", Object.class, Object.class),
   MAP_PUT(Map.class, "put", Object.class, Object.class),
   COLLECTION_ADD(Collection.class, "add", Object.class),
   COLLECTION_ADDALL(Collection.class, "addAll", Collection.class),
@@ -661,17 +662,23 @@ public enum BuiltInMethod {
     this.field = castNonNull(field);
   }
 
-  /** Defines a method. */
+  /**
+   * Defines a method.
+   */
   BuiltInMethod(Class clazz, String methodName, Class... argumentTypes) {
     this(Types.lookupMethod(clazz, methodName, argumentTypes), null, null);
   }
 
-  /** Defines a constructor. */
+  /**
+   * Defines a constructor.
+   */
   BuiltInMethod(Class clazz, Class... argumentTypes) {
     this(null, Types.lookupConstructor(clazz, argumentTypes), null);
   }
 
-  /** Defines a field. */
+  /**
+   * Defines a field.
+   */
   BuiltInMethod(Class clazz, String fieldName, boolean dummy) {
     this(null, null, Types.lookupField(clazz, fieldName));
     assert dummy : "dummy value for method overloading must be true";

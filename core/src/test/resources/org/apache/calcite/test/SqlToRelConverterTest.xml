@@ -3749,6 +3749,52 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testModeFunction">
+    <Resource name="sql">
+      <![CDATA[select mode(deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MODE($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testModeFunctionWithGroupBy">
+    <Resource name="sql">
+      <![CDATA[select mode(deptno)
+from emp
+group by job]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[MODE($1)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testModeFunctionWithGroupByOrderBy">
+    <Resource name="sql">
+      <![CDATA[select mode(job)
+from emp
+group by dname,sal
+order by sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(EXPR$0=[$2], SAL=[$1])
+      LogicalAggregate(group=[{0, 1}], EXPR$0=[MODE($2)])
+        LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModifiableViewDdlExtend">
     <Resource name="sql">
       <![CDATA[select extra from EMP_MODIFIABLEVIEW2]]>

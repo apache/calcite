@@ -3843,6 +3843,33 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4661">[CALCITE-4661]
+   * Add MODE aggregate function</a>. */
+  @Test public void testModeFunction() {
+    final String sql = ""
+        + "select mode(deptno)\n"
+        + "from emp";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test public void testModeFunctionWithGroupBy() {
+    final String sql = ""
+        + "select mode(deptno)\n"
+        + "from emp\n"
+        + "group by job";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test public void testModeFunctionWithGroupByOrderBy() {
+    final String sql = ""
+        + "select mode(job)\n"
+        + "from emp\n"
+        + "group by deptno,sal\n"
+        + "order by sal";
+    sql(sql).trim(true).ok();
+  }
+
   @Test void testWithinGroup1() {
     final String sql = "select deptno,\n"
         + " collect(empno) within group (order by deptno, hiredate desc)\n"

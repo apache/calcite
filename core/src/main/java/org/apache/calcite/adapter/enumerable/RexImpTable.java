@@ -261,6 +261,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MODE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT;
@@ -666,6 +667,7 @@ public class RexImpTable {
     aggMap.put(ARRAY_AGG, constructorSupplier(CollectImplementor.class));
     aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
+    aggMap.put(MODE, constructorSupplier(ModeImplementor.class));
     aggMap.put(ARRAY_CONCAT_AGG, constructorSupplier(FusionImplementor.class));
     aggMap.put(INTERSECTION, constructorSupplier(IntersectionImplementor.class));
     final Supplier<GroupingImplementor> grouping =
@@ -1238,6 +1240,81 @@ public class RexImpTable {
               Expressions.equal(add.accumulator().get(0), Expressions.constant(null)),
               accumulatorIsNull.toBlock(),
               accumulatorNotNull.toBlock()));
+    }
+  }
+
+  /** Implementor for the {@code MODE} aggregate function. */
+  static class ModeImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.constant(null))));
+
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(1),
+                  Expressions.new_(HashMap.class))));
+
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(2),
+                  Expressions.constant(0, Long.class))));
+    }
+
+    @Override protected void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      Expression args = add.arguments().get(0);
+
+      Expression accResult = add.accumulator().get(0);
+      Expression accMap = add.accumulator().get(1);
+      Expression accLong = add.accumulator().get(2);
+
+      Expression methodCallExpression =
+          Expressions.call(accMap,
+              BuiltInMethod.MAP_GET_OR_DEFAULT.method,
+              args, Expressions.constant(0, Long.class));
+
+      Expression methodCallExpression2 = Expressions.call(accMap,
+              BuiltInMethod.MAP_PUT.method, args,
+              Expressions.add(Expressions.convert_(methodCallExpression, Long.class),
+                  Expressions.constant(1, Long.class)));
+      add.currentBlock().add(Expressions.statement(methodCallExpression2));
+
+      add.currentBlock().add(
+          Expressions.ifThen(
+          Expressions.greaterThan(accLong,
+              Expressions.convert_(
+                  Expressions.call(accMap,
+                  BuiltInMethod.MAP_GET.method, args), Long.class)),
+          Expressions.block(
+              Expressions.return_(null,
+              ((MemberExpression) accResult).expression))));
+
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(accLong,
+          Expressions.convert_(
+              Expressions.call(accMap,
+              BuiltInMethod.MAP_GET.method, args), Long.class))));
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(accResult, args)));
+    }
+
+    @Override protected Expression implementNotNullResult(AggContext info,
+        AggResultContext result) {
+      return result.accumulator().get(0);
+    }
+
+    @Override public List<Type> getNotNullState(AggContext info) {
+      List<Type> types = new ArrayList<>();
+      types.add(Object.class);
+      types.add(HashMap.class);
+      types.add(Long.class);
+      return types;
     }
   }
 

@@ -258,6 +258,11 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
         typeFactory.createSqlType(SqlTypeName.BIGINT), false);
   }
 
+  @Override public RelDataType deriveModeType(RelDataTypeFactory typeFactory,
+      RelDataType argumentType) {
+    return argumentType;
+  }
+
   @Override public boolean isSchemaCaseSensitive() {
     return true;
   }
