@@ -4854,7 +4854,7 @@ LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0)])
   <TestCase name="testPercentileCont">
     <Resource name="sql">
       <![CDATA[select
- percentile_cont(0.25) within group (order by deptno)\n"
+ percentile_cont(0.25) within group (order by deptno)
 from emp]]>
     </Resource>
     <Resource name="plan">
@@ -4867,14 +4867,14 @@ LogicalAggregate(group=[{}], EXPR$0=[PERCENTILE_CONT($0) WITHIN GROUP ([1])])
   </TestCase>
   <TestCase name="testPercentileContWithGroupBy">
     <Resource name="sql">
-      <![CDATA[select deptno
- percentile_cont(0.25) within group (order by empno)
+      <![CDATA[select deptno,
+ percentile_cont(0.25) within group (order by empno desc)
 from emp
 group by deptno]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalAggregate(group=[{0}], EXPR$1=[PERCENTILE_CONT($1) WITHIN GROUP ([2])])
+LogicalAggregate(group=[{0}], EXPR$1=[PERCENTILE_CONT($1) WITHIN GROUP ([2 DESC])])
   LogicalProject(DEPTNO=[$7], $f1=[0.25:DECIMAL(3, 2)], EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -4883,7 +4883,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[PERCENTILE_CONT($1) WITHIN GROUP ([2])])
   <TestCase name="testPercentileDisc">
     <Resource name="sql">
       <![CDATA[select
- percentile_disc(0.25) within group (order by deptno)\n"
+ percentile_disc(0.25) within group (order by deptno)
 from emp]]>
     </Resource>
     <Resource name="plan">
@@ -4896,7 +4896,7 @@ LogicalAggregate(group=[{}], EXPR$0=[PERCENTILE_DISC($0) WITHIN GROUP ([1])])
   </TestCase>
   <TestCase name="testPercentileDiscWithGroupBy">
     <Resource name="sql">
-      <![CDATA[select deptno
+      <![CDATA[select deptno,
  percentile_disc(0.25) within group (order by empno)
 from emp
 group by deptno]]>
