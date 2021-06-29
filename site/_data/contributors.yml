@@ -256,6 +256,11 @@
   githubId: vlsi
   org: NetCracker
   role: PMC
+- name: Vladimir Ozerov
+  apacheId: vozerov
+  githubId: devozerov
+  org: Querify Labs
+  role: Committer
 - name: Volodymyr Vysotskyi
   apacheId: volodymyr
   githubId: vvysotskyi
