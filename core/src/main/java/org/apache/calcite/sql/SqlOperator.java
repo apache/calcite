@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.fun.SqlBasicAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -783,9 +782,8 @@ public abstract class SqlOperator {
           list = (SqlNodeList) node2;
         }
 
-        if (sqlBasicCall != null && list != null
-            && sqlBasicCall.getOperator() instanceof SqlBasicAggFunction) {
-          SqlBasicAggFunction agg = (SqlBasicAggFunction) sqlBasicCall.getOperator();
+        if (sqlBasicCall != null && list != null) {
+          SqlAggFunction agg = (SqlAggFunction) sqlBasicCall.getOperator();
           if (agg.isPercentile()) {
             // Validate that percentile function have a single ORDER BY expression
             if (list.getList().size() != 1) {

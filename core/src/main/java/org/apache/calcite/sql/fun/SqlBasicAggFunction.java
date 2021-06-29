@@ -187,8 +187,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         allowsNullTreatment, allowsSeparator, percentile);
   }
 
-  /** Returns whether this aggregate function is a PERCENTILE function. */
-  public boolean isPercentile() {
+  @Override public boolean isPercentile() {
     return percentile;
   }
 
