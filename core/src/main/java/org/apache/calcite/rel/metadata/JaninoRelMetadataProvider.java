@@ -299,7 +299,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       List<Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
+          JaninoRelMetadataProvider.class.getClassLoader());
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);

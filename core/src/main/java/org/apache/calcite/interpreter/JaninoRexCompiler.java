@@ -200,7 +200,8 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
       throws CompileException, IOException {
     ICompilerFactory compilerFactory;
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
+          JaninoRexCompiler.class.getClassLoader());
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
