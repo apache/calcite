@@ -4164,6 +4164,21 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan_not_extended}");
   }
 
+  @Test void testDeduplicateCorrelationsWithoutWhereClause() {
+    String sql = ""
+        + "select e.deptno, (select * from lateral table(DEDUP(e.deptno, e.deptno))) from emp e";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("${plan_extended}");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false))
+        .convertsTo("${plan_not_extended}");
+  }
+
   @Test void testImplicitJoinExpandAndDecorrelation() {
     String sql = ""
         + "SELECT emp.deptno, emp.sal\n"

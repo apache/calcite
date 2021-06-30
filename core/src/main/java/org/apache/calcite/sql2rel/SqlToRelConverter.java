@@ -1255,11 +1255,11 @@ public class SqlToRelConverter {
       //
       // If there is no correlation, the expression is replaced with a
       // boolean indicating whether the sub-query returned 0 or >= 1 row.
-      call = (SqlBasicCall) subQuery.node;
-      query = call.operand(0);
       if (!config.isExpand()) {
         return;
       }
+      call = (SqlBasicCall) subQuery.node;
+      query = call.operand(0);
       final SqlValidatorScope seekScope =
           (query instanceof SqlSelect)
               ? validator().getSelectScope((SqlSelect) query)
@@ -2641,8 +2641,8 @@ public class SqlToRelConverter {
 
     RexNode rexCall = bb.convertExpression(call);
     final List<RelNode> inputs = bb.retrieveCursors();
-    Set<RelColumnMapping> columnMappings =
-        getColumnMappings(operator);
+    Set<RelColumnMapping> columnMappings = getColumnMappings(operator);
+
     LogicalTableFunctionScan callRel =
         LogicalTableFunctionScan.create(
             cluster,
@@ -2651,6 +2651,18 @@ public class SqlToRelConverter {
             elementType,
             validator().getValidatedNodeType(call),
             columnMappings);
+
+    final SqlValidatorScope selectScope = ((DelegatingScope) bb.scope()).getParent();
+    final Blackboard seekBb = createBlackboard(selectScope, null, false);
+
+    final CorrelationUse corrUsage = getCorrelationUse(seekBb, callRel);
+
+    if (corrUsage != null) {
+      assert corrUsage.r instanceof LogicalTableFunctionScan;
+
+      callRel = (LogicalTableFunctionScan) corrUsage.r;
+    }
+
     bb.setRoot(callRel, true);
     afterTableFunction(bb, call, callRel);
   }
