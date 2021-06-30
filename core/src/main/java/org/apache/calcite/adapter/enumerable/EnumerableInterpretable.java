@@ -59,6 +59,7 @@ import java.io.StringReader;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -134,8 +135,10 @@ public class EnumerableInterpretable extends ConverterImpl
   static Bindable getBindable(ClassDeclaration expr, String s, int fieldCount)
       throws CompileException, IOException, ExecutionException {
     ICompilerFactory compilerFactory;
+    ClassLoader classLoader =
+        Objects.requireNonNull(EnumerableInterpretable.class.getClassLoader(), "classLoader");
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
@@ -147,7 +150,7 @@ public class EnumerableInterpretable extends ConverterImpl
         fieldCount == 1
             ? new Class[] {Bindable.class, Typed.class}
             : new Class[] {ArrayBindable.class});
-    cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
+    cbe.setParentClassLoader(classLoader);
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);
