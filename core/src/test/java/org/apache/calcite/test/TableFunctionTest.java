@@ -105,6 +105,27 @@ class TableFunctionTest {
     }
   }
 
+  /**
+   * Tests correlated subquery with 2 identical params is being processed correctly.
+   */
+  @Test void testInterpretFunctionWithInitializer() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.DUMMY_TABLE_METHOD_WITH_TWO_PARAMS);
+      final String callMethodName = Smalls.DUMMY_TABLE_METHOD_WITH_TWO_PARAMS.getName();
+      schema.add(callMethodName, table);
+      final String sql = "select x, (select * from table (\"s\".\"" + callMethodName + "\"(x, x))) "
+          + "from (values (2), (4)) as t (x)";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("X=2; EXPR$1=0\nX=4; EXPR$1=0\n"));
+    }
+  }
+
   @Test void testTableFunctionWithArrayParameter() throws SQLException {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
       CalciteConnection calciteConnection =
