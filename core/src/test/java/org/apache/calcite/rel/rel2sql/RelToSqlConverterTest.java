@@ -3035,6 +3035,16 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4674">[CALCITE-4674]
+   * Excess quotes in generated SQL when STAR is a column alias</a>. */
+  @Test void testAliasOnStarNoExcessQuotes() {
+    final String query = "select \"customer_id\" as \"*\" from \"customer\"";
+    final String expected = "SELECT \"customer_id\" AS \"*\"\n"
+        + "FROM \"foodmart\".\"customer\"";
+    sql(query).ok(expected);
+  }
+
   @Test void testLiteral() {
     checkLiteral("DATE '1978-05-02'");
     checkLiteral2("DATE '1978-5-2'", "DATE '1978-05-02'");
