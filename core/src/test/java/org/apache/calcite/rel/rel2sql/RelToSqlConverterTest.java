@@ -8917,7 +8917,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testQinToChar() {
+  @Test public void testGetQuarterFromDate() {
     final RelBuilder builder = relBuilder();
     final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
         builder.literal("QUARTER"), builder.scan("EMP").field(4));
