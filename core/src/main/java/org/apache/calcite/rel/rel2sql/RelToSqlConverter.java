@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.adapter.jdbc.JdbcTable;
+import org.apache.calcite.config.QueryStyle;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptTable;
@@ -125,15 +126,21 @@ public class RelToSqlConverter extends SqlImplementor
   private final ReflectUtil.MethodDispatcher<Result> dispatcher;
 
   private final Deque<Frame> stack = new ArrayDeque<>();
-
+  private QueryStyle style;
   /** Creates a RelToSqlConverter. */
   @SuppressWarnings("argument.type.incompatible")
   public RelToSqlConverter(SqlDialect dialect) {
     super(dialect);
+    style = new QueryStyle();
     dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
       RelNode.class);
   }
-
+  public RelToSqlConverter(SqlDialect dialect, QueryStyle style) {
+    super(dialect);
+    this.style = style;
+    dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
+        RelNode.class);
+  }
   /** Dispatches a call to the {@code visit(Xxx e)} method where {@code Xxx}
    * most closely matches the runtime type of the argument. */
   protected Result dispatch(RelNode e) {
@@ -352,7 +359,8 @@ public class RelToSqlConverter extends SqlImplementor
     final Result x = visitInput(e, 0, Clause.SELECT);
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
+    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
+        || style.isExpandProjection()) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
