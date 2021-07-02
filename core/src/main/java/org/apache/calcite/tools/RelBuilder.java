@@ -706,6 +706,18 @@ public class RelBuilder {
     return RexSubQuery.in(rel, ImmutableList.copyOf(nodes));
   }
 
+  /** Creates an IN sub-query. */
+  @Experimental
+  public RexNode in(RexNode arg, Function<RelBuilder, RelNode> f) {
+    return null;
+  }
+
+  /** Creates an IN sub-query, popping a relational expression off the stack. */
+  @Experimental
+  public RexNode inQuery(RexNode deptno) {
+    return null;
+  }
+
   /** Creates an SOME sub-query. */
   @Experimental
   public RexSubQuery some(RelNode rel, Iterable<? extends RexNode> nodes, SqlQuantifyOperator op) {

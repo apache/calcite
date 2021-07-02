@@ -2464,6 +2464,56 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Example 1, uses {@link RelBuilder#in(RelNode, Iterable)}. The relational
+   * expression is created explicitly just before {@code #in} is called, and
+   * passed as an argument. */
+  void example1(RelBuilder builder) {
+    RelNode root = builder.scan("EMP")
+        .filter(
+            builder.in(
+                builder.scan("DEPT")
+                    .filter(
+                        builder.call(SqlStdOperatorTable.EQUALS,
+                            builder.field("DNAME"),
+                            builder.literal("AAA")))
+                    .project(builder.field("DEPTNO"))
+                    .build(),
+                ImmutableList.of(builder.field("DEPTNO"))))
+        .build();
+  }
+
+  /** Example 2, uses {@link RelBuilder#inQuery(RexNode)}. The relational
+   * expression is created, and pushed onto the stack, by the call to
+   * {@link RelBuilder#let} immediately before {@code inQuery} is called. */
+  void example2(RelBuilder builder) {
+    RelNode root = builder.scan("EMP")
+        .let(b -> b.scan("DEPT")
+            .filter(
+                builder.call(SqlStdOperatorTable.EQUALS,
+                    builder.field("DNAME"),
+                    builder.literal("AAA")))
+            .project(builder.field("DEPTNO")))
+        .filter(builder.inQuery(builder.field("DEPTNO")))
+        .build();
+  }
+
+  /** Example 3, uses {@link RelBuilder#in(RexNode, Function)}. The relational
+   * expression is created by means of a callback from the {@code #in}
+   * function. */
+  void example3(RelBuilder builder) {
+    RelNode root = builder.scan("EMP")
+        .filter(
+            builder.in(builder.field("DEPTNO"),
+                b -> b.scan("DEPT")
+                    .filter(
+                        builder.call(SqlStdOperatorTable.EQUALS,
+                            builder.field("DNAME"),
+                            builder.literal("AAA")))
+                    .project(builder.field("DEPTNO"))
+                    .build()))
+        .build();
+  }
+
   @Test public void testRexSubQueryExists() {
     // Equivalent SQL:
     //   SELECT *
