@@ -7556,7 +7556,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " percentile_cont(0.25) within group (^order by ename^)\n"
         + "from emp";
     sql(sql)
-        .fails("Invalid type: 'VARCHAR'. Only NUMERIC types are supported");
+        .fails("Invalid type 'VARCHAR' in ORDER BY clause of "
+            + "'PERCENTILE_CONT' function. Only NUMERIC types are supported");
   }
 
   /** Tests that {@code PERCENTILE_CONT} only allows one sort key. */
@@ -7565,8 +7566,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " percentile_cont(0.25) within group (^order by deptno, empno^)\n"
         + "from emp";
     sql(sql)
-        .fails("Invalid number of arguments to function "
-            + "'PERCENTILE_CONT'. Was expecting 1 arguments");
+        .fails("'PERCENTILE_CONT' requires precisely one ORDER BY key");
   }
 
   @Test void testPercentileContFractionMustBeLiteral() {
@@ -7593,7 +7593,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " percentile_disc(0.25) within group (^order by ename^)\n"
         + "from emp";
     sql(sql)
-        .fails("Invalid type: 'VARCHAR'. Only NUMERIC types are supported");
+        .fails("Invalid type 'VARCHAR' in ORDER BY clause of "
+            + "'PERCENTILE_DISC' function. Only NUMERIC types are supported");
   }
 
   /** Tests that {@code PERCENTILE_DISC} only allows one sort key. */
@@ -7602,8 +7603,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " percentile_disc(0.25) within group (^order by deptno, empno^)\n"
         + "from emp";
     sql(sql)
-        .fails("Invalid number of arguments to function "
-            + "'PERCENTILE_DISC'. Was expecting 1 arguments");
+        .fails("'PERCENTILE_DISC' requires precisely one ORDER BY key");
   }
 
   @Test void testCorrelatingVariables() {

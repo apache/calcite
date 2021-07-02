@@ -5931,7 +5931,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Validate that percentile function have a single ORDER BY expression
       if (orderList.size() != 1) {
         throw newValidationError(orderList,
-            RESOURCE.invalidArgCount(op.getName(), 1));
+            RESOURCE.orderByRequiresOneKey(op.getName()));
       }
 
       // Validate that the ORDER BY field is of NUMERIC type
@@ -5943,7 +5943,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (family == null
           || family.allowableDifferenceTypes().isEmpty()) {
         throw newValidationError(orderList,
-            RESOURCE.typeMustBeNumeric(type.getSqlTypeName().getName()));
+            RESOURCE.unsupportedTypeInOrderBy(
+                type.getSqlTypeName().getName(),
+                op.getName()));
       }
     }
   }

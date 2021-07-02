@@ -8952,10 +8952,10 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("percentile_cont(0.25) within group (order by 1)",
         "DOUBLE NOT NULL");
     tester.checkFails("percentile_cont(0.25) within group (^order by 'a'^)",
-        "Invalid type: 'CHAR'\\. Only NUMERIC types are supported", false);
+        "Invalid type 'CHAR' in ORDER BY clause of 'PERCENTILE_CONT' function. "
+            + "Only NUMERIC types are supported", false);
     tester.checkFails("percentile_cont(0.25) within group (^order by 1, 2^)",
-        "Invalid number of arguments to function "
-            + "'PERCENTILE_CONT'. Was expecting 1 arguments", false);
+        "'PERCENTILE_CONT' requires precisely one ORDER BY key", false);
     tester.checkFails(" ^percentile_cont(2 + 3)^ within group (order by 1)",
         "Argument to function 'PERCENTILE_CONT' must be a literal", false);
     tester.checkFails(" ^percentile_cont(2)^ within group (order by 1)",
@@ -8968,10 +8968,10 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("percentile_disc(0.25) within group (order by 1)",
         "DOUBLE NOT NULL");
     tester.checkFails("percentile_disc(0.25) within group (^order by 'a'^)",
-        "Invalid type: 'CHAR'\\. Only NUMERIC types are supported", false);
+        "Invalid type 'CHAR' in ORDER BY clause of 'PERCENTILE_DISC' function. "
+            + "Only NUMERIC types are supported", false);
     tester.checkFails("percentile_disc(0.25) within group (^order by 1, 2^)",
-        "Invalid number of arguments to function "
-            + "'PERCENTILE_DISC'. Was expecting 1 arguments", false);
+        "'PERCENTILE_DISC' requires precisely one ORDER BY key", false);
     tester.checkFails(" ^percentile_disc(2 + 3)^ within group (order by 1)",
         "Argument to function 'PERCENTILE_DISC' must be a literal", false);
     tester.checkFails(" ^percentile_disc(2)^ within group (order by 1)",
