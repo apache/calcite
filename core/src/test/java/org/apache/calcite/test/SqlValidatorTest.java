@@ -7553,7 +7553,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tests that {@code PERCENTILE_CONT} only allows numeric fields. */
   @Test void testPercentileContMustOrderByNumeric() {
     final String sql = "select\n"
-        + " ^percentile_cont(0.25) within group (order by ename)^\n"
+        + " percentile_cont(0.25) within group (^order by ename^)\n"
         + "from emp";
     sql(sql)
         .fails("Invalid type: 'VARCHAR'. Only NUMERIC types are supported");
@@ -7562,7 +7562,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tests that {@code PERCENTILE_CONT} only allows one sort key. */
   @Test void testPercentileContMultipleOrderByFields() {
     final String sql = "select\n"
-        + " ^percentile_cont(0.25) within group (order by deptno, empno)^\n"
+        + " percentile_cont(0.25) within group (^order by deptno, empno^)\n"
         + "from emp";
     sql(sql)
         .fails("Invalid number of arguments to function "
@@ -7590,7 +7590,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tests that {@code PERCENTILE_DISC} only allows numeric fields. */
   @Test void testPercentileDiscMustOrderByNumeric() {
     final String sql = "select\n"
-        + " ^percentile_disc(0.25) within group (order by ename)^\n"
+        + " percentile_disc(0.25) within group (^order by ename^)\n"
         + "from emp";
     sql(sql)
         .fails("Invalid type: 'VARCHAR'. Only NUMERIC types are supported");
@@ -7599,7 +7599,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tests that {@code PERCENTILE_DISC} only allows one sort key. */
   @Test void testPercentileDiscMultipleOrderByFields() {
     final String sql = "select\n"
-        + " ^percentile_disc(0.25) within group (order by deptno, empno)^\n"
+        + " percentile_disc(0.25) within group (^order by deptno, empno^)\n"
         + "from emp";
     sql(sql)
         .fails("Invalid number of arguments to function "

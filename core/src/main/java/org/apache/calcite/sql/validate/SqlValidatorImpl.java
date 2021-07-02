@@ -83,28 +83,13 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlOperandTypeInference;
-import org.apache.calcite.sql.type.SqlTypeCoercionRule;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.type.*;
 import org.apache.calcite.sql.util.IdPair;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
-import org.apache.calcite.util.BitString;
-import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.ImmutableNullableList;
-import org.apache.calcite.util.Litmus;
-import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Static;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.*;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -5920,6 +5905,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     default:
       throw new AssertionError(op);
+    }
+
+    if (op.isPercentile()) {
+      assert op.requiresGroupOrder() == Optionality.MANDATORY;
+      assert orderList != null;
+
+      // Validate that percentile function have a single ORDER BY expression
+      if (orderList.size() != 1) {
+        throw newValidationError(orderList,
+            RESOURCE.invalidArgCount(op.getName(), 1));
+      }
+
+      // Validate that the ORDER BY field is of NUMERIC type
+      SqlNode node = orderList.get(0);
+      assert node != null;
+
+      RelDataType type = deriveType(scope, node);
+      if (type.getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC) {
+        throw newValidationError(orderList,
+            RESOURCE.typeMustBeNumeric(type.getSqlTypeName().getName()));
+      }
     }
   }
 

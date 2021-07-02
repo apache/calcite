@@ -8951,9 +8951,9 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.PERCENTILE_CONT, VM_FENNEL, VM_JAVA);
     tester.checkType("percentile_cont(0.25) within group (order by 1)",
         "DOUBLE NOT NULL");
-    tester.checkFails("^percentile_cont(0.25) within group (order by 'a')^",
+    tester.checkFails("percentile_cont(0.25) within group (^order by 'a'^)",
         "Invalid type: 'CHAR'\\. Only NUMERIC types are supported", false);
-    tester.checkFails("^percentile_cont(0.25) within group (order by 1, 2)^",
+    tester.checkFails("percentile_cont(0.25) within group (^order by 1, 2^)",
         "Invalid number of arguments to function "
             + "'PERCENTILE_CONT'. Was expecting 1 arguments", false);
     tester.checkFails(" ^percentile_cont(2 + 3)^ within group (order by 1)",
@@ -8967,9 +8967,9 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.PERCENTILE_DISC, VM_FENNEL, VM_JAVA);
     tester.checkType("percentile_disc(0.25) within group (order by 1)",
         "DOUBLE NOT NULL");
-    tester.checkFails("^percentile_disc(0.25) within group (order by 'a')^",
+    tester.checkFails("percentile_disc(0.25) within group (^order by 'a'^)",
         "Invalid type: 'CHAR'\\. Only NUMERIC types are supported", false);
-    tester.checkFails("^percentile_disc(0.25) within group (order by 1, 2)^",
+    tester.checkFails("percentile_disc(0.25) within group (^order by 1, 2^)",
         "Invalid number of arguments to function "
             + "'PERCENTILE_DISC'. Was expecting 1 arguments", false);
     tester.checkFails(" ^percentile_disc(2 + 3)^ within group (order by 1)",
