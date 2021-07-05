@@ -849,7 +849,7 @@ public enum SqlKind {
 
   /** The {@code MODE} aggregate function. */
   MODE,
-  
+
   /** The {@code PERCENTILE_CONT} aggregate function. */
   PERCENTILE_CONT,
 
