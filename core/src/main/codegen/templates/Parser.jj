@@ -6934,6 +6934,8 @@ SqlIdentifier ReservedFunctionName() :
     |   <NULLIF>
     |   <OCTET_LENGTH>
     |   <PERCENT_RANK>
+    |   <PERCENTILE_CONT>
+    |   <PERCENTILE_DISC>
     |   <POWER>
     |   <RANK>
     |   <REGR_COUNT>

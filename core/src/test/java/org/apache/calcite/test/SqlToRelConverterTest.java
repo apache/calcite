@@ -3898,6 +3898,39 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4644">[CALCITE-4644]
+   * Add PERCENTILE_CONT and PERCENTILE_DISC aggregate functions</a>. */
+  @Test void testPercentileCont() {
+    final String sql = "select\n"
+        + " percentile_cont(0.25) within group (order by deptno)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testPercentileContWithGroupBy() {
+    final String sql = "select deptno,\n"
+        + " percentile_cont(0.25) within group (order by empno desc)\n"
+        + "from emp\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
+  @Test void testPercentileDisc() {
+    final String sql = "select\n"
+        + " percentile_disc(0.25) within group (order by deptno)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testPercentileDiscWithGroupBy() {
+    final String sql = "select deptno,\n"
+        + " percentile_disc(0.25) within group (order by empno)\n"
+        + "from emp\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
   @Test void testOrderByRemoval1() {
     final String sql = "select * from (\n"
         + "  select empno from emp order by deptno offset 0) t\n"

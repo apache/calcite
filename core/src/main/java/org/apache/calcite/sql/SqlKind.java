@@ -849,6 +849,12 @@ public enum SqlKind {
 
   /** The {@code MODE} aggregate function. */
   MODE,
+  
+  /** The {@code PERCENTILE_CONT} aggregate function. */
+  PERCENTILE_CONT,
+
+  /** The {@code PERCENTILE_DISC} aggregate function. */
+  PERCENTILE_DISC,
 
   /** The {@code FUSION} aggregate function. */
   FUSION,
@@ -1077,6 +1083,7 @@ public enum SqlKind {
           MODE, FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
           LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
+          PERCENTILE_CONT, PERCENTILE_DISC,
           INTERSECTION, ANY_VALUE);
 
   /**
