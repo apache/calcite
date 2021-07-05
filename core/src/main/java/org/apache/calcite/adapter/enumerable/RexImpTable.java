@@ -1266,7 +1266,7 @@ public class RexImpTable {
 
     @Override protected void implementNotNullAdd(AggContext info,
         AggAddContext add) {
-      Expression currentArg= add.arguments().get(0);
+      Expression currentArg = add.arguments().get(0);
 
       Expression currentResult = add.accumulator().get(0);
       Expression accMap = add.accumulator().get(1);
