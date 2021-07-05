@@ -1247,17 +1247,17 @@ public class RexImpTable {
   static class ModeImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
-
+      // acc[0] = null;
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(0),
                   Expressions.constant(null))));
-
+      // acc[1] = new HashMap<>();
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(1),
                   Expressions.new_(HashMap.class))));
-
+      // acc[2] = Long.valueOf(0);
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(2),
@@ -1266,42 +1266,44 @@ public class RexImpTable {
 
     @Override protected void implementNotNullAdd(AggContext info,
         AggAddContext add) {
-      Expression args = add.arguments().get(0);
+      Expression currentArg= add.arguments().get(0);
 
-      Expression accResult = add.accumulator().get(0);
+      Expression currentResult = add.accumulator().get(0);
       Expression accMap = add.accumulator().get(1);
-      Expression accLong = add.accumulator().get(2);
-
+      Expression currentMaxNumber = add.accumulator().get(2);
+      // the default number of occurrences is 0
       Expression methodCallExpression =
           Expressions.call(accMap,
               BuiltInMethod.MAP_GET_OR_DEFAULT.method,
-              args, Expressions.constant(0, Long.class));
-
+              currentArg, Expressions.constant(0, Long.class));
+      // update the occurrences number about current value
       Expression methodCallExpression2 = Expressions.call(accMap,
-              BuiltInMethod.MAP_PUT.method, args,
+              BuiltInMethod.MAP_PUT.method, currentArg,
               Expressions.add(Expressions.convert_(methodCallExpression, Long.class),
                   Expressions.constant(1, Long.class)));
       add.currentBlock().add(Expressions.statement(methodCallExpression2));
-
+      // if the maximum number of occurrences greater than current value's occurrences number
+      // return directly
       add.currentBlock().add(
           Expressions.ifThen(
-          Expressions.greaterThan(accLong,
+          Expressions.greaterThanOrEqual(currentMaxNumber,
               Expressions.convert_(
                   Expressions.call(accMap,
-                  BuiltInMethod.MAP_GET.method, args), Long.class)),
+                  BuiltInMethod.MAP_GET.method, currentArg), Long.class)),
           Expressions.block(
               Expressions.return_(null,
-              ((MemberExpression) accResult).expression))));
-
+              ((MemberExpression) currentResult).expression))));
+      // update most frequent value
       add.currentBlock().add(
           Expressions.statement(
-              Expressions.assign(accLong,
+              Expressions.assign(currentMaxNumber,
           Expressions.convert_(
               Expressions.call(accMap,
-              BuiltInMethod.MAP_GET.method, args), Long.class))));
+              BuiltInMethod.MAP_GET.method, currentArg), Long.class))));
+      // update maximum number of occurrences
       add.currentBlock().add(
           Expressions.statement(
-              Expressions.assign(accResult, args)));
+              Expressions.assign(currentResult, currentArg)));
     }
 
     @Override protected Expression implementNotNullResult(AggContext info,
@@ -1311,8 +1313,11 @@ public class RexImpTable {
 
     @Override public List<Type> getNotNullState(AggContext info) {
       List<Type> types = new ArrayList<>();
+      // the most frequent value
       types.add(Object.class);
+      // hashmap's key: value, hashmap's value: number of occurrences
       types.add(HashMap.class);
+      // maximum number of occurrences about frequent value
       types.add(Long.class);
       return types;
     }

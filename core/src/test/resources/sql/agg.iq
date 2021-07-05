@@ -2990,4 +2990,76 @@ from (select 1 as a, 2 as b, 3 as c);
 
 !ok
 
+# [CALCITE-3661] Add MODE aggregate function
+
+select MODE(gender)
+from emp;
++--------+
+| EXPR$0 |
++--------+
+| F      |
++--------+
+(1 row)
+
+!ok
+
+select deptno,MODE(gender)
+from emp
+where deptno > 10
+group by deptno;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     20 | M      |
+|     30 | F      |
+|     50 | M      |
+|     60 | F      |
++--------+--------+
+(4 rows)
+
+!ok
+
+select deptno, MODE(gender)
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|        | F      |
++--------+--------+
+(1 row)
+
+!ok
+
+select deptno, MODE(deptno)
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|        |        |
++--------+--------+
+(1 row)
+
+!ok
+
+select deptno, MODE(CAST(null AS INTEGER))
+from emp
+group by deptno;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |        |
+|     20 |        |
+|     30 |        |
+|     50 |        |
+|     60 |        |
+|        |        |
++--------+--------+
+(6 rows)
+
+!ok
+
 # End agg.iq

@@ -301,6 +301,12 @@ public abstract class OperandTypes {
           family(SqlTypeFamily.MAP));
 
   /**
+   * Operand type-checking strategy type can be any value but null.
+   */
+  public static final SqlSingleOperandTypeChecker ANY_NOT_NULL =
+      new AnyNotNullOperandTypeChecker();
+
+  /**
    * Operand type-checking strategy where type must be a literal or NULL.
    */
   public static final SqlSingleOperandTypeChecker NULLABLE_LITERAL =

@@ -7615,12 +7615,15 @@ public abstract class SqlOperatorBaseTest {
         "^mode(1,2)^",
         "Invalid number of arguments to function 'MODE'. Was expecting 1 arguments",
         false);
+    strictTester.checkFails(
+        "^mode(null)^",
+        "Argument to function 'MODE' must not be NULL",
+        false);
 
     tester.checkType("mode('name')", "CHAR(4)");
     checkAggType(tester, "mode(1)", "INTEGER");
     checkAggType(tester, "mode(1.2)", "DECIMAL(2, 1)");
     checkAggType(tester, "mode(DISTINCT 1.5)", "DECIMAL(2, 1)");
-    checkAggType(tester, "mode(null)", "NULL");
     tester.checkType("mode(cast(null as varchar(2)))", "VARCHAR(2)");
 
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2", "3", "3", "3" };
@@ -7633,7 +7636,7 @@ public abstract class SqlOperatorBaseTest {
         values, -1, 0d);
     tester.checkAgg("mode(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
         values, -1, 0d);
-    tester.checkAgg("mode(DISTINCT x)", values, 3, 0d);
+    tester.checkAgg("mode(DISTINCT x)", values, 0, 0d);
   }
 
   @Test void testYear() {
