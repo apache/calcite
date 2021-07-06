@@ -3301,6 +3301,20 @@ public class SqlFunctions {
     return (Integer) start + 1;
   }
 
+  public static Integer instr(String str, String substr, Object start) {
+    if (null == str || null == substr) {
+      return 0;
+    }
+    return str.indexOf(substr, (Integer) start) + 1;
+  }
+
+  public static Integer instr(String str, String substr) {
+    if (null == str || null == substr) {
+      return 0;
+    }
+    return str.indexOf(substr) + 1;
+  }
+
   /**Returns matching index value.*/
   public static Integer charindex(String strToFind, String strToSearch, Object startLocation) {
     if (null == strToFind || null == strToSearch) {
