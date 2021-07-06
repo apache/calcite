@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -540,6 +541,7 @@ public class PushProjector {
         adjustments[idx] = -offset;
       }
     }
+    int preserveExpOrdinal = 0;
     for (RexNode projExpr : preserveExprs) {
       RexNode newExpr;
       if (adjust) {
@@ -564,7 +566,7 @@ public class PushProjector {
       newProjects.add(
           Pair.of(
               newExpr,
-              ((RexCall) projExpr).getOperator().getName()));
+              SqlUtil.deriveAliasFromOrdinal(preserveExpOrdinal++)));
     }
 
     return (Project) relBuilder.push(projChild)
