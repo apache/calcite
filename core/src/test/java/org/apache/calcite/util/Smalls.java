@@ -101,6 +101,8 @@ public class Smalls {
       Types.lookupMethod(Smalls.class, "fibonacciTableWithLimit", long.class);
   public static final Method FIBONACCI_INSTANCE_TABLE_METHOD =
       Types.lookupMethod(Smalls.FibonacciTableFunction.class, "eval");
+  public static final Method DUMMY_TABLE_METHOD_WITH_TWO_PARAMS =
+      Types.lookupMethod(Smalls.class, "dummyTableFuncWithTwoParams", long.class, long.class);
   public static final Method DYNAMIC_ROW_TYPE_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "dynamicRowTypeTable", String.class,
           int.class);
@@ -261,6 +263,54 @@ public class Smalls {
    * <p>Interesting because it has one column and no arguments. */
   public static ScannableTable fibonacciTableWithLimit100() {
     return fibonacciTableWithLimit(100L);
+  }
+
+  /** A function that takes 2 param as input. */
+  public static ScannableTable dummyTableFuncWithTwoParams(final long param1, final long param2) {
+    return new ScannableTable() {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder().add("N", SqlTypeName.BIGINT).build();
+      }
+
+      public Enumerable<@Nullable Object[]> scan(DataContext root) {
+        return new AbstractEnumerable<Object[]>() {
+          public Enumerator<Object[]> enumerator() {
+            return new Enumerator<Object[]>() {
+              public Object[] current() {
+                return new Object[] {};
+              }
+
+              public boolean moveNext() {
+                return false;
+              }
+
+              public void reset() {
+              }
+
+              public void close() {
+              }
+            };
+          }
+        };
+      }
+
+      public Statistic getStatistic() {
+        return Statistics.UNKNOWN;
+      }
+
+      public Schema.TableType getJdbcTableType() {
+        return Schema.TableType.TABLE;
+      }
+
+      public boolean isRolledUp(String column) {
+        return false;
+      }
+
+      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+        return true;
+      }
+    };
   }
 
   /** A function that generates the Fibonacci sequence.

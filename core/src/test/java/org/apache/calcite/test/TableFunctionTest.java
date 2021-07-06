@@ -18,11 +18,13 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
@@ -102,6 +104,29 @@ class TableFunctionTest {
       ResultSet resultSet = connection.createStatement().executeQuery(sql);
       assertThat(CalciteAssert.toString(resultSet),
           equalTo("N=4; C=abcd\n"));
+    }
+  }
+
+  /**
+   * Tests correlated subquery with 2 identical params is being processed correctly.
+   */
+  @Test void testInterpretFunctionWithInitializer() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final ScalarFunction f =
+          ScalarFunctionImpl.create(Smalls.MY_PLUS_INIT_EVAL_METHOD);
+      final TableFunction table1 =
+          TableFunctionImpl.create(Smalls.DUMMY_TABLE_METHOD_WITH_TWO_PARAMS);
+      final String callMethodName = Smalls.DUMMY_TABLE_METHOD_WITH_TWO_PARAMS.getName();
+      schema.add(callMethodName, table1);
+      final String sql = "select x, (select * from table (\"s\".\"" + callMethodName + "\"(x, x))) "
+          + "from (values (2), (4)) as t (x)";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("X=2; EXPR$1=0\nX=4; EXPR$1=0\n"));
     }
   }
 
