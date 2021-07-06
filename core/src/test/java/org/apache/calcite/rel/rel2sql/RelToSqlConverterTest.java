@@ -3256,6 +3256,22 @@ class RelToSqlConverterTest {
     sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
   }
 
+  @Test void testMultiplicationNotAliasedToStar() {
+    final String sql = "select s.\"customer_id\", sum(s.\"store_sales\" * s.\"store_cost\")"
+        + "from \"sales_fact_1997\" as s\n"
+        + "join \"customer\" as c\n"
+        + "  on s.\"customer_id\" = c.\"customer_id\"\n"
+        + "group by s.\"customer_id\"";
+    final String expected = "SELECT \"t\".\"customer_id\", SUM(\"t\".\"EXPR$0\")\n"
+        + "FROM (SELECT \"customer_id\", \"store_sales\" * \"store_cost\" AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"customer_id\"\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t0\" ON \"t\".\"customer_id\" = \"t0\".\"customer_id\"\n"
+        + "GROUP BY \"t\".\"customer_id\"";
+    RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_JOIN_TRANSPOSE);
+    sql(sql).optimize(rules, null).ok(expected);
+  }
+
   @Test void testRankFunctionForPrintingOfFrameBoundary() {
     String query = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expected = "SELECT RANK() OVER (ORDER BY \"hire_date\")\n"
