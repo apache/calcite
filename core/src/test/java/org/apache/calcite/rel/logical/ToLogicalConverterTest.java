@@ -334,7 +334,6 @@ class ToLogicalConverterTest {
                 builder.literal(1000)),
             ImmutableSet.of(v.get().id))
         .build();
-
     String expectedPhysical = ""
         + "EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5, 7}])\n"
         + "  EnumerableTableScan(table=[[scott, EMP]])\n"
