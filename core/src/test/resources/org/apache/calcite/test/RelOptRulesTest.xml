@@ -10901,15 +10901,6 @@ LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalJoin(condition=[=($cor0.DEPTNO, $2)], joinType=[inner])
-]]>
-    </Resource>
   </TestCase>
   <TestCase name="testRemoveSemiJoinRightWithFilter">
     <Resource name="sql">
@@ -11462,19 +11453,6 @@ where t1.c_nationkey[0] is not null]]>
 LogicalProject(**=[$1])
   LogicalFilter(condition=[IS NOT NULL(ITEM($0, 0))])
     LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalJoin(condition=[AND(=($cor0.EMPNO, $2), =($0, $3))], joinType=[inner])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-          LogicalFilter(condition=[<($0, 20)])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

@@ -28,7 +28,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -650,13 +649,11 @@ public class SubQueryRemoveRule
       //Incorrect queries will be produced for full and right joins.
       return;
     }
-    final RexBuilder rexBuilder = call.builder().getRexBuilder();
-    final RelBuilder builder = call.builder();
-    builder
+    final RelBuilder builder = call.builder()
         .push(join.getLeft())
         .push(join.getRight());
-    CorrelationId id = join.getCluster().createCorrel();
-    RexNode condition = RelOptUtil.correlateLeftShiftRight(rexBuilder,
+    final CorrelationId id = join.getCluster().createCorrel();
+    RexNode condition = RelOptUtil.correlateLeftShiftRight(builder.getRexBuilder(),
         join.getLeft(), id, join.getRight(), join.getCondition());
     boolean found = false;
     while (true) {
@@ -678,7 +675,7 @@ public class SubQueryRemoveRule
     }
     builder
         .filter(condition)
-        .join(join.getJoinType(), rexBuilder.makeLiteral(true), ImmutableSet.of(id))
+        .join(join.getJoinType(), builder.literal(true), ImmutableSet.of(id))
         .project(fields(builder, join.getRowType().getFieldCount()));
     call.transformTo(builder.build());
   }
