@@ -8917,6 +8917,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testGetQuarterFromDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
+        builder.literal("QUARTER"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatDateRexNode, "FD"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT FORMAT_DATE('%Q', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+
   @Test public void testExtractDay() {
     String query = "SELECT EXTRACT(DAY FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_TIMESTAMP)";
     final String expectedSFSql = "SELECT DAY(CURRENT_DATE), DAY(CURRENT_TIMESTAMP)";
