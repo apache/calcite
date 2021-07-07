@@ -116,12 +116,10 @@ class TableFunctionTest {
           connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-      final ScalarFunction f =
-          ScalarFunctionImpl.create(Smalls.MY_PLUS_INIT_EVAL_METHOD);
-      final TableFunction table1 =
+      final TableFunction table =
           TableFunctionImpl.create(Smalls.DUMMY_TABLE_METHOD_WITH_TWO_PARAMS);
       final String callMethodName = Smalls.DUMMY_TABLE_METHOD_WITH_TWO_PARAMS.getName();
-      schema.add(callMethodName, table1);
+      schema.add(callMethodName, table);
       final String sql = "select x, (select * from table (\"s\".\"" + callMethodName + "\"(x, x))) "
           + "from (values (2), (4)) as t (x)";
       ResultSet resultSet = connection.createStatement().executeQuery(sql);
