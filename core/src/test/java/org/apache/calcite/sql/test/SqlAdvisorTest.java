@@ -198,6 +198,8 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(NULLIF)",
           "KEYWORD(OCTET_LENGTH)",
           "KEYWORD(OVERLAY)",
+          "KEYWORD(PERCENTILE_CONT)",
+          "KEYWORD(PERCENTILE_DISC)",
           "KEYWORD(PERCENT_RANK)",
           "KEYWORD(PERIOD)",
           "KEYWORD(POSITION)",

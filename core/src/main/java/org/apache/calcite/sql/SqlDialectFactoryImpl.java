@@ -25,6 +25,7 @@ import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.ClickHouseSqlDialect;
 import org.apache.calcite.sql.dialect.Db2SqlDialect;
 import org.apache.calcite.sql.dialect.DerbySqlDialect;
+import org.apache.calcite.sql.dialect.ExasolSqlDialect;
 import org.apache.calcite.sql.dialect.FirebirdSqlDialect;
 import org.apache.calcite.sql.dialect.H2SqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
@@ -105,6 +106,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new ClickHouseSqlDialect(c);
     case "DBMS:CLOUDSCAPE":
       return new DerbySqlDialect(c);
+    case "EXASOL":
+      return new ExasolSqlDialect(c);
     case "HIVE":
       return new HiveSqlDialect(c);
     case "INGRES":
@@ -253,6 +256,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return Db2SqlDialect.DEFAULT;
     case DERBY:
       return DerbySqlDialect.DEFAULT;
+    case EXASOL:
+      return ExasolSqlDialect.DEFAULT;
     case FIREBIRD:
       return FirebirdSqlDialect.DEFAULT;
     case H2:

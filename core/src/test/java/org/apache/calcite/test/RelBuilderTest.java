@@ -3905,7 +3905,9 @@ public class RelBuilderTest {
         + "LogicalJoin(condition=[=($7, $8)], joinType=[semi])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(
+        "Join with correlate id but the id never used should be simplified to a join.",
+        root, hasTree(expected));
   }
 
   @Test void testSemiCorrelatedViaJoin() {
@@ -3916,7 +3918,9 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
         + "    LogicalFilter(condition=[=($cor0.EMPNO, 'NaN')])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(
+        "Correlated semi joins should emmit a correlate with a filter on the right side.",
+        root, hasTree(expected));
   }
 
   @Test void testSimpleAntiCorrelateViaJoin() {
@@ -3925,7 +3929,9 @@ public class RelBuilderTest {
         + "LogicalJoin(condition=[=($7, $8)], joinType=[anti])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(
+        "Join with correlate id but the id never used should be simplified to a join.",
+        root, hasTree(expected));
   }
 
   @Test void testAntiCorrelateViaJoin() {
@@ -3936,8 +3942,9 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
         + "    LogicalFilter(condition=[=($cor0.EMPNO, 'NaN')])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
-  }
+    assertThat(
+        "Correlated anti joins should emmit a correlate with a filter on the right side.",
+        root, hasTree(expected));  }
 
   @Test void testSimpleLeftCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.LEFT);
@@ -3945,7 +3952,9 @@ public class RelBuilderTest {
         + "LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(
+        "Join with correlate id but the id never used should be simplified to a join.",
+        root, hasTree(expected));
   }
 
   @Test void testLeftCorrelateViaJoin() {
@@ -3956,7 +3965,9 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
         + "    LogicalFilter(condition=[=($cor0.EMPNO, 'NaN')])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(
+        "Correlated left joins should emmit a correlate with a filter on the right side.",
+        root, hasTree(expected));
   }
 
   @Test void testSimpleInnerCorrelateViaJoin() {
@@ -3965,7 +3976,8 @@ public class RelBuilderTest {
         + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat("Join with correlate id but never used should be simplified to a join.",
+        root, hasTree(expected));
   }
 
   @Test void testInnerCorrelateViaJoin() {
@@ -3976,17 +3988,33 @@ public class RelBuilderTest {
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalFilter(condition=[=($cor0.EMPNO, 'NaN')])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(
+        "Correlated inner joins should emmit a correlate with a filter on top.",
+        root, hasTree(expected));
   }
 
   @Test void testSimpleRightCorrelateViaJoinThrowsException() {
     assertThrows(IllegalArgumentException.class,
-        () -> buildSimpleCorrelateWithJoin(JoinRelType.RIGHT));
+        () -> buildSimpleCorrelateWithJoin(JoinRelType.RIGHT),
+        "Right outer joins with correlated ids are invalid even if id is not used.");
   }
 
   @Test void testSimpleFullCorrelateViaJoinThrowsException() {
     assertThrows(IllegalArgumentException.class,
-        () -> buildSimpleCorrelateWithJoin(JoinRelType.FULL));
+        () -> buildSimpleCorrelateWithJoin(JoinRelType.FULL),
+        "Full outer joins with correlated ids are invalid even if id is not used.");
+  }
+
+  @Test void testRightCorrelateViaJoinThrowsException() {
+    assertThrows(IllegalArgumentException.class,
+        () -> buildCorrelateWithJoin(JoinRelType.RIGHT),
+        "Right outer joins with correlated ids are invalid.");
+  }
+
+  @Test void testFullCorrelateViaJoinThrowsException() {
+    assertThrows(IllegalArgumentException.class,
+        () -> buildCorrelateWithJoin(JoinRelType.FULL),
+        "Full outer joins with correlated ids are invalid.");
   }
 
   private static RelNode buildSimpleCorrelateWithJoin(JoinRelType type) {

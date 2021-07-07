@@ -334,14 +334,15 @@ class ToLogicalConverterTest {
                 builder.literal(1000)),
             ImmutableSet.of(v.get().id))
         .build();
-    String expectedPhysical = "EnumerableCorrelate(correlation=[$cor0], joinType=[left], "
-        + "requiredColumns=[{5, 7}])\n"
+
+    String expectedPhysical = ""
+        + "EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5, 7}])\n"
         + "  EnumerableTableScan(table=[[scott, EMP]])\n"
         + "  EnumerableFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    EnumerableFilter(condition=[=($0, $cor0.DEPTNO)])\n"
         + "      EnumerableTableScan(table=[[scott, DEPT]])\n";
-    String expectedLogical = "LogicalCorrelate(correlation=[$cor0], joinType=[left], "
-        + "requiredColumns=[{5, 7}])\n"
+    String expectedLogical = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
