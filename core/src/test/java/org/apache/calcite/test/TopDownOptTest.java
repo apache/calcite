@@ -820,7 +820,7 @@ class Query extends RelOptTestBase {
 
     final Sql sql =
         new Sql(tester, this.sql, null, planner, ImmutableMap.of(),
-            ImmutableList.of());
+            ImmutableList.of(), null);
     sql.check();
   }
 }

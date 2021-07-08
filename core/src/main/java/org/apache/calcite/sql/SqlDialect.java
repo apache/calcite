@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -269,6 +270,8 @@ public class SqlDialect {
       return DatabaseProduct.CLICKHOUSE;
     case "DBMS:CLOUDSCAPE":
       return DatabaseProduct.DERBY;
+    case "EXASOL":
+      return DatabaseProduct.EXASOL;
     case "HIVE":
       return DatabaseProduct.HIVE;
     case "INGRES":
@@ -536,6 +539,11 @@ public class SqlDialect {
     writer.literal("'" + interval.getIntervalLiteral() + "'");
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
         RelDataTypeSystem.DEFAULT);
+  }
+
+  /** Converts table scan hints. The default implementation suppresses all hints. */
+  public void unparseTableScanHints(SqlWriter writer,
+      SqlNodeList hints, int leftPrec, int rightPrec) {
   }
 
   /**
@@ -1004,6 +1012,13 @@ public class SqlDialect {
     return false;
   }
 
+  /**
+   * Returns whether this dialect support the specified type of join.
+   */
+  public boolean supportsJoinType(JoinRelType joinType) {
+    return true;
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
@@ -1255,6 +1270,7 @@ public class SqlDialect {
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
+    EXASOL("Exasol", "\"", NullCollation.LOW),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     H2("H2", "\"", NullCollation.HIGH),
     HIVE("Apache Hive", null, NullCollation.LOW),

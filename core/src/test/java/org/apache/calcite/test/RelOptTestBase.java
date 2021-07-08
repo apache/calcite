@@ -44,6 +44,8 @@ import org.apache.calcite.util.Closer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +75,22 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
   }
 
   /**
+   * Checks the plan for a given {@link RelNode} supplier before/after executing a given rule,
+   * with a pre-program to prepare the tree.
+   *
+   * @param tester     Tester
+   * @param preProgram Program to execute before comparing before state
+   * @param planner    Planner
+   * @param relFn      {@link RelNode} supplier
+   * @param unchanged  Whether the rule is to have no effect
+   */
+  private void checkPlanning(Tester tester, HepProgram preProgram,
+      RelOptPlanner planner, Function<RelBuilder, RelNode> relFn, boolean unchanged) {
+    RelNode relInitial = relFn.apply(RelBuilder.create(RelBuilderTest.config().build()));
+    checkPlanning(tester, preProgram, planner, relInitial, unchanged);
+  }
+
+  /**
    * Checks the plan for a SQL statement before/after executing a given rule,
    * with a pre-program to prepare the tree.
    *
@@ -88,9 +106,13 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     String sql2 = diffRepos.expand("sql", sql);
     final RelRoot root = tester.convertSqlToRel(sql2);
     final RelNode relInitial = root.rel;
+    checkPlanning(tester, preProgram, planner, relInitial, unchanged);
+  }
 
+  private void checkPlanning(Tester tester, HepProgram preProgram,
+        RelOptPlanner planner, RelNode relInitial, boolean unchanged) {
     assertNotNull(relInitial);
-
+    final DiffRepository diffRepos = getDiffRepos();
     List<RelMetadataProvider> list = new ArrayList<>();
     list.add(DefaultRelMetadataProvider.INSTANCE);
     planner.registerMetadataProviders(list);
@@ -144,8 +166,13 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
   /** Sets the SQL statement for a test. */
   Sql sql(String sql) {
     final Sql s =
-        new Sql(tester, sql, null, null, ImmutableMap.of(), ImmutableList.of());
+        new Sql(tester, sql, null, null, ImmutableMap.of(), ImmutableList.of(), null);
     return s.withRelBuilderConfig(b -> b.withPruneInputOfAggregate(false));
+  }
+
+  /** Initiates a test case with a given {@link RelNode} supplier. */
+  Sql relFn(Function<RelBuilder, RelNode> relFn) {
+    return sql("?").relFn(relFn);
   }
 
   /** Allows fluent testing. */
@@ -156,10 +183,12 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     private final RelOptPlanner planner;
     private final ImmutableMap<Hook, Consumer> hooks;
     private ImmutableList<Function<Tester, Tester>> transforms;
+    private final @Nullable Function<RelBuilder, RelNode> relFn;
 
     Sql(Tester tester, String sql, HepProgram preProgram, RelOptPlanner planner,
         ImmutableMap<Hook, Consumer> hooks,
-        ImmutableList<Function<Tester, Tester>> transforms) {
+        ImmutableList<Function<Tester, Tester>> transforms,
+        @Nullable Function<RelBuilder, RelNode> relFn) {
       this.tester = Objects.requireNonNull(tester, "tester");
       this.sql = Objects.requireNonNull(sql, "sql");
       if (sql.contains(" \n")) {
@@ -169,15 +198,20 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       this.planner = planner;
       this.hooks = Objects.requireNonNull(hooks, "hooks");
       this.transforms = Objects.requireNonNull(transforms, "transforms");
+      this.relFn = relFn;
+    }
+
+    Sql relFn(Function<RelBuilder, RelNode> relFn) {
+      return new Sql(tester, sql, null, null, ImmutableMap.of(), ImmutableList.of(), relFn);
     }
 
     public Sql withTester(UnaryOperator<Tester> transform) {
       final Tester tester2 = transform.apply(tester);
-      return new Sql(tester2, sql, preProgram, planner, hooks, transforms);
+      return new Sql(tester2, sql, preProgram, planner, hooks, transforms, relFn);
     }
 
     public Sql withPre(HepProgram preProgram) {
-      return new Sql(tester, sql, preProgram, planner, hooks, transforms);
+      return new Sql(tester, sql, preProgram, planner, hooks, transforms, relFn);
     }
 
     public Sql withPreRule(RelOptRule... rules) {
@@ -189,12 +223,12 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     }
 
     public Sql with(HepPlanner hepPlanner) {
-      return new Sql(tester, sql, preProgram, hepPlanner, hooks, transforms);
+      return new Sql(tester, sql, preProgram, hepPlanner, hooks, transforms, relFn);
     }
 
     public Sql with(HepProgram program) {
       final HepPlanner hepPlanner = new HepPlanner(program);
-      return new Sql(tester, sql, preProgram, hepPlanner, hooks, transforms);
+      return new Sql(tester, sql, preProgram, hepPlanner, hooks, transforms, relFn);
     }
 
     public Sql withRule(RelOptRule... rules) {
@@ -210,7 +244,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     private Sql withTransform(Function<Tester, Tester> transform) {
       final ImmutableList<Function<Tester, Tester>> transforms =
           FlatLists.append(this.transforms, transform);
-      return new Sql(tester, sql, preProgram, planner, hooks, transforms);
+      return new Sql(tester, sql, preProgram, planner, hooks, transforms, relFn);
     }
 
     /** Adds a hook and a handler for that hook. Calcite will create a thread
@@ -219,7 +253,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     public <T> Sql withHook(Hook hook, Consumer<T> handler) {
       final ImmutableMap<Hook, Consumer> hooks =
           FlatLists.append(this.hooks, hook, handler);
-      return new Sql(tester, sql, preProgram, planner, hooks, transforms);
+      return new Sql(tester, sql, preProgram, planner, hooks, transforms, relFn);
     }
 
     // CHECKSTYLE: IGNORE 1
@@ -300,7 +334,11 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
         for (Function<Tester, Tester> transform : transforms) {
           t = transform.apply(t);
         }
-        checkPlanning(t, preProgram, planner, sql, unchanged);
+        if (relFn != null) {
+          checkPlanning(t, preProgram, planner, relFn, unchanged);
+        } else {
+          checkPlanning(t, preProgram, planner, sql, unchanged);
+        }
       }
     }
   }

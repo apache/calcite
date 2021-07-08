@@ -22,8 +22,6 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * State for generating a SQL statement.
  */
@@ -31,14 +29,6 @@ public class JdbcImplementor extends RelToSqlConverter {
   public JdbcImplementor(SqlDialect dialect, JavaTypeFactory typeFactory) {
     super(dialect);
     Util.discard(typeFactory);
-  }
-
-  // CHECKSTYLE: IGNORE 1
-  /** @see #dispatch */
-  @SuppressWarnings("MissingSummary")
-  public Result visit(JdbcTableScan scan) {
-    return result(scan.jdbcTable.tableName(),
-        ImmutableList.of(Clause.FROM), scan, null);
   }
 
   public Result implement(RelNode node) {

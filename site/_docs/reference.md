@@ -1861,6 +1861,21 @@ Not implemented:
 * REGR_SLOPE(numeric1, numeric2)
 * REGR_SXY(numeric1, numeric2)
 
+#### Ordered-Set Aggregate Functions
+
+The syntax is as for *aggregateCall*, except that `WITHIN GROUP` is
+required.
+
+In the following:
+
+* *fraction* is a numeric literal between 0 and 1, inclusive, and
+  represents a percentage
+
+| Operator syntax                    | Description
+|:---------------------------------- |:-----------
+| PERCENTILE_CONT(fraction) WITHIN GROUP (ORDER BY orderItem) | Returns a percentile based on a continuous distribution of the column values, interpolating between adjacent input items if needed
+| PERCENTILE_DISC(fraction) WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) | Returns a percentile based on a discrete distribution of the column values returning the first input value whose position in the ordering equals or exceeds the specified fraction
+
 ### Window functions
 
 Syntax:
