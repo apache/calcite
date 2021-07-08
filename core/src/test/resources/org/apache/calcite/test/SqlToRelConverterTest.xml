@@ -3762,6 +3762,19 @@ LogicalAggregate(group=[{}], EXPR$0=[MODE($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testModeFunctionWithDistinct">
+    <Resource name="sql">
+      <![CDATA[select deptno,mode(distinct job)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[MODE(DISTINCT $1)])
+  LogicalProject(DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModeFunctionWithGroupBy">
     <Resource name="sql">
       <![CDATA[select mode(deptno)
@@ -3792,6 +3805,33 @@ LogicalProject(EXPR$0=[$0])
       LogicalAggregate(group=[{0, 1}], EXPR$0=[MODE($2)])
         LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testModeFunctionWithGroupingSets">
+    <Resource name="sql">
+      <![CDATA[select deptno,mode(job)
+from emp
+group by grouping sets (deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[MODE($1)])
+  LogicalProject(DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testModeFunctionWithWinAgg">
+    <Resource name="sql">
+      <![CDATA[select deptno,ename,mode(job) over (partition by deptno order by ename)
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], ENAME=[$1], EXPR$2=[MODE($2) OVER (PARTITION BY $7 ORDER BY $1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

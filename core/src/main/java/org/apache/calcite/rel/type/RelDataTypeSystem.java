@@ -97,10 +97,6 @@ public interface RelDataTypeSystem {
    * {@code DENSE_RANK}, and {@code ROW_NUMBER} aggregate functions. */
   RelDataType deriveRankType(RelDataTypeFactory typeFactory);
 
-  /** Returns the return type of the {@code MODE} aggregate function.
-   */
-  RelDataType deriveModeType(RelDataTypeFactory typeFactory, RelDataType argumentType);
-
   /** Whether two record types are considered distinct if their field names
    * are the same but in different cases. */
   boolean isSchemaCaseSensitive();

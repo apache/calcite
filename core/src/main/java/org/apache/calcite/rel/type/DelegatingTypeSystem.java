@@ -89,11 +89,6 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     return typeSystem.deriveRankType(typeFactory);
   }
 
-  @Override public RelDataType deriveModeType(RelDataTypeFactory typeFactory,
-      RelDataType argumentType) {
-    return typeSystem.deriveModeType(typeFactory, argumentType);
-  }
-
   @Override public boolean isSchemaCaseSensitive() {
     return typeSystem.isSchemaCaseSensitive();
   }

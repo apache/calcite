@@ -1272,38 +1272,35 @@ public class RexImpTable {
       Expression accMap = add.accumulator().get(1);
       Expression currentMaxNumber = add.accumulator().get(2);
       // the default number of occurrences is 0
-      Expression methodCallExpression =
-          Expressions.call(accMap,
-              BuiltInMethod.MAP_GET_OR_DEFAULT.method,
-              currentArg, Expressions.constant(0, Long.class));
+      Expression getOrDefaultExpression =
+          Expressions.call(accMap, BuiltInMethod.MAP_GET_OR_DEFAULT.method, currentArg,
+              Expressions.constant(0, Long.class));
+      // declare and assign the occurrences number about current value
+      ParameterExpression currentNumber = Expressions.parameter(
+          Long.class, add.currentBlock().newName("currentNumber"));
+      add.currentBlock().add(Expressions.declare(0, currentNumber, null));
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(currentNumber,
+                  Expressions.add(Expressions.convert_(getOrDefaultExpression, Long.class),
+                      Expressions.constant(1, Long.class)))));
       // update the occurrences number about current value
-      Expression methodCallExpression2 = Expressions.call(accMap,
-              BuiltInMethod.MAP_PUT.method, currentArg,
-              Expressions.add(Expressions.convert_(methodCallExpression, Long.class),
-                  Expressions.constant(1, Long.class)));
+      Expression methodCallExpression2 =
+          Expressions.call(accMap, BuiltInMethod.MAP_PUT.method, currentArg, currentNumber);
       add.currentBlock().add(Expressions.statement(methodCallExpression2));
-      // if the maximum number of occurrences greater than current value's occurrences number
-      // return directly
+      // update the most frequent value
+      BlockBuilder thenBlock = new BlockBuilder(true, add.currentBlock());
+      thenBlock.add(
+          Expressions.statement(
+              Expressions.assign(
+                  currentMaxNumber, Expressions.convert_(currentNumber, Long.class))));
+      thenBlock.add(
+          Expressions.statement(Expressions.assign(currentResult, currentArg)));
+      // if the maximum number of occurrences less than current value's occurrences number
+      // than update
       add.currentBlock().add(
           Expressions.ifThen(
-          Expressions.greaterThanOrEqual(currentMaxNumber,
-              Expressions.convert_(
-                  Expressions.call(accMap,
-                  BuiltInMethod.MAP_GET.method, currentArg), Long.class)),
-          Expressions.block(
-              Expressions.return_(null,
-              ((MemberExpression) currentResult).expression))));
-      // update most frequent value
-      add.currentBlock().add(
-          Expressions.statement(
-              Expressions.assign(currentMaxNumber,
-          Expressions.convert_(
-              Expressions.call(accMap,
-              BuiltInMethod.MAP_GET.method, currentArg), Long.class))));
-      // update maximum number of occurrences
-      add.currentBlock().add(
-          Expressions.statement(
-              Expressions.assign(currentResult, currentArg)));
+              Expressions.lessThan(currentMaxNumber, currentNumber), thenBlock.toBlock()));
     }
 
     @Override protected Expression implementNotNullResult(AggContext info,

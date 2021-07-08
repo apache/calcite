@@ -6927,7 +6927,6 @@ SqlIdentifier ReservedFunctionName() :
     |   <MIN>
     |   <MINUTE>
     |   <MOD>
-    |   <MODE>
     |   <MONTH>
     |   <NTH_VALUE>
     |   <NTILE>
@@ -7577,7 +7576,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MINUTES: "MINUTES" >
 |   < MINVALUE: "MINVALUE" >
 |   < MOD: "MOD" >
-|   < MODE: "MODE" >
 |   < MODIFIES: "MODIFIES" >
 |   < MODULE: "MODULE" >
 |   < MONTH: "MONTH" >

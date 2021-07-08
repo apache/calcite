@@ -3870,6 +3870,29 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
+  @Test void testModeFunctionWithGroupingSets() {
+    final String sql = ""
+        + "select deptno,mode(job)\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno)";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test void testModeFunctionWithDistinct() {
+    final String sql = ""
+        + "select deptno,mode(distinct job)\n"
+        + "from emp\n"
+        + "group by deptno";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test void testModeFunctionWithWinAgg() {
+    final String sql = ""
+        + "select deptno,ename,mode(job) over (partition by deptno order by ename)\n"
+        + "from emp";
+    sql(sql).trim(true).ok();
+  }
+
   @Test void testWithinGroup1() {
     final String sql = "select deptno,\n"
         + " collect(empno) within group (order by deptno, hiredate desc)\n"

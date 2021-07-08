@@ -952,8 +952,7 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference MODE = opBinding -> {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType type = typeFactory.getTypeSystem()
-        .deriveModeType(typeFactory, opBinding.getOperandType(0));
+    final RelDataType type = opBinding.getOperandType(0);
     return typeFactory.createTypeWithNullability(type, true);
   };
 
