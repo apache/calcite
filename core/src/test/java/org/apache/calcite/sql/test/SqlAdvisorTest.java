@@ -187,7 +187,6 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(MIN)",
           "KEYWORD(MINUTE)",
           "KEYWORD(MOD)",
-          "KEYWORD(MODE)",
           "KEYWORD(MONTH)",
           "KEYWORD(MULTISET)",
           "KEYWORD(NEW)",
