@@ -17,6 +17,8 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
  * A <code>SqlDialect</code> implementation for an unknown ANSI compatible database.
@@ -38,4 +40,14 @@ public class AnsiSqlDialect extends SqlDialect {
   public AnsiSqlDialect(Context context) {
     super(context);
   }
+
+  /** Converts table scan hints.*/
+  @Override public void unparseTableScanHints(SqlWriter writer,
+      SqlNodeList hints, int leftPrec, int rightPrec) {
+    writer.newlineAndIndent();
+    writer.keyword("/*+");
+    hints.unparse(writer, 0, 0);
+    writer.keyword("*/");
+  }
+
 }

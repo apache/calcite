@@ -1553,15 +1553,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   protected boolean isTransformationRule(VolcanoRuleCall match) {
-    if (match.getRule() instanceof SubstitutionRule) {
-      return true;
-    }
-    if (match.getRule() instanceof ConverterRule
-        && match.getRule().getOutTrait() == rootConvention) {
-      return false;
-    }
-    return match.getRule().getOperand().trait == Convention.NONE
-        || match.getRule().getOperand().trait == null;
+    return match.getRule() instanceof TransformationRule;
   }
 
 

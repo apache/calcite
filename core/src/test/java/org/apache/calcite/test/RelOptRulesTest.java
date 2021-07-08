@@ -134,6 +134,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -391,105 +392,60 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3170">[CALCITE-3170]
    * ANTI join on conditions push down generates wrong plan</a>. */
   @Test void testCanNotPushAntiJoinConditionsToLeft() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select * from emp
     // where emp.deptno
     // not in (select dept.deptno from dept where emp.deptno > 20)
-    RelNode left = relBuilder.scan("EMP").build();
-    RelNode right = relBuilder.scan("DEPT").build();
-    RelNode relNode = relBuilder.push(left)
-        .push(right)
-        .antiJoin(
-            relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")),
-            relBuilder.call(SqlStdOperatorTable.GREATER_THAN,
-            RexInputRef.of(0, left.getRowType()),
-            relBuilder.literal(20)))
-        .project(relBuilder.field(0))
-        .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_CONDITION_PUSH)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    checkCanNotPushSemiOrAntiJoinConditionsToLeft(JoinRelType.ANTI);
   }
 
   @Test void testCanNotPushAntiJoinConditionsToRight() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select * from emp
     // where emp.deptno
     // not in (select dept.deptno from dept where dept.dname = 'ddd')
-    RelNode relNode = relBuilder.scan("EMP")
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
         .scan("DEPT")
         .antiJoin(
-            relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")),
-            relBuilder.equals(relBuilder.field(2, 1, "DNAME"),
-                relBuilder.literal("ddd")))
-        .project(relBuilder.field(0))
+            b.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO")),
+            b.equals(b.field(2, 1, "DNAME"),
+                b.literal("ddd")))
+        .project(b.field(0))
         .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_CONDITION_PUSH)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    relFn(relFn).withRule(CoreRules.JOIN_CONDITION_PUSH).checkUnchanged();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3171">[CALCITE-3171]
    * SemiJoin on conditions push down throws IndexOutOfBoundsException</a>. */
   @Test void testPushSemiJoinConditionsToLeft() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select * from emp
     // where emp.deptno
     // in (select dept.deptno from dept where emp.empno > 20)
-    RelNode left = relBuilder.scan("EMP").build();
-    RelNode right = relBuilder.scan("DEPT").build();
-    RelNode relNode = relBuilder.push(left)
-        .push(right)
-        .semiJoin(
-            relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")),
-            relBuilder.call(SqlStdOperatorTable.GREATER_THAN,
-                RexInputRef.of(0, left.getRowType()),
-                relBuilder.literal(20)))
-        .project(relBuilder.field(0))
-        .build();
+    checkCanNotPushSemiOrAntiJoinConditionsToLeft(JoinRelType.SEMI);
+  }
 
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_PUSH_EXPRESSIONS)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+  private void checkCanNotPushSemiOrAntiJoinConditionsToLeft(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("EMP").build();
+      RelNode right = b.scan("DEPT").build();
+      return b.push(left)
+          .push(right)
+          .join(type,
+              b.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                  b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO")),
+              b.call(SqlStdOperatorTable.GREATER_THAN,
+                  RexInputRef.of(0, left.getRowType()),
+                  b.literal(20)))
+          .project(b.field(0))
+          .build();
+    };
+    relFn(relFn).withRule(CoreRules.JOIN_PUSH_EXPRESSIONS).checkUnchanged();
   }
 
   /** Test case for
@@ -515,61 +471,54 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3887">[CALCITE-3887]
    * Filter and Join conditions may not need to retain nullability during simplifications</a>. */
   @Test void testPushSemiJoinConditions() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    RelNode left = relBuilder.scan("EMP")
-        .project(
-            relBuilder.field("DEPTNO"),
-            relBuilder.field("ENAME"))
-        .build();
-    RelNode right = relBuilder.scan("DEPT")
-        .project(
-            relBuilder.field("DEPTNO"),
-            relBuilder.field("DNAME"))
-        .build();
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("EMP")
+          .project(
+              b.field("DEPTNO"),
+              b.field("ENAME"))
+          .build();
+      RelNode right = b.scan("DEPT")
+          .project(
+              b.field("DEPTNO"),
+              b.field("DNAME"))
+          .build();
 
-    relBuilder.push(left).push(right);
+      b.push(left).push(right);
 
-    RexInputRef ref1 = relBuilder.field(2, 0, "DEPTNO");
-    RexInputRef ref2 = relBuilder.field(2, 1, "DEPTNO");
-    RexInputRef ref3 = relBuilder.field(2, 0, "ENAME");
-    RexInputRef ref4 = relBuilder.field(2, 1, "DNAME");
+      RexInputRef ref1 = b.field(2, 0, "DEPTNO");
+      RexInputRef ref2 = b.field(2, 1, "DEPTNO");
+      RexInputRef ref3 = b.field(2, 0, "ENAME");
+      RexInputRef ref4 = b.field(2, 1, "DNAME");
 
-    // ref1 IS NOT DISTINCT FROM ref2
-    RexCall cond1 = (RexCall) relBuilder.call(
-        SqlStdOperatorTable.OR,
-        relBuilder.call(SqlStdOperatorTable.EQUALS, ref1, ref2),
-        relBuilder.call(SqlStdOperatorTable.AND,
-            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref1),
-            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref2)));
+      // ref1 IS NOT DISTINCT FROM ref2
+      RexCall cond1 = (RexCall) b.call(
+          SqlStdOperatorTable.OR,
+          b.call(SqlStdOperatorTable.EQUALS, ref1, ref2),
+          b.call(SqlStdOperatorTable.AND,
+              b.call(SqlStdOperatorTable.IS_NULL, ref1),
+              b.call(SqlStdOperatorTable.IS_NULL, ref2)));
 
-    // ref3 IS NOT DISTINCT FROM ref4
-    RexCall cond2 = (RexCall) relBuilder.call(
-        SqlStdOperatorTable.OR,
-        relBuilder.call(SqlStdOperatorTable.EQUALS, ref3, ref4),
-        relBuilder.call(SqlStdOperatorTable.AND,
-            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref3),
-            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref4)));
+      // ref3 IS NOT DISTINCT FROM ref4
+      RexCall cond2 = (RexCall) b.call(
+          SqlStdOperatorTable.OR,
+          b.call(SqlStdOperatorTable.EQUALS, ref3, ref4),
+          b.call(SqlStdOperatorTable.AND,
+              b.call(SqlStdOperatorTable.IS_NULL, ref3),
+              b.call(SqlStdOperatorTable.IS_NULL, ref4)));
 
-    RexNode cond = relBuilder.call(SqlStdOperatorTable.AND, cond1, cond2);
-    RelNode relNode = relBuilder.semiJoin(cond)
-        .project(relBuilder.field(0))
-        .build();
+      RexNode cond = b.call(SqlStdOperatorTable.AND, cond1, cond2);
+      return b.semiJoin(cond)
+          .project(b.field(0))
+          .build();
+    };
 
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_PUSH_EXPRESSIONS)
-        .addRuleInstance(CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE)
-        .addRuleInstance(CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    relFn(relFn)
+        .withRule(
+            CoreRules.JOIN_PUSH_EXPRESSIONS,
+            CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE,
+            CoreRules.JOIN_REDUCE_EXPRESSIONS,
+            CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
   }
 
   @Test void testFullOuterJoinSimplificationToLeftOuter() {
@@ -619,78 +568,43 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3225">[CALCITE-3225]
    * JoinToMultiJoinRule should not match SEMI/ANTI LogicalJoin</a>. */
   @Test void testJoinToMultiJoinDoesNotMatchSemiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select * from
     // (select * from emp join dept ON emp.deptno = emp.deptno) t
     // where emp.job in (select job from bonus)
-    RelNode left = relBuilder.scan("EMP").build();
-    RelNode right = relBuilder.scan("DEPT").build();
-    RelNode semiRight = relBuilder.scan("BONUS").build();
-    RelNode relNode = relBuilder.push(left)
-        .push(right)
-        .join(JoinRelType.INNER,
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .push(semiRight)
-        .semiJoin(
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, "JOB"),
-                relBuilder.field(2, 1, "JOB")))
-        .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    checkJoinToMultiJoinDoesNotMatchSemiOrAntiJoin(JoinRelType.SEMI);
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3225">[CALCITE-3225]
    * JoinToMultiJoinRule should not match SEMI/ANTI LogicalJoin</a>. */
   @Test void testJoinToMultiJoinDoesNotMatchAntiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select * from
     // (select * from emp join dept ON emp.deptno = emp.deptno) t
     // where not exists (select job from bonus where emp.job = bonus.job)
-    RelNode left = relBuilder.scan("EMP").build();
-    RelNode right = relBuilder.scan("DEPT").build();
-    RelNode antiRight = relBuilder.scan("BONUS").build();
-    RelNode relNode = relBuilder.push(left)
-        .push(right)
-        .join(JoinRelType.INNER,
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .push(antiRight)
-        .antiJoin(
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, "JOB"),
-                relBuilder.field(2, 1, "JOB")))
-        .build();
+    checkJoinToMultiJoinDoesNotMatchSemiOrAntiJoin(JoinRelType.ANTI);
+  }
 
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+  private void checkJoinToMultiJoinDoesNotMatchSemiOrAntiJoin(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("EMP").build();
+      RelNode right = b.scan("DEPT").build();
+      RelNode semiRight = b.scan("BONUS").build();
+      return b.push(left)
+          .push(right)
+          .join(JoinRelType.INNER,
+              b.call(SqlStdOperatorTable.EQUALS,
+                  b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO")))
+          .push(semiRight)
+          .join(type,
+              b.call(SqlStdOperatorTable.EQUALS,
+                  b.field(2, 0, "JOB"),
+                  b.field(2, 1, "JOB")))
+          .build();
+    };
+    relFn(relFn).withRule(CoreRules.JOIN_TO_MULTI_JOIN).check();
   }
 
   @Test void testPushFilterPastAgg() {
@@ -802,116 +716,60 @@ class RelOptRulesTest extends RelOptTestBase {
             .withDescription("FilterJoinRule:no-filter")
             .as(FilterJoinRule.JoinConditionPushRule.Config.class)
             .toRule();
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
 
-    RelNode left = relBuilder.scan("DEPT").build();
-    RelNode right = relBuilder.scan("EMP").build();
-    RelNode plan = relBuilder.push(left)
-        .push(right)
-        .semiJoin(
-            relBuilder.and(
-                relBuilder.call(SqlStdOperatorTable.EQUALS,
-                    relBuilder.field(2, 0, 0),
-                    relBuilder.field(2, 1, 7)),
-                relBuilder.call(SqlStdOperatorTable.EQUALS,
-                    relBuilder.field(2, 1, 5),
-                    relBuilder.literal(100))))
-        .project(relBuilder.field(1))
-        .build();
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("DEPT").build();
+      RelNode right = b.scan("EMP").build();
+      return b.push(left)
+          .push(right)
+          .semiJoin(
+              b.and(
+                  b.call(SqlStdOperatorTable.EQUALS,
+                      b.field(2, 0, 0),
+                      b.field(2, 1, 7)),
+                  b.call(SqlStdOperatorTable.EQUALS,
+                      b.field(2, 1, 5),
+                      b.literal(100))))
+          .project(b.field(1))
+          .build();
+    };
 
-    final String planBefore = NL + RelOptUtil.toString(plan);
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(join)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(plan);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    relFn(relFn).withRule(join).check();
   }
 
   @Test void testSemiJoinProjectTranspose() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select a.name from dept a
     // where a.deptno in (select b.deptno * 2 from dept);
-
-    RelNode left = relBuilder.scan("DEPT").build();
-    RelNode right = relBuilder.scan("DEPT")
-        .project(
-            relBuilder.call(
-                SqlStdOperatorTable.MULTIPLY, relBuilder.literal(2), relBuilder.field(0)))
-        .aggregate(relBuilder.groupKey(ImmutableBitSet.of(0))).build();
-
-    RelNode plan = relBuilder.push(left)
-        .push(right)
-        .semiJoin(
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, 0),
-                relBuilder.field(2, 1, 0)))
-        .project(relBuilder.field(1))
-        .build();
-
-    final String planBefore = NL + RelOptUtil.toString(plan);
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(plan);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    checkSemiOrAntiJoinProjectTranspose(JoinRelType.SEMI);
   }
 
   @Test void testAntiJoinProjectTranspose() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select a.name from dept a
     // where a.deptno not in (select b.deptno * 2 from dept);
+    checkSemiOrAntiJoinProjectTranspose(JoinRelType.ANTI);
+  }
 
-    RelNode left = relBuilder.scan("DEPT").build();
-    RelNode right = relBuilder.scan("DEPT")
-        .project(
-            relBuilder.call(
-                SqlStdOperatorTable.MULTIPLY, relBuilder.literal(2), relBuilder.field(0)))
-        .aggregate(relBuilder.groupKey(ImmutableBitSet.of(0))).build();
+  private void checkSemiOrAntiJoinProjectTranspose(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("DEPT").build();
+      RelNode right = b.scan("DEPT")
+          .project(
+              b.call(
+                  SqlStdOperatorTable.MULTIPLY, b.literal(2), b.field(0)))
+          .aggregate(b.groupKey(ImmutableBitSet.of(0))).build();
 
-    RelNode plan = relBuilder.push(left)
-        .push(right)
-        .antiJoin(
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, 0),
-                relBuilder.field(2, 1, 0)))
-        .project(relBuilder.field(1))
-        .build();
-
-    final String planBefore = NL + RelOptUtil.toString(plan);
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(plan);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+      return b.push(left)
+          .push(right)
+          .join(type,
+              b.call(SqlStdOperatorTable.EQUALS,
+                  b.field(2, 0, 0),
+                  b.field(2, 1, 0)))
+          .project(b.field(1))
+          .build();
+    };
+    relFn(relFn).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
   }
 
   @Test void testJoinProjectTranspose1() {
@@ -1712,79 +1570,38 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testProjectCorrelateTransposeRuleSemiCorrelate() {
-    RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    RelNode left = relBuilder
-        .values(new String[]{"f", "f2"}, "1", "2").build();
-
-    CorrelationId correlationId = new CorrelationId(0);
-    RexNode rexCorrel =
-        relBuilder.getRexBuilder().makeCorrel(
-            left.getRowType(),
-            correlationId);
-
-    RelNode right = relBuilder
-        .values(new String[]{"f3", "f4"}, "1", "2")
-        .project(relBuilder.field(0),
-            relBuilder.getRexBuilder()
-                .makeFieldAccess(rexCorrel, 0))
-        .build();
-    LogicalCorrelate correlate = new LogicalCorrelate(left.getCluster(),
-        left.getTraitSet(), left, right, correlationId,
-        ImmutableBitSet.of(0), JoinRelType.SEMI);
-
-    relBuilder.push(correlate);
-    RelNode relNode = relBuilder.project(relBuilder.field(0))
-        .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_CORRELATE_TRANSPOSE)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    checkProjectCorrelateTransposeRuleSemiOrAntiCorrelate(JoinRelType.SEMI);
   }
 
   @Test void testProjectCorrelateTransposeRuleAntiCorrelate() {
-    RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    RelNode left = relBuilder
-        .values(new String[]{"f", "f2"}, "1", "2").build();
+    checkProjectCorrelateTransposeRuleSemiOrAntiCorrelate(JoinRelType.ANTI);
+  }
 
-    CorrelationId correlationId = new CorrelationId(0);
-    RexNode rexCorrel =
-        relBuilder.getRexBuilder().makeCorrel(
-            left.getRowType(),
-            correlationId);
+  private void checkProjectCorrelateTransposeRuleSemiOrAntiCorrelate(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b
+          .values(new String[]{"f", "f2"}, "1", "2").build();
 
-    RelNode right = relBuilder
-        .values(new String[]{"f3", "f4"}, "1", "2")
-        .project(relBuilder.field(0),
-            relBuilder.getRexBuilder().makeFieldAccess(rexCorrel, 0)).build();
-    LogicalCorrelate correlate = new LogicalCorrelate(left.getCluster(),
-        left.getTraitSet(), left, right, correlationId,
-        ImmutableBitSet.of(0), JoinRelType.ANTI);
+      CorrelationId correlationId = new CorrelationId(0);
+      RexNode rexCorrel =
+          b.getRexBuilder().makeCorrel(
+              left.getRowType(),
+              correlationId);
 
-    relBuilder.push(correlate);
-    RelNode relNode = relBuilder.project(relBuilder.field(0))
-        .build();
+      RelNode right = b
+          .values(new String[]{"f3", "f4"}, "1", "2")
+          .project(b.field(0),
+              b.getRexBuilder().makeFieldAccess(rexCorrel, 0)).build();
+      LogicalCorrelate correlate = new LogicalCorrelate(left.getCluster(),
+          left.getTraitSet(), left, right, correlationId,
+          ImmutableBitSet.of(0), type);
 
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_CORRELATE_TRANSPOSE)
-        .build();
+      b.push(correlate);
+      return b.project(b.field(0))
+          .build();
+    };
 
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    relFn(relFn).withRule(CoreRules.PROJECT_CORRELATE_TRANSPOSE).check();
   }
 
   @Test void testProjectCorrelateTransposeWithExprCond() {
@@ -2030,97 +1847,52 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testPushJoinThroughUnionOnRightDoesNotMatchSemiJoin() {
-    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-
     // build a rel equivalent to sql:
     // select r1.sal from
     // emp r1 where r1.deptno in
-    //  (select deptno from dept d1 where deptno > 100
+    //  (select deptno from dept d1 where deptno < 10
     //  union all
     //  select deptno from dept d2 where deptno > 20)
-    RelNode left = builder.scan("EMP").build();
-    RelNode right = builder
-        .scan("DEPT")
-        .filter(
-            builder.call(SqlStdOperatorTable.GREATER_THAN,
-                builder.field("DEPTNO"),
-                builder.literal(100)))
-        .project(builder.field("DEPTNO"))
-        .scan("DEPT")
-        .filter(
-            builder.call(SqlStdOperatorTable.GREATER_THAN,
-                builder.field("DEPTNO"),
-                builder.literal(20)))
-        .project(builder.field("DEPTNO"))
-        .union(true)
-        .build();
-    RelNode relNode = builder.push(left).push(right)
-        .semiJoin(
-            builder.call(SqlStdOperatorTable.EQUALS,
-                builder.field(2, 0, "DEPTNO"),
-                builder.field(2, 1, "DEPTNO")))
-        .project(builder.field("SAL"))
-        .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_RIGHT_UNION_TRANSPOSE)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    checkPushJoinThroughUnionOnRightDoesNotMatchSemiOrAntiJoin(JoinRelType.SEMI);
   }
 
   @Test void testPushJoinThroughUnionOnRightDoesNotMatchAntiJoin() {
-    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-
     // build a rel equivalent to sql:
     // select r1.sal from
     // emp r1 where r1.deptno not in
     //  (select deptno from dept d1 where deptno < 10
     //  union all
     //  select deptno from dept d2 where deptno > 20)
-    RelNode left = builder.scan("EMP").build();
-    RelNode right = builder
-        .scan("DEPT")
-        .filter(
-            builder.call(SqlStdOperatorTable.LESS_THAN,
-                builder.field("DEPTNO"),
-                builder.literal(10)))
-        .project(builder.field("DEPTNO"))
-        .scan("DEPT")
-        .filter(
-            builder.call(SqlStdOperatorTable.GREATER_THAN,
-                builder.field("DEPTNO"),
-                builder.literal(20)))
-        .project(builder.field("DEPTNO"))
-        .union(true)
-        .build();
-    RelNode relNode = builder.push(left).push(right)
-        .antiJoin(
-            builder.call(SqlStdOperatorTable.EQUALS,
-                builder.field(2, 0, "DEPTNO"),
-                builder.field(2, 1, "DEPTNO")))
-        .project(builder.field("SAL"))
-        .build();
+    checkPushJoinThroughUnionOnRightDoesNotMatchSemiOrAntiJoin(JoinRelType.ANTI);
+  }
 
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.JOIN_RIGHT_UNION_TRANSPOSE)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+  private void checkPushJoinThroughUnionOnRightDoesNotMatchSemiOrAntiJoin(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("EMP").build();
+      RelNode right = b
+          .scan("DEPT")
+          .filter(
+              b.call(SqlStdOperatorTable.LESS_THAN,
+                  b.field("DEPTNO"),
+                  b.literal(10)))
+          .project(b.field("DEPTNO"))
+          .scan("DEPT")
+          .filter(
+              b.call(SqlStdOperatorTable.GREATER_THAN,
+                  b.field("DEPTNO"),
+                  b.literal(20)))
+          .project(b.field("DEPTNO"))
+          .union(true)
+          .build();
+      return b.push(left).push(right)
+          .join(type,
+              b.call(SqlStdOperatorTable.EQUALS,
+                  b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO")))
+          .project(b.field("SAL"))
+          .build();
+    };
+    relFn(relFn).withRule(CoreRules.JOIN_RIGHT_UNION_TRANSPOSE).checkUnchanged();
   }
 
   @Test void testMergeFilterWithJoinCondition() {
@@ -3008,8 +2780,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * Constant reducer must not duplicate calls to non-deterministic
    * functions</a>. */
   @Test void testReduceConstantsNonDeterministicFunction() {
-    final DiffRepository diffRepos = getDiffRepos();
-
     final SqlOperator nonDeterministicOp =
         new SqlSpecialOperator("NDC", SqlKind.OTHER_FUNCTION, 0, false,
             ReturnTypes.INTEGER, null, null) {
@@ -3022,34 +2792,18 @@ class RelOptRulesTest extends RelOptTestBase {
     //  SELECT sal, n
     //  FROM (SELECT sal, NDC() AS n FROM emp)
     //  WHERE n > 10
-    final RelBuilder builder =
-        RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode root =
-        builder.scan("EMP")
-            .project(builder.field("SAL"),
-                builder.alias(builder.call(nonDeterministicOp), "N"))
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("EMP")
+            .project(b.field("SAL"),
+                b.alias(b.call(nonDeterministicOp), "N"))
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("N"), builder.literal(10)))
+                b.call(SqlStdOperatorTable.GREATER_THAN,
+                    b.field("N"), b.literal(10)))
             .build();
 
-    HepProgram preProgram = new HepProgramBuilder().build();
-    HepPlanner prePlanner = new HepPlanner(preProgram);
-    prePlanner.setRoot(root);
-    final RelNode relBefore = prePlanner.findBestExp();
-    final String planBefore = NL + RelOptUtil.toString(relBefore);
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(root);
-    final RelNode relAfter = hepPlanner.findBestExp();
-    final String planAfter = NL + RelOptUtil.toString(relAfter);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    relFn(relFn)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS, CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .checkUnchanged();
   }
 
   /** Checks that constant reducer duplicates calls to dynamic functions, if
@@ -3206,12 +2960,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from (\n"
         + "select * from emp where false) as e\n"
         + "join dept as d on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testLeftEmptyLeftJoin() {
@@ -3219,12 +2968,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from (\n"
         + "  select * from emp where false) e\n"
         + "left join dept d on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testLeftEmptyRightJoin() {
@@ -3233,12 +2977,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from (\n"
         + "  select * from emp where false) e\n"
         + "right join dept d on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testLeftEmptyFullJoin() {
@@ -3247,74 +2986,28 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from (\n"
         + "  select * from emp where false) e\n"
         + "full join dept d on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testLeftEmptySemiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode relNode = relBuilder
-        .scan("EMP").empty()
-        .scan("DEPT")
-        .semiJoin(relBuilder
-            .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .project(relBuilder.field("EMPNO"))
-        .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    final RelNode output = hepPlanner.findBestExp();
-
-    final String planBefore = NL + RelOptUtil.toString(relNode);
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    // Plan should be empty
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    checkLeftEmptySemiOrAntiJoin(JoinRelType.SEMI);
   }
 
   @Test void testLeftEmptyAntiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode relNode = relBuilder
+    checkLeftEmptySemiOrAntiJoin(JoinRelType.ANTI);
+  }
+
+  private void checkLeftEmptySemiOrAntiJoin(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP").empty()
         .scan("DEPT")
-        .antiJoin(relBuilder
+        .join(type, b
             .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .project(relBuilder.field("EMPNO"))
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO")))
+        .project(b.field("EMPNO"))
         .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    final RelNode output = hepPlanner.findBestExp();
-
-    final String planBefore = NL + RelOptUtil.toString(relNode);
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    // Plan should be empty
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    checkEmptyJoin(relFn(relFn));
   }
 
   @Test void testRightEmptyInnerJoin() {
@@ -3322,12 +3015,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from emp e\n"
         + "join (select * from dept where false) as d\n"
         + "on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testRightEmptyLeftJoin() {
@@ -3336,12 +3024,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from emp e\n"
         + "left join (select * from dept where false) as d\n"
         + "on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testRightEmptyRightJoin() {
@@ -3349,12 +3032,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from emp e\n"
         + "right join (select * from dept where false) as d\n"
         + "on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testRightEmptyFullJoin() {
@@ -3363,109 +3041,53 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from emp e\n"
         + "full join (select * from dept where false) as d\n"
         + "on e.deptno = d.deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.JOIN_LEFT_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .check();
+    checkEmptyJoin(sql(sql));
   }
 
   @Test void testRightEmptySemiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode relNode = relBuilder
-        .scan("EMP")
-        .scan("DEPT").empty()
-        .semiJoin(relBuilder
-            .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .project(relBuilder.field("EMPNO"))
-        .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    final RelNode output = hepPlanner.findBestExp();
-
-    final String planBefore = NL + RelOptUtil.toString(relNode);
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    // Plan should be empty
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    checkRightEmptyAntiJoin(JoinRelType.SEMI);
   }
 
   @Test void testRightEmptyAntiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode relNode = relBuilder
+    checkRightEmptyAntiJoin(JoinRelType.ANTI);
+  }
+
+  private void checkRightEmptyAntiJoin(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
         .scan("DEPT").empty()
-        .antiJoin(relBuilder
+        .join(type, b
             .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .project(relBuilder.field("EMPNO"))
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO")))
+        .project(b.field("EMPNO"))
         .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    final RelNode output = hepPlanner.findBestExp();
-
-    final String planBefore = NL + RelOptUtil.toString(relNode);
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    // Plan should be scan("EMP") (i.e. join's left child)
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    checkEmptyJoin(relFn(relFn));
   }
 
   @Test void testRightEmptyAntiJoinNonEqui() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode relNode = relBuilder
+    final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
         .scan("DEPT").empty()
-        .antiJoin(relBuilder
+        .antiJoin(b
             .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")),
-            relBuilder
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO")),
+            b
                 .equals(
-                    relBuilder.field(2, 0, "SAL"),
-                    relBuilder.literal(2000)))
-        .project(relBuilder.field("EMPNO"))
+                    b.field(2, 0, "SAL"),
+                    b.literal(2000)))
+        .project(b.field("EMPNO"))
         .build();
+    checkEmptyJoin(relFn(relFn));
+  }
 
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
-        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
-        .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    final RelNode output = hepPlanner.findBestExp();
-
-    final String planBefore = NL + RelOptUtil.toString(relNode);
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    // Plan should be scan("EMP") (i.e. join's left child)
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  private void checkEmptyJoin(RelOptTestBase.Sql sql) {
+    sql.withRule(
+        CoreRules.FILTER_REDUCE_EXPRESSIONS,
+        PruneEmptyRules.PROJECT_INSTANCE,
+        PruneEmptyRules.JOIN_LEFT_INSTANCE,
+        PruneEmptyRules.JOIN_RIGHT_INSTANCE).check();
   }
 
   @Test void testEmptySort() {
@@ -3478,27 +3100,13 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testEmptySort2() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode relNode = relBuilder
+    final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("DEPT").empty()
         .sort(
-            relBuilder.field("DNAME"),
-            relBuilder.field("DEPTNO"))
+            b.field("DNAME"),
+            b.field("DEPTNO"))
         .build();
-
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(PruneEmptyRules.SORT_INSTANCE)
-        .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    final RelNode output = hepPlanner.findBestExp();
-
-    final String planBefore = NL + RelOptUtil.toString(relNode);
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    relFn(relFn).withRule(PruneEmptyRules.SORT_INSTANCE).check();
   }
 
   @Test void testEmptySortLimitZero() {
@@ -3603,48 +3211,44 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testReduceCaseWhenWithCast() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
-    final RelDataType type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      final RexBuilder rexBuilder = b.getRexBuilder();
+      final RelDataType type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
 
-    RelNode left = relBuilder
-        .values(new String[]{"x", "y"}, 1, 2).build();
-    RexNode ref = rexBuilder.makeInputRef(left, 0);
-    RexLiteral literal1 = rexBuilder.makeLiteral(1, type);
-    RexLiteral literal2 = rexBuilder.makeLiteral(2, type);
-    RexLiteral literal3 = rexBuilder.makeLiteral(3, type);
+      RelNode left = b
+          .values(new String[]{"x", "y"}, 1, 2).build();
+      RexNode ref = rexBuilder.makeInputRef(left, 0);
+      RexLiteral literal1 = rexBuilder.makeLiteral(1, type);
+      RexLiteral literal2 = rexBuilder.makeLiteral(2, type);
+      RexLiteral literal3 = rexBuilder.makeLiteral(3, type);
 
-    // CASE WHEN x % 2 = 1 THEN x < 2
-    //      WHEN x % 3 = 2 THEN x < 1
-    //      ELSE x < 3
-    final RexNode caseRexNode = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-            rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, literal2), literal1),
-        rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal2),
-        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-            rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, literal3), literal2),
-        rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal1),
-        rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal3));
+      // CASE WHEN x % 2 = 1 THEN x < 2
+      //      WHEN x % 3 = 2 THEN x < 1
+      //      ELSE x < 3
+      final RexNode caseRexNode = rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+          rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+              rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, literal2), literal1),
+          rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal2),
+          rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+              rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, literal3), literal2),
+          rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal1),
+          rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal3));
 
-    final RexNode castNode = rexBuilder.makeCast(rexBuilder.getTypeFactory().
-        createTypeWithNullability(caseRexNode.getType(), true), caseRexNode);
-    final RelNode root = relBuilder
-        .push(left)
-        .project(castNode)
-        .build();
+      final RexNode castNode = rexBuilder.makeCast(rexBuilder.getTypeFactory().
+          createTypeWithNullability(caseRexNode.getType(), true), caseRexNode);
+      return b
+          .push(left)
+          .project(castNode)
+          .build();
+    };
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ReduceExpressionsRule.class);
 
     HepPlanner hepPlanner = new HepPlanner(builder.build());
     hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-    hepPlanner.setRoot(root);
 
-    RelNode output = hepPlanner.findBestExp();
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    relFn(relFn).with(hepPlanner).checkUnchanged();
   }
 
   private void basePushAggThroughUnion() {
@@ -5514,88 +5118,56 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4042">[CALCITE-4042]
    * JoinCommuteRule must not match SEMI / ANTI join</a>. */
   @Test void testSwapSemiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode input = relBuilder
-        .scan("EMP")
-        .scan("DEPT")
-        .semiJoin(relBuilder
-            .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .project(relBuilder.field("EMPNO"))
-        .build();
-    testSwapJoinShouldNotMatch(input);
+    checkSwapJoinShouldNotMatch(JoinRelType.SEMI);
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4042">[CALCITE-4042]
    * JoinCommuteRule must not match SEMI / ANTI join</a>. */
   @Test void testSwapAntiJoin() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode input = relBuilder
-        .scan("EMP")
-        .scan("DEPT")
-        .antiJoin(relBuilder
-            .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .project(relBuilder.field("EMPNO"))
-        .build();
-    testSwapJoinShouldNotMatch(input);
+    checkSwapJoinShouldNotMatch(JoinRelType.ANTI);
   }
 
-  private void testSwapJoinShouldNotMatch(RelNode input) {
-    final HepProgram program = new HepProgramBuilder()
-        .addMatchLimit(1)
-        .addRuleInstance(CoreRules.JOIN_COMMUTE_OUTER)
+  private void checkSwapJoinShouldNotMatch(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(type,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO")))
+        .project(b.field("EMPNO"))
         .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(input);
-    final RelNode output = hepPlanner.findBestExp();
-
-    final String planBefore = RelOptUtil.toString(input);
-    final String planAfter = RelOptUtil.toString(output);
-    assertEquals(planBefore, planAfter);
+    relFn(relFn).withRule(CoreRules.JOIN_COMMUTE_OUTER).checkUnchanged();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4621">[CALCITE-4621]
    * SemiJoinRule throws AssertionError on ANTI join</a>. */
   @Test void testJoinToSemiJoinRuleOnAntiJoin() {
-    testSemiJoinRuleOnAntiJoin(CoreRules.JOIN_TO_SEMI_JOIN);
+    checkSemiJoinRuleOnAntiJoin(CoreRules.JOIN_TO_SEMI_JOIN);
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4621">[CALCITE-4621]
    * SemiJoinRule throws AssertionError on ANTI join</a>. */
   @Test void testProjectToSemiJoinRuleOnAntiJoin() {
-    testSemiJoinRuleOnAntiJoin(CoreRules.PROJECT_TO_SEMI_JOIN);
+    checkSemiJoinRuleOnAntiJoin(CoreRules.PROJECT_TO_SEMI_JOIN);
   }
 
-  private void testSemiJoinRuleOnAntiJoin(RelOptRule rule) {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode input = relBuilder
+  private void checkSemiJoinRuleOnAntiJoin(RelOptRule rule) {
+    final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("DEPT")
         .scan("EMP")
-        .project(relBuilder.field("DEPTNO"))
+        .project(b.field("DEPTNO"))
         .distinct()
-        .antiJoin(relBuilder
-            .equals(
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .project(relBuilder.field("DNAME"))
+        .antiJoin(
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO")))
+        .project(b.field("DNAME"))
         .build();
-
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(rule)
-        .build();
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(input);
-    final RelNode output = hepPlanner.findBestExp();
-    final String planBefore = RelOptUtil.toString(input);
-    final String planAfter = RelOptUtil.toString(output);
-    assertEquals(planBefore, planAfter);
+    relFn(relFn).withRule(rule).checkUnchanged();
   }
 
   @Test void testPushJoinCondDownToProject() {
@@ -6069,30 +5641,18 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3188">[CALCITE-3188]
    * IndexOutOfBoundsException in ProjectFilterTransposeRule when executing SELECT COUNT(*)</a>. */
   @Test void testProjectFilterTransposeRuleOnEmptyRowType() {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
     // build a rel equivalent to sql:
     // select `empty` from emp
     // where emp.deptno = 20
-    RelNode relNode = relBuilder.scan("EMP")
-        .filter(relBuilder
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b
             .equals(
-                relBuilder.field(1, 0, "DEPTNO"),
-                relBuilder.literal(20)))
+                b.field(1, 0, "DEPTNO"),
+                b.literal(20)))
         .project(ImmutableList.of())
         .build();
-
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
-
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    relFn(relFn).withRule(CoreRules.PROJECT_FILTER_TRANSPOSE).check();
   }
 
   @Test void testFlattenUncorrelatedCallBelowEquals() {
@@ -6370,31 +5930,13 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testFilterRemoveIsNotDistinctFromRule() {
-    final DiffRepository diffRepos = getDiffRepos();
-    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-    RelNode root = builder
+    final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
         .filter(
-            builder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-            builder.field("DEPTNO"), builder.literal(20)))
+            b.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            b.field("DEPTNO"), b.literal(20)))
         .build();
-
-    HepProgram preProgram = new HepProgramBuilder().build();
-    HepPlanner prePlanner = new HepPlanner(preProgram);
-    prePlanner.setRoot(root);
-    final RelNode relBefore = prePlanner.findBestExp();
-    final String planBefore = NL + RelOptUtil.toString(relBefore);
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-
-    HepProgram hepProgram = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_EXPAND_IS_NOT_DISTINCT_FROM)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(hepProgram);
-    hepPlanner.setRoot(root);
-    final RelNode relAfter = hepPlanner.findBestExp();
-    final String planAfter = NL + RelOptUtil.toString(relAfter);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    relFn(relFn).withRule(CoreRules.FILTER_EXPAND_IS_NOT_DISTINCT_FROM).check();
   }
 
   /** Creates an environment for testing spatial queries. */
@@ -6499,36 +6041,27 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testExchangeRemoveConstantKeysRule() {
-    final DiffRepository diffRepos = getDiffRepos();
-    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-    RelNode root = builder
+    final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
         .filter(
-        builder.call(SqlStdOperatorTable.EQUALS,
-          builder.field("EMPNO"), builder.literal(10)))
+            b.call(
+                SqlStdOperatorTable.EQUALS,
+                b.field("EMPNO"),
+                b.literal(10)))
         .exchange(RelDistributions.hash(ImmutableList.of(0)))
-        .project(builder.field(0), builder.field(1))
-        .sortExchange(RelDistributions.hash(ImmutableList.of(0, 1)),
-        RelCollations.of(new RelFieldCollation(0), new RelFieldCollation(1)))
+        .project(
+            b.field(0),
+            b.field(1))
+        .sortExchange(
+            RelDistributions.hash(ImmutableList.of(0, 1)),
+            RelCollations.of(new RelFieldCollation(0), new RelFieldCollation(1)))
         .build();
 
-    HepProgram preProgram = new HepProgramBuilder().build();
-    HepPlanner prePlanner = new HepPlanner(preProgram);
-    prePlanner.setRoot(root);
-    final RelNode relBefore = prePlanner.findBestExp();
-    final String planBefore = NL + RelOptUtil.toString(relBefore);
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-
-    HepProgram hepProgram = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS)
-        .addRuleInstance(CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS)
-        .build();
-
-    HepPlanner hepPlanner = new HepPlanner(hepProgram);
-    hepPlanner.setRoot(root);
-    final RelNode relAfter = hepPlanner.findBestExp();
-    final String planAfter = NL + RelOptUtil.toString(relAfter);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    relFn(relFn)
+        .withRule(
+            CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS,
+            CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS)
+        .check();
   }
 
   @Test void testReduceAverageWithNoReduceSum() {
@@ -6755,7 +6288,7 @@ class RelOptRulesTest extends RelOptTestBase {
     Tester tester = createTester().withDecorrelation(true)
         .withClusterFactory(cluster -> RelOptCluster.create(planner, cluster.getRexBuilder()));
     return new Sql(tester, sql, null, planner,
-        ImmutableMap.of(), ImmutableList.of());
+        ImmutableMap.of(), ImmutableList.of(), null);
   }
 
   /**
@@ -7119,15 +6652,11 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   private void checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(boolean allowAlwaysTrue) {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
-
-    RelNode left = relBuilder.scan("EMP").build();
-    RelNode right = relBuilder.scan("DEPT").build();
-
-    RelNode relNode = relBuilder.push(left)
-        .push(right)
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
         .join(JoinRelType.INNER,
-            relBuilder.literal(true))
+            b.literal(true))
         .build();
 
     JoinCommuteRule.Config ruleConfig = JoinCommuteRule.Config.DEFAULT;
@@ -7139,15 +6668,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .addMatchLimit(1)
         .addRuleInstance(ruleConfig.toRule())
         .build();
-
     HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
 
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    if (allowAlwaysTrue) {
+      relFn(relFn).with(hepPlanner).check();
+    } else {
+      relFn(relFn).with(hepPlanner).checkUnchanged();
+    }
   }
 
   @Test void testJoinAssociateRuleWithBottomAlwaysTrueConditionAllowed() {
@@ -7159,24 +6686,24 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   private void checkJoinAssociateRuleWithBottomAlwaysTrueCondition(boolean allowAlwaysTrue) {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode bottomLeft = b.scan("EMP").build();
+      RelNode bottomRight = b.scan("DEPT").build();
+      RelNode top = b.scan("BONUS").build();
 
-    RelNode bottomLeft = relBuilder.scan("EMP").build();
-    RelNode bottomRight = relBuilder.scan("DEPT").build();
-    RelNode top = relBuilder.scan("BONUS").build();
-
-    RelNode relNode = relBuilder.push(bottomLeft)
-        .push(bottomRight)
-        .join(JoinRelType.INNER,
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .push(top)
-        .join(JoinRelType.INNER,
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, "JOB"),
-                relBuilder.field(2, 1, "JOB")))
-        .build();
+      return b.push(bottomLeft)
+          .push(bottomRight)
+          .join(JoinRelType.INNER,
+              b.call(SqlStdOperatorTable.EQUALS,
+                  b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO")))
+          .push(top)
+          .join(JoinRelType.INNER,
+              b.call(SqlStdOperatorTable.EQUALS,
+                  b.field(2, 0, "JOB"),
+                  b.field(2, 1, "JOB")))
+          .build();
+    };
 
     JoinAssociateRule.Config ruleConfig = JoinAssociateRule.Config.DEFAULT;
     if (!allowAlwaysTrue) {
@@ -7188,15 +6715,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .addMatchOrder(HepMatchOrder.TOP_DOWN)
         .addRuleInstance(ruleConfig.toRule())
         .build();
-
     HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
 
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    if (allowAlwaysTrue) {
+      relFn(relFn).with(hepPlanner).check();
+    } else {
+      relFn(relFn).with(hepPlanner).checkUnchanged();
+    }
   }
 
   @Test void testJoinAssociateRuleWithTopAlwaysTrueConditionAllowed() {
@@ -7208,22 +6733,23 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   private void checkJoinAssociateRuleWithTopAlwaysTrueCondition(boolean allowAlwaysTrue) {
-    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final Function<RelBuilder, RelNode> relFn = b -> {
 
-    RelNode bottomLeft = relBuilder.scan("EMP").build();
-    RelNode bottomRight = relBuilder.scan("BONUS").build();
-    RelNode top = relBuilder.scan("DEPT").build();
+      RelNode bottomLeft = b.scan("EMP").build();
+      RelNode bottomRight = b.scan("BONUS").build();
+      RelNode top = b.scan("DEPT").build();
 
-    RelNode relNode = relBuilder.push(bottomLeft)
-        .push(bottomRight)
-        .join(JoinRelType.INNER,
-            relBuilder.literal(true))
-        .push(top)
-        .join(JoinRelType.INNER,
-            relBuilder.call(SqlStdOperatorTable.EQUALS,
-                relBuilder.field(2, 0, "DEPTNO"),
-                relBuilder.field(2, 1, "DEPTNO")))
-        .build();
+      return b.push(bottomLeft)
+          .push(bottomRight)
+          .join(JoinRelType.INNER,
+              b.literal(true))
+          .push(top)
+          .join(JoinRelType.INNER,
+              b.call(SqlStdOperatorTable.EQUALS,
+                  b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO")))
+          .build();
+    };
 
     JoinAssociateRule.Config ruleConfig = JoinAssociateRule.Config.DEFAULT;
     if (!allowAlwaysTrue) {
@@ -7235,14 +6761,12 @@ class RelOptRulesTest extends RelOptTestBase {
         .addMatchOrder(HepMatchOrder.TOP_DOWN)
         .addRuleInstance(ruleConfig.toRule())
         .build();
-
     HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode);
-    RelNode output = hepPlanner.findBestExp();
 
-    final String planAfter = NL + RelOptUtil.toString(output);
-    final DiffRepository diffRepos = getDiffRepos();
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
-    SqlToRelTestBase.assertValid(output);
+    if (allowAlwaysTrue) {
+      relFn(relFn).with(hepPlanner).check();
+    } else {
+      relFn(relFn).with(hepPlanner).checkUnchanged();
+    }
   }
 }
