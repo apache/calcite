@@ -183,6 +183,12 @@ public class AggregateProjectPullUpConstantsRule
       if (i >= groupCount) {
         // Aggregate expressions' names and positions are unchanged.
         expr = relBuilder.field(i - map.size());
+        // When newGroupCount is 0 the cloned aggregate calls (e.g. MAX)
+        // may lose NOT NULL attribute.
+        RelDataType originalType = field.getType();
+        if (!originalType.equals(expr.getType())) {
+          expr = rexBuilder.makeCast(originalType, expr, true);
+        }
       } else {
         int pos = aggregate.getGroupSet().nth(i);
         RexNode rexNode = map.get(pos);
