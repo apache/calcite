@@ -215,61 +215,6 @@ LogicalProject(JOB=[$1])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testAggregateConstantKeyRuleWithRemoveAll2">
-    <Resource name="sql">
-      <![CDATA[select job
-from sales.emp
-where deptno = 10 and job = 'Clerk'
-group by deptno, job]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(JOB=[$1])
-  LogicalAggregate(group=[{0, 1}])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalFilter(condition=[AND(=($7, 10), =($2, 'Clerk'))])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(JOB=[$1])
-  LogicalProject(DEPTNO=[10], JOB=['Clerk':VARCHAR(10)])
-    LogicalFilter(condition=[>($0, 0)])
-      LogicalAggregate(group=[{}], agg#0=[COUNT()])
-        LogicalFilter(condition=[AND(=($7, 10), =($2, 'Clerk'))])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testAggregateConstantKeyRuleWithRemoveAll3">
-    <Resource name="sql">
-      <![CDATA[select max(job)
-from sales.emp
-where deptno = 10 and job = 'Clerk'
-group by deptno, job]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[$2])
-  LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($1)])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalFilter(condition=[AND(=($7, 10), =($2, 'Clerk'))])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[$2])
-  LogicalProject(DEPTNO=[10], JOB=['Clerk':VARCHAR(10)], EXPR$0=[CAST($0):VARCHAR(10) NOT NULL])
-    LogicalFilter(condition=[>($1, 0)])
-      LogicalAggregate(group=[{}], EXPR$0=[MAX($0)], agg#1=[COUNT()])
-        LogicalProject(JOB=[$2])
-          LogicalFilter(condition=[AND(=($7, 10), =($2, 'Clerk'))])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testAggregateDynamicFunction">
     <Resource name="sql">
       <![CDATA[select hiredate
