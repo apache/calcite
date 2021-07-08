@@ -1544,16 +1544,9 @@ class PlannerTest {
         + " { 20, 'Marketing' },"
         + " { 30, 'Engineering' },"
         + " { 40, 'Empty' }]])\n";
-    final String expectedDefault = "LogicalProject("
-        + "EXPR$0=["
-        + "CASE(<>($0, 30),"
-        + " 'hi   ', "
-        + "'world')])\n"
-        + "  LogicalValues("
-        + "tuples=[[{ 10, 'Sales      ' },"
-        + " { 20, 'Marketing  ' },"
-        + " { 30, 'Engineering' },"
-        + " { 40, 'Empty      ' }]])\n";
+    final String expectedDefault = ""
+        + "LogicalProject(EXPR$0=[CASE(<>($0, 30), 'hi   ', 'world')])\n"
+        + "  LogicalValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])\n";
     assertValidPlan(sql, new VaryingTypeSystem(DelegatingTypeSystem.DEFAULT), is(expectedVarying));
     assertValidPlan(sql, DelegatingTypeSystem.DEFAULT, is(expectedDefault));
   }
