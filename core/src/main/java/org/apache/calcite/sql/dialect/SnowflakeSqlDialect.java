@@ -375,12 +375,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
     }
   }
 
-  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
-    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
-        dateTimeFormatMap);
-    return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
-  }
-
   private String quoteIdentifierFormat(String format) {
     return "'" + format + "'";
   }
@@ -424,6 +418,13 @@ public class SnowflakeSqlDialect extends SqlDialect {
     SqlCall toDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(1),
         call.operand(0));
     super.unparseCall(writer, toDateCall, leftPrec, rightPrec);
+  }
+
+  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
+
+    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
+        dateTimeFormatMap);
+    return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
