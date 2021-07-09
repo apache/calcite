@@ -8136,13 +8136,13 @@ class RelToSqlConverterTest {
   @Test public void toTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
-        builder.literal("Jan 15, 1989, 11:00:06 AM"), builder.literal("MON dd, YYYY,HH:MI:SS AM"));
+        builder.literal("Jan 15, 1989, 11:00:06 AM"), builder.literal("MMM dd, YYYY,HH:MI:SS AM"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "timestamp_value"))
         .build();
     final String expectedSql =
-        "SELECT TO_TIMESTAMP('Jan 15, 1989, 11:00:06 AM', 'MON dd, YYYY,HH:MI:SS AM') AS "
+        "SELECT TO_TIMESTAMP('Jan 15, 1989, 11:00:06 AM', 'MMM dd, YYYY,HH:MI:SS AM') AS "
         + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
     final String expectedSF =
         "SELECT TO_TIMESTAMP('Jan 15, 1989, 11:00:06 AM' , 'MON DD, YYYY,HH:MI:SS AM') AS "
