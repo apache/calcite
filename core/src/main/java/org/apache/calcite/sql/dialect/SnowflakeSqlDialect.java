@@ -66,6 +66,8 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
  */
@@ -357,9 +359,24 @@ public class SnowflakeSqlDialect extends SqlDialect {
       }
       writer.endFunCall(substringFrame);
       break;
+    case "TO_TIMESTAMP":
+      String dateFormat = call.operand(1) instanceof SqlCharStringLiteral
+          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(1)).getValue()))
+          .getValue()
+          : call.operand(1).toString();
+      final SqlWriter.Frame to_timestamp = writer.startFunCall("TO_TIMESTAMP");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(", ");
+      writer.print(quoteIdentifierFormat(getDateTimeFormatString(dateFormat, dateTimeFormatMap)));
+      writer.endFunCall(to_timestamp);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private String quoteIdentifierFormat(String format) {
+    return "'" + format + "'";
   }
 
   private void unparseRegexContains(SqlWriter writer, SqlCall call, int leftPrec,
