@@ -223,4 +223,25 @@ FROM UNNEST(array [0, 2, 4, 4, 5]) as x;
 
 !ok
 
+
+WITH tab(field1, field2) AS (VALUES 
+	(1, ARRAY[ ROW(0), ROW(NULL)]), 
+	(2, ARRAY[ ROW(1)])
+)
+SELECT field1 FROM tab
+WHERE field1 IS NOT NULL 
+AND field1 NOT IN (
+ 	SELECT subfield
+	FROM  UNNEST(field2) AS L(subfield)
+);
++--------+
+| FIELD1 |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+
 # End unnest.iq
