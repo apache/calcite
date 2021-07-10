@@ -1599,6 +1599,17 @@ class RelToSqlConverterTest {
     sql(query).withMssql().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4690">[CALCITE-4690]
+   * Error when when executing query with CHARACTER SET in Redshift</a>. */
+  @Test void testRedshiftCharacterSet() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT \"hire_date\", CAST(\"hire_date\" AS VARCHAR(10))\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
+    sql(query).withRedshift().ok(expected);
+  }
+
   @Test void testExasolCharacterSet() {
     String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
         + "from \"foodmart\".\"reserve_employee\"";
