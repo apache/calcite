@@ -934,7 +934,15 @@ public class RelBuilder {
    *
    * <p>This method of creating a group key does not allow you to group on new
    * expressions, only column projections, but is efficient, especially when you
-   * are coming from an existing {@link Aggregate}. */
+   * are coming from an existing {@link Aggregate}.
+   *
+   * <p>This method of creating a group key allow you to create groupKey be a
+   * superset of the union of the groupKeys, When convert RelNode To Sql, will
+   * generate the superset grouping set, then by having filter it out.
+   * <p>Also see the discussion in
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4665">[CALCITE-4665]
+   * group key is a superset of the union of the groupKeys</a>.
+   * */
   public GroupKey groupKey(ImmutableBitSet groupSet,
       Iterable<? extends ImmutableBitSet> groupSets) {
     return groupKey_(groupSet, ImmutableList.copyOf(groupSets));

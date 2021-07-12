@@ -78,6 +78,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -442,6 +443,93 @@ class RelToSqlConverterTest {
     sql(query)
         .withPostgresql()
         .ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4665">[CALCITE-4665]
+   * convert grouping sets with group keys contain unused column RelNode to sql statement</a>.
+   */
+  @Test void testQueryWithGroupingSetRel2Sql() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(b.call(SqlStdOperatorTable.EQUALS, b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB")).build();
+    final String expectedSql = ""
+        + "SELECT \"JOB\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\"), \"EMPNO\", (\"EMPNO\", "
+        + "\"ENAME\", \"JOB\"))\n"
+        + "HAVING \"JOB\" = 'DEVELOP' AND 7 <> GROUPING_ID(\"EMPNO\", \"ENAME\", "
+        + "\"JOB\")";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testQueryWithGroupingSetRel2Sql()},
+   * but HAVING has one standalone condition. */
+  @Test void testQueryWithGroupingSetRel2Sql2() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(b.call(SqlStdOperatorTable.GREATER_THAN, b.field("C"), b.literal(10)))
+        .filter(b.call(SqlStdOperatorTable.EQUALS, b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB")).build();
+    final String expectedSql = ""
+        + "SELECT \"JOB\"\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM"
+        + "(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\"), \"EMPNO\", (\"EMPNO\", "
+        + "\"ENAME\", \"JOB\"))\n"
+        + "HAVING COUNT(*) > 10 AND 7 <> GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\")) AS"
+        + " \"t0\"\n"
+        + "WHERE \"JOB\" = 'DEVELOP'";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testQueryWithGroupingSetRel2Sql()},
+   * but HAVING has one or condition and the result can add appropriate parentheses.*/
+  @Test void testQueryWithGroupingSetRel2Sql3() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(
+            b.call(
+                SqlStdOperatorTable.OR,
+                b.call(
+                    SqlStdOperatorTable.GREATER_THAN,
+                    b.field("C"),
+                    b.literal(10)),
+                b.call(
+                    SqlStdOperatorTable.LESS_THAN,
+                    b.field("S"),
+                    b.literal(3000))))
+        .filter(
+            b.call(SqlStdOperatorTable.EQUALS, b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB")).build();
+    final String expectedSql = ""
+        + "SELECT \"JOB\"\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\"), \"EMPNO\", (\"EMPNO\", \"ENAME\", \"JOB\"))\n"
+        + "HAVING (COUNT(*) > 10 OR SUM(\"SAL\") < 3000) AND 7 <> GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\")) AS \"t0\"\n"
+        + "WHERE \"JOB\" = 'DEVELOP'";
+    relFn(relFn).ok(expectedSql);
   }
 
   /** Tests GROUP BY ROLLUP of two columns. The SQL for MySQL has
