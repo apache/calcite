@@ -1027,6 +1027,168 @@ select deptno
 
 !ok
 
+# There are duplicate GROUPING SETS
+select deptno, sum(sal) as s
+from "scott".emp as t
+group by grouping sets (deptno, deptno);
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
+|     30 |  9400.00 |
++--------+----------+
+(6 rows)
+
+!ok
+
+# Similar, not duplicate GROUPING SETS
+select deptno, sum(sal) as s
+from "scott".emp as t
+group by grouping sets (deptno);
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
++--------+----------+
+(3 rows)
+
+!ok
+
+# Complex GROUPING SETS clause that contains duplicates
+select sum(sal) as s
+from "scott".emp as t
+group by job,
+    grouping sets ( deptno,
+    grouping sets ( (deptno, comm is null), comm is null),
+         (comm is null)),
+    ();
++---------+
+| S       |
++---------+
+| 1300.00 |
+| 1300.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 6000.00 |
+|  950.00 |
+|  950.00 |
+| 1900.00 |
+| 1900.00 |
+| 4150.00 |
+| 4150.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 6000.00 |
+| 6000.00 |
+| 6000.00 |
+| 8275.00 |
+| 8275.00 |
++---------+
+(28 rows)
+
+!ok
+
+# Equivalent query using flat GROUPING SETS
+select sum(sal) as s
+from "scott".emp
+group by grouping sets ((job, deptno, comm is null),
+  (job, deptno), (job, comm is null), (job, comm is null));
++---------+
+| S       |
++---------+
+| 1300.00 |
+| 1300.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 6000.00 |
+|  950.00 |
+|  950.00 |
+| 1900.00 |
+| 1900.00 |
+| 4150.00 |
+| 4150.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 6000.00 |
+| 6000.00 |
+| 6000.00 |
+| 8275.00 |
+| 8275.00 |
++---------+
+(28 rows)
+
+!ok
+
+# Equivalent query, but with GROUP_ID and GROUPING_ID
+select sum(sal) as s,
+  grouping_id(job, deptno, comm is null) as g,
+  group_id() as i
+from "scott".emp
+group by grouping sets ((job, deptno, comm is null),
+  (job, deptno), (job, comm is null), (job, comm is null))
+order by g, i, s desc;
++---------+---+---+
+| S       | G | I |
++---------+---+---+
+| 6000.00 | 0 | 0 |
+| 5600.00 | 0 | 0 |
+| 5000.00 | 0 | 0 |
+| 2975.00 | 0 | 0 |
+| 2850.00 | 0 | 0 |
+| 2450.00 | 0 | 0 |
+| 1900.00 | 0 | 0 |
+| 1300.00 | 0 | 0 |
+|  950.00 | 0 | 0 |
+| 8275.00 | 0 | 1 |
+| 6000.00 | 0 | 1 |
+| 5600.00 | 0 | 1 |
+| 5000.00 | 0 | 1 |
+| 4150.00 | 0 | 1 |
+| 6000.00 | 1 | 0 |
+| 5600.00 | 1 | 0 |
+| 5000.00 | 1 | 0 |
+| 2975.00 | 1 | 0 |
+| 2850.00 | 1 | 0 |
+| 2450.00 | 1 | 0 |
+| 1900.00 | 1 | 0 |
+| 1300.00 | 1 | 0 |
+|  950.00 | 1 | 0 |
+| 8275.00 | 2 | 0 |
+| 6000.00 | 2 | 0 |
+| 5600.00 | 2 | 0 |
+| 5000.00 | 2 | 0 |
+| 4150.00 | 2 | 0 |
++---------+---+---+
+(28 rows)
+
+!ok
+
 # [KYLIN-751] Max on negative double values is not working
 # [CALCITE-735] Primitive.DOUBLE.min should be large and negative
 select max(v) as x, min(v) as n

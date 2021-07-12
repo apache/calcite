@@ -557,7 +557,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testGroupingSetsRepeated() {
     final String sql = "select deptno, group_id()\n"
         + "from emp\n"
-        + "group by grouping sets (deptno, (), deptno)";
+        + "group by grouping sets (deptno, (), job, (deptno, job), deptno,\n"
+        + "  job, deptno)";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testGroupingSetsRepeated()} but with no {@code GROUP_ID}
+   * function. (We still need the plan to contain a Union.) */
+  @Test void testGroupingSetsRepeatedNoGroupId() {
+    final String sql = "select deptno, job\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, (), job, (deptno, job), deptno,\n"
+        + "  job, deptno)";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testGroupingSetsRepeated()} but grouping sets are distinct.
+   * The {@code GROUP_ID} is replaced by 0.*/
+  @Test void testGroupingSetsWithGroupId() {
+    final String sql = "select deptno, group_id()\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, (), job)";
     sql(sql).ok();
   }
 
