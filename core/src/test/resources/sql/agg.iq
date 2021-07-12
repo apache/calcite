@@ -3135,4 +3135,56 @@ group by grouping sets (deptno, ename);
 
 !ok
 
+# [CALCITE-4665] Allow Aggregate.groupKey to be a strict superset of
+# Aggregate.groupKeys
+# Use a condition on grouping_id to filter out the superset grouping sets.
+select ename, deptno, gender, grouping(ename) as g_e,
+  grouping(deptno) as g_d, grouping(gender) as g_g
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno),
+  (ename, deptno, gender))
+having grouping_id(ename, deptno, gender) <> 0
+order by ename, deptno;
++-------+--------+--------+-----+-----+-----+
+| ENAME | DEPTNO | GENDER | G_E | G_D | G_G |
++-------+--------+--------+-----+-----+-----+
+| Adam  |     50 |        |   0 |   0 |   1 |
+| Adam  |        |        |   0 |   1 |   1 |
+| Bob   |     10 |        |   0 |   0 |   1 |
+| Bob   |        |        |   0 |   1 |   1 |
+| Eric  |     20 |        |   0 |   0 |   1 |
+| Eric  |        |        |   0 |   1 |   1 |
+|       |     10 |        |   1 |   0 |   1 |
+|       |     20 |        |   1 |   0 |   1 |
+|       |     50 |        |   1 |   0 |   1 |
++-------+--------+--------+-----+-----+-----+
+(9 rows)
+
+!ok
+
+# just a comparison about the above sql
+select ename, deptno, grouping(ename) as g_e,
+  grouping(deptno) as g_d
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno))
+order by ename, deptno;
++-------+--------+-----+-----+
+| ENAME | DEPTNO | G_E | G_D |
++-------+--------+-----+-----+
+| Adam  |     50 |   0 |   0 |
+| Adam  |        |   0 |   1 |
+| Bob   |     10 |   0 |   0 |
+| Bob   |        |   0 |   1 |
+| Eric  |     20 |   0 |   0 |
+| Eric  |        |   0 |   1 |
+|       |     10 |   1 |   0 |
+|       |     20 |   1 |   0 |
+|       |     50 |   1 |   0 |
++-------+--------+-----+-----+
+(9 rows)
+
+!ok
+
 # End agg.iq

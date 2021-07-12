@@ -934,7 +934,25 @@ public class RelBuilder {
    *
    * <p>This method of creating a group key does not allow you to group on new
    * expressions, only column projections, but is efficient, especially when you
-   * are coming from an existing {@link Aggregate}. */
+   * are coming from an existing {@link Aggregate}.
+   *
+   * <p>It is possible for {@code groupSet} to be strict superset of all
+   * {@code groupSets}. For example, in the pseudo SQL
+   *
+   * <pre>{@code
+   * GROUP BY 0, 1, 2
+   * GROUPING SETS ((0, 1), 0)
+   * }</pre>
+   *
+   * <p>column 2 does not appear in either grouping set. This is not valid SQL.
+   * We can approximate in actual SQL by adding an extra grouping set and
+   * filtering out using {@code HAVING}, as follows:
+   *
+   * <pre>{@code
+   * GROUP BY GROUPING SETS ((0, 1, 2), (0, 1), 0)
+   * HAVING GROUPING_ID(0, 1, 2) <> 0
+   * }</pre>
+   */
   public GroupKey groupKey(ImmutableBitSet groupSet,
       Iterable<? extends ImmutableBitSet> groupSets) {
     return groupKey_(groupSet, ImmutableList.copyOf(groupSets));
