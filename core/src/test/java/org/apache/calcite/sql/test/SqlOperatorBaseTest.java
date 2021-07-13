@@ -7621,9 +7621,9 @@ public abstract class SqlOperatorBaseTest {
         false);
 
     tester.checkType("mode('name')", "CHAR(4)");
-    checkAggType(tester, "mode(1)", "INTEGER");
-    checkAggType(tester, "mode(1.2)", "DECIMAL(2, 1)");
-    checkAggType(tester, "mode(DISTINCT 1.5)", "DECIMAL(2, 1)");
+    checkAggType(tester, "mode(1)", "INTEGER NOT NULL");
+    checkAggType(tester, "mode(1.2)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "mode(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     tester.checkType("mode(cast(null as varchar(2)))", "VARCHAR(2)");
 
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2", "3", "3", "3" };
