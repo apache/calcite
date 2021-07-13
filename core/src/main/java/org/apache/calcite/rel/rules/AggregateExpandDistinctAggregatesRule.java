@@ -343,7 +343,6 @@ public final class AggregateExpandDistinctAggregatesRule
     final List<AggregateCall> topAggregateCalls = new ArrayList<>();
     // Use the remapped arguments for the (non)distinct aggregate calls
     int nonDistinctAggCallProcessedSoFar = 0;
-    boolean needTopCast = false;
     for (AggregateCall aggCall : originalAggCalls) {
       final AggregateCall newCall;
       if (aggCall.isDistinct()) {
@@ -371,16 +370,13 @@ public final class AggregateExpandDistinctAggregatesRule
         final List<Integer> newArgs = ImmutableList.of(arg);
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
           RelDataTypeFactory typeFactory = aggregate.getCluster().getTypeFactory();
-          RelDataType sumType = typeFactory.getTypeSystem().deriveSumType(typeFactory,
-              aggCall.getType());
-          needTopCast |= !sumType.equals(aggCall.getType());
 
           newCall =
               AggregateCall.create(new SqlSumEmptyIsZeroAggFunction(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   newArgs, -1, aggCall.distinctKeys, aggCall.collation,
                   originalGroupSet.cardinality(), relBuilder.peek(),
-                  sumType,
+                  typeFactory.getTypeSystem().deriveSumType(typeFactory, aggCall.getType()),
                   aggCall.getName());
         } else {
           newCall =
@@ -414,22 +410,7 @@ public final class AggregateExpandDistinctAggregatesRule
     // Add projection node for case: SUM of COUNT(*):
     // Type of the SUM may be larger than type of COUNT.
     // CAST to original type must be added.
-    if (needTopCast) {
-      RelNode newTopAgg = relBuilder.peek();
-      List<RelDataTypeField> topTypes = newTopAgg.getRowType().getFieldList();
-      final List<RexNode> projList = new ArrayList<>();
-      RexBuilder rexBuilder = relBuilder.getRexBuilder();
-      for (int i = 0; i < topTypes.size(); ++i) {
-        RelDataType origType = aggregate.getRowType().getFieldList().get(i).getType();
-        if (!topTypes.get(i).getType().equals(origType)) {
-          projList.add(rexBuilder.makeCast(origType, rexBuilder.makeInputRef(newTopAgg, i)));
-        } else {
-          projList.add(rexBuilder.makeInputRef(newTopAgg, i));
-        }
-      }
-
-      relBuilder.project(projList, newTopAgg.getRowType().getFieldNames());
-    }
+    relBuilder.convert(aggregate.getRowType(), true);
 
     return relBuilder;
   }
