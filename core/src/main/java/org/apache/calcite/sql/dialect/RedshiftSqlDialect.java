@@ -17,9 +17,13 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -44,5 +48,25 @@ public class RedshiftSqlDialect extends SqlDialect {
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
+  }
+
+  @Override public SqlNode getCastSpec(RelDataType type) {
+    String castSpec;
+    switch (type.getSqlTypeName()) {
+    case TINYINT:
+      // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
+      castSpec = "smallint";
+      break;
+    case DOUBLE:
+      // Postgres has a double type but it is named differently
+      castSpec = "float8";
+      break;
+    default:
+      return super.getCastSpec(type);
+    }
+
+    return new SqlDataTypeSpec(
+        new SqlUserDefinedTypeNameSpec(castSpec, SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
   }
 }
