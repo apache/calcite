@@ -2073,7 +2073,7 @@ class RexProgramTest extends RexProgramTestBase {
     RexNode caseNode = case_(
         gt(div(vIntNotNull(), literal(1)), literal(1)), falseLiteral,
         trueLiteral);
-    checkSimplify(caseNode, "<=(/(?0.notNullInt0, 1), 1)");
+    checkSimplify(caseNode, "<=(?0.notNullInt0, 1)");
   }
 
   @Test void testPushNotIntoCase() {
@@ -3223,5 +3223,34 @@ class RexProgramTest extends RexProgramTestBase {
 
   @Test void testSimplifyVarbinary() {
     checkSimplifyUnchanged(cast(cast(vInt(), tVarchar(true, 100)), tVarbinary(true)));
+  }
+
+  @Test void testSimplifySimpleArithmetic() {
+    RexNode a = vIntNotNull(1);
+    RexNode zero = literal(0);
+    RexNode one = literal(1);
+
+    RexNode b = vDecimalNotNull(2);
+    RexNode half = literal(new BigDecimal(0.5), b.getType());
+
+    checkSimplify(add(a, zero), "?0.notNullInt1");
+    checkSimplify(add(zero, a), "?0.notNullInt1");
+    checkSimplify(add(a, nullInt), "null:INTEGER");
+    checkSimplify(add(nullInt, a), "null:INTEGER");
+
+    checkSimplify(sub(a, zero), "?0.notNullInt1");
+    checkSimplify(sub(a, nullInt), "null:INTEGER");
+
+    checkSimplify(mul(a, one), "?0.notNullInt1");
+    checkSimplify(mul(one, a), "?0.notNullInt1");
+    checkSimplify(mul(a, nullInt), "null:INTEGER");
+    checkSimplify(mul(nullInt, a), "null:INTEGER");
+
+    checkSimplify(div(a, one), "?0.notNullInt1");
+    checkSimplify(div(a, nullInt), "null:INTEGER");
+
+    checkSimplifyUnchanged(add(b, half));
+
+    checkSimplify(add(zero, sub(nullInt, nullInt)), "null:INTEGER");
   }
 }

@@ -36,6 +36,8 @@ rootProject.configure<ReleaseExtension> {
 }
 
 fun ReleaseParams.voteTextGen(): String = """
+Subject: [VOTE] Release $componentName $version (release candidate $rc)
+
 Hi all,
 
 I have created a build for $componentName $version, release
@@ -44,7 +46,7 @@ candidate $rc.
 Thanks to everyone who has contributed to this release.
 
 You can read the release notes here:
-$previewSiteUri/docs/history.html
+https://github.com/apache/calcite/blob/$tag/site/_docs/history.md
 
 The commit to be voted upon:
 https://gitbox.apache.org/repos/asf?p=calcite.git;a=commit;h=$gitSha
@@ -58,15 +60,6 @@ The artifacts to be voted on are located here:
 $svnStagingUri
 (revision $svnStagingRevision)
 
-RAT report:
-$previewSiteUri/rat/rat-report.txt
-
-Site preview is here:
-$previewSiteUri/
-
-JavaDoc API preview is here:
-$previewSiteUri/api
-
 The hashes of the artifacts are as follows:
 ${artifacts.joinToString(System.lineSeparator()) { it.sha512 + System.lineSeparator() + "*" + it.name }}
 
@@ -77,11 +70,8 @@ Release artifacts are signed with the following key:
 https://people.apache.org/keys/committer/$committerId.asc
 https://www.apache.org/dist/$tlpUrl/KEYS
 
-To create the jars and test $componentName: "gradle build".
-
-If you do not have a Java/Gradle environment available, you can run
-the tests using Docker. To do so, install docker and docker-compose,
-then run "docker-compose run test" from the root of the directory.
+To create the jars and test $componentName: "gradle build"
+(requires an appropriate Gradle/JDK installation)
 
 Please vote on releasing this package as $componentName $version.
 
@@ -91,7 +81,6 @@ least three +1 PMC votes are cast.
 [ ] +1 Release this package as Apache Calcite $version
 [ ]  0 I don't feel strongly about it, but I'm okay with the release
 [ ] -1 Do not release this package because...
-
 
 Here is my vote:
 

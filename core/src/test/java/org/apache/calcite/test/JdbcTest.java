@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
@@ -23,6 +24,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Handler;
@@ -58,6 +60,7 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
@@ -102,6 +105,7 @@ import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.hamcrest.comparator.ComparatorMatcherBuilder;
+import org.hamcrest.number.OrderingComparison;
 import org.hsqldb.jdbcDriver;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -1065,6 +1069,18 @@ public class JdbcTest {
     assertEquals(730, resultSet.getInt(1));
     resultSet.close();
     connection.close();
+  }
+
+  @Test void testJdbcTableScan() throws SQLException {
+    final Connection connection =
+        CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
+    final JdbcTable timeByDay = (JdbcTable) foodmart.getTable("time_by_day");
+    final int rows = timeByDay.scan(DataContexts.of(calciteConnection, rootSchema)).count();
+    assertThat(rows, OrderingComparison.greaterThan(0));
   }
 
   @Test void testCloneGroupBy() {
@@ -6895,6 +6911,49 @@ public class JdbcTest {
     aSubSchemaMap.put("b", new AbstractSchema());
     // explicit should win implicit.
     assertThat(aSchema.getSubSchemaNames().size(), is(2));
+  }
+
+  @Test public void testCaseSensitiveConfigurableSimpleCalciteSchema() throws Exception {
+    final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
+    // create schema "/a"
+    final Map<String, Schema> dummySubSchemaMap = new HashMap<>();
+    final Map<String, Table> dummyTableMap = new HashMap<>();
+    final Map<String, RelProtoDataType> dummyTypeMap = new HashMap<>();
+    final SchemaPlus dummySchema = rootSchema.add("dummy",
+        new AbstractSchema() {
+          @Override protected Map<String, Schema> getSubSchemaMap() {
+            return dummySubSchemaMap;
+          }
+
+          @Override protected Map<String, Table> getTableMap() {
+            return dummyTableMap;
+          }
+
+          @Override protected Map<String, RelProtoDataType> getTypeMap() {
+            return dummyTypeMap;
+          }
+        });
+    // add implicit schema "/dummy/abc"
+    dummySubSchemaMap.put("abc", new AbstractSchema());
+    // add implicit table "/dummy/xyz"
+    dummyTableMap.put("xyz", new AbstractTable() {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return null;
+      }
+    });
+    // add implicit table "/dummy/myType"
+    dummyTypeMap.put("myType", factory -> factory.builder().build());
+
+    final CalciteSchema dummyCalciteSchema = CalciteSchema.from(dummySchema);
+    assertThat(dummyCalciteSchema.getSubSchema("abc", true), notNullValue());
+    assertThat(dummyCalciteSchema.getSubSchema("aBC", false), notNullValue());
+    assertThat(dummyCalciteSchema.getSubSchema("aBC", true), nullValue());
+    assertThat(dummyCalciteSchema.getTable("xyz", true), notNullValue());
+    assertThat(dummyCalciteSchema.getTable("XyZ", false), notNullValue());
+    assertThat(dummyCalciteSchema.getTable("XyZ", true), nullValue());
+    assertThat(dummyCalciteSchema.getType("myType", true), notNullValue());
+    assertThat(dummyCalciteSchema.getType("MytYpE", false), notNullValue());
+    assertThat(dummyCalciteSchema.getType("MytYpE", true), nullValue());
   }
 
   @Test void testSimpleCalciteSchemaWithView() throws Exception {

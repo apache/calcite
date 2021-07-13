@@ -173,7 +173,7 @@ ORDER BY
   </TestCase>
   <TestCase name="testClausesNotOnNewLine">
     <Resource name="formatted">
-      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id` FROM (SELECT *FROM `T` WHERE `X` = `Y` AND `A` > 5 GROUP BY `Z`, `ZZ` WINDOW `W` AS (PARTITION BY `C`), `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
+      <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id` FROM (SELECT * FROM `T` WHERE `X` = `Y` AND `A` > 5 GROUP BY `Z`, `ZZ` WINDOW `W` AS (PARTITION BY `C`), `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
 ORDER BY `GG`]]>
     </Resource>
   </TestCase>
@@ -417,6 +417,12 @@ FROM
             `W1` AS (PARTITION BY `C`, `D` ORDER BY `A`, `B` RANGE BETWEEN INTERVAL '2:2' HOUR TO MINUTE PRECEDING AND INTERVAL '1' DAY FOLLOWING))
 ORDER BY
     `GG`]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableDotStarClausesNotOnNewLine">
+    <Resource name="formatted">
+      <![CDATA[SELECT `X` AS `A`, `B`, `S`.*, `T`.* FROM (SELECT * FROM `T` WHERE `X` = `Y` AND `A` > 5)
+ORDER BY `G` DESC, `H`, `I`]]>
     </Resource>
   </TestCase>
   <TestCase name="testUnion">

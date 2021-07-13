@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
@@ -360,6 +361,12 @@ public class JdbcRules {
       default:
         return false;
       }
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      Join join = call.rel(0);
+      JoinRelType joinType = join.getJoinType();
+      return ((JdbcConvention) getOutConvention()).dialect.supportsJoinType(joinType);
     }
   }
 

@@ -44,6 +44,7 @@ import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
@@ -61,6 +62,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlHint;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalLiteral;
@@ -71,6 +73,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
@@ -106,6 +109,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.rex.RexLiteral.stringValue;
 
@@ -525,7 +529,37 @@ public class RelToSqlConverter extends SqlImplementor
   /** Visits a TableScan; called by {@link #dispatch} via reflection. */
   public Result visit(TableScan e) {
     final SqlIdentifier identifier = getSqlTargetTable(e);
-    return result(identifier, ImmutableList.of(Clause.FROM), e, null);
+    final SqlNode node;
+    final ImmutableList<RelHint> hints = e.getHints();
+    if (!hints.isEmpty()) {
+      SqlParserPos pos = identifier.getParserPosition();
+      node = new SqlTableRef(pos, identifier,
+          SqlNodeList.of(pos, hints.stream().map(h -> RelToSqlConverter.toSqlHint(h, pos))
+              .collect(Collectors.toList())));
+    } else {
+      node = identifier;
+    }
+    return result(node, ImmutableList.of(Clause.FROM), e, null);
+  }
+
+  private static SqlHint toSqlHint(RelHint hint, SqlParserPos pos) {
+    if (hint.kvOptions != null) {
+      return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
+          SqlNodeList.of(pos, hint.kvOptions.entrySet().stream()
+              .flatMap(
+                  e -> Stream.of(new SqlIdentifier(e.getKey(), pos),
+                  SqlLiteral.createCharString(e.getValue(), pos)))
+              .collect(Collectors.toList())),
+          SqlHint.HintOptionFormat.KV_LIST);
+    } else if (hint.listOptions != null) {
+      return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
+          SqlNodeList.of(pos, hint.listOptions.stream()
+              .map(e -> SqlLiteral.createCharString(e, pos))
+              .collect(Collectors.toList())),
+          SqlHint.HintOptionFormat.LITERAL_LIST);
+    }
+    return new SqlHint(pos, new SqlIdentifier(hint.hintName, pos),
+        SqlNodeList.EMPTY, SqlHint.HintOptionFormat.EMPTY);
   }
 
   /** Visits a Union; called by {@link #dispatch} via reflection. */
