@@ -5441,6 +5441,24 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test void testRedshiftCastToTinyint() {
+    String query = "SELECT CAST(\"department_id\" AS tinyint) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"int2\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
+        .ok(expected);
+  }
+
+  @Test void testRedshiftCastToDouble() {
+    String query = "SELECT CAST(\"department_id\" AS double) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"float8\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
+        .ok(expected);
+  }
+
   @Test void testDateLiteralOracle() {
     String query = "SELECT DATE '1978-05-02' FROM \"employee\"";
     String expected = "SELECT TO_DATE('1978-05-02', 'YYYY-MM-DD')\n"
