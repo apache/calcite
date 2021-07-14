@@ -26,6 +26,8 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import org.hamcrest.CoreMatchers;
+import org.hyperic.sigar.OperatingSystem;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -38,13 +40,12 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.Objects;
 import java.util.function.Consumer;
 
-import static org.apache.calcite.util.TestUtil.rethrow;
-
+import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -66,16 +67,20 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  *   <li>./sqlsh select \* from vmstat
  * </ul>
  */
-class OsAdapterTest {
+public class OsAdapterTest {
+  private static final  String OS_NAME = System.getProperty("os.name");
+
   private static boolean isWindows() {
-    return System.getProperty("os.name").startsWith("Windows");
+    return OS_NAME.startsWith("Windows");
   }
 
-  /** Returns whether there is a ".git" directory in this directory or in a
-   * directory between this directory and root. */
+  /**
+   * Returns whether there is a ".git" directory in this directory or in a
+   * directory between this directory and root.
+   */
   private static boolean hasGit() {
     assumeToolExists("git");
-    final String path = Sources.of(OsAdapterTest.class.getResource("/"))
+    final String path = Sources.of(Objects.requireNonNull(OsAdapterTest.class.getResource("/")))
         .file().getAbsolutePath();
     File f = new File(path);
     for (;;) {
@@ -91,8 +96,16 @@ class OsAdapterTest {
     }
   }
 
+  /**
+   * Used to check if the current command is supported by the current operating system.
+   **/
+  private static boolean checkOperatingSystem() {
+    return OperatingSystem.isSupported(
+        OS_NAME.replaceAll(" ", ""));
+  }
+
   private static void assumeToolExists(String command) {
-    assumeTrue(checkProcessExists(command), () -> command + " does not exist");
+    assumeTrue(checkProcessExists(command), command + " does not exist");
   }
 
   private static boolean checkProcessExists(String command) {
@@ -107,7 +120,7 @@ class OsAdapterTest {
     }
   }
 
-  @Test void testDu() {
+  @Test public void testDu() {
     assumeFalse(isWindows(), "Skip: the 'du' table does not work on Windows");
     assumeToolExists("du");
     sql("select * from du")
@@ -115,15 +128,15 @@ class OsAdapterTest {
           try {
             assertThat(r.next(), is(true));
             assertThat(r.getInt(1), notNullValue());
-            assertThat(r.getString(2), startsWith("./"));
+            assertThat(r.getString(2), CoreMatchers.startsWith("./"));
             assertThat(r.wasNull(), is(false));
           } catch (SQLException e) {
-            throw rethrow(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test void testDuFilterSortLimit() {
+  @Test public void testDuFilterSortLimit() {
     assumeFalse(isWindows(), "Skip: the 'du' table does not work on Windows");
     assumeToolExists("du");
     sql("select * from du where path like '%/src/test/java/%'\n"
@@ -132,24 +145,24 @@ class OsAdapterTest {
           try {
             assertThat(r.next(), is(true));
             assertThat(r.getInt(1), notNullValue());
-            assertThat(r.getString(2), startsWith("./"));
+            assertThat(r.getString(2), CoreMatchers.startsWith("./"));
             assertThat(r.wasNull(), is(false));
             assertThat(r.next(), is(true));
             assertThat(r.next(), is(false)); // because of "limit 2"
           } catch (SQLException e) {
-            throw rethrow(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test void testFiles() {
+  @Test public void testFiles() {
     assumeFalse(isWindows(), "Skip: the 'files' table does not work on Windows");
     sql("select distinct type from files")
         .returnsUnordered("type=d",
             "type=f");
   }
 
-  @Test void testPs() {
+  @Test public void testPs() {
     assumeFalse(isWindows(), "Skip: the 'ps' table does not work on Windows");
     assumeToolExists("ps");
     sql("select * from ps")
@@ -164,12 +177,12 @@ class OsAdapterTest {
             }
             assertThat(b.toString(), notNullValue());
           } catch (SQLException e) {
-            throw rethrow(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test void testPsDistinct() {
+  @Test public void testPsDistinct() {
     assumeFalse(isWindows(), "Skip: the 'ps' table does not work on Windows");
     assumeToolExists("ps");
     sql("select distinct `user` from ps")
@@ -179,12 +192,12 @@ class OsAdapterTest {
             assertThat(r.getString(1), notNullValue());
             assertThat(r.wasNull(), is(false));
           } catch (SQLException e) {
-            throw rethrow(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test void testGitCommits() {
+  @Test public void testGitCommits() {
     assumeTrue(hasGit(), "no git");
     sql("select count(*) from git_commits")
         .returns(r -> {
@@ -198,7 +211,7 @@ class OsAdapterTest {
         });
   }
 
-  @Test void testGitCommitsTop() {
+  @Test public void testGitCommitsTop() {
     assumeTrue(hasGit(), "no git");
     final String q = "select author from git_commits\n"
         + "group by 1 order by count(*) desc limit 2";
@@ -206,8 +219,7 @@ class OsAdapterTest {
         "author=Julian Hyde <jhyde@apache.org>");
   }
 
-  @Test void testJps() {
-    assumeToolExists("jps");
+  @Test public void testJps() {
     final String q = "select pid, info from jps";
     sql(q).returns(r -> {
       try {
@@ -221,7 +233,7 @@ class OsAdapterTest {
     });
   }
 
-  @Test void testVmstat() {
+  @Test public void testVmstat() {
     assumeFalse(isWindows(), "Skip: the 'files' table does not work on Windows");
     assumeToolExists("vmstat");
     sql("select * from vmstat")
@@ -234,12 +246,12 @@ class OsAdapterTest {
               assertThat(r.wasNull(), is(false));
             }
           } catch (SQLException e) {
-            throw rethrow(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test void testStdin() throws SQLException {
+  @Test public void testStdin() throws SQLException {
     try (Hook.Closeable ignore = Hook.STANDARD_STREAMS.addThread(
         (Consumer<Holder<Object[]>>) o -> {
           final Object[] values = o.get();
@@ -250,13 +262,13 @@ class OsAdapterTest {
               new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
           final OutputStream out = (OutputStream) values[1];
           final OutputStream err = (OutputStream) values[2];
-          o.set(new Object[] {in2, out, err});
+          o.set(new Object[]{in2, out, err});
         })) {
       assertThat(foo("select count(*) as c from stdin"), is("2\n"));
     }
   }
 
-  @Test void testStdinExplain() {
+  @Test public void testStdinExplain() {
     // Can't execute stdin, because junit's stdin never ends;
     // so just run explain
     final String explain = "PLAN="
@@ -268,7 +280,7 @@ class OsAdapterTest {
         .explainContains(explain);
   }
 
-  @Test void testSqlShellFormat() throws SQLException {
+  @Test public void testSqlShellFormat() throws SQLException {
     final String q = "select * from (values (-1, true, 'a'),"
         + " (2, false, 'b, c'),"
         + " (3, unknown, cast(null as char(1)))) as t(x, y, z)";
@@ -358,7 +370,7 @@ class OsAdapterTest {
     return Util.toLinux(outSw.toString());
   }
 
-  @Test void testSqlShellHelp() throws SQLException {
+  @Test public void testSqlShellHelp() throws SQLException {
     final String help = "Usage: sqlsh [OPTION]... SQL\n"
         + "Execute a SQL command\n"
         + "\n"
@@ -386,5 +398,55 @@ class OsAdapterTest {
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.LENIENT)
         .query(sql);
+  }
+
+  private void testOsQuery(String tableName, int colSize) {
+    assumeTrue(checkOperatingSystem(), "Skip: the 'system_info' table does not work on " + OS_NAME);
+    final String q = "select * from " + tableName;
+    sql(q).returns(r -> {
+      try {
+        assertThat(r.next(), is(true));
+        for (int i = 1; i <= colSize; i++) {
+          if (r.getString(i) != null) {
+            assertThat(r.getString(i), any(String.class));
+          }
+        }
+        assertThat(r.wasNull(), is(false));
+      } catch (SQLException e) {
+        throw TestUtil.rethrow(e);
+      }
+    });
+  }
+
+  @Test public void testSystemInfo() {
+    testOsQuery("system_info", 20);
+  }
+
+  @Test public void testJavaInfo() {
+    testOsQuery("java_info", 18);
+  }
+
+  @Test public void testOsVersion() {
+    testOsQuery("os_version", 11);
+  }
+
+  @Test public void testMemoryInfo() {
+    testOsQuery("memory_info", 6);
+  }
+
+  @Test public void testCpuInfo() {
+    testOsQuery("cpu_info", 12);
+  }
+
+  @Test public void testInterfaceDetails() {
+    testOsQuery("interface_details", 11);
+  }
+
+  @Test public void testInterfaceAddresses() {
+    testOsQuery("interface_addresses", 6);
+  }
+
+  @Test public void testMounts() {
+    testOsQuery("mounts", 14);
   }
 }

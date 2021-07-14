@@ -81,6 +81,14 @@ public class SqlShell {
     addView(b, "ps", "select * from table(\"ps\"(true))");
     addView(b, "stdin", "select * from table(\"stdin\"(true))");
     addView(b, "vmstat", "select * from table(\"vmstat\"(true))");
+    addView(b, "system_info", "select * from table(\"system_info\"(true))");
+    addView(b, "java_info", "select * from table(\"java_info\"(true))");
+    addView(b, "os_version", "select * from table(\"os_version\"(true))");
+    addView(b, "memory_info", "select * from table(\"memory_info\"(true))");
+    addView(b, "cpu_info", "select * from table(\"cpu_info\"(true))");
+    addView(b, "interface_details", "select * from table(\"interface_details\"(true))");
+    addView(b, "interface_addresses", "select * from table(\"interface_addresses\"(true))");
+    addView(b, "mounts", "select * from table(\"mounts\"(true))");
     b.append("       } ],\n")
         .append("       functions: [ {\n");
     addFunction(b, "du", DuTableFunction.class);
@@ -90,6 +98,14 @@ public class SqlShell {
     addFunction(b, "ps", PsTableFunction.class);
     addFunction(b, "stdin", StdinTableFunction.class);
     addFunction(b, "vmstat", VmstatTableFunction.class);
+    addFunction(b, "system_info", SystemInfoTableFunction.class);
+    addFunction(b, "java_info", JavaInfoTableFunction.class);
+    addFunction(b, "os_version", OsVersionTableFunction.class);
+    addFunction(b, "memory_info", MemoryInfoTableFunction.class);
+    addFunction(b, "cpu_info", CpuInfoTableFunction.class);
+    addFunction(b, "interface_details", InterfaceDetailsTableFunction.class);
+    addFunction(b, "interface_addresses", InterfaceAddressesTableFunction.class);
+    addFunction(b, "mounts", MountsTableFunction.class);
     b.append("       } ]\n")
         .append("     }\n")
         .append("   ]\n")

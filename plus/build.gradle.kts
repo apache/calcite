@@ -27,6 +27,12 @@ dependencies {
     implementation("net.hydromatic:chinook-data-hsqldb")
     implementation("net.hydromatic:tpcds")
     implementation("org.apache.calcite.avatica:avatica-server")
+    implementation("org.eclipse.jetty:jetty-server")
+    implementation("org.apache.commons:commons-lang3")
+    implementation("org.fusesource:sigar") {
+        exclude("log4j", "log4j")
+            .because("log4j is already present in the classpath")
+    }
     implementation("org.hsqldb:hsqldb")
 
     testImplementation(project(":core", "testClasses"))

@@ -17,7 +17,9 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
@@ -26,27 +28,42 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Table function that executes the OS "jps" ("Java Virtual Machine Process
- * Status Tool") command to list all java processes of a user.
+ * Table function that executes the OS "java_info".
  */
-public class JpsTableFunction {
-  private JpsTableFunction() {
+public class JavaInfoTableFunction {
+  private JavaInfoTableFunction() {
   }
 
   public static ScannableTable eval(boolean b) {
     return new AbstractBaseScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return Processes.processLines("jps", "-mlvV")
-            .select(a0 -> {
-              final String[] fields = a0.split(" ");
-              return new Object[]{Long.valueOf(fields[0]), fields[1]};
-            });
+        return new AbstractEnumerable<Object[]>() {
+          @Override public Enumerator<Object[]> enumerator() {
+            return new OsQueryEnumerator("java_info");
+          }
+        };
       }
 
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
-            .add("pid", SqlTypeName.BIGINT)
-            .add("info", SqlTypeName.VARCHAR)
+            .add("java_version", SqlTypeName.VARCHAR)
+            .add("java_vendor", SqlTypeName.VARCHAR)
+            .add("java_vendor_url", SqlTypeName.VARCHAR)
+            .add("java_home", SqlTypeName.VARCHAR)
+            .add("java_vm_specification_version", SqlTypeName.VARCHAR)
+            .add("java_vm_specification_vendor", SqlTypeName.VARCHAR)
+            .add("java_vm_specification_name", SqlTypeName.VARCHAR)
+            .add("java_vm_version", SqlTypeName.VARCHAR)
+            .add("java_vm_vendor", SqlTypeName.VARCHAR)
+            .add("java_vm_name", SqlTypeName.VARCHAR)
+            .add("java_specification_version", SqlTypeName.VARCHAR)
+            .add("java_specification_vender", SqlTypeName.VARCHAR)
+            .add("java_specification_name", SqlTypeName.VARCHAR)
+            .add("java_class_version", SqlTypeName.VARCHAR)
+            .add("java_class_path", SqlTypeName.VARCHAR)
+            .add("java_io_tmpdir", SqlTypeName.VARCHAR)
+            .add("java_ext_dirs", SqlTypeName.VARCHAR)
+            .add("java_library_path", SqlTypeName.VARCHAR)
             .build();
       }
     };

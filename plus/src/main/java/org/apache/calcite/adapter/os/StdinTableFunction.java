@@ -17,22 +17,13 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
-
-import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -48,16 +39,18 @@ import java.util.NoSuchElementException;
  */
 public class StdinTableFunction {
 
-  private StdinTableFunction() {}
+  private StdinTableFunction() {
+  }
 
   public static ScannableTable eval(boolean b) {
-    return new ScannableTable() {
-      @Override public Enumerable<Object[]> scan(DataContext root) {
+    return new AbstractBaseScannableTable() {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         final InputStream is = DataContext.Variable.STDIN.get(root);
         return new AbstractEnumerable<Object[]>() {
           final InputStreamReader in =
               new InputStreamReader(is, StandardCharsets.UTF_8);
           final BufferedReader br = new BufferedReader(in);
+
           @Override public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
               @Nullable String line;
@@ -101,23 +94,6 @@ public class StdinTableFunction {
             .add("ordinal", SqlTypeName.INTEGER)
             .add("line", SqlTypeName.VARCHAR)
             .build();
-      }
-
-      @Override public Statistic getStatistic() {
-        return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
-      }
-
-      @Override public Schema.TableType getJdbcTableType() {
-        return Schema.TableType.TABLE;
-      }
-
-      @Override public boolean isRolledUp(String column) {
-        return false;
-      }
-
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
-        return true;
       }
     };
   }

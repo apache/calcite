@@ -125,6 +125,7 @@ dependencies {
         apiv("org.elasticsearch.plugin:transport-netty4-client", "elasticsearch")
         apiv("org.elasticsearch:elasticsearch")
         apiv("org.exparity:hamcrest-date")
+        apiv("org.fusesource:sigar")
         apiv("org.hamcrest:hamcrest")
         apiv("org.hamcrest:hamcrest-core", "hamcrest")
         apiv("org.hamcrest:hamcrest-library", "hamcrest")
