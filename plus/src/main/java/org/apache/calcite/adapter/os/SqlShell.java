@@ -47,7 +47,7 @@ import java.util.Set;
  * against Calcite's OS adapter.
  */
 public class SqlShell {
-  static final String MODEL = model();
+  static String model = model();
 
   private final List<String> args;
   @SuppressWarnings("unused")
@@ -62,6 +62,10 @@ public class SqlShell {
     this.in = Objects.requireNonNull(in, "in");
     this.out = Objects.requireNonNull(out, "out");
     this.err = Objects.requireNonNull(err, "err");
+  }
+
+  public static void setModel(String newModel) {
+    model = newModel;
   }
 
   private static String model() {
@@ -81,6 +85,15 @@ public class SqlShell {
     addView(b, "ps", "select * from table(\"ps\"(true))");
     addView(b, "stdin", "select * from table(\"stdin\"(true))");
     addView(b, "vmstat", "select * from table(\"vmstat\"(true))");
+    addView(b, "system_info", "select * from table(\"system_info\"(true))");
+    addView(b, "java_info", "select * from table(\"java_info\"(true))");
+    addView(b, "os_version", "select * from table(\"os_version\"(true))");
+    addView(b, "memory_info", "select * from table(\"memory_info\"(true))");
+    addView(b, "cpu_info", "select * from table(\"cpu_info\"(true))");
+    addView(b, "cpu_time", "select * from table(\"cpu_time\"(true))");
+    addView(b, "interface_details", "select * from table(\"interface_details\"(true))");
+    addView(b, "interface_addresses", "select * from table(\"interface_addresses\"(true))");
+    addView(b, "mounts", "select * from table(\"mounts\"(true))");
     b.append("       } ],\n")
         .append("       functions: [ {\n");
     addFunction(b, "du", DuTableFunction.class);
@@ -90,6 +103,15 @@ public class SqlShell {
     addFunction(b, "ps", PsTableFunction.class);
     addFunction(b, "stdin", StdinTableFunction.class);
     addFunction(b, "vmstat", VmstatTableFunction.class);
+    addFunction(b, "system_info", SystemInfoTableFunction.class);
+    addFunction(b, "java_info", JavaInfoTableFunction.class);
+    addFunction(b, "os_version", OsVersionTableFunction.class);
+    addFunction(b, "memory_info", MemoryInfoTableFunction.class);
+    addFunction(b, "cpu_info", CpuInfoTableFunction.class);
+    addFunction(b, "cpu_time", CpuTimeTableFunction.class);
+    addFunction(b, "interface_details", InterfaceDetailsTableFunction.class);
+    addFunction(b, "interface_addresses", InterfaceAddressesTableFunction.class);
+    addFunction(b, "mounts", MountsTableFunction.class);
     b.append("       } ]\n")
         .append("     }\n")
         .append("   ]\n")
@@ -116,7 +138,7 @@ public class SqlShell {
 
   void run() throws SQLException {
     final String url = "jdbc:calcite:lex=JAVA;conformance=LENIENT"
-        + ";model=inline:" + MODEL;
+        + ";model=inline:" + model;
     final String help = "Usage: sqlsh [OPTION]... SQL\n"
         + "Execute a SQL command\n"
         + "\n"
@@ -166,7 +188,7 @@ public class SqlShell {
   }
 
 
-  private static void addView(StringBuilder b, String name, String sql) {
+  static void addView(StringBuilder b, String name, String sql) {
     if (!name.equals("du")) { // we know that "du" is the first
       b.append("}, {\n");
     }
@@ -180,7 +202,7 @@ public class SqlShell {
         .append("\"\n");
   }
 
-  private static void addFunction(StringBuilder b, String name, Class c) {
+  static void addFunction(StringBuilder b, String name, Class c) {
     if (!name.equals("du")) { // we know that "du" is the first
       b.append("}, {\n");
     }

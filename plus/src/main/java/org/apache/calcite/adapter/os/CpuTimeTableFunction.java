@@ -17,7 +17,9 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
@@ -26,27 +28,32 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Table function that executes the OS "jps" ("Java Virtual Machine Process
- * Status Tool") command to list all java processes of a user.
+ * Table function that executes the OS "cpu_info".
  */
-public class JpsTableFunction {
-  private JpsTableFunction() {
+public class CpuTimeTableFunction {
+  private CpuTimeTableFunction() {
   }
 
   public static ScannableTable eval(boolean b) {
     return new AbstractBaseScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return Processes.processLines("jps", "-mlvV")
-            .select(a0 -> {
-              final String[] fields = a0.split(" ");
-              return new Object[]{Long.valueOf(fields[0]), fields[1]};
-            });
+        return new AbstractEnumerable<Object[]>() {
+          @Override public Enumerator<Object[]> enumerator() {
+            return new OsQuery("cpu_time");
+          }
+        };
       }
 
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
-            .add("pid", SqlTypeName.BIGINT)
-            .add("info", SqlTypeName.VARCHAR)
+            .add("idle", SqlTypeName.BIGINT)
+            .add("nice", SqlTypeName.BIGINT)
+            .add("irq", SqlTypeName.BIGINT)
+            .add("soft_irq", SqlTypeName.BIGINT)
+            .add("steal", SqlTypeName.BIGINT)
+            .add("system", SqlTypeName.BIGINT)
+            .add("user", SqlTypeName.BIGINT)
+            .add("io_wait", SqlTypeName.BIGINT)
             .build();
       }
     };

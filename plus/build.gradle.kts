@@ -23,9 +23,20 @@ dependencies {
 
     implementation("com.google.guava:guava")
     implementation("com.teradata.tpcds:tpcds")
+    implementation("cn.hutool:hutool-all")
     implementation("io.prestosql.tpch:tpch")
     implementation("net.hydromatic:chinook-data-hsqldb")
     implementation("net.hydromatic:tpcds")
+    implementation("net.java.dev.jna:jna")
+    implementation("net.java.dev.jna:jna-platform")
+
+    implementation("com.github.oshi:oshi-core") {
+        exclude("log4j", "log4j")
+            .because("log4j is already present in the classpath")
+        exclude("org.slf4j", "slf4j-api")
+            .because("slf4j is already present in the classpath")
+    }
+
     implementation("org.apache.calcite.avatica:avatica-server")
     implementation("org.hsqldb:hsqldb::jdk8")
 

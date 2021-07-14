@@ -17,7 +17,9 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
@@ -26,27 +28,37 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Table function that executes the OS "jps" ("Java Virtual Machine Process
- * Status Tool") command to list all java processes of a user.
+ * Table function that executes the OS "interface_details".
  */
-public class JpsTableFunction {
-  private JpsTableFunction() {
+public class InterfaceDetailsTableFunction {
+  private InterfaceDetailsTableFunction() {
   }
 
   public static ScannableTable eval(boolean b) {
     return new AbstractBaseScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return Processes.processLines("jps", "-mlvV")
-            .select(a0 -> {
-              final String[] fields = a0.split(" ");
-              return new Object[]{Long.valueOf(fields[0]), fields[1]};
-            });
+        return new AbstractEnumerable<Object[]>() {
+          @Override public Enumerator<Object[]> enumerator() {
+            return new OsQuery("interface_details");
+          }
+        };
       }
 
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
-            .add("pid", SqlTypeName.BIGINT)
-            .add("info", SqlTypeName.VARCHAR)
+            .add("device_name", SqlTypeName.VARCHAR)
+            .add("mac", SqlTypeName.VARCHAR)
+            .add("is_virtual", SqlTypeName.VARCHAR)
+            .add("mtu", SqlTypeName.BIGINT)
+            .add("speed", SqlTypeName.BIGINT)
+            .add("i_packets", SqlTypeName.BIGINT)
+            .add("o_packets", SqlTypeName.BIGINT)
+            .add("i_bytes", SqlTypeName.BIGINT)
+            .add("o_bytes", SqlTypeName.BIGINT)
+            .add("i_errors", SqlTypeName.BIGINT)
+            .add("o_errors", SqlTypeName.BIGINT)
+            .add("i_drops", SqlTypeName.BIGINT)
+            .add("collisions", SqlTypeName.BIGINT)
             .build();
       }
     };
