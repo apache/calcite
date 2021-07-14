@@ -48,7 +48,7 @@ public abstract class SemiJoinRule
     implements TransformationRule {
   private static boolean isJoinTypeSupported(Join join) {
     final JoinRelType type = join.getJoinType();
-    return type == JoinRelType.INNER || type == JoinRelType.SEMI || type == JoinRelType.LEFT;
+    return type == JoinRelType.INNER || type == JoinRelType.LEFT;
   }
 
   /**
