@@ -36,12 +36,14 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.util.TestUtil.rethrow;
 
+import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -52,6 +54,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for the OS (operating system) adapter.
@@ -68,16 +72,18 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * </ul>
  */
 class OsAdapterTest {
+  private static final String OS_NAME = System.getProperty("os.name");
+
   private static boolean isWindows() {
-    return System.getProperty("os.name").startsWith("Windows");
+    return OS_NAME.startsWith("Windows");
   }
 
   /** Returns whether there is a ".git" directory in this directory or in a
    * directory between this directory and root. */
   private static boolean hasGit() {
     assumeToolExists("git");
-    final String path = Sources.of(OsAdapterTest.class.getResource("/"))
-        .file().getAbsolutePath();
+    final URL url = requireNonNull(OsAdapterTest.class.getResource("/"));
+    final String path = Sources.of(url).file().getAbsolutePath();
     File f = new File(path);
     for (;;) {
       if (f == null || !f.exists()) {
@@ -212,10 +218,11 @@ class OsAdapterTest {
     final String q = "select pid, info from jps";
     sql(q).returns(r -> {
       try {
-        assertThat(r.next(), is(true));
-        assertThat(r.getString(1), notNullValue());
-        assertThat(r.getString(2), notNullValue());
-        assertThat(r.wasNull(), is(false));
+        if (r.next()) {
+          assertThat(r.getString(1), notNullValue());
+          assertThat(r.getString(2), notNullValue());
+          assertThat(r.wasNull(), is(false));
+        }
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -242,17 +249,17 @@ class OsAdapterTest {
 
   @Test void testStdin() throws SQLException {
     try (Hook.Closeable ignore =
-             Hook.STANDARD_STREAMS.addThread((Consumer<Holder<Object[]>>) o -> {
-               final Object[] values = o.get();
-               final InputStream in = (InputStream) values[0];
-               final String s = "First line\n"
-                   + "Second line";
-               final ByteArrayInputStream in2 =
-                   new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
-               final OutputStream out = (OutputStream) values[1];
-               final OutputStream err = (OutputStream) values[2];
-               o.set(new Object[] {in2, out, err});
-             })) {
+        Hook.STANDARD_STREAMS.addThread((Consumer<Holder<Object[]>>) o -> {
+          final Object[] values = o.get();
+          final InputStream in = (InputStream) values[0];
+          final String s = "First line\n"
+              + "Second line";
+          final ByteArrayInputStream in2 =
+              new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
+          final OutputStream out = (OutputStream) values[1];
+          final OutputStream err = (OutputStream) values[2];
+          o.set(new Object[] {in2, out, err});
+        })) {
       assertThat(foo("select count(*) as c from stdin"), is("2\n"));
     }
   }
@@ -387,5 +394,59 @@ class OsAdapterTest {
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.LENIENT)
         .query(sql);
+  }
+
+  private void checkOsQuery(String tableName, int colSize) {
+    final String q = "select * from " + tableName;
+    sql(q).returns(r -> {
+      try {
+        if (r.next()) {
+          for (int i = 1; i <= colSize; i++) {
+            if (r.getString(i) != null) {
+              assertThat(r.getString(i), any(String.class));
+            }
+          }
+          assertThat(r.wasNull(), is(false));
+        }
+      } catch (SQLException e) {
+        throw TestUtil.rethrow(e);
+      }
+    });
+  }
+
+  @Test void testSystemInfo() {
+    checkOsQuery("system_info", 18);
+  }
+
+  @Test void testJavaInfo() {
+    checkOsQuery("java_info", 18);
+  }
+
+  @Test void testCpuInfo() {
+    checkOsQuery("cpu_info", 9);
+  }
+
+  @Test void testCpuTime() {
+    checkOsQuery("cpu_time", 8);
+  }
+
+  @Test void testOsVersion() {
+    checkOsQuery("os_version", 5);
+  }
+
+  @Test void testMemoryInfo() {
+    checkOsQuery("memory_info", 8);
+  }
+
+  @Test void testInterfaceAddresses() {
+    checkOsQuery("interface_addresses", 5);
+  }
+
+  @Test void testInterfaceDetails() {
+    checkOsQuery("interface_details", 13);
+  }
+
+  @Test void testMounts() {
+    checkOsQuery("mounts", 8);
   }
 }
