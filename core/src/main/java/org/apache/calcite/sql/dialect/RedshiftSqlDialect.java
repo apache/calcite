@@ -54,11 +54,18 @@ public class RedshiftSqlDialect extends SqlDialect {
     String castSpec;
     switch (type.getSqlTypeName()) {
     case TINYINT:
-      // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
-      castSpec = "smallint";
+      // Redshift has no tinyint (1 byte), so instead cast to smallint or int2 (2 bytes).
+      // smallint does not work when enclosed in quotes (i.e.) as "smallint".
+      // int2 however works within quotes (i.e.) as "int2".
+      // Hence using int2.
+      castSpec = "int2";
       break;
     case DOUBLE:
-      // Postgres has a double type but it is named differently
+      // Redshift has a double type but it is named differently. It is named as double precision or
+      // float8.
+      // double precision does not work when enclosed in quotes (i.e.) as "double precision".
+      // float8 however works within quotes (i.e.) as "float8".
+      // Hence using float8.
       castSpec = "float8";
       break;
     default:

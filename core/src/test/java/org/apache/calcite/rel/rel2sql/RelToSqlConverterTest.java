@@ -5430,6 +5430,43 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+
+  @Test void testTINYINTRedshift() {
+    String query = "SELECT CAST(\"department_id\" AS TINYINT) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"int2\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
+        .ok(expected);
+  }
+
+  @Test void testtinyintRedshift() {
+    String query = "SELECT CAST(\"department_id\" AS tinyint) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"int2\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
+        .ok(expected);
+  }
+
+  @Test void testDOUBLERedshift() {
+    String query = "SELECT CAST(\"department_id\" AS DOUBLE) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"float8\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
+        .ok(expected);
+  }
+
+  @Test void testdoubleRedshift() {
+    String query = "SELECT CAST(\"department_id\" AS double) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"float8\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
+        .ok(expected);
+  }
+
   @Test void testDateLiteralOracle() {
     String query = "SELECT DATE '1978-05-02' FROM \"employee\"";
     String expected = "SELECT TO_DATE('1978-05-02', 'YYYY-MM-DD')\n"
