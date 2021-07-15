@@ -95,7 +95,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
-import com.google.common.math.IntMath;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
