@@ -465,7 +465,7 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\"), \"EMPNO\", (\"EMPNO\", "
         + "\"ENAME\", \"JOB\"))\n"
-        + "HAVING \"JOB\" = 'DEVELOP' AND 7 <> GROUPING_ID(\"EMPNO\", \"ENAME\", "
+        + "HAVING \"JOB\" = 'DEVELOP' AND 0 <> GROUPING_ID(\"EMPNO\", \"ENAME\", "
         + "\"JOB\")";
     relFn(relFn).ok(expectedSql);
   }
@@ -491,7 +491,7 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\"), \"EMPNO\", (\"EMPNO\", "
         + "\"ENAME\", \"JOB\"))\n"
-        + "HAVING COUNT(*) > 10 AND 7 <> GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\")) AS"
+        + "HAVING COUNT(*) > 10 AND 0 <> GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\")) AS"
         + " \"t0\"\n"
         + "WHERE \"JOB\" = 'DEVELOP'";
     relFn(relFn).ok(expectedSql);
@@ -527,7 +527,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\"), \"EMPNO\", (\"EMPNO\", \"ENAME\", \"JOB\"))\n"
-        + "HAVING (COUNT(*) > 10 OR SUM(\"SAL\") < 3000) AND 7 <> GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\")) AS \"t0\"\n"
+        + "HAVING (COUNT(*) > 10 OR SUM(\"SAL\") < 3000) AND 0 <> GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\")) AS \"t0\"\n"
         + "WHERE \"JOB\" = 'DEVELOP'";
     relFn(relFn).ok(expectedSql);
   }

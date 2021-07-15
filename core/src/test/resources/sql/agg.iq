@@ -2990,4 +2990,52 @@ from (select 1 as a, 2 as b, 3 as c);
 
 !ok
 
+# [CALCITE-4665] When group key is a superset of the union of the groupKeys will generate the wrong Sql
+# use grouping_id filter the superset grouping sets out
+select ename, deptno, gender, grouping(ename), grouping(deptno), grouping(gender)
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno), (ename, deptno, gender))
+having grouping_id(ename, deptno, gender) <> 0
+order by ename,deptno;
++-------+--------+--------+--------+--------+--------+
+| ENAME | DEPTNO | GENDER | EXPR$3 | EXPR$4 | EXPR$5 |
++-------+--------+--------+--------+--------+--------+
+| Adam  |     50 |        |      0 |      0 |      1 |
+| Adam  |        |        |      0 |      1 |      1 |
+| Bob   |     10 |        |      0 |      0 |      1 |
+| Bob   |        |        |      0 |      1 |      1 |
+| Eric  |     20 |        |      0 |      0 |      1 |
+| Eric  |        |        |      0 |      1 |      1 |
+|       |     10 |        |      1 |      0 |      1 |
+|       |     20 |        |      1 |      0 |      1 |
+|       |     50 |        |      1 |      0 |      1 |
++-------+--------+--------+--------+--------+--------+
+(9 rows)
+
+!ok
+
+# just a comparison about the above sql
+select ename, deptno, grouping(ename), grouping(deptno)
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno))
+order by ename,deptno;
++-------+--------+--------+--------+
+| ENAME | DEPTNO | EXPR$2 | EXPR$3 |
++-------+--------+--------+--------+
+| Adam  |     50 |      0 |      0 |
+| Adam  |        |      0 |      1 |
+| Bob   |     10 |      0 |      0 |
+| Bob   |        |      0 |      1 |
+| Eric  |     20 |      0 |      0 |
+| Eric  |        |      0 |      1 |
+|       |     10 |      1 |      0 |
+|       |     20 |      1 |      0 |
+|       |     50 |      1 |      0 |
++-------+--------+--------+--------+
+(9 rows)
+
+!ok
+
 # End agg.iq

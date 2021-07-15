@@ -340,7 +340,7 @@ public class RelToSqlConverter extends SqlImplementor
             SqlStdOperatorTable.NOT_EQUALS.createCall(
                 SqlParserPos.ZERO,
                 SqlNumericLiteral.createExactNumeric(
-                    String.valueOf(IntMath.pow(2, aggregate.getGroupSet().cardinality()) - 1),
+                    String.valueOf(0),
                     SqlParserPos.ZERO),
                 SqlStdOperatorTable.GROUPING_ID.createCall(groupingList)));
       }
