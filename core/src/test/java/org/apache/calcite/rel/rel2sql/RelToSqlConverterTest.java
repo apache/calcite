@@ -5441,17 +5441,7 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
-
-  @Test void testTINYINTRedshift() {
-    String query = "SELECT CAST(\"department_id\" AS TINYINT) FROM \"employee\"";
-    String expected = "SELECT CAST(\"department_id\" AS \"int2\")\n"
-        + "FROM \"foodmart\".\"employee\"";
-    sql(query)
-        .withRedshift()
-        .ok(expected);
-  }
-
-  @Test void testtinyintRedshift() {
+  @Test void testRedshiftCastToTinyint() {
     String query = "SELECT CAST(\"department_id\" AS tinyint) FROM \"employee\"";
     String expected = "SELECT CAST(\"department_id\" AS \"int2\")\n"
         + "FROM \"foodmart\".\"employee\"";
@@ -5460,16 +5450,7 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test void testDOUBLERedshift() {
-    String query = "SELECT CAST(\"department_id\" AS DOUBLE) FROM \"employee\"";
-    String expected = "SELECT CAST(\"department_id\" AS \"float8\")\n"
-        + "FROM \"foodmart\".\"employee\"";
-    sql(query)
-        .withRedshift()
-        .ok(expected);
-  }
-
-  @Test void testdoubleRedshift() {
+  @Test void testRedshiftCastToDouble() {
     String query = "SELECT CAST(\"department_id\" AS double) FROM \"employee\"";
     String expected = "SELECT CAST(\"department_id\" AS \"float8\")\n"
         + "FROM \"foodmart\".\"employee\"";
