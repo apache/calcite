@@ -261,7 +261,7 @@ public class EnumerableTableScan
     case ARRAY:
     case MULTISET:
       final RelDataType fieldType = relFieldType.getComponentType();
-      if (fieldType.isStruct()) {
+      if (fieldType != null && fieldType.isStruct()) {
         // We can't represent a multiset or array as a List<Employee>, because
         // the consumer does not know the element type.
         // The standard element type is List.
