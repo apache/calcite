@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
@@ -33,6 +34,8 @@ import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -61,11 +64,23 @@ public class RelOptMaterialization {
    */
   public RelOptMaterialization(RelNode tableRel, RelNode queryRel,
       @Nullable RelOptTable starRelOptTable, List<String> qualifiedTableName) {
-    this.tableRel =
-        RelOptUtil.createCastRel(
-            Objects.requireNonNull(tableRel, "tableRel"),
-            Objects.requireNonNull(queryRel, "queryRel").getRowType(),
-            false);
+    this(tableRel, queryRel, starRelOptTable, qualifiedTableName,
+        RelFactories.LOGICAL_BUILDER);
+  }
+
+  public RelOptMaterialization(RelNode tableRel, RelNode queryRel,
+      @Nullable RelOptTable starRelOptTable, List<String> qualifiedTableName,
+      RelBuilderFactory relBuilderFactory) {
+    this(tableRel, queryRel, starRelOptTable, qualifiedTableName,
+        relBuilderFactory.create(Objects.requireNonNull(tableRel, "tableRel").getCluster(), null));
+  }
+
+  public RelOptMaterialization(RelNode tableRel, RelNode queryRel,
+      @Nullable RelOptTable starRelOptTable, List<String> qualifiedTableName,
+      RelBuilder relBuilder) {
+    this.tableRel = relBuilder.push(Objects.requireNonNull(tableRel, "tableRel"))
+        .convert(Objects.requireNonNull(queryRel, "queryRel").getRowType(), false)
+        .build();
     this.starRelOptTable = starRelOptTable;
     if (starRelOptTable == null) {
       this.starTable = null;
