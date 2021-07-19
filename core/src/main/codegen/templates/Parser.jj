@@ -7189,6 +7189,7 @@ SqlPrefixOperator PrefixRowOperator() :
 |   <MINUS> { return SqlStdOperatorTable.UNARY_MINUS; }
 |   <NOT> { return SqlStdOperatorTable.NOT; }
 |   <EXISTS> { return SqlStdOperatorTable.EXISTS; }
+|   <UNIQUE> { return SqlStdOperatorTable.UNIQUE; }
 }
 
 /**

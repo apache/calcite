@@ -1873,6 +1873,31 @@ public class SqlParserTest {
             + "FROM `DEPT`))) AND (3 = 4))");
   }
 
+  @Test void testUnique() {
+    sql("select * from dept where unique (select 1 from emp where emp.deptno = dept.deptno)")
+        .ok("SELECT *\n"
+            + "FROM `DEPT`\n"
+            + "WHERE (UNIQUE (SELECT 1\n"
+            + "FROM `EMP`\n"
+            + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)))");
+  }
+
+  @Test void testUniqueInWhere() {
+    sql("select * from emp where 1 = 2 and unique (select 1 from dept) and 3 = 4")
+        .ok("SELECT *\n"
+            + "FROM `EMP`\n"
+            + "WHERE (((1 = 2) AND (UNIQUE (SELECT 1\n"
+            + "FROM `DEPT`))) AND (3 = 4))");
+  }
+
+  @Test void testNotUnique() {
+    sql("select * from dept where not not unique (select * from emp) and true")
+        .ok("SELECT *\n"
+            + "FROM `DEPT`\n"
+            + "WHERE ((NOT (NOT (UNIQUE (SELECT *\n"
+            + "FROM `EMP`)))) AND TRUE)");
+  }
+
   @Test void testFromWithAs() {
     sql("select 1 from emp as e where 1")
         .ok("SELECT 1\n"
