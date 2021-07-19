@@ -362,12 +362,12 @@ A scalar sub-query is a sub-query used as an expression.
 If the sub-query returns no rows, the value is NULL; if it
 returns more than one row, it is an error.
 
-IN, EXISTS and scalar sub-queries can occur
+IN, EXISTS, UNIQUE and scalar sub-queries can occur
 in any place where an expression can occur (such as the SELECT clause,
 WHERE clause, ON clause of a JOIN, or as an argument to an aggregate
 function).
 
-An IN, EXISTS or scalar sub-query may be correlated; that is, it
+An IN, EXISTS, UNIQUE or scalar sub-query may be correlated; that is, it
 may refer to tables in the FROM clause of an enclosing query.
 
 *selectWithoutFrom* is equivalent to VALUES,
@@ -1241,6 +1241,7 @@ completeness.
 | value comparison ANY (sub-query)                  | Synonym for `SOME`
 | value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
+| UNIQUE (sub-query)                                | Whether the rows returned by *sub-query* are unique (ignoring null values)
 
 {% highlight sql %}
 comp:

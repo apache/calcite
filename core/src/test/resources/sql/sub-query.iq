@@ -2415,4 +2415,672 @@ from "scott".emp emp1;
 
 !ok
 
+# [CALCITE-4486] UNIQUE predicate
+!use scott
+!set expand false
+!set outputformat mysql
+
+# singleton keys have unique value which excludes fully or partially null rows.
+select deptno
+from "scott".dept
+where unique (select comm from "scott".emp where comm is not null);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
+|     40 |
+|     20 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select comm from "scott".emp where comm is not null) as u
+from "scott".dept;
+
++--------+------+
+| DEPTNO | U    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
+|     40 | true |
++--------+------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, but NOT UNIQUE.
+select deptno, not unique (select comm from "scott".emp where comm is not null) as u
+from "scott".dept;
+
++--------+-------+
+| DEPTNO | U     |
++--------+-------+
+|     10 | false |
+|     20 | false |
+|     30 | false |
+|     40 | false |
++--------+-------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# singleton keys have unique value which includes partial null rows.
+select deptno
+from "scott".dept
+where unique (select comm from "scott".emp);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
+|     40 |
+|     20 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select comm from "scott".emp) as u
+from "scott".dept;
+
++--------+------+
+| DEPTNO | U    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
+|     40 | true |
++--------+------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# singleton keys which includes fully null rows.
+select deptno
+from "scott".dept
+where unique (select comm from "scott".emp where comm is null);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
+|     40 |
+|     20 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableValues(tuples=[[]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select comm from "scott".emp where comm is null) as u
+from "scott".dept;
+
++--------+------+
+| DEPTNO | U    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
+|     40 | true |
++--------+------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableValues(tuples=[[]])
+!plan
+
+# composite keys have unique value which excludes fully or partially null rows.
+select deptno
+from "scott".dept
+where unique (select comm, sal from "scott".emp where comm is not null);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
+|     40 |
+|     20 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
+        EnumerableAggregate(group=[{5, 6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select comm, sal from "scott".emp where comm is not null) as u
+from "scott".dept;
+
++--------+------+
+| DEPTNO | U    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
+|     40 | true |
++--------+------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
+        EnumerableAggregate(group=[{5, 6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+
+
+# composite keys have unique value which includes fully or partially null rows.
+select deptno
+from "scott".dept
+where unique (select comm, sal from "scott".emp);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
+|     40 |
+|     20 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
+        EnumerableAggregate(group=[{5, 6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select comm, sal from "scott".emp) as u
+from "scott".dept;
+
++--------+------+
+| DEPTNO | U    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
+|     40 | true |
++--------+------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
+        EnumerableAggregate(group=[{5, 6}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# singleton keys have duplicate value
+select deptno
+from "scott".dept
+where unique (select deptno from "scott".emp);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select deptno from "scott".emp) as u
+from "scott".dept;
+
++--------+-------+
+| DEPTNO | U     |
++--------+-------+
+|     10 | false |
+|     20 | false |
+|     30 | false |
+|     40 | false |
++--------+-------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# composite keys have duplicate value.
+select deptno
+from "scott".dept
+where unique (select deptno, sal from "scott".emp where sal = 3000);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
+        EnumerableAggregate(group=[{5, 7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select deptno, sal from "scott".emp where sal = 3000) as u
+from "scott".dept;
+
++--------+-------+
+| DEPTNO | U     |
++--------+-------+
+|     10 | false |
+|     20 | false |
+|     30 | false |
+|     40 | false |
++--------+-------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
+        EnumerableAggregate(group=[{5, 7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, but NOT UNIQUE.
+select deptno, not unique (select deptno, sal from "scott".emp where sal = 3000) as u
+from "scott".dept;
+
++--------+------+
+| DEPTNO | U    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
+|     40 | true |
++--------+------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
+        EnumerableAggregate(group=[{5, 7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# as above, but sub-query empty.
+select deptno
+from "scott".dept
+where unique (select deptno from "scott".emp where deptno = 35);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
+|     40 |
+|     20 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select deptno, unique (select deptno from "scott".emp where deptno = 35) as u
+from "scott".dept;
+
++--------+------+
+| DEPTNO | U    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
+|     40 | true |
++--------+------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# singleton keys which a uniqueness constraint indicates that the relation is already unique.
+select *
+from "scott".dept
+where unique (select deptno from "scott".dept);
+
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# as above, sub-query with limit.
+select *
+from "scott".dept
+where unique (select deptno from "scott".emp limit 1);
+
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# as above, sub-query with distinct.
+select deptno
+from "scott".dept
+where unique (select distinct deptno, sal from "scott".emp where sal = 3000);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# as above, sub-query with group by.
+select deptno
+from "scott".dept
+where unique (select job from "scott".emp group by job);
+
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Correlated UNIQUE predicate.
+select *
+from "scott".dept
+where unique (
+    select 1 from "scott".emp where dept.deptno = emp.deptno);
+
++--------+------------+--------+
+| DEPTNO | DNAME      | LOC    |
++--------+------------+--------+
+|     40 | OPERATIONS | BOSTON |
++--------+------------+--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t3)], proj#0..2=[{exprs}], $condition=[$t5])
+  EnumerableMergeJoin(condition=[=($0, $4)], joinType=[left])
+    EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], DEPTNO=[$t0], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Previous, as scalar sub-query.
+select *, unique (select 1 from "scott".emp where dept.deptno = emp.deptno) as u
+from "scott".dept;
+
++--------+------------+----------+-------+
+| DEPTNO | DNAME      | LOC      | U     |
++--------+------------+----------+-------+
+|     10 | ACCOUNTING | NEW YORK | false |
+|     20 | RESEARCH   | DALLAS   | false |
+|     30 | SALES      | CHICAGO  | false |
+|     40 | OPERATIONS | BOSTON   | true  |
++--------+------------+----------+-------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t3)], proj#0..2=[{exprs}], U=[$t5])
+  EnumerableMergeJoin(condition=[=($0, $4)], joinType=[left])
+    EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], DEPTNO=[$t0], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# as above, but NOT UNIQUE.
+select *
+from "scott".dept
+where not unique (
+    select 1 from "scott".emp where dept.deptno = emp.deptno);
+
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
++--------+------------+----------+
+(3 rows)
+
+!ok
+
+EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t1], DNAME=[$t2], LOC=[$t3])
+  EnumerableHashJoin(condition=[=($0, $1)], joinType=[inner])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t1, $t2)], DEPTNO=[$t0], $condition=[$t3])
+      EnumerableAggregate(group=[{7}], c=[COUNT()])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+          EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Previous, as scalar sub-query.
+select *, not unique (select 1 from "scott".emp where dept.deptno = emp.deptno) as u
+from "scott".dept;
+
++--------+------------+----------+-------+
+| DEPTNO | DNAME      | LOC      | U     |
++--------+------------+----------+-------+
+|     10 | ACCOUNTING | NEW YORK | true  |
+|     20 | RESEARCH   | DALLAS   | true  |
+|     30 | SALES      | CHICAGO  | true  |
+|     40 | OPERATIONS | BOSTON   | false |
++--------+------------+----------+-------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t3)], proj#0..2=[{exprs}], U=[$t5])
+  EnumerableMergeJoin(condition=[=($0, $4)], joinType=[left])
+    EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], DEPTNO=[$t0], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End sub-query.iq

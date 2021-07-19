@@ -4510,6 +4510,40 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNotUnique">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(UNIQUE({
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[=($0, 55)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select * from emp
+where not unique (select 1 from dept where deptno=55)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNotUniqueCorrelated">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(UNIQUE({
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select * from emp where not unique(
+select 1 from dept where emp.deptno = dept.deptno)]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOffset">
     <Resource name="sql">
       <![CDATA[select empno from emp offset 10 rows]]>
@@ -6815,6 +6849,56 @@ LogicalUnion(all=[true])
 union all
 select 34 from emp
 union all values (30), (45 + 10)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUniqueWithManyProject">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[UNIQUE({
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select * from emp where unique (
+select * from dept)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUniqueWithOneProject">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[UNIQUE({
+LogicalProject(NAME=[$1])
+  LogicalFilter(condition=[=($0, 55)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select * from emp where unique (
+select name from dept where deptno=55)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUniqueWithProjectLateral">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[UNIQUE({
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[=($0, 55)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select * from emp where unique (
+select 1 from dept where deptno=55)]]>
     </Resource>
   </TestCase>
   <TestCase name="testUnnest">

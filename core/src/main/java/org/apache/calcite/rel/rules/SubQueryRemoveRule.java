@@ -44,7 +44,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -53,6 +52,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.util.Util.last;
 
 /**
  * Transform that converts IN, EXISTS and scalar sub-queries into joins.
@@ -94,6 +95,8 @@ public class SubQueryRemoveRule
       return rewriteIn(e, variablesSet, logic, builder, offset);
     case EXISTS:
       return rewriteExists(e, variablesSet, logic, builder);
+    case UNIQUE:
+      return rewriteUnique(e, builder);
     default:
       throw new AssertionError(e.getKind());
     }
@@ -432,7 +435,59 @@ public class SubQueryRemoveRule
 
     builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
 
-    return builder.isNotNull(Util.last(builder.fields()));
+    return builder.isNotNull(last(builder.fields()));
+  }
+
+  /**
+   * Rewrites a UNIQUE RexSubQuery into an EXISTS RexSubQuery.
+   *
+   * <p>For example, rewrites the UNIQUE sub-query:
+   *
+   * <pre>{@code
+   * UNIQUE (SELECT PUBLISHED_IN
+   * FROM BOOK
+   * WHERE AUTHOR_ID = 3)
+   * }</pre>
+   *
+   * <p>to the following EXISTS sub-query:
+   *
+   * <pre>{@code
+   * NOT EXISTS (
+   *   SELECT * FROM (
+   *     SELECT PUBLISHED_IN
+   *     FROM BOOK
+   *     WHERE AUTHOR_ID = 3
+   *   ) T
+   *   WHERE (T.PUBLISHED_IN) IS NOT NULL
+   *   GROUP BY T.PUBLISHED_IN
+   *   HAVING COUNT(*) > 1
+   * )
+   * }</pre>
+   *
+   * @param e            UNIQUE sub-query to rewrite
+   * @param builder      Builder
+   *
+   * @return Expression that may be used to replace the RexSubQuery
+   */
+  private static RexNode rewriteUnique(RexSubQuery e, RelBuilder builder) {
+    // if sub-query always return unique value.
+    final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
+    Boolean isUnique = mq.areRowsUnique(e.rel, true);
+    if (isUnique != null && isUnique) {
+      return builder.getRexBuilder().makeLiteral(true);
+    }
+    builder.push(e.rel);
+    List<RexNode> notNullCondition =
+        builder.fields().stream()
+            .map(builder::isNotNull)
+            .collect(Collectors.toList());
+    builder
+        .filter(notNullCondition)
+        .aggregate(builder.groupKey(builder.fields()), builder.countStar("c"))
+        .filter(
+            builder.greaterThan(last(builder.fields()), builder.literal(1)));
+    RelNode relNode = builder.build();
+    return builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(relNode));
   }
 
   /**
@@ -667,7 +722,7 @@ public class SubQueryRemoveRule
       operands.add(builder.isNotNull(builder.field("cs")),
           trueLiteral);
     } else {
-      operands.add(builder.isNotNull(Util.last(builder.fields())),
+      operands.add(builder.isNotNull(last(builder.fields())),
           trueLiteral);
     }
 

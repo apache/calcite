@@ -1275,6 +1275,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1)), is(true));
   }
 
+  @Test void testRowUniquenessForSortWithLimit() {
+    final String sql = ""
+        + "select sal\n"
+        + "from emp\n"
+        + "limit 1";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.areRowsUnique(rel), is(true));
+  }
+
   @Test void testColumnUniquenessForJoinWithConstantColumns() {
     final String sql = ""
         + "select *\n"
@@ -1414,26 +1424,26 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test void calcColumnsAreUniqueSimpleCalc() {
     checkGetUniqueKeys("select empno, empno*0 from emp",
         ImmutableSet.of(bitSetOf(0)),
-        convertProjectAsCalc());
+        this::convertProjectAsCalc);
   }
 
   @Test void calcColumnsAreUniqueCalcWithFirstConstant() {
     checkGetUniqueKeys("select 1, empno, empno*0 from emp",
         ImmutableSet.of(bitSetOf(1)),
-        convertProjectAsCalc());
-
+        this::convertProjectAsCalc);
   }
+
   @Test void calcMultipleColumnsAreUniqueCalc() {
     checkGetUniqueKeys("select empno, empno from emp",
         ImmutableSet.of(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1)),
-        convertProjectAsCalc());
+        this::convertProjectAsCalc);
   }
 
   @Test void calcMultipleColumnsAreUniqueCalc2() {
     checkGetUniqueKeys(
         "select a1.empno, a2.empno from emp a1 join emp a2 on (a1.empno=a2.empno)",
         ImmutableSet.of(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1)),
-        convertProjectAsCalc());
+        this::convertProjectAsCalc);
   }
 
   @Test void calcMultipleColumnsAreUniqueCalc3() {
@@ -1444,26 +1454,67 @@ public class RelMetadataTest extends SqlToRelTestBase {
         ImmutableSet.of(
             bitSetOf(0), bitSetOf(0, 1), bitSetOf(0, 1, 2), bitSetOf(0, 2),
             bitSetOf(1), bitSetOf(1, 2), bitSetOf(2)),
-        convertProjectAsCalc());
+        this::convertProjectAsCalc);
   }
 
   @Test void calcColumnsAreNonUniqueCalc() {
     checkGetUniqueKeys("select empno*0 from emp",
         ImmutableSet.of(),
-        convertProjectAsCalc());
+        this::convertProjectAsCalc);
   }
 
-  private Function<String, RelNode> convertProjectAsCalc() {
-    return s -> {
-      Project project = (Project) convertSql(s);
-      RexProgram program = RexProgram.create(
-          project.getInput().getRowType(),
-          project.getProjects(),
-          null,
-          project.getRowType(),
-          project.getCluster().getRexBuilder());
-      return LogicalCalc.create(project.getInput(), program);
-    };
+  private RelNode convertProjectAsCalc(String s) {
+    Project project = (Project) convertSql(s);
+    RexProgram program = RexProgram.create(
+        project.getInput().getRowType(),
+        project.getProjects(),
+        null,
+        project.getRowType(),
+        project.getCluster().getRexBuilder());
+    return LogicalCalc.create(project.getInput(), program);
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#areRowsUnique(RelNode)}. */
+  @Test void testRowsUnique() {
+    sql("select * from emp")
+        .assertRowsUnique(is(true), "table has primary key");
+    sql("select deptno from emp")
+        .assertRowsUnique(is(false), "table has primary key");
+    sql("select empno from emp")
+        .assertRowsUnique(is(true), "primary key is unique");
+    sql("select empno from emp, dept")
+        .assertRowsUnique(is(false), "cartesian product destroys uniqueness");
+    sql("select empno from emp join dept using (deptno)")
+        .assertRowsUnique(is(true),
+            "many-to-one join does not destroy uniqueness");
+    sql("select empno, job from emp join dept using (deptno) order by job desc")
+        .assertRowsUnique(is(true),
+            "project and sort does not destroy uniqueness");
+    sql("select deptno from emp limit 1")
+        .assertRowsUnique(is(true), "1 row table is always unique");
+    sql("select distinct deptno from emp")
+        .assertRowsUnique(is(true), "distinct table is always unique");
+    sql("select count(*) from emp")
+        .assertRowsUnique(is(true), "grand total is always unique");
+    sql("select count(*) from emp group by deptno")
+        .assertRowsUnique(is(false), "several depts may have same count");
+    sql("select deptno, count(*) from emp group by deptno")
+        .assertRowsUnique(is(true), "group by keys are unique");
+    sql("select deptno, count(*) from emp group by grouping sets ((), (deptno))")
+        .assertRowsUnique(true, is(true),
+            "group by keys are unique and not null");
+    sql("select deptno, count(*) from emp group by grouping sets ((), (deptno))")
+        .assertRowsUnique(false, nullValue(Boolean.class),
+            "is actually unique; TODO: deduce it");
+    sql("select distinct deptno from emp join dept using (deptno)")
+        .assertRowsUnique(is(true), "distinct table is always unique");
+    sql("select deptno from emp union select deptno from dept")
+        .assertRowsUnique(is(true), "set query is always unique");
+    sql("select deptno from emp intersect select deptno from dept")
+        .assertRowsUnique(is(true), "set query is always unique");
+    sql("select deptno from emp except select deptno from dept")
+        .assertRowsUnique(is(true), "set query is always unique");
   }
 
   @Test void testBrokenCustomProviderWithMetadataFactory() {
@@ -3555,5 +3606,29 @@ public class RelMetadataTest extends SqlToRelTestBase {
       RelOptPlanner planner = new VolcanoPlanner();
       return rel.computeSelfCost(planner, mq);
     }
+
+    Sql assertRowsUnique(Matcher<Boolean> matcher, String reason) {
+      return assertRowsUnique(new boolean[] {false, true}, matcher, reason);
+    }
+
+    Sql assertRowsUnique(boolean ignoreNulls, Matcher<Boolean> matcher,
+        String reason) {
+      return assertRowsUnique(new boolean[] {ignoreNulls}, matcher, reason);
+    }
+
+    Sql assertRowsUnique(boolean[] ignoreNulls, Matcher<Boolean> matcher,
+        String reason) {
+      RelNode rel = convertSql(tester, sql);
+      final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+      for (boolean ignoreNull : ignoreNulls) {
+        Boolean rowsUnique = mq.areRowsUnique(rel, ignoreNull);
+        assertThat(reason + "\n"
+                + "sql:" + sql + "\n"
+                + "plan:" + RelOptUtil.toString(rel, SqlExplainLevel.ALL_ATTRIBUTES),
+            rowsUnique, matcher);
+      }
+      return this;
+    }
+
   }
 }
