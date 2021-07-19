@@ -1091,7 +1091,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE_DIFF =
       new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER, null,
-          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.DATE, SqlTypeFamily.DATE,
+            SqlTypeFamily.STRING),
+            number -> number == 2 || number == 3),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})

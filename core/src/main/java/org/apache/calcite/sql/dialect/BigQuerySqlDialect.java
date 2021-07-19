@@ -908,6 +908,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "REGEXP_LIKE":
       unparseRegexpLike(writer, call, leftPrec, rightPrec);
+    case "DATE_DIFF":
+
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
