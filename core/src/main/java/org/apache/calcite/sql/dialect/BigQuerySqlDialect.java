@@ -908,8 +908,17 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "REGEXP_LIKE":
       unparseRegexpLike(writer, call, leftPrec, rightPrec);
+      break;
     case "DATE_DIFF":
-
+      final SqlWriter.Frame to_timestamp = writer.startFunCall("DATE_DIFF");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      if (call.operandCount() == 3) {
+        writer.print(",");
+        writer.print(unquoteStringLiteral(call.operand(2).toString()));
+      }
+      writer.endFunCall(to_timestamp);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
