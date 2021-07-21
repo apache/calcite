@@ -5179,6 +5179,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testAggregateUnionTransposeWithAllInputsUnique() {
+    final String sql = "select deptno, SUM(t) from (\n"
+        + "select distinct deptno, 1 as t from sales.emp e1\n"
+        + "union all\n"
+        + "select distinct deptno, 2 as t from sales.emp e2)\n"
+        + "group by deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  @Test void testAggregateUnionTransposeWithOneInputUnique() {
+    final String sql = "select deptno, SUM(t) from (\n"
+        + "select deptno, 1 as t from sales.emp e1\n"
+        + "union all\n"
+        + "select distinct deptno, 2 as t from sales.emp e2)\n"
+        + "group by deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .check();
+  }
+
   @Test void testSortJoinTranspose1() {
     final String sql = "select * from sales.emp e left join (\n"
         + "  select * from sales.dept d) d on e.deptno = d.deptno\n"

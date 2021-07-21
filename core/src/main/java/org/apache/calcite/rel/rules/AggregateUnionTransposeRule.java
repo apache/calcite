@@ -125,28 +125,32 @@ public class AggregateUnionTransposeRule
       return;
     }
 
-    // create corresponding aggregates on top of each union child
-    final RelBuilder relBuilder = call.builder();
-    int transformCount = 0;
+    boolean hasUniqueKeyInAllInputs = true;
     final RelMetadataQuery mq = call.getMetadataQuery();
     for (RelNode input : union.getInputs()) {
       boolean alreadyUnique =
           RelMdUtil.areColumnsDefinitelyUnique(mq, input,
               aggRel.getGroupSet());
 
-      relBuilder.push(input);
       if (!alreadyUnique) {
-        ++transformCount;
-        relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
-            aggRel.getAggCallList());
+        hasUniqueKeyInAllInputs = false;
+        break;
       }
     }
 
-    if (transformCount == 0) {
+    if (hasUniqueKeyInAllInputs) {
       // none of the children could benefit from the push-down,
       // so bail out (preventing the infinite loop to which most
       // planners would succumb)
       return;
+    }
+
+    // create corresponding aggregates on top of each union child
+    final RelBuilder relBuilder = call.builder();
+    for (RelNode input : union.getInputs()) {
+      relBuilder.push(input);
+      relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
+          aggRel.getAggCallList());
     }
 
     // create a new union whose children are the aggregates created above
