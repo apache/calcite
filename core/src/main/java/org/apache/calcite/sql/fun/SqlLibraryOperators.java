@@ -566,7 +566,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TO_TIMESTAMP =
       new SqlFunction("TO_TIMESTAMP",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
+          ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);

@@ -1504,14 +1504,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
     expr("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')")
         .withOperatorTable(opTable)
-        .columnType("DATE NOT NULL");
+        .columnType("TIMESTAMP(0) NOT NULL");
     wholeExpr("TO_TIMESTAMP('2000-01-01 01:00:00')")
         .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TO_TIMESTAMP'. "
             + "Was expecting 2 arguments");
     expr("TO_TIMESTAMP(2000, 'YYYY')")
         .withOperatorTable(opTable)
-        .columnType("DATE NOT NULL");
+        .columnType("TIMESTAMP(0) NOT NULL");
     wholeExpr("TO_TIMESTAMP(2000, 'YYYY')")
         .withOperatorTable(opTable)
         .withTypeCoercion(false)
