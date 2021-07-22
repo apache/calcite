@@ -417,7 +417,9 @@ public class RelJson {
     if (node.getType().isStruct()) {
       map = jsonBuilder().map();
       map.put("fields", toJson(node.getType()));
+      map.put("nullable", node.getType().isNullable());
     } else {
+      //noinspection unchecked
       map = (Map<String, @Nullable Object>) toJson(node.getType());
     }
     map.put("name", node.getName());

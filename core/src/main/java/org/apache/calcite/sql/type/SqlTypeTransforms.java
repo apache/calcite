@@ -183,6 +183,17 @@ public abstract class SqlTypeTransforms {
           opBinding.getTypeFactory().createArrayType(typeToTransform, -1);
 
   /**
+   * Parameter type-inference transform strategy that converts a two-field
+   * record type to a MAP type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createMapType
+   */
+  public static final SqlTypeTransform TO_MAP =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.createMapTypeFromRecord(opBinding.getTypeFactory(),
+              typeToTransform);
+
+  /**
    * Parameter type-inference transform strategy where a derived type must be
    * a struct type with precisely one field and the returned type is the type
    * of that field.

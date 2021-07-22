@@ -30,6 +30,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -39,6 +40,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -64,6 +66,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -86,6 +89,7 @@ import java.util.stream.Stream;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -423,6 +427,65 @@ class RelWriterTest {
 
   static Stream<SqlExplainFormat> explainFormats() {
     return Stream.of(SqlExplainFormat.TEXT, SqlExplainFormat.DOT);
+  }
+
+  /** Unit test for {@link RelJson#toJson(Object)} for an object of type
+   * {@link RelDataType}. */
+  @Test void testTypeJson() {
+    int i = Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+      final RelDataType type = typeFactory.builder()
+          .add("i", typeFactory.createSqlType(SqlTypeName.INTEGER))
+          .nullable(false)
+          .add("v", typeFactory.createSqlType(SqlTypeName.VARCHAR, 9))
+          .nullable(true)
+          .add("r", typeFactory.builder()
+              .add("d", typeFactory.createSqlType(SqlTypeName.DATE))
+              .nullable(false)
+              .build())
+          .nullableRecord(false)
+          .build();
+      final JsonBuilder jsonBuilder = new JsonBuilder();
+      final RelJson json = new RelJson(jsonBuilder);
+      final Object o = json.toJson(type);
+      assertThat(o, notNullValue());
+      final String s = jsonBuilder.toJsonString(o);
+      final String expectedJson = "{\n"
+          + "  \"fields\": [\n"
+          + "    {\n"
+          + "      \"type\": \"INTEGER\",\n"
+          + "      \"nullable\": false,\n"
+          + "      \"name\": \"i\"\n"
+          + "    },\n"
+          + "    {\n"
+          + "      \"type\": \"VARCHAR\",\n"
+          + "      \"nullable\": true,\n"
+          + "      \"precision\": 9,\n"
+          + "      \"name\": \"v\"\n"
+          + "    },\n"
+          + "    {\n"
+          + "      \"fields\": {\n"
+          + "        \"fields\": [\n"
+          + "          {\n"
+          + "            \"type\": \"DATE\",\n"
+          + "            \"nullable\": false,\n"
+          + "            \"name\": \"d\"\n"
+          + "          }\n"
+          + "        ],\n"
+          + "        \"nullable\": false\n"
+          + "      },\n"
+          + "      \"nullable\": false,\n"
+          + "      \"name\": \"r\"\n"
+          + "    }\n"
+          + "  ],\n"
+          + "  \"nullable\": false\n"
+          + "}";
+      assertThat(s, is(expectedJson));
+      final RelDataType type2 = json.toType(typeFactory, o);
+      assertThat(type2, is(type));
+      return 0;
+    });
+    assertThat(i, is(0));
   }
 
   /**

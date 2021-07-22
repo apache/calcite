@@ -53,6 +53,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -181,14 +182,14 @@ public abstract class MutableRels {
    * Construct expression list of Project by the given fields of the input.
    */
   public static List<RexNode> createProjects(final MutableRel child,
-      final List<RexNode> projs) {
-    List<RexNode> rexNodeList = new ArrayList<>(projs.size());
-    for (int i = 0; i < projs.size(); i++) {
-      if (projs.get(i) instanceof RexInputRef) {
-        RexInputRef rexInputRef = (RexInputRef) projs.get(i);
+      final List<RexNode> projects) {
+    List<RexNode> rexNodeList = new ArrayList<>(projects.size());
+    for (RexNode project : projects) {
+      if (project instanceof RexInputRef) {
+        RexInputRef rexInputRef = (RexInputRef) project;
         rexNodeList.add(RexInputRef.of(rexInputRef.getIndex(), child.rowType));
       } else {
-        rexNodeList.add(projs.get(i));
+        rexNodeList.add(project);
       }
     }
     return rexNodeList;
@@ -251,7 +252,7 @@ public abstract class MutableRels {
     case COLLECT: {
       final MutableCollect collect = (MutableCollect) node;
       final RelNode child = fromMutable(collect.getInput(), relBuilder);
-      return new Collect(collect.cluster, child.getTraitSet(), child, collect.fieldName);
+      return Collect.create(child, SqlTypeName.MULTISET, collect.fieldName);
     }
     case UNCOLLECT: {
       final MutableUncollect uncollect = (MutableUncollect) node;

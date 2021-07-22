@@ -1116,6 +1116,17 @@ public abstract class SqlTypeUtil {
     return typeFactory.createTypeWithNullability(ret, nullable);
   }
 
+  /** Creates a MAP type from a record type. The record type must have exactly
+   * two fields. */
+  public static RelDataType createMapTypeFromRecord(
+      RelDataTypeFactory typeFactory, RelDataType type) {
+    Preconditions.checkArgument(type.getFieldCount() == 2,
+        "MAP requires exactly two fields, got %s; row type %s",
+        type.getFieldCount(), type);
+    return createMapType(typeFactory, type.getFieldList().get(0).getType(),
+        type.getFieldList().get(1).getType(), false);
+  }
+
   /**
    * Adds collation and charset to a character type, returns other types
    * unchanged.

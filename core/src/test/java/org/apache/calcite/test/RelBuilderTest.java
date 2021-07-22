@@ -2194,6 +2194,8 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Tests building a simple join. Also checks {@link RelBuilder#size()}
+   * at every step. */
   @Test void testJoin() {
     // Equivalent SQL:
     //   SELECT *
@@ -2201,21 +2203,33 @@ public class RelBuilderTest {
     //   JOIN dept ON emp.deptno = dept.deptno
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
-        builder.scan("EMP")
+        builder.let(b -> assertSize(b, is(0)))
+            .scan("EMP")
+            .let(b -> assertSize(b, is(1)))
             .filter(
                 builder.call(SqlStdOperatorTable.IS_NULL,
                     builder.field("COMM")))
+            .let(b -> assertSize(b, is(1)))
             .scan("DEPT")
+            .let(b -> assertSize(b, is(2)))
             .join(JoinRelType.INNER,
                 builder.equals(builder.field(2, 0, "DEPTNO"),
                     builder.field(2, 1, "DEPTNO")))
+            .let(b -> assertSize(b, is(1)))
             .build();
+    assertThat(builder.size(), is(0));
     final String expected = ""
         + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  private static RelBuilder assertSize(RelBuilder b,
+      Matcher<Integer> sizeMatcher) {
+    assertThat(b.size(), sizeMatcher);
+    return b;
   }
 
   /** Same as {@link #testJoin} using USING. */

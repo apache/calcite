@@ -590,6 +590,80 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelatedArraySubQuery">
+    <Resource name="sql">
+      <![CDATA[select *,
+    array (select * from emp
+        where deptno = dept.deptno) as empset
+from dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelatedArraySubQueryRex">
+    <Resource name="sql">
+      <![CDATA[select *,
+    array (select * from emp
+        where deptno = dept.deptno) as empset
+from dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[ARRAY({
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelatedMapSubQuery">
+    <Resource name="sql">
+      <![CDATA[select *,
+  map (select empno, job
+       from emp where deptno = dept.deptno) as jobMap
+from dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], JOBMAP=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EMPNO=[$0], JOB=[$2])
+        LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelatedMapSubQueryRex">
+    <Resource name="sql">
+      <![CDATA[select *,
+  map (select empno, job
+       from emp where deptno = dept.deptno) as jobMap
+from dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], JOBMAP=[MAP({
+LogicalProject(EMPNO=[$0], JOB=[$2])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelatedSubQueryInAggregate">
     <Resource name="sql">
       <![CDATA[SELECT SUM(
@@ -832,13 +906,12 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    Collect(field=[EXPR$0])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[MULTISET({
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -6962,6 +7035,39 @@ LogicalProject(DEPTNO=[$0], EMPNO_AVG=[$7])
           Uncollect
             LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
               LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestArrayNoExpand">
+    <Resource name="sql">
+      <![CDATA[select name,
+    array (select *
+        from emp
+        where deptno = dept.deptno) as emp_array,
+    multiset (select *
+        from emp
+        where deptno = dept.deptno) as emp_multiset,
+    map (select empno, job
+        from emp
+        where deptno = dept.deptno) as job_map
+from dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NAME=[$1], EMP_ARRAY=[ARRAY({
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], EMP_MULTISET=[MULTISET({
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=($7, $cor1.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], JOB_MAP=[MAP({
+LogicalProject(EMPNO=[$0], JOB=[$2])
+  LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>

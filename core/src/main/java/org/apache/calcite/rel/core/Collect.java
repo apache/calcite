@@ -25,7 +25,10 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+
+import com.google.common.collect.Iterables;
 
 import java.util.List;
 
@@ -37,33 +40,56 @@ import static java.util.Objects.requireNonNull;
  * <p>Rules:</p>
  *
  * <ul>
- * <li>{@code net.sf.farrago.fennel.rel.FarragoMultisetSplitterRule}
+ * <li>{@link org.apache.calcite.rel.rules.SubQueryRemoveRule}
  * creates a Collect from a call to
- * {@link org.apache.calcite.sql.fun.SqlMultisetValueConstructor} or to
+ * {@link org.apache.calcite.sql.fun.SqlArrayQueryConstructor},
+ * {@link org.apache.calcite.sql.fun.SqlMapQueryConstructor}, or
  * {@link org.apache.calcite.sql.fun.SqlMultisetQueryConstructor}.</li>
  * </ul>
  */
 public class Collect extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
-  protected final String fieldName;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a Collect.
    *
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
    * @param cluster   Cluster
-   * @param child     Child relational expression
-   * @param fieldName Name of the sole output field
+   * @param traitSet  Trait set
+   * @param input     Input relational expression
+   * @param rowType   Row type
    */
+  protected Collect(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      RelDataType rowType) {
+    super(cluster, traitSet, input);
+    this.rowType = requireNonNull(rowType, "rowType");
+    final SqlTypeName collectionType = getCollectionType(rowType);
+    switch (collectionType) {
+    case ARRAY:
+    case MAP:
+    case MULTISET:
+      break;
+    default:
+      throw new IllegalArgumentException("not a collection type "
+          + collectionType);
+    }
+  }
+
+  @Deprecated // to be removed before 2.0
   public Collect(
       RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
+      RelNode input,
       String fieldName) {
-    super(cluster, traitSet, child);
-    this.fieldName = fieldName;
+    this(cluster, traitSet, input,
+        deriveRowType(cluster.getTypeFactory(), SqlTypeName.MULTISET, fieldName,
+            input.getRowType()));
   }
 
   /**
@@ -71,10 +97,47 @@ public class Collect extends SingleRel {
    */
   public Collect(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        requireNonNull(input.getString("field"), "field"));
+        deriveRowType(input.getCluster().getTypeFactory(), SqlTypeName.MULTISET,
+            requireNonNull(input.getString("field"), "field"),
+            input.getInput().getRowType()));
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Creates a Collect.
+   *
+   * @param input          Input relational expression
+   * @param rowType        Row type
+   */
+  public static Collect create(RelNode input, RelDataType rowType) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelTraitSet traitSet =
+        cluster.traitSet().replace(Convention.NONE);
+    return new Collect(cluster, traitSet, input, rowType);
+  }
+
+  /**
+   * Creates a Collect.
+   *
+   * @param input          Input relational expression
+   * @param collectionType ARRAY, MAP or MULTISET
+   * @param fieldName      Name of the sole output field
+   */
+  public static Collect create(RelNode input,
+      SqlTypeName collectionType,
+      String fieldName) {
+    return create(input,
+        deriveRowType(input.getCluster().getTypeFactory(), collectionType,
+            fieldName, input.getRowType()));
+  }
+
+  /** Returns the row type, guaranteed not null.
+   * (The row type is never null after initialization, but
+   * CheckerFramework can't deduce that references are safe.) */
+  protected final RelDataType rowType() {
+    return requireNonNull(rowType, "rowType");
+  }
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
@@ -83,12 +146,12 @@ public class Collect extends SingleRel {
 
   public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new Collect(getCluster(), traitSet, input, fieldName);
+    return new Collect(getCluster(), traitSet, input, rowType());
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
-        .item("field", fieldName);
+        .item("field", getFieldName());
   }
 
   /**
@@ -97,32 +160,67 @@ public class Collect extends SingleRel {
    * @return name of the sole output field
    */
   public String getFieldName() {
-    return fieldName;
+    return Iterables.getOnlyElement(rowType().getFieldList()).getName();
+  }
+
+  /** Returns the collection type (ARRAY, MAP, or MULTISET). */
+  public SqlTypeName getCollectionType() {
+    return getCollectionType(rowType());
+  }
+
+  private static SqlTypeName getCollectionType(RelDataType rowType) {
+    return Iterables.getOnlyElement(rowType.getFieldList())
+        .getType().getSqlTypeName();
   }
 
   @Override protected RelDataType deriveRowType() {
-    return deriveCollectRowType(this, fieldName);
+    // this method should never be called; rowType is always set
+    throw new UnsupportedOperationException();
   }
 
   /**
-   * Derives the output type of a collect relational expression.
+   * Derives the output row type of a Collect relational expression.
    *
    * @param rel       relational expression
    * @param fieldName name of sole output field
-   * @return output type of a collect relational expression
+   * @return output row type of a Collect relational expression
    */
+  @Deprecated // to be removed before 2.0
   public static RelDataType deriveCollectRowType(
       SingleRel rel,
       String fieldName) {
-    RelDataType childType = rel.getInput().getRowType();
-    assert childType.isStruct();
-    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
-    RelDataType ret =
-        SqlTypeUtil.createMultisetType(
-            typeFactory,
-            childType,
-            false);
-    ret = typeFactory.builder().add(fieldName, ret).build();
-    return typeFactory.createTypeWithNullability(ret, false);
+    RelDataType inputType = rel.getInput().getRowType();
+    assert inputType.isStruct();
+    return deriveRowType(rel.getCluster().getTypeFactory(),
+        SqlTypeName.MULTISET, fieldName, inputType);
+  }
+
+  /**
+   * Derives the output row type of a Collect relational expression.
+   *
+   * @param typeFactory    Type factory
+   * @param collectionType MULTISET, ARRAY or MAP
+   * @param fieldName      Name of sole output field
+   * @param elementType    Element type
+   * @return output row type of a Collect relational expression
+   */
+  public static RelDataType deriveRowType(RelDataTypeFactory typeFactory,
+      SqlTypeName collectionType, String fieldName, RelDataType elementType) {
+    final RelDataType type1;
+    switch (collectionType) {
+    case ARRAY:
+      type1 = SqlTypeUtil.createArrayType(typeFactory, elementType, false);
+      break;
+    case MULTISET:
+      type1 = SqlTypeUtil.createMultisetType(typeFactory, elementType, false);
+      break;
+    case MAP:
+      type1 = SqlTypeUtil.createMapTypeFromRecord(typeFactory, elementType);
+      break;
+    default:
+      throw new AssertionError(collectionType);
+    }
+    return typeFactory.createTypeWithNullability(
+        typeFactory.builder().add(fieldName, type1).build(), false);
   }
 }

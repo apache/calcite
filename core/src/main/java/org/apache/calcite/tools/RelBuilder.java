@@ -357,6 +357,11 @@ public class RelBuilder {
     return this;
   }
 
+  /** Returns the size of the stack. */
+  public int size() {
+    return stack.size();
+  }
+
   /** Returns the final relational expression.
    *
    * <p>Throws if the stack is empty.

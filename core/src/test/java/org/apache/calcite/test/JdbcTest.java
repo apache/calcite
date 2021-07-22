@@ -243,6 +243,16 @@ public class JdbcTest {
     return Stream.of("text", "dot");
   }
 
+  /** Runs a task (such as a test) with and without expansion. */
+  static void forEachExpand(Runnable r) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(false)) {
+      r.run();
+    }
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
+      r.run();
+    }
+  }
+
   /** Tests a modifiable view. */
   @Test void testModelWithModifiableView() throws Exception {
     final List<Employee> employees = new ArrayList<>();
@@ -2082,6 +2092,10 @@ public class JdbcTest {
   }
 
   @Test void testMultisetQuery() {
+    forEachExpand(this::checkMultisetQuery);
+  }
+
+  void checkMultisetQuery() {
     CalciteAssert.hr()
         .query("select multiset(\n"
             + "  select \"deptno\", \"empid\" from \"hr\".\"emps\") as a\n"
@@ -2090,6 +2104,10 @@ public class JdbcTest {
   }
 
   @Test void testMultisetQueryWithSingleColumn() {
+    forEachExpand(this::checkMultisetQueryWithSingleColumn);
+  }
+
+  void checkMultisetQueryWithSingleColumn() {
     CalciteAssert.hr()
         .query("select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
