@@ -1094,7 +1094,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(
               ImmutableList.of(SqlTypeFamily.DATE, SqlTypeFamily.DATE,
             SqlTypeFamily.STRING),
-            number -> number == 3),
+            number -> number == 2),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})
