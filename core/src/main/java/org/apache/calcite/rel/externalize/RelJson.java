@@ -78,6 +78,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.calcite.rel.RelDistributions.EMPTY;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -743,7 +744,7 @@ public class RelJson {
     if (class_ != null) {
       return AvaticaUtils.instantiatePlugin(SqlOperator.class, class_);
     }
-    return null;
+    throw RESOURCE.noOperator(name, kind, syntax).ex();
   }
 
   @Nullable SqlAggFunction toAggregation(Map<String, ? extends @Nullable Object> map) {
