@@ -25,6 +25,8 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Static;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,6 +55,7 @@ import java.sql.Types;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.sql.DataSource;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -187,13 +190,22 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
 
   /** Called from generated code that proposes to create a
    * {@code ResultSetEnumerable} over a prepared statement. */
-  public static PreparedStatementEnricher createEnricher(Integer[] indexes,
+  public static PreparedStatementEnricher createEnricher(
+      Pair<SqlWriter.DynamicParamType, Integer>[] dynamicTypeIndexes,
+      Map<Integer, Object> indexCorrelMap,
       DataContext context) {
     return preparedStatement -> {
-      for (int i = 0; i < indexes.length; i++) {
-        final int index = indexes[i];
-        setDynamicParam(preparedStatement, i + 1,
-            context.get("?" + index));
+      for (int i = 0; i < dynamicTypeIndexes.length; i++) {
+        Pair<SqlWriter.DynamicParamType, Integer> dynamicTypeIndex = dynamicTypeIndexes[i];
+        if (SqlWriter.DynamicParamType.EXPLICIT == dynamicTypeIndex.getKey()) {
+          // get explicit dynamic param from DataContext
+          setDynamicParam(preparedStatement, i + 1,
+              context.get("?" + dynamicTypeIndex.getValue()));
+        } else {
+          // get implicit dynamic param
+          setDynamicParam(preparedStatement, i + 1,
+              indexCorrelMap.get(dynamicTypeIndex.getValue()));
+        }
       }
     };
   }

@@ -32,6 +32,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
 
+import static org.apache.calcite.test.Matchers.isLinux;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+
 /**
  * Unit test for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}.
@@ -247,5 +251,105 @@ class EnumerableBatchNestedLoopJoinTest {
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.FORCE_DECORRELATE, forceDecorrelate)
         .withSchema("s", new ReflectiveSchema(schema));
+  }
+
+
+  @Test void jdbcLeftBatchJoinTestSQL1() {
+    final String[] sqls = {null};
+    CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
+        .with(Lex.MYSQL)
+        .query(
+            "select e.empno, e.ename, f.store_name, f.store_id from\n"
+                + "(select store_name, store_id from foodmart.store where store_id < 2) f\n"
+                + " left join SCOTT.emp e on f.store_id < e.empno and e.empno <= 7369")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
+        })
+        .withHook(Hook.QUERY_PLAN, (Consumer<String>) sql -> {
+          sqls[0] = sql;
+        })
+        .returnsUnordered(
+            "empno=7369; ename=SMITH; store_name=HQ; store_id=0",
+            "empno=7369; ename=SMITH; store_name=Store 1; store_id=1");
+
+    assertThat(sqls[0],
+        isLinux("SELECT *\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "WHERE \"EMPNO\" <= 7369 AND (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (?"
+            + " < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))) "
+            + "OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") "
+            + "OR (? < \"EMPNO\" OR ? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")))) OR (? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR"
+            + " ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))) OR (? < \"EMPNO\" OR (? < \"EMPNO\" "
+            + "OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR ? < \"EMPNO\" OR "
+            + "(? < \"EMPNO\" OR ? < \"EMPNO\"))))) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" "
+            + "OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\"))) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\""
+            + " OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\") OR (? < \"EMPNO\" OR ? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))))"
+            + " OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") "
+            + "OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))) OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) "
+            + "OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")))))))"));
+  }
+
+  @Test void jdbcLeftBatchJoinTestSQL2() {
+    final String[] sqls = {null};
+    CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
+        .with(Lex.MYSQL)
+        .query(
+            "select e.empno, e.ename, f.store_name, f.store_id from\n"
+                + "(select store_name, store_id from foodmart.store where store_id < 2) f\n"
+                + " left join SCOTT.emp e on f.store_id < e.empno and e.empno <= ?")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
+        })
+        .withHook(Hook.QUERY_PLAN, (Consumer<String>) sql -> {
+          sqls[0] = sql;
+        })
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 7369);
+        })
+        .returnsUnordered(
+            "empno=7369; ename=SMITH; store_name=HQ; store_id=0",
+            "empno=7369; ename=SMITH; store_name=Store 1; store_id=1");
+
+    assertThat(sqls[0],
+        isLinux("SELECT *\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "WHERE \"EMPNO\" <= ? AND (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (?"
+            + " < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))) "
+            + "OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") "
+            + "OR (? < \"EMPNO\" OR ? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")))) OR (? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR"
+            + " ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))) OR (? < \"EMPNO\" OR (? < \"EMPNO\" "
+            + "OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR ? < \"EMPNO\" OR "
+            + "(? < \"EMPNO\" OR ? < \"EMPNO\"))))) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" "
+            + "OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\"))) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\""
+            + " OR (? < \"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\") OR (? < \"EMPNO\" OR ? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))))"
+            + " OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\")) OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") "
+            + "OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\"))) OR (? < \"EMPNO\" OR (? < "
+            + "\"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")) "
+            + "OR (? < \"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\") OR (? < \"EMPNO\" OR ? < "
+            + "\"EMPNO\" OR (? < \"EMPNO\" OR ? < \"EMPNO\")))))))"));
   }
 }

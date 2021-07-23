@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.pretty;
 
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
@@ -27,11 +28,13 @@ import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.ImmutableBeans;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
@@ -275,14 +278,15 @@ public class SqlPrettyWriter implements SqlWriter {
   private final SqlDialect dialect;
   private final StringBuilder buf;
   private final Deque<FrameImpl> listStack = new ArrayDeque<>();
-  private ImmutableList.@Nullable Builder<Integer> dynamicParameters;
   protected @Nullable FrameImpl frame;
   private boolean needWhitespace;
   protected @Nullable String nextWhitespace;
   private SqlWriterConfig config;
   private @Nullable Bean bean;
   private int currentIndent;
-
+  private @Nullable Map<RexFieldAccess, Integer> rexFieldAccessIndexMap;
+  private int currentRexFieldAccessIndex;
+  private ImmutableList.@Nullable Builder<Pair<DynamicParamType, Integer>> dynamicParameters;
   private int lineStart;
 
   //~ Constructors -----------------------------------------------------------
@@ -446,6 +450,7 @@ public class SqlPrettyWriter implements SqlWriter {
     buf.setLength(0);
     lineStart = 0;
     dynamicParameters = null;
+    rexFieldAccessIndexMap = null;
     setNeedWhitespace(false);
     nextWhitespace = " ";
   }
@@ -921,9 +926,13 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   @Override public SqlString toSqlString() {
-    ImmutableList<Integer> dynamicParameters =
+    ImmutableList<Pair<SqlWriter.DynamicParamType, Integer>> dynamicParameters =
         this.dynamicParameters == null ? null : this.dynamicParameters.build();
-    return new SqlString(dialect, toString(), dynamicParameters);
+    ImmutableMap<RexFieldAccess, Integer> rexFieldAccessIndexImmutableMap =
+        this.rexFieldAccessIndexMap == null
+            ? null
+            : ImmutableMap.copyOf(this.rexFieldAccessIndexMap);
+    return new SqlString(dialect, toString(), rexFieldAccessIndexImmutableMap, dynamicParameters);
   }
 
   @Override public SqlDialect getDialect() {
@@ -1023,7 +1032,29 @@ public class SqlPrettyWriter implements SqlWriter {
     if (dynamicParameters == null) {
       dynamicParameters = ImmutableList.builder();
     }
-    dynamicParameters.add(index);
+    if (rexFieldAccessIndexMap == null) {
+      rexFieldAccessIndexMap = new HashMap();
+    }
+    dynamicParameters.add(Pair.of(DynamicParamType.EXPLICIT, index));
+    print("?");
+    setNeedWhitespace(true);
+  }
+
+  @Override public void dynamicParam(RexFieldAccess fieldAccess) {
+    if (dynamicParameters == null) {
+      dynamicParameters = ImmutableList.builder();
+    }
+    if (rexFieldAccessIndexMap == null) {
+      rexFieldAccessIndexMap = new HashMap();
+    }
+    Integer index = rexFieldAccessIndexMap.get(fieldAccess);
+    // build implicit indices
+    if (index == null) {
+      index = currentRexFieldAccessIndex++;
+      rexFieldAccessIndexMap.put(fieldAccess, index);
+    }
+
+    dynamicParameters.add(Pair.of(DynamicParamType.IMPLICIT, index));
     print("?");
     setNeedWhitespace(true);
   }
