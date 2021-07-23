@@ -54,6 +54,7 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
@@ -507,10 +508,17 @@ public class RexLiteral extends RexNode {
    * criteria as {@link #valueMatchesType}. */
   public static boolean validConstant(@Nullable Object o, Litmus litmus) {
     if (o == null
+        || o instanceof Integer
+        || o instanceof Long
+        || o instanceof Float
+        || o instanceof Double
+        || o instanceof Boolean
         || o instanceof BigDecimal
         || o instanceof NlsString
         || o instanceof ByteString
-        || o instanceof Boolean) {
+        || o instanceof DateString
+        || o instanceof TimeString
+        || o instanceof TimestampString) {
       return litmus.succeed();
     } else if (o instanceof List) {
       List list = (List) o;
