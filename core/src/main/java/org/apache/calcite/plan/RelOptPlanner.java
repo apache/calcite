@@ -159,6 +159,13 @@ public interface RelOptPlanner {
   RelOptPlanner chooseDelegate();
 
   /**
+   * In addition to the internal defined materialization normalization rules,
+   * this method allows user to SET self defined {@link RelOptRule}s,
+   * thus to extend the ability of normalization in different scenarios.
+   */
+  void addMvNormalizationRules(List<RelOptRule> rules);
+
+  /**
    * Defines a pair of relational expressions that are equivalent.
    *
    * <p>Typically {@code tableRel} is a

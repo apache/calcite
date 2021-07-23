@@ -25,6 +25,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
@@ -97,7 +98,13 @@ public abstract class AbstractMaterializedViewTest {
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private void checkMaterialize(Sql sql) {
-    final TestConfig testConfig = build(sql);
+    checkMaterialize(sql, ImmutableList.of());
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private void checkMaterialize(Sql sql, List<RelOptRule> rules) {
+    final TestConfig testConfig = build(sql, rules);
     final Function<String, Boolean> checker;
 
     if (sql.getChecker() != null) {
@@ -136,6 +143,10 @@ public abstract class AbstractMaterializedViewTest {
   }
 
   private TestConfig build(Sql sql) {
+    return build(sql, ImmutableList.of());
+  }
+
+  private TestConfig build(Sql sql, List<RelOptRule> rules) {
     assert sql != null;
     return Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       cluster.getPlanner().setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
@@ -166,7 +177,7 @@ public abstract class AbstractMaterializedViewTest {
               new RelOptMaterialization(replacement, mvRel, null,
                   ImmutableList.of(defaultSchema.getName(), pair.right)));
         }
-        return new TestConfig(defaultSchema.getName(), queryRel, mvs);
+        return new TestConfig(defaultSchema.getName(), queryRel, mvs, rules);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
@@ -213,12 +224,23 @@ public abstract class AbstractMaterializedViewTest {
     public final String defaultSchema;
     public final RelNode queryRel;
     public final List<RelOptMaterialization> materializations;
+    public final List<RelOptRule> normalizationRules;
 
     public TestConfig(String defaultSchema, RelNode queryRel,
         List<RelOptMaterialization> materializations) {
       this.defaultSchema = defaultSchema;
       this.queryRel = queryRel;
       this.materializations = materializations;
+      this.normalizationRules = ImmutableList.of();
+    }
+
+    public TestConfig(String defaultSchema, RelNode queryRel,
+        List<RelOptMaterialization> materializations,
+        List<RelOptRule> normalizationRules) {
+      this.defaultSchema = defaultSchema;
+      this.queryRel = queryRel;
+      this.materializations = materializations;
+      this.normalizationRules = normalizationRules;
     }
   }
 
@@ -227,6 +249,10 @@ public abstract class AbstractMaterializedViewTest {
 
     default void ok() {
       getTester().checkMaterialize(this);
+    }
+
+    default void ok(List<RelOptRule> rules) {
+      getTester().checkMaterialize(this, rules);
     }
 
     default void noMat() {

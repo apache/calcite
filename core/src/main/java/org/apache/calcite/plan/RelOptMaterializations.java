@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,17 +51,26 @@ import java.util.function.Supplier;
  */
 public abstract class RelOptMaterializations {
 
+
+  @Deprecated // to be removed before 2.0
+  public static List<Pair<RelNode, List<RelOptMaterialization>>> useMaterializedViews(
+      final RelNode rel, List<RelOptMaterialization> materializations) {
+    return useMaterializedViews(rel, materializations, ImmutableList.of());
+  }
+
   /**
    * Returns a list of RelNode transformed from all possible combination of
    * materialized view uses. Big queries will likely have more than one
    * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
    * @param rel               the original RelNode
    * @param materializations  the materialized view list
+   * @param rules             normalization rules
    * @return the list of transformed RelNode together with their corresponding
    *         materialized views used in the transformation.
    */
   public static List<Pair<RelNode, List<RelOptMaterialization>>> useMaterializedViews(
-      final RelNode rel, List<RelOptMaterialization> materializations) {
+      final RelNode rel, List<RelOptMaterialization> materializations,
+      Collection<RelOptRule> rules) {
     final List<RelOptMaterialization> applicableMaterializations =
         getApplicableMaterializations(rel, materializations);
     final List<Pair<RelNode, List<RelOptMaterialization>>> applied =
@@ -70,7 +80,7 @@ public abstract class RelOptMaterializations {
       int count = applied.size();
       for (int i = 0; i < count; i++) {
         Pair<RelNode, List<RelOptMaterialization>> current = applied.get(i);
-        List<RelNode> sub = substitute(current.left, m);
+        List<RelNode> sub = substitute(current.left, m, rules);
         if (!sub.isEmpty()) {
           ImmutableList.Builder<RelOptMaterialization> builder =
               ImmutableList.builder();
@@ -170,7 +180,7 @@ public abstract class RelOptMaterializations {
   }
 
   private static List<RelNode> substitute(
-      RelNode root, RelOptMaterialization materialization) {
+      RelNode root, RelOptMaterialization materialization, Collection<RelOptRule> rules) {
     // First, if the materialization is in terms of a star table, rewrite
     // the query in terms of the star table.
     if (materialization.starRelOptTable != null) {
@@ -188,6 +198,7 @@ public abstract class RelOptMaterializations {
     target = trimUnusedfields(target);
     HepProgram program =
         new HepProgramBuilder()
+            .addRuleCollection(rules)
             .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
             .addRuleInstance(CoreRules.FILTER_MERGE)
             .addRuleInstance(CoreRules.FILTER_INTO_JOIN)

@@ -18,13 +18,27 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRules;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelReferentialConstraintImpl;
 import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.rules.FilterToCalcRule.Config;
+import org.apache.calcite.rel.rules.TransformationRule;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
@@ -34,6 +48,8 @@ import org.apache.calcite.test.JdbcTest.Dependent;
 import org.apache.calcite.test.JdbcTest.Employee;
 import org.apache.calcite.test.JdbcTest.Event;
 import org.apache.calcite.test.JdbcTest.Location;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
@@ -341,6 +357,105 @@ public class MaterializationTest {
           .sameResultWithMaterializationsDisabled();
       substitutedNames.sort(CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
       assertThat(substitutedNames, is(list3(expectedNames)));
+    }
+  }
+
+  @Test public void checkRegisterAdditionalNormalizationRules() {
+    final String mv = "select sum(\"empid\"), \"deptno\" from \"emps\" group by \"deptno\"";
+    final String query = "select \"deptno\" from \"emps\" group by \"deptno\"";
+    final CustomizedNormalizationRule rule =
+        CustomizedNormalizationRule.Config.DEFAULT.toRule();
+    checkMaterialize(mv, query, HR_FKUK_MODEL, CONTAINS_M0,
+        RuleSets.ofList(ImmutableList.of()),
+        ImmutableList.of(rule));
+  }
+
+  private void checkMaterialize(String materialize, String query, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      final List<RelOptRule> normalizationRules) {
+    checkThatMaterialize(materialize, query, "m0", false, model, explainChecker,
+        rules, false, normalizationRules).sameResultWithMaterializationsDisabled();
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
+      String query, String name, boolean existing, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      boolean onlyBySubstitution,
+      final List<RelOptRule> normalizationRules) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.AssertQuery that = CalciteAssert.that()
+          .withMaterializations(model, existing, name, materialize)
+          .query(query)
+          .enableMaterializations(true);
+
+      // Add any additional rules required for the test
+      if (rules.iterator().hasNext() || !normalizationRules.isEmpty()) {
+        that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          for (RelOptRule rule : rules) {
+            planner.addRule(rule);
+          }
+          if (onlyBySubstitution) {
+            RelOptRules.MATERIALIZATION_RULES.forEach(rule -> {
+              planner.removeRule(rule);
+            });
+          }
+          planner.addMvNormalizationRules(normalizationRules);
+        });
+      }
+
+      return that.explainMatches("", explainChecker);
+    }
+  }
+
+  /**
+   * A customized normalization rule, which compensate project on Agggreate.
+   */
+  public static class CustomizedNormalizationRule extends
+      RelRule<CustomizedNormalizationRule.Config> implements TransformationRule {
+
+    public boolean visited = false;
+
+    public CustomizedNormalizationRule(Config config) {
+      super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      if (visited) {
+        return false;
+      }
+      return true;
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      Aggregate aggregate = call.rel(0);
+      RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+      RelDataType rowType = aggregate.getRowType();
+      List<String> fieldNames = aggregate.getRowType().getFieldNames();
+      List<RexNode> projs = (List<RexNode>) aggregate.getCluster().getRexBuilder()
+          .identityProjects(rowType);
+      RexProgramBuilder rexProgram = new RexProgramBuilder(rowType, rexBuilder);
+      for (int i = 0; i < projs.size(); i++) {
+        rexProgram.addProject(projs.get(i), fieldNames.get(i));
+      }
+      LogicalCalc project = LogicalCalc
+          .create(aggregate, rexProgram.getProgram());
+      visited = true;
+      call.transformTo(project);
+    }
+
+    /** Rule configuration. */
+    public interface Config extends RelRule.Config {
+      CustomizedNormalizationRule.Config DEFAULT = EMPTY
+          .withOperandSupplier(b ->
+              b.operand(LogicalAggregate.class).anyInputs())
+          .as(CustomizedNormalizationRule.Config.class);
+
+      @Override default CustomizedNormalizationRule toRule() {
+        return new CustomizedNormalizationRule(this);
+      }
     }
   }
 

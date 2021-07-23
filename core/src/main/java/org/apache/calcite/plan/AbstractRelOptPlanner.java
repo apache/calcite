@@ -202,6 +202,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return this;
   }
 
+  @Override public void addMvNormalizationRules(List<RelOptRule> rules) {
+    // ignore - this planner does not support materializations
+  }
+
   @Override public void addMaterialization(RelOptMaterialization materialization) {
     // ignore - this planner does not support materializations
   }

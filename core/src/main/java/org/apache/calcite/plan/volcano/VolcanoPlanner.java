@@ -176,6 +176,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private final List<RelOptMaterialization> materializations =
       new ArrayList<>();
 
+  private final List<RelOptRule> normalizationRules =
+      new ArrayList<>();
+
   /**
    * Map of lattices by the qualified name of their star table.
    */
@@ -294,6 +297,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return ImmutableList.copyOf(materializations);
   }
 
+  @Override public void addMvNormalizationRules(List<RelOptRule> rules) {
+    normalizationRules.addAll(rules);
+  }
+
   @Override public void addMaterialization(
       RelOptMaterialization materialization) {
     materializations.add(materialization);
@@ -320,7 +327,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
-        RelOptMaterializations.useMaterializedViews(originalRoot, materializations);
+        RelOptMaterializations
+            .useMaterializedViews(originalRoot, materializations, normalizationRules);
     for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
       RelNode rel = use.left;
       Hook.SUB.run(rel);

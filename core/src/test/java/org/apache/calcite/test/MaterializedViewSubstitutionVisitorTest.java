@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -34,6 +35,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.test.MaterializationTest.CustomizedNormalizationRule;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -1566,6 +1570,20 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv, query).ok();
   }
 
+  @Test public void testQueryWithoutTopCalc1() {
+    final String mv = "select sum(\"empid\"), \"deptno\" from \"emps\" group by \"deptno\"";
+    final String query = "select \"deptno\" from \"emps\" group by \"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test public void testQueryWithoutTopCalc2() {
+    final String mv = "select sum(\"empid\"), \"deptno\" from \"emps\" group by \"deptno\"";
+    final String query = "select \"deptno\" from \"emps\" group by \"deptno\"";
+    final CustomizedNormalizationRule rule =
+        CustomizedNormalizationRule.Config.DEFAULT.toRule();
+    sql(mv, query).ok(ImmutableList.of(rule));
+  }
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
@@ -1576,15 +1594,18 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   protected List<RelNode> optimize(TestConfig testConfig) {
     RelNode queryRel = testConfig.queryRel;
     RelOptMaterialization materialization = testConfig.materializations.get(0);
+    final RelNode query = canonicalize(queryRel, testConfig.normalizationRules);
+    final RelNode target = canonicalize(materialization.queryRel, testConfig.normalizationRules);
     List<RelNode> substitutes =
-        new SubstitutionVisitor(canonicalize(materialization.queryRel), canonicalize(queryRel))
+        new SubstitutionVisitor(target, query)
             .go(materialization.tableRel);
     return substitutes;
   }
 
-  private RelNode canonicalize(RelNode rel) {
+  private RelNode canonicalize(RelNode rel, List<RelOptRule> rules) {
     HepProgram program =
         new HepProgramBuilder()
+            .addRuleCollection(rules)
             .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
             .addRuleInstance(CoreRules.FILTER_MERGE)
             .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
