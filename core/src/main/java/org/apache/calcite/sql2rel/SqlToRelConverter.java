@@ -4636,7 +4636,11 @@ public class SqlToRelConverter {
               currentProjection);
         }
 
-        setRoot(newLeftInput, false);
+        if (leaves.remove(root()) != null) {
+          setRoot(newLeftInput, true);
+        } else {
+          setRoot(newLeftInput, false);
+        }
 
         // right fields appear after the LHS fields.
         final int rightOffset = root().getRowType().getFieldCount()

@@ -3450,6 +3450,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4683">[CALCITE-4683]
+   * In-list to join with new project generated cause replaced root leaves property
+   * to be missing</a>. */
+  @Test void testInToSemiJoinWithNewProject() {
+    final String sql = "SELECT * FROM (SELECT '20210101' AS dt, deptno, max(cast(deptno2 as\n"
+        + "varchar(200))) as m FROM (SELECT emp.deptno as deptno, dept.deptno as deptno2 FROM emp\n"
+        + "JOIN dept on emp.deptno = dept.deptno) tmp GROUP BY deptno) WHERE cast(deptno as\n"
+        + "varchar) in ('1', '3', '5')";
+    sql(sql).withConfig(c -> c.withInSubQueryThreshold(2)).ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1944">[CALCITE-1944]
    * Window function applied to sub-query with dynamic star gets wrong
    * plan</a>. */

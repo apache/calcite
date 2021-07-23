@@ -2185,6 +2185,28 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInToSemiJoinWithNewProject">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (SELECT '20210101' AS dt, deptno, max(cast(deptno2 as
+varchar(200))) as m FROM (SELECT emp.deptno as deptno, dept.deptno as deptno2 FROM emp
+JOIN dept on emp.deptno = dept.deptno) tmp GROUP BY deptno) WHERE cast(deptno as
+varchar) in ('1', '3', '5')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DT=[$0], DEPTNO=[$1], M=[$2])
+  LogicalJoin(condition=[=($3, $4)], joinType=[inner])
+    LogicalProject(DT=['20210101'], DEPTNO=[$0], M=[$1], DEPTNO0=[CAST($0):VARCHAR NOT NULL])
+      LogicalAggregate(group=[{0}], M=[MAX($1)])
+        LogicalProject(DEPTNO=[$7], $f1=[CAST($9):VARCHAR(200) NOT NULL])
+          LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalValues(tuples=[[{ '1' }, { '3' }, { '5' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInUncorrelatedSubQuery">
     <Resource name="sql">
       <![CDATA[select empno from emp where deptno in (select deptno from dept)]]>
