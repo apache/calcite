@@ -233,6 +233,9 @@ class TopDownRuleDriver implements RuleDriver {
         }
       }
       if (optimizingGroup == null) {
+        // In case some implementations use rules to convert between different physical conventions.
+        // Note that this is deprecated and will be removed in the future.
+        tasks.push(new ApplyRules(node, subset, false));
         return;
       }
       Task task = getOptimizeInputTask(node, optimizingGroup);
