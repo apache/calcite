@@ -1566,6 +1566,16 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv, query).ok();
   }
 
+  @Test void testComplexOverWindowFunction() {
+    final String mv = ""
+        + "select \"deptno\", cos(\"empid\"), row_number() OVER (PARTITION BY \"empid\")\n"
+        + "from \"emps\"";
+    final String query = ""
+        + "select cos(\"empid\"), row_number() OVER (PARTITION BY \"empid\"), \"deptno\"\n"
+        + "from \"emps\"";
+    sql(mv, query).ok();
+  }
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
