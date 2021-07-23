@@ -30,9 +30,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class JdbcToEnumerableConverterRule extends ConverterRule {
   /** Creates a JdbcToEnumerableConverterRule. */
-  public static JdbcToEnumerableConverterRule create(JdbcConvention out) {
+  public static JdbcToEnumerableConverterRule create(JdbcConvention in) {
     return Config.INSTANCE
-        .withConversion(RelNode.class, out, EnumerableConvention.INSTANCE,
+        .withConversion(RelNode.class, in, EnumerableConvention.INSTANCE,
             "JdbcToEnumerableConverterRule")
         .withRuleFactory(JdbcToEnumerableConverterRule::new)
         .toRule(JdbcToEnumerableConverterRule.class);
