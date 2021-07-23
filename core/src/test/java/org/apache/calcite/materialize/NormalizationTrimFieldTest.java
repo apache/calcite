@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -97,7 +98,7 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
             target, null, Lists.newArrayList("mv0"));
     final List<Pair<RelNode, List<RelOptMaterialization>>> relOptimized =
         RelOptMaterializations.useMaterializedViews(query,
-            ImmutableList.of(relOptMaterialization));
+            ImmutableList.of(relOptMaterialization), SubstitutionVisitor.DEFAULT_RULES);
 
     final String optimized = ""
         + "LogicalProject(deptno=[CAST($0):TINYINT], count_sal=[$1])\n"

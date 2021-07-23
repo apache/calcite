@@ -18,23 +18,39 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRules;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.SubstitutionVisitor;
+import org.apache.calcite.plan.SubstitutionVisitor.UnifyRule;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelReferentialConstraintImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.mutable.MutableCalc;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.test.JdbcTest.Department;
 import org.apache.calcite.test.JdbcTest.DepartmentPlus;
 import org.apache.calcite.test.JdbcTest.Dependent;
 import org.apache.calcite.test.JdbcTest.Employee;
 import org.apache.calcite.test.JdbcTest.Event;
 import org.apache.calcite.test.JdbcTest.Location;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.mapping.IntPair;
@@ -341,6 +357,115 @@ public class MaterializationTest {
           .sameResultWithMaterializationsDisabled();
       substitutedNames.sort(CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
       assertThat(substitutedNames, is(list3(expectedNames)));
+    }
+  }
+
+  @Test public void checkRegisterAdditionalMaterializationRules() {
+    String mv = "select * from \"emps\" where \"name\" like 'ABC%'";
+    String query = "select * from \"emps\" where \"name\" like 'ABCD%'";
+    checkMaterialize(mv, query, HR_FKUK_MODEL, CONTAINS_M0,
+        RuleSets.ofList(ImmutableList.of()),
+        ImmutableList.of(CustomizedMaterializationRule.INSTANCE));
+  }
+
+  /**
+   * A customized materialization rule, which match expression of 'LIKE'
+   * and match by compensation.
+   */
+  private static class CustomizedMaterializationRule
+      extends SubstitutionVisitor.AbstractUnifyRule {
+
+    public static final CustomizedMaterializationRule INSTANCE =
+        new CustomizedMaterializationRule();
+
+    private CustomizedMaterializationRule() {
+      super(operand(MutableCalc.class, query(0)),
+          operand(MutableCalc.class, target(0)), 1);
+    }
+
+    @Override protected SubstitutionVisitor.UnifyResult apply(
+        SubstitutionVisitor.UnifyRuleCall call) {
+      final MutableCalc query = (MutableCalc) call.query;
+      final Pair<RexNode, List<RexNode>> queryExplained = SubstitutionVisitor.explainCalc(query);
+      final RexNode queryCond = queryExplained.left;
+      final List<RexNode> queryProjs = queryExplained.right;
+
+      final MutableCalc target = (MutableCalc) call.target;
+      final Pair<RexNode, List<RexNode>> targetExplained = SubstitutionVisitor.explainCalc(target);
+      final RexNode targetCond = targetExplained.left;
+      final List<RexNode> targetProjs = targetExplained.right;
+      final List parsedQ = parseLikeCondition(queryCond);
+      final List parsedT = parseLikeCondition(targetCond);
+      if (RexUtil.isIdentity(queryProjs, query.getInput().rowType)
+          && RexUtil.isIdentity(targetProjs, target.getInput().rowType)
+          && parsedQ != null && parsedT != null) {
+        if (parsedQ.get(0).equals(parsedT.get(0))) {
+          String literalQ = ((NlsString) parsedQ.get(1)).getValue();
+          String literalT = ((NlsString) parsedT.get(1)).getValue();
+          if (literalQ.endsWith("%") && literalT.endsWith("%")
+              && !literalQ.equals(literalT)
+              && literalQ.startsWith(literalT.substring(0, literalT.length() - 1))) {
+            return call.result(MutableCalc.of(target, query.program));
+          }
+        }
+      }
+      return null;
+    }
+
+    private List parseLikeCondition(RexNode rexNode) {
+      if (rexNode instanceof RexCall) {
+        RexCall rexCall = (RexCall) rexNode;
+        if (rexCall.getKind() == SqlKind.LIKE
+            && rexCall.operands.get(0) instanceof RexInputRef
+            && rexCall.operands.get(1) instanceof RexLiteral) {
+          return ImmutableList.of(rexCall.operands.get(0),
+              ((RexLiteral) (rexCall.operands.get(1))).getValue());
+        }
+      }
+      return null;
+    }
+  }
+
+  private void checkMaterialize(String materialize, String query, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      final List<SubstitutionVisitor.UnifyRule> materializationRules) {
+    checkThatMaterialize(materialize, query, "m0", false, model, explainChecker,
+        rules, false, materializationRules).sameResultWithMaterializationsDisabled();
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
+      String query, String name, boolean existing, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      boolean onlyBySubstitution,
+      final List<SubstitutionVisitor.UnifyRule> materializationRules) {
+    try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.AssertQuery that = CalciteAssert.that()
+          .withMaterializations(model, existing, name, materialize)
+          .query(query)
+          .enableMaterializations(true);
+
+      // Add any additional rules required for the test
+      if (rules.iterator().hasNext() || !materializationRules.isEmpty()) {
+        that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          for (RelOptRule rule : rules) {
+            planner.addRule(rule);
+          }
+          if (onlyBySubstitution) {
+            RelOptRules.MATERIALIZATION_RULES.forEach(rule -> {
+              planner.removeRule(rule);
+            });
+          }
+          final List<UnifyRule> unifyRules = new ArrayList<>();
+          unifyRules.addAll(SubstitutionVisitor.DEFAULT_RULES);
+          unifyRules.addAll(materializationRules);
+          planner.addMaterializationRules(unifyRules);
+        });
+      }
+
+      return that.explainMatches("", explainChecker);
     }
   }
 
