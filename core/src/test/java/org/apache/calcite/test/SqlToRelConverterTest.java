@@ -3449,6 +3449,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${planConverted}");
   }
 
+  @Test
+  public void testRecontructStructFields() {
+    final String sql = "select HOME_ADDRESS from EMP_ADDRESS ";
+    sql(sql).convertsTo("\nLogicalProject("
+        + "HOME_ADDRESS=[NEW($1.CITY, $1.ZIP, $1.STATE, $2.STREET):ObjectSqlType(ADDRESS) NOT NULL])\n"
+        + "  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])\n"
+    );
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1944">[CALCITE-1944]
    * Window function applied to sub-query with dynamic star gets wrong
