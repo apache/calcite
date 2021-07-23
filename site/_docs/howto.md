@@ -579,7 +579,7 @@ protocol that you are using (HTTPS vs. SSH).
 ## Merging pull requests
 
 These are instructions for a Calcite committer who has reviewed a pull request
-from a contributor, found it satisfactory, and is about to merge it to master.
+from a contributor, found it satisfactory, and is about to merge it to main.
 Usually the contributor is not a committer (otherwise they would be committing
 it themselves, after you gave approval in a review).
 
@@ -693,12 +693,12 @@ Note: release artifacts (dist.apache.org and repository.apache.org) are managed 
 Before you start:
 
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
-  is starting and therefore `master` branch is in code freeze until further notice.
+  is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
-* Make sure `master` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
-  been applied also to `master`.
-  This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
+* Make sure `main` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
+  been applied also to `main`.
+  This can be achieved by doing `git switch site && git rebase --empty=drop main && git switch main && git reset --hard site`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -993,8 +993,8 @@ javadoc, and release note appear correctly and then publish the site following t
 in the same file. Now checkout again the release branch (`git checkout branch-X.Y`) and commit
 the release announcement.
 
-Merge the release branch back into `master` (e.g., `git merge --ff-only branch-X.Y`) and align
-the `master` with the `site` branch (e.g., `git merge --ff-only site`).
+Merge the release branch back into `main` (e.g., `git merge --ff-only branch-X.Y`) and align
+the `main` with the `site` branch (e.g., `git merge --ff-only site`).
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
@@ -1016,8 +1016,8 @@ Increase the `calcite.version` value in `/gradle.properties` and commit & push
 the change with the message "Prepare for next development iteration"
 (see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
 
-Re-open the `master` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
-that `master` code freeze is over and commits can resume.
+Re-open the `main` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
+that `main` code freeze is over and commits can resume.
 
 ## Publishing the web site
 {: #publish-the-web-site}

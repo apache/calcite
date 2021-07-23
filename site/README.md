@@ -127,12 +127,12 @@ release. For this reason, we generally edit the site on the "site" git
 branch.
 
 Before making a release, release manager must ensure that "site" is in
-sync with "master". Immediately after a release, the release manager
+sync with "main". Immediately after a release, the release manager
 will publish the site, including all of the features that have just
 been released. When making an edit to the site, a Calcite committer
-must commit the change to the git "master" branch (as well as
+must commit the change to the git "main" branch (as well as
 git, to publish the site, of course). If the edit is to appear
 on the site immediately, the committer should then cherry-pick the
 change into the "site" branch.  If there have been no feature-related
 changes on the site since the release, then "site" should be a
-fast-forward merge of "master".
+fast-forward merge of "main".

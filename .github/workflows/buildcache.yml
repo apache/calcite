@@ -3,7 +3,7 @@ name: Seed build cache
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   seed-build-cache:
