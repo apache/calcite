@@ -19,7 +19,12 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Row expression.
@@ -36,10 +41,11 @@ import java.util.Collection;
  * <p>All sub-classes of RexNode are immutable.</p>
  */
 public abstract class RexNode {
+
   //~ Instance fields --------------------------------------------------------
 
   // Effectively final. Set in each sub-class constructor, and never re-set.
-  protected String digest;
+  protected @MonotonicNonNull String digest;
 
   //~ Methods ----------------------------------------------------------------
 
@@ -78,8 +84,20 @@ public abstract class RexNode {
     return SqlKind.OTHER;
   }
 
-  public String toString() {
-    return digest;
+  @Override public String toString() {
+    return requireNonNull(digest, "digest");
+  }
+
+  /** Returns the number of nodes in this expression.
+   *
+   * <p>Leaf nodes, such as {@link RexInputRef} or {@link RexLiteral}, have
+   * a count of 1. Calls have a count of 1 plus the sum of their operands.
+   *
+   * <p>Node count is a measure of expression complexity that is used by some
+   * planner rules to prevent deeply nested expressions.
+   */
+  public int nodeCount() {
+    return 1;
   }
 
   /**
@@ -101,7 +119,7 @@ public abstract class RexNode {
    *
    * <p>Every node must implement {@link #equals} based on its content
    */
-  @Override public abstract boolean equals(Object obj);
+  @Override public abstract boolean equals(@Nullable Object obj);
 
   /** {@inheritDoc}
    *
@@ -110,5 +128,3 @@ public abstract class RexNode {
    */
   @Override public abstract int hashCode();
 }
-
-// End RexNode.java

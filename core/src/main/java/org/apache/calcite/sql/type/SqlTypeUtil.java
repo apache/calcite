@@ -21,14 +21,20 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlRowTypeNameSpec;
+import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -36,17 +42,31 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Contains utility methods used during SQL validation or type derivation.
@@ -64,10 +84,10 @@ public abstract class SqlTypeUtil {
     assert argTypes != null;
     assert argTypes.size() >= 2;
 
-    // Filter out ANY elements.
+    // Filter out ANY and NULL elements.
     List<RelDataType> argTypes2 = new ArrayList<>();
     for (RelDataType t : argTypes) {
-      if (!isAny(t)) {
+      if (!isAny(t) && !isNull(t)) {
         argTypes2.add(t);
       }
     }
@@ -80,18 +100,12 @@ public abstract class SqlTypeUtil {
         return false;
       }
 
-      if (t0.getCharset() == null) {
-        throw new AssertionError("RelDataType object should have been assigned "
-            + "a (default) charset when calling deriveType");
-      } else if (!t0.getCharset().equals(t1.getCharset())) {
+      if (!getCharset(t0).equals(getCharset(t1))) {
         return false;
       }
 
-      if (t0.getCollation() == null) {
-        throw new AssertionError("RelDataType object should have been assigned "
-            + "a (default) collation when calling deriveType");
-      } else if (!t0.getCollation().getCharset().equals(
-          t1.getCollation().getCharset())) {
+      if (!getCollation(t0).getCharset().equals(
+          getCollation(t1).getCharset())) {
         return false;
       }
     }
@@ -112,21 +126,13 @@ public abstract class SqlTypeUtil {
       SqlCallBinding binding,
       List<SqlNode> operands,
       boolean throwOnFailure) {
-    final SqlValidator validator = binding.getValidator();
-    final SqlValidatorScope scope = binding.getScope();
-    assert operands != null;
-    assert operands.size() >= 2;
+    requireNonNull(operands, "operands");
+    assert operands.size() >= 2
+        : "operands.size() should be 2 or greater, actual: " + operands.size();
 
-    if (!isCharTypeComparable(
-        deriveAndCollectTypes(validator, scope, operands))) {
+    if (!isCharTypeComparable(SqlTypeUtil.deriveType(binding, operands))) {
       if (throwOnFailure) {
-        String msg = "";
-        for (int i = 0; i < operands.size(); i++) {
-          if (i > 0) {
-            msg += ", ";
-          }
-          msg += operands.get(i).toString();
-        }
+        String msg = String.join(", ", Util.transform(operands, String::valueOf));
         throw binding.newError(RESOURCE.operandNotComparable(msg));
       }
       return false;
@@ -141,7 +147,7 @@ public abstract class SqlTypeUtil {
   public static List<RelDataType> deriveAndCollectTypes(
       SqlValidator validator,
       SqlValidatorScope scope,
-      List<SqlNode> operands) {
+      List<? extends SqlNode> operands) {
     // NOTE: Do not use an AbstractList. Don't want to be lazy. We want
     // errors.
     List<RelDataType> types = new ArrayList<>();
@@ -149,6 +155,43 @@ public abstract class SqlTypeUtil {
       types.add(validator.deriveType(scope, operand));
     }
     return types;
+  }
+
+  /**
+   * Derives type of the call via its binding.
+   * @param binding binding to derive the type from
+   * @return datatype of the call
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static RelDataType deriveType(SqlCallBinding binding) {
+    return deriveType(binding, binding.getCall());
+  }
+
+  /**
+   * Derives type of the given call under given binding.
+   * @param binding binding to derive the type from
+   * @param node node type to derive
+   * @return datatype of the given node
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static RelDataType deriveType(SqlCallBinding binding, SqlNode node) {
+    return binding.getValidator().deriveType(
+        requireNonNull(binding.getScope(), () -> "scope of " + binding), node);
+  }
+
+  /**
+   * Derives types for the list of nodes.
+   * @param binding binding to derive the type from
+   * @param nodes the list of nodes to derive types from
+   * @return the list of types of the given nodes
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public static List<RelDataType> deriveType(SqlCallBinding binding,
+      List<? extends SqlNode> nodes) {
+    return deriveAndCollectTypes(
+        binding.getValidator(),
+        requireNonNull(binding.getScope(), () -> "scope of " + binding),
+        nodes);
   }
 
   /**
@@ -162,7 +205,7 @@ public abstract class SqlTypeUtil {
   public static RelDataType promoteToRowType(
       RelDataTypeFactory typeFactory,
       RelDataType type,
-      String fieldName) {
+      @Nullable String fieldName) {
     if (!type.isStruct()) {
       if (fieldName == null) {
         fieldName = "ROW_VALUE";
@@ -201,7 +244,7 @@ public abstract class SqlTypeUtil {
       final RelDataTypeFactory typeFactory,
       final List<RelDataType> argTypes,
       RelDataType type) {
-    Objects.requireNonNull(type);
+    requireNonNull(type, "type");
     if (containsNullable(argTypes)) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
@@ -279,77 +322,77 @@ public abstract class SqlTypeUtil {
     return false;
   }
 
-  /**
-   * @return true if type is DATE, TIME, or TIMESTAMP
-   */
+  /** Returns whether a type is DATE, TIME, or TIMESTAMP. */
   public static boolean isDatetime(RelDataType type) {
     return SqlTypeFamily.DATETIME.contains(type);
   }
 
-  /**
-   * @return true if type is some kind of INTERVAL
-   */
+  /** Returns whether a type is DATE. */
+  public static boolean isDate(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+
+    return type.getSqlTypeName() == SqlTypeName.DATE;
+  }
+
+  /** Returns whether a type is TIMESTAMP. */
+  public static boolean isTimestamp(RelDataType type) {
+    return SqlTypeFamily.TIMESTAMP.contains(type);
+  }
+
+  /** Returns whether a type is some kind of INTERVAL. */
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+  @EnsuresNonNullIf(expression = "#1.getIntervalQualifier()", result = true)
   public static boolean isInterval(RelDataType type) {
     return SqlTypeFamily.DATETIME_INTERVAL.contains(type);
   }
 
-  /**
-   * @return true if type is in SqlTypeFamily.Character
-   */
+  /** Returns whether a type is in SqlTypeFamily.Character. */
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+  @EnsuresNonNullIf(expression = "#1.getCharset()", result = true)
+  @EnsuresNonNullIf(expression = "#1.getCollation()", result = true)
   public static boolean inCharFamily(RelDataType type) {
     return type.getFamily() == SqlTypeFamily.CHARACTER;
   }
 
-  /**
-   * @return true if type is in SqlTypeFamily.Character
-   */
+  /** Returns whether a type name is in SqlTypeFamily.Character. */
   public static boolean inCharFamily(SqlTypeName typeName) {
     return typeName.getFamily() == SqlTypeFamily.CHARACTER;
   }
 
-  /**
-   * @return true if type is in SqlTypeFamily.Boolean
-   */
+  /** Returns whether a type is in SqlTypeFamily.Boolean. */
   public static boolean inBooleanFamily(RelDataType type) {
     return type.getFamily() == SqlTypeFamily.BOOLEAN;
   }
 
-  /**
-   * @return true if two types are in same type family
-   */
+  /** Returns whether two types are in same type family. */
   public static boolean inSameFamily(RelDataType t1, RelDataType t2) {
     return t1.getFamily() == t2.getFamily();
   }
 
-  /**
-   * @return true if two types are in same type family, or one or the other is
-   * of type {@link SqlTypeName#NULL}.
-   */
+  /** Returns whether two types are in same type family, or one or the other is
+   * of type {@link SqlTypeName#NULL}. */
   public static boolean inSameFamilyOrNull(RelDataType t1, RelDataType t2) {
     return (t1.getSqlTypeName() == SqlTypeName.NULL)
         || (t2.getSqlTypeName() == SqlTypeName.NULL)
         || (t1.getFamily() == t2.getFamily());
   }
 
-  /**
-   * @return true if type family is either character or binary
-   */
+  /** Returns whether a type family is either character or binary. */
   public static boolean inCharOrBinaryFamilies(RelDataType type) {
     return (type.getFamily() == SqlTypeFamily.CHARACTER)
         || (type.getFamily() == SqlTypeFamily.BINARY);
   }
 
-  /**
-   * @return true if type is a LOB of some kind
-   */
+  /** Returns whether a type is a LOB of some kind. */
   public static boolean isLob(RelDataType type) {
     // TODO jvs 9-Dec-2004:  once we support LOB types
     return false;
   }
 
-  /**
-   * @return true if type is variable width with bounded precision
-   */
+  /** Returns whether a type is variable width with bounded precision. */
   public static boolean isBoundedVariableWidth(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
@@ -367,9 +410,7 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * @return true if type is one of the integer types
-   */
+  /** Returns whether a type is one of the integer types. */
   public static boolean isIntType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
@@ -386,9 +427,7 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * @return true if type is decimal
-   */
+  /** Returns whether a type is DECIMAL. */
   public static boolean isDecimal(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
@@ -397,9 +436,16 @@ public abstract class SqlTypeUtil {
     return typeName == SqlTypeName.DECIMAL;
   }
 
-  /**
-   * @return true if type is bigint
-   */
+  /** Returns whether a type is DOUBLE. */
+  public static boolean isDouble(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return typeName == SqlTypeName.DOUBLE;
+  }
+
+  /** Returns whether a type is BIGINT. */
   public static boolean isBigint(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
@@ -408,9 +454,7 @@ public abstract class SqlTypeUtil {
     return typeName == SqlTypeName.BIGINT;
   }
 
-  /**
-   * @return true if type is numeric with exact precision
-   */
+  /** Returns whether a type is numeric with exact precision. */
   public static boolean isExactNumeric(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
@@ -433,9 +477,7 @@ public abstract class SqlTypeUtil {
     return type.getScale() != Integer.MIN_VALUE;
   }
 
-  /**
-   * Returns the maximum value of an integral type, as a long value
-   */
+  /** Returns the maximum value of an integral type, as a long value. */
   public static long maxValue(RelDataType type) {
     assert SqlTypeUtil.isIntType(type);
     switch (type.getSqlTypeName()) {
@@ -452,9 +494,7 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * @return true if type is numeric with approximate precision
-   */
+  /** Returns whether a type is numeric with approximate precision. */
   public static boolean isApproximateNumeric(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
@@ -470,11 +510,18 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * @return true if type is numeric
-   */
+  /** Returns whether a type is numeric. */
   public static boolean isNumeric(RelDataType type) {
     return isExactNumeric(type) || isApproximateNumeric(type);
+  }
+
+  /** Returns whether a type is the NULL type. */
+  public static boolean isNull(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return typeName == SqlTypeName.NULL;
   }
 
   /**
@@ -541,7 +588,7 @@ public abstract class SqlTypeUtil {
     case VARCHAR:
       return (int) Math.ceil(
           ((double) type.getPrecision())
-              * type.getCharset().newEncoder().maxBytesPerChar());
+              * getCharset(type).newEncoder().maxBytesPerChar());
 
     case BINARY:
     case VARBINARY:
@@ -560,8 +607,7 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * Determines the minimum unscaled value of a numeric type
+  /** Returns the minimum unscaled value of a numeric type.
    *
    * @param type a numeric type
    */
@@ -582,8 +628,7 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * Determines the maximum unscaled value of a numeric type
+  /** Returns the maximum unscaled value of a numeric type.
    *
    * @param type a numeric type
    */
@@ -604,10 +649,8 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * @return true if type has a representation as a Java primitive (ignoring
-   * nullability)
-   */
+  /** Returns whether a type has a representation as a Java primitive (ignoring
+   * nullability). */
   @Deprecated // to be removed before 2.0
   public static boolean isJavaPrimitive(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
@@ -631,11 +674,9 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * @return class name of the wrapper for the primitive data type.
-   */
+  /** Returns the class name of the wrapper for the primitive data type. */
   @Deprecated // to be removed before 2.0
-  public static String getPrimitiveWrapperJavaClassName(RelDataType type) {
+  public static @Nullable String getPrimitiveWrapperJavaClassName(@Nullable RelDataType type) {
     if (type == null) {
       return null;
     }
@@ -653,11 +694,9 @@ public abstract class SqlTypeUtil {
     }
   }
 
-  /**
-   * @return class name of the numeric data type.
-   */
+  /** Returns the class name of a numeric data type. */
   @Deprecated // to be removed before 2.0
-  public static String getNumericJavaClassName(RelDataType type) {
+  public static @Nullable String getNumericJavaClassName(@Nullable RelDataType type) {
     if (type == null) {
       return null;
     }
@@ -720,7 +759,7 @@ public abstract class SqlTypeUtil {
       if (toType.getSqlTypeName() != SqlTypeName.ARRAY) {
         return false;
       }
-      return canAssignFrom(toType.getComponentType(), fromType.getComponentType());
+      return canAssignFrom(getComponentTypeOrThrow(toType), getComponentTypeOrThrow(fromType));
     }
 
     if (areCharacterSetsMismatched(toType, fromType)) {
@@ -761,9 +800,9 @@ public abstract class SqlTypeUtil {
    *
    * <p>REVIEW jvs 17-Dec-2004: the coerce param below shouldn't really be
    * necessary. We're using it as a hack because
-   * {@link SqlTypeFactoryImpl#leastRestrictiveSqlType} isn't complete enough
+   * {@link SqlTypeFactoryImpl#leastRestrictive} isn't complete enough
    * yet.  Once it is, this param (and the non-coerce rules of
-   * {@link SqlTypeAssignmentRules}) should go away.
+   * {@link SqlTypeAssignmentRule}) should go away.
    *
    * @param toType   target of assignment
    * @param fromType source of assignment
@@ -776,7 +815,7 @@ public abstract class SqlTypeUtil {
       RelDataType toType,
       RelDataType fromType,
       boolean coerce) {
-    if (toType == fromType) {
+    if (toType.equals(fromType)) {
       return true;
     }
     if (isAny(toType) || isAny(fromType)) {
@@ -823,8 +862,8 @@ public abstract class SqlTypeUtil {
           return false;
         }
         return canCastFrom(
-            toType.getComponentType(),
-            fromType.getComponentType(),
+            getComponentTypeOrThrow(toType),
+            getComponentTypeOrThrow(fromType),
             coerce);
       } else if (fromTypeName == SqlTypeName.MULTISET) {
         return false;
@@ -860,8 +899,8 @@ public abstract class SqlTypeUtil {
     // where internally a cast across character repertoires is OK.  Should
     // probably clean that up.
 
-    SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance(coerce);
-    return rules.canCastFrom(toTypeName, fromTypeName);
+    SqlTypeMappingRule rules = SqlTypeMappingRules.instance(coerce);
+    return rules.canApplyFrom(toTypeName, fromTypeName);
   }
 
   /**
@@ -881,7 +920,7 @@ public abstract class SqlTypeUtil {
   public static RelDataType flattenRecordType(
       RelDataTypeFactory typeFactory,
       RelDataType recordType,
-      int[] flatteningMap) {
+      int @Nullable [] flatteningMap) {
     if (!recordType.isStruct()) {
       return recordType;
     }
@@ -897,11 +936,22 @@ public abstract class SqlTypeUtil {
     }
     List<RelDataType> types = new ArrayList<>();
     List<String> fieldNames = new ArrayList<>();
+    Map<String, Long> fieldCnt = fieldList.stream()
+        .map(RelDataTypeField::getName)
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     int i = -1;
     for (RelDataTypeField field : fieldList) {
       ++i;
       types.add(field.getType());
-      fieldNames.add(field.getName() + "_" + i);
+      String oriFieldName = field.getName();
+      // Patch up the field name with index if there are duplicates.
+      // There is still possibility that the patched name conflicts with existing ones,
+      // but that should be rare case.
+      Long fieldCount = fieldCnt.get(oriFieldName);
+      String fieldName = fieldCount != null && fieldCount > 1
+          ? oriFieldName + "_" + i
+          : oriFieldName;
+      fieldNames.add(fieldName);
     }
     return typeFactory.createStructType(types, fieldNames);
   }
@@ -918,28 +968,8 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory typeFactory,
       RelDataType type,
       List<RelDataTypeField> list,
-      int[] flatteningMap) {
+      int @Nullable [] flatteningMap) {
     boolean nested = false;
-    if (needsNullIndicator(type)) {
-      // NOTE jvs 9-Mar-2005:  other code
-      // (e.g. RelStructuredTypeFlattener) relies on the
-      // null indicator field coming first.
-      RelDataType indicatorType =
-          typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-      if (type.isNullable()) {
-        indicatorType =
-            typeFactory.createTypeWithNullability(
-                indicatorType,
-                true);
-      }
-      RelDataTypeField nullIndicatorField =
-          new RelDataTypeFieldImpl(
-              "NULL_VALUE",
-              0,
-              indicatorType);
-      list.add(nullIndicatorField);
-      nested = true;
-    }
     for (RelDataTypeField field : type.getFieldList()) {
       if (flatteningMap != null) {
         flatteningMap[field.getIndex()] = list.size();
@@ -960,7 +990,7 @@ public abstract class SqlTypeUtil {
             typeFactory.createMultisetType(
                 flattenRecordType(
                     typeFactory,
-                    field.getType().getComponentType(),
+                    getComponentTypeOrThrow(field.getType()),
                     null),
                 -1);
         if (field.getType() instanceof ArraySqlType) {
@@ -968,7 +998,7 @@ public abstract class SqlTypeUtil {
               typeFactory.createArrayType(
                   flattenRecordType(
                       typeFactory,
-                      field.getType().getComponentType(),
+                      getComponentTypeOrThrow(field.getType()),
                       null),
                   -1);
         }
@@ -988,25 +1018,52 @@ public abstract class SqlTypeUtil {
   /**
    * Converts an instance of RelDataType to an instance of SqlDataTypeSpec.
    *
-   * @param type type descriptor
+   * @param type         type descriptor
+   * @param charSetName  charSet name
+   * @param maxPrecision The max allowed precision.
    * @return corresponding parse representation
    */
-  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
+  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type,
+      @Nullable String charSetName, int maxPrecision) {
     SqlTypeName typeName = type.getSqlTypeName();
 
     // TODO jvs 28-Dec-2004:  support row types, user-defined types,
     // interval types, multiset types, etc
     assert typeName != null;
-    SqlIdentifier typeIdentifier =
-        new SqlIdentifier(
-            typeName.name(),
-            SqlParserPos.ZERO);
 
-    String charSetName = null;
+    final SqlTypeNameSpec typeNameSpec;
+    if (isAtomic(type) || isNull(type)) {
+      int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
+      // fix up the precision.
+      if (maxPrecision > 0 && precision > maxPrecision) {
+        precision = maxPrecision;
+      }
+      int scale = typeName.allowsScale() ? type.getScale() : -1;
 
-    if (inCharFamily(type)) {
-      charSetName = type.getCharset().name();
-      // TODO jvs 28-Dec-2004:  collation
+      typeNameSpec = new SqlBasicTypeNameSpec(
+          typeName,
+          precision,
+          scale,
+          charSetName,
+          SqlParserPos.ZERO);
+    } else if (isCollection(type)) {
+      typeNameSpec = new SqlCollectionTypeNameSpec(
+          convertTypeToSpec(getComponentTypeOrThrow(type)).getTypeNameSpec(),
+          typeName,
+          SqlParserPos.ZERO);
+    } else if (isRow(type)) {
+      RelRecordType recordType = (RelRecordType) type;
+      List<RelDataTypeField> fields = recordType.getFieldList();
+      List<SqlIdentifier> fieldNames = fields.stream()
+          .map(f -> new SqlIdentifier(f.getName(), SqlParserPos.ZERO))
+          .collect(Collectors.toList());
+      List<SqlDataTypeSpec> fieldTypes = fields.stream()
+          .map(f -> convertTypeToSpec(f.getType()))
+          .collect(Collectors.toList());
+      typeNameSpec = new SqlRowTypeNameSpec(SqlParserPos.ZERO, fieldNames, fieldTypes);
+    } else {
+      throw new UnsupportedOperationException(
+          "Unsupported type when convertTypeToSpec: " + typeName);
     }
 
     // REVIEW jvs 28-Dec-2004:  discriminate between precision/scale
@@ -1015,31 +1072,19 @@ public abstract class SqlTypeUtil {
     // REVIEW angel 11-Jan-2006:
     // Use neg numbers to indicate unspecified precision/scale
 
-    if (typeName.allowsScale()) {
-      return new SqlDataTypeSpec(
-          typeIdentifier,
-          type.getPrecision(),
-          type.getScale(),
-          charSetName,
-          null,
-          SqlParserPos.ZERO);
-    } else if (typeName.allowsPrec()) {
-      return new SqlDataTypeSpec(
-          typeIdentifier,
-          type.getPrecision(),
-          -1,
-          charSetName,
-          null,
-          SqlParserPos.ZERO);
-    } else {
-      return new SqlDataTypeSpec(
-          typeIdentifier,
-          -1,
-          -1,
-          charSetName,
-          null,
-          SqlParserPos.ZERO);
-    }
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+  }
+
+  /**
+   * Converts an instance of RelDataType to an instance of SqlDataTypeSpec.
+   *
+   * @param type type descriptor
+   * @return corresponding parse representation
+   */
+  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
+    // TODO jvs 28-Dec-2004:  collation
+    String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
+    return convertTypeToSpec(type, charSetName, -1);
   }
 
   public static RelDataType createMultisetType(
@@ -1116,22 +1161,143 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory factory,
       RelDataType type1,
       RelDataType type2) {
-    if (type1.equals(type2)) {
-      return true;
-    }
-
     if (type1.isNullable() == type2.isNullable()) {
-      // If types have the same nullability and they weren't equal above,
-      // they must be different.
-      return false;
+      return type1.equals(type2);
     }
     return type1.equals(
         factory.createTypeWithNullability(type2, type1.isNullable()));
   }
 
   /**
+   * This is a poorman's
+   * {@link #equalSansNullability(RelDataTypeFactory, RelDataType, RelDataType)}.
+   *
+   * <p>We assume that "not null" is represented in the type's digest
+   * as a trailing "NOT NULL" (case sensitive).
+   *
+   * <p>If you got a type factory, {@link #equalSansNullability(RelDataTypeFactory, RelDataType, RelDataType)}
+   * is preferred.
+   *
+   * @param type1 First type
+   * @param type2 Second type
+   * @return true if the types are equal or the only difference is nullability
+   */
+  public static boolean equalSansNullability(RelDataType type1, RelDataType type2) {
+    if (type1 == type2) {
+      return true;
+    }
+    String x = type1.getFullTypeString();
+    String y = type2.getFullTypeString();
+    if (x.length() < y.length()) {
+      String c = x;
+      x = y;
+      y = c;
+    }
+
+    return (x.length() == y.length()
+        || x.length() == y.length() + NON_NULLABLE_SUFFIX.length()
+        && x.endsWith(NON_NULLABLE_SUFFIX)) && x.startsWith(y);
+  }
+
+  /**
+   * Returns whether two collection types are equal, ignoring nullability.
+   *
+   * <p>They need not come from the same factory.
+   *
+   * @param factory       Type factory
+   * @param type1         First type
+   * @param type2         Second type
+   * @return Whether types are equal, ignoring nullability
+   */
+  public static boolean equalAsCollectionSansNullability(
+      RelDataTypeFactory factory,
+      RelDataType type1,
+      RelDataType type2) {
+    Preconditions.checkArgument(isCollection(type1),
+        "Input type1 must be collection type");
+    Preconditions.checkArgument(isCollection(type2),
+        "Input type2 must be collection type");
+
+    return (type1 == type2)
+        || (type1.getSqlTypeName() == type2.getSqlTypeName()
+          && equalSansNullability(
+              factory, getComponentTypeOrThrow(type1), getComponentTypeOrThrow(type2)));
+  }
+
+  /**
+   * Returns whether two map types are equal, ignoring nullability.
+   *
+   * <p>They need not come from the same factory.
+   *
+   * @param factory       Type factory
+   * @param type1         First type
+   * @param type2         Second type
+   * @return Whether types are equal, ignoring nullability
+   */
+  public static boolean equalAsMapSansNullability(
+      RelDataTypeFactory factory,
+      RelDataType type1,
+      RelDataType type2) {
+    Preconditions.checkArgument(isMap(type1), "Input type1 must be map type");
+    Preconditions.checkArgument(isMap(type2), "Input type2 must be map type");
+
+    MapSqlType mType1 = (MapSqlType) type1;
+    MapSqlType mType2 = (MapSqlType) type2;
+    return (type1 == type2)
+        || (equalSansNullability(factory, mType1.getKeyType(), mType2.getKeyType())
+          && equalSansNullability(factory, mType1.getValueType(), mType2.getValueType()));
+  }
+
+  /**
+   * Returns whether two struct types are equal, ignoring nullability.
+   *
+   * <p>They do not need to come from the same factory.
+   *
+   * @param factory       Type factory
+   * @param type1         First type
+   * @param type2         Second type
+   * @param nameMatcher   Name matcher used to compare the field names, if null,
+   *                      the field names are also ignored
+   *
+   * @return Whether types are equal, ignoring nullability
+   */
+  public static boolean equalAsStructSansNullability(
+      RelDataTypeFactory factory,
+      RelDataType type1,
+      RelDataType type2,
+      @Nullable SqlNameMatcher nameMatcher) {
+    Preconditions.checkArgument(type1.isStruct(), "Input type1 must be struct type");
+    Preconditions.checkArgument(type2.isStruct(), "Input type2 must be struct type");
+
+    if (type1 == type2) {
+      return true;
+    }
+
+    if (type1.getFieldCount() != type2.getFieldCount()) {
+      return false;
+    }
+
+    for (Pair<RelDataTypeField, RelDataTypeField> pair
+        : Pair.zip(type1.getFieldList(), type2.getFieldList())) {
+      if (nameMatcher != null
+          && !nameMatcher.matches(pair.left.getName(), pair.right.getName())) {
+        return false;
+      }
+      if (!equalSansNullability(factory, pair.left.getType(), pair.right.getType())) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Returns the ordinal of a given field in a record type, or -1 if the field
    * is not found.
+   *
+   * <p>The {@code fieldName} is always simple, if the field is nested within a record field,
+   * returns index of the outer field instead. i.g. for row type
+   * (a int, b (b1 bigint, b2 varchar(20) not null)), returns 1 for both simple name "b1" and "b2".
    *
    * @param type      Record type
    * @param fieldName Name of field
@@ -1142,6 +1308,10 @@ public abstract class SqlTypeUtil {
     for (int i = 0; i < fields.size(); i++) {
       RelDataTypeField field = fields.get(i);
       if (field.getName().equals(fieldName)) {
+        return i;
+      }
+      final RelDataType fieldType = field.getType();
+      if (fieldType.isStruct() && findField(fieldType, fieldName) != -1) {
         return i;
       }
     }
@@ -1256,9 +1426,9 @@ public abstract class SqlTypeUtil {
   }
 
   /** Returns the least restrictive type T, such that a value of type T can be
-   * compared with values of type {@code type0} and {@code type1} using
+   * compared with values of type {@code type1} and {@code type2} using
    * {@code =}. */
-  public static RelDataType leastRestrictiveForComparison(
+  public static @Nullable RelDataType leastRestrictiveForComparison(
       RelDataTypeFactory typeFactory, RelDataType type1, RelDataType type2) {
     final RelDataType type =
         typeFactory.leastRestrictive(ImmutableList.of(type1, type2));
@@ -1379,6 +1549,8 @@ public abstract class SqlTypeUtil {
       case INTEGER:
       case BOOLEAN:
         return true;
+      default:
+        break;
       }
     }
     return false;
@@ -1421,11 +1593,156 @@ public abstract class SqlTypeUtil {
     return Integer.compare(p0, p1);
   }
 
+  /** Returns whether a type is ARRAY. */
   public static boolean isArray(RelDataType type) {
     return type.getSqlTypeName() == SqlTypeName.ARRAY;
   }
 
+  /** Returns whether a type is ROW. */
+  public static boolean isRow(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.ROW;
+  }
 
+  /** Returns whether a type is MAP. */
+  public static boolean isMap(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.MAP;
+  }
+
+  /** Returns whether a type is MULTISET. */
+  public static boolean isMultiset(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.MULTISET;
+  }
+
+  /** Returns whether a type is ARRAY or MULTISET. */
+  public static boolean isCollection(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return type.getSqlTypeName() == SqlTypeName.ARRAY
+        || type.getSqlTypeName() == SqlTypeName.MULTISET;
+  }
+
+  /** Returns whether a type is CHARACTER. */
+  public static boolean isCharacter(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return SqlTypeFamily.CHARACTER.contains(type);
+  }
+
+  /** Returns whether a type is a CHARACTER or contains a CHARACTER type.
+   *
+   * @deprecated Use {@link #hasCharacter(RelDataType)} */
+  @Deprecated // to be removed before 2.0
+  public static boolean hasCharactor(RelDataType type) {
+    return hasCharacter(type);
+  }
+
+  /** Returns whether a type is a CHARACTER or contains a CHARACTER type. */
+  public static boolean hasCharacter(RelDataType type) {
+    if (isCharacter(type)) {
+      return true;
+    }
+    if (isArray(type)) {
+      return hasCharacter(getComponentTypeOrThrow(type));
+    }
+    return false;
+  }
+
+  /** Returns whether a type is STRING. */
+  public static boolean isString(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return SqlTypeFamily.STRING.contains(type);
+  }
+
+  /** Returns whether a type is BOOLEAN. */
+  public static boolean isBoolean(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return SqlTypeFamily.BOOLEAN.contains(type);
+  }
+
+  /** Returns whether a type is BINARY. */
+  public static boolean isBinary(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return SqlTypeFamily.BINARY.contains(type);
+  }
+
+  /** Returns whether a type is atomic (datetime, numeric, string or
+   * BOOLEAN). */
+  public static boolean isAtomic(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return false;
+    }
+    return SqlTypeUtil.isDatetime(type)
+        || SqlTypeUtil.isNumeric(type)
+        || SqlTypeUtil.isString(type)
+        || SqlTypeUtil.isBoolean(type);
+  }
+
+  /** Returns a DECIMAL type with the maximum precision for the current
+   * type system. */
+  public static RelDataType getMaxPrecisionScaleDecimal(RelDataTypeFactory factory) {
+    int maxPrecision = factory.getTypeSystem().getMaxNumericPrecision();
+    // scale should not greater than precision.
+    int scale = maxPrecision / 2;
+    return factory.createSqlType(SqlTypeName.DECIMAL, maxPrecision, scale);
+  }
+
+  /**
+   * Keeps only the last N fields and returns the new struct type.
+   */
+  public static RelDataType extractLastNFields(RelDataTypeFactory typeFactory,
+      RelDataType type, int numToKeep) {
+    assert type.isStruct();
+    assert type.getFieldCount() >= numToKeep;
+    final int fieldsCnt = type.getFieldCount();
+    return typeFactory.createStructType(
+        type.getFieldList().subList(fieldsCnt - numToKeep, fieldsCnt));
+  }
+
+  /**
+   * Returns whether the decimal value is valid for the type. For example, 1111.11 is not
+   * valid for DECIMAL(3, 1) since it overflows.
+   *
+   * @param value Value of literal
+   * @param toType Type of the literal
+   * @return whether the value is valid for the type
+   */
+  public static boolean isValidDecimalValue(@Nullable BigDecimal value, RelDataType toType) {
+    if (value == null) {
+      return true;
+    }
+    switch (toType.getSqlTypeName()) {
+    case DECIMAL:
+      final int intDigits = value.precision() - value.scale();
+      final int maxIntDigits = toType.getPrecision() - toType.getScale();
+      return intDigits <= maxIntDigits;
+    default:
+      return true;
+    }
+  }
 }
-
-// End SqlTypeUtil.java

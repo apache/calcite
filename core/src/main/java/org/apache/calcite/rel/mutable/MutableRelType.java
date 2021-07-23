@@ -26,10 +26,10 @@ enum MutableRelType {
   FILTER,
   INTERSECT,
   JOIN,
+  MATCH,
   MINUS,
   PROJECT,
   SAMPLE,
-  SEMIJOIN,
   SORT,
   TABLE_FUNCTION_SCAN,
   TABLE_MODIFY,
@@ -40,5 +40,3 @@ enum MutableRelType {
   WINDOW,
   HOLDER
 }
-
-// End MutableRelType.java

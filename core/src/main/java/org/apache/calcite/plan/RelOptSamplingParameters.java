@@ -95,5 +95,3 @@ public class RelOptSamplingParameters {
     return repeatableSeed;
   }
 }
-
-// End RelOptSamplingParameters.java

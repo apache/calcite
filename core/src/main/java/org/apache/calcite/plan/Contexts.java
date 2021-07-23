@@ -20,6 +20,8 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -57,7 +59,7 @@ public class Contexts {
   }
 
   /** Returns a context that wraps an array of objects, ignoring any nulls. */
-  public static Context of(Object... os) {
+  public static Context of(@Nullable Object... os) {
     final List<Context> contexts = new ArrayList<>();
     for (Object o : os) {
       if (o != null) {
@@ -115,10 +117,10 @@ public class Contexts {
     final Object target;
 
     WrapContext(Object target) {
-      this.target = Objects.requireNonNull(target);
+      this.target = Objects.requireNonNull(target, "target");
     }
 
-    public <T> T unwrap(Class<T> clazz) {
+    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
       if (clazz.isInstance(target)) {
         return clazz.cast(target);
       }
@@ -128,7 +130,7 @@ public class Contexts {
 
   /** Empty context. */
   static class EmptyContext implements Context {
-    public <T> T unwrap(Class<T> clazz) {
+    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
       return null;
     }
   }
@@ -138,13 +140,13 @@ public class Contexts {
     final ImmutableList<Context> contexts;
 
     ChainContext(ImmutableList<Context> contexts) {
-      this.contexts = Objects.requireNonNull(contexts);
+      this.contexts = Objects.requireNonNull(contexts, "contexts");
       for (Context context : contexts) {
         assert !(context instanceof ChainContext) : "must be flat";
       }
     }
 
-    @Override public <T> T unwrap(Class<T> clazz) {
+    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
       for (Context context : contexts) {
         final T t = context.unwrap(clazz);
         if (t != null) {
@@ -155,5 +157,3 @@ public class Contexts {
     }
   }
 }
-
-// End Contexts.java

@@ -42,7 +42,7 @@ import java.util.List;
  * Simple catalog reader for testing.
  */
 public class MockCatalogReaderSimple extends MockCatalogReader {
-  private final Fixture fixture;
+  private final ObjectSqlType addressType;
 
   /**
    * Creates a MockCatalogReader.
@@ -55,19 +55,20 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
   public MockCatalogReaderSimple(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
     super(typeFactory, caseSensitive);
-    fixture = new Fixture(typeFactory);
+
+    addressType = new Fixture(typeFactory).addressType;
   }
 
   @Override public RelDataType getNamedType(SqlIdentifier typeName) {
-    if (typeName.equalsDeep(fixture.addressType.getSqlIdentifier(), Litmus.IGNORE)) {
-      return fixture.addressType;
+    if (typeName.equalsDeep(addressType.getSqlIdentifier(), Litmus.IGNORE)) {
+      return addressType;
     } else {
       return super.getNamedType(typeName);
     }
   }
 
   @Override public MockCatalogReader init() {
-    ObjectSqlType addressType = fixture.addressType;
+    final Fixture fixture = new Fixture(typeFactory);
 
     // Register "SALES" schema.
     MockSchema salesSchema = new MockSchema("SALES");
@@ -86,7 +87,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     // Register "EMP" table.
     final MockTable empTable =
         MockTable.create(this, salesSchema, "EMP", false, 14, null,
-            countingInitializerExpressionFactory);
+            countingInitializerExpressionFactory, false);
     empTable.addColumn("EMPNO", fixture.intType, true);
     empTable.addColumn("ENAME", fixture.varchar20Type);
     empTable.addColumn("JOB", fixture.varchar10Type);
@@ -102,7 +103,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     final MockTable empNullablesTable =
         MockTable.create(this, salesSchema, "EMPNULLABLES", false, 14);
     empNullablesTable.addColumn("EMPNO", fixture.intType, true);
-    empNullablesTable.addColumn("ENAME", fixture.varchar20Type);
+    empNullablesTable.addColumn("ENAME", fixture.varchar20TypeNull);
     empNullablesTable.addColumn("JOB", fixture.varchar10TypeNull);
     empNullablesTable.addColumn("MGR", fixture.intTypeNull);
     empNullablesTable.addColumn("HIREDATE", fixture.timestampTypeNull);
@@ -115,7 +116,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     // Register "EMPDEFAULTS" table with default values for some columns.
     final MockTable empDefaultsTable =
         MockTable.create(this, salesSchema, "EMPDEFAULTS", false, 14, null,
-            new EmpInitializerExpressionFactory());
+            new EmpInitializerExpressionFactory(), false);
     empDefaultsTable.addColumn("EMPNO", fixture.intType, true);
     empDefaultsTable.addColumn("ENAME", fixture.varchar20Type);
     empDefaultsTable.addColumn("JOB", fixture.varchar10TypeNull);
@@ -156,6 +157,16 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     deptNestedTable.addColumn("SKILL", fixture.skillRecordType);
     deptNestedTable.addColumn("EMPLOYEES", fixture.empListType);
     registerTable(deptNestedTable);
+
+    // Register "DEPT_NESTED_EXPANDED" table.
+    MockTable deptNestedExpandedTable =
+        MockTable.create(this, salesSchema, "DEPT_NESTED_EXPANDED", false, 4);
+    deptNestedExpandedTable.addColumn("DEPTNO", fixture.intType, true);
+    deptNestedExpandedTable.addColumn("NAME", fixture.varchar10Type);
+    deptNestedExpandedTable.addColumn("EMPLOYEES", fixture.empListType);
+    deptNestedExpandedTable.addColumn("ADMINS", fixture.varchar5ArrayType);
+    deptNestedExpandedTable.addColumn("OFFICES", fixture.rectilinearPeekCoordMultisetType);
+    registerTable(deptNestedExpandedTable);
 
     // Register "BONUS" table.
     MockTable bonusTable =
@@ -241,6 +252,17 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     productsTable.addColumn("SUPPLIERID", fixture.intType);
     registerTable(productsTable);
 
+    // Register "PRODUCTS_TEMPORAL" table.
+    MockTable productsTemporalTable =
+        MockTable.create(this, salesSchema, "PRODUCTS_TEMPORAL", false, 200D,
+        null, NullInitializerExpressionFactory.INSTANCE, true);
+    productsTemporalTable.addColumn("PRODUCTID", fixture.intType);
+    productsTemporalTable.addColumn("NAME", fixture.varchar20Type);
+    productsTemporalTable.addColumn("SUPPLIERID", fixture.intType);
+    productsTemporalTable.addColumn("SYS_START", fixture.timestampType);
+    productsTemporalTable.addColumn("SYS_END", fixture.timestampType);
+    registerTable(productsTemporalTable);
+
     // Register "SUPPLIERS" table.
     MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
         false, 10D);
@@ -319,7 +341,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
         };
     salesSchema.addTable(Util.last(empNullables20View.getQualifiedName()));
     empNullables20View.addColumn("EMPNO", fixture.intType);
-    empNullables20View.addColumn("ENAME", fixture.varchar20Type);
+    empNullables20View.addColumn("ENAME", fixture.varchar20TypeNull);
     empNullables20View.addColumn("JOB", fixture.varchar10TypeNull);
     empNullables20View.addColumn("MGR", fixture.intTypeNull);
     empNullables20View.addColumn("HIREDATE", fixture.timestampTypeNull);
@@ -404,5 +426,3 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
 
   }
 }
-
-// End MockCatalogReaderSimple.java

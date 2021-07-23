@@ -16,8 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.text.Collator;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -30,15 +35,16 @@ public class Utilities {
   protected Utilities() {
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link java.util.Objects#equals}. */
   @Deprecated // to be removed before 2.0
-  public static boolean equal(Object o0, Object o1) {
+  public static boolean equal(@Nullable Object o0, @Nullable Object o1) {
     // Same as java.lang.Objects.equals (JDK 1.7 and later)
     // and com.google.common.base.Objects.equal
     return Objects.equals(o0, o1);
   }
 
-  public static int hash(Object v) {
+  public static int hash(@Nullable Object v) {
     return v == null ? 0 : v.hashCode();
   }
 
@@ -126,7 +132,7 @@ public class Utilities {
     return hash(h, Double.hashCode(v));
   }
 
-  public static int hash(int h, Object v) {
+  public static int hash(int h, @Nullable Object v) {
     return h * 31 + (v == null ? 1 : v.hashCode());
   }
 
@@ -196,7 +202,7 @@ public class Utilities {
     return v0.compareTo(v1);
   }
 
-  public static int compareNullsFirst(Comparable v0, Comparable v1) {
+  public static int compareNullsFirst(@Nullable Comparable v0, @Nullable Comparable v1) {
     //noinspection unchecked
     return v0 == v1 ? 0
         : v0 == null ? -1
@@ -204,12 +210,36 @@ public class Utilities {
                 : v0.compareTo(v1);
   }
 
-  public static int compareNullsLast(Comparable v0, Comparable v1) {
+  public static int compareNullsLast(@Nullable Comparable v0, @Nullable Comparable v1) {
     //noinspection unchecked
     return v0 == v1 ? 0
         : v0 == null ? 1
             : v1 == null ? -1
                 : v0.compareTo(v1);
+  }
+
+  public static int compare(@Nullable Comparable v0, @Nullable Comparable v1,
+      Comparator comparator) {
+    //noinspection unchecked
+    return comparator.compare(v0, v1);
+  }
+
+  public static int compareNullsFirst(@Nullable Comparable v0, @Nullable Comparable v1,
+      Comparator comparator) {
+    //noinspection unchecked
+    return v0 == v1 ? 0
+        : v0 == null ? -1
+            : v1 == null ? 1
+                : comparator.compare(v0, v1);
+  }
+
+  public static int compareNullsLast(@Nullable Comparable v0, @Nullable Comparable v1,
+      Comparator comparator) {
+    //noinspection unchecked
+    return v0 == v1 ? 0
+        : v0 == null ? 1
+            : v1 == null ? -1
+                : comparator.compare(v0, v1);
   }
 
   public static int compareNullsLast(List v0, List v1) {
@@ -219,6 +249,15 @@ public class Utilities {
             : v1 == null ? -1
                 : FlatLists.ComparableListImpl.compare(v0, v1);
   }
-}
 
-// End Utilities.java
+  /** Creates a pattern builder. */
+  public static Pattern.PatternBuilder patternBuilder() {
+    return Pattern.builder();
+  }
+
+  public static Collator generateCollator(Locale locale, int strength) {
+    final Collator collator = Collator.getInstance(locale);
+    collator.setStrength(strength);
+    return collator;
+  }
+}

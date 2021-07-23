@@ -17,13 +17,13 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.incava.diff.Diff;
 import org.incava.diff.Difference;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -41,6 +41,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * DiffTestCase is an abstract base for JUnit tests which produce multi-line
@@ -66,21 +69,18 @@ public abstract class DiffTestCase {
    */
   protected OutputStream logOutputStream;
 
-  /**
-   * Diff masks defined so far
-   */
-  // private List diffMasks;
+  /** Diff masks defined so far. */
   private String diffMasks;
+  Pattern compiledDiffPattern;
   Matcher compiledDiffMatcher;
   private String ignorePatterns;
+  Pattern compiledIgnorePattern;
   Matcher compiledIgnoreMatcher;
 
   /**
    * Whether to give verbose message if diff fails.
    */
   private boolean verbose;
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Initializes a new DiffTestCase.
@@ -103,7 +103,7 @@ public abstract class DiffTestCase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Before
+  @BeforeEach
   protected void setUp() {
     // diffMasks.clear();
     diffMasks = "";
@@ -112,7 +112,7 @@ public abstract class DiffTestCase {
     compiledDiffMatcher = null;
   }
 
-  @After
+  @AfterEach
   protected void tearDown() throws IOException {
     if (logOutputStream != null) {
       logOutputStream.close();
@@ -146,9 +146,7 @@ public abstract class DiffTestCase {
         openTestLogOutputStream(testLogFile), StandardCharsets.UTF_8);
   }
 
-  /**
-   * @return the root under which testlogs should be written
-   */
+  /** Returns the root directory under which testlogs should be written. */
   protected abstract File getTestlogRoot() throws Exception;
 
   /**
@@ -189,7 +187,7 @@ public abstract class DiffTestCase {
     logOutputStream = null;
 
     if (!refFile.exists()) {
-      Assert.fail("Reference file " + refFile + " does not exist");
+      fail("Reference file " + refFile + " does not exist");
     }
     diffFile(logFile, refFile);
   }
@@ -284,7 +282,7 @@ public abstract class DiffTestCase {
     } else {
       diffMasks = diffMasks + "|" + mask;
     }
-    Pattern compiledDiffPattern = Pattern.compile(diffMasks);
+    compiledDiffPattern = Pattern.compile(diffMasks);
     compiledDiffMatcher = compiledDiffPattern.matcher("");
   }
 
@@ -294,7 +292,7 @@ public abstract class DiffTestCase {
     } else {
       ignorePatterns = ignorePatterns + "|" + javaPattern;
     }
-    Pattern compiledIgnorePattern = Pattern.compile(ignorePatterns);
+    compiledIgnorePattern = Pattern.compile(ignorePatterns);
     compiledIgnoreMatcher = compiledIgnorePattern.matcher("");
   }
 
@@ -305,7 +303,7 @@ public abstract class DiffTestCase {
       // we assume most of lines do not match
       // so compiled matches will be faster than replaceAll.
       if (compiledDiffMatcher.find()) {
-        return s.replaceAll(diffMasks, "XYZZY");
+        return compiledDiffPattern.matcher(s).replaceAll("XYZZY");
       }
     }
     return s;
@@ -327,19 +325,16 @@ public abstract class DiffTestCase {
     if (verbose) {
       if (inIde()) {
         // If we're in IntelliJ, it's worth printing the 'expected
-        // <...> actual <...>' string, becauase IntelliJ can format
+        // <...> actual <...>' string, because IntelliJ can format
         // this intelligently. Otherwise, use the more concise
         // diff format.
-        Assert.assertEquals(
-            message,
-            fileContents(refFile),
-            fileContents(logFile));
+        assertEquals(fileContents(refFile), fileContents(logFile), message);
       } else {
         String s = diff(refFile, logFile);
-        Assert.fail(message + '\n' + s + '\n');
+        fail(message + '\n' + s + '\n');
       }
     }
-    Assert.fail(message);
+    fail(message);
   }
 
   /**
@@ -461,7 +456,7 @@ public abstract class DiffTestCase {
       return lines;
     } catch (IOException e) {
       e.printStackTrace();
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
@@ -481,7 +476,7 @@ public abstract class DiffTestCase {
       }
       return writer.toString(StandardCharsets.UTF_8.name());
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
@@ -519,5 +514,3 @@ public abstract class DiffTestCase {
     addDiffMask("^(\\.\\s?)+>");
   }
 }
-
-// End DiffTestCase.java

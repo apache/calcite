@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j.function;
 public interface LongFunction1<T0> extends Function<Long> {
   long apply(T0 v0);
 }
-
-// End LongFunction1.java

@@ -36,28 +36,44 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
   protected final Method method;
 
   /**
-   * Constructor of {@link ReflectiveCallNotNullImplementor}
-   * @param method method that is used to implement the call
+   * Constructor of {@link ReflectiveCallNotNullImplementor}.
+   *
+   * @param method Method that is used to implement the call
    */
   public ReflectiveCallNotNullImplementor(Method method) {
     this.method = method;
   }
 
-  public Expression implement(RexToLixTranslator translator,
+  @Override public Expression implement(RexToLixTranslator translator,
       RexCall call, List<Expression> translatedOperands) {
     translatedOperands =
         EnumUtils.fromInternal(method.getParameterTypes(), translatedOperands);
+    translatedOperands =
+        EnumUtils.convertAssignableTypes(method.getParameterTypes(), translatedOperands);
+    final Expression callExpr;
     if ((method.getModifiers() & Modifier.STATIC) != 0) {
-      return Expressions.call(method, translatedOperands);
+      callExpr = Expressions.call(method, translatedOperands);
     } else {
-      // The UDF class must have a public zero-args constructor.
-      // Assume that the validator checked already.
       final Expression target =
-          Expressions.new_(method.getDeclaringClass());
-      return Expressions.call(target, method, translatedOperands);
+          translator.functionInstance(call, method);
+      callExpr = Expressions.call(target, method, translatedOperands);
     }
+    if (!containsCheckedException(method)) {
+      return callExpr;
+    }
+    return translator.handleMethodCheckedExceptions(callExpr);
   }
 
+  private static boolean containsCheckedException(Method method) {
+    Class[] exceptions = method.getExceptionTypes();
+    if (exceptions == null || exceptions.length == 0) {
+      return false;
+    }
+    for (Class clazz : exceptions) {
+      if (!RuntimeException.class.isAssignableFrom(clazz)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
-
-// End ReflectiveCallNotNullImplementor.java

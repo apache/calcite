@@ -18,6 +18,8 @@ package org.apache.calcite.plan.hep;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -43,15 +45,15 @@ public class HepProgram {
 
   int matchLimit;
 
-  HepMatchOrder matchOrder;
+  @Nullable HepMatchOrder matchOrder;
 
-  HepInstruction.EndGroup group;
+  HepInstruction.@Nullable EndGroup group;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a new empty HepProgram. The program has an initial match order of
-   * {@link org.apache.calcite.plan.hep.HepMatchOrder#ARBITRARY}, and an initial
+   * {@link org.apache.calcite.plan.hep.HepMatchOrder#DEPTH_FIRST}, and an initial
    * match limit of {@link #MATCH_UNTIL_FIXPOINT}.
    */
   HepProgram(List<HepInstruction> instructions) {
@@ -74,5 +76,3 @@ public class HepProgram {
     }
   }
 }
-
-// End HepProgram.java

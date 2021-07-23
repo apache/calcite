@@ -28,6 +28,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +43,7 @@ import java.util.stream.Collectors;
 public class ElasticsearchProject extends Project implements ElasticsearchRel {
   ElasticsearchProject(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() == ElasticsearchRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
@@ -49,7 +53,8 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     return new ElasticsearchProject(getCluster(), traitSet, input, projects, relDataType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
@@ -64,15 +69,19 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
 
     final List<String> fields = new ArrayList<>();
     final List<String> scriptFields = new ArrayList<>();
+    // registers wherever "select *" is present
+    boolean hasSelectStar = false;
     for (Pair<RexNode, String> pair: getNamedProjects()) {
       final String name = pair.right;
       final String expr = pair.left.accept(translator);
 
-      if (ElasticsearchRules.isItem(pair.left)) {
-        implementor.addExpressionItemMapping(name, ElasticsearchRules.stripQuotes(expr));
-      }
+      // "select *" present?
+      hasSelectStar |= ElasticsearchConstants.isSelectAll(name);
 
-      if (expr.equals(name)) {
+      if (ElasticsearchRules.isItem(pair.left)) {
+        implementor.addExpressionItemMapping(name, expr);
+        fields.add(expr);
+      } else if (expr.equals(name)) {
         fields.add(name);
       } else if (expr.matches("\"literal\":.+")) {
         scriptFields.add(ElasticsearchRules.quote(name)
@@ -83,13 +92,22 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
                 + ":{\"script\":"
                 // _source (ES2) vs params._source (ES5)
                 + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
-                + expr.replaceAll("\"", "") + "\"}");
+                + expr.replace("\"", "") + "\"}");
       }
     }
 
-    StringBuilder query = new StringBuilder();
+    if (hasSelectStar) {
+      // means select * from elastic
+      // this does not yet cover select *, _MAP['foo'], _MAP['bar'][0] from elastic
+      return;
+    }
+
+    final StringBuilder query = new StringBuilder();
     if (scriptFields.isEmpty()) {
-      List<String> newList = fields.stream().map(ElasticsearchRules::quote)
+      List<String> newList = fields.stream()
+          // _id field is available implicitly
+          .filter(f -> !ElasticsearchConstants.ID.equals(f))
+          .map(ElasticsearchRules::quote)
           .collect(Collectors.toList());
 
       final String findString = String.join(", ", newList);
@@ -109,5 +127,3 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     implementor.add("{" + query.toString() + "}");
   }
 }
-
-// End ElasticsearchProject.java

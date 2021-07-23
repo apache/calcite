@@ -33,6 +33,8 @@ abstract class AbstractSingleNode<T extends SingleRel> implements Node {
     this.source = compiler.source(rel, 0);
     this.sink = compiler.sink(rel);
   }
-}
 
-// End AbstractSingleNode.java
+  @Override public void close() {
+    source.close();
+  }
+}

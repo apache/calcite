@@ -17,12 +17,16 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+import java.util.function.BiFunction;
 
 /**
  * An implementation of {@link InitializerExpressionFactory} that always supplies NULL.
@@ -36,7 +40,7 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
   }
 
   @SuppressWarnings("deprecation")
-  public boolean isGeneratedAlways(RelOptTable table, int iColumn) {
+  @Override public boolean isGeneratedAlways(RelOptTable table, int iColumn) {
     switch (generationStrategy(table, iColumn)) {
     case VIRTUAL:
     case STORED:
@@ -46,22 +50,29 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
     }
   }
 
-  public ColumnStrategy generationStrategy(RelOptTable table, int iColumn) {
+  @Override public ColumnStrategy generationStrategy(RelOptTable table, int iColumn) {
     return table.getRowType().getFieldList().get(iColumn).getType().isNullable()
         ? ColumnStrategy.NULLABLE
         : ColumnStrategy.NOT_NULLABLE;
   }
 
-  public RexNode newColumnDefaultValue(RelOptTable table, int iColumn,
+  @Override public RexNode newColumnDefaultValue(RelOptTable table, int iColumn,
       InitializerContext context) {
-    return context.getRexBuilder().constantNull();
+    final RelDataType fieldType =
+        table.getRowType().getFieldList().get(iColumn).getType();
+    return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 
-  public RexNode newAttributeInitializer(RelDataType type,
+  @Override public @Nullable BiFunction<
+      InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
+    return null;
+  }
+
+  @Override public RexNode newAttributeInitializer(RelDataType type,
       SqlFunction constructor, int iAttribute, List<RexNode> constructorArgs,
       InitializerContext context) {
-    return context.getRexBuilder().constantNull();
+    final RelDataType fieldType =
+        type.getFieldList().get(iAttribute).getType();
+    return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 }
-
-// End NullInitializerExpressionFactory.java

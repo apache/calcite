@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
@@ -36,29 +35,29 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * in a {@link Filter} with logically equivalent operations.
  *
  * @see org.apache.calcite.sql.fun.SqlStdOperatorTable#IS_NOT_DISTINCT_FROM
+ * @see CoreRules#FILTER_EXPAND_IS_NOT_DISTINCT_FROM
+ * @see RelBuilder#isDistinctFrom
+ * @see RelBuilder#isNotDistinctFrom
  */
-public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
+public final class FilterRemoveIsNotDistinctFromRule
+    extends RelRule<FilterRemoveIsNotDistinctFromRule.Config>
+    implements TransformationRule {
 
-  /** The singleton. */
-  public static final FilterRemoveIsNotDistinctFromRule INSTANCE =
-      new FilterRemoveIsNotDistinctFromRule(RelFactories.LOGICAL_BUILDER);
+  /** Creates a FilterRemoveIsNotDistinctFromRule. */
+  FilterRemoveIsNotDistinctFromRule(Config config) {
+    super(config);
+  }
 
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a FilterRemoveIsNotDistinctFromRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  @Deprecated // to be removed before 2.0
   public FilterRemoveIsNotDistinctFromRule(
       RelBuilderFactory relBuilderFactory) {
-    super(operand(Filter.class, any()), relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     Filter oldFilter = call.rel(0);
     RexNode oldFilterCond = oldFilter.getCondition();
 
@@ -91,16 +90,15 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
   /** Shuttle that removes 'x IS NOT DISTINCT FROM y' and converts it
    * to 'CASE WHEN x IS NULL THEN y IS NULL WHEN y IS NULL THEN x IS
    * NULL ELSE x = y END'. */
-  private class RemoveIsNotDistinctFromRexShuttle extends RexShuttle {
-    RexBuilder rexBuilder;
+  private static class RemoveIsNotDistinctFromRexShuttle extends RexShuttle {
+    final RexBuilder rexBuilder;
 
     RemoveIsNotDistinctFromRexShuttle(
         RexBuilder rexBuilder) {
       this.rexBuilder = rexBuilder;
     }
 
-    // override RexShuttle
-    public RexNode visitCall(RexCall call) {
+    @Override public RexNode visitCall(RexCall call) {
       RexNode newCall = super.visitCall(call);
 
       if (call.getOperator()
@@ -116,6 +114,15 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
       return newCall;
     }
   }
-}
 
-// End FilterRemoveIsNotDistinctFromRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY
+        .withOperandSupplier(b -> b.operand(Filter.class).anyInputs())
+        .as(Config.class);
+
+    @Override default FilterRemoveIsNotDistinctFromRule toRule() {
+      return new FilterRemoveIsNotDistinctFromRule(this);
+    }
+  }
+}

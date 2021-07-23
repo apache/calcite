@@ -16,16 +16,23 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlOperator;
+
+import java.util.List;
 
 /**
  * A <code>SqlDialect</code> implementation for the Vertica database.
  */
 public class VerticaSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new VerticaSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.VERTICA)
-          .withIdentifierQuoteString("\""));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.VERTICA)
+      .withIdentifierQuoteString("\"")
+      .withUnquotedCasing(Casing.UNCHANGED);
+
+  public static final SqlDialect DEFAULT = new VerticaSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a VerticaSqlDialect. */
   public VerticaSqlDialect(Context context) {
@@ -35,6 +42,15 @@ public class VerticaSqlDialect extends SqlDialect {
   @Override public boolean supportsNestedAggregations() {
     return false;
   }
-}
 
-// End VerticaSqlDialect.java
+  @Override public boolean supportsFunction(SqlOperator operator,
+      RelDataType type, final List<RelDataType> paramTypes) {
+    switch (operator.kind) {
+    case LIKE:
+      // introduces support for ILIKE as well
+      return true;
+    default:
+      return super.supportsFunction(operator, type, paramTypes);
+    }
+  }
+}

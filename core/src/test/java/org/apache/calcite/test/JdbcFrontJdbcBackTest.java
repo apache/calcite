@@ -16,19 +16,21 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.util.TestUtil;
+
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.
@@ -39,8 +41,8 @@ import static org.junit.Assert.assertThat;
  *
  * @see JdbcFrontJdbcBackLinqMiddleTest
  */
-public class JdbcFrontJdbcBackTest {
-  @Test public void testWhere2() {
+class JdbcFrontJdbcBackTest {
+  @Test void testWhere2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
@@ -48,8 +50,8 @@ public class JdbcFrontJdbcBackTest {
             + "day=2; week_day=Monday\n");
   }
 
-  @Ignore
-  @Test public void testTables() throws Exception {
+  @Disabled
+  @Test void testTables() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(connection -> {
@@ -65,12 +67,12 @@ public class JdbcFrontJdbcBackTest {
                 "account;agg_c_10_sales_fact_1997;agg_c_14_sales_fact_1997;agg_c_special_sales_fact_1997;agg_g_ms_pcat_sales_fact_1997;agg_l_03_sales_fact_1997;agg_l_04_sales_fact_1997;agg_l_05_sales_fact_1997;agg_lc_06_sales_fact_1997;agg_lc_100_sales_fact_1997;agg_ll_01_sales_fact_1997;agg_pl_01_sales_fact_1997;category;currency;customer;days;department;employee;employee_closure;expense_fact;inventory_fact_1997;inventory_fact_1998;position;product;product_class;products;promotion;region;reserve_employee;salary;sales_fact_1997;sales_fact_1998;sales_fact_dec_1998;store;store_ragged;time_by_day;warehouse;warehouse_class;COLUMNS;TABLES;",
                 buf.toString());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test public void testTablesByType() throws Exception {
+  @Test void testTablesByType() throws Exception {
     // check with the form recommended by JDBC
     checkTablesByType("SYSTEM TABLE", is("COLUMNS;TABLES;"));
     // the form we used until 1.14 no longer generates results
@@ -90,12 +92,12 @@ public class JdbcFrontJdbcBackTest {
             }
             assertThat(buf.toString(), matcher);
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test public void testColumns() throws Exception {
+  @Test void testColumns() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(connection -> {
@@ -111,7 +113,7 @@ public class JdbcFrontJdbcBackTest {
                 "product_id;time_id;customer_id;promotion_id;store_id;store_sales;store_cost;unit_sales;",
                 buf.toString());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
@@ -119,7 +121,7 @@ public class JdbcFrontJdbcBackTest {
   /** Tests a JDBC method known to be not implemented (as it happens,
    * {@link java.sql.DatabaseMetaData#getPrimaryKeys}) that therefore uses
    * empty result set. */
-  @Test public void testEmpty() throws Exception {
+  @Test void testEmpty() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(connection -> {
@@ -129,12 +131,12 @@ public class JdbcFrontJdbcBackTest {
                     null, null, "sales_fact_1997");
             assertFalse(rset.next());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Test public void testCase() {
+  @Test void testCase() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select\n"
@@ -147,5 +149,3 @@ public class JdbcFrontJdbcBackTest {
             + "c0=8.55\n");
   }
 }
-
-// End JdbcFrontJdbcBackTest.java

@@ -25,9 +25,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -78,7 +81,8 @@ public class ReflectiveRelMetadataProvider
       ConcurrentMap<Class<RelNode>, UnboundMetadata> map,
       Class<? extends Metadata> metadataClass0,
       Multimap<Method, MetadataHandler> handlerMap) {
-    assert !map.isEmpty() : "are your methods named wrong?";
+    Preconditions.checkArgument(!map.isEmpty(), "ReflectiveRelMetadataProvider "
+        + "methods map is empty; are your methods named wrong?");
     this.map = map;
     this.metadataClass0 = metadataClass0;
     this.handlerMap = ImmutableMultimap.copyOf(handlerMap);
@@ -178,17 +182,16 @@ public class ReflectiveRelMetadataProvider
                   }
                   key1 = FlatLists.copyOf(args2);
                 }
-                if (mq.map.put(key1, NullSentinel.INSTANCE) != null) {
-                  throw CyclicMetadataException.INSTANCE;
+                if (mq.map.put(rel, key1, NullSentinel.INSTANCE) != null) {
+                  throw new CyclicMetadataException();
                 }
                 try {
                   return handlerMethod.invoke(target, args1);
                 } catch (InvocationTargetException
                     | UndeclaredThrowableException e) {
-                  Util.throwIfUnchecked(e.getCause());
-                  throw new RuntimeException(e.getCause());
+                  throw Util.throwAsRuntime(Util.causeOrSelf(e));
                 } finally {
-                  mq.map.remove(key1);
+                  mq.map.remove(rel, key1);
                 }
               });
       methodsMap.put(key, function);
@@ -197,7 +200,7 @@ public class ReflectiveRelMetadataProvider
         space.providerMap);
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
         ImmutableMultimap.builder();
@@ -227,7 +230,7 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
 
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     if (metadataClass == metadataClass0) {
       return apply(relClass);
@@ -237,7 +240,7 @@ public class ReflectiveRelMetadataProvider
   }
 
   @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass) {
     List<Class<? extends RelNode>> newSources = new ArrayList<>();
     for (;;) {
@@ -261,8 +264,9 @@ public class ReflectiveRelMetadataProvider
           }
         }
       }
-      if (RelNode.class.isAssignableFrom(relClass.getSuperclass())) {
-        relClass = (Class<RelNode>) relClass.getSuperclass();
+      Class<?> superclass = relClass.getSuperclass();
+      if (superclass != null && RelNode.class.isAssignableFrom(superclass)) {
+        relClass = (Class<RelNode>) superclass;
       } else {
         return null;
       }
@@ -300,7 +304,7 @@ public class ReflectiveRelMetadataProvider
      * {@code map}. */
     @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
     Method find(final Class<? extends RelNode> relNodeClass, Method method) {
-      Objects.requireNonNull(relNodeClass);
+      Objects.requireNonNull(relNodeClass, "relNodeClass");
       for (Class r = relNodeClass;;) {
         Method implementingMethod = handlerMap.get(Pair.of(r, method));
         if (implementingMethod != null) {
@@ -354,5 +358,3 @@ public class ReflectiveRelMetadataProvider
     }
   }
 }
-
-// End ReflectiveRelMetadataProvider.java

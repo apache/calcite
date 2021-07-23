@@ -1,5 +1,3 @@
-# Configuration file for Travis continuous integration.
-# See https://travis-ci.org/apache/calcite
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -16,15 +14,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# Configuration file for Travis continuous integration.
+# See https://travis-ci.org/apache/calcite
 language: java
 matrix:
   fast_finish: true
   include:
-    - env: IMAGE=maven:3-jdk-12
-    - env: IMAGE=maven:3-jdk-11 JDOC=Y RAT=Y
-    - env: IMAGE=maven:3-jdk-10 SLOW_TESTS=Y
-    - env: IMAGE=maven:3-jdk-9
-    - env: IMAGE=maven:3-jdk-8 JDOC=Y
+    - jdk: openjdk8
+      env:
+        - TZ=America/New_York # flips between −05:00 and −04:00
+    - jdk: openjdk11
+      env:
+        - CHECKERFRAMEWORK=Y
+      script:
+        - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
+        - ./gradlew --no-parallel --no-daemon --scan -PenableCheckerframework :linq4j:classes :core:classes
+    - jdk: openjdk11
+      env:
+        - ERRORPRONE=Y
+      script:
+        - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
+        - ./gradlew --no-parallel --no-daemon --scan -PenableErrorprone classes
+    - jdk: openjdk11
+      env:
+        - TZ=Pacific/Chatham # flips between +12:45 and +13:45
+    - jdk: openjdk15
 branches:
   only:
     - master
@@ -32,27 +47,19 @@ branches:
     - javadoc
     - /^branch-.*$/
     - /^[0-9]+-.*$/
-env:
-  global:
-  - DOCKERRUN="docker run -it --rm -v $PWD:/src -v $HOME/.m2:/root/.m2 -w /src"
-services:
-  - docker
-before_install:
-  - docker pull $IMAGE
-install:
-  # Print the Maven version, skip tests and javadoc
-  - $DOCKERRUN $IMAGE mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit -B -V
+install: true
 script:
-  # Print surefire output to the console instead of files
-  - unset _JAVA_OPTIONS
-  - if [ $JDOC = "Y" ]; then export JDOC=javadoc:javadoc; fi
-  - if [ $RAT = "Y" ]; then export RAT="apache-rat:check -Drat.consoleOutput"; fi
-  - if [ $SLOW_TESTS = "Y" ]; then export TESTS="-Dgroups=org.apache.calcite.test.SlowTests --projects :calcite-core"; else export TESTS=-DskipSlowTests; fi
-  - $DOCKERRUN $IMAGE mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test $TESTS $JDOC $RAT
+  # Throw OutOfMemoryError in case less than 35% is free after full GC
+  # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
+  - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
+  - ./gradlew --no-daemon build
 git:
-  depth: 10000
-sudo: required
+  depth: 100
 cache:
   directories:
-    - $HOME/.m2
-# End .travis.yml
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+
+before_cache:
+  - ./gradlew --stop
+  - F=CleanupGradleCache sh -x -c 'curl -O https://raw.githubusercontent.com/vlsi/cleanup-gradle-cache/v1.x/$F.java && javac -J-Xmx128m $F.java && java -Xmx128m $F'

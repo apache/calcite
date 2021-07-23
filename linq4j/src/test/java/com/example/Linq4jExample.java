@@ -67,5 +67,3 @@ public class Linq4jExample {
     assert s.equals("[10: Fred+Eric+Janet, 30: Bill]");
   }
 }
-
-// End Linq4jExample.java

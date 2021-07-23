@@ -17,28 +17,32 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 
-import java.util.function.Predicate;
-
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to an
- * {@link EnumerableFilter}.
+ * Rule to convert a {@link LogicalFilter} to an {@link EnumerableFilter}.
+ * You may provide a custom config to convert other nodes that extend {@link Filter}.
+ *
+ * @see EnumerableRules#ENUMERABLE_FILTER_RULE
  */
 class EnumerableFilterRule extends ConverterRule {
-  EnumerableFilterRule() {
-    super(LogicalFilter.class,
-        (Predicate<LogicalFilter>) RelOptUtil::containsMultisetOrWindowedAgg,
-        Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.LOGICAL_BUILDER, "EnumerableFilterRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.EMPTY
+      .as(Config.class)
+      .withConversion(LogicalFilter.class, f -> !f.containsOver(),
+          Convention.NONE, EnumerableConvention.INSTANCE,
+          "EnumerableFilterRule")
+      .withRuleFactory(EnumerableFilterRule::new);
+
+  protected EnumerableFilterRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
-    final LogicalFilter filter = (LogicalFilter) rel;
+  @Override public RelNode convert(RelNode rel) {
+    final Filter filter = (Filter) rel;
     return new EnumerableFilter(rel.getCluster(),
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE),
         convert(filter.getInput(),
@@ -47,5 +51,3 @@ class EnumerableFilterRule extends ConverterRule {
         filter.getCondition());
   }
 }
-
-// End EnumerableFilterRule.java

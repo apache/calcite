@@ -16,84 +16,88 @@
  */
 package org.apache.calcite.linq4j.function;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.IntFunction;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test for {@link Functions}.
  */
-public class FunctionTest {
+class FunctionTest {
   /** Unit test for {@link Functions#filter}. */
-  @Test public void testFilter() {
+  @Test void testFilter() {
     final List<String> abc = Arrays.asList("A", "B", "C", "D");
     // a miss, then a hit
-    Assert.assertEquals("[A, C, D]",
+    assertEquals("[A, C, D]",
         Functions.filter(abc, v1 -> !v1.equals("B")).toString());
     // a hit, then all misses
-    Assert.assertEquals("[A]",
+    assertEquals("[A]",
         Functions.filter(abc, v1 -> v1.equals("A")).toString());
     // two hits, then a miss
-    Assert.assertEquals("[A, B, D]",
+    assertEquals("[A, B, D]",
         Functions.filter(abc, v1 -> !v1.equals("C")).toString());
-    Assert.assertSame(Collections.emptyList(),
+    assertSame(Collections.emptyList(),
         Functions.filter(abc, Functions.falsePredicate1()));
-    Assert.assertSame(abc,
+    assertSame(abc,
         Functions.filter(abc, Functions.truePredicate1()));
   }
 
   /** Unit test for {@link Functions#exists}. */
-  @Test public void testExists() {
+  @Test void testExists() {
     final List<Integer> ints = Arrays.asList(1, 10, 2);
     final List<Integer> empty = Collections.emptyList();
-    Assert.assertFalse(
+    assertFalse(
         Functions.exists(ints, v1 -> v1 > 20));
-    Assert.assertFalse(
+    assertFalse(
         Functions.exists(empty, Functions.falsePredicate1()));
-    Assert.assertFalse(
+    assertFalse(
         Functions.exists(empty, Functions.truePredicate1()));
   }
 
   /** Unit test for {@link Functions#all}. */
-  @Test public void testAll() {
+  @Test void testAll() {
     final List<Integer> ints = Arrays.asList(1, 10, 2);
     final List<Integer> empty = Collections.emptyList();
-    Assert.assertFalse(
+    assertFalse(
         Functions.all(ints, v1 -> v1 > 20));
-    Assert.assertTrue(
+    assertTrue(
         Functions.all(ints, v1 -> v1 < 20));
-    Assert.assertFalse(
+    assertFalse(
         Functions.all(ints, v1 -> v1 < 10));
-    Assert.assertTrue(
+    assertTrue(
         Functions.all(empty, Functions.falsePredicate1()));
-    Assert.assertTrue(
+    assertTrue(
         Functions.all(empty, Functions.truePredicate1()));
   }
 
   /** Unit test for {@link Functions#generate}. */
-  @Test public void testGenerate() {
-    final Function1<Integer, String> xx =
-        new Function1<Integer, String>() {
-          public String apply(Integer a0) {
+  @Test void testGenerate() {
+    final IntFunction<String> xx =
+        new IntFunction<String>() {
+          public String apply(int a0) {
             return a0 == 0 ? "0" : "x" + apply(a0 - 1);
           }
         };
-    Assert.assertEquals(
+    assertEquals(
         "[]", Functions.generate(0, xx).toString());
-    Assert.assertEquals(
+    assertEquals(
         "[0]", Functions.generate(1, xx).toString());
-    Assert.assertEquals(
+    assertEquals(
         "[0, x0, xx0]", Functions.generate(3, xx).toString());
     try {
       final List<String> generate = Functions.generate(-2, xx);
-      Assert.fail("expected error, got " + generate);
+      fail("expected error, got " + generate);
     } catch (IllegalArgumentException e) {
       // ok
     }
   }
 }
-
-// End FunctionTest.java

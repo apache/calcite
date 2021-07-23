@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import com.google.common.collect.ImmutableList;
 
@@ -35,7 +36,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Operand type-checking strategy which checks operands for inclusion in type
  * families.
  */
-public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
+public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
+    ImplicitCastOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
   protected final ImmutableList<SqlTypeFamily> families;
@@ -54,32 +56,46 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean isOptional(int i) {
+  @Override public boolean isOptional(int i) {
     return optional.test(i);
   }
 
-  public boolean checkSingleOperandType(
+  @Override public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
       int iFormalOperand,
       boolean throwOnFailure) {
-    SqlTypeFamily family = families.get(iFormalOperand);
-    if (family == SqlTypeFamily.ANY) {
+    final SqlTypeFamily family = families.get(iFormalOperand);
+    switch (family) {
+    case ANY:
+      final RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
+      SqlTypeName typeName = type.getSqlTypeName();
+
+      if (typeName == SqlTypeName.CURSOR) {
+        // We do not allow CURSOR operands, even for ANY
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        }
+        return false;
+      }
+      // fall through
+    case IGNORE:
       // no need to check
       return true;
+    default:
+      break;
     }
     if (SqlUtil.isNullLiteral(node, false)) {
-      if (throwOnFailure) {
+      if (callBinding.isTypeCoercionEnabled()) {
+        return true;
+      } else if (throwOnFailure) {
         throw callBinding.getValidator().newValidationError(node,
             RESOURCE.nullIllegal());
       } else {
         return false;
       }
     }
-    RelDataType type =
-        callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            node);
+    RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
     SqlTypeName typeName = type.getSqlTypeName();
 
     // Pass type checking for operators if it's of type 'ANY'.
@@ -96,12 +112,52 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return true;
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (families.size() != callBinding.getOperandCount()) {
       // assume this is an inapplicable sub-rule of a composite rule;
       // don't throw
+      return false;
+    }
+    for (Ord<SqlNode> op : Ord.zip(callBinding.operands())) {
+      if (!checkSingleOperandType(
+          callBinding,
+          op.e,
+          op.i,
+          false)) {
+        // try to coerce type if it is allowed.
+        boolean coerced = false;
+        if (callBinding.isTypeCoercionEnabled()) {
+          TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+          ImmutableList.Builder<RelDataType> builder = ImmutableList.builder();
+          for (int i = 0; i < callBinding.getOperandCount(); i++) {
+            builder.add(callBinding.getOperandType(i));
+          }
+          ImmutableList<RelDataType> dataTypes = builder.build();
+          coerced = typeCoercion.builtinFunctionCoercion(callBinding, dataTypes, families);
+        }
+        // re-validate the new nodes type.
+        for (Ord<SqlNode> op1 : Ord.zip(callBinding.operands())) {
+          if (!checkSingleOperandType(
+              callBinding,
+              op1.e,
+              op1.i,
+              throwOnFailure)) {
+            return false;
+          }
+        }
+        return coerced;
+      }
+    }
+    return true;
+  }
+
+  @Override public boolean checkOperandTypesWithoutTypeCoercion(SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    if (families.size() != callBinding.getOperandCount()) {
+      // assume this is an inapplicable sub-rule of a composite rule;
+      // don't throw exception.
       return false;
     }
 
@@ -117,7 +173,11 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return true;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand) {
+    return families.get(iFormalOperand);
+  }
+
+  @Override public SqlOperandCountRange getOperandCountRange() {
     final int max = families.size();
     int min = max;
     while (min > 0 && optional.test(min - 1)) {
@@ -126,13 +186,11 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return SqlOperandCountRanges.between(min, max);
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return SqlUtil.getAliasedSignature(op, opName, families);
   }
 
-  public Consistency getConsistency() {
+  @Override public Consistency getConsistency() {
     return Consistency.NONE;
   }
 }
-
-// End FamilyOperandTypeChecker.java

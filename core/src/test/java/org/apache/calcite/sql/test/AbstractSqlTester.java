@@ -31,12 +31,14 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -45,8 +47,8 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -60,14 +62,16 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Abstract implementation of
@@ -79,9 +83,12 @@ import static org.junit.Assert.fail;
  */
 public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   protected final SqlTestFactory factory;
+  protected final UnaryOperator<SqlValidator> validatorTransform;
 
-  public AbstractSqlTester(SqlTestFactory factory) {
-    this.factory = factory;
+  public AbstractSqlTester(SqlTestFactory factory,
+      UnaryOperator<SqlValidator> validatorTransform) {
+    this.factory = Objects.requireNonNull(factory, "factory");
+    this.validatorTransform = Objects.requireNonNull(validatorTransform, "validatorTransform");
   }
 
   public final SqlTestFactory getFactory() {
@@ -105,15 +112,15 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     return factory.getValidator();
   }
 
-  public void assertExceptionIsThrown(String sql, String expectedMsgPattern) {
+  public void assertExceptionIsThrown(StringAndPos sap,
+      String expectedMsgPattern) {
     final SqlValidator validator;
     final SqlNode sqlNode;
-    final SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     try {
       sqlNode = parseQuery(sap.sql);
       validator = getValidator();
     } catch (Throwable e) {
-      checkParseEx(e, expectedMsgPattern, sap.sql);
+      SqlTests.checkEx(e, expectedMsgPattern, sap, SqlTests.Stage.PARSE);
       return;
     }
 
@@ -124,31 +131,32 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       thrown = ex;
     }
 
-    SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
+    SqlTests.checkEx(thrown, expectedMsgPattern, sap, SqlTests.Stage.VALIDATE);
   }
 
-  protected void checkParseEx(Throwable e, String expectedMsgPattern, String sql) {
+  protected void checkParseEx(Throwable e, String expectedMsgPattern,
+      StringAndPos sap) {
     try {
       throw e;
     } catch (SqlParseException spe) {
       String errMessage = spe.getMessage();
       if (expectedMsgPattern == null) {
-        throw new RuntimeException("Error while parsing query:" + sql, spe);
+        throw new RuntimeException("Error while parsing query:" + sap, spe);
       } else if (errMessage == null
           || !errMessage.matches(expectedMsgPattern)) {
         throw new RuntimeException("Error did not match expected ["
             + expectedMsgPattern + "] while parsing query ["
-            + sql + "]", spe);
+            + sap + "]", spe);
       }
     } catch (Throwable t) {
-      throw new RuntimeException("Error while parsing query: " + sql, t);
+      throw new RuntimeException("Error while parsing query: " + sap, t);
     }
   }
 
   public RelDataType getColumnType(String sql) {
     RelDataType rowType = getResultType(sql);
     final List<RelDataTypeField> fields = rowType.getFieldList();
-    assertEquals("expected query to return 1 field", 1, fields.size());
+    assertEquals(1, fields.size(), "expected query to return 1 field");
     return fields.get(0).getType();
   }
 
@@ -160,9 +168,6 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   }
 
   public SqlNode parseAndValidate(SqlValidator validator, String sql) {
-    if (validator == null) {
-      validator = getValidator();
-    }
     SqlNode sqlNode;
     try {
       sqlNode = parseQuery(sql);
@@ -231,7 +236,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     assertNotNull(node);
     SqlIntervalLiteral intervalLiteral = (SqlIntervalLiteral) node;
     SqlIntervalLiteral.IntervalValue interval =
-        (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
+        intervalLiteral.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     long l =
         interval.getIntervalQualifier().isYearMonth()
             ? SqlParserUtil.intervalToMonths(interval)
@@ -291,6 +296,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     return with("caseSensitive", sensitive);
   }
 
+  public SqlTester withLenientOperatorLookup(boolean lenient) {
+    return with("lenientOperatorLookup", lenient);
+  }
+
   public SqlTester withLex(Lex lex) {
     return withQuoting(lex.quoting)
         .withCaseSensitive(lex.caseSensitive)
@@ -311,6 +320,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     } else {
       return tester;
     }
+  }
+
+  public SqlTester enableTypeCoercion(boolean enabled) {
+    return with("enableTypeCoercion", enabled);
   }
 
   public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {
@@ -487,38 +500,51 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     assertThat(monotonicity, equalTo(expectedMonotonicity));
   }
 
-  public void checkRewrite(
-      SqlValidator validator,
-      String query,
-      String expectedRewrite) {
+  public void checkRewrite(String query, String expectedRewrite) {
+    final SqlValidator validator = validatorTransform.apply(getValidator());
     SqlNode rewrittenNode = parseAndValidate(validator, query);
     String actualRewrite =
         rewrittenNode.toSqlString(AnsiSqlDialect.DEFAULT, false).getSql();
     TestUtil.assertEqualsVerbose(expectedRewrite, Util.toLinux(actualRewrite));
   }
 
-  public void checkFails(
-      String expression,
-      String expectedError,
+  @Override public void checkFails(StringAndPos sap, String expectedError,
       boolean runtime) {
     if (runtime) {
       // We need to test that the expression fails at runtime.
       // Ironically, that means that it must succeed at prepare time.
       SqlValidator validator = getValidator();
-      final String sql = buildQuery(expression);
+      final String sql = buildQuery(sap.addCarets());
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
     } else {
-      checkQueryFails(buildQuery(expression), expectedError);
+      checkQueryFails(StringAndPos.of(buildQuery(sap.addCarets())),
+          expectedError);
     }
   }
 
-  public void checkQueryFails(String sql, String expectedError) {
-    assertExceptionIsThrown(sql, expectedError);
+  public void checkQueryFails(StringAndPos sap, String expectedError) {
+    assertExceptionIsThrown(sap, expectedError);
+  }
+
+  @Override public void checkAggFails(
+      String expr,
+      String[] inputValues,
+      String expectedError,
+      boolean runtime) {
+    final String sql =
+        SqlTests.generateAggQuery(expr, inputValues);
+    if (runtime) {
+      SqlValidator validator = getValidator();
+      SqlNode n = parseAndValidate(validator, sql);
+      assertNotNull(n);
+    } else {
+      checkQueryFails(StringAndPos.of(sql), expectedError);
+    }
   }
 
   public void checkQuery(String sql) {
-    assertExceptionIsThrown(sql, null);
+    assertExceptionIsThrown(StringAndPos.of(sql), null);
   }
 
   public SqlMonotonicity getMonotonicity(String sql) {
@@ -559,6 +585,11 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
    * @return Query that evaluates a scalar expression
    */
   protected String buildQuery2(String expression) {
+    if (expression.matches("(?i).*percentile_(cont|disc).*")) {
+      // PERCENTILE_CONT requires its argument to be a literal,
+      // so converting its argument to a column will cause false errors.
+      return buildQuery(expression);
+    }
     // "values (1 < 5)"
     // becomes
     // "select p0 < p1 from (values (1, 5)) as t(p0, p1)"
@@ -567,7 +598,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     try {
       x = parseQuery(sql);
     } catch (SqlParseException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
     final Collection<SqlNode> literalSet = new LinkedHashSet<>();
     x.accept(
@@ -589,7 +620,19 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
           }
 
           @Override public SqlNode visit(SqlCall call) {
-            final SqlOperator operator = call.getOperator();
+            SqlOperator operator = call.getOperator();
+            if (operator instanceof SqlUnresolvedFunction) {
+              final SqlUnresolvedFunction unresolvedFunction = (SqlUnresolvedFunction) operator;
+              final SqlOperator lookup = SqlValidatorUtil.lookupSqlFunctionByID(
+                  SqlStdOperatorTable.instance(),
+                  unresolvedFunction.getSqlIdentifier(),
+                  unresolvedFunction.getFunctionType());
+              if (lookup != null) {
+                operator = lookup;
+                call = operator.createCall(call.getFunctionQuantifier(),
+                    call.getParserPosition(), call.getOperandList());
+              }
+            }
             if (operator == SqlStdOperatorTable.CAST
                 && isNull(call.operand(0))) {
               literalSet.add(call);
@@ -686,5 +729,3 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   }
 
 }
-
-// End AbstractSqlTester.java

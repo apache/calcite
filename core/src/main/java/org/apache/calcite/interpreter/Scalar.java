@@ -16,12 +16,22 @@
  */
 package org.apache.calcite.interpreter;
 
+import org.apache.calcite.DataContext;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.function.Function;
+
 /**
  * Compiled scalar expression.
  */
 public interface Scalar {
-  Object execute(Context context);
-  void execute(Context context, Object[] results);
-}
+  @Nullable Object execute(Context context);
+  void execute(Context context, @Nullable Object[] results);
 
-// End Scalar.java
+  /** Produces a {@link Scalar} when a query is executed.
+   *
+   * <p>Call {@code producer.apply(DataContext)} to get a Scalar. */
+  interface Producer extends Function<DataContext, Scalar> {
+  }
+}

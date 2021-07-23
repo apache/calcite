@@ -20,7 +20,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * A SQL literal representing a time interval.
@@ -53,7 +57,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
   }
 
   private SqlIntervalLiteral(
-      IntervalValue intervalValue,
+      @Nullable IntervalValue intervalValue,
       SqlTypeName sqlTypeName,
       SqlParserPos pos) {
     super(
@@ -68,7 +72,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
     return new SqlIntervalLiteral((IntervalValue) value, getTypeName(), pos);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
@@ -76,8 +80,8 @@ public class SqlIntervalLiteral extends SqlLiteral {
   }
 
   @SuppressWarnings("deprecation")
-  public int signum() {
-    return ((IntervalValue) value).signum();
+  @Override public int signum() {
+    return ((IntervalValue) castNonNull(value)).signum();
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -109,7 +113,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
       this.intervalStr = intervalStr;
     }
 
-    public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       if (!(obj instanceof IntervalValue)) {
         return false;
       }
@@ -120,7 +124,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
               Litmus.IGNORE);
     }
 
-    public int hashCode() {
+    @Override public int hashCode() {
       return Objects.hash(sign, intervalStr, intervalQualifier);
     }
 
@@ -147,10 +151,8 @@ public class SqlIntervalLiteral extends SqlLiteral {
       return 0;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return intervalStr;
     }
   }
 }
-
-// End SqlIntervalLiteral.java

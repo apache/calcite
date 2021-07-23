@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelHintsPropagator;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -26,10 +28,11 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexExecutorImpl;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +59,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   /** Creates MockRelOptPlanner. */
   public MockRelOptPlanner(Context context) {
     super(RelOptCostImpl.FACTORY, context);
-    setExecutor(new RexExecutorImpl(Schemas.createDataContext(null, null)));
+    setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
   }
 
   // implement RelOptPlanner
@@ -65,7 +68,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public RelNode getRoot() {
+  public @Nullable RelNode getRoot() {
     return root;
   }
 
@@ -187,7 +190,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   // implement RelOptPlanner
   public RelNode register(
       RelNode rel,
-      RelNode equivRel) {
+      @Nullable RelNode equivRel) {
     return rel;
   }
 
@@ -232,11 +235,9 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
           Collections.emptyMap());
     }
 
-    // implement RelOptRuleCall
-    public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
+    @Override public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+        RelHintsPropagator handler) {
       transformationResult = rel;
     }
   }
 }
-
-// End MockRelOptPlanner.java

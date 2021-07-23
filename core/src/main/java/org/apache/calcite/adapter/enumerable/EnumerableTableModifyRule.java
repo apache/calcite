@@ -20,31 +20,30 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.schema.ModifiableTable;
-import org.apache.calcite.tools.RelBuilderFactory;
 
-import java.util.function.Predicate;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalTableModify}
- * relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+/** Planner rule that converts a {@link LogicalTableModify} to an {@link EnumerableTableModify}.
+ * You may provide a custom config to convert other nodes that extend {@link TableModify}.
+ *
+ * @see EnumerableRules#ENUMERABLE_TABLE_MODIFICATION_RULE */
 public class EnumerableTableModifyRule extends ConverterRule {
-  /**
-   * Creates an EnumerableTableModifyRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public EnumerableTableModifyRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalTableModify.class, (Predicate<RelNode>) r -> true,
-        Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
-        "EnumerableTableModificationRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalTableModify.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableTableModificationRule")
+      .withRuleFactory(EnumerableTableModifyRule::new);
+
+  /** Creates an EnumerableTableModifyRule. */
+  protected EnumerableTableModifyRule(Config config) {
+    super(config);
   }
 
-  @Override public RelNode convert(RelNode rel) {
-    final LogicalTableModify modify =
-        (LogicalTableModify) rel;
+  @Override public @Nullable RelNode convert(RelNode rel) {
+    final TableModify modify = (TableModify) rel;
     final ModifiableTable modifiableTable =
         modify.getTable().unwrap(ModifiableTable.class);
     if (modifiableTable == null) {
@@ -63,5 +62,3 @@ public class EnumerableTableModifyRule extends ConverterRule {
         modify.isFlattened());
   }
 }
-
-// End EnumerableTableModifyRule.java

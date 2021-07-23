@@ -27,6 +27,10 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -50,7 +54,7 @@ public class MongoTableScan extends TableScan implements MongoRel {
    */
   protected MongoTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, MongoTable mongoTable, RelDataType projectRowType) {
-    super(cluster, traitSet, table);
+    super(cluster, traitSet, ImmutableList.of(), table);
     this.mongoTable = mongoTable;
     this.projectRowType = projectRowType;
 
@@ -67,7 +71,7 @@ public class MongoTableScan extends TableScan implements MongoRel {
     return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // scans with a small project list are cheaper
     final float f = projectRowType == null ? 1f
@@ -82,10 +86,8 @@ public class MongoTableScan extends TableScan implements MongoRel {
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.mongoTable = mongoTable;
     implementor.table = table;
   }
 }
-
-// End MongoTableScan.java

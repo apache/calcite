@@ -24,10 +24,14 @@ import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parameter type-checking strategy where all operand types except last one must be the same.
@@ -47,28 +51,35 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
 
   //~ Methods ----------------------------------------------------------------
 
-  protected boolean checkOperandTypesImpl(
+  @Override protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
-      SqlCallBinding callBinding) {
+      @Nullable SqlCallBinding callBinding) {
+    if (throwOnFailure && callBinding == null) {
+      throw new IllegalArgumentException(
+          "callBinding must be non-null in case throwOnFailure=true");
+    }
     int nOperandsActual = nOperands;
     if (nOperandsActual == -1) {
       nOperandsActual = operatorBinding.getOperandCount();
     }
-    assert !(throwOnFailure && (callBinding == null));
     RelDataType[] types = new RelDataType[nOperandsActual];
     final List<Integer> operandList =
         getOperandList(operatorBinding.getOperandCount());
     for (int i : operandList) {
       if (operatorBinding.isOperandNull(i, false)) {
-        if (throwOnFailure) {
+        if (requireNonNull(callBinding, "callBinding").isTypeCoercionEnabled()) {
+          types[i] = operatorBinding.getTypeFactory()
+              .createSqlType(SqlTypeName.NULL);
+        } else if (throwOnFailure) {
           throw callBinding.getValidator().newValidationError(
               callBinding.operand(i), RESOURCE.nullIllegal());
         } else {
           return false;
         }
+      } else {
+        types[i] = operatorBinding.getOperandType(i);
       }
-      types[i] = operatorBinding.getOperandType(i);
     }
     int prev = -1;
     for (int i : operandList) {
@@ -81,7 +92,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
           // REVIEW jvs 5-June-2005: Why don't we use
           // newValidationSignatureError() here?  It gives more
           // specific diagnostics.
-          throw callBinding.newValidationError(
+          throw requireNonNull(callBinding, "callBinding").newValidationError(
               RESOURCE.needSameTypeParameter());
         }
       }
@@ -90,7 +101,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
     return true;
   }
 
-  public String getAllowedSignatures(SqlOperator op, String opName) {
+  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     final String typeName = getTypeName();
     if (nOperands == -1) {
       return SqlUtil.getAliasedSignature(op, opName,
@@ -102,5 +113,3 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
     }
   }
 }
-
-// End SameOperandTypeExceptLastOperandChecker.java

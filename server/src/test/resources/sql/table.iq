@@ -151,4 +151,68 @@ drop table if exists t;
 
 !update
 
+# Create a table with a VIRTUAL column of builtin function
+
+create table t (i varchar(5), j int as (char_length(i)) virtual, k varchar(3));
+(0 rows modified)
+
+!update
+
+insert into t values ('abcde', 5, 'de ');
+Cannot INSERT into generated column 'J'
+!error
+
+insert into t (i, j) values ('abcde', 5);
+Cannot INSERT into generated column 'J'
+!error
+
+insert into t (i, k) values ('abcde', 'de ');
+(1 row modified)
+
+!update
+EnumerableTableModify(table=[[T]], operation=[INSERT], flattened=[false])
+  EnumerableValues(tuples=[[{ 'abcde', 'de ' }]])
+!plan
+
+insert into t (k, i) values ('de ', 'abcde');
+(1 row modified)
+
+!update
+EnumerableTableModify(table=[[T]], operation=[INSERT], flattened=[false])
+  EnumerableCalc(expr#0..1=[{inputs}], I=[$t1], K=[$t0])
+    EnumerableValues(tuples=[[{ 'de ', 'abcde' }]])
+!plan
+
+select * from t;
++-------+---+-----+
+| I     | J | K   |
++-------+---+-----+
+| abcde | 5 | de  |
+| abcde | 5 | de  |
++-------+---+-----+
+(2 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CHAR_LENGTH($t0)], I=[$t0], J=[$t2], K=[$t1])
+  EnumerableTableScan(table=[[T]])
+!plan
+
+drop table if exists t;
+(0 rows modified)
+
+!update
+
+select * from t;
+Object 'T' not found
+!error
+
+drop table t;
+Table 'T' not found
+!error
+
+drop table if exists t;
+(0 rows modified)
+
+!update
+
 # End table.iq

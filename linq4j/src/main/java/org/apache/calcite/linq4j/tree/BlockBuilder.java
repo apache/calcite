@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -25,6 +28,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Builder for {@link BlockStatement}.
@@ -41,9 +46,18 @@ public class BlockBuilder {
       new HashMap<>();
 
   private final boolean optimizing;
-  private final BlockBuilder parent;
+  private final @Nullable BlockBuilder parent;
+  private final boolean removeUnused;
 
   private static final Shuttle OPTIMIZE_SHUTTLE = new OptimizeShuttle();
+
+  /** Private constructor. */
+  private BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent,
+      boolean removeUnused) {
+    this.optimizing = optimizing;
+    this.parent = parent;
+    this.removeUnused = removeUnused;
+  }
 
   /**
    * Creates a non-optimizing BlockBuilder.
@@ -66,9 +80,8 @@ public class BlockBuilder {
    *
    * @param optimizing Whether to eliminate common sub-expressions
    */
-  public BlockBuilder(boolean optimizing, BlockBuilder parent) {
-    this.optimizing = optimizing;
-    this.parent = parent;
+  public BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent) {
+    this(optimizing, parent, true);
   }
 
   /**
@@ -110,7 +123,7 @@ public class BlockBuilder {
       }
     }
     Expression result = null;
-    final Map<ParameterExpression, Expression> replacements =
+    final IdentityHashMap<ParameterExpression, Expression> replacements =
         new IdentityHashMap<>();
     final Shuttle shuttle = new SubstituteVariableVisitor(replacements);
     for (int i = 0; i < block.statements.size(); i++) {
@@ -153,7 +166,8 @@ public class BlockBuilder {
           result = ((DeclarationStatement) statement).parameter;
         } else if (statement instanceof GotoStatement) {
           statements.remove(statements.size() - 1);
-          result = append_(name, ((GotoStatement) statement).expression,
+          result = append_(name,
+              requireNonNull(((GotoStatement) statement).expression, "expression"),
               optimize);
           if (isSimpleExpression(result)) {
             // already simple; no need to declare a variable or
@@ -169,7 +183,7 @@ public class BlockBuilder {
         }
       }
     }
-    return result;
+    return requireNonNull(result, () -> "empty result when appending name=" + name + ", " + block);
   }
 
   /**
@@ -182,9 +196,10 @@ public class BlockBuilder {
   }
 
   /**
-   * Appends an expression to a list of statements, if it is not null.
+   * Appends an expression to a list of statements if it is not null,
+   * and returns the expression.
    */
-  public Expression appendIfNotNull(String name, Expression expression) {
+  public @PolyNull Expression appendIfNotNull(String name, @PolyNull Expression expression) {
     if (expression == null) {
       return null;
     }
@@ -233,7 +248,7 @@ public class BlockBuilder {
    * @param expr expression to test
    * @return true when given expression is safe to always inline
    */
-  protected boolean isSimpleExpression(Expression expr) {
+  protected boolean isSimpleExpression(@Nullable Expression expr) {
     if (expr instanceof ParameterExpression
         || expr instanceof ConstantExpression) {
       return true;
@@ -257,16 +272,17 @@ public class BlockBuilder {
     }
   }
 
-  private boolean isCostly(DeclarationStatement decl) {
+  private static boolean isCostly(DeclarationStatement decl) {
     return decl.initializer instanceof NewExpression;
   }
 
   /**
-   * Prepares declaration for inlining: adds cast
+   * Prepares declaration for inlining, adds cast.
+   *
    * @param decl inlining candidate
    * @return normalized expression
    */
-  private Expression normalizeDeclaration(DeclarationStatement decl) {
+  private static Expression normalizeDeclaration(DeclarationStatement decl) {
     Expression expr = decl.initializer;
     Type declType = decl.parameter.getType();
     if (expr == null) {
@@ -279,11 +295,12 @@ public class BlockBuilder {
 
   /**
    * Returns the reference to ParameterExpression if given expression was
-   * already computed and stored to local variable
+   * already computed and stored to local variable.
+   *
    * @param expr expression to test
    * @return existing ParameterExpression or null
    */
-  public DeclarationStatement getComputedExpression(Expression expr) {
+  public @Nullable DeclarationStatement getComputedExpression(Expression expr) {
     if (parent != null) {
       DeclarationStatement decl = parent.getComputedExpression(expr);
       if (decl != null) {
@@ -313,7 +330,7 @@ public class BlockBuilder {
    * Returns a block consisting of the current list of statements.
    */
   public BlockStatement toBlock() {
-    if (optimizing) {
+    if (optimizing && removeUnused) {
       // We put an artificial limit of 10 iterations just to prevent an endless
       // loop. Optimize should not loop forever, however it is hard to prove if
       // it always finishes in reasonable time.
@@ -348,7 +365,7 @@ public class BlockBuilder {
         statement.accept(useCounter);
       }
     }
-    final Map<ParameterExpression, Expression> subMap =
+    final IdentityHashMap<ParameterExpression, Expression> subMap =
         new IdentityHashMap<>(useCounter.map.size());
     final Shuttle visitor = new InlineVariableVisitor(
         subMap);
@@ -486,7 +503,7 @@ public class BlockBuilder {
     int i = 0;
     String candidate = suggestion;
     while (hasVariable(candidate)) {
-      candidate = suggestion + (i++);
+      candidate = suggestion + i++;
     }
     return candidate;
   }
@@ -501,10 +518,14 @@ public class BlockBuilder {
     return this;
   }
 
+  public BlockBuilder withRemoveUnused(boolean removeUnused) {
+    return new BlockBuilder(optimizing, parent, removeUnused);
+  }
+
   /** Substitute Variable Visitor. */
   private static class SubstituteVariableVisitor extends Shuttle {
     protected final Map<ParameterExpression, Expression> map;
-    private final Map<ParameterExpression, Boolean> actives =
+    private final IdentityHashMap<ParameterExpression, Boolean> actives =
         new IdentityHashMap<>();
 
     SubstituteVariableVisitor(Map<ParameterExpression, Expression> map) {
@@ -571,7 +592,7 @@ public class BlockBuilder {
 
   /** Use counter. */
   private static class UseCounter extends VisitorImpl<Void> {
-    private final Map<ParameterExpression, Slot> map = new IdentityHashMap<>();
+    private final IdentityHashMap<ParameterExpression, Slot> map = new IdentityHashMap<>();
 
     @Override public Void visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);
@@ -600,5 +621,3 @@ public class BlockBuilder {
     private int count;
   }
 }
-
-// End BlockBuilder.java

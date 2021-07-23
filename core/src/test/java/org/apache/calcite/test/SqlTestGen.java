@@ -17,17 +17,17 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BarfingInvocationHandler;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
@@ -38,7 +38,7 @@ import java.util.List;
 /**
  * Utility to generate a SQL script from validator test.
  */
-public class SqlTestGen {
+class SqlTestGen {
   private SqlTestGen() {}
 
   //~ Methods ----------------------------------------------------------------
@@ -56,11 +56,8 @@ public class SqlTestGen {
         final Object result = method.invoke(test);
         assert result == null;
       }
-    } catch (IOException | IllegalAccessException
-        | IllegalArgumentException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e.getCause());
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
     }
   }
 
@@ -89,7 +86,7 @@ public class SqlTestGen {
    */
   private static class SqlValidatorSpooler extends SqlValidatorTest {
     private static final SqlTestFactory SPOOLER_VALIDATOR = SqlTestFactory.INSTANCE.withValidator(
-        (opTab, catalogReader, typeFactory, conformance) ->
+        (opTab, catalogReader, typeFactory, config) ->
             (SqlValidator) Proxy.newProxyInstance(
                 SqlValidatorSpooler.class.getClassLoader(),
                 new Class[]{SqlValidator.class},
@@ -104,14 +101,14 @@ public class SqlTestGen {
     public SqlTester getTester() {
       return new SqlValidatorTester(SPOOLER_VALIDATOR) {
         public void assertExceptionIsThrown(
-            String sql,
+            StringAndPos sap,
             String expectedMsgPattern) {
           if (expectedMsgPattern == null) {
             // This SQL statement is supposed to succeed.
             // Generate it to the file, so we can see what
             // output it produces.
             pw.println("-- " /* + getName() */);
-            pw.println(sql);
+            pw.println(sap);
             pw.println(";");
           } else {
             // Do nothing. We know that this fails the validator
@@ -151,10 +148,7 @@ public class SqlTestGen {
         @Override public void checkIntervalConv(String sql, String expected) {
         }
 
-        @Override public void checkRewrite(
-            SqlValidator validator,
-            String query,
-            String expectedRewrite) {
+        @Override public void checkRewrite(String query, String expectedRewrite) {
         }
 
         @Override public void checkFieldOrigin(
@@ -185,5 +179,3 @@ public class SqlTestGen {
     }
   }
 }
-
-// End SqlTestGen.java

@@ -24,14 +24,16 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -41,12 +43,8 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 /**
@@ -57,39 +55,45 @@ final class JdbcUtils {
     throw new AssertionError("no instances!");
   }
 
+  /** Returns a function that, given a {@link ResultSet}, returns a function
+   * that will yield successive rows from that result set. */
+  static Function1<ResultSet, Function0<@Nullable Object[]>> rowBuilderFactory(
+      final List<Pair<ColumnMetaData.Rep, Integer>> list) {
+    ColumnMetaData.Rep[] reps =
+        Pair.left(list).toArray(new ColumnMetaData.Rep[0]);
+    int[] types = Ints.toArray(Pair.right(list));
+    return resultSet -> new ObjectArrayRowBuilder1(resultSet, reps, types);
+  }
+
+  /** Returns a function that, given a {@link ResultSet}, returns a function
+   * that will yield successive rows from that result set;
+   * as {@link #rowBuilderFactory(List)} except that values are in Calcite's
+   * internal format (e.g. DATE represented as int). */
+  static Function1<ResultSet, Function0<@Nullable Object[]>> rowBuilderFactory2(
+      final List<Pair<ColumnMetaData.Rep, Integer>> list) {
+    ColumnMetaData.Rep[] reps =
+        Pair.left(list).toArray(new ColumnMetaData.Rep[0]);
+    int[] types = Ints.toArray(Pair.right(list));
+    return resultSet -> new ObjectArrayRowBuilder2(resultSet, reps, types);
+  }
+
   /** Pool of dialects. */
   static class DialectPool {
-    final Map<DataSource, Map<SqlDialectFactory, SqlDialect>> map0 = new IdentityHashMap<>();
-    final Map<List, SqlDialect> map = new HashMap<>();
-
     public static final DialectPool INSTANCE = new DialectPool();
 
-    // TODO: Discuss why we need a pool. If we do, I'd like to improve performance
-    synchronized SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
-      Map<SqlDialectFactory, SqlDialect> dialectMap = map0.get(dataSource);
-      if (dialectMap != null) {
-        final SqlDialect sqlDialect = dialectMap.get(dialectFactory);
-        if (sqlDialect != null) {
-          return sqlDialect;
-        }
-      }
+    private final LoadingCache<Pair<SqlDialectFactory, DataSource>, SqlDialect> cache =
+        CacheBuilder.newBuilder().softValues()
+            .build(CacheLoader.from(DialectPool::dialect));
+
+    private static SqlDialect dialect(
+        Pair<SqlDialectFactory, DataSource> key) {
+      SqlDialectFactory dialectFactory = key.left;
+      DataSource dataSource = key.right;
       Connection connection = null;
       try {
         connection = dataSource.getConnection();
         DatabaseMetaData metaData = connection.getMetaData();
-        String productName = metaData.getDatabaseProductName();
-        String productVersion = metaData.getDatabaseProductVersion();
-        List key = ImmutableList.of(productName, productVersion, dialectFactory);
-        SqlDialect dialect = map.get(key);
-        if (dialect == null) {
-          dialect = dialectFactory.create(metaData);
-          map.put(key, dialect);
-          if (dialectMap == null) {
-            dialectMap = new IdentityHashMap<>();
-            map0.put(dataSource, dialectMap);
-          }
-          dialectMap.put(dialectFactory, dialect);
-        }
+        SqlDialect dialect = dialectFactory.create(metaData);
         connection.close();
         connection = null;
         return dialect;
@@ -105,43 +109,39 @@ final class JdbcUtils {
         }
       }
     }
+
+    public SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
+      final Pair<SqlDialectFactory, DataSource> key =
+          Pair.of(dialectFactory, dataSource);
+      return cache.getUnchecked(key);
+    }
   }
 
   /** Builder that calls {@link ResultSet#getObject(int)} for every column,
    * or {@code getXxx} if the result type is a primitive {@code xxx},
    * and returns an array of objects for each row. */
-  static class ObjectArrayRowBuilder implements Function0<Object[]> {
-    private final ResultSet resultSet;
-    private final int columnCount;
-    private final ColumnMetaData.Rep[] reps;
-    private final int[] types;
+  abstract static class ObjectArrayRowBuilder
+      implements Function0<@Nullable Object[]> {
+    protected final ResultSet resultSet;
+    protected final int columnCount;
+    protected final ColumnMetaData.Rep[] reps;
+    protected final int[] types;
 
     ObjectArrayRowBuilder(ResultSet resultSet, ColumnMetaData.Rep[] reps,
-        int[] types)
-        throws SQLException {
+        int[] types) {
       this.resultSet = resultSet;
       this.reps = reps;
       this.types = types;
-      this.columnCount = resultSet.getMetaData().getColumnCount();
-    }
-
-    public static Function1<ResultSet, Function0<Object[]>> factory(
-        final List<Pair<ColumnMetaData.Rep, Integer>> list) {
-      return resultSet -> {
-        try {
-          return new ObjectArrayRowBuilder(
-              resultSet,
-              Pair.left(list).toArray(new ColumnMetaData.Rep[list.size()]),
-              Ints.toArray(Pair.right(list)));
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-      };
-    }
-
-    public Object[] apply() {
       try {
-        final Object[] values = new Object[columnCount];
+        this.columnCount = resultSet.getMetaData().getColumnCount();
+      } catch (SQLException e) {
+        throw Util.throwAsRuntime(e);
+      }
+    }
+
+    @Override public @Nullable Object[] apply() {
+      try {
+        final @Nullable Object[] values = new Object[columnCount];
         for (int i = 0; i < columnCount; i++) {
           values[i] = value(i);
         }
@@ -156,46 +156,92 @@ final class JdbcUtils {
      *
      * @param i Ordinal of column (1-based, per JDBC)
      */
-    private Object value(int i) throws SQLException {
+    protected abstract @Nullable Object value(int i) throws SQLException;
+
+    long timestampToLong(Timestamp v) {
+      return v.getTime();
+    }
+
+    long timeToLong(Time v) {
+      return v.getTime();
+    }
+
+    long dateToLong(Date v) {
+      return v.getTime();
+    }
+  }
+
+  /** Row builder that shifts DATE, TIME, TIMESTAMP values into local time
+   * zone. */
+  static class ObjectArrayRowBuilder1 extends ObjectArrayRowBuilder {
+    final TimeZone timeZone = TimeZone.getDefault();
+
+    ObjectArrayRowBuilder1(ResultSet resultSet, ColumnMetaData.Rep[] reps,
+        int[] types) {
+      super(resultSet, reps, types);
+    }
+
+    @Override protected @Nullable Object value(int i) throws SQLException {
       // MySQL returns timestamps shifted into local time. Using
       // getTimestamp(int, Calendar) with a UTC calendar should prevent this,
       // but does not. So we shift explicitly.
       switch (types[i]) {
       case Types.TIMESTAMP:
-        return shift(resultSet.getTimestamp(i + 1));
+        final Timestamp timestamp = resultSet.getTimestamp(i + 1);
+        return timestamp == null ? null : new Timestamp(timestampToLong(timestamp));
       case Types.TIME:
-        return shift(resultSet.getTime(i + 1));
+        final Time time = resultSet.getTime(i + 1);
+        return time == null ? null : new Time(timeToLong(time));
       case Types.DATE:
-        return shift(resultSet.getDate(i + 1));
+        final Date date = resultSet.getDate(i + 1);
+        return date == null ? null : new Date(dateToLong(date));
+      default:
+        break;
       }
       return reps[i].jdbcGet(resultSet, i + 1);
     }
 
-    private static Timestamp shift(Timestamp v) {
-      if (v == null) {
-        return null;
-      }
+    @Override long timestampToLong(Timestamp v) {
       long time = v.getTime();
-      int offset = TimeZone.getDefault().getOffset(time);
-      return new Timestamp(time + offset);
+      int offset = timeZone.getOffset(time);
+      return time + offset;
     }
 
-    private static Time shift(Time v) {
-      if (v == null) {
-        return null;
-      }
+    @Override long timeToLong(Time v) {
       long time = v.getTime();
-      int offset = TimeZone.getDefault().getOffset(time);
-      return new Time((time + offset) % DateTimeUtils.MILLIS_PER_DAY);
+      int offset = timeZone.getOffset(time);
+      return (time + offset) % DateTimeUtils.MILLIS_PER_DAY;
     }
 
-    private static Date shift(Date v) {
-      if (v == null) {
-        return null;
-      }
+    @Override long dateToLong(Date v) {
       long time = v.getTime();
-      int offset = TimeZone.getDefault().getOffset(time);
-      return new Date(time + offset);
+      int offset = timeZone.getOffset(time);
+      return time + offset;
+    }
+  }
+
+  /** Row builder that converts JDBC values into internal values. */
+  static class ObjectArrayRowBuilder2 extends ObjectArrayRowBuilder1 {
+    ObjectArrayRowBuilder2(ResultSet resultSet, ColumnMetaData.Rep[] reps,
+        int[] types) {
+      super(resultSet, reps, types);
+    }
+
+    @Override protected @Nullable Object value(int i) throws SQLException {
+      switch (types[i]) {
+      case Types.TIMESTAMP:
+        final Timestamp timestamp = resultSet.getTimestamp(i + 1);
+        return timestamp == null ? null : timestampToLong(timestamp);
+      case Types.TIME:
+        final Time time = resultSet.getTime(i + 1);
+        return time == null ? null : (int) timeToLong(time);
+      case Types.DATE:
+        final Date date = resultSet.getDate(i + 1);
+        return date == null ? null
+            : (int) (dateToLong(date) / DateTimeUtils.MILLIS_PER_DAY);
+      default:
+        return reps[i].jdbcGet(resultSet, i + 1);
+      }
     }
   }
 
@@ -209,12 +255,12 @@ final class JdbcUtils {
   static class DataSourcePool {
     public static final DataSourcePool INSTANCE = new DataSourcePool();
 
-    private final LoadingCache<List<String>, BasicDataSource> cache =
+    private final LoadingCache<List<@Nullable String>, BasicDataSource> cache =
         CacheBuilder.newBuilder().softValues()
             .build(CacheLoader.from(DataSourcePool::dataSource));
 
-    private static @Nonnull BasicDataSource dataSource(
-          @Nonnull List<String> key) {
+    private static BasicDataSource dataSource(
+          List<? extends @Nullable String> key) {
       BasicDataSource dataSource = new BasicDataSource();
       dataSource.setUrl(key.get(0));
       dataSource.setUsername(key.get(1));
@@ -223,15 +269,13 @@ final class JdbcUtils {
       return dataSource;
     }
 
-    public DataSource get(String url, String driverClassName,
-        String username, String password) {
+    public DataSource get(String url, @Nullable String driverClassName,
+        @Nullable String username, @Nullable String password) {
       // Get data source objects from a cache, so that we don't have to sniff
       // out what kind of database they are quite as often.
-      final List<String> key =
+      final List<@Nullable String> key =
           ImmutableNullableList.of(url, username, password, driverClassName);
       return cache.getUnchecked(key);
     }
   }
 }
-
-// End JdbcUtils.java

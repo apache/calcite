@@ -19,35 +19,58 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>SqlCallBinding</code> implements {@link SqlOperatorBinding} by
  * analyzing to the operands of a {@link SqlCall} with a {@link SqlValidator}.
  */
 public class SqlCallBinding extends SqlOperatorBinding {
-  private static final SqlCall DEFAULT_CALL =
-      SqlStdOperatorTable.DEFAULT.createCall(SqlParserPos.ZERO);
+
+  /** Static nested class required due to
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4393">[CALCITE-4393]
+   * ExceptionInInitializerError due to NPE in SqlCallBinding caused by circular dependency</a>.
+   * The static field inside it cannot be part of the outer class: it must be defined
+   * within a nested class in order to break the cycle during class loading. */
+  private static class DefaultCallHolder {
+    private static final SqlCall DEFAULT_CALL =
+        SqlStdOperatorTable.DEFAULT.createCall(SqlParserPos.ZERO);
+  }
+
   //~ Instance fields --------------------------------------------------------
 
   private final SqlValidator validator;
-  private final SqlValidatorScope scope;
+  private final @Nullable SqlValidatorScope scope;
   private final SqlCall call;
 
   //~ Constructors -----------------------------------------------------------
@@ -61,7 +84,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
    */
   public SqlCallBinding(
       SqlValidator validator,
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlCall call) {
     super(
         validator.getTypeFactory(),
@@ -105,7 +128,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /**
    * Returns the scope of the call.
    */
-  public SqlValidatorScope getScope() {
+  public @Nullable SqlValidatorScope getScope() {
     return scope;
   }
 
@@ -119,22 +142,24 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
   public List<SqlNode> operands() {
-    if (hasAssignment() && !(call.getOperator() instanceof SqlUnresolvedFunction)) {
+    if (hasAssignment()
+        && !(call.getOperator() instanceof SqlUnresolvedFunction)) {
       return permutedOperands(call);
     } else {
       final List<SqlNode> operandList = call.getOperandList();
-      if (call.getOperator() instanceof SqlFunction) {
-        final List<RelDataType> paramTypes =
-            ((SqlFunction) call.getOperator()).getParamTypes();
-        if (paramTypes != null && operandList.size() < paramTypes.size()) {
-          final List<SqlNode> list = Lists.newArrayList(operandList);
-          while (list.size() < paramTypes.size()) {
-            list.add(DEFAULT_CALL);
-          }
-          return list;
-        }
+      final SqlOperandTypeChecker checker =
+          call.getOperator().getOperandTypeChecker();
+      if (checker == null) {
+        return operandList;
       }
-      return operandList;
+      final SqlOperandCountRange range = checker.getOperandCountRange();
+      final List<SqlNode> list = Lists.newArrayList(operandList);
+      while (list.size() < range.getMax()
+          && checker.isOptional(list.size())
+          && checker.isFixedParameters()) {
+        list.add(DefaultCallHolder.DEFAULT_CALL);
+      }
+      return list;
     }
   }
 
@@ -152,18 +177,46 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
   private List<SqlNode> permutedOperands(final SqlCall call) {
-    final SqlFunction operator = (SqlFunction) call.getOperator();
-    return Lists.transform(operator.getParamNames(), paramName -> {
-      for (SqlNode operand2 : call.getOperandList()) {
-        final SqlCall call2 = (SqlCall) operand2;
-        assert operand2.getKind() == SqlKind.ARGUMENT_ASSIGNMENT;
-        final SqlIdentifier id = call2.operand(1);
-        if (id.getSimple().equals(paramName)) {
-          return call2.operand(0);
+    final SqlOperandMetadata operandMetadata = requireNonNull(
+        (SqlOperandMetadata) call.getOperator().getOperandTypeChecker(),
+        () -> "operandTypeChecker is null for " + call + ", operator " + call.getOperator());
+    final List<String> paramNames = operandMetadata.paramNames();
+    final List<SqlNode> permuted = new ArrayList<>();
+    final SqlNameMatcher nameMatcher =
+        validator.getCatalogReader().nameMatcher();
+    for (final String paramName : paramNames) {
+      Pair<String, SqlIdentifier> args = null;
+      for (int j = 0; j < call.getOperandList().size(); j++) {
+        final SqlCall call2 = call.operand(j);
+        assert call2.getKind() == SqlKind.ARGUMENT_ASSIGNMENT;
+        final SqlIdentifier operandID = call2.operand(1);
+        final String operandName = operandID.getSimple();
+        if (nameMatcher.matches(operandName, paramName)) {
+          permuted.add(call2.operand(0));
+          break;
+        } else if (args == null
+            && nameMatcher.isCaseSensitive()
+            && operandName.equalsIgnoreCase(paramName)) {
+          args = Pair.of(paramName, operandID);
+        }
+        // the last operand, there is still no match.
+        if (j == call.getOperandList().size() - 1) {
+          if (args != null) {
+            throw SqlUtil.newContextException(args.right.getParserPosition(),
+                RESOURCE.paramNotFoundInFunctionDidYouMean(args.right.getSimple(),
+                    call.getOperator().getName(), args.left));
+          }
+          if (operandMetadata.isFixedParameters()) {
+            // Not like user defined functions, we do not patch up the operands
+            // with DEFAULT and then convert to nulls during sql-to-rel conversion.
+            // Thus, there is no need to show the optional operands in the plan and
+            // decide if the optional operand is null when code generation.
+            permuted.add(DefaultCallHolder.DEFAULT_CALL);
+          }
         }
       }
-      return DEFAULT_CALL;
-    });
+    }
+    return permuted;
   }
 
   /**
@@ -184,12 +237,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return call.getOperator().createCall(call.pos, operandList);
   }
 
-  public SqlMonotonicity getOperandMonotonicity(int ordinal) {
+  @Override public SqlMonotonicity getOperandMonotonicity(int ordinal) {
     return call.getOperandList().get(ordinal).getMonotonicity(scope);
   }
 
   @SuppressWarnings("deprecation")
-  @Override public String getStringLiteralOperand(int ordinal) {
+  @Override public @Nullable String getStringLiteralOperand(int ordinal) {
     SqlNode node = call.operand(ordinal);
     final Object o = SqlLiteral.value(node);
     return o instanceof NlsString ? ((NlsString) o).getValue() : null;
@@ -211,21 +264,72 @@ public class SqlCallBinding extends SqlOperatorBinding {
     throw new AssertionError();
   }
 
-  @Override public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
-    try {
-      final SqlNode node = call.operand(ordinal);
-      return SqlLiteral.unchain(node).getValueAs(clazz);
-    } catch (IllegalArgumentException e) {
-      return null;
+  @Override public <T extends Object> @Nullable T getOperandLiteralValue(int ordinal,
+      Class<T> clazz) {
+    final SqlNode node = operand(ordinal);
+    return valueAs(node, clazz);
+  }
+
+  private static <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
+    final SqlLiteral literal;
+    switch (node.getKind()) {
+    case ARRAY_VALUE_CONSTRUCTOR:
+      final List<@Nullable Object> list = new ArrayList<>();
+      for (SqlNode o : ((SqlCall) node).getOperandList()) {
+        list.add(valueAs(o, Object.class));
+      }
+      return clazz.cast(ImmutableNullableList.copyOf(list));
+
+    case MAP_VALUE_CONSTRUCTOR:
+      final ImmutableMap.Builder<Object, Object> builder2 =
+          ImmutableMap.builder();
+      final List<SqlNode> operands = ((SqlCall) node).getOperandList();
+      for (int i = 0; i < operands.size(); i += 2) {
+        final SqlNode key = operands.get(i);
+        final SqlNode value = operands.get(i + 1);
+        builder2.put(requireNonNull(valueAs(key, Object.class), "key"),
+            requireNonNull(valueAs(value, Object.class), "value"));
+      }
+      return clazz.cast(builder2.build());
+
+    case CAST:
+      return valueAs(((SqlCall) node).operand(0), clazz);
+
+    case LITERAL:
+      literal = (SqlLiteral) node;
+      if (literal.getTypeName() == SqlTypeName.NULL) {
+        return null;
+      }
+      return literal.getValueAs(clazz);
+
+    case LITERAL_CHAIN:
+      literal = SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
+      return literal.getValueAs(clazz);
+
+    case INTERVAL_QUALIFIER:
+      final SqlIntervalQualifier q = (SqlIntervalQualifier) node;
+      final SqlIntervalLiteral.IntervalValue intervalValue =
+          new SqlIntervalLiteral.IntervalValue(q, 1, q.toString());
+      literal = new SqlLiteral(intervalValue, q.typeName(), q.pos);
+      return literal.getValueAs(clazz);
+
+    case DEFAULT:
+      return null; // currently NULL is the only default value
+
+    default:
+      if (SqlUtil.isNullLiteral(node, true)) {
+        return null; // NULL literal
+      }
+      return null; // not a literal
     }
   }
 
   @Override public boolean isOperandNull(int ordinal, boolean allowCast) {
-    return SqlUtil.isNullLiteral(call.operand(ordinal), allowCast);
+    return SqlUtil.isNullLiteral(operand(ordinal), allowCast);
   }
 
   @Override public boolean isOperandLiteral(int ordinal, boolean allowCast) {
-    return SqlUtil.isLiteral(call.operand(ordinal), allowCast);
+    return SqlUtil.isLiteral(operand(ordinal), allowCast);
   }
 
   @Override public int getOperandCount() {
@@ -234,7 +338,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   @Override public RelDataType getOperandType(int ordinal) {
     final SqlNode operand = call.operand(ordinal);
-    final RelDataType type = validator.deriveType(scope, operand);
+    final RelDataType type = SqlTypeUtil.deriveType(this, operand);
     final SqlValidatorNamespace namespace = validator.getNamespace(operand);
     if (namespace != null) {
       return namespace.getType();
@@ -242,17 +346,17 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return type;
   }
 
-  @Override public RelDataType getCursorOperand(int ordinal) {
+  @Override public @Nullable RelDataType getCursorOperand(int ordinal) {
     final SqlNode operand = call.operand(ordinal);
     if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.CURSOR)) {
       return null;
     }
     final SqlCall cursorCall = (SqlCall) operand;
     final SqlNode query = cursorCall.operand(0);
-    return validator.deriveType(scope, query);
+    return SqlTypeUtil.deriveType(this, query);
   }
 
-  @Override public String getColumnListParamInfo(
+  @Override public @Nullable String getColumnListParamInfo(
       int ordinal,
       String paramName,
       List<String> columnList) {
@@ -260,13 +364,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
     if (!SqlUtil.isCallTo(operand, SqlStdOperatorTable.ROW)) {
       return null;
     }
-    for (SqlNode id : ((SqlCall) operand).getOperandList()) {
-      columnList.add(((SqlIdentifier) id).getSimple());
-    }
+    columnList.addAll(
+        SqlIdentifier.simpleNames(((SqlCall) operand).getOperandList()));
     return validator.getParentCursor(paramName);
   }
 
-  public CalciteException newError(
+  @Override public CalciteException newError(
       Resources.ExInst<SqlValidatorException> e) {
     return validator.newValidationError(call, e);
   }
@@ -294,6 +397,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
       Resources.ExInst<SqlValidatorException> ex) {
     return validator.newValidationError(call, ex);
   }
-}
 
-// End SqlCallBinding.java
+  /**
+   * Returns whether to allow implicit type coercion when validation.
+   * This is a short-cut method.
+   */
+  public boolean isTypeCoercionEnabled() {
+    return validator.config().typeCoercionEnabled();
+  }
+}

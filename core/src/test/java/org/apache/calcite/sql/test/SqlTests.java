@@ -18,9 +18,11 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -40,10 +42,10 @@ import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Utility methods.
@@ -89,7 +91,7 @@ public abstract class SqlTests {
 
   /**
    * Helper function to get the string representation of a RelDataType
-   * (include precision/scale but no charset or collation)
+   * (include precision/scale but no charset or collation).
    *
    * @param sqlType Type
    * @return String representation of type
@@ -103,7 +105,7 @@ public abstract class SqlTests {
         actual = actual + "(" + sqlType.getPrecision() + ")";
       }
       if (!sqlType.isNullable()) {
-        actual += " NOT NULL";
+        actual += RelDataTypeImpl.NON_NULLABLE_SUFFIX;
       }
       return actual;
 
@@ -336,7 +338,7 @@ public abstract class SqlTests {
    */
   public static void checkEx(Throwable ex,
       String expectedMsgPattern,
-      SqlParserUtil.StringAndPos sap,
+      StringAndPos sap,
       Stage stage) {
     if (null == ex) {
       if (expectedMsgPattern == null) {
@@ -436,7 +438,7 @@ public abstract class SqlTests {
           + " col " + actualColumn + "]");
     }
 
-    String sqlWithCarets;
+    final String sqlWithCarets;
     if (actualColumn <= 0
         || actualLine <= 0
         || actualEndColumn <= 0
@@ -505,7 +507,7 @@ public abstract class SqlTests {
     }
   }
 
-  /** Stage of query processing */
+  /** Stage of query processing. */
   public enum Stage {
     PARSE("Parser"),
     VALIDATE("Validator"),
@@ -635,5 +637,3 @@ public abstract class SqlTests {
     }
   }
 }
-
-// End SqlTests.java

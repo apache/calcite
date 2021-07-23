@@ -24,7 +24,7 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Statement;
 
 /**
- * Base methods and constant for simplified Expression testing
+ * Base methods and constants for simplified Expression testing.
  */
 public final class BlockBuilderBase {
   private BlockBuilderBase() {}
@@ -82,5 +82,3 @@ public final class BlockBuilderBase {
     return Expressions.parameter(Integer.class, name);
   }
 }
-
-// End BlockBuilderBase.java

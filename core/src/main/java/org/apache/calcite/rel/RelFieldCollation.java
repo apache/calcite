@@ -18,6 +18,8 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -29,7 +31,7 @@ import java.util.Objects;
 public class RelFieldCollation {
   /** Utility method that compares values taking into account null
    * direction. */
-  public static int compare(Comparable c1, Comparable c2, int nullComparison) {
+  public static int compare(@Nullable Comparable c1, @Nullable Comparable c2, int nullComparison) {
     if (c1 == c2) {
       return 0;
     } else if (c1 == null) {
@@ -149,6 +151,38 @@ public class RelFieldCollation {
         return false;
       }
     }
+
+    /**
+     * Returns the reverse of this direction.
+     *
+     * @return reverse of the input direction
+     */
+    public Direction reverse() {
+      switch (this) {
+      case ASCENDING:
+        return DESCENDING;
+      case STRICTLY_ASCENDING:
+        return STRICTLY_DESCENDING;
+      case DESCENDING:
+        return ASCENDING;
+      case STRICTLY_DESCENDING:
+        return STRICTLY_ASCENDING;
+      default:
+        return this;
+      }
+    }
+
+    /** Removes strictness. */
+    public Direction lax() {
+      switch (this) {
+      case STRICTLY_ASCENDING:
+        return ASCENDING;
+      case STRICTLY_DESCENDING:
+        return DESCENDING;
+      default:
+        return this;
+      }
+    }
   }
 
   /**
@@ -207,8 +241,8 @@ public class RelFieldCollation {
       Direction direction,
       NullDirection nullDirection) {
     this.fieldIndex = fieldIndex;
-    this.direction = Objects.requireNonNull(direction);
-    this.nullDirection = Objects.requireNonNull(nullDirection);
+    this.direction = Objects.requireNonNull(direction, "direction");
+    this.nullDirection = Objects.requireNonNull(nullDirection, "nullDirection");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -216,11 +250,27 @@ public class RelFieldCollation {
   /**
    * Creates a copy of this RelFieldCollation against a different field.
    */
+  public RelFieldCollation withFieldIndex(int fieldIndex) {
+    return this.fieldIndex == fieldIndex ? this
+        : new RelFieldCollation(fieldIndex, direction, nullDirection);
+  }
+
+  @Deprecated // to be removed before 2.0
   public RelFieldCollation copy(int target) {
-    if (target == fieldIndex) {
-      return this;
-    }
-    return new RelFieldCollation(target, direction, nullDirection);
+    return withFieldIndex(target);
+  }
+
+  /** Creates a copy of this RelFieldCollation with a different direction. */
+  public RelFieldCollation withDirection(Direction direction) {
+    return this.direction == direction ? this
+        : new RelFieldCollation(fieldIndex, direction, nullDirection);
+  }
+
+  /** Creates a copy of this RelFieldCollation with a different null
+   * direction. */
+  public RelFieldCollation withNullDirection(NullDirection nullDirection) {
+    return this.nullDirection == nullDirection ? this
+        : new RelFieldCollation(fieldIndex, direction, nullDirection);
   }
 
   /**
@@ -228,10 +278,10 @@ public class RelFieldCollation {
    * {@code offset} to the right.
    */
   public RelFieldCollation shift(int offset) {
-    return copy(fieldIndex + offset);
+    return withFieldIndex(fieldIndex + offset);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return this == o
         || o instanceof RelFieldCollation
         && fieldIndex == ((RelFieldCollation) o).fieldIndex
@@ -251,7 +301,7 @@ public class RelFieldCollation {
     return direction;
   }
 
-  public String toString() {
+  @Override public String toString() {
     if (direction == Direction.ASCENDING
         && nullDirection == direction.defaultNullDirection()) {
       return String.valueOf(fieldIndex);
@@ -278,5 +328,3 @@ public class RelFieldCollation {
     }
   }
 }
-
-// End RelFieldCollation.java

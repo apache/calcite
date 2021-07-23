@@ -17,16 +17,17 @@
 package org.apache.calcite.adapter.spark;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.javac.JaninoCompiler;
 
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
@@ -44,18 +45,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
   private final HttpServer classServer;
   private final AtomicInteger classId;
+  private final SparkConf sparkConf =
+      new SparkConf().set("spark.driver.bindAddress", "localhost");
   private final JavaSparkContext sparkContext =
-      new JavaSparkContext("local[1]", "calcite");
+      new JavaSparkContext("local[1]", "calcite", sparkConf);
 
-  /** Thread-safe holder */
+  /** Thread-safe holder. */
   private static class Holder {
     private static final SparkHandlerImpl INSTANCE = new SparkHandlerImpl();
   }
 
-  private static final File CLASS_DIR = new File("target/classes");
+  private static final File CLASS_DIR = new File("build/sparkServer/classes");
 
   /** Creates a SparkHandlerImpl. */
   private SparkHandlerImpl() {
+    if (!CLASS_DIR.isDirectory() && !CLASS_DIR.mkdirs()) {
+      System.err.println("Unable to create temporary folder " + CLASS_DIR);
+    }
     classServer = new HttpServer(CLASS_DIR);
 
     // Start the classServer and store its URI in a spark system property
@@ -80,7 +86,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     return Holder.INSTANCE;
   }
 
-  public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
+  @Override public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
       boolean restructure) {
     RelNode root2 =
         planner.changeTraits(rootRel,
@@ -88,22 +94,22 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     return planner.changeTraits(root2, rootRel.getTraitSet().simplify());
   }
 
-  public void registerRules(RuleSetBuilder builder) {
+  @Override public void registerRules(RuleSetBuilder builder) {
     for (RelOptRule rule : SparkRules.rules()) {
       builder.addRule(rule);
     }
     builder.removeRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
   }
 
-  public Object sparkContext() {
+  @Override public Object sparkContext() {
     return sparkContext;
   }
 
-  public boolean enabled() {
+  @Override public boolean enabled() {
     return true;
   }
 
-  public ArrayBindable compile(ClassDeclaration expr, String s) {
+  @Override public ArrayBindable compile(ClassDeclaration expr, String s) {
     final String className = "CalciteProgram" + classId.getAndIncrement();
     final String classFileName = className + ".java";
     String source = "public class " + className + "\n"
@@ -113,7 +119,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
         + s + "\n"
         + "}\n";
 
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, source);
     }
 
@@ -125,7 +131,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     try {
       @SuppressWarnings("unchecked")
       final Class<ArrayBindable> clazz =
-          (Class<ArrayBindable>) Class.forName(className);
+          (Class<ArrayBindable>) compiler.getClassLoader().loadClass(className);
       final Constructor<ArrayBindable> constructor = clazz.getConstructor();
       return constructor.newInstance();
     } catch (ClassNotFoundException | InstantiationException
@@ -135,5 +141,3 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     }
   }
 }
-
-// End SparkHandlerImpl.java

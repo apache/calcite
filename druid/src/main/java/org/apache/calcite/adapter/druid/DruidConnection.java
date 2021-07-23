@@ -21,5 +21,3 @@ package org.apache.calcite.adapter.druid;
  */
 public interface DruidConnection {
 }
-
-// End DruidConnection.java

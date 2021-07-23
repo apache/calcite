@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.Util;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -36,26 +37,20 @@ import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit test of the Calcite adapter for Splunk.
  */
-public class SplunkAdapterTest {
+class SplunkAdapterTest {
   public static final String SPLUNK_URL = "https://localhost:8089";
   public static final String SPLUNK_USER = "admin";
   public static final String SPLUNK_PASSWORD = "changeme";
 
-  /** Whether to run Splunk tests. Disabled by default, because we do not expect
-   * Splunk to be installed and populated data set. To enable,
-   * specify {@code -Dcalcite.test.splunk} on the Java command line. */
-  public static final boolean ENABLED =
-      Util.getBooleanProperty("calcite.test.splunk");
-
   /** Whether this test is enabled. Tests are disabled unless we know that
    * Splunk is present and loaded with the requisite data. */
   private boolean enabled() {
-    return ENABLED;
+    return CalciteSystemProperty.TEST_SPLUNK.value();
   }
 
   private void loadDriverClass() {
@@ -86,7 +81,7 @@ public class SplunkAdapterTest {
   /**
    * Tests the vanity driver.
    */
-  @Test public void testVanityDriver() throws SQLException {
+  @Test void testVanityDriver() throws SQLException {
     loadDriverClass();
     if (!enabled()) {
       return;
@@ -103,7 +98,7 @@ public class SplunkAdapterTest {
   /**
    * Tests the vanity driver with properties in the URL.
    */
-  @Test public void testVanityDriverArgsInUrl() throws SQLException {
+  @Test void testVanityDriverArgsInUrl() throws SQLException {
     loadDriverClass();
     if (!enabled()) {
       return;
@@ -191,7 +186,7 @@ public class SplunkAdapterTest {
   /**
    * Reads from a table.
    */
-  @Test public void testSelect() throws SQLException {
+  @Test void testSelect() throws SQLException {
     final String sql = "select \"source\", \"sourcetype\"\n"
         + "from \"splunk\".\"splunk\"";
     checkSql(sql, resultSet -> {
@@ -201,12 +196,12 @@ public class SplunkAdapterTest {
         }
         return null;
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     });
   }
 
-  @Test public void testSelectDistinct() throws SQLException {
+  @Test void testSelectDistinct() throws SQLException {
     checkSql(
         "select distinct \"sourcetype\"\n"
         + "from \"splunk\".\"splunk\"",
@@ -224,14 +219,14 @@ public class SplunkAdapterTest {
         assertThat(actual, equalTo(expected));
         return null;
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
 
   /** "status" is not a built-in column but we know it has some values in the
    * test data. */
-  @Test public void testSelectNonBuiltInColumn() throws SQLException {
+  @Test void testSelectNonBuiltInColumn() throws SQLException {
     checkSql(
         "select \"status\"\n"
         + "from \"splunk\".\"splunk\"", a0 -> {
@@ -243,13 +238,13 @@ public class SplunkAdapterTest {
             assertThat(actual.contains("404"), is(true));
             return null;
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         });
   }
 
-  @Ignore("cannot plan due to CAST in ON clause")
-  @Test public void testJoinToJdbc() throws SQLException {
+  @Disabled("cannot plan due to CAST in ON clause")
+  @Test void testJoinToJdbc() throws SQLException {
     checkSql(
         "select p.\"product_name\", /*s.\"product_id\",*/ s.\"action\"\n"
             + "from \"splunk\".\"splunk\" as s\n"
@@ -259,7 +254,7 @@ public class SplunkAdapterTest {
         null);
   }
 
-  @Test public void testGroupBy() throws SQLException {
+  @Test void testGroupBy() throws SQLException {
     checkSql(
         "select s.\"host\", count(\"source\") as c\n"
             + "from \"splunk\".\"splunk\" as s\n"
@@ -296,5 +291,3 @@ public class SplunkAdapterTest {
     }
   }
 }
-
-// End SplunkAdapterTest.java

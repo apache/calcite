@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import static java.util.Collections.unmodifiableMap;
@@ -73,7 +74,7 @@ final class ElasticsearchJson {
         rows.computeIfAbsent(r, ignore -> new ArrayList<>()).add(v);
     aggregations.forEach(a -> visitValueNodes(a, new ArrayList<>(), cons));
     rows.forEach((k, v) -> {
-      if (v.stream().anyMatch(val -> val instanceof GroupValue)) {
+      if (v.stream().allMatch(val -> val instanceof GroupValue)) {
         v.forEach(tuple -> {
           Map<String, Object> groupRow = new LinkedHashMap<>(k.keys);
           groupRow.put(tuple.getName(), tuple.value());
@@ -107,13 +108,17 @@ final class ElasticsearchJson {
       return;
     }
 
-    if (mapping.has("properties")) {
+    // check if we have reached actual field mapping (leaf of JSON tree)
+    Predicate<JsonNode> isLeaf = node -> node.path("type").isValueNode();
+
+    if (mapping.path("properties").isObject()
+        && !isLeaf.test(mapping.path("properties"))) {
       // recurse
       visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
       return;
     }
 
-    if (mapping.has("type")) {
+    if (isLeaf.test(mapping)) {
       // this is leaf (register field / type mapping)
       consumer.accept(String.join(".", path), mapping.get("type").asText());
       return;
@@ -132,7 +137,7 @@ final class ElasticsearchJson {
 
 
   /**
-   * Identifies a calcite row (as in relational algebra)
+   * Identifies a Calcite row (as in relational algebra).
    */
   private static class RowKey {
     private final Map<String, Object> keys;
@@ -202,7 +207,7 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Response from Elastic
+   * Response from Elastic.
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class Result {
@@ -251,11 +256,11 @@ final class ElasticsearchJson {
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class SearchHits {
 
-    private final long total;
+    private final SearchTotal total;
     private final List<SearchHit> hits;
 
     @JsonCreator
-    SearchHits(@JsonProperty("total")final long total,
+    SearchHits(@JsonProperty("total")final SearchTotal total,
                @JsonProperty("hits") final List<SearchHit> hits) {
       this.total = total;
       this.hits = Objects.requireNonNull(hits, "hits");
@@ -265,8 +270,57 @@ final class ElasticsearchJson {
       return this.hits;
     }
 
-    public long total() {
+    public SearchTotal total() {
       return total;
+    }
+
+  }
+
+  /**
+   * Container for total hits.
+   */
+  @JsonDeserialize(using = SearchTotalDeserializer.class)
+  static class SearchTotal {
+
+    private final long value;
+
+    SearchTotal(final long value) {
+      this.value = value;
+    }
+
+    public long value() {
+      return value;
+    }
+
+  }
+
+  /**
+   * Allows to de-serialize total hits structures.
+   */
+  static class SearchTotalDeserializer extends StdDeserializer<SearchTotal> {
+
+    SearchTotalDeserializer() {
+      super(SearchTotal.class);
+    }
+
+    @Override public SearchTotal deserialize(final JsonParser parser,
+                                             final DeserializationContext ctxt)
+        throws IOException  {
+
+      JsonNode node = parser.getCodec().readTree(parser);
+      return parseSearchTotal(node);
+    }
+
+    private static SearchTotal parseSearchTotal(JsonNode node) {
+
+      final Number value;
+      if (node.isNumber()) {
+        value = node.numberValue();
+      } else {
+        value = node.get("value").numberValue();
+      }
+
+      return new SearchTotal(value.longValue());
     }
 
   }
@@ -278,7 +332,7 @@ final class ElasticsearchJson {
   static class SearchHit {
 
     /**
-     * ID of the document (not available in aggregations)
+     * ID of the document (not available in aggregations).
      */
     private final String id;
     private final Map<String, Object> source;
@@ -309,7 +363,8 @@ final class ElasticsearchJson {
     }
 
     /**
-     * Returns id of this hit (usually document id)
+     * Returns id of this hit (usually document id).
+     *
      * @return unique id
      */
     public String id() {
@@ -318,6 +373,12 @@ final class ElasticsearchJson {
 
     Object valueOrNull(String name) {
       Objects.requireNonNull(name, "name");
+
+      // for "select *" return whole document
+      if (ElasticsearchConstants.isSelectAll(name)) {
+        return sourceOrFields();
+      }
+
       if (fields != null && fields.containsKey(name)) {
         Object field = fields.get(name);
         if (field instanceof Iterable) {
@@ -441,26 +502,26 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Identifies all aggregations
+   * Identifies all aggregations.
    */
   interface Aggregation {
 
     /**
-     * @return The name of this aggregation.
+     * Returns the name of this aggregation.
      */
     String getName();
 
   }
 
   /**
-   * Allows traversing aggregations tree
+   * Allows traversing aggregations tree.
    */
   interface HasAggregations {
     Aggregations getAggregations();
   }
 
   /**
-   * An aggregation that returns multiple buckets
+   * An aggregation that returns multiple buckets.
    */
   static class MultiBucketsAggregation implements Aggregation {
 
@@ -474,7 +535,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return  The buckets of this aggregation.
+     * Returns the buckets of this aggregation.
      */
     List<Bucket> buckets() {
       return buckets;
@@ -504,14 +565,14 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return The key associated with the bucket
+     * Returns the key associated with the bucket.
      */
     Object key() {
       return key;
     }
 
     /**
-     * @return The key associated with the bucket as a string
+     * Returns the key associated with the bucket as a string.
      */
     String keyAsString() {
       return Objects.toString(key());
@@ -525,7 +586,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return  The sub-aggregations of this bucket
+     * Returns the sub-aggregations of this bucket.
      */
     @Override public Aggregations getAggregations() {
       return aggregations;
@@ -537,8 +598,8 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Multi value aggregatoin like
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>
+   * Multi-value aggregation, like
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>.
    */
   static class MultiValue implements Aggregation {
     private final String name;
@@ -700,5 +761,3 @@ final class ElasticsearchJson {
   }
 
 }
-
-// End ElasticsearchJson.java

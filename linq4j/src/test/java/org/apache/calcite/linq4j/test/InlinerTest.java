@@ -17,15 +17,17 @@
 package org.apache.calcite.linq4j.test;
 
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Statement;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
 
@@ -33,21 +35,21 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests expression inlining in BlockBuilder.
  */
-public class InlinerTest {
+class InlinerTest {
   BlockBuilder b;
 
-  @Before
+  @BeforeEach
   public void prepareBuilder() {
     b = new BlockBuilder(true);
   }
 
-  @Test public void testInlineSingleUsage() {
+  @Test void testInlineSingleUsage() {
     DeclarationStatement decl = Expressions.declare(16, "x",
         Expressions.add(ONE, TWO));
     b.add(decl);
@@ -55,7 +57,7 @@ public class InlinerTest {
     assertEquals("{\n  return 1 + 2;\n}\n", b.toBlock().toString());
   }
 
-  @Test public void testInlineConstant() {
+  @Test void testInlineConstant() {
     DeclarationStatement decl = Expressions.declare(16, "x", ONE);
     b.add(decl);
     b.add(
@@ -64,7 +66,7 @@ public class InlinerTest {
     assertEquals("{\n  return 1 + 1;\n}\n", b.toBlock().toString());
   }
 
-  @Test public void testInlineParameter() {
+  @Test void testInlineParameter() {
     ParameterExpression pe = Expressions.parameter(int.class, "p");
     DeclarationStatement decl = Expressions.declare(16, "x", pe);
     b.add(decl);
@@ -74,7 +76,7 @@ public class InlinerTest {
     assertEquals("{\n  return p + p;\n}\n", b.toBlock().toString());
   }
 
-  @Test public void testNoInlineMultipleUsage() {
+  @Test void testNoInlineMultipleUsage() {
     ParameterExpression p1 = Expressions.parameter(int.class, "p1");
     ParameterExpression p2 = Expressions.parameter(int.class, "p2");
     DeclarationStatement decl = Expressions.declare(16, "x",
@@ -91,7 +93,7 @@ public class InlinerTest {
         b.toBlock().toString());
   }
 
-  @Test public void testAssignInConditionMultipleUsage() {
+  @Test void testAssignInConditionMultipleUsage() {
     // int t;
     // return (t = 1) != a ? t : c
     final BlockBuilder builder = new BlockBuilder(true);
@@ -115,14 +117,14 @@ public class InlinerTest {
         Expressions.toString(builder.toBlock()));
   }
 
-  @Test public void testAssignInConditionOptimizedOut() {
+  @Test void testAssignInConditionOptimizedOut() {
     checkAssignInConditionOptimizedOut(Modifier.FINAL,
         "{\n"
             + "  return 1 != a ? b : c;\n"
             + "}\n");
   }
 
-  @Test public void testAssignInConditionNotOptimizedWithoutFinal() {
+  @Test void testAssignInConditionNotOptimizedWithoutFinal() {
     checkAssignInConditionOptimizedOut(0,
         "{\n"
             + "  int t;\n"
@@ -151,7 +153,7 @@ public class InlinerTest {
         CoreMatchers.equalTo(s));
   }
 
-  @Test public void testAssignInConditionMultipleUsageNonOptimized() {
+  @Test void testAssignInConditionMultipleUsageNonOptimized() {
     // int t = 2;
     // return (t = 1) != a ? 1 : c
     final BlockBuilder builder = new BlockBuilder(true);
@@ -175,7 +177,7 @@ public class InlinerTest {
         Expressions.toString(builder.toBlock()));
   }
 
-  @Test public void testMultiPassOptimization() {
+  @Test void testMultiPassOptimization() {
     // int t = u + v;
     // boolean b = t > 1 ? true : true; -- optimized out, thus t can be inlined
     // return b ? t : 2
@@ -194,6 +196,30 @@ public class InlinerTest {
             + "}\n",
         Expressions.toString(builder.toBlock()));
   }
-}
 
-// End InlinerTest.java
+  @Test void testInlineInTryCatchStatement() {
+    final BlockBuilder builder = new BlockBuilder(true);
+    final ParameterExpression t = Expressions.parameter(int.class, "t");
+    builder.add(Expressions.declare(Modifier.FINAL, t, ONE));
+    final ParameterExpression u = Expressions.parameter(int.class, "u");
+    builder.add(Expressions.declare(Modifier.FINAL, u, null));
+    Statement st = Expressions.statement(
+        Expressions.assign(u,
+            Expressions.makeBinary(ExpressionType.Add, t, TWO)));
+    ParameterExpression e = Expressions.parameter(0, Exception.class, "e");
+    CatchBlock cb = Expressions.catch_(e, Expressions.throw_(e));
+    builder.add(Expressions.tryCatch(st, cb));
+    builder.add(Expressions.return_(null, u));
+    assertEquals(
+        "{\n"
+            + "  final int u;\n"
+            + "  try {\n"
+            + "    u = 1 + 2;\n"
+            + "  } catch (Exception e) {\n"
+            + "    throw e;\n"
+            + "  }\n"
+            + "  return u;\n"
+            + "}\n",
+        builder.toBlock().toString());
+  }
+}

@@ -25,7 +25,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 /** Converts an expression for a group window function (e.g. TUMBLE)
  * into an expression for an auxiliary group function (e.g. TUMBLE_START).
  *
- * @see SqlStdOperatorTable#TUMBLE
+ * @see SqlStdOperatorTable#TUMBLE_OLD
  */
 public interface AuxiliaryConverter {
   /** Converts an expression.
@@ -47,13 +47,13 @@ public interface AuxiliaryConverter {
       this.f = f;
     }
 
-    public RexNode convert(RexBuilder rexBuilder, RexNode groupCall,
+    @Override public RexNode convert(RexBuilder rexBuilder, RexNode groupCall,
         RexNode e) {
       switch (f.getKind()) {
       case TUMBLE_START:
       case HOP_START:
       case SESSION_START:
-      case SESSION_END: // TODO: ?
+      case SESSION_END:
         return e;
       case TUMBLE_END:
         return rexBuilder.makeCall(
@@ -69,5 +69,3 @@ public interface AuxiliaryConverter {
     }
   }
 }
-
-// End AuxiliaryConverter.java

@@ -34,6 +34,8 @@ public class SqlNthValueAggFunction extends SqlAggFunction {
         null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.NUMERIC, false,
         true, Optionality.FORBIDDEN);
   }
-}
 
-// End SqlNthValueAggFunction.java
+  @Override public boolean allowsNullTreatment() {
+    return true;
+  }
+}

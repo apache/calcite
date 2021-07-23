@@ -40,5 +40,3 @@ public interface WinAggAddContext extends AggAddContext, WinAggResultContext {
    */
   Expression currentPosition();
 }
-
-// End WinAggAddContext.java

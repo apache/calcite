@@ -19,6 +19,8 @@ package org.apache.calcite.rel;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -40,11 +42,9 @@ public interface RelWriter {
    * @param rel       Relational expression
    * @param valueList List of term-value pairs
    */
-  void explain(RelNode rel, List<Pair<String, Object>> valueList);
+  void explain(RelNode rel, List<Pair<String, @Nullable Object>> valueList);
 
-  /**
-   * @return detail level at which plan should be generated
-   */
+  /** Returns detail level at which plan should be generated. */
   SqlExplainLevel getDetailLevel();
 
   /**
@@ -53,7 +53,9 @@ public interface RelWriter {
    * @param term  Term for input, e.g. "left" or "input #1".
    * @param input Input relational expression
    */
-  RelWriter input(String term, RelNode input);
+  default RelWriter input(String term, RelNode input) {
+    return item(term, input);
+  }
 
   /**
    * Adds an attribute to the explanation of the current node.
@@ -61,13 +63,15 @@ public interface RelWriter {
    * @param term  Term for attribute, e.g. "joinType"
    * @param value Attribute value
    */
-  RelWriter item(String term, Object value);
+  RelWriter item(String term, @Nullable Object value);
 
   /**
    * Adds an input to the explanation of the current node, if a condition
    * holds.
    */
-  RelWriter itemIf(String term, Object value, boolean condition);
+  default RelWriter itemIf(String term, @Nullable Object value, boolean condition) {
+    return condition ? item(term, value) : this;
+  }
 
   /**
    * Writes the completed explanation.
@@ -78,7 +82,7 @@ public interface RelWriter {
    * Returns whether the writer prefers nested values. Traditional explain
    * writers prefer flattened values.
    */
-  boolean nest();
+  default boolean nest() {
+    return false;
+  }
 }
-
-// End RelWriter.java

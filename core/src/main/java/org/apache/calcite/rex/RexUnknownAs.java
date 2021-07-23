@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.rex;
 
-import javax.annotation.Nonnull;
-
 /** Policy for whether a simplified expression may instead return another
  * value.
  *
@@ -80,7 +78,7 @@ public enum RexUnknownAs {
 
   /** Returns {@link #FALSE} if {@code unknownAsFalse} is true,
    * {@link #UNKNOWN} otherwise. */
-  public static @Nonnull RexUnknownAs falseIf(boolean unknownAsFalse) {
+  public static RexUnknownAs falseIf(boolean unknownAsFalse) {
     return unknownAsFalse ? FALSE : UNKNOWN;
   }
 
@@ -94,6 +92,32 @@ public enum RexUnknownAs {
       throw new IllegalArgumentException("unknown");
     }
   }
-}
 
-// End RexUnknownAs.java
+  public RexUnknownAs negate() {
+    switch (this) {
+    case TRUE:
+      return FALSE;
+    case FALSE:
+      return TRUE;
+    default:
+      return UNKNOWN;
+    }
+  }
+
+  /** Combines this with another {@code RexUnknownAs} in the same way as the
+   * three-valued logic of OR.
+   *
+   * <p>For example, {@code TRUE or FALSE} returns {@code TRUE};
+   * {@code FALSE or UNKNOWN} returns {@code UNKNOWN}. */
+  public RexUnknownAs or(RexUnknownAs other) {
+    switch (this) {
+    case TRUE:
+      return this;
+    case UNKNOWN:
+      return other == TRUE ? other : this;
+    case FALSE:
+    default:
+      return other;
+    }
+  }
+}

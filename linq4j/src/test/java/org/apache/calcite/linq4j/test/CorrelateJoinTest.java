@@ -16,30 +16,32 @@
  */
 package org.apache.calcite.linq4j.test;
 
-import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.ExtendedEnumerable;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 /**
- * Tests {@link org.apache.calcite.linq4j.ExtendedEnumerable#correlateJoin}
+ * Tests {@link ExtendedEnumerable#correlateJoin(JoinType, Function1, Function2)}.
  */
-public class CorrelateJoinTest {
+class CorrelateJoinTest {
   static final Function2<Integer, Integer, Integer[]> SELECT_BOTH =
       (v0, v1) -> new Integer[]{v0, v1};
 
-  @Test public void testInner() {
-    testJoin(CorrelateJoinType.INNER, new Integer[][]{
+  @Test void testInner() {
+    testJoin(JoinType.INNER, new Integer[][]{
         {2, 20},
         {3, -30},
         {3, -60},
@@ -48,8 +50,8 @@ public class CorrelateJoinTest {
         {30, -600}});
   }
 
-  @Test public void testLeft() {
-    testJoin(CorrelateJoinType.LEFT, new Integer[][]{
+  @Test void testLeft() {
+    testJoin(JoinType.LEFT, new Integer[][]{
         {1, null},
         {2, 20},
         {3, -30},
@@ -60,21 +62,21 @@ public class CorrelateJoinTest {
         {30, -600}});
   }
 
-  @Test public void testSemi() {
-    testJoin(CorrelateJoinType.SEMI, new Integer[][]{
+  @Test void testSemi() {
+    testJoin(JoinType.SEMI, new Integer[][]{
         {2, null},
         {3, null},
         {20, null},
         {30, null}});
   }
 
-  @Test public void testAnti() {
-    testJoin(CorrelateJoinType.ANTI, new Integer[][]{
+  @Test void testAnti() {
+    testJoin(JoinType.ANTI, new Integer[][]{
         {1, null},
         {10, null}});
   }
 
-  public void testJoin(CorrelateJoinType joinType, Integer[][] expected) {
+  public void testJoin(JoinType joinType, Integer[][] expected) {
     Enumerable<Integer[]> join =
         Linq4j.asEnumerable(ImmutableList.of(1, 2, 3, 10, 20, 30))
             .correlateJoin(joinType, a0 -> {
@@ -107,5 +109,3 @@ public class CorrelateJoinTest {
     assertArrayEquals(expected, actual);
   }
 }
-
-// End CorrelateJoinTest.java

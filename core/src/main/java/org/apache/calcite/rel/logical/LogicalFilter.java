@@ -31,9 +31,10 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableSet;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 import java.util.Set;
@@ -66,8 +67,7 @@ public final class LogicalFilter extends Filter {
       RexNode condition,
       ImmutableSet<CorrelationId> variablesSet) {
     super(cluster, traitSet, child, condition);
-    this.variablesSet = Objects.requireNonNull(variablesSet);
-    assert isValid(Litmus.THROW, null);
+    this.variablesSet = Objects.requireNonNull(variablesSet, "variablesSet");
   }
 
   @Deprecated // to be removed before 2.0
@@ -120,7 +120,7 @@ public final class LogicalFilter extends Filter {
     return variablesSet;
   }
 
-  public LogicalFilter copy(RelTraitSet traitSet, RelNode input,
+  @Override public LogicalFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalFilter(getCluster(), traitSet, input, condition,
@@ -135,6 +135,13 @@ public final class LogicalFilter extends Filter {
     return super.explainTerms(pw)
         .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty());
   }
-}
 
-// End LogicalFilter.java
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    return deepEquals0(obj)
+        && variablesSet.equals(((LogicalFilter) obj).variablesSet);
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hash(deepHashCode0(), variablesSet);
+  }
+}

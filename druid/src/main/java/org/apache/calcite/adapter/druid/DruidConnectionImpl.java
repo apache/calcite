@@ -19,17 +19,15 @@ package org.apache.calcite.adapter.druid;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
-
-import static org.apache.calcite.runtime.HttpUtils.post;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
@@ -52,16 +50,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.apache.calcite.runtime.HttpUtils.post;
+import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
+import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 /**
  * Implementation of {@link DruidConnection}.
@@ -75,17 +75,14 @@ class DruidConnectionImpl implements DruidConnection {
   private static final SimpleDateFormat TIMESTAMP_FORMAT;
 
   static {
-    final TimeZone utc = DateTimeUtils.UTC_ZONE;
     UTC_TIMESTAMP_FORMAT =
-        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT);
-    UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
-    TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
-    TIMESTAMP_FORMAT.setTimeZone(utc);
+        getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
+    TIMESTAMP_FORMAT = getDateFormatter(DateTimeUtils.TIMESTAMP_FORMAT_STRING);
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Objects.requireNonNull(url);
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url, "url");
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
   }
 
   /** Executes a query request.
@@ -103,7 +100,7 @@ class DruidConnectionImpl implements DruidConnection {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println(data);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
@@ -117,12 +114,12 @@ class DruidConnectionImpl implements DruidConnection {
 
   /** Parses the output of a query, sending the results to a
    * {@link Sink}. */
-  private void parse(QueryType queryType, InputStream in, Sink sink,
+  private static void parse(QueryType queryType, InputStream in, Sink sink,
       List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes, Page page) {
     final JsonFactory factory = new JsonFactory();
     final Row.RowBuilder rowBuilder = Row.newBuilder(fieldNames.size());
 
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         System.out.println("Response: "
@@ -288,31 +285,36 @@ class DruidConnectionImpl implements DruidConnection {
             expect(parser, JsonToken.END_OBJECT);
           }
         }
+        break;
+      default:
+        break;
       }
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private static void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     parseFields(fieldNames, fieldTypes, -1, rowBuilder, parser);
   }
 
-  private void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private static void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     while (parser.nextToken() == JsonToken.FIELD_NAME) {
       parseField(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
     }
   }
 
-  private void parseField(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private static void parseField(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     final String fieldName = parser.getCurrentName();
     parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser, fieldName);
   }
 
-  private void parseFieldForName(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  @SuppressWarnings("JavaUtilDate")
+  private static void parseFieldForName(List<String> fieldNames,
+      List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser, String fieldName)
       throws IOException {
     // Move to next token, which is name's value
@@ -389,6 +391,8 @@ class DruidConnectionImpl implements DruidConnection {
       case DOUBLE:
         rowBuilder.set(i, parser.getDoubleValue());
         break;
+      default:
+        break;
       }
       break;
     case VALUE_TRUE:
@@ -415,6 +419,8 @@ class DruidConnectionImpl implements DruidConnection {
           case "-Infinity":
           case "NaN":
             throw new RuntimeException("/ by zero");
+          default:
+            break;
           }
           rowBuilder.set(i, Long.valueOf(s));
           break;
@@ -433,8 +439,12 @@ class DruidConnectionImpl implements DruidConnection {
           case "NaN":
             rowBuilder.set(i, Double.NaN);
             return;
+          default:
+            break;
           }
           rowBuilder.set(i, Double.valueOf(s));
+          break;
+        default:
           break;
         }
       } else {
@@ -443,17 +453,17 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private void expect(JsonParser parser, JsonToken token) throws IOException {
+  private static void expect(JsonParser parser, JsonToken token) throws IOException {
     expect(parser.nextToken(), token);
   }
 
-  private void expect(JsonToken token, JsonToken expected) throws IOException {
+  private static void expect(JsonToken token, JsonToken expected) throws IOException {
     if (token != expected) {
       throw new RuntimeException("expected " + expected + ", got " + token);
     }
   }
 
-  private void expectScalarField(JsonParser parser, String name)
+  private static void expectScalarField(JsonParser parser, String name)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(name)) {
@@ -474,7 +484,8 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private void expectObjectField(JsonParser parser, String name)
+  @SuppressWarnings("unused")
+  private static void expectObjectField(JsonParser parser, String name)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(name)) {
@@ -487,7 +498,8 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private Long extractTimestampField(JsonParser parser)
+  @SuppressWarnings("JavaUtilDate")
+  private static Long extractTimestampField(JsonParser parser)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
@@ -516,20 +528,20 @@ class DruidConnectionImpl implements DruidConnection {
       final ExecutorService service)
       throws IOException {
     return new AbstractEnumerable<Row>() {
-      public Enumerator<Row> enumerator() {
+      @Override public Enumerator<Row> enumerator() {
         final BlockingQueueEnumerator<Row> enumerator =
             new BlockingQueueEnumerator<>();
         final RunnableQueueSink sink = new RunnableQueueSink() {
-          public void send(Row row) throws InterruptedException {
+          @Override public void send(Row row) throws InterruptedException {
             enumerator.queue.put(row);
           }
 
-          public void end() {
+          @Override public void end() {
             enumerator.done.set(true);
           }
 
           @SuppressWarnings("deprecation")
-          public void setSourceEnumerable(Enumerable<Row> enumerable)
+          @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
               throws InterruptedException {
             for (Row row : enumerable) {
               send(row);
@@ -537,7 +549,7 @@ class DruidConnectionImpl implements DruidConnection {
             end();
           }
 
-          public void run() {
+          @Override public void run() {
             try {
               final Page page = new Page();
               final List<ColumnMetaData.Rep> fieldTypes =
@@ -565,7 +577,7 @@ class DruidConnectionImpl implements DruidConnection {
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
     final String data = DruidQuery.metadataQuery(dataSourceName, intervals);
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Druid: " + data);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
@@ -624,7 +636,7 @@ class DruidConnectionImpl implements DruidConnection {
         ImmutableMap.of("Content-Type", "application/json");
     final String data = null;
     final String url = coordinatorUrl + "/druid/coordinator/v1/metadata/datasources";
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Druid: table names" + data + "; " + url);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
@@ -640,8 +652,8 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private InputStream traceResponse(InputStream in) {
-    if (CalcitePrepareImpl.DEBUG) {
+  private static InputStream traceResponse(InputStream in) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         in.close();
@@ -666,18 +678,18 @@ class DruidConnectionImpl implements DruidConnection {
   private static class BlockingQueueEnumerator<E> implements Enumerator<E> {
     final BlockingQueue<E> queue = new ArrayBlockingQueue<>(1000);
     final AtomicBoolean done = new AtomicBoolean(false);
-    final Holder<Throwable> throwableHolder = Holder.of(null);
+    final Holder<Throwable> throwableHolder = Holder.empty();
 
     E next;
 
-    public E current() {
+    @Override public E current() {
       if (next == null) {
         throw new NoSuchElementException();
       }
       return next;
     }
 
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       for (;;) {
         next = queue.poll();
         if (next != null) {
@@ -690,14 +702,13 @@ class DruidConnectionImpl implements DruidConnection {
       }
     }
 
-    public void reset() {}
+    @Override public void reset() {}
 
-    public void close() {
+    @Override public void close() {
       final Throwable e = throwableHolder.get();
       if (e != null) {
         throwableHolder.set(null);
-        Util.throwIfUnchecked(e);
-        throw new RuntimeException(e);
+        throw Util.throwAsRuntime(e);
       }
     }
   }
@@ -748,5 +759,3 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 }
-
-// End DruidConnectionImpl.java

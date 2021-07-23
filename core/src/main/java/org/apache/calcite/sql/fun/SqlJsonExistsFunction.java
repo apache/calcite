@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
  * The <code>JSON_EXISTS</code> function.
@@ -30,29 +32,29 @@ import org.apache.calcite.sql.type.ReturnTypes;
 public class SqlJsonExistsFunction extends SqlFunction {
   public SqlJsonExistsFunction() {
     super("JSON_EXISTS", SqlKind.OTHER_FUNCTION,
-        ReturnTypes.BOOLEAN_FORCE_NULLABLE, null,
-        OperandTypes.or(OperandTypes.ANY, OperandTypes.ANY_ANY),
+        ReturnTypes.BOOLEAN.andThen(SqlTypeTransforms.FORCE_NULLABLE), null,
+        OperandTypes.or(
+            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER),
+            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER,
+                SqlTypeFamily.ANY)),
         SqlFunctionCategory.SYSTEM);
   }
 
-  @Override public String getSignatureTemplate(int operandsCount) {
-    assert operandsCount == 1 || operandsCount == 2;
-    if (operandsCount == 1) {
-      return "{0}({1})";
-    }
-    return "{0}({1} {2} ON ERROR)";
+  @Override public String getAllowedSignatures(String opNameToUse) {
+    return "JSON_EXISTS(json_doc, path [{TRUE | FALSE| UNKNOWN | ERROR} ON ERROR])";
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
     call.operand(0).unparse(writer, 0, 0);
-    if (call.operandCount() == 2) {
-      call.operand(1).unparse(writer, 0, 0);
+    writer.sep(",", true);
+    for (int i = 1; i < call.operandCount(); i++) {
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
+    if (call.operandCount() == 3) {
       writer.keyword("ON ERROR");
     }
     writer.endFunCall(frame);
   }
 }
-
-// End SqlJsonExistsFunction.java

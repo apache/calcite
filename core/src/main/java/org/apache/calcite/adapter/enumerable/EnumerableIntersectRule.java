@@ -20,29 +20,32 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 
 /**
- * Rule to convert a
- * {@link org.apache.calcite.rel.logical.LogicalIntersect} to an
- * {@link EnumerableIntersect}.
+ * Rule to convert a {@link LogicalIntersect} to an {@link EnumerableIntersect}.
+ * You may provide a custom config to convert other nodes that extend {@link Intersect}.
+ *
+ * @see EnumerableRules#ENUMERABLE_INTERSECT_RULE
  */
 class EnumerableIntersectRule extends ConverterRule {
-  EnumerableIntersectRule() {
-    super(LogicalIntersect.class, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableIntersectRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalIntersect.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableIntersectRule")
+      .withRuleFactory(EnumerableIntersectRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableIntersectRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
-    final LogicalIntersect intersect = (LogicalIntersect) rel;
-    if (intersect.all) {
-      return null; // INTERSECT ALL not implemented
-    }
+  @Override public RelNode convert(RelNode rel) {
+    final Intersect intersect = (Intersect) rel;
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
     final RelTraitSet traitSet = intersect.getTraitSet().replace(out);
     return new EnumerableIntersect(rel.getCluster(), traitSet,
-        convertList(intersect.getInputs(), out), false);
+        convertList(intersect.getInputs(), out), intersect.all);
   }
 }
-
-// End EnumerableIntersectRule.java

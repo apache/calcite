@@ -18,9 +18,4 @@
 /**
  * Adapter based on the Apache Spark data management system.
  */
-@PackageMarker
 package org.apache.calcite.adapter.spark;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

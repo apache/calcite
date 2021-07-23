@@ -22,7 +22,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
@@ -42,7 +41,7 @@ public class Granularities {
    *
    * <p>When used in a query, Druid will rollup and round time values based on
    * specified period and timezone. */
-  @Nonnull public static Granularity createGranularity(TimeUnitRange timeUnit,
+  public static Granularity createGranularity(TimeUnitRange timeUnit,
       String timeZone) {
     switch (timeUnit) {
     case YEAR:
@@ -75,7 +74,7 @@ public class Granularities {
       generator.writeObject("all");
     }
 
-    @Nonnull public Type getType() {
+    @Override public Type getType() {
       return Type.ALL;
     }
   }
@@ -88,9 +87,9 @@ public class Granularities {
     private final String timeZone;
 
     private PeriodGranularity(Type type, String period, String timeZone) {
-      this.type = Objects.requireNonNull(type);
-      this.period = Objects.requireNonNull(period);
-      this.timeZone = Objects.requireNonNull(timeZone);
+      this.type = Objects.requireNonNull(type, "type");
+      this.period = Objects.requireNonNull(period, "period");
+      this.timeZone = Objects.requireNonNull(timeZone, "timeZone");
     }
 
     @Override public void write(JsonGenerator generator) throws IOException {
@@ -101,10 +100,8 @@ public class Granularities {
       generator.writeEndObject();
     }
 
-    @Nonnull public Type getType() {
+    @Override public Type getType() {
       return type;
     }
   }
 }
-
-// End Granularities.java

@@ -21,28 +21,29 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
- * Converts Calcite n-ary operators to druid expression eg (arg1 Op arg2 Op arg3)
+ * Converts Calcite n-ary operators to Druid expressions, for example
+ * {@code arg1 Op arg2 Op arg3}.
  */
 public class NaryOperatorConverter implements DruidSqlOperatorConverter {
   private final SqlOperator operator;
   private final String druidOperatorName;
 
   public NaryOperatorConverter(SqlOperator operator, String druidOperatorName) {
-    this.operator = Objects.requireNonNull(operator);
-    this.druidOperatorName = Objects.requireNonNull(druidOperatorName);
+    this.operator = Objects.requireNonNull(operator, "operator");
+    this.druidOperatorName = Objects.requireNonNull(druidOperatorName, "druidOperatorName");
   }
 
   @Override public SqlOperator calciteOperator() {
     return operator;
   }
 
-  @Nullable
-  @Override public String toDruidExpression(RexNode rexNode, RelDataType rowType,
+  @Override public @Nullable String toDruidExpression(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery) {
     final RexCall call = (RexCall) rexNode;
     final List<String> druidExpressions = DruidExpressions.toDruidExpressions(
@@ -54,5 +55,3 @@ public class NaryOperatorConverter implements DruidSqlOperatorConverter {
     return DruidExpressions.nAryOperatorCall(druidOperatorName, druidExpressions);
   }
 }
-
-// End NaryOperatorConverter.java

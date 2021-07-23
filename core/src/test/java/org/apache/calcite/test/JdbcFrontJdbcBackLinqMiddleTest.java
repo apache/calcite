@@ -18,8 +18,8 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.util.Bug;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
@@ -28,9 +28,9 @@ import static org.apache.calcite.test.CalciteAssert.that;
  * pushed down to JDBC (as in {@link JdbcFrontJdbcBackTest}) but is executed
  * in a pipeline of linq4j operators.
  */
-public class JdbcFrontJdbcBackLinqMiddleTest {
+class JdbcFrontJdbcBackLinqMiddleTest {
 
-  @Test public void testTable() {
+  @Test void testTable() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\"")
@@ -43,7 +43,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=7; week_day=Saturday\n");
   }
 
-  @Test public void testWhere() {
+  @Test void testWhere() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
@@ -51,7 +51,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=2; week_day=Monday\n");
   }
 
-  @Test public void testWhere2() {
+  @Test void testWhere2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\"\n"
@@ -64,7 +64,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=7; week_day=Saturday\n");
   }
 
-  @Test public void testCase() {
+  @Test void testCase() {
     that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select \"day\",\n"
@@ -83,7 +83,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=7; week_day=Saturday; D=Saturday\n");
   }
 
-  @Test public void testGroup() {
+  @Test void testGroup() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select s, count(*) as c, min(\"week_day\") as mw from (\n"
@@ -99,7 +99,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             "S=M; C=1; MW=Monday");
   }
 
-  @Test public void testGroupEmpty() {
+  @Test void testGroupEmpty() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select count(*) as c\n"
@@ -113,8 +113,8 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
    * <p>Currently, the query can be planned, but the plan is not efficient (uses
    * cartesian product).</p>
    */
-  @Ignore("non-deterministic on JDK 1.7 vs 1.8")
-  @Test public void testJoinTheta() {
+  @Disabled("non-deterministic on JDK 1.7 vs 1.8")
+  @Test void testJoinTheta() {
     that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select count(*) from (\n"
@@ -124,7 +124,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "  on s.\"customer_id\" - c.\"customer_id\" = 0)")
         .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])\n"
             + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[-($t0, $t1)], expr#4=[=($t3, $t2)], DUMMY=[$t2], $condition=[$t4])\n"
-            + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
+            + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
             + "      JdbcToEnumerableConverter\n"
             + "        JdbcProject(customer_id=[$2])\n"
             + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
@@ -133,7 +133,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "          JdbcTableScan(table=[[foodmart, customer]])");
   }
 
-  @Test public void testJoinGroupByEmpty() {
+  @Test void testJoinGroupByEmpty() {
     if (CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL
         && !Bug.CALCITE_673_FIXED) {
       return;
@@ -148,7 +148,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .returns("EXPR$0=86837\n");
   }
 
-  @Test public void testJoinGroupByOrderBy() {
+  @Test void testJoinGroupByOrderBy() {
     if (CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL
         && !Bug.CALCITE_673_FIXED) {
       return;
@@ -167,7 +167,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "EXPR$0=40784; state_province=WA; S=124366\n");
   }
 
-  @Test public void testCompositeGroupBy() {
+  @Test void testCompositeGroupBy() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select count(*) as c, c.\"state_province\"\n"
@@ -189,8 +189,8 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "C=4222; state_province=CA\n");
   }
 
-  @Ignore
-  @Test public void testDistinctCount() {
+  @Disabled
+  @Test void testDistinctCount() {
     // Complicating factors:
     // Composite GROUP BY key
     // Order by select item, referenced by ordinal
@@ -217,8 +217,8 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "state_province=WA; S=124366.0000; DC=1828\n");
   }
 
-  @Ignore
-  @Test public void testPlan() {
+  @Disabled
+  @Test void testPlan() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select c.\"state_province\"\n"
@@ -235,8 +235,8 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "            }\n");
   }
 
-  @Ignore
-  @Test public void testPlan2() {
+  @Disabled
+  @Test void testPlan2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .withDefaultSchema("foodmart")
@@ -259,7 +259,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "          }\n");
   }
 
-  @Test public void testPlan3() {
+  @Test void testPlan3() {
     // Plan should contain 'join'. If it doesn't, maybe int-vs-Integer
     // data type incompatibility has caused it to use a cartesian product
     // instead, and that would be wrong.
@@ -270,8 +270,6 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .query(
             "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"")
         .planContains(
-            " left.join(right, new org.apache.calcite.linq4j.function.Function1() {\n");
+            " left.hashJoin(right, new org.apache.calcite.linq4j.function.Function1() {\n");
   }
 }
-
-// End JdbcFrontJdbcBackLinqMiddleTest.java

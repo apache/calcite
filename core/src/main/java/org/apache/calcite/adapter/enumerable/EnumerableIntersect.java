@@ -28,21 +28,22 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Intersect} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableIntersect extends Intersect implements EnumerableRel {
   public EnumerableIntersect(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
-    assert !all;
   }
 
-  public EnumerableIntersect copy(RelTraitSet traitSet, List<RelNode> inputs,
+  @Override public EnumerableIntersect copy(RelTraitSet traitSet, List<RelNode> inputs,
       boolean all) {
     return new EnumerableIntersect(getCluster(), traitSet, inputs, all);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     Expression intersectExp = null;
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
@@ -60,7 +61,8 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
             Expressions.call(intersectExp,
                 BuiltInMethod.INTERSECT.method,
                 Expressions.list(childExp)
-                    .appendIfNotNull(result.physType.comparer()));
+                    .appendIfNotNull(result.physType.comparer())
+                    .append(Expressions.constant(all)));
       }
 
       // Once the first input has chosen its format, ask for the same for
@@ -68,7 +70,7 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
       pref = pref.of(result.format);
     }
 
-    builder.add(intersectExp);
+    builder.add(requireNonNull(intersectExp, "intersectExp"));
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),
@@ -77,5 +79,3 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableIntersect.java

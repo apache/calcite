@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.Maps;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -43,7 +45,7 @@ public class NameSet {
 
   /** Creates a NameSet that is an immutable copy of a given collection. */
   public static NameSet immutableCopyOf(Set<String> names) {
-    return new NameSet(NameMap.immutableCopyOf(Maps.asMap(names, (k) -> DUMMY)));
+    return new NameSet(NameMap.immutableCopyOf(Maps.asMap(names, k -> DUMMY)));
   }
 
   @Override public String toString() {
@@ -54,7 +56,7 @@ public class NameSet {
     return names.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof NameSet
         && names.equals(((NameSet) obj).names);
@@ -68,7 +70,11 @@ public class NameSet {
    * name. If case-sensitive, that iterable will have 0 or 1 elements; if
    * case-insensitive, it may have 0 or more. */
   public Collection<String> range(String name, boolean caseSensitive) {
-    return names.range(name, caseSensitive).keySet();
+    // This produces checkerframework false-positive
+    // type of expression: Set<@KeyFor("this.names.range(name, caseSensitive)") String>
+    // method return type: Collection<String>
+    //noinspection RedundantCast
+    return (Collection<String>) names.range(name, caseSensitive).keySet();
   }
 
   /** Returns whether this set contains the given name, with a given
@@ -82,5 +88,3 @@ public class NameSet {
     return Collections.unmodifiableSet(names.map().keySet());
   }
 }
-
-// End NameSet.java

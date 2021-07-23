@@ -32,5 +32,3 @@ public interface LatticeStatisticProvider {
   interface Factory extends Function<Lattice, LatticeStatisticProvider> {
   }
 }
-
-// End LatticeStatisticProvider.java

@@ -29,13 +29,15 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -54,12 +56,12 @@ import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_TABLE_SPEC
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test for lookupOperatorOverloads() in {@link CalciteCatalogReader}.
  */
-public class LookupOperatorOverloadsTest {
+class LookupOperatorOverloadsTest {
 
   private void checkFunctionType(int size, String name,
       List<SqlOperator> operatorList) {
@@ -76,7 +78,7 @@ public class LookupOperatorOverloadsTest {
     assertThat(actuals, is(Arrays.asList(expecteds)));
   }
 
-  @Test public void testIsUserDefined() throws SQLException {
+  @Test void testIsUserDefined() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isUserDefined()) {
@@ -88,7 +90,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_FUNCTION, USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test public void testIsTableFunction() throws SQLException {
+  @Test void testIsTableFunction() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isTableFunction()) {
@@ -99,7 +101,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION, MATCH_RECOGNIZE);
   }
 
-  @Test public void testIsSpecific() throws SQLException {
+  @Test void testIsSpecific() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isSpecific()) {
@@ -110,7 +112,7 @@ public class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test public void testIsUserDefinedNotSpecificFunction() throws SQLException {
+  @Test void testIsUserDefinedNotSpecificFunction() throws SQLException {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
       if (sqlFunctionCategory.isUserDefinedNotSpecificFunction()) {
@@ -120,7 +122,17 @@ public class LookupOperatorOverloadsTest {
     check(cats, USER_DEFINED_FUNCTION, USER_DEFINED_TABLE_FUNCTION);
   }
 
-  @Test public void test() throws SQLException {
+  @Test void testLookupCaseSensitively() throws SQLException {
+    checkInternal(true);
+  }
+
+  @Test void testLookupCaseInSensitively() throws SQLException {
+    checkInternal(false);
+  }
+
+  private void checkInternal(boolean caseSensitive) throws SQLException {
+    final SqlNameMatcher nameMatcher =
+        SqlNameMatchers.withCaseSensitive(caseSensitive);
     final String schemaName = "MySchema";
     final String funcName = "MyFUNC";
     final String anotherName = "AnotherFunc";
@@ -152,13 +164,13 @@ public class LookupOperatorOverloadsTest {
               SqlParserPos.ZERO, null);
       reader.lookupOperatorOverloads(myFuncIdentifier,
           SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
-          operatorList);
+          operatorList, nameMatcher);
       checkFunctionType(2, funcName, operatorList);
 
       operatorList.clear();
       reader.lookupOperatorOverloads(myFuncIdentifier,
           SqlFunctionCategory.USER_DEFINED_FUNCTION, SqlSyntax.FUNCTION,
-          operatorList);
+          operatorList, nameMatcher);
       checkFunctionType(0, null, operatorList);
 
       operatorList.clear();
@@ -167,10 +179,8 @@ public class LookupOperatorOverloadsTest {
               SqlParserPos.ZERO, null);
       reader.lookupOperatorOverloads(anotherFuncIdentifier,
           SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
-          operatorList);
+          operatorList, nameMatcher);
       checkFunctionType(1, anotherName, operatorList);
     }
   }
 }
-
-// End LookupOperatorOverloadsTest.java

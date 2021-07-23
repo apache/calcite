@@ -27,7 +27,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -35,8 +34,12 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A relational operator that performs nested-loop joins.
@@ -70,7 +73,7 @@ public abstract class Correlate extends BiRel {
 
   protected final CorrelationId correlationId;
   protected final ImmutableBitSet requiredColumns;
-  protected final SemiJoinType joinType;
+  protected final JoinRelType joinType;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -84,17 +87,21 @@ public abstract class Correlate extends BiRel {
    * @param requiredColumns Set of columns that are used by correlation
    * @param joinType Join type
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Correlate(
       RelOptCluster cluster,
-      RelTraitSet traits,
+      RelTraitSet traitSet,
       RelNode left,
       RelNode right,
       CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
-    super(cluster, traits, left, right);
-    this.joinType = joinType;
-    this.correlationId = correlationId;
-    this.requiredColumns = requiredColumns;
+      ImmutableBitSet requiredColumns,
+      JoinRelType joinType) {
+    super(cluster, traitSet, left, right);
+    assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
+    this.joinType = requireNonNull(joinType, "joinType");
+    this.correlationId = requireNonNull(correlationId, "correlationId");
+    this.requiredColumns = requireNonNull(requiredColumns, "requiredColumns");
+    assert isValid(Litmus.THROW, null);
   }
 
   /**
@@ -102,18 +109,19 @@ public abstract class Correlate extends BiRel {
    *
    * @param input Input representation
    */
-  public Correlate(RelInput input) {
+  protected Correlate(RelInput input) {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs().get(0),
         input.getInputs().get(1),
-        new CorrelationId((Integer) input.get("correlationId")),
+        new CorrelationId(
+            requireNonNull((Integer) input.get("correlation"), "correlation")),
         input.getBitSet("requiredColumns"),
-        input.getEnum("joinType", SemiJoinType.class));
+        requireNonNull(input.getEnum("joinType", JoinRelType.class), "joinType"));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     return super.isValid(litmus, context)
         && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
   }
@@ -130,9 +138,9 @@ public abstract class Correlate extends BiRel {
 
   public abstract Correlate copy(RelTraitSet traitSet,
       RelNode left, RelNode right, CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType);
+      ImmutableBitSet requiredColumns, JoinRelType joinType);
 
-  public SemiJoinType getJoinType() {
+  public JoinRelType getJoinType() {
     return joinType;
   }
 
@@ -141,7 +149,7 @@ public abstract class Correlate extends BiRel {
     case LEFT:
     case INNER:
       return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
-          right.getRowType(), joinType.toJoinType(),
+          right.getRowType(), joinType,
           getCluster().getTypeFactory(), null,
           ImmutableList.of());
     case ANTI:
@@ -156,7 +164,7 @@ public abstract class Correlate extends BiRel {
     return super.explainTerms(pw)
         .item("correlation", correlationId)
         .item("joinType", joinType.lowerName)
-        .item("requiredColumns", requiredColumns.toString());
+        .item("requiredColumns", requiredColumns);
   }
 
   /**
@@ -186,7 +194,18 @@ public abstract class Correlate extends BiRel {
     return ImmutableSet.of(correlationId);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    double leftRowCount = mq.getRowCount(left);
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
+      return leftRowCount;
+    default:
+      return leftRowCount * mq.getRowCount(right);
+    }
+  }
+
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
@@ -197,9 +216,15 @@ public abstract class Correlate extends BiRel {
     }
 
     Double restartCount = mq.getRowCount(getLeft());
+    if (restartCount == null) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
     // RelMetadataQuery.getCumulativeCost(getRight()); does not work for
     // RelSubset, so we ask planner to cost-estimate right relation
     RelOptCost rightCost = planner.getCost(getRight(), mq);
+    if (rightCost == null) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
     RelOptCost rescanCost =
         rightCost.multiplyBy(Math.max(1.0, restartCount - 1));
 
@@ -208,5 +233,3 @@ public abstract class Correlate extends BiRel {
         0, 0).plus(rescanCost);
   }
 }
-
-// End Correlate.java

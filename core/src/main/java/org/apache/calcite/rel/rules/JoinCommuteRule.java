@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -29,13 +29,14 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBeans;
 
-import com.google.common.collect.ImmutableList;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -48,31 +49,26 @@ import java.util.List;
  *
  * <p>To preserve the order of columns in the output row, the rule adds a
  * {@link org.apache.calcite.rel.core.Project}.
+ *
+ * @see CoreRules#JOIN_COMMUTE
+ * @see CoreRules#JOIN_COMMUTE_OUTER
  */
-public class JoinCommuteRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
+public class JoinCommuteRule
+    extends RelRule<JoinCommuteRule.Config>
+    implements TransformationRule {
 
-  /** Instance of the rule that only swaps inner joins. */
-  public static final JoinCommuteRule INSTANCE = new JoinCommuteRule(false);
-
-  /** Instance of the rule that swaps outer joins as well as inner joins. */
-  public static final JoinCommuteRule SWAP_OUTER = new JoinCommuteRule(true);
-
-  private final boolean swapOuter;
-
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a JoinCommuteRule.
-   */
-  public JoinCommuteRule(Class<? extends Join> clazz,
-      RelBuilderFactory relBuilderFactory, boolean swapOuter) {
-    super(operand(clazz, any()), relBuilderFactory, null);
-    this.swapOuter = swapOuter;
+  /** Creates a JoinCommuteRule. */
+  protected JoinCommuteRule(Config config) {
+    super(config);
   }
 
-  private JoinCommuteRule(boolean swapOuter) {
-    this(LogicalJoin.class, RelFactories.LOGICAL_BUILDER, swapOuter);
+  @Deprecated // to be removed before 2.0
+  public JoinCommuteRule(Class<? extends Join> clazz,
+      RelBuilderFactory relBuilderFactory, boolean swapOuter) {
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(clazz)
+        .withSwapOuter(swapOuter));
   }
 
   @Deprecated // to be removed before 2.0
@@ -90,13 +86,13 @@ public class JoinCommuteRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
-  public static RelNode swap(Join join) {
+  public static @Nullable RelNode swap(Join join) {
     return swap(join, false,
         RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
 
   @Deprecated // to be removed before 2.0
-  public static RelNode swap(Join join, boolean swapOuterJoins) {
+  public static @Nullable RelNode swap(Join join, boolean swapOuterJoins) {
     return swap(join, swapOuterJoins,
         RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
@@ -111,7 +107,7 @@ public class JoinCommuteRule extends RelOptRule {
    * @param relBuilder        Builder for relational expressions
    * @return swapped join if swapping possible; else null
    */
-  public static RelNode swap(Join join, boolean swapOuterJoins,
+  public static @Nullable RelNode swap(Join join, boolean swapOuterJoins,
       RelBuilder relBuilder) {
     final JoinRelType joinType = join.getJoinType();
     if (!swapOuterJoins && joinType != JoinRelType.INNER) {
@@ -123,13 +119,13 @@ public class JoinCommuteRule extends RelOptRule {
     final VariableReplacer variableReplacer =
         new VariableReplacer(rexBuilder, leftRowType, rightRowType);
     final RexNode oldCondition = join.getCondition();
-    RexNode condition = variableReplacer.go(oldCondition);
+    RexNode condition = variableReplacer.apply(oldCondition);
 
     // NOTE jvs 14-Mar-2006: We preserve attribute semiJoinDone after the
     // swap.  This way, we will generate one semijoin for the original
     // join, and one for the swapped join, and no more.  This
     // doesn't prevent us from seeing any new combinations assuming
-    // that the planner tries the desired order (semijoins after swaps).
+    // that the planner tries the desired order (semi-joins after swaps).
     Join newJoin =
         join.copy(join.getTraitSet(), condition, join.getRight(),
             join.getLeft(), joinType.swap(), join.isSemiJoinDone());
@@ -140,15 +136,22 @@ public class JoinCommuteRule extends RelOptRule {
         .build();
   }
 
-  public void onMatch(final RelOptRuleCall call) {
+  @Override public boolean matches(RelOptRuleCall call) {
     Join join = call.rel(0);
-
-    if (!join.getSystemFieldList().isEmpty()) {
-      // FIXME Enable this rule for joins with system fields
-      return;
+    // SEMI and ANTI join cannot be swapped.
+    if (!join.getJoinType().projectsRight()) {
+      return false;
     }
 
-    final RelNode swapped = swap(join, this.swapOuter, call.builder());
+    // Suppress join with "true" condition (that is, cartesian joins).
+    return config.isAllowAlwaysTrueCondition()
+        || !join.getCondition().isAlwaysTrue();
+  }
+
+  @Override public void onMatch(final RelOptRuleCall call) {
+    Join join = call.rel(0);
+
+    final RelNode swapped = swap(join, config.isSwapOuter(), call.builder());
     if (swapped == null) {
       return;
     }
@@ -187,7 +190,7 @@ public class JoinCommuteRule extends RelOptRule {
    * greater than leftFieldCount, it must be from the right, so we subtract
    * leftFieldCount from it.</p>
    */
-  private static class VariableReplacer {
+  private static class VariableReplacer extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final List<RelDataTypeField> leftFields;
     private final List<RelDataTypeField> rightFields;
@@ -201,39 +204,64 @@ public class JoinCommuteRule extends RelOptRule {
       this.rightFields = rightType.getFieldList();
     }
 
-    public RexNode go(RexNode rex) {
-      if (rex instanceof RexCall) {
-        ImmutableList.Builder<RexNode> builder =
-            ImmutableList.builder();
-        final RexCall call = (RexCall) rex;
-        for (RexNode operand : call.operands) {
-          builder.add(go(operand));
-        }
-        return call.clone(call.getType(), builder.build());
-      } else if (rex instanceof RexInputRef) {
-        RexInputRef var = (RexInputRef) rex;
-        int index = var.getIndex();
-        if (index < leftFields.size()) {
-          // Field came from left side of join. Move it to the right.
-          return rexBuilder.makeInputRef(
-              leftFields.get(index).getType(),
-              rightFields.size() + index);
-        }
-        index -= leftFields.size();
-        if (index < rightFields.size()) {
-          // Field came from right side of join. Move it to the left.
-          return rexBuilder.makeInputRef(
-              rightFields.get(index).getType(),
-              index);
-        }
-        throw new AssertionError("Bad field offset: index=" + var.getIndex()
-            + ", leftFieldCount=" + leftFields.size()
-            + ", rightFieldCount=" + rightFields.size());
-      } else {
-        return rex;
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
+      int index = inputRef.getIndex();
+      if (index < leftFields.size()) {
+        // Field came from left side of join. Move it to the right.
+        return rexBuilder.makeInputRef(
+            leftFields.get(index).getType(),
+            rightFields.size() + index);
       }
+      index -= leftFields.size();
+      if (index < rightFields.size()) {
+        // Field came from right side of join. Move it to the left.
+        return rexBuilder.makeInputRef(
+            rightFields.get(index).getType(),
+            index);
+      }
+      throw new AssertionError("Bad field offset: index=" + inputRef.getIndex()
+          + ", leftFieldCount=" + leftFields.size()
+          + ", rightFieldCount=" + rightFields.size());
     }
   }
-}
 
-// End JoinCommuteRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalJoin.class)
+        .withSwapOuter(false);
+
+    @Override default JoinCommuteRule toRule() {
+      return new JoinCommuteRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Join> joinClass) {
+      return withOperandSupplier(b ->
+          b.operand(joinClass)
+              // FIXME Enable this rule for joins with system fields
+              .predicate(j ->
+                  j.getLeft().getId() != j.getRight().getId()
+                      && j.getSystemFieldList().isEmpty())
+              .anyInputs())
+          .as(Config.class);
+    }
+
+    /** Whether to swap outer joins; default false. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(false)
+    boolean isSwapOuter();
+
+    /** Sets {@link #isSwapOuter()}. */
+    Config withSwapOuter(boolean swapOuter);
+
+    /** Whether to emit the new join tree if the join condition is {@code TRUE}
+     * (that is, cartesian joins); default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean isAllowAlwaysTrueCondition();
+
+    /** Sets {@link #isAllowAlwaysTrueCondition()}. */
+    Config withAllowAlwaysTrueCondition(boolean allowAlwaysTrueCondition);
+  }
+}

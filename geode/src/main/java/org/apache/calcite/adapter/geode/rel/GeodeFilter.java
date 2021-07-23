@@ -25,10 +25,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -36,6 +38,8 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,14 +64,15 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
     super(cluster, traitSet, input, condition);
 
-    Translator translator = new Translator(getRowType());
+    Translator translator = new Translator(getRowType(), getCluster().getRexBuilder());
     this.match = translator.translateMatch(condition);
 
     assert getConvention() == GeodeRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
@@ -85,12 +90,17 @@ public class GeodeFilter extends Filter implements GeodeRel {
    * Translates {@link RexNode} expressions into Geode expression strings.
    */
   static class Translator {
+    @SuppressWarnings("unused")
     private final RelDataType rowType;
 
     private final List<String> fieldNames;
 
-    Translator(RelDataType rowType) {
+    @SuppressWarnings("unused")
+    private RexBuilder rexBuilder;
+
+    Translator(RelDataType rowType, RexBuilder rexBuilder) {
       this.rowType = rowType;
+      this.rexBuilder = rexBuilder;
       this.fieldNames = GeodeRules.geodeFieldNames(rowType);
     }
 
@@ -127,8 +137,14 @@ public class GeodeFilter extends Filter implements GeodeRel {
      * @return OQL predicate string
      */
     private String translateMatch(RexNode condition) {
+      // Remove SEARCH calls because current translation logic cannot handle it.
+      // However, it would efficient to handle SEARCH explicitly; a Geode
+      // 'IN SET' would always manifest as a SEARCH.
+      final RexNode condition2 =
+          RexUtil.expandSearch(rexBuilder, null, condition);
+
       // Returns condition decomposed by OR
-      List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
+      List<RexNode> disjunctions = RelOptUtil.disjunctions(condition2);
       if (disjunctions.size() == 1) {
         return translateAnd(disjunctions.get(0));
       } else {
@@ -151,9 +167,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
       return Util.toString(predicates, "", " AND ", "");
     }
 
-    /**
-     *  Get the field name for the left node to use for IN SET query
-     */
+    /** Returns the field name for the left node to use for {@code IN SET}
+     * query. */
     private String getLeftNodeFieldName(RexNode left) {
       switch (left.getKind()) {
       case INPUT_REF:
@@ -162,6 +177,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
       case CAST:
         // FIXME This will not work in all cases (for example, we ignore string encoding)
         return getLeftNodeFieldName(((RexCall) left).operands.get(0));
+      case ITEM:
       case OTHER_FUNCTION:
         return left.accept(new GeodeRules.RexToGeodeTranslator(this.fieldNames));
       default:
@@ -169,9 +185,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
       }
     }
 
-    /**
-     *  Check if we can use IN SET Query clause to improve query performance
-     */
+    /** Returns whether we can use the {@code IN SET} query clause to
+     * improve query performance. */
     private boolean useInSetQueryClause(List<RexNode> disjunctions) {
       // Only use the in set for more than one disjunctions
       if (disjunctions.size() <= 1) {
@@ -202,9 +217,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
       });
     }
 
-    /**
-     * Creates OQL IN SET predicate string
-     */
+    /** Creates OQL {@code IN SET} predicate string. */
     private String translateInSet(List<RexNode> disjunctions) {
       Preconditions.checkArgument(
           !disjunctions.isEmpty(), "empty disjunctions");
@@ -293,6 +306,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
     private String translateMatch2(RexNode node) {
       // We currently only use equality, but inequalities on clustering keys
       // should be possible in the future
+      RexNode child;
       switch (node.getKind()) {
       case EQUALS:
         return translateBinary("=", "=", (RexCall) node);
@@ -304,9 +318,23 @@ public class GeodeFilter extends Filter implements GeodeRel {
         return translateBinary(">", "<", (RexCall) node);
       case GREATER_THAN_OR_EQUAL:
         return translateBinary(">=", "<=", (RexCall) node);
+      case INPUT_REF:
+        return translateBinary2("=", node, rexBuilder.makeLiteral(true));
+      case NOT:
+        child = ((RexCall) node).getOperands().get(0);
+        if (child.getKind() == SqlKind.CAST) {
+          child = ((RexCall) child).getOperands().get(0);
+        }
+        if (child.getKind() == SqlKind.INPUT_REF) {
+          return translateBinary2("=", child, rexBuilder.makeLiteral(false));
+        }
+        break;
+      case CAST:
+        return translateMatch2(((RexCall) node).getOperands().get(0));
       default:
-        throw new AssertionError("cannot translate " + node);
+        break;
       }
+      throw new AssertionError("Cannot translate " + node + ", kind=" + node.getKind());
     }
 
     /**
@@ -347,7 +375,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
       case CAST:
         // FIXME This will not work in all cases (for example, we ignore string encoding)
         return translateBinary2(op, ((RexCall) left).operands.get(0), right);
-      case OTHER_FUNCTION:
+      case ITEM:
         String item = left.accept(new GeodeRules.RexToGeodeTranslator(this.fieldNames));
         return (item == null) ? null : item + " " + op + " " + quoteCharLiteral(rightLiteral);
       default:
@@ -355,7 +383,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
       }
     }
 
-    private String quoteCharLiteral(RexLiteral literal) {
+    private static String quoteCharLiteral(RexLiteral literal) {
       String value = literalValue(literal);
       if (literal.getTypeName() == CHAR) {
         value = "'" + value + "'";
@@ -366,11 +394,9 @@ public class GeodeFilter extends Filter implements GeodeRel {
     /**
      * Combines a field name, operator, and literal to produce a predicate string.
      */
-    private String translateOp2(String op, String name, RexLiteral right) {
+    private static String translateOp2(String op, String name, RexLiteral right) {
       String valueString = quoteCharLiteral(right);
       return name + " " + op + " " + valueString;
     }
   }
 }
-
-// End GeodeFilter.java

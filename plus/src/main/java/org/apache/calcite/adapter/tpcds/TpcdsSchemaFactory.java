@@ -34,12 +34,10 @@ public class TpcdsSchemaFactory implements SchemaFactory {
   public TpcdsSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     @SuppressWarnings("RawTypeCanBeGeneric") final Map map = operand;
     double scale = Util.first((Double) map.get("scale"), 1D);
     return new TpcdsSchema(scale);
   }
 }
-
-// End TpcdsSchemaFactory.java

@@ -16,26 +16,36 @@
  */
 package org.apache.calcite.util;
 
-import org.junit.Test;
+import org.apache.calcite.util.mapping.IntPair;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.ImmutableMap;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for TestUtil
+ * Tests for TestUtil.
  */
-public class TestUtilTest {
+class TestUtilTest {
 
-  @Test
-  public void javaMajorVersionExceeds6() {
+  @Test void javaMajorVersionExceeds6() {
     // shouldn't throw any exceptions (for current JDK)
     int majorVersion = TestUtil.getJavaMajorVersion();
-    assertTrue("current JavaMajorVersion == " + majorVersion + " is expected to exceed 6",
-        majorVersion > 6);
+    assertTrue(majorVersion > 6,
+        "current JavaMajorVersion == " + majorVersion + " is expected to exceed 6");
   }
 
-  @Test
-  public void majorVersionFromString() {
+  @Test void majorVersionFromString() {
     testJavaVersion(4, "1.4.2_03");
     testJavaVersion(5, "1.5.0_16");
     testJavaVersion(6, "1.6.0_22");
@@ -85,10 +95,70 @@ public class TestUtilTest {
   }
 
   private void testJavaVersion(int expectedMajorVersion, String versionString) {
-    assertEquals(versionString, expectedMajorVersion,
-        TestUtil.majorVersionFromString(versionString));
+    assertEquals(expectedMajorVersion,
+        TestUtil.majorVersionFromString(versionString),
+        versionString);
   }
 
-}
+  @Test void testGuavaMajorVersion() {
+    int majorVersion = TestUtil.getGuavaMajorVersion();
+    assertTrue(majorVersion >= 2,
+        "current GuavaMajorVersion is " + majorVersion + "; should exceed 2");
+  }
 
-// End TestUtilTest.java
+  /** Tests {@link TestUtil#correctRoundedFloat(String)}. */
+  @Test void testCorrectRoundedFloat() {
+    // unchanged; no '.'
+    assertThat(TestUtil.correctRoundedFloat("1230000006"), is("1230000006"));
+    assertThat(TestUtil.correctRoundedFloat("12.300000006"), is("12.3"));
+    assertThat(TestUtil.correctRoundedFloat("53.742500000000014"),
+        is("53.7425"));
+    // unchanged; too few zeros
+    assertThat(TestUtil.correctRoundedFloat("12.30006"), is("12.30006"));
+    assertThat(TestUtil.correctRoundedFloat("12.300000"), is("12.3"));
+    assertThat(TestUtil.correctRoundedFloat("-12.30000006"), is("-12.3"));
+    assertThat(TestUtil.correctRoundedFloat("-12.349999991"), is("-12.35"));
+    assertThat(TestUtil.correctRoundedFloat("-12.349999999"), is("-12.35"));
+    assertThat(TestUtil.correctRoundedFloat("-12.3499999911"), is("-12.35"));
+    // unchanged; too many non-nines at the end
+    assertThat(TestUtil.correctRoundedFloat("-12.34999999118"),
+        is("-12.34999999118"));
+    // unchanged; too few nines
+    assertThat(TestUtil.correctRoundedFloat("-12.349991"), is("-12.349991"));
+    assertThat(TestUtil.correctRoundedFloat("95637.41489999992"),
+        is("95637.4149"));
+    assertThat(TestUtil.correctRoundedFloat("14181.569999999989"),
+        is("14181.57"));
+    // can't handle nines that start right after the point very well. oh well.
+    assertThat(TestUtil.correctRoundedFloat("12.999999"), is("12."));
+  }
+
+  /** Tests {@link TestUtil#outOfOrderItems(List)}. */
+  @Test void testOutOfOrderItems() {
+    final List<String> list =
+        new ArrayList<>(Arrays.asList("a", "g", "b", "c", "e", "d"));
+    final SortedSet<String> distance = TestUtil.outOfOrderItems(list);
+    assertThat(distance.toString(), is("[b, d]"));
+
+    list.add("f");
+    final SortedSet<String> distance2 = TestUtil.outOfOrderItems(list);
+    assertThat(distance2.toString(), is("[b, d]"));
+
+    list.add(1, "b");
+    final SortedSet<String> distance3 = TestUtil.outOfOrderItems(list);
+    assertThat(distance3.toString(), is("[b, d]"));
+
+    list.add(1, "c");
+    final SortedSet<String> distance4 = TestUtil.outOfOrderItems(list);
+    assertThat(distance4.toString(), is("[b, d]"));
+
+    list.add(0, "z");
+    final SortedSet<String> distance5 = TestUtil.outOfOrderItems(list);
+    assertThat(distance5.toString(), is("[a, b, d]"));
+  }
+
+  private long totalDistance(ImmutableMap<String, IntPair> map) {
+    return map.entrySet().stream()
+        .collect(Collectors.summarizingInt(e -> e.getValue().target)).getSum();
+  }
+}

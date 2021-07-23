@@ -89,5 +89,3 @@ class GeodeEnumerator implements Enumerator<Object> {
     // Nothing to do here
   }
 }
-
-// End GeodeEnumerator.java

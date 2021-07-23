@@ -17,25 +17,37 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
  * A <code>SqlDialect</code> implementation for an unknown ANSI compatible database.
  */
 public class AnsiSqlDialect extends SqlDialect {
+
+  public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.UNKNOWN)
+      .withIdentifierQuoteString("`");
+
   /**
    * A dialect useful for generating generic SQL. If you need to do something
    * database-specific like quoting identifiers, don't rely on this dialect to
    * do what you want.
    */
-  public static final SqlDialect DEFAULT =
-      new AnsiSqlDialect(emptyContext()
-          .withDatabaseProduct(DatabaseProduct.UNKNOWN)
-          .withIdentifierQuoteString("`"));
+  public static final SqlDialect DEFAULT = new AnsiSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an AnsiSqlDialect. */
   public AnsiSqlDialect(Context context) {
     super(context);
   }
-}
 
-// End AnsiSqlDialect.java
+  /** Converts table scan hints.*/
+  @Override public void unparseTableScanHints(SqlWriter writer,
+      SqlNodeList hints, int leftPrec, int rightPrec) {
+    writer.newlineAndIndent();
+    writer.keyword("/*+");
+    hints.unparse(writer, 0, 0);
+    writer.keyword("*/");
+  }
+
+}

@@ -34,7 +34,40 @@ class SqlRollupOperator extends SqlInternalOperator {
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    switch (kind) {
+    case ROLLUP:
+      if (!writer.getDialect().supportsAggregateFunction(kind)
+          && writer.getDialect().supportsGroupByWithRollup()) {
+        // MySQL version 5: generate "GROUP BY x, y WITH ROLLUP".
+        // MySQL version 8 and higher is SQL-compliant,
+        // so generate "GROUP BY ROLLUP(x, y)"
+        unparseKeyword(writer, call, "WITH ROLLUP");
+        return;
+      }
+      break;
+    case CUBE:
+      if (!writer.getDialect().supportsAggregateFunction(kind)
+          && writer.getDialect().supportsGroupByWithCube()) {
+        // Spark SQL: generate "GROUP BY x, y WITH CUBE".
+        unparseKeyword(writer, call, "WITH CUBE");
+        return;
+      }
+      break;
+    default:
+      break;
+    }
     unparseCube(writer, call);
+  }
+
+  private static void unparseKeyword(SqlWriter writer, SqlCall call, String keyword) {
+    final SqlWriter.Frame groupFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, 2, 3);
+    }
+    writer.endList(groupFrame);
+    writer.keyword(keyword);
   }
 
   private static void unparseCube(SqlWriter writer, SqlCall call) {
@@ -61,5 +94,3 @@ class SqlRollupOperator extends SqlInternalOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlRollupOperator.java

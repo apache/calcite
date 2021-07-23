@@ -27,5 +27,3 @@ import org.apache.calcite.runtime.ArrayBindable;
  */
 public interface BindableRel extends RelNode, ArrayBindable, InterpretableRel {
 }
-
-// End BindableRel.java

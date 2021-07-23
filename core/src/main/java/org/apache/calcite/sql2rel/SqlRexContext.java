@@ -94,5 +94,3 @@ public interface SqlRexContext {
    */
   RexNode convertLiteral(SqlLiteral literal);
 }
-
-// End SqlRexContext.java

@@ -24,5 +24,3 @@ package org.apache.calcite.sql.validate;
 public enum SqlMonikerType {
   COLUMN, TABLE, VIEW, SCHEMA, CATALOG, REPOSITORY, FUNCTION, KEYWORD
 }
-
-// End SqlMonikerType.java

@@ -18,9 +18,4 @@
 /**
  * Utility classes for the SQL object model, parsing, and validation.
  */
-@PackageMarker
 package org.apache.calcite.sql.util;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

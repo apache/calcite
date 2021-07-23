@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.framework.qual.Covariant;
+
 /**
  * Supports a simple iteration over a collection.
  *
@@ -26,6 +28,7 @@ package org.apache.calcite.linq4j;
  *
  * @param <T> Element type
  */
+@Covariant(0)
 public interface Enumerator<T> extends AutoCloseable {
   /**
    * Gets the current element in the collection.
@@ -106,7 +109,7 @@ public interface Enumerator<T> extends AutoCloseable {
    * <p>This method is optional; it may throw
    * {@link UnsupportedOperationException}.
    *
-   * <h3>Notes to Implementers</h3>
+   * <p><b>Notes to Implementers</b>
    *
    * <p>All calls to Reset must result in the same state for the enumerator.
    * The preferred implementation is to move the enumerator to the beginning
@@ -123,7 +126,5 @@ public interface Enumerator<T> extends AutoCloseable {
    * <p>This method is idempotent. Calling it multiple times has the same effect
    * as calling it once.
    */
-  void close();
+  @Override void close();
 }
-
-// End Enumerator.java

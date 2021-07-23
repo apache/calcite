@@ -35,5 +35,3 @@ public enum RelDataTypeComparability {
     Util.discard(description);
   }
 }
-
-// End RelDataTypeComparability.java

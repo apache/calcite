@@ -34,16 +34,17 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.util.Smalls;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -62,9 +63,10 @@ import static org.apache.calcite.test.JdbcTest.Employee;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for {@link ReflectiveSchema}.
@@ -83,7 +85,7 @@ public class ReflectiveSchemaTest {
    *
    * @throws Exception on error
    */
-  @Test public void testQueryProvider() throws Exception {
+  @Test void testQueryProvider() throws Exception {
     Connection connection = CalciteAssert
         .that(CalciteAssert.Config.REGULAR).connect();
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
@@ -133,7 +135,7 @@ public class ReflectiveSchemaTest {
     assertEquals("SEBASTIAN", list.get(0)[1]);
   }
 
-  @Test public void testQueryProviderSingleColumn() throws Exception {
+  @Test void testQueryProviderSingleColumn() throws Exception {
     Connection connection = CalciteAssert
         .that(CalciteAssert.Config.REGULAR).connect();
     QueryProvider queryProvider = connection.unwrap(QueryProvider.class);
@@ -162,8 +164,8 @@ public class ReflectiveSchemaTest {
    * Tests a relation that is accessed via method syntax.
    * The function returns a {@link org.apache.calcite.linq4j.Queryable}.
    */
-  @Ignore
-  @Test public void testOperator() throws SQLException, ClassNotFoundException {
+  @Disabled
+  @Test void testOperator() throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -187,7 +189,7 @@ public class ReflectiveSchemaTest {
   /**
    * Tests a view.
    */
-  @Test public void testView() throws SQLException, ClassNotFoundException {
+  @Test void testView() throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -212,7 +214,7 @@ public class ReflectiveSchemaTest {
   /**
    * Tests a view with a path.
    */
-  @Test public void testViewPath() throws SQLException, ClassNotFoundException {
+  @Test void testViewPath() throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -260,7 +262,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Tests column based on java.sql.Date field. */
-  @Test public void testDateColumn() throws Exception {
+  @Test void testDateColumn() throws Exception {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new DateColumnSchema()))
         .query("select * from \"s\".\"emps\"")
@@ -270,7 +272,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Tests querying an object that has no public fields. */
-  @Test public void testNoPublicFields() throws Exception {
+  @Test void testNoPublicFields() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select 1 from \"s\".\"allPrivates\"")
@@ -282,7 +284,7 @@ public class ReflectiveSchemaTest {
   /** Tests columns based on types such as java.sql.Date and java.util.Date.
    *
    * @see CatchallSchema#everyTypes */
-  @Test public void testColumnTypes() throws Exception {
+  @Test void testColumnTypes() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"primitiveBoolean\" from \"s\".\"everyTypes\"")
@@ -290,14 +292,14 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true\n");
     with.query("select * from \"s\".\"everyTypes\"")
         .returns(""
-            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1\n"
-            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null\n");
+            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1; bigDecimal=0\n"
+            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null; bigDecimal=null\n");
   }
 
-  /**
-   * Tests NOT for nullable columns
+  /** Tests NOT for nullable columns.
+   *
    * @see CatchallSchema#everyTypes */
-  @Test public void testWhereNOT() throws Exception {
+  @Test void testWhereNOT() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query(
@@ -305,10 +307,10 @@ public class ReflectiveSchemaTest {
         .returnsUnordered("wrapperByte=0");
   }
 
-  /**
-   * Tests NOT for nullable columns
+  /** Tests NOT for nullable columns.
+   *
    * @see CatchallSchema#everyTypes */
-  @Test public void testSelectNOT() throws Exception {
+  @Test void testSelectNOT() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query(
@@ -321,7 +323,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testSelectWithFieldAccessOnFirstLevelRecordType() {
+  @Test void testSelectWithFieldAccessOnFirstLevelRecordType() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"birthPlace\".\"city\" as city from \"bookstore\".\"authors\" au\n")
@@ -331,7 +333,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testSelectWithFieldAccessOnSecondLevelRecordType() {
+  @Test void testSelectWithFieldAccessOnSecondLevelRecordType() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"birthPlace\".\"coords\".\"latitude\" as lat\n"
@@ -342,7 +344,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testWhereWithFieldAccessOnFirstLevelRecordType() {
+  @Test void testWhereWithFieldAccessOnFirstLevelRecordType() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
@@ -353,7 +355,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testWhereWithFieldAccessOnSecondLevelRecordType() {
+  @Test void testWhereWithFieldAccessOnSecondLevelRecordType() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
@@ -364,7 +366,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testSelectWithFieldAccessOnFirstLevelRecordTypeArray() {
+  @Test void testSelectWithFieldAccessOnFirstLevelRecordTypeArray() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"books\"[1].\"title\" as title from \"bookstore\".\"authors\" au\n")
@@ -374,7 +376,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testSelectWithFieldAccessOnSecondLevelRecordTypeArray() {
+  @Test void testSelectWithFieldAccessOnSecondLevelRecordTypeArray() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"books\"[1].\"pages\"[1].\"pageNo\" as pno\n"
@@ -385,7 +387,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testWhereWithFieldAccessOnFirstLevelRecordTypeArray() {
+  @Test void testWhereWithFieldAccessOnFirstLevelRecordTypeArray() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
@@ -396,7 +398,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
-  @Test public void testWhereWithFieldAccessOnSecondLevelRecordTypeArray() {
+  @Test void testWhereWithFieldAccessOnSecondLevelRecordTypeArray() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.BOOKSTORE)
         .query("select au.\"aid\" as aid from \"bookstore\".\"authors\" au\n"
@@ -407,7 +409,7 @@ public class ReflectiveSchemaTest {
   /** Tests columns based on types such as java.sql.Date and java.util.Date.
    *
    * @see CatchallSchema#everyTypes */
-  @Test public void testAggregateFunctions() throws Exception {
+  @Test void testAggregateFunctions() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     checkAgg(with, "min");
@@ -432,7 +434,7 @@ public class ReflectiveSchemaTest {
                     ++n;
                   }
                 } catch (SQLException e) {
-                  throw new RuntimeException(e);
+                  throw TestUtil.rethrow(e);
                 }
                 assertThat(n, equalTo(1));
               });
@@ -465,12 +467,14 @@ public class ReflectiveSchemaTest {
       return input.getTime(1);
     case java.sql.Types.TIMESTAMP:
       return input.getTimestamp(1);
+    case java.sql.Types.DECIMAL:
+      return input.getBigDecimal(1);
     default:
       throw new AssertionError(type);
     }
   }
 
-  @Test public void testClassNames() throws Exception {
+  @Test void testClassNames() throws Exception {
     CalciteAssert.that()
         .withSchema("s", CATCHALL).query("select * from \"s\".\"everyTypes\"")
         .returns(
@@ -499,7 +503,7 @@ public class ReflectiveSchemaTest {
                 check(metaData, "utilDate", Timestamp.class);
                 check(metaData, "string", String.class);
               } catch (SQLException e) {
-                throw new RuntimeException(e);
+                throw TestUtil.rethrow(e);
               }
             });
   }
@@ -513,10 +517,10 @@ public class ReflectiveSchemaTest {
         return;
       }
     }
-    Assert.fail("column not found: " + columnName);
+    fail("column not found: " + columnName);
   }
 
-  @Test public void testJavaBoolean() throws Exception {
+  @Test void testJavaBoolean() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select count(*) as c from \"s\".\"everyTypes\"\n"
@@ -552,7 +556,7 @@ public class ReflectiveSchemaTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-119">[CALCITE-119]
    * Comparing a Java type long with a SQL type INTEGER gives wrong
    * answer</a>. */
-  @Test public void testCompareJavaAndSqlTypes() throws Exception {
+  @Test void testCompareJavaAndSqlTypes() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     // With CALCITE-119, returned 0 rows. The problem was that when comparing
@@ -575,44 +579,54 @@ public class ReflectiveSchemaTest {
         .returns("P=2; W=1; SP=2; SW=1; IP=2; IW=1; LP=2; LW=1\n");
   }
 
-  @Test public void testDivideWraperPrimitive() throws Exception {
+  @Test void testDivideWraperPrimitive() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"primitiveLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = current.wrapperLong;")
+            "final Long input_value = current.wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / current.primitiveLong);")
+            "return input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / current.primitiveLong);")
         .returns("C=null\n");
   }
 
-  @Test public void testDivideWraperWrapper() throws Exception {
+  @Test void testDivideDoubleBigDecimal() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query("select \"wrapperDouble\" / \"bigDecimal\" as c\n"
+        + " from \"s\".\"everyTypes\"")
+        .runs();
+  }
+
+  @Test void testDivideWraperWrapper() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue());")
+            "return input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / input_value.longValue());")
         .returns("C=null\n");
   }
 
-  @Test public void testDivideWraperWrapperMultipleTimes() throws Exception {
+  @Test void testDivideWraperWrapperMultipleTimes() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select \"wrapperLong\" / \"wrapperLong\"\n"
         + "+ \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue() + inp13_.longValue() / inp13_.longValue());")
+            "final Long binary_call_value = input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / input_value.longValue());")
+        .planContains(
+            "return binary_call_value == null ? (Long) null : Long.valueOf(binary_call_value.longValue() + binary_call_value.longValue());")
         .returns("C=null\n");
   }
 
-  @Test public void testOp() throws Exception {
+  @Test void testOp() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that()
             .withSchema("s", CATCHALL);
@@ -636,7 +650,7 @@ public class ReflectiveSchemaTest {
     }
   }
 
-  @Test public void testCastFromString() {
+  @Test void testCastFromString() {
     CalciteAssert.that().withSchema("s", CATCHALL)
         .query("select cast(\"string\" as int) as c from \"s\".\"everyTypes\"")
         .returns("C=1\n"
@@ -646,7 +660,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-580">[CALCITE-580]
    * Average aggregation on an Integer column throws ClassCastException</a>. */
-  @Test public void testAvgInt() throws Exception {
+  @Test void testAvgInt() throws Exception {
     CalciteAssert.that().withSchema("s", CATCHALL).with(Lex.JAVA)
         .query("select primitiveLong, avg(primitiveInt)\n"
             + "from s.everyTypes\n"
@@ -658,7 +672,7 @@ public class ReflectiveSchemaTest {
               buf.append(input.getInt(2)).append("\n");
             }
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
           assertThat(buf.toString(), equalTo("0\n2147483647\n"));
         });
@@ -679,7 +693,7 @@ public class ReflectiveSchemaTest {
    * case a {@link BitSet}) then it is treated as an object.
    *
    * @see CatchallSchema#badTypes */
-  @Test public void testTableFieldHasBadType() throws Exception {
+  @Test void testTableFieldHasBadType() throws Exception {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"badTypes\"")
@@ -691,7 +705,7 @@ public class ReflectiveSchemaTest {
    *
    * @see CatchallSchema#enumerable
    * @see CatchallSchema#list */
-  @Test public void testSchemaFieldHasBadType() throws Exception {
+  @Test void testSchemaFieldHasBadType() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     // BitSet is not a valid relation type. It's as if "bitSet" field does
@@ -714,7 +728,7 @@ public class ReflectiveSchemaTest {
 
   /** Test case for a bug where a Java string 'Abc' compared to a char 'Ab'
    * would be truncated to the char precision and falsely match. */
-  @Test public void testPrefix() throws Exception {
+  @Test void testPrefix() throws Exception {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query(
@@ -726,8 +740,8 @@ public class ReflectiveSchemaTest {
   /** If a method returns a
    * {@link ViewTable}.{@code ViewTableMacro}, then it
    * should be expanded. */
-  @Ignore
-  @Test public void testTableMacroIsView() throws Exception {
+  @Disabled
+  @Test void testTableMacroIsView() throws Exception {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
         .query("select * from table(\"s\".\"view\"('abc'))")
@@ -737,8 +751,8 @@ public class ReflectiveSchemaTest {
   }
 
   /** Finds a table-macro using reflection. */
-  @Ignore
-  @Test public void testTableMacro() throws Exception {
+  @Disabled
+  @Test void testTableMacro() throws Exception {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
         .query("select * from table(\"s\".\"foo\"(3))")
@@ -747,34 +761,34 @@ public class ReflectiveSchemaTest {
                 + "empid=4; deptno=10; name=Abd; salary=0.0; commission=null\n");
   }
 
-  /** Table with single field as Integer[] */
-  @Ignore(
+  /** Table with single field as Integer[]. */
+  @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
-  @Test public void testArrayOfBoxedPrimitives() {
+  @Test void testArrayOfBoxedPrimitives() {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"primesBoxed\"")
         .returnsUnordered("value=1", "value=3", "value=7");
   }
 
-  /** Table with single field as int[] */
-  @Ignore(
+  /** Table with single field as int[]. */
+  @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
-  @Test public void testArrayOfPrimitives() {
+  @Test void testArrayOfPrimitives() {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"primes\"")
         .returnsUnordered("value=1", "value=3", "value=7");
   }
 
-  @Test public void testCustomBoxedScalar() {
+  @Test void testCustomBoxedScalar() {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select \"value\" from \"s\".\"primesCustomBoxed\"")
         .returnsUnordered("value=1", "value=3", "value=5");
   }
 
-  @Test public void testCustomBoxedSalarCalc() {
+  @Test void testCustomBoxedSalarCalc() {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select \"value\"*2 \"value\" from \"s\".\"primesCustomBoxed\"")
@@ -785,7 +799,7 @@ public class ReflectiveSchemaTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1569">[CALCITE-1569]
    * Date condition can generates Integer == Integer, which is always
    * false</a>. */
-  @Test public void testDateCanCompare() {
+  @Test void testDateCanCompare() {
     final String sql = "select a.v\n"
         + "from (select \"sqlDate\" v\n"
         + "  from \"s\".\"everyTypes\" "
@@ -802,9 +816,44 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-281">[CALCITE-1919]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3512">[CALCITE-3512]
+   * Query fails when comparing Time/TimeStamp types</a>. */
+  @Test void testTimeCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTime\") a,"
+        + "    (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTime\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=00:00:00");
+  }
+
+  @Test void testTimestampCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTimestamp\") a,"
+        + "    (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTimestamp\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=1970-01-01 00:00:00");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1919">[CALCITE-1919]
    * NPE when target in ReflectiveSchema belongs to the unnamed package</a>. */
-  @Test public void testReflectiveSchemaInUnnamedPackage() throws Exception {
+  @Test void testReflectiveSchemaInUnnamedPackage() throws Exception {
     final Driver driver = new Driver();
     try (CalciteConnection connection = (CalciteConnection)
         driver.connect("jdbc:calcite:", new Properties())) {
@@ -858,6 +907,7 @@ public class ReflectiveSchemaTest {
     public final Timestamp sqlTimestamp;
     public final Date utilDate;
     public final String string;
+    public final BigDecimal bigDecimal;
 
     public EveryType(
         boolean primitiveBoolean,
@@ -880,7 +930,8 @@ public class ReflectiveSchemaTest {
         Time sqlTime,
         Timestamp sqlTimestamp,
         Date utilDate,
-        String string) {
+        String string,
+        BigDecimal bigDecimal) {
       this.primitiveBoolean = primitiveBoolean;
       this.primitiveByte = primitiveByte;
       this.primitiveChar = primitiveChar;
@@ -902,6 +953,7 @@ public class ReflectiveSchemaTest {
       this.sqlTimestamp = sqlTimestamp;
       this.utilDate = utilDate;
       this.string = string;
+      this.bigDecimal = bigDecimal;
     }
 
     static Enumerable<Field> fields() {
@@ -925,7 +977,7 @@ public class ReflectiveSchemaTest {
     public final BitSet bitSet = new BitSet(0);
   }
 
-  /** Table that has integer and string fields */
+  /** Table that has integer and string fields. */
   public static class IntAndString {
     public final int id;
     public final String value;
@@ -953,13 +1005,13 @@ public class ReflectiveSchemaTest {
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             new java.sql.Date(0), new Time(0), new Timestamp(0),
-            new Date(0), "1"),
+            new Date(0), "1", BigDecimal.ZERO),
         new EveryType(
             true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
             Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
             Double.MAX_VALUE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null, null),
+            null, null, null, null, null, null),
     };
 
     public final AllPrivate[] allPrivates = { new AllPrivate() };
@@ -1010,15 +1062,24 @@ public class ReflectiveSchemaTest {
     };
   }
 
-  /** CALCITE-2611 unknown on one side of an or may lead to uncompilable code */
-  @Test
-  public void testUnknownInOr() {
+  /** Tests
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2611">[CALCITE-2611]
+   * UNKNOWN on one side of an OR may lead to uncompilable code</a>. */
+  @Test void testUnknownInOr() {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select (\"value\" = 3 and unknown) or ( \"value\"  = 3 ) "
             + "from \"s\".\"primesCustomBoxed\"")
         .returnsUnordered("EXPR$0=false\nEXPR$0=false\nEXPR$0=true");
   }
-}
 
-// End ReflectiveSchemaTest.java
+  @Test void testDecimalNegate() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query("select - \"bigDecimal\" from \"s\".\"everyTypes\"")
+        .planContains("negate()")
+        .returnsUnordered(
+            "EXPR$0=0",
+            "EXPR$0=null");
+  }
+}

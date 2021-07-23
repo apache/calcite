@@ -27,7 +27,9 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
@@ -38,6 +40,8 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -58,7 +62,7 @@ public class RelMdDistribution
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.Distribution> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.Distribution> getDef() {
     return BuiltInMetadata.Distribution.DEF;
   }
 
@@ -84,7 +88,11 @@ public class RelMdDistribution
     return mq.distribution(rel.getInputs().get(0));
   }
 
-  public RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {
+  public RelDistribution distribution(TableModify rel, RelMetadataQuery mq) {
+    return mq.distribution(rel.getInput());
+  }
+
+  public @Nullable RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {
     return table(scan.getTable());
   }
 
@@ -108,8 +116,14 @@ public class RelMdDistribution
 
   /** Helper method to determine a
    * {@link TableScan}'s distribution. */
-  public static RelDistribution table(RelOptTable table) {
+  public static @Nullable RelDistribution table(RelOptTable table) {
     return table.getDistribution();
+  }
+
+  /** Helper method to determine a
+   * {@link Snapshot}'s distribution. */
+  public static RelDistribution snapshot(RelMetadataQuery mq, RelNode input) {
+    return mq.distribution(input);
   }
 
   /** Helper method to determine a
@@ -134,10 +148,17 @@ public class RelMdDistribution
    * {@link org.apache.calcite.rel.core.Calc}'s distribution. */
   public static RelDistribution calc(RelMetadataQuery mq, RelNode input,
       RexProgram program) {
-    throw new AssertionError(); // TODO:
+    assert program.getCondition() != null || !program.getProjectList().isEmpty();
+    final RelDistribution inputDistribution = mq.distribution(input);
+    if (!program.getProjectList().isEmpty()) {
+      final Mappings.TargetMapping mapping = program.getPartialMapping(
+          input.getRowType().getFieldCount());
+      return inputDistribution.apply(mapping);
+    }
+    return inputDistribution;
   }
 
-  /** Helper method to determine a {@link Project}'s collation. */
+  /** Helper method to determine a {@link Project}'s distribution. */
   public static RelDistribution project(RelMetadataQuery mq, RelNode input,
       List<? extends RexNode> projects) {
     final RelDistribution inputDistribution = mq.distribution(input);
@@ -161,5 +182,3 @@ public class RelMdDistribution
     return distribution;
   }
 }
-
-// End RelMdDistribution.java

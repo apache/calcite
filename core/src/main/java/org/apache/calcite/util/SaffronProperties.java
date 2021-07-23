@@ -26,7 +26,8 @@ import org.apache.calcite.runtime.Resources.StringProp;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessControlException;
-import java.util.Enumeration;
+import java.util.Collections;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -45,7 +46,11 @@ import java.util.Properties;
  * comment must describe the name of the property (for example,
  * "net.sf.saffron.connection.PoolSize") and the default value, if any. <em>
  * Developers, please make sure that this remains so!</em>
+ *
+ * @deprecated As of release 1.19,
+ * replaced by {@link org.apache.calcite.config.CalciteSystemProperty}
  */
+@Deprecated
 public interface SaffronProperties {
   /**
    * The boolean property "saffron.opt.allowInfiniteCostConverters" determines
@@ -122,7 +127,7 @@ public interface SaffronProperties {
       Properties properties = new Properties();
 
       // read properties from the file "saffron.properties", if it exists in classpath
-      try (InputStream stream = Helper.class.getClassLoader()
+      try (InputStream stream = Objects.requireNonNull(Helper.class.getClassLoader(), "classLoader")
           .getResourceAsStream("saffron.properties")) {
         if (stream != null) {
           properties.load(stream);
@@ -135,9 +140,11 @@ public interface SaffronProperties {
 
       // copy in all system properties which start with "saffron."
       Properties source = System.getProperties();
-      for (Enumeration keys = source.keys(); keys.hasMoreElements();) {
-        String key = (String) keys.nextElement();
-        String value = source.getProperty(key);
+      for (Object objectKey : Collections.list(source.keys())) {
+        String key = (String) objectKey;
+        String value = Objects.requireNonNull(
+            source.getProperty(key),
+            () -> "value for " + key);
         if (key.startsWith("saffron.") || key.startsWith("net.sf.saffron.")) {
           properties.setProperty(key, value);
         }
@@ -146,5 +153,3 @@ public interface SaffronProperties {
     }
   }
 }
-
-// End SaffronProperties.java

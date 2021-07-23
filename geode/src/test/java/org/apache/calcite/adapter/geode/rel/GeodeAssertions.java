@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.geode.rel;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Various validations for geode tests.
@@ -40,5 +40,3 @@ class GeodeAssertions {
   }
 
 }
-
-// End GeodeAssertions.java

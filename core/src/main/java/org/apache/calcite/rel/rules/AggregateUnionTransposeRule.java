@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -39,25 +39,28 @@ import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Planner rule that pushes an
  * {@link org.apache.calcite.rel.core.Aggregate}
  * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
+ *
+ * @see CoreRules#AGGREGATE_UNION_TRANSPOSE
  */
-public class AggregateUnionTransposeRule extends RelOptRule {
-  public static final AggregateUnionTransposeRule INSTANCE =
-      new AggregateUnionTransposeRule(LogicalAggregate.class,
-          LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+public class AggregateUnionTransposeRule
+    extends RelRule<AggregateUnionTransposeRule.Config>
+    implements TransformationRule {
 
-  private static final Map<Class<? extends SqlAggFunction>, Boolean>
+  private static final IdentityHashMap<Class<? extends SqlAggFunction>, Boolean>
       SUPPORTED_AGGREGATES = new IdentityHashMap<>();
 
   static {
@@ -70,12 +73,17 @@ public class AggregateUnionTransposeRule extends RelOptRule {
   }
 
   /** Creates an AggregateUnionTransposeRule. */
+  protected AggregateUnionTransposeRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateUnionTransposeRule(Class<? extends Aggregate> aggregateClass,
       Class<? extends Union> unionClass, RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(aggregateClass,
-            operand(unionClass, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(aggregateClass, unionClass));
   }
 
   @Deprecated // to be removed before 2.0
@@ -87,7 +95,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
         RelBuilder.proto(aggregateFactory, setOpFactory));
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     Aggregate aggRel = call.rel(0);
     Union union = call.rel(1);
 
@@ -108,7 +116,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
 
     List<AggregateCall> transformedAggCalls =
         transformAggCalls(
-            aggRel.copy(aggRel.getTraitSet(), aggRel.getInput(), false,
+            aggRel.copy(aggRel.getTraitSet(), aggRel.getInput(),
                 aggRel.getGroupSet(), null, aggRel.getAggCallList()),
             groupCount, aggRel.getAggCallList());
     if (transformedAggCalls == null) {
@@ -144,12 +152,13 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     // create a new union whose children are the aggregates created above
     relBuilder.union(true, union.getInputs().size());
     relBuilder.aggregate(
-        relBuilder.groupKey(aggRel.getGroupSet(), aggRel.getGroupSets()),
+        relBuilder.groupKey(aggRel.getGroupSet(),
+            (Iterable<ImmutableBitSet>) aggRel.getGroupSets()),
         transformedAggCalls);
     call.transformTo(relBuilder.build());
   }
 
-  private List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
+  private static @Nullable List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
       List<AggregateCall> origCalls) {
     final List<AggregateCall> newCalls = new ArrayList<>();
     for (Ord<AggregateCall> ord : Ord.zip(origCalls)) {
@@ -174,17 +183,31 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       }
       AggregateCall newCall =
           AggregateCall.create(aggFun, origCall.isDistinct(),
-              origCall.isApproximate(),
+              origCall.isApproximate(), origCall.ignoreNulls(),
               ImmutableList.of(groupCount + ord.i), -1,
-              origCall.collation,
-              groupCount,
-              input,
-              aggType,
-              origCall.getName());
+              origCall.distinctKeys, origCall.collation,
+              groupCount, input, aggType, origCall.getName());
       newCalls.add(newCall);
     }
     return newCalls;
   }
-}
 
-// End AggregateUnionTransposeRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalAggregate.class, LogicalUnion.class);
+
+    @Override default AggregateUnionTransposeRule toRule() {
+      return new AggregateUnionTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<? extends Union> unionClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(aggregateClass).oneInput(b1 ->
+              b1.operand(unionClass).anyInputs()))
+          .as(Config.class);
+    }
+  }
+}

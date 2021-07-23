@@ -24,11 +24,15 @@ import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.ScalarFunction;
+import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableMultimap;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -52,6 +56,7 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
    * Creates {@link org.apache.calcite.schema.ScalarFunction} for each method in
    * a given class.
    */
+  @Deprecated // to be removed before 2.0
   public static ImmutableMultimap<String, ScalarFunction> createAll(
       Class<?> clazz) {
     final ImmutableMultimap.Builder<String, ScalarFunction> builder =
@@ -71,6 +76,34 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
   }
 
   /**
+   * Returns a map of all functions based on the methods in a given class.
+   * It is keyed by method names and maps to both
+   * {@link org.apache.calcite.schema.ScalarFunction}
+   * and {@link org.apache.calcite.schema.TableFunction}.
+   */
+  public static ImmutableMultimap<String, Function> functions(Class<?> clazz) {
+    final ImmutableMultimap.Builder<String, Function> builder =
+        ImmutableMultimap.builder();
+    for (Method method : clazz.getMethods()) {
+      if (method.getDeclaringClass() == Object.class) {
+        continue;
+      }
+      if (!Modifier.isStatic(method.getModifiers())
+          && !classHasPublicZeroArgsConstructor(clazz)) {
+        continue;
+      }
+      final TableFunction tableFunction = TableFunctionImpl.create(method);
+      if (tableFunction != null) {
+        builder.put(method.getName(), tableFunction);
+      } else {
+        final ScalarFunction function = create(method);
+        builder.put(method.getName(), function);
+      }
+    }
+    return builder.build();
+  }
+
+  /**
    * Creates {@link org.apache.calcite.schema.ScalarFunction} from given class.
    *
    * <p>If a method of the given name is not found or it does not suit,
@@ -80,7 +113,7 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
    * @param methodName Method name (typically "eval")
    * @return created {@link ScalarFunction} or null
    */
-  public static ScalarFunction create(Class<?> clazz, String methodName) {
+  public static @Nullable ScalarFunction create(Class<?> clazz, String methodName) {
     final Method method = findMethod(clazz, methodName);
     if (method == null) {
       return null;
@@ -97,8 +130,9 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
    */
   public static ScalarFunction create(Method method) {
     if (!Modifier.isStatic(method.getModifiers())) {
-      Class clazz = method.getDeclaringClass();
-      if (!classHasPublicZeroArgsConstructor(clazz)) {
+      Class<?> clazz = method.getDeclaringClass();
+      if (!classHasPublicZeroArgsConstructor(clazz)
+          && !classHasPublicFunctionContextConstructor(clazz)) {
         throw RESOURCE.requireDefaultConstructor(clazz.getName()).ex();
       }
     }
@@ -106,11 +140,25 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
     return new ScalarFunctionImpl(method, implementor);
   }
 
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+
+  /**
+   * Creates unsafe version of {@link ScalarFunction} from any method. The method
+   * does not need to be static or belong to a class with default constructor. It is
+   * the responsibility of the underlying engine to initialize the UDF object that
+   * contain the method.
+   *
+   * @param method method that is used to implement the function
+   */
+  public static ScalarFunction createUnsafe(Method method) {
+    CallImplementor implementor = createImplementor(method);
+    return new ScalarFunctionImpl(method, implementor);
+  }
+
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createJavaType(method.getReturnType());
   }
 
-  public CallImplementor getImplementor() {
+  @Override public CallImplementor getImplementor() {
     return implementor;
   }
 
@@ -150,9 +198,9 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
       break;
     case SEMI_STRICT:
       return typeFactory.createTypeWithNullability(returnType, true);
+    default:
+      break;
     }
     return returnType;
   }
 }
-
-// End ScalarFunctionImpl.java

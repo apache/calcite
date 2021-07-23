@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +43,7 @@ public class ConditionalExpression extends AbstractNode {
     this.expressionList = expressionList;
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -59,7 +61,7 @@ public class ConditionalExpression extends AbstractNode {
     }
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -83,5 +85,3 @@ public class ConditionalExpression extends AbstractNode {
     return Objects.hash(nodeType, type, expressionList);
   }
 }
-
-// End ConditionalExpression.java

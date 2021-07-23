@@ -21,22 +21,27 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Correlate} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -46,7 +51,7 @@ public class EnumerableCorrelate extends Correlate
   public EnumerableCorrelate(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right,
       CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
+      ImmutableBitSet requiredColumns, JoinRelType joinType) {
     super(cluster, traits, left, right, correlationId, requiredColumns,
         joinType);
   }
@@ -57,7 +62,7 @@ public class EnumerableCorrelate extends Correlate
       RelNode right,
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns,
-      SemiJoinType joinType) {
+      JoinRelType joinType) {
     final RelOptCluster cluster = left.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
@@ -76,12 +81,32 @@ public class EnumerableCorrelate extends Correlate
 
   @Override public EnumerableCorrelate copy(RelTraitSet traitSet,
       RelNode left, RelNode right, CorrelationId correlationId,
-      ImmutableBitSet requiredColumns, SemiJoinType joinType) {
+      ImmutableBitSet requiredColumns, JoinRelType joinType) {
     return new EnumerableCorrelate(getCluster(),
         traitSet, left, right, correlationId, requiredColumns, joinType);
   }
 
-  public Result implement(EnumerableRelImplementor implementor,
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    // EnumerableCorrelate traits passdown shall only pass through collation to left input.
+    // This is because for EnumerableCorrelate always uses left input as the outer loop,
+    // thus only left input can preserve ordering.
+    return EnumerableTraitsUtils.passThroughTraitsForJoin(
+        required, joinType, left.getRowType().getFieldCount(), getTraitSet());
+  }
+
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    // should only derive traits (limited to collation for now) from left input.
+    return EnumerableTraitsUtils.deriveTraitsForJoin(
+        childTraits, childId, joinType, traitSet, right.getTraitSet());
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    return DeriveMode.LEFT_FIRST;
+  }
+
+  @Override public Result implement(EnumerableRelImplementor implementor,
       Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
@@ -130,12 +155,10 @@ public class EnumerableCorrelate extends Correlate
 
     builder.append(
         Expressions.call(leftExpression, BuiltInMethod.CORRELATE_JOIN.method,
-            Expressions.constant(joinType.toLinq4j()),
-        Expressions.lambda(corrBlock.toBlock(), corrArg),
-        selector));
+            Expressions.constant(EnumUtils.toLinq4jJoinType(joinType)),
+            Expressions.lambda(corrBlock.toBlock(), corrArg),
+            selector));
 
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableCorrelate.java

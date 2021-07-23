@@ -26,9 +26,7 @@ import org.apache.calcite.sql.SqlCall;
 public interface SubQueryConverter {
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return Whether the sub-query can be converted
-   */
+  /** Returns whether the sub-query can be converted. */
   boolean canConvertSubQuery();
 
   /**
@@ -49,5 +47,3 @@ public interface SubQueryConverter {
       boolean isExists,
       boolean isExplain);
 }
-
-// End SubQueryConverter.java

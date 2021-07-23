@@ -22,14 +22,13 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Apache Derby database.
  */
 public class DerbySqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new DerbySqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.DERBY));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.DERBY);
+
+  public static final SqlDialect DEFAULT = new DerbySqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a DerbySqlDialect. */
   public DerbySqlDialect(Context context) {
     super(context);
   }
 }
-
-// End DerbySqlDialect.java

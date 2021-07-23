@@ -17,15 +17,14 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -47,6 +46,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -61,8 +61,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Lists;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,22 +78,22 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Structure that allows materialized views based upon a star schema to be
  * recognized and recommended.
  */
-@ParametersAreNonnullByDefault
 public class Lattice {
   public final CalciteSchema rootSchema;
   public final LatticeRootNode rootNode;
@@ -98,21 +104,24 @@ public class Lattice {
   public final double rowCountEstimate;
   public final ImmutableList<Measure> defaultMeasures;
   public final ImmutableList<Tile> tiles;
+  public final ImmutableListMultimap<Integer, Boolean> columnUses;
   public final LatticeStatisticProvider statisticProvider;
 
   private Lattice(CalciteSchema rootSchema, LatticeRootNode rootNode,
       boolean auto, boolean algorithm, long algorithmMaxMillis,
       LatticeStatisticProvider.Factory statisticProviderFactory,
       @Nullable Double rowCountEstimate, ImmutableList<Column> columns,
-      ImmutableSortedSet<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
+      ImmutableSortedSet<Measure> defaultMeasures, ImmutableList<Tile> tiles,
+      ImmutableListMultimap<Integer, Boolean> columnUses) {
     this.rootSchema = rootSchema;
-    this.rootNode = Objects.requireNonNull(rootNode);
-    this.columns = Objects.requireNonNull(columns);
+    this.rootNode = requireNonNull(rootNode, "rootNode");
+    this.columns = requireNonNull(columns, "columns");
     this.auto = auto;
     this.algorithm = algorithm;
     this.algorithmMaxMillis = algorithmMaxMillis;
     this.defaultMeasures = defaultMeasures.asList(); // unique and sorted
-    this.tiles = Objects.requireNonNull(tiles);
+    this.tiles = requireNonNull(tiles, "tiles");
+    this.columnUses = columnUses;
 
     assert isValid(Litmus.THROW);
 
@@ -123,8 +132,10 @@ public class Lattice {
     }
     Preconditions.checkArgument(rowCountEstimate > 0d);
     this.rowCountEstimate = rowCountEstimate;
-    this.statisticProvider =
-        Objects.requireNonNull(statisticProviderFactory.apply(this));
+    @SuppressWarnings("argument.type.incompatible")
+    LatticeStatisticProvider statisticProvider =
+        requireNonNull(statisticProviderFactory.apply(this));
+    this.statisticProvider = statisticProvider;
   }
 
   /** Creates a Lattice. */
@@ -132,7 +143,10 @@ public class Lattice {
     return builder(schema, sql).auto(auto).build();
   }
 
-  private boolean isValid(Litmus litmus) {
+  @RequiresNonNull({"rootNode", "defaultMeasures", "columns"})
+  private boolean isValid(
+      @UnknownInitialization Lattice this,
+      Litmus litmus) {
     if (!rootNode.isValid(litmus)) {
       return false;
     }
@@ -147,7 +161,7 @@ public class Lattice {
     return litmus.succeed();
   }
 
-  private static void populateAliases(SqlNode from, List<String> aliases,
+  private static void populateAliases(SqlNode from, List<@Nullable String> aliases,
       @Nullable String current) {
     if (from instanceof SqlJoin) {
       SqlJoin join = (SqlJoin) from;
@@ -164,19 +178,19 @@ public class Lattice {
     }
   }
 
-  private static boolean populate(List<RelNode> nodes, List<int[][]> tempLinks,
+  private static boolean populate(List<TableScan> nodes, List<int[][]> tempLinks,
       RelNode rel) {
     if (nodes.isEmpty() && rel instanceof LogicalProject) {
       return populate(nodes, tempLinks, ((LogicalProject) rel).getInput());
     }
     if (rel instanceof TableScan) {
-      nodes.add(rel);
+      nodes.add((TableScan) rel);
       return true;
     }
     if (rel instanceof LogicalJoin) {
       LogicalJoin join = (LogicalJoin) rel;
-      if (join.getJoinType() != JoinRelType.INNER) {
-        throw new RuntimeException("only inner join allowed, but got "
+      if (join.getJoinType().isOuterJoin()) {
+        throw new RuntimeException("only non nulls-generating join allowed, but got "
             + join.getJoinType());
       }
       populate(nodes, tempLinks, join.getLeft());
@@ -191,7 +205,7 @@ public class Lattice {
   }
 
   /** Converts an "t1.c1 = t2.c2" expression into two (input, field) pairs. */
-  private static int[][] grab(List<RelNode> leaves, RexNode rex) {
+  private static int[][] grab(List<TableScan> leaves, RexNode rex) {
     switch (rex.getKind()) {
     case EQUALS:
       break;
@@ -205,7 +219,7 @@ public class Lattice {
   }
 
   /** Converts an expression into an (input, field) pair. */
-  private static int[] inputField(List<RelNode> leaves, RexNode rex) {
+  private static int[] inputField(List<TableScan> leaves, RexNode rex) {
     if (!(rex instanceof RexInputRef)) {
       throw new RuntimeException("only equi-join of columns allowed: " + rex);
     }
@@ -321,8 +335,11 @@ public class Lattice {
         buf.append("\nJOIN ");
       }
       dialect.quoteIdentifier(buf, node.table.t.getQualifiedName());
-      buf.append(" AS ");
-      dialect.quoteIdentifier(buf, node.alias);
+      String alias = node.alias;
+      if (alias != null) {
+        buf.append(" AS ");
+        dialect.quoteIdentifier(buf, alias);
+      }
       if (node instanceof LatticeChildNode) {
         final LatticeChildNode node1 = (LatticeChildNode) node;
         buf.append(" ON ");
@@ -339,7 +356,7 @@ public class Lattice {
         }
       }
     }
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Lattice SQL:\n"
           + buf);
     }
@@ -370,7 +387,7 @@ public class Lattice {
   public StarTable createStarTable() {
     final List<Table> tables = new ArrayList<>();
     for (LatticeNode node : rootNode.descendants) {
-      tables.add(node.table.t.unwrap(Table.class));
+      tables.add(node.table.t.unwrapOrThrow(Table.class));
     }
     return StarTable.of(this, tables);
   }
@@ -386,12 +403,12 @@ public class Lattice {
   }
 
   public List<Measure> toMeasures(List<AggregateCall> aggCallList) {
-    return Lists.transform(aggCallList, this::toMeasure);
+    return Util.transform(aggCallList, this::toMeasure);
   }
 
   private Measure toMeasure(AggregateCall aggCall) {
     return new Measure(aggCall.getAggregation(), aggCall.isDistinct(),
-        aggCall.name, Lists.transform(aggCall.getArgList(), columns::get));
+        aggCall.name, Util.transform(aggCall.getArgList(), columns::get));
   }
 
   public Iterable<? extends Tile> computeTiles() {
@@ -446,13 +463,13 @@ public class Lattice {
   }
 
   public List<String> uniqueColumnNames() {
-    return Lists.transform(columns, column -> column.alias);
+    return Util.transform(columns, column -> column.alias);
   }
 
   Pair<Path, Integer> columnToPathOffset(BaseColumn c) {
     for (Pair<LatticeNode, Path> p
         : Pair.zip(rootNode.descendants, rootNode.paths)) {
-      if (p.left.alias.equals(c.table)) {
+      if (Objects.equals(p.left.alias, c.table)) {
         return Pair.of(p.right, c.ordinal - p.left.startCol);
       }
     }
@@ -478,6 +495,24 @@ public class Lattice {
     return -1;
   }
 
+  /** Returns whether every use of a column is as an argument to a measure.
+   *
+   * <p>For example, in the query
+   * {@code select sum(x + y), sum(a + b) from t group by x + y}
+   * the expression "x + y" is used once as an argument to a measure,
+   * and once as a dimension.
+   *
+   * <p>Therefore, in a lattice created from that one query,
+   * {@code isAlwaysMeasure} for the derived column corresponding to "x + y"
+   * returns false, and for "a + b" returns true.
+   *
+   * @param column Column or derived column
+   * @return Whether all uses are as arguments to aggregate functions
+   */
+  public boolean isAlwaysMeasure(Column column) {
+    return !columnUses.get(column.ordinal).contains(false);
+  }
+
   /** Edge in the temporary graph. */
   private static class Edge extends DefaultEdge {
     public static final DirectedGraph.EdgeFactory<Vertex, Edge> FACTORY =
@@ -501,9 +536,9 @@ public class Lattice {
   /** Vertex in the temporary graph. */
   private static class Vertex {
     final LatticeTable table;
-    final String alias;
+    final @Nullable String alias;
 
-    private Vertex(LatticeTable table, String alias) {
+    private Vertex(LatticeTable table, @Nullable String alias) {
       this.table = table;
       this.alias = alias;
     }
@@ -519,13 +554,13 @@ public class Lattice {
   public static class Measure implements Comparable<Measure> {
     public final SqlAggFunction agg;
     public final boolean distinct;
-    @Nullable public final String name;
+    public final @Nullable String name;
     public final ImmutableList<Column> args;
     public final String digest;
 
     public Measure(SqlAggFunction agg, boolean distinct, @Nullable String name,
         Iterable<Column> args) {
-      this.agg = Objects.requireNonNull(agg);
+      this.agg = requireNonNull(agg, "agg");
       this.distinct = distinct;
       this.name = name;
       this.args = ImmutableList.copyOf(args);
@@ -549,7 +584,7 @@ public class Lattice {
       this.digest = b.toString();
     }
 
-    public int compareTo(@Nonnull Measure measure) {
+    @Override public int compareTo(Measure measure) {
       int c = compare(args, measure.args);
       if (c == 0) {
         c = agg.getName().compareTo(measure.agg.getName());
@@ -568,7 +603,7 @@ public class Lattice {
       return Objects.hash(agg, args);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof Measure
           && this.agg.equals(((Measure) obj).agg)
@@ -587,7 +622,7 @@ public class Lattice {
 
     /** Returns a list of argument ordinals. */
     public List<Integer> argOrdinals() {
-      return Lists.transform(args, column -> column.ordinal);
+      return Util.transform(args, column -> column.ordinal);
     }
 
     private static int compare(List<Column> list0, List<Column> list1) {
@@ -621,7 +656,7 @@ public class Lattice {
 
     private Column(int ordinal, String alias) {
       this.ordinal = ordinal;
-      this.alias = Objects.requireNonNull(alias);
+      this.alias = requireNonNull(alias, "alias");
     }
 
     /** Converts a list of columns to a bit set of their ordinals. */
@@ -633,7 +668,7 @@ public class Lattice {
       return builder.build();
     }
 
-    public int compareTo(Column column) {
+    @Override public int compareTo(Column column) {
       return Utilities.compare(ordinal, column.ordinal);
     }
 
@@ -641,7 +676,7 @@ public class Lattice {
       return ordinal;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof Column
           && this.ordinal == ((Column) obj).ordinal;
@@ -650,7 +685,7 @@ public class Lattice {
     public abstract void toSql(SqlWriter writer);
 
     /** The alias that SQL would give to this expression. */
-    public abstract String defaultAlias();
+    public abstract @Nullable String defaultAlias();
   }
 
   /** Column in a lattice. Columns are identified by table alias and
@@ -662,12 +697,12 @@ public class Lattice {
 
     /** Name of the column. Unique within the table reference, but not
      * necessarily within the lattice. */
-    @Nonnull public final String column;
+    public final String column;
 
     private BaseColumn(int ordinal, String table, String column, String alias) {
       super(ordinal, alias);
-      this.table = Objects.requireNonNull(table);
-      this.column = Objects.requireNonNull(column);
+      this.table = requireNonNull(table, "table");
+      this.column = requireNonNull(column, "column");
     }
 
     @Override public String toString() {
@@ -678,19 +713,19 @@ public class Lattice {
       return ImmutableList.of(table, column);
     }
 
-    public void toSql(SqlWriter writer) {
+    @Override public void toSql(SqlWriter writer) {
       writer.dialect.quoteIdentifier(writer.buf, identifiers());
     }
 
-    public String defaultAlias() {
+    @Override public String defaultAlias() {
       return column;
     }
   }
 
   /** Column in a lattice that is based upon a SQL expression. */
   public static class DerivedColumn extends Column {
-    @Nonnull public final RexNode e;
-    @Nonnull final List<String> tables;
+    public final RexNode e;
+    final List<String> tables;
 
     private DerivedColumn(int ordinal, String alias, RexNode e,
         List<String> tables) {
@@ -703,11 +738,11 @@ public class Lattice {
       return Arrays.toString(new Object[] {e, alias});
     }
 
-    public void toSql(SqlWriter writer) {
+    @Override public void toSql(SqlWriter writer) {
       writer.write(e);
     }
 
-    public String defaultAlias() {
+    @Override public @Nullable String defaultAlias() {
       // there is no default alias for an expression
       return null;
     }
@@ -746,40 +781,44 @@ public class Lattice {
     private final LatticeRootNode rootNode;
     private final ImmutableList<BaseColumn> baseColumns;
     private final ImmutableListMultimap<String, Column> columnsByAlias;
-    private final SortedSet<Measure> defaultMeasureSet =
+    private final NavigableSet<Measure> defaultMeasureSet =
         new TreeSet<>();
     private final ImmutableList.Builder<Tile> tileListBuilder =
         ImmutableList.builder();
+    private final Multimap<Integer, Boolean> columnUses =
+        LinkedHashMultimap.create();
     private final CalciteSchema rootSchema;
     private boolean algorithm = false;
     private long algorithmMaxMillis = -1;
     private boolean auto = true;
-    private Double rowCountEstimate;
-    private String statisticProvider;
-    private Map<String, DerivedColumn> derivedColumnsByName =
+    private @MonotonicNonNull Double rowCountEstimate;
+    private @Nullable String statisticProvider;
+    private final Map<String, DerivedColumn> derivedColumnsByName =
         new LinkedHashMap<>();
 
     public Builder(LatticeSpace space, CalciteSchema schema, String sql) {
-      this.rootSchema = Objects.requireNonNull(schema.root());
+      this.rootSchema = requireNonNull(schema.root());
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
 
       // Walk the join tree.
-      List<RelNode> relNodes = new ArrayList<>();
+      List<TableScan> relNodes = new ArrayList<>();
       List<int[][]> tempLinks = new ArrayList<>();
       populate(relNodes, tempLinks, parsed.root.rel);
 
       // Get aliases.
-      List<String> aliases = new ArrayList<>();
-      populateAliases(((SqlSelect) parsed.sqlNode).getFrom(), aliases, null);
+      List<@Nullable String> aliases = new ArrayList<>();
+      SqlNode from = ((SqlSelect) parsed.sqlNode).getFrom();
+      assert from != null : "from must not be null";
+      populateAliases(from, aliases, null);
 
       // Build a graph.
       final DirectedGraph<Vertex, Edge> graph =
           DefaultDirectedGraph.create(Edge.FACTORY);
       final List<Vertex> vertices = new ArrayList<>();
-      for (Pair<RelNode, String> p : Pair.zip(relNodes, aliases)) {
+      for (Pair<TableScan, @Nullable String> p : Pair.zip(relNodes, aliases)) {
         final LatticeTable table = space.register(p.left.getTable());
         final Vertex vertex = new Vertex(table, p.right);
         graph.addVertex(vertex);
@@ -790,7 +829,7 @@ public class Lattice {
         final Vertex target = vertices.get(tempLink[1][0]);
         Edge edge = graph.getEdge(source, target);
         if (edge == null) {
-          edge = graph.addEdge(source, target);
+          edge = castNonNull(graph.addEdge(source, target));
         }
         edge.pairs.add(IntPair.of(tempLink[0][1], tempLink[1][1]));
       }
@@ -798,7 +837,7 @@ public class Lattice {
       // Convert the graph into a tree of nodes, each connected to a parent and
       // with a join condition to that parent.
       MutableNode root = null;
-      final Map<LatticeTable, MutableNode> map = new IdentityHashMap<>();
+      final IdentityHashMap<LatticeTable, MutableNode> map = new IdentityHashMap<>();
       for (Vertex vertex : TopologicalOrderIterator.of(graph)) {
         final List<Edge> edges = graph.getInwardEdges(vertex);
         MutableNode node;
@@ -817,8 +856,8 @@ public class Lattice {
           final Edge edge = edges.get(0);
           final MutableNode parent = map.get(edge.getSource().table);
           final Step step =
-              new Step(edge.getSource().table,
-                  edge.getTarget().table, edge.pairs);
+              Step.create(edge.getSource().table,
+                  edge.getTarget().table, edge.pairs, space);
           node = new MutableNode(vertex.table, parent, step);
           node.alias = vertex.alias;
         }
@@ -882,7 +921,7 @@ public class Lattice {
     /** Sets the "statisticProvider" attribute.
      *
      * <p>If not set, the lattice will use {@link Lattices#CACHED_SQL}. */
-    public Builder statisticProvider(String statisticProvider) {
+    public Builder statisticProvider(@Nullable String statisticProvider) {
       this.statisticProvider = statisticProvider;
       return this;
     }
@@ -903,7 +942,7 @@ public class Lattice {
       return new Lattice(rootSchema, rootNode, auto,
           algorithm, algorithmMaxMillis, statisticProvider, rowCountEstimate,
           columnBuilder.build(), ImmutableSortedSet.copyOf(defaultMeasureSet),
-          tileListBuilder.build());
+          tileListBuilder.build(), ImmutableListMultimap.copyOf(columnUses));
     }
 
     /** Resolves the arguments of a
@@ -968,6 +1007,8 @@ public class Lattice {
             return resolveQualifiedColumn((String) table, (String) column);
           }
           break;
+        default:
+          break;
         }
       }
       throw new RuntimeException(
@@ -993,7 +1034,7 @@ public class Lattice {
       return new Measure(agg, distinct, aggName, list);
     }
 
-    private SqlAggFunction resolveAgg(String aggName) {
+    private static SqlAggFunction resolveAgg(String aggName) {
       if (aggName.equalsIgnoreCase("count")) {
         return SqlStdOperatorTable.COUNT;
       } else if (aggName.equalsIgnoreCase("sum")) {
@@ -1047,6 +1088,17 @@ public class Lattice {
       });
     }
 
+    /** Records a use of a column.
+     *
+     * @param column Column
+     * @param measure Whether this use is as an argument to a measure;
+     *                e.g. "sum(x + y)" is a measure use of the expression
+     *                "x + y"; "group by x + y" is not
+     */
+    public void use(Column column, boolean measure) {
+      columnUses.put(column.ordinal, measure);
+    }
+
     /** Work space for fixing up a tree of mutable nodes. */
     private static class Fixer {
       final Set<String> aliases = new HashSet<>();
@@ -1072,7 +1124,7 @@ public class Lattice {
           final String alias = SqlValidatorUtil.uniquify(name,
               columnAliases, SqlValidatorUtil.ATTEMPT_SUGGESTER);
           final BaseColumn column =
-              new BaseColumn(c++, node.alias, name, alias);
+              new BaseColumn(c++, castNonNull(node.alias), name, alias);
           columnList.add(column);
           columnAliasList.put(name, column); // name before it is made unique
         }
@@ -1095,8 +1147,8 @@ public class Lattice {
 
     public Tile(ImmutableList<Measure> measures,
         ImmutableList<Column> dimensions) {
-      this.measures = Objects.requireNonNull(measures);
-      this.dimensions = Objects.requireNonNull(dimensions);
+      this.measures = requireNonNull(measures, "measures");
+      this.dimensions = requireNonNull(dimensions, "dimensions");
       assert Ordering.natural().isStrictlyOrdered(dimensions);
       assert Ordering.natural().isStrictlyOrdered(measures);
       bitSet = Column.toBitSet(dimensions);
@@ -1131,5 +1183,3 @@ public class Lattice {
     }
   }
 }
-
-// End Lattice.java

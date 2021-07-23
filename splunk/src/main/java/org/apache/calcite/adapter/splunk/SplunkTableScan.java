@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -28,7 +29,6 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
@@ -36,6 +36,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
@@ -73,6 +74,7 @@ public class SplunkTableScan
     super(
         cluster,
         cluster.traitSetOf(EnumerableConvention.INSTANCE),
+        ImmutableList.of(),
         table);
     this.splunkTable = splunkTable;
     this.search = search;
@@ -118,14 +120,14 @@ public class SplunkTableScan
           String.class,
           List.class);
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     Map map = ImmutableMap.builder()
         .put("search", search)
         .put("earliest", Util.first(earliest, ""))
         .put("latest", Util.first(latest, ""))
         .put("fieldList", fieldList)
         .build();
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Splunk: " + map);
     }
     Hook.QUERY_PLAN.run(map);
@@ -167,5 +169,3 @@ public class SplunkTableScan
             }));
   }
 }
-
-// End SplunkTableScan.java

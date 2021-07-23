@@ -24,7 +24,7 @@ limitations under the License.
 {% endcomment %}
 -->
 
-Julian Hyde gave a talk at the [Apache Samza](http://samza.apache.org/)
+Julian Hyde gave a talk at the [Apache Samza](https://samza.apache.org/)
 meetup in Mountain View, CA.
 
 His talk asked the questions:
@@ -35,6 +35,6 @@ His talk asked the questions:
 * What is a query optimizer, and what can it do for my streaming queries?
 
 The talk is available in
-[[slides](http://www.slideshare.net/julianhyde/streaming-sql)]
+[[slides](https://www.slideshare.net/julianhyde/streaming-sql)]
 and
-[[video](http://www.ustream.tv/recorded/83322450#to00:55:48)].
+[[video](https://www.ustream.tv/recorded/83322450#to00:55:48)].

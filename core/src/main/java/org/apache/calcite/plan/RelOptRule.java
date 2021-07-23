@@ -21,9 +21,13 @@ import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +76,7 @@ public abstract class RelOptRule {
    *
    * @param operand root operand, must not be null
    */
-  public RelOptRule(RelOptRuleOperand operand) {
+  protected RelOptRule(RelOptRuleOperand operand) {
     this(operand, RelFactories.LOGICAL_BUILDER, null);
   }
 
@@ -82,7 +86,7 @@ public abstract class RelOptRule {
    * @param operand     root operand, must not be null
    * @param description Description, or null to guess description
    */
-  public RelOptRule(RelOptRuleOperand operand, String description) {
+  protected RelOptRule(RelOptRuleOperand operand, String description) {
     this(operand, RelFactories.LOGICAL_BUILDER, description);
   }
 
@@ -93,20 +97,20 @@ public abstract class RelOptRule {
    * @param description Description, or null to guess description
    * @param relBuilderFactory Builder for relational expressions
    */
-  public RelOptRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description) {
-    this.operand = Objects.requireNonNull(operand);
-    this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory);
+  protected RelOptRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, @Nullable String description) {
+    this.operand = Objects.requireNonNull(operand, "operand");
+    this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory, "relBuilderFactory");
     if (description == null) {
       description = guessDescription(getClass().getName());
     }
-    if (!description.matches("[A-Za-z][-A-Za-z0-9_.():]*")) {
+    if (!description.matches("[A-Za-z][-A-Za-z0-9_.(),\\[\\]\\s:]*")) {
       throw new RuntimeException("Rule description '" + description
           + "' is not valid");
     }
     this.description = description;
     this.operands = flattenOperands(operand);
-    assignSolveOrder();
+    assignSolveOrder(operands);
   }
 
   //~ Methods for creating operands ------------------------------------------
@@ -120,7 +124,10 @@ public abstract class RelOptRule {
    * @param <R> Class of relational expression to match
    * @return Operand that matches a relational expression that has no
    *   children
+   *
+   * @deprecated Use {@link RelRule.OperandBuilder#operand(Class)}
    */
+  @Deprecated // to be removed before 2.0
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
       RelOptRuleOperandChildren operandList) {
@@ -138,7 +145,10 @@ public abstract class RelOptRule {
    * @param <R> Class of relational expression to match
    * @return Operand that matches a relational expression that has no
    *   children
+   *
+   * @deprecated Use {@link RelRule.OperandBuilder#operand(Class)}
    */
+  @Deprecated // to be removed before 2.0
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
       RelTrait trait,
@@ -158,7 +168,10 @@ public abstract class RelOptRule {
    * @param <R> Class of relational expression to match
    * @return Operand that matches a relational expression that has a
    *   particular trait and predicate
+   *
+   * @deprecated Use {@link RelRule.OperandBuilder#operand(Class)}
    */
+  @Deprecated // to be removed before 2.0
   public static <R extends RelNode> RelOptRuleOperand operandJ(
       Class<R> clazz,
       RelTrait trait,
@@ -168,6 +181,7 @@ public abstract class RelOptRule {
         operandList.operands);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #operandJ} */
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -191,7 +205,10 @@ public abstract class RelOptRule {
    * @param rest Rest operands
    * @param <R> Class of relational expression to match
    * @return Operand
+   *
+   * @deprecated Use {@link RelRule.OperandBuilder#operand(Class)}
    */
+  @Deprecated // to be removed before 2.0
   public static <R extends RelNode> RelOptRuleOperand operandJ(
       Class<R> clazz,
       RelTrait trait,
@@ -231,7 +248,10 @@ public abstract class RelOptRule {
    * @param <R> Class of relational expression to match
    * @return Operand that matches a relational expression with a given
    *   list of children
+   *
+   * @deprecated Use {@link RelRule.OperandBuilder#operand(Class)}
    */
+  @Deprecated // to be removed before 2.0
   public static <R extends RelNode> RelOptRuleOperand operand(
       Class<R> clazz,
       RelOptRuleOperand first,
@@ -246,12 +266,14 @@ public abstract class RelOptRule {
    * @param trait    Trait to match, or null to match any trait
    * @param predicate Predicate to apply to relational expression
    */
+  @Deprecated // to be removed before 2.0
   protected static <R extends RelNode> ConverterRelOptRuleOperand
       convertOperand(Class<R> clazz, Predicate<? super R> predicate,
       RelTrait trait) {
     return new ConverterRelOptRuleOperand(clazz, trait, predicate);
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #convertOperand(Class, Predicate, RelTrait)}. */
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -272,7 +294,10 @@ public abstract class RelOptRule {
    * @param rest  Remaining child operands (may be empty)
    * @return List of child operands that matches child relational
    *   expressions in the order
+   *
+   * @deprecated Use {@link RelRule.OperandDetailBuilder#inputs}
    */
+  @Deprecated // to be removed before 2.0
   public static RelOptRuleOperandChildren some(
       RelOptRuleOperand first,
       RelOptRuleOperand... rest) {
@@ -307,6 +332,7 @@ public abstract class RelOptRule {
    * @return List of child operands that matches child relational
    *   expressions in any order
    */
+  @Deprecated // to be removed before 2.0
   public static RelOptRuleOperandChildren unordered(
       RelOptRuleOperand first,
       RelOptRuleOperand... rest) {
@@ -319,7 +345,10 @@ public abstract class RelOptRule {
    * Creates an empty list of child operands.
    *
    * @return Empty list of child operands
+   *
+   * @deprecated Use {@link RelRule.OperandDetailBuilder#noInputs()}
    */
+  @Deprecated // to be removed before 2.0
   public static RelOptRuleOperandChildren none() {
     return RelOptRuleOperandChildren.LEAF_CHILDREN;
   }
@@ -330,7 +359,10 @@ public abstract class RelOptRule {
    *
    * @return List of child operands that signifies that the operand matches
    *   any number of child relational expressions
+   *
+   * @deprecated Use {@link RelRule.OperandDetailBuilder#anyInputs()}
    */
+  @Deprecated // to be removed before 2.0
   public static RelOptRuleOperandChildren any() {
     return RelOptRuleOperandChildren.ANY_CHILDREN;
   }
@@ -345,6 +377,7 @@ public abstract class RelOptRule {
    * @return Flattened list of operands
    */
   private List<RelOptRuleOperand> flattenOperands(
+      @UnderInitialization RelOptRule this,
       RelOptRuleOperand rootOperand) {
     final List<RelOptRuleOperand> operandList = new ArrayList<>();
 
@@ -365,6 +398,7 @@ public abstract class RelOptRule {
    * @param parentOperand Parent of this operand
    */
   private void flattenRecurse(
+      @UnderInitialization RelOptRule this,
       List<RelOptRuleOperand> operandList,
       RelOptRuleOperand parentOperand) {
     int k = 0;
@@ -382,7 +416,7 @@ public abstract class RelOptRule {
    * Builds each operand's solve-order. Start with itself, then its parent, up
    * to the root, then the remaining operands in prefix order.
    */
-  private void assignSolveOrder() {
+  private static void assignSolveOrder(List<RelOptRuleOperand> operands) {
     for (RelOptRuleOperand operand : operands) {
       operand.solveOrder = new int[operands.size()];
       int m = 0;
@@ -394,6 +428,7 @@ public abstract class RelOptRule {
         for (int n = 0; n < m; n++) {
           if (operand.solveOrder[n] == k) {
             exists = true;
+            break;
           }
         }
         if (!exists) {
@@ -407,7 +442,7 @@ public abstract class RelOptRule {
   }
 
   /**
-   * Returns the root operand of this rule
+   * Returns the root operand of this rule.
    *
    * @return the root operand of this rule
    */
@@ -424,7 +459,7 @@ public abstract class RelOptRule {
     return ImmutableList.copyOf(operands);
   }
 
-  public int hashCode() {
+  @Override public int hashCode() {
     // Conventionally, hashCode() and equals() should use the same
     // criteria, whereas here we only look at the description. This is
     // okay, because the planner requires all rule instances to have
@@ -432,7 +467,7 @@ public abstract class RelOptRule {
     return description.hashCode();
   }
 
-  public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return (obj instanceof RelOptRule)
         && equals((RelOptRule) obj);
   }
@@ -446,11 +481,13 @@ public abstract class RelOptRule {
    * @param that Another rule
    * @return Whether this rule is equal to another rule
    */
+  @SuppressWarnings("NonOverridingEquals")
   protected boolean equals(RelOptRule that) {
     // Include operands and class in the equality criteria just in case
     // they have chosen a poor description.
-    return this.description.equals(that.description)
-        && (this.getClass() == that.getClass())
+    return this == that
+        || this.getClass() == that.getClass()
+        && this.description.equals(that.description)
         && this.operand.equals(that.operand);
   }
 
@@ -517,7 +554,7 @@ public abstract class RelOptRule {
    * @return Convention of the result of firing this rule, null if
    *   not known
    */
-  public Convention getOutConvention() {
+  public @Nullable Convention getOutConvention() {
     return null;
   }
 
@@ -528,7 +565,7 @@ public abstract class RelOptRule {
    * @return Trait which will be modified as a result of firing this rule,
    *   or null if the rule is not a converter rule
    */
-  public RelTrait getOutTrait() {
+  public @Nullable RelTrait getOutTrait() {
     return null;
   }
 
@@ -536,9 +573,9 @@ public abstract class RelOptRule {
    * Returns the description of this rule.
    *
    * <p>It must be unique (for rules that are not equal) and must consist of
-   * only the characters A-Z, a-z, 0-9, '_', '.', '(', ')'. It must start with
-   * a letter. */
-  public final String toString() {
+   * only the characters A-Z, a-z, 0-9, '_', '.', '(', ')', '-', ',', '[', ']', ':', ' '.
+   * It must start with a letter. */
+  @Override public final String toString() {
     return description;
   }
 
@@ -552,10 +589,6 @@ public abstract class RelOptRule {
    */
   public static RelNode convert(RelNode rel, RelTraitSet toTraits) {
     RelOptPlanner planner = rel.getCluster().getPlanner();
-
-    if (rel.getTraitSet().size() < toTraits.size()) {
-      new RelTraitPropagationVisitor(planner, toTraits).go(rel);
-    }
 
     RelTraitSet outTraits = rel.getTraitSet();
     for (int i = 0; i < toTraits.size(); i++) {
@@ -580,7 +613,7 @@ public abstract class RelOptRule {
    * @param toTrait  Desired trait
    * @return a relational expression with the desired trait; never null
    */
-  public static RelNode convert(RelNode rel, RelTrait toTrait) {
+  public static RelNode convert(RelNode rel, @Nullable RelTrait toTrait) {
     RelOptPlanner planner = rel.getCluster().getPlanner();
     RelTraitSet outTraits = rel.getTraitSet();
     if (toTrait != null) {
@@ -603,7 +636,7 @@ public abstract class RelOptRule {
    */
   protected static List<RelNode> convertList(List<RelNode> rels,
       final RelTrait trait) {
-    return Lists.transform(rels,
+    return Util.transform(rels,
         rel -> convert(rel, rel.getTraitSet().replace(trait)));
   }
 
@@ -643,14 +676,14 @@ public abstract class RelOptRule {
   /**
    * Operand to an instance of the converter rule.
    */
-  private static class ConverterRelOptRuleOperand extends RelOptRuleOperand {
+  protected static class ConverterRelOptRuleOperand extends RelOptRuleOperand {
     <R extends RelNode> ConverterRelOptRuleOperand(Class<R> clazz, RelTrait in,
         Predicate<? super R> predicate) {
       super(clazz, in, predicate, RelOptRuleOperandChildPolicy.ANY,
           ImmutableList.of());
     }
 
-    public boolean matches(RelNode rel) {
+    @Override public boolean matches(RelNode rel) {
       // Don't apply converters to converters that operate
       // on the same RelTraitDef -- otherwise we get
       // an n^2 effect.
@@ -664,5 +697,3 @@ public abstract class RelOptRule {
     }
   }
 }
-
-// End RelOptRule.java

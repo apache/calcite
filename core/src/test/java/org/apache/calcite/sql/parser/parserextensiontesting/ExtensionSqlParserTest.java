@@ -17,12 +17,11 @@
 package org.apache.calcite.sql.parser.parserextensiontesting;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
 
 import org.hamcrest.core.IsNull;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Testing for extension functionality of the base SQL parser impl.
@@ -30,34 +29,32 @@ import org.junit.Test;
  * <p>This test runs all test cases of the base {@link SqlParserTest}, as well
  * as verifying specific extension points.
  */
-public class ExtensionSqlParserTest extends SqlParserTest {
+class ExtensionSqlParserTest extends SqlParserTest {
 
   @Override protected SqlParserImplFactory parserImplFactory() {
     return ExtensionSqlParserImpl.FACTORY;
   }
 
-  @Test public void testAlterSystemExtension() throws SqlParseException {
-    check("alter system upload jar '/path/to/jar'",
-        "ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
+  @Test void testAlterSystemExtension() {
+    sql("alter system upload jar '/path/to/jar'")
+        .ok("ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
   }
 
-  @Test public void testAlterSystemExtensionWithoutAlter() throws SqlParseException {
+  @Test void testAlterSystemExtensionWithoutAlter() {
     // We need to include the scope for custom alter operations
-    checkFails("^upload^ jar '/path/to/jar'",
-        "(?s).*Encountered \"upload\" at .*");
+    sql("^upload^ jar '/path/to/jar'")
+        .fails("(?s).*Encountered \"upload\" at .*");
   }
 
-  @Test public void testCreateTable() {
+  @Test void testCreateTable() {
     sql("CREATE TABLE foo.baz(i INTEGER, j VARCHAR(10) NOT NULL)")
         .ok("CREATE TABLE `FOO`.`BAZ` (`I` INTEGER, `J` VARCHAR(10) NOT NULL)");
   }
 
-  @Test public void testExtendedSqlStmt() {
+  @Test void testExtendedSqlStmt() {
     sql("DESCRIBE SPACE POWER")
         .node(new IsNull<SqlNode>());
     sql("DESCRIBE SEA ^POWER^")
-        .fails("(?s)Encountered \"POWER\" at line 1, column 14..*");
+        .fails("(?s)Incorrect syntax near the keyword 'POWER' at line 1, column 14.*");
   }
 }
-
-// End ExtensionSqlParserTest.java

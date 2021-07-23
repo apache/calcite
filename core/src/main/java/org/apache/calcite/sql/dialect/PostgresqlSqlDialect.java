@@ -16,28 +16,33 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
+
 /**
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
  */
 public class PostgresqlSqlDialect extends SqlDialect {
-
   /** PostgreSQL type system. */
-  private static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
+  public static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
         @Override public int getMaxPrecision(SqlTypeName typeName) {
           switch (typeName) {
@@ -55,11 +60,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
         }
       };
 
-  public static final SqlDialect DEFAULT =
-      new PostgresqlSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.POSTGRESQL)
-          .withIdentifierQuoteString("\"")
-          .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.POSTGRESQL)
+      .withIdentifierQuoteString("\"")
+      .withUnquotedCasing(Casing.TO_LOWER)
+      .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM);
+
+  public static final SqlDialect DEFAULT = new PostgresqlSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a PostgresqlSqlDialect. */
   public PostgresqlSqlDialect(Context context) {
@@ -70,26 +77,38 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
     switch (type.getSqlTypeName()) {
     case TINYINT:
       // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
-      castSpec = "_smallint";
+      castSpec = "smallint";
       break;
     case DOUBLE:
       // Postgres has a double type but it is named differently
-      castSpec = "_double precision";
+      castSpec = "double precision";
       break;
     default:
       return super.getCastSpec(type);
     }
 
-    return new SqlDataTypeSpec(new SqlIdentifier(castSpec, SqlParserPos.ZERO),
-        -1, -1, null, null, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
   }
 
-  @Override protected boolean requiresAliasForFromItems() {
+  @Override public boolean supportsFunction(SqlOperator operator,
+      RelDataType type, final List<RelDataType> paramTypes) {
+    switch (operator.kind) {
+    case LIKE:
+      // introduces support for ILIKE as well
+      return true;
+    default:
+      return super.supportsFunction(operator, type, paramTypes);
+    }
+  }
+
+  @Override public boolean requiresAliasForFromItems() {
     return true;
   }
 
@@ -119,5 +138,3 @@ public class PostgresqlSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End PostgresqlSqlDialect.java

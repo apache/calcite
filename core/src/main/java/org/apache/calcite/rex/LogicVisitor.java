@@ -20,21 +20,26 @@ import org.apache.calcite.plan.RelOptUtil.Logic;
 
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  */
-public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
+public class LogicVisitor extends RexUnaryBiVisitor<@Nullable Logic> {
   private final RexNode seek;
   private final Collection<Logic> logicCollection;
 
   /** Creates a LogicVisitor. */
   private LogicVisitor(RexNode seek, Collection<Logic> logicCollection) {
+    super(true);
     this.seek = seek;
     this.logicCollection = logicCollection;
   }
@@ -77,7 +82,7 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     Collections.replaceAll(logicList, Logic.FALSE, Logic.UNKNOWN_AS_TRUE);
   }
 
-  public Logic visitCall(RexCall call, Logic logic) {
+  @Override public @Nullable Logic visitCall(RexCall call, @Nullable Logic logic) {
     final Logic arg0 = logic;
     switch (call.getKind()) {
     case IS_NOT_NULL:
@@ -93,13 +98,15 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
       logic = Logic.UNKNOWN_AS_TRUE;
       break;
     case NOT:
-      logic = logic.negate2();
+      logic = requireNonNull(logic, "logic").negate2();
       break;
     case CASE:
       logic = Logic.TRUE_FALSE_UNKNOWN;
       break;
+    default:
+      break;
     }
-    switch (logic) {
+    switch (requireNonNull(logic, "logic")) {
     case TRUE:
       switch (call.getKind()) {
       case AND:
@@ -107,6 +114,9 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
       default:
         logic = Logic.TRUE_FALSE_UNKNOWN;
       }
+      break;
+    default:
+      break;
     }
     for (RexNode operand : call.operands) {
       operand.accept(this, logic);
@@ -114,47 +124,23 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     return end(call, arg0);
   }
 
-  private Logic end(RexNode node, Logic arg) {
+  @Override protected @Nullable Logic end(RexNode node, @Nullable Logic arg) {
     if (node.equals(seek)) {
-      logicCollection.add(arg);
+      logicCollection.add(requireNonNull(arg, "arg"));
     }
     return arg;
   }
 
-  public Logic visitInputRef(RexInputRef inputRef, Logic arg) {
-    return end(inputRef, arg);
-  }
-
-  public Logic visitLocalRef(RexLocalRef localRef, Logic arg) {
-    return end(localRef, arg);
-  }
-
-  public Logic visitLiteral(RexLiteral literal, Logic arg) {
-    return end(literal, arg);
-  }
-
-  public Logic visitOver(RexOver over, Logic arg) {
+  @Override public @Nullable Logic visitOver(RexOver over, @Nullable Logic arg) {
     return end(over, arg);
   }
 
-  public Logic visitCorrelVariable(RexCorrelVariable correlVariable,
-      Logic arg) {
-    return end(correlVariable, arg);
-  }
-
-  public Logic visitDynamicParam(RexDynamicParam dynamicParam, Logic arg) {
-    return end(dynamicParam, arg);
-  }
-
-  public Logic visitRangeRef(RexRangeRef rangeRef, Logic arg) {
-    return end(rangeRef, arg);
-  }
-
-  public Logic visitFieldAccess(RexFieldAccess fieldAccess, Logic arg) {
+  @Override public @Nullable Logic visitFieldAccess(RexFieldAccess fieldAccess,
+      @Nullable Logic arg) {
     return end(fieldAccess, arg);
   }
 
-  public Logic visitSubQuery(RexSubQuery subQuery, Logic arg) {
+  @Override public @Nullable Logic visitSubQuery(RexSubQuery subQuery, @Nullable Logic arg) {
     if (!subQuery.getType().isNullable()) {
       if (arg == Logic.TRUE_FALSE_UNKNOWN) {
         arg = Logic.TRUE_FALSE;
@@ -162,14 +148,4 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     }
     return end(subQuery, arg);
   }
-
-  @Override public Logic visitTableInputRef(RexTableInputRef ref, Logic arg) {
-    return end(ref, arg);
-  }
-
-  @Override public Logic visitPatternFieldRef(RexPatternFieldRef ref, Logic arg) {
-    return end(ref, arg);
-  }
 }
-
-// End LogicVisitor.java

@@ -25,9 +25,13 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Definition of the MAP constructor,
@@ -41,34 +45,27 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    Pair<RelDataType, RelDataType> type =
+    Pair<@Nullable RelDataType, @Nullable RelDataType> type =
         getComponentTypes(
             opBinding.getTypeFactory(), opBinding.collectOperandTypes());
-    if (null == type) {
-      return null;
-    }
     return SqlTypeUtil.createMapType(
         opBinding.getTypeFactory(),
-        type.left,
-        type.right,
+        requireNonNull(type.left, "inferred key type"),
+        requireNonNull(type.right, "inferred value type"),
         false);
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    final List<RelDataType> argTypes =
-        SqlTypeUtil.deriveAndCollectTypes(
-            callBinding.getValidator(),
-            callBinding.getScope(),
-            callBinding.operands());
+    final List<RelDataType> argTypes = SqlTypeUtil.deriveType(callBinding, callBinding.operands());
     if (argTypes.size() == 0) {
       throw callBinding.newValidationError(RESOURCE.mapRequiresTwoOrMoreArgs());
     }
     if (argTypes.size() % 2 > 0) {
       throw callBinding.newValidationError(RESOURCE.mapRequiresEvenArgCount());
     }
-    final Pair<RelDataType, RelDataType> componentType =
+    final Pair<@Nullable RelDataType, @Nullable RelDataType> componentType =
         getComponentTypes(
             callBinding.getTypeFactory(), argTypes);
     if (null == componentType.left || null == componentType.right) {
@@ -80,7 +77,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     return true;
   }
 
-  private Pair<RelDataType, RelDataType> getComponentTypes(
+  private static Pair<@Nullable RelDataType, @Nullable RelDataType> getComponentTypes(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return Pair.of(
@@ -88,5 +85,3 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
         typeFactory.leastRestrictive(Util.quotientList(argTypes, 2, 1)));
   }
 }
-
-// End SqlMapValueConstructor.java

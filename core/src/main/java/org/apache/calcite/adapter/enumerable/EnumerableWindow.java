@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.impl.WinAggAddContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.WinAggResetContextImpl;
 import org.apache.calcite.adapter.enumerable.impl.WinAggResultContextImpl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -34,7 +35,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -56,13 +56,20 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Window} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -75,12 +82,16 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new EnumerableWindow(getCluster(), traitSet, sole(inputs),
-        constants, rowType, groups);
+        constants, getRowType(), groups);
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq)
-        .multiplyBy(EnumerableConvention.COST_MULTIPLIER);
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
+    RelOptCost cost = super.computeSelfCost(planner, mq);
+    if (cost == null) {
+      return null;
+    }
+    return cost.multiplyBy(EnumerableConvention.COST_MULTIPLIER);
   }
 
   /** Implementation of {@link RexToLixTranslator.InputGetter}
@@ -102,7 +113,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       this.constants = constants;
     }
 
-    public Expression field(BlockBuilder list, int index, Type storageType) {
+    @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
       if (index < actualInputFieldCount) {
         Expression current = list.append("current", row);
         return rowPhysType.fieldReference(current, index, storageType);
@@ -111,7 +122,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     }
   }
 
-  private void sampleOfTheGeneratedWindowedAggregate() {
+  @SuppressWarnings({"unused", "nullness"})
+  private static void sampleOfTheGeneratedWindowedAggregate() {
     // Here's overview of the generated code
     // For each list of rows that have the same partitioning key, evaluate
     // all of the windowed aggregate functions.
@@ -159,7 +171,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     // source = Linq4j.asEnumerable(list);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final EnumerableRel child = (EnumerableRel) getInput();
     final BlockBuilder builder = new BlockBuilder();
@@ -210,6 +222,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       List<AggregateCall> aggregateCalls = group.getAggregateCalls(this);
       for (int aggIdx = 0; aggIdx < aggregateCalls.size(); aggIdx++) {
         AggregateCall call = aggregateCalls.get(aggIdx);
+        if (call.ignoreNulls()) {
+          throw new UnsupportedOperationException("IGNORE NULLS not supported");
+        }
         aggs.add(new AggImpState(aggIdx, call, true));
       }
 
@@ -217,7 +232,10 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
       typeBuilder.addAll(inputPhysType.getRowType().getFieldList());
       for (AggImpState agg : aggs) {
-        typeBuilder.add(agg.call.name, agg.call.type);
+        // CALCITE-4326
+        String name = requireNonNull(agg.call.name,
+            () -> "agg.call.name for " + agg.call);
+        typeBuilder.add(name, agg.call.type);
       }
       RelDataType outputRowType = typeBuilder.build();
       final PhysType outputPhysType =
@@ -233,7 +251,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                       collectionExpr, BuiltInMethod.COLLECTION_SIZE.method)),
               false);
 
-      Pair<Expression, Expression> collationKey =
+      Pair<@Nullable Expression, @Nullable Expression> collationKey =
           getRowCollationKey(builder, inputPhysType, group, windowIdx);
       Expression keySelector = collationKey.left;
       Expression keyComparator = collationKey.right;
@@ -263,7 +281,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final Expression row_ =
           builder4.append(
               "row",
-              RexToLixTranslator.convert(
+              EnumUtils.convert(
                   Expressions.arrayIndex(rows_, i_),
                   inputPhysType.getJavaRowType()));
 
@@ -300,12 +318,10 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       final Expression startUnchecked = builder4.append("start",
           translateBound(translator, i_, row_, minX, maxX, rows_,
-              group, true,
-              inputPhysType, comparator_, keySelector, keyComparator));
+              group, true, inputPhysType, keySelector, keyComparator));
       final Expression endUnchecked = builder4.append("end",
           translateBound(translator, i_, row_, minX, maxX, rows_,
-              group, false,
-              inputPhysType, comparator_, keySelector, keyComparator));
+              group, false, inputPhysType, keySelector, keyComparator));
 
       final Expression startX;
       final Expression endX;
@@ -379,9 +395,10 @@ public class EnumerableWindow extends Window implements EnumerableRel {
           Expressions.statement(Expressions.assign(actualStart, startX)));
 
       for (final AggImpState agg : aggs) {
-        agg.implementor.implementReset(agg.context,
-            new WinAggResetContextImpl(builder6, agg.state, i_, startX, endX,
-                hasRows, partitionRowCount, frameRowCount));
+        List<Expression> aggState = requireNonNull(agg.state, "agg.state");
+        agg.implementor.implementReset(requireNonNull(agg.context, "agg.context"),
+            new WinAggResetContextImpl(builder6, aggState, i_, startX, endX,
+                hasRows, frameRowCount, partitionRowCount));
       }
 
       Expression lowerBoundCanChange =
@@ -517,7 +534,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     return implementor.result(inputPhysType, builder.toBlock());
   }
 
-  private Function<BlockBuilder, WinAggFrameResultContext>
+  private static Function<BlockBuilder, WinAggFrameResultContext>
       getBlockBuilderWinAggFrameResultContextFunction(
       final JavaTypeFactory typeFactory, final SqlConformance conformance,
       final Result result, final List<Expression> translatedConstants,
@@ -530,7 +547,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final DeclarationStatement jDecl,
       final PhysType inputPhysType) {
     return block -> new WinAggFrameResultContext() {
-      public RexToLixTranslator rowTranslator(Expression rowIndex) {
+      @Override public RexToLixTranslator rowTranslator(Expression rowIndex) {
         Expression row =
             getRow(rowIndex);
         final RexToLixTranslator.InputGetter inputGetter =
@@ -542,7 +559,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             block, inputGetter, conformance);
       }
 
-      public Expression computeIndex(Expression offset,
+      @Override public Expression computeIndex(Expression offset,
           WinAggImplementor.SeekType seekType) {
         Expression index;
         if (seekType == WinAggImplementor.SeekType.AGG_INDEX) {
@@ -580,15 +597,15 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         return res;
       }
 
-      public Expression rowInFrame(Expression rowIndex) {
+      @Override public Expression rowInFrame(Expression rowIndex) {
         return checkBounds(rowIndex, startX, endX);
       }
 
-      public Expression rowInPartition(Expression rowIndex) {
+      @Override public Expression rowInPartition(Expression rowIndex) {
         return checkBounds(rowIndex, minX, maxX);
       }
 
-      public Expression compareRows(Expression a, Expression b) {
+      @Override public Expression compareRows(Expression a, Expression b) {
         return Expressions.call(comparator_,
             BuiltInMethod.COMPARATOR_COMPARE.method,
             getRow(a), getRow(b));
@@ -597,38 +614,38 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       public Expression getRow(Expression rowIndex) {
         return block.append(
             "jRow",
-            RexToLixTranslator.convert(
+            EnumUtils.convert(
                 Expressions.arrayIndex(rows_, rowIndex),
                 inputPhysType.getJavaRowType()));
       }
 
-      public Expression index() {
+      @Override public Expression index() {
         return i_;
       }
 
-      public Expression startIndex() {
+      @Override public Expression startIndex() {
         return startX;
       }
 
-      public Expression endIndex() {
+      @Override public Expression endIndex() {
         return endX;
       }
 
-      public Expression hasRows() {
+      @Override public Expression hasRows() {
         return hasRows;
       }
 
-      public Expression getFrameRowCount() {
+      @Override public Expression getFrameRowCount() {
         return frameRowCount;
       }
 
-      public Expression getPartitionRowCount() {
+      @Override public Expression getPartitionRowCount() {
         return partitionRowCount;
       }
     };
   }
 
-  private Pair<Expression, Expression> getPartitionIterator(
+  private static Pair<Expression, Expression> getPartitionIterator(
       BlockBuilder builder,
       Expression source_,
       PhysType inputPhysType,
@@ -735,11 +752,11 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             comparator_)));
   }
 
-  private Pair<Expression, Expression> getRowCollationKey(
+  private static Pair<@Nullable Expression, @Nullable Expression> getRowCollationKey(
       BlockBuilder builder, PhysType inputPhysType,
       Group group, int windowIdx) {
-    if (!(group.isRows || (group.upperBound.isUnbounded()
-        && group.lowerBound.isUnbounded()))) {
+    if (!(group.isRows
+        || (group.upperBound.isUnbounded() && group.lowerBound.isUnbounded()))) {
       Pair<Expression, Expression> pair =
           inputPhysType.generateCollationKey(
               group.collation().getFieldCollations());
@@ -759,46 +776,46 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     for (final AggImpState agg : aggs) {
       agg.context =
           new WinAggContext() {
-            public SqlAggFunction aggregation() {
+            @Override public SqlAggFunction aggregation() {
               return agg.call.getAggregation();
             }
 
-            public RelDataType returnRelType() {
+            @Override public RelDataType returnRelType() {
               return agg.call.type;
             }
 
-            public Type returnType() {
+            @Override public Type returnType() {
               return EnumUtils.javaClass(typeFactory, returnRelType());
             }
 
-            public List<? extends Type> parameterTypes() {
+            @Override public List<? extends Type> parameterTypes() {
               return EnumUtils.fieldTypes(typeFactory,
                   parameterRelTypes());
             }
 
-            public List<? extends RelDataType> parameterRelTypes() {
+            @Override public List<? extends RelDataType> parameterRelTypes() {
               return EnumUtils.fieldRowTypes(result.physType.getRowType(),
                   constants, agg.call.getArgList());
             }
 
-            public List<ImmutableBitSet> groupSets() {
+            @Override public List<ImmutableBitSet> groupSets() {
               throw new UnsupportedOperationException();
             }
 
-            public List<Integer> keyOrdinals() {
+            @Override public List<Integer> keyOrdinals() {
               throw new UnsupportedOperationException();
             }
 
-            public List<? extends RelDataType> keyRelTypes() {
+            @Override public List<? extends RelDataType> keyRelTypes() {
               throw new UnsupportedOperationException();
             }
 
-            public List<? extends Type> keyTypes() {
+            @Override public List<? extends Type> keyTypes() {
               throw new UnsupportedOperationException();
             }
           };
       String aggName = "a" + agg.aggIdx;
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         aggName = Util.toJavaId(agg.call.getAggregation().getName(), 0)
             .substring("ID$0$".length()) + aggName;
       }
@@ -826,43 +843,45 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       builder.add(
           Expressions.declare(0, aggRes,
-              Expressions.constant(Primitive.is(aggRes.getType())
-                  ? Primitive.of(aggRes.getType()).defaultValue
-                  : null,
+              Expressions.constant(
+                  Optional.ofNullable(Primitive.of(aggRes.getType()))
+                      .map(x -> x.defaultValue)
+                      .orElse(null),
                   aggRes.getType())));
       agg.result = aggRes;
       outputRow.add(aggRes);
       agg.implementor.implementReset(agg.context,
           new WinAggResetContextImpl(builder, agg.state,
-              null, null, null, null, null, null));
+              castNonNull(null), castNonNull(null), castNonNull(null), castNonNull(null),
+              castNonNull(null), castNonNull(null)));
     }
   }
 
-  private void implementAdd(List<AggImpState> aggs,
+  private static void implementAdd(List<AggImpState> aggs,
       final BlockBuilder builder7,
       final Function<BlockBuilder, WinAggFrameResultContext> frame,
       final Function<AggImpState, List<RexNode>> rexArguments,
       final DeclarationStatement jDecl) {
     for (final AggImpState agg : aggs) {
       final WinAggAddContext addContext =
-          new WinAggAddContextImpl(builder7, agg.state, frame) {
-            public Expression currentPosition() {
+          new WinAggAddContextImpl(builder7, requireNonNull(agg.state, "agg.state"), frame) {
+            @Override public Expression currentPosition() {
               return jDecl.parameter;
             }
 
-            public List<RexNode> rexArguments() {
+            @Override public List<RexNode> rexArguments() {
               return rexArguments.apply(agg);
             }
 
-            public RexNode rexFilterArgument() {
+            @Override public @Nullable RexNode rexFilterArgument() {
               return null; // REVIEW
             }
           };
-      agg.implementor.implementAdd(agg.context, addContext);
+      agg.implementor.implementAdd(requireNonNull(agg.context, "agg.context"), addContext);
     }
   }
 
-  private boolean implementResult(List<AggImpState> aggs,
+  private static boolean implementResult(List<AggImpState> aggs,
       final BlockBuilder builder,
       final Function<BlockBuilder, WinAggFrameResultContext> frame,
       final Function<AggImpState, List<RexNode>> rexArguments,
@@ -880,27 +899,27 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         continue;
       }
       nonEmpty = true;
-      Expression res = agg.implementor.implementResult(agg.context,
-          new WinAggResultContextImpl(builder, agg.state, frame) {
-            public List<RexNode> rexArguments() {
+      Expression res = agg.implementor.implementResult(requireNonNull(agg.context, "agg.context"),
+          new WinAggResultContextImpl(builder, requireNonNull(agg.state, "agg.state"), frame) {
+            @Override public List<RexNode> rexArguments() {
               return rexArguments.apply(agg);
             }
           });
       // Several count(a) and count(b) might share the result
+      Expression result = requireNonNull(agg.result,
+          () -> "agg.result for " + agg.call);
       Expression aggRes = builder.append("a" + agg.aggIdx + "res",
-          RexToLixTranslator.convert(res, agg.result.getType()));
+          EnumUtils.convert(res, result.getType()));
       builder.add(
-          Expressions.statement(Expressions.assign(agg.result, aggRes)));
+          Expressions.statement(Expressions.assign(result, aggRes)));
     }
     return nonEmpty;
   }
 
-  private Expression translateBound(RexToLixTranslator translator,
-      ParameterExpression i_, Expression row_, Expression min_,
-      Expression max_, Expression rows_, Group group,
-      boolean lower,
-      PhysType physType, Expression rowComparator,
-      Expression keySelector, Expression keyComparator) {
+  private static Expression translateBound(RexToLixTranslator translator,
+      ParameterExpression i_, Expression row_, Expression min_, Expression max_,
+      Expression rows_, Group group, boolean lower, PhysType physType,
+      @Nullable Expression keySelector, @Nullable Expression keyComparator) {
     RexWindowBound bound = lower ? group.lowerBound : group.upperBound;
     if (bound.isUnbounded()) {
       return bound.isPreceding() ? min_ : max_;
@@ -913,7 +932,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       Expression offs = translator.translate(node);
       // Floating offset does not make sense since we refer to array index.
       // Nulls do not make sense as well.
-      offs = RexToLixTranslator.convert(offs, int.class);
+      offs = EnumUtils.convert(offs, int.class);
 
       Expression b = i_;
       if (bound.isFollowing()) {
@@ -940,7 +959,9 @@ public class EnumerableWindow extends Window implements EnumerableRel {
           (lower
               ? BuiltInMethod.BINARY_SEARCH5_LOWER
               : BuiltInMethod.BINARY_SEARCH5_UPPER).method,
-          rows_, row_, searchLower, searchUpper, keySelector, keyComparator);
+          rows_, row_, searchLower, searchUpper,
+          requireNonNull(keySelector, "keySelector"),
+          requireNonNull(keyComparator, "keyComparator"));
     }
     assert fieldCollations.size() == 1
         : "When using range window specification, ORDER BY should have"
@@ -971,8 +992,8 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         (lower
             ? BuiltInMethod.BINARY_SEARCH6_LOWER
             : BuiltInMethod.BINARY_SEARCH6_UPPER).method,
-        rows_, val, searchLower, searchUpper, keySelector, keyComparator);
+        rows_, val, searchLower, searchUpper,
+        requireNonNull(keySelector, "keySelector"),
+        requireNonNull(keyComparator, "keyComparator"));
   }
 }
-
-// End EnumerableWindow.java

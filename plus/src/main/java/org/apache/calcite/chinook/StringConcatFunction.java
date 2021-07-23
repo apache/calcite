@@ -17,7 +17,7 @@
 package org.apache.calcite.chinook;
 
 /**
- * Example query for checking query projections
+ * Example query for checking query projections.
  */
 public class StringConcatFunction {
 
@@ -26,5 +26,3 @@ public class StringConcatFunction {
   }
 
 }
-
-// End StringConcatFunction.java

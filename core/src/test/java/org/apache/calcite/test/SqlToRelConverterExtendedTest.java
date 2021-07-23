@@ -24,24 +24,25 @@ import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
 
 /**
  * Runs {@link org.apache.calcite.test.SqlToRelConverterTest} with extensions.
  */
-public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
+class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
   Hook.Closeable closeable;
 
-  @Before public void before() {
+  @BeforeEach public void before() {
     this.closeable =
         Hook.CONVERTED.addThread(SqlToRelConverterExtendedTest::foo);
   }
 
-  @After public void after() {
+  @AfterEach public void after() {
     if (this.closeable != null) {
       this.closeable.close();
       this.closeable = null;
@@ -71,11 +72,9 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
       try {
         RelNode x = reader.read(json);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
       return null;
     });
   }
 }
-
-// End SqlToRelConverterExtendedTest.java

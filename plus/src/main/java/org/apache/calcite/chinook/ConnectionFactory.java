@@ -23,18 +23,18 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 /**
- * Wrapping connection factory for quidem
+ * Wrapping connection factory for Quidem.
  */
 public class ConnectionFactory implements Quidem.ConnectionFactory {
 
   private static final CalciteConnectionProvider CALCITE = new CalciteConnectionProvider();
 
-  public Connection connect(String db, boolean bln) throws Exception {
+  @Override public Connection connect(String db, boolean bln) throws Exception {
     return DatabaseWrapper.valueOf(db).connection();
   }
 
   /**
-   * Wrapping with Fairy environmental decoration
+   * Wrapping with Fairy environmental decoration.
    */
   public enum DatabaseWrapper {
     CALCITE_AS_ADMIN {
@@ -60,5 +60,3 @@ public class ConnectionFactory implements Quidem.ConnectionFactory {
   }
 
 }
-
-// End ConnectionFactory.java

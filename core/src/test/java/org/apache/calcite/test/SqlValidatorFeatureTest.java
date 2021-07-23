@@ -25,11 +25,10 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
-import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -37,34 +36,22 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * SqlValidatorFeatureTest verifies that features can be independently enabled
  * or disabled.
  */
-public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
-  //~ Static fields/initializers ---------------------------------------------
-
+class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   private static final String FEATURE_DISABLED = "feature_disabled";
 
-  //~ Instance fields --------------------------------------------------------
-
   private Feature disabledFeature;
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlValidatorFeatureTest() {
-    super();
-  }
-
-  //~ Methods ----------------------------------------------------------------
 
   @Override public SqlTester getTester() {
     return new SqlValidatorTester(SqlTestFactory.INSTANCE.withValidator(FeatureValidator::new));
   }
 
-  @Test public void testDistinct() {
+  @Test void testDistinct() {
     checkFeature(
         "select ^distinct^ name from dept",
         RESOURCE.sQLFeature_E051_01());
   }
 
-  @Test public void testOrderByDesc() {
+  @Test void testOrderByDesc() {
     checkFeature(
         "select name from dept order by ^name desc^",
         RESOURCE.sQLConformance_OrderByDesc());
@@ -73,19 +60,19 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   // NOTE jvs 6-Mar-2006:  carets don't come out properly placed
   // for INTERSECT/EXCEPT, so don't bother
 
-  @Test public void testIntersect() {
+  @Test void testIntersect() {
     checkFeature(
         "^select name from dept intersect select name from dept^",
         RESOURCE.sQLFeature_F302());
   }
 
-  @Test public void testExcept() {
+  @Test void testExcept() {
     checkFeature(
         "^select name from dept except select name from dept^",
         RESOURCE.sQLFeature_E071_03());
   }
 
-  @Test public void testMultiset() {
+  @Test void testMultiset() {
     checkFeature(
         "values ^multiset[1]^",
         RESOURCE.sQLFeature_S271());
@@ -95,7 +82,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         RESOURCE.sQLFeature_S271());
   }
 
-  @Test public void testTablesample() {
+  @Test void testTablesample() {
     checkFeature(
         "select name from ^dept tablesample bernoulli(50)^",
         RESOURCE.sQLFeature_T613());
@@ -107,12 +94,12 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   private void checkFeature(String sql, Feature feature) {
     // Test once with feature enabled:  should pass
-    check(sql);
+    sql(sql).ok();
 
     // Test once with feature disabled:  should fail
     try {
       disabledFeature = feature;
-      checkFails(sql, FEATURE_DISABLED);
+      sql(sql).fails(FEATURE_DISABLED);
     } finally {
       disabledFeature = null;
     }
@@ -126,8 +113,8 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
-        SqlConformance conformance) {
-      super(opTab, catalogReader, typeFactory, conformance);
+        Config config) {
+      super(opTab, catalogReader, typeFactory, config);
     }
 
     protected void validateFeature(
@@ -152,5 +139,3 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     }
   }
 }
-
-// End SqlValidatorFeatureTest.java

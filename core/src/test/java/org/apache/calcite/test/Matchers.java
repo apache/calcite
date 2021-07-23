@@ -18,19 +18,24 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.RangeSet;
 
+import org.apiguardian.api.API;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.Is;
+import org.hamcrest.core.StringContains;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -38,13 +43,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 /**
  * Matchers for testing SQL queries.
  */
 public class Matchers {
+
+  private static final Pattern PATTERN = Pattern.compile(", id = [0-9]+");
+
   private Matchers() {}
 
   /** Allows passing the actual result from the {@code matchesSafely} method to
@@ -79,7 +89,7 @@ public class Matchers {
           CalciteAssert.toStringList(resultSet, actualList);
           resultSet.close();
         } catch (SQLException e) {
-          throw new RuntimeException(e);
+          throw TestUtil.rethrow(e);
         }
         Collections.sort(actualList);
 
@@ -128,9 +138,25 @@ public class Matchers {
    * Creates a matcher that matches when the examined object is within
    * {@code epsilon} of the specified <code>operand</code>.
    */
-  @Factory
   public static <T extends Number> Matcher<T> within(T value, double epsilon) {
     return new IsWithin<T>(value, epsilon);
+  }
+
+  /**
+   * Creates a matcher that matches if the examined value is between bounds:
+   * <code>min &le; value &le; max</code>.
+   *
+   * @param <T> value type
+   * @param min Lower bound
+   * @param max Upper bound
+   */
+  public static <T extends Comparable<T>> Matcher<T> between(T min, T max) {
+    return new CustomTypeSafeMatcher<T>("between " + min + " and " + max) {
+      protected boolean matchesSafely(T item) {
+        return min.compareTo(item) <= 0
+            && item.compareTo(max) <= 0;
+      }
+    };
   }
 
   /** Creates a matcher by applying a function to a value before calling
@@ -156,22 +182,83 @@ public class Matchers {
    *
    * @see Util#toLinux(String)
    */
-  @Factory
   public static Matcher<String> isLinux(final String value) {
     return compose(Is.is(value), input -> input == null ? null : Util.toLinux(input));
   }
 
   /**
-   * Creates a Matcher that matches a {@link RelNode} its string representation,
-   * after converting Windows-style line endings ("\r\n")
+   * Creates a Matcher that matches a {@link RelNode} if its string
+   * representation, after converting Windows-style line endings ("\r\n")
    * to Unix-style line endings ("\n"), is equal to the given {@code value}.
    */
-  @Factory
   public static Matcher<RelNode> hasTree(final String value) {
     return compose(Is.is(value), input -> {
       // Convert RelNode to a string with Linux line-endings
       return Util.toLinux(RelOptUtil.toString(input));
     });
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RelNode} if its string
+   * representation, after converting Windows-style line endings ("\r\n")
+   * to Unix-style line endings ("\n"), contains the given {@code value}
+   * as a substring.
+   */
+  public static Matcher<RelNode> inTree(final String value) {
+    return compose(StringContains.containsString(value), input -> {
+      // Convert RelNode to a string with Linux line-endings
+      return Util.toLinux(RelOptUtil.toString(input));
+    });
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RexNode} if its string
+   * representation, after converting Windows-style line endings ("\r\n")
+   * to Unix-style line endings ("\n"), is equal to the given {@code value}.
+   */
+  public static Matcher<RexNode> hasRex(final String value) {
+    return compose(Is.is(value), input -> {
+      // Convert RexNode to a string with Linux line-endings
+      return Util.toLinux(input.toString());
+    });
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RelNode} if its hints string
+   * representation is equal to the given {@code value}.
+   */
+  public static Matcher<RelNode> hasHints(final String value) {
+    return compose(Is.is(value),
+        input -> input instanceof Hintable
+            ? ((Hintable) input).getHints().toString()
+            : "[]");
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RangeSet} if its string
+   * representation, after changing "&#2025;" to "..",
+   * is equal to the given {@code value}.
+   *
+   * <p>This method is necessary because {@link RangeSet#toString()} changed
+   * behavior. Guava 19 - 28 used a unicode symbol;Guava 29 onwards uses "..".
+   */
+  public static Matcher<RangeSet> isRangeSet(final String value) {
+    return compose(Is.is(value), input -> {
+      // Change all '\u2025' (a unicode symbol denoting a range) to '..',
+      // consistent with Guava 29+.
+      return input.toString().replace("\u2025", "..");
+    });
+  }
+
+  /**
+   * Creates a {@link Matcher} that matches execution plan and trims {@code , id=123} node ids.
+   * {@link RelNode#getId()} is not stable across runs, so this matcher enables to trim those.
+   * @param value execpted execution plan
+   * @return matcher
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static Matcher<String> containsWithoutNodeIds(String value) {
+    return compose(CoreMatchers.containsString(value), Matchers::trimNodeIds);
   }
 
   /**
@@ -190,13 +277,39 @@ public class Matchers {
    *
    * @see Util#toLinux(String)
    */
-  @Factory
   public static Matcher<String> containsStringLinux(String value) {
     return compose(CoreMatchers.containsString(value), Util::toLinux);
   }
 
+  public static String trimNodeIds(String s) {
+    return PATTERN.matcher(s).replaceAll("");
+  }
+
   /**
-   * Is the numeric value within a given difference another value?
+   * Creates a matcher that matches if the examined value is expected throwable.
+   *
+   * @param expected Throwable to match.
+   */
+  public static Matcher<? super Throwable> expectThrowable(Throwable expected) {
+    return new BaseMatcher<Throwable>() {
+      @Override public boolean matches(Object item) {
+        if (!(item instanceof Throwable)) {
+          return false;
+        }
+        Throwable error = (Throwable) item;
+        return expected != null
+            && Objects.equals(error.getClass(), expected.getClass())
+            && Objects.equals(error.getMessage(), expected.getMessage());
+      }
+
+      @Override public void describeTo(Description description) {
+        description.appendText("is ").appendText(expected.toString());
+      }
+    };
+  }
+
+  /** Matcher that tests whether the numeric value is within a given difference
+   * another value.
    *
    * @param <T> Value type
    */
@@ -249,7 +362,7 @@ public class Matchers {
     }
 
     protected boolean matchesSafely(F item) {
-      return matcher.matches(f.apply(item));
+      return Unsafe.matches(matcher, f.apply(item));
     }
 
     public void describeTo(Description description) {
@@ -262,5 +375,3 @@ public class Matchers {
     }
   }
 }
-
-// End Matchers.java

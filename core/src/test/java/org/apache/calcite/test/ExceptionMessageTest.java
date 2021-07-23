@@ -18,20 +18,29 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelRunner;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test cases to check that necessary information from underlying exceptions
@@ -68,7 +77,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setUp() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -77,6 +86,15 @@ public class ExceptionMessageTest {
     rootSchema.add("test", new ReflectiveSchema(new TestSchema()));
     calciteConnection.setSchema("test");
     this.conn = calciteConnection;
+  }
+
+  @AfterEach
+  public void tearDown() throws SQLException {
+    if (conn != null) {
+      Connection c = conn;
+      conn = null;
+      c.close();
+    }
   }
 
   private void runQuery(String sql) throws SQLException {
@@ -94,13 +112,41 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testValidQuery() throws SQLException {
+  /** Performs an action that requires a {@link RelBuilder}, and returns the
+   * result. */
+  private <T> T withRelBuilder(Function<RelBuilder, T> fn) throws SQLException {
+    final SchemaPlus rootSchema =
+        conn.unwrap(CalciteConnection.class).getRootSchema();
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .build();
+    final RelBuilder relBuilder = RelBuilder.create(config);
+    return fn.apply(relBuilder);
+  }
+
+  private void runQuery(Function<RelBuilder, RelNode> relFn) throws SQLException {
+    final RelRunner relRunner = conn.unwrap(RelRunner.class);
+    final RelNode relNode = withRelBuilder(relFn);
+    final PreparedStatement preparedStatement =
+        relRunner.prepareStatement(relNode);
+    try {
+      preparedStatement.executeQuery();
+    } finally {
+      try {
+        preparedStatement.close();
+      } catch (Exception e) {
+        fail("Error on close");
+      }
+    }
+  }
+
+  @Test void testValidQuery() throws SQLException {
     // Just ensure that we're actually dealing with a valid connection
     // to be sure that the results of the other tests can be trusted
     runQuery("select * from \"entries\"");
   }
 
-  @Test public void testNonSqlException() throws SQLException {
+  @Test void testNonSqlException() throws SQLException {
     try {
       runQuery("select * from \"badEntries\"");
       fail("Query badEntries should result in an exception");
@@ -111,7 +157,7 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testSyntaxError() {
+  @Test void testSyntaxError() {
     try {
       runQuery("invalid sql");
       fail("Query should fail");
@@ -122,17 +168,17 @@ public class ExceptionMessageTest {
     }
   }
 
-  @Test public void testSemanticError() {
+  @Test void testSemanticError() {
     try {
+      // implicit type coercion.
       runQuery("select \"name\" - \"id\" from \"entries\"");
-      fail("Query with semantic error should fail");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
           containsString("Cannot apply '-' to arguments"));
     }
   }
 
-  @Test public void testNonexistentTable() {
+  @Test void testNonexistentTable() {
     try {
       runQuery("select name from \"nonexistentTable\"");
       fail("Query should fail");
@@ -141,6 +187,37 @@ public class ExceptionMessageTest {
           containsString("Object 'nonexistentTable' not found"));
     }
   }
-}
 
-// End ExceptionMessageTest.java
+  /** Runs a query via {@link RelRunner}. */
+  @Test void testValidRelNodeQuery() throws SQLException {
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("test", "entries")
+            .project(b.field("name"))
+            .build();
+    runQuery(relFn);
+  }
+
+  /** Runs a query via {@link RelRunner} that is expected to fail,
+   * and checks that the exception correctly describes the RelNode tree.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4585">[CALCITE-4585]
+   * If a query is executed via RelRunner.prepare(RelNode) and fails, the
+   * exception should report the RelNode plan, not the SQL</a>. */
+  @Test void testRelNodeQueryException() {
+    try {
+      final Function<RelBuilder, RelNode> relFn = b ->
+          b.scan("test", "entries")
+              .project(b.call(SqlStdOperatorTable.ABS, b.field("name")))
+              .build();
+      runQuery(relFn);
+      fail("RelNode query about entries should result in an exception");
+    } catch (SQLException e) {
+      String message = "Error while preparing plan ["
+          + "LogicalProject($f0=[ABS($1)])\n"
+          + "  LogicalTableScan(table=[[test, entries]])\n"
+          + "]";
+      assertThat(e.getMessage(), Matchers.isLinux(message));
+    }
+  }
+}

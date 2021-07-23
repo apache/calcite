@@ -34,8 +34,8 @@ public class DefaultDimensionSpec implements DimensionSpec {
   private final DruidType outputType;
 
   public DefaultDimensionSpec(String dimension, String outputName, DruidType outputType) {
-    this.dimension = Objects.requireNonNull(dimension);
-    this.outputName = Objects.requireNonNull(outputName);
+    this.dimension = Objects.requireNonNull(dimension, "dimension");
+    this.outputName = Objects.requireNonNull(outputName, "outputName");
     this.outputType = outputType == null ? DruidType.STRING : outputType;
   }
 
@@ -68,5 +68,3 @@ public class DefaultDimensionSpec implements DimensionSpec {
     return dimension;
   }
 }
-
-// End DefaultDimensionSpec.java

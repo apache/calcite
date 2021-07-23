@@ -47,11 +47,11 @@ class MongoEnumerator implements Enumerator<Object> {
     this.getter = getter;
   }
 
-  public Object current() {
+  @Override public Object current() {
     return current;
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     try {
       if (cursor.hasNext()) {
         Document map = cursor.next();
@@ -66,11 +66,11 @@ class MongoEnumerator implements Enumerator<Object> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     if (cursor instanceof MongoCursor) {
       ((MongoCursor) cursor).close();
     }
@@ -82,12 +82,14 @@ class MongoEnumerator implements Enumerator<Object> {
     return a0 -> (Map) a0;
   }
 
+  /** Returns a function that projects a single field. */
   static Function1<Document, Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
     return a0 -> convert(a0.get(fieldName), fieldClass);
   }
 
-  /**
+  /** Returns a function that projects fields.
+   *
    * @param fields List of fields to project; or null to return map
    */
   static Function1<Document, Object[]> listGetter(
@@ -113,6 +115,7 @@ class MongoEnumerator implements Enumerator<Object> {
             : (Function1) listGetter(fields);
   }
 
+  @SuppressWarnings("JavaUtilDate")
   private static Object convert(Object o, Class clazz) {
     if (o == null) {
       return null;
@@ -135,5 +138,3 @@ class MongoEnumerator implements Enumerator<Object> {
     return o;
   }
 }
-
-// End MongoEnumerator.java

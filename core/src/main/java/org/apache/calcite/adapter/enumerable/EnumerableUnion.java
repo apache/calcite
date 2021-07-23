@@ -28,6 +28,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Union} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableUnion extends Union implements EnumerableRel {
@@ -36,12 +38,12 @@ public class EnumerableUnion extends Union implements EnumerableRel {
     super(cluster, traitSet, inputs, all);
   }
 
-  public EnumerableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
+  @Override public EnumerableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
       boolean all) {
     return new EnumerableUnion(getCluster(), traitSet, inputs, all);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     Expression unionExp = null;
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
@@ -64,7 +66,7 @@ public class EnumerableUnion extends Union implements EnumerableRel {
       }
     }
 
-    builder.add(unionExp);
+    builder.add(requireNonNull(unionExp, "unionExp"));
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),
@@ -73,5 +75,3 @@ public class EnumerableUnion extends Union implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableUnion.java

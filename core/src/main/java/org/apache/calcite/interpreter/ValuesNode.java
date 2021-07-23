@@ -37,10 +37,11 @@ public class ValuesNode implements Node {
   public ValuesNode(Compiler compiler, Values rel) {
     this.sink = compiler.sink(rel);
     this.fieldCount = rel.getRowType().getFieldCount();
-    this.rows = createRows(compiler, rel.getTuples());
+    this.rows = createRows(compiler, fieldCount, rel.getTuples());
   }
 
-  private ImmutableList<Row> createRows(Compiler compiler,
+  private static ImmutableList<Row> createRows(Compiler compiler,
+      int fieldCount,
       ImmutableList<ImmutableList<RexLiteral>> tuples) {
     final List<RexNode> nodes = new ArrayList<>();
     for (ImmutableList<RexLiteral> tuple : tuples) {
@@ -52,19 +53,17 @@ public class ValuesNode implements Node {
     scalar.execute(context, values);
     final ImmutableList.Builder<Row> rows = ImmutableList.builder();
     Object[] subValues = new Object[fieldCount];
-    for (int i = 0; i < values.length; i += fieldCount) {
-      System.arraycopy(values, i, subValues, 0, fieldCount);
+    for (int r = 0, n = tuples.size(); r < n; ++r) {
+      System.arraycopy(values, r * fieldCount, subValues, 0, fieldCount);
       rows.add(Row.asCopy(subValues));
     }
     return rows.build();
   }
 
-  public void run() throws InterruptedException {
+  @Override public void run() throws InterruptedException {
     for (Row row : rows) {
       sink.send(row);
     }
     sink.end();
   }
 }
-
-// End ValuesNode.java

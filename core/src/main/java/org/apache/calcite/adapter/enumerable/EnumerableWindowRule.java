@@ -20,20 +20,29 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalWindow;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalWindow} to
- * an {@link org.apache.calcite.adapter.enumerable.EnumerableWindow}.
+ * Rule to convert a {@link LogicalWindow} to an {@link EnumerableWindow}.
+ * You may provide a custom config to convert other nodes that extend {@link Window}.
+ *
+ * @see EnumerableRules#ENUMERABLE_WINDOW_RULE
  */
 class EnumerableWindowRule extends ConverterRule {
-  EnumerableWindowRule() {
-    super(LogicalWindow.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableWindowRule");
+  /** Default configuration. */
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalWindow.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableWindowRule")
+      .withRuleFactory(EnumerableWindowRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableWindowRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
-    final LogicalWindow winAgg = (LogicalWindow) rel;
+  @Override public RelNode convert(RelNode rel) {
+    final Window winAgg = (Window) rel;
     final RelTraitSet traitSet =
         winAgg.getTraitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode child = winAgg.getInput();
@@ -44,5 +53,3 @@ class EnumerableWindowRule extends ConverterRule {
         winAgg.getConstants(), winAgg.getRowType(), winAgg.groups);
   }
 }
-
-// End EnumerableWindowRule.java

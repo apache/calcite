@@ -19,16 +19,14 @@ package org.apache.calcite.prepare;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.function.Hints;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.AggregateFunction;
-import org.apache.calcite.schema.Function;
-import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
@@ -37,16 +35,17 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
@@ -65,7 +64,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -91,7 +92,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   public CalciteCatalogReader(CalciteSchema rootSchema,
       List<String> defaultSchema, RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
     this(rootSchema, SqlNameMatchers.withCaseSensitive(config != null && config.caseSensitive()),
-        ImmutableList.of(Objects.requireNonNull(defaultSchema),
+        ImmutableList.of(Objects.requireNonNull(defaultSchema, "defaultSchema"),
             ImmutableList.of()),
         typeFactory, config);
   }
@@ -99,7 +100,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   protected CalciteCatalogReader(CalciteSchema rootSchema,
       SqlNameMatcher nameMatcher, List<List<String>> schemaPaths,
       RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
-    this.rootSchema = Objects.requireNonNull(rootSchema);
+    this.rootSchema = Objects.requireNonNull(rootSchema, "rootSchema");
     this.nameMatcher = nameMatcher;
     this.schemaPaths =
         Util.immutableCopy(Util.isDistinct(schemaPaths)
@@ -109,12 +110,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     this.config = config;
   }
 
-  public CalciteCatalogReader withSchemaPath(List<String> schemaPath) {
+  @Override public CalciteCatalogReader withSchemaPath(List<String> schemaPath) {
     return new CalciteCatalogReader(rootSchema, nameMatcher,
         ImmutableList.of(schemaPath, ImmutableList.of()), typeFactory, config);
   }
 
-  public Prepare.PreparingTable getTable(final List<String> names) {
+  @Override public Prepare.@Nullable PreparingTable getTable(final List<String> names) {
     // First look in the default schema, if any.
     // If not found, look in the root schema.
     CalciteSchema.TableEntry entry = SqlValidatorUtil.getTableEntry(this, names);
@@ -137,8 +138,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return config;
   }
 
-  private Collection<Function> getFunctionsFrom(List<String> names) {
-    final List<Function> functions2 = new ArrayList<>();
+  private Collection<org.apache.calcite.schema.Function> getFunctionsFrom(
+      List<String> names) {
+    final List<org.apache.calcite.schema.Function> functions2 =
+        new ArrayList<>();
     final List<List<String>> schemaNameList = new ArrayList<>();
     if (names.size() > 1) {
       // Name qualified: ignore path. But we do look in "/catalog" and "/",
@@ -163,13 +166,14 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
               Iterables.concat(schemaNames, Util.skipLast(names)), nameMatcher);
       if (schema != null) {
         final String name = Util.last(names);
-        functions2.addAll(schema.getFunctions(name, true));
+        boolean caseSensitive = nameMatcher.isCaseSensitive();
+        functions2.addAll(schema.getFunctions(name, caseSensitive));
       }
     }
     return functions2;
   }
 
-  public RelDataType getNamedType(SqlIdentifier typeName) {
+  @Override public @Nullable RelDataType getNamedType(SqlIdentifier typeName) {
     CalciteSchema.TypeEntry typeEntry = SqlValidatorUtil.getTypeEntry(getRootSchema(), typeName);
     if (typeEntry != null) {
       return typeEntry.getType().apply(typeFactory);
@@ -178,13 +182,13 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     }
   }
 
-  public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
+  @Override public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
     final CalciteSchema schema =
         SqlValidatorUtil.getSchema(rootSchema, names, nameMatcher);
     if (schema == null) {
       return ImmutableList.of();
     }
-    final List<SqlMoniker> result = new ArrayList<>();
+    final ImmutableList.Builder<SqlMoniker> result = new ImmutableList.Builder<>();
 
     // Add root schema if not anonymous
     if (!schema.name.equals("")) {
@@ -205,10 +209,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     for (String function : functions) { // views are here as well
       result.add(moniker(schema, function, SqlMonikerType.FUNCTION));
     }
-    return result;
+    return result.build();
   }
 
-  private SqlMonikerImpl moniker(CalciteSchema schema, String name,
+  private static SqlMonikerImpl moniker(CalciteSchema schema, @Nullable String name,
       SqlMonikerType type) {
     final List<String> path = schema.path(name);
     if (path.size() == 1
@@ -219,39 +223,40 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return new SqlMonikerImpl(path, type);
   }
 
-  public List<List<String>> getSchemaPaths() {
+  @Override public List<List<String>> getSchemaPaths() {
     return schemaPaths;
   }
 
-  public Prepare.PreparingTable getTableForMember(List<String> names) {
+  @Override public Prepare.@Nullable PreparingTable getTableForMember(List<String> names) {
     return getTable(names);
   }
 
   @SuppressWarnings("deprecation")
-  public RelDataTypeField field(RelDataType rowType, String alias) {
+  @Override public @Nullable RelDataTypeField field(RelDataType rowType, String alias) {
     return nameMatcher.field(rowType, alias);
   }
 
   @SuppressWarnings("deprecation")
-  public boolean matches(String string, String name) {
+  @Override public boolean matches(String string, String name) {
     return nameMatcher.matches(string, name);
   }
 
-  public RelDataType createTypeFromProjection(final RelDataType type,
+  @Override public RelDataType createTypeFromProjection(final RelDataType type,
       final List<String> columnNameList) {
     return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
         typeFactory, nameMatcher.isCaseSensitive());
   }
 
-  public void lookupOperatorOverloads(final SqlIdentifier opName,
-      SqlFunctionCategory category,
+  @Override public void lookupOperatorOverloads(final SqlIdentifier opName,
+      @Nullable SqlFunctionCategory category,
       SqlSyntax syntax,
-      List<SqlOperator> operatorList) {
+      List<SqlOperator> operatorList,
+      SqlNameMatcher nameMatcher) {
     if (syntax != SqlSyntax.FUNCTION) {
       return;
     }
 
-    final Predicate<Function> predicate;
+    final Predicate<org.apache.calcite.schema.Function> predicate;
     if (category == null) {
       predicate = function -> true;
     } else if (category.isTableFunction()) {
@@ -270,74 +275,106 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         .forEachOrdered(operatorList::add);
   }
 
-  /** Creates an operator table that contains functions in the given class.
+  /** Creates an operator table that contains functions in the given class
+   * or classes.
    *
    * @see ModelHandler#addFunctions */
-  public static SqlOperatorTable operatorTable(String className) {
+  public static SqlOperatorTable operatorTable(String... classNames) {
     // Dummy schema to collect the functions
     final CalciteSchema schema =
         CalciteSchema.createRootSchema(false, false);
-    ModelHandler.addFunctions(schema.plus(), null, ImmutableList.of(),
-        className, "*", true);
-
-    // The following is technical debt; see [CALCITE-2082] Remove
-    // RelDataTypeFactory argument from SqlUserDefinedAggFunction constructor
-    final SqlTypeFactoryImpl typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    for (String className : classNames) {
+      ModelHandler.addFunctions(schema.plus(), null, ImmutableList.of(),
+          className, "*", true);
+    }
 
     final ListSqlOperatorTable table = new ListSqlOperatorTable();
     for (String name : schema.getFunctionNames()) {
-      for (Function function : schema.getFunctions(name, true)) {
+      schema.getFunctions(name, true).forEach(function -> {
         final SqlIdentifier id = new SqlIdentifier(name, SqlParserPos.ZERO);
-        table.add(
-            toOp(typeFactory, id, function));
-      }
+        table.add(toOp(id, function));
+      });
     }
     return table;
   }
 
-  private SqlOperator toOp(SqlIdentifier name, final Function function) {
-    return toOp(typeFactory, name, function);
-  }
+  /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}. */
+  private static SqlOperator toOp(SqlIdentifier name,
+      final org.apache.calcite.schema.Function function) {
+    final Function<RelDataTypeFactory, List<RelDataType>> argTypesFactory =
+        typeFactory -> function.getParameters()
+            .stream()
+            .map(o -> o.getType(typeFactory))
+            .collect(Util.toImmutableList());
+    final Function<RelDataTypeFactory, List<SqlTypeFamily>> typeFamiliesFactory =
+        typeFactory -> argTypesFactory.apply(typeFactory)
+            .stream()
+            .map(type ->
+                Util.first(type.getSqlTypeName().getFamily(),
+                    SqlTypeFamily.ANY))
+            .collect(Util.toImmutableList());
+    final Function<RelDataTypeFactory, List<RelDataType>> paramTypesFactory =
+        typeFactory ->
+            argTypesFactory.apply(typeFactory)
+                .stream()
+                .map(type -> toSql(typeFactory, type))
+                .collect(Util.toImmutableList());
 
-  /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}.
-   *
-   * <p>The {@code typeFactory} argument is technical debt; see [CALCITE-2082]
-   * Remove RelDataTypeFactory argument from SqlUserDefinedAggFunction
-   * constructor. */
-  private static SqlOperator toOp(RelDataTypeFactory typeFactory,
-      SqlIdentifier name, final Function function) {
-    List<RelDataType> argTypes = new ArrayList<>();
-    List<SqlTypeFamily> typeFamilies = new ArrayList<>();
-    for (FunctionParameter o : function.getParameters()) {
-      final RelDataType type = o.getType(typeFactory);
-      argTypes.add(type);
-      typeFamilies.add(
-          Util.first(type.getSqlTypeName().getFamily(), SqlTypeFamily.ANY));
-    }
-    final FamilyOperandTypeChecker typeChecker =
-        OperandTypes.family(typeFamilies, i ->
-            function.getParameters().get(i).isOptional());
-    final List<RelDataType> paramTypes = toSql(typeFactory, argTypes);
+    // Use a short-lived type factory to populate "typeFamilies" and "argTypes".
+    // SqlOperandMetadata.paramTypes will use the real type factory, during
+    // validation.
+    final RelDataTypeFactory dummyTypeFactory = new JavaTypeFactoryImpl();
+    final List<RelDataType> argTypes = argTypesFactory.apply(dummyTypeFactory);
+    final List<SqlTypeFamily> typeFamilies =
+        typeFamiliesFactory.apply(dummyTypeFactory);
+
+    final SqlOperandTypeInference operandTypeInference =
+        InferTypes.explicit(argTypes);
+
+    final SqlOperandMetadata operandMetadata =
+        OperandTypes.operandMetadata(typeFamilies, paramTypesFactory,
+            i -> function.getParameters().get(i).getName(),
+            i -> function.getParameters().get(i).isOptional());
+
+    final SqlKind kind = kind(function);
     if (function instanceof ScalarFunction) {
-      return new SqlUserDefinedFunction(name, infer((ScalarFunction) function),
-          InferTypes.explicit(argTypes), typeChecker, paramTypes, function);
+      final SqlReturnTypeInference returnTypeInference =
+          infer((ScalarFunction) function);
+      return new SqlUserDefinedFunction(name, kind, returnTypeInference,
+          operandTypeInference, operandMetadata, function);
     } else if (function instanceof AggregateFunction) {
-      return new SqlUserDefinedAggFunction(name,
-          infer((AggregateFunction) function), InferTypes.explicit(argTypes),
-          typeChecker, (AggregateFunction) function, false, false,
-          Optionality.FORBIDDEN, typeFactory);
+      final SqlReturnTypeInference returnTypeInference =
+          infer((AggregateFunction) function);
+      return new SqlUserDefinedAggFunction(name, kind,
+          returnTypeInference, operandTypeInference,
+          operandMetadata, (AggregateFunction) function, false, false,
+          Optionality.FORBIDDEN);
     } else if (function instanceof TableMacro) {
-      return new SqlUserDefinedTableMacro(name, ReturnTypes.CURSOR,
-          InferTypes.explicit(argTypes), typeChecker, paramTypes,
-          (TableMacro) function);
+      return new SqlUserDefinedTableMacro(name, kind, ReturnTypes.CURSOR,
+          operandTypeInference, operandMetadata, (TableMacro) function);
     } else if (function instanceof TableFunction) {
-      return new SqlUserDefinedTableFunction(name, ReturnTypes.CURSOR,
-          InferTypes.explicit(argTypes), typeChecker, paramTypes,
-          (TableFunction) function);
+      return new SqlUserDefinedTableFunction(name, kind, ReturnTypes.CURSOR,
+          operandTypeInference, operandMetadata, (TableFunction) function);
     } else {
       throw new AssertionError("unknown function type " + function);
     }
+  }
+
+  /** Deduces the {@link org.apache.calcite.sql.SqlKind} of a user-defined
+   * function based on a {@link Hints} annotation, if present. */
+  private static SqlKind kind(org.apache.calcite.schema.Function function) {
+    if (function instanceof ScalarFunctionImpl) {
+      Hints hints =
+          ((ScalarFunctionImpl) function).method.getAnnotation(Hints.class);
+      if (hints != null) {
+        for (String hint : hints.value()) {
+          if (hint.startsWith("SqlKind:")) {
+            return SqlKind.valueOf(hint.substring("SqlKind:".length()));
+          }
+        }
+      }
+    }
+    return SqlKind.OTHER_FUNCTION;
   }
 
   private static SqlReturnTypeInference infer(final ScalarFunction function) {
@@ -363,11 +400,6 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     };
   }
 
-  private static List<RelDataType> toSql(
-      final RelDataTypeFactory typeFactory, List<RelDataType> types) {
-    return Lists.transform(types, type -> toSql(typeFactory, type));
-  }
-
   private static RelDataType toSql(RelDataTypeFactory typeFactory,
       RelDataType type) {
     if (type instanceof RelDataTypeFactoryImpl.JavaType
@@ -379,19 +411,30 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return JavaTypeFactoryImpl.toSql(typeFactory, type);
   }
 
-  public List<SqlOperator> getOperatorList() {
-    return null;
+  @Override public List<SqlOperator> getOperatorList() {
+    final ImmutableList.Builder<SqlOperator> builder = ImmutableList.builder();
+    for (List<String> schemaPath : schemaPaths) {
+      CalciteSchema schema =
+          SqlValidatorUtil.getSchema(rootSchema, schemaPath, nameMatcher);
+      if (schema != null) {
+        for (String name : schema.getFunctionNames()) {
+          schema.getFunctions(name, true).forEach(f ->
+              builder.add(toOp(new SqlIdentifier(name, SqlParserPos.ZERO), f)));
+        }
+      }
+    }
+    return builder.build();
   }
 
-  public CalciteSchema getRootSchema() {
+  @Override public CalciteSchema getRootSchema() {
     return rootSchema;
   }
 
-  public RelDataTypeFactory getTypeFactory() {
+  @Override public RelDataTypeFactory getTypeFactory() {
     return typeFactory;
   }
 
-  public void registerRules(RelOptPlanner planner) throws Exception {
+  @Override public void registerRules(RelOptPlanner planner) {
   }
 
   @SuppressWarnings("deprecation")
@@ -399,16 +442,14 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return nameMatcher.isCaseSensitive();
   }
 
-  public SqlNameMatcher nameMatcher() {
+  @Override public SqlNameMatcher nameMatcher() {
     return nameMatcher;
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(this)) {
       return aClass.cast(this);
     }
     return null;
   }
 }
-
-// End CalciteCatalogReader.java

@@ -23,8 +23,12 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** Namespace based on a schema.
  *
@@ -37,24 +41,24 @@ class SchemaNamespace extends AbstractNamespace {
   /** Creates a SchemaNamespace. */
   SchemaNamespace(SqlValidatorImpl validator, ImmutableList<String> names) {
     super(validator, null);
-    this.names = Objects.requireNonNull(names);
+    this.names = Objects.requireNonNull(names, "names");
   }
 
-  protected RelDataType validateImpl(RelDataType targetRowType) {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     final RelDataTypeFactory.Builder builder =
         validator.getTypeFactory().builder();
     for (SqlMoniker moniker
         : validator.catalogReader.getAllSchemaObjectNames(names)) {
       final List<String> names1 = moniker.getFullyQualifiedNames();
-      final SqlValidatorTable table = validator.catalogReader.getTable(names1);
+      final SqlValidatorTable table = requireNonNull(
+          validator.catalogReader.getTable(names1),
+          () -> "table " + names1 + " is not found in scope " + names);
       builder.add(Util.last(names1), table.getRowType());
     }
     return builder.build();
   }
 
-  public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return null;
   }
 }
-
-// End SchemaNamespace.java

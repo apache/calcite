@@ -23,6 +23,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -34,12 +36,17 @@ public class MutableAggregate extends MutableSingleRel {
 
   private MutableAggregate(MutableRel input, RelDataType rowType,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     super(MutableRelType.AGGREGATE, rowType, input);
     this.groupSet = groupSet;
     this.groupSets = groupSets == null
         ? ImmutableList.of(groupSet)
         : ImmutableList.copyOf(groupSets);
+    assert ImmutableBitSet.ORDERING.isStrictlyOrdered(
+        this.groupSets) : this.groupSets;
+    for (ImmutableBitSet set : this.groupSets) {
+      assert groupSet.contains(set);
+    }
     this.aggCalls = aggCalls;
   }
 
@@ -52,7 +59,7 @@ public class MutableAggregate extends MutableSingleRel {
    * @param aggCalls  Collection of calls to aggregate functions
    */
   public static MutableAggregate of(MutableRel input, ImmutableBitSet groupSet,
-      ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     RelDataType rowType =
         Aggregate.deriveRowType(input.cluster.getTypeFactory(),
             input.rowType, false, groupSet, groupSets, aggCalls);
@@ -60,16 +67,17 @@ public class MutableAggregate extends MutableSingleRel {
         groupSets, aggCalls);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableAggregate
         && groupSet.equals(((MutableAggregate) obj).groupSet)
+        && groupSets.equals(((MutableAggregate) obj).groupSets)
         && aggCalls.equals(((MutableAggregate) obj).aggCalls)
         && input.equals(((MutableAggregate) obj).input);
   }
 
   @Override public int hashCode() {
-    return Objects.hash(input, groupSet, aggCalls);
+    return Objects.hash(input, groupSet, groupSets, aggCalls);
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {
@@ -86,5 +94,3 @@ public class MutableAggregate extends MutableSingleRel {
     return MutableAggregate.of(input.clone(), groupSet, groupSets, aggCalls);
   }
 }
-
-// End MutableAggregate.java

@@ -30,10 +30,12 @@ import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
@@ -50,6 +52,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -59,10 +64,12 @@ import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Holder for various classes and functions used in tests as user-defined
@@ -71,6 +78,10 @@ import static org.junit.Assert.assertThat;
 public class Smalls {
   public static final Method GENERATE_STRINGS_METHOD =
       Types.lookupMethod(Smalls.class, "generateStrings", Integer.class);
+  public static final Method GENERATE_STRINGS_OF_INPUT_SIZE_METHOD =
+      Types.lookupMethod(Smalls.class, "generateStringsOfInputSize", List.class);
+  public static final Method GENERATE_STRINGS_OF_INPUT_MAP_SIZE_METHOD =
+      Types.lookupMethod(Smalls.class, "generateStringsOfInputMapSize", Map.class);
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
@@ -84,8 +95,15 @@ public class Smalls {
         int.class, Integer.class);
   public static final Method FIBONACCI_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "fibonacciTable");
-  public static final Method FIBONACCI2_TABLE_METHOD =
+  public static final Method FIBONACCI_LIMIT_100_TABLE_METHOD =
+      Types.lookupMethod(Smalls.class, "fibonacciTableWithLimit100");
+  public static final Method FIBONACCI_LIMIT_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "fibonacciTableWithLimit", long.class);
+  public static final Method FIBONACCI_INSTANCE_TABLE_METHOD =
+      Types.lookupMethod(Smalls.FibonacciTableFunction.class, "eval");
+  public static final Method DYNAMIC_ROW_TYPE_TABLE_METHOD =
+      Types.lookupMethod(Smalls.class, "dynamicRowTypeTable", String.class,
+          int.class);
   public static final Method VIEW_METHOD =
       Types.lookupMethod(Smalls.class, "view", String.class);
   public static final Method STR_METHOD =
@@ -99,6 +117,11 @@ public class Smalls {
   public static final Method PROCESS_CURSORS_METHOD =
       Types.lookupMethod(Smalls.class, "processCursors",
           int.class, Enumerable.class, Enumerable.class);
+  public static final Method MY_PLUS_EVAL_METHOD =
+      Types.lookupMethod(MyPlusFunction.class, "eval", int.class, int.class);
+  public static final Method MY_PLUS_INIT_EVAL_METHOD =
+      Types.lookupMethod(MyPlusInitFunction.class, "eval", int.class,
+          int.class);
 
   private Smalls() {}
 
@@ -181,6 +204,13 @@ public class Smalls {
     };
   }
 
+  public static QueryableTable generateStringsOfInputSize(final List<Integer> list) {
+    return generateStrings(list.size());
+  }
+  public static QueryableTable generateStringsOfInputMapSize(final Map<Integer, Integer> map) {
+    return generateStrings(map.size());
+  }
+
   /** A function that generates multiplication table of {@code ncol} columns x
    * {@code nrow} rows. */
   public static QueryableTable multiplicationTable(final int ncol,
@@ -219,9 +249,18 @@ public class Smalls {
   }
 
   /** A function that generates the Fibonacci sequence.
-   * Interesting because it has one column and no arguments. */
+   *
+   * <p>Interesting because it has one column and no arguments,
+   * and because it is infinite. */
   public static ScannableTable fibonacciTable() {
     return fibonacciTableWithLimit(-1L);
+  }
+
+  /** A function that generates the first 100 terms of the Fibonacci sequence.
+   *
+   * <p>Interesting because it has one column and no arguments. */
+  public static ScannableTable fibonacciTableWithLimit100() {
+    return fibonacciTableWithLimit(100L);
   }
 
   /** A function that generates the Fibonacci sequence.
@@ -232,7 +271,7 @@ public class Smalls {
         return typeFactory.builder().add("N", SqlTypeName.BIGINT).build();
       }
 
-      public Enumerable<Object[]> scan(DataContext root) {
+      public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return new AbstractEnumerable<Object[]>() {
           public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
@@ -278,15 +317,40 @@ public class Smalls {
       }
 
       public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };
   }
 
-  /**
-   * A function that adds a number to the first column of input cursor
-   */
+  public static ScannableTable dynamicRowTypeTable(String jsonRowType,
+      int rowCount) {
+    return new DynamicRowTypeTable(jsonRowType, rowCount);
+  }
+
+  /** A table whose row type is determined by parsing a JSON argument. */
+  private static class DynamicRowTypeTable extends AbstractTable
+      implements ScannableTable {
+    private final String jsonRowType;
+
+    DynamicRowTypeTable(String jsonRowType, int count) {
+      this.jsonRowType = jsonRowType;
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      try {
+        return RelJsonReader.readType(typeFactory, jsonRowType);
+      } catch (IOException e) {
+        throw Util.throwAsRuntime(e);
+      }
+    }
+
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.emptyEnumerable();
+    }
+  }
+
+  /** Table function that adds a number to the first column of input cursor. */
   public static QueryableTable processCursor(final int offset,
       final Enumerable<Object[]> a) {
     return new AbstractQueryableTable(Object[].class) {
@@ -370,11 +434,12 @@ public class Smalls {
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */
   public static class MyPlusFunction {
-    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
 
     // Note: Not marked @Deterministic
     public MyPlusFunction() {
-      INSTANCE_COUNT.incrementAndGet();
+      INSTANCE_COUNT.get().incrementAndGet();
     }
 
     public int eval(@Parameter(name = "x") int x,
@@ -383,16 +448,56 @@ public class Smalls {
     }
   }
 
-  /** As {@link MyPlusFunction} but declared to be deterministic. */
-  public static class MyDeterministicPlusFunction {
-    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+  /** As {@link MyPlusFunction} but constructor has a
+   *  {@link org.apache.calcite.schema.FunctionContext} parameter. */
+  public static class MyPlusInitFunction {
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+    public static final ThreadLocal<String> THREAD_DIGEST =
+        new ThreadLocal<>();
 
-    @Deterministic public MyDeterministicPlusFunction() {
-      INSTANCE_COUNT.incrementAndGet();
+    private final int initY;
+
+    public MyPlusInitFunction(FunctionContext fx) {
+      INSTANCE_COUNT.get().incrementAndGet();
+      final StringBuilder b = new StringBuilder();
+      final int parameterCount = fx.getParameterCount();
+      b.append("parameterCount=").append(parameterCount);
+      for (int i = 0; i < parameterCount; i++) {
+        b.append("; argument ").append(i);
+        if (fx.isArgumentConstant(i)) {
+          b.append(" is constant and has value ")
+              .append(fx.getArgumentValueAs(i, String.class));
+        } else {
+          b.append(" is not constant");
+        }
+      }
+      THREAD_DIGEST.set(b.toString());
+      this.initY = fx.isArgumentConstant(1)
+          ? fx.getArgumentValueAs(1, Integer.class)
+          : 100;
     }
 
     public int eval(@Parameter(name = "x") int x,
         @Parameter(name = "y") int y) {
+      return x + initY;
+    }
+  }
+
+  /** As {@link MyPlusFunction} but declared to be deterministic. */
+  public static class MyDeterministicPlusFunction {
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+
+    @Deterministic public MyDeterministicPlusFunction() {
+      INSTANCE_COUNT.get().incrementAndGet();
+    }
+
+    public Integer eval(@Parameter(name = "x") Integer x,
+        @Parameter(name = "y") Integer y) {
+      if (x == null || y == null) {
+        return null;
+      }
       return x + y;
     }
   }
@@ -461,10 +566,40 @@ public class Smalls {
     }
   }
 
+  /** Example of a UDF with non-default constructor.
+   *
+   * <p>Not used; we do not currently have a way to instantiate function
+   * objects other than via their default constructor. */
+  public static class FibonacciTableFunction {
+    private final int limit;
+
+    public FibonacciTableFunction(int limit) {
+      this.limit = limit;
+    }
+
+    public ScannableTable eval() {
+      return fibonacciTableWithLimit(limit);
+    }
+  }
+
   /** User-defined function with two arguments. */
   public static class MyIncrement {
     public float eval(int x, int y) {
       return x + x * y / 100;
+    }
+  }
+
+  /** User-defined function that declares exceptions. */
+  public static class MyExceptionFunction {
+    public MyExceptionFunction() {}
+
+    public static int eval(int x) throws IllegalArgumentException, IOException {
+      if (x < 0) {
+        throw new IllegalArgumentException("Illegal argument: " + x);
+      } else if (x > 100) {
+        throw new IOException("IOException when argument > 100");
+      }
+      return x + 10;
     }
   }
 
@@ -574,9 +709,9 @@ public class Smalls {
     public static java.sql.Time toTimeFun(Long v) {
       return v == null ? null : SqlFunctions.internalToTime(v.intValue());
     }
-    /** for Overloaded user-defined functions that have Double and BigDecimal
-     * arguments will goes wrong
-     * */
+
+    /** For overloaded user-defined functions that have {@code double} and
+     * {@code BigDecimal} arguments will go wrong. */
     public static double toDouble(BigDecimal var) {
       return var == null ? null : var.doubleValue();
     }
@@ -629,7 +764,7 @@ public class Smalls {
     }
   }
 
-  /** A generic interface for defining user defined aggregate functions
+  /** A generic interface for defining user-defined aggregate functions.
    *
    * @param <A> accumulator type
    * @param <V> value type
@@ -682,9 +817,12 @@ public class Smalls {
     }
   }
 
-  /** Example of a user-defined aggregate function (UDAF). */
+  /** Example of a user-defined aggregate function (UDAF) with two parameters.
+   * The constructor has an initialization parameter. */
   public static class MyTwoParamsSumFunctionFilter1 {
-    public MyTwoParamsSumFunctionFilter1() {
+    public MyTwoParamsSumFunctionFilter1(FunctionContext fx) {
+      Objects.requireNonNull(fx, "fx");
+      assert fx.getParameterCount() == 2;
     }
     public int init() {
       return 0;
@@ -703,7 +841,8 @@ public class Smalls {
     }
   }
 
-  /** Example of a user-defined aggregate function (UDAF). */
+  /** Another example of a user-defined aggregate function (UDAF) with two
+   * parameters. */
   public static class MyTwoParamsSumFunctionFilter2 {
     public MyTwoParamsSumFunctionFilter2() {
     }
@@ -745,7 +884,8 @@ public class Smalls {
   }
 
   /** Example of a user-defined aggregate function (UDAF), whose methods are
-   * static. olny for validate to get exact function by calcite*/
+   * static. Similar to {@link MyThreeParamsSumFunctionWithFilter1}, but
+   * argument types are different. */
   public static class MyThreeParamsSumFunctionWithFilter2 {
     public static long init() {
       return 0L;
@@ -794,6 +934,30 @@ public class Smalls {
         @Parameter(name = "R", optional = true) String r,
         @Parameter(name = "S") String s,
         @Parameter(name = "T", optional = true) Integer t) {
+      final StringBuilder sb = new StringBuilder();
+      abc(sb, r);
+      abc(sb, s);
+      abc(sb, t);
+      return view(sb.toString());
+    }
+
+    private void abc(StringBuilder sb, Object s) {
+      if (s != null) {
+        if (sb.length() > 0) {
+          sb.append(", ");
+        }
+        sb.append('(').append(s).append(')');
+      }
+    }
+  }
+
+  /** User-defined table-macro function with named and optional parameters. */
+  public static class AnotherTableMacroFunctionWithNamedParameters {
+    public TranslatableTable eval(
+        @Parameter(name = "R", optional = true) String r,
+        @Parameter(name = "S") String s,
+        @Parameter(name = "T", optional = true) Integer t,
+        @Parameter(name = "S2", optional = true) String s2) {
       final StringBuilder sb = new StringBuilder();
       abc(sb, r);
       abc(sb, s);
@@ -871,7 +1035,7 @@ public class Smalls {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       Object[][] rows = {{"abcde"}, {"xyz"}, {content}};
       return Linq4j.asEnumerable(rows);
     }
@@ -1100,5 +1264,3 @@ public class Smalls {
     }
   }
 }
-
-// End Smalls.java

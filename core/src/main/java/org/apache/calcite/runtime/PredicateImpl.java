@@ -18,7 +18,7 @@ package org.apache.calcite.runtime;
 
 import com.google.common.base.Predicate;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Abstract implementation of {@link com.google.common.base.Predicate}.
@@ -35,12 +35,10 @@ import javax.annotation.Nullable;
  * implement {@link java.util.function.Predicate} directly.
  */
 public abstract class PredicateImpl<T> implements Predicate<T> {
-  public final boolean apply(@Nullable T input) {
+  @Override public final boolean apply(@Nullable T input) {
     return test(input);
   }
 
   /** Overrides {@code java.util.function.Predicate#test} in JDK8 and higher. */
-  public abstract boolean test(@Nullable T t);
+  @Override public abstract boolean test(@Nullable T t);
 }
-
-// End PredicateImpl.java

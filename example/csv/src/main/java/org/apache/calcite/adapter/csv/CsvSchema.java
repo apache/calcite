@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import org.apache.calcite.adapter.file.JsonScannableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.Source;
@@ -92,14 +93,14 @@ public class CsvSchema extends AbstractSchema {
       Source sourceSansGz = source.trim(".gz");
       final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
       if (sourceSansJson != null) {
-        JsonTable table = new JsonTable(source);
+        final Table table = new JsonScannableTable(source);
         builder.put(sourceSansJson.relative(baseSource).path(), table);
-        continue;
       }
-      final Source sourceSansCsv = sourceSansGz.trim(".csv");
-
-      final Table table = createTable(source);
-      builder.put(sourceSansCsv.relative(baseSource).path(), table);
+      final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
+      if (sourceSansCsv != null) {
+        final Table table = createTable(source);
+        builder.put(sourceSansCsv.relative(baseSource).path(), table);
+      }
     }
     return builder.build();
   }
@@ -118,5 +119,3 @@ public class CsvSchema extends AbstractSchema {
     }
   }
 }
-
-// End CsvSchema.java

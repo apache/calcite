@@ -26,6 +26,13 @@ java.lang.Object#wait(long,int)
 java.lang.Object#notify()
 java.lang.Object#notifyAll()
 
+@defaultMessage If you want regex use Pattern.compile; otherwise String.replace is faster
+java.lang.String#replaceAll(java.lang.String, java.lang.String)
+
+@defaultMessage Use toLowerCase(Locale.ROOT) and toUpperCase(Locale.ROOT)
+java.lang.String#toUpperCase()
+java.lang.String#toLowerCase()
+
 @defaultMessage Use StringBuilder; it is more efficient
 java.lang.StringBuffer
 
@@ -77,6 +84,12 @@ com.google.common.base.Joiner
 @defaultMessage Use "new ArrayList<>()"
 com.google.common.collect.Lists#newArrayList()
 
+@defaultMessage Use "org.apache.calcite.util.Util#transform(List, Function)"
+com.google.common.collect.Lists#transform(java.util.List, com.google.common.base.Function)
+
+@defaultMessage Use "org.apache.calcite.util.Util#transform(Iterable, Function)"
+com.google.common.collect.Iterables#transform(java.lang.Iterable, com.google.common.base.Function)
+
 @defaultMessage Use "new HashMap<>()"
 com.google.common.collect.Maps#newHashMap()
 
@@ -89,4 +102,5 @@ com.google.common.collect.Maps#newTreeMap()
 @defaultMessage Use "new HashSet<>()"
 com.google.common.collect.Sets#newHashSet()
 
-# End signatures.txt
+@defaultMessage Use "assertThat(expected, matcher)", do not call Matcher#matches directly
+org.hamcrest.Matcher#matches(java.lang.Object)

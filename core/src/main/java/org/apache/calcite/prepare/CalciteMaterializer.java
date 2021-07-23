@@ -17,18 +17,21 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptMaterialization;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -38,6 +41,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.Schemas;
@@ -54,6 +58,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Context for populating a {@link Prepare.Materialization}.
  */
@@ -61,9 +67,9 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   CalciteMaterializer(CalcitePrepareImpl prepare,
       CalcitePrepare.Context context,
       CatalogReader catalogReader, CalciteSchema schema,
-      RelOptPlanner planner, SqlRexConvertletTable convertletTable) {
+      RelOptCluster cluster, SqlRexConvertletTable convertletTable) {
     super(prepare, context, catalogReader, catalogReader.getTypeFactory(),
-        schema, EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE,
+        schema, EnumerableRel.Prefer.ANY, cluster, BindableConvention.INSTANCE,
         convertletTable);
   }
 
@@ -78,13 +84,13 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     } catch (SqlParseException e) {
       throw new RuntimeException("parse failed", e);
     }
-    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
-        .withTrimUnusedFields(true).build();
+    final SqlToRelConverter.Config config =
+        SqlToRelConverter.config().withTrimUnusedFields(true);
     SqlToRelConverter sqlToRelConverter2 =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
 
-    materialization.queryRel =
-        sqlToRelConverter2.convertQuery(node, true, true).rel;
+    RelRoot root = sqlToRelConverter2.convertQuery(node, true, true);
+    materialization.queryRel = trimUnusedFields(root).rel;
 
     // Identify and substitute a StarTable in queryRel.
     //
@@ -95,23 +101,26 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     // take the best (whatever that means), or all of them?
     useStar(schema, materialization);
 
-    RelOptTable table =
-        this.catalogReader.getTable(materialization.materializedTable.path());
-    materialization.tableRel = sqlToRelConverter2.toRel(table);
+    List<String> tableName = materialization.materializedTable.path();
+    RelOptTable table = requireNonNull(
+        this.catalogReader.getTable(tableName),
+        () -> "table " + tableName + " is not found");
+    materialization.tableRel = sqlToRelConverter2.toRel(table, ImmutableList.of());
   }
 
   /** Converts a relational expression to use a
    * {@link StarTable} defined in {@code schema}.
    * Uses the first star table that fits. */
   private void useStar(CalciteSchema schema, Materialization materialization) {
-    for (Callback x : useStar(schema, materialization.queryRel)) {
+    RelNode queryRel = requireNonNull(materialization.queryRel, "materialization.queryRel");
+    for (Callback x : useStar(schema, queryRel)) {
       // Success -- we found a star table that matches.
       materialization.materialize(x.rel, x.starRelOptTable);
-      if (CalcitePrepareImpl.DEBUG) {
+      if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Materialization "
             + materialization.materializedTable + " matched star table "
             + x.starTable + "; query after re-write: "
-            + RelOptUtil.toString(materialization.queryRel));
+            + RelOptUtil.toString(queryRel));
       }
     }
   }
@@ -147,49 +156,55 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   /** Implementation of {@link RelShuttle} that returns each relational
    * expression unchanged. It does not visit inputs. */
   static class RelNullShuttle implements RelShuttle {
-    public RelNode visit(TableScan scan) {
+    @Override public RelNode visit(TableScan scan) {
       return scan;
     }
-    public RelNode visit(TableFunctionScan scan) {
+    @Override public RelNode visit(TableFunctionScan scan) {
       return scan;
     }
-    public RelNode visit(LogicalValues values) {
+    @Override public RelNode visit(LogicalValues values) {
       return values;
     }
-    public RelNode visit(LogicalFilter filter) {
+    @Override public RelNode visit(LogicalFilter filter) {
       return filter;
     }
-    public RelNode visit(LogicalProject project) {
+    @Override public RelNode visit(LogicalCalc calc) {
+      return calc;
+    }
+    @Override public RelNode visit(LogicalProject project) {
       return project;
     }
-    public RelNode visit(LogicalJoin join) {
+    @Override public RelNode visit(LogicalJoin join) {
       return join;
     }
-    public RelNode visit(LogicalCorrelate correlate) {
+    @Override public RelNode visit(LogicalCorrelate correlate) {
       return correlate;
     }
-    public RelNode visit(LogicalUnion union) {
+    @Override public RelNode visit(LogicalUnion union) {
       return union;
     }
-    public RelNode visit(LogicalIntersect intersect) {
+    @Override public RelNode visit(LogicalIntersect intersect) {
       return intersect;
     }
-    public RelNode visit(LogicalMinus minus) {
+    @Override public RelNode visit(LogicalMinus minus) {
       return minus;
     }
-    public RelNode visit(LogicalAggregate aggregate) {
+    @Override public RelNode visit(LogicalAggregate aggregate) {
       return aggregate;
     }
-    public RelNode visit(LogicalMatch match) {
+    @Override public RelNode visit(LogicalMatch match) {
       return match;
     }
-    public RelNode visit(LogicalSort sort) {
+    @Override public RelNode visit(LogicalSort sort) {
       return sort;
     }
-    public RelNode visit(LogicalExchange exchange) {
+    @Override public RelNode visit(LogicalExchange exchange) {
       return exchange;
     }
-    public RelNode visit(RelNode other) {
+    @Override public RelNode visit(LogicalTableModify modify) {
+      return modify;
+    }
+    @Override public RelNode visit(RelNode other) {
       return other;
     }
   }
@@ -209,5 +224,3 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     }
   }
 }
-
-// End CalciteMaterializer.java

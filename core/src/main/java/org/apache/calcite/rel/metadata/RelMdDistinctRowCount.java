@@ -24,21 +24,27 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * RelMdDistinctRowCount supplies a default implementation of
@@ -57,7 +63,7 @@ public class RelMdDistinctRowCount
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.DistinctRowCount> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.DistinctRowCount> getDef() {
     return BuiltInMetadata.DistinctRowCount.DEF;
   }
 
@@ -67,8 +73,8 @@ public class RelMdDistinctRowCount
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#getDistinctRowCount(RelNode, ImmutableBitSet, RexNode)
    */
-  public Double getDistinctRowCount(RelNode rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(RelNode rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     // REVIEW zfong 4/19/06 - Broadbase code does not take into
     // consideration selectivity of predicates passed in.  Also, they
     // assume the rows are unique even if the table is not
@@ -80,8 +86,8 @@ public class RelMdDistinctRowCount
     return null;
   }
 
-  public Double getDistinctRowCount(Union rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(Union rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     double rowCount = 0.0;
     int[] adjustments = new int[rel.getRowType().getFieldCount()];
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
@@ -109,18 +115,23 @@ public class RelMdDistinctRowCount
     return rowCount;
   }
 
-  public Double getDistinctRowCount(Sort rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(Sort rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     return mq.getDistinctRowCount(rel.getInput(), groupKey, predicate);
   }
 
-  public Double getDistinctRowCount(Exchange rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(TableModify rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     return mq.getDistinctRowCount(rel.getInput(), groupKey, predicate);
   }
 
-  public Double getDistinctRowCount(Filter rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(Exchange rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
+    return mq.getDistinctRowCount(rel.getInput(), groupKey, predicate);
+  }
+
+  public @Nullable Double getDistinctRowCount(Filter rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     if (predicate == null || predicate.isAlwaysTrue()) {
       if (groupKey.isEmpty()) {
         return 1D;
@@ -138,41 +149,14 @@ public class RelMdDistinctRowCount
     return mq.getDistinctRowCount(rel.getInput(), groupKey, unionPreds);
   }
 
-  public Double getDistinctRowCount(Join rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
+  public @Nullable Double getDistinctRowCount(Join rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     return RelMdUtil.getJoinDistinctRowCount(mq, rel, rel.getJoinType(),
         groupKey, predicate, false);
   }
 
-  public Double getDistinctRowCount(SemiJoin rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
-    // create a RexNode representing the selectivity of the
-    // semijoin filter and pass it to getDistinctRowCount
-    RexNode newPred = RelMdUtil.makeSemiJoinSelectivityRexNode(mq, rel);
-    if (predicate != null) {
-      RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-      newPred =
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.AND,
-              newPred,
-              predicate);
-    }
-
-    return mq.getDistinctRowCount(rel.getLeft(), groupKey, newPred);
-  }
-
-  public Double getDistinctRowCount(Aggregate rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(Aggregate rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     if (predicate == null || predicate.isAlwaysTrue()) {
       if (groupKey.isEmpty()) {
         return 1D;
@@ -209,26 +193,55 @@ public class RelMdDistinctRowCount
   }
 
   public Double getDistinctRowCount(Values rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     if (predicate == null || predicate.isAlwaysTrue()) {
       if (groupKey.isEmpty()) {
         return 1D;
       }
     }
-    double selectivity = RelMdUtil.guessSelectivity(predicate);
 
-    // assume half the rows are duplicates
-    double nRows = rel.estimateRowCount(mq) / 2;
-    return RelMdUtil.numDistinctVals(nRows, nRows * selectivity);
+    final Set<List<Comparable>> set = new HashSet<>();
+    final List<Comparable> values = new ArrayList<>(groupKey.cardinality());
+    for (ImmutableList<RexLiteral> tuple : rel.tuples) {
+      for (int column : groupKey) {
+        final RexLiteral literal = tuple.get(column);
+        Comparable value = literal.getValueAs(Comparable.class);
+        values.add(value == null ? NullSentinel.INSTANCE : value);
+      }
+      set.add(ImmutableList.copyOf(values));
+      values.clear();
+    }
+    double nRows = set.size();
+    if ((predicate == null) || predicate.isAlwaysTrue()) {
+      return nRows;
+    } else {
+      double selectivity = RelMdUtil.guessSelectivity(predicate);
+      return RelMdUtil.numDistinctVals(nRows, nRows * selectivity);
+    }
   }
 
-  public Double getDistinctRowCount(Project rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(Project rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     if (predicate == null || predicate.isAlwaysTrue()) {
       if (groupKey.isEmpty()) {
         return 1D;
       }
     }
+
+    // try to remove const columns from the group keys, as they do not
+    // affect the distinct row count
+    ImmutableBitSet nonConstCols = RexUtil.getNonConstColumns(groupKey, rel.getProjects());
+    if (nonConstCols.cardinality() == 0) {
+      // all columns are constants, the distinct row count should be 1
+      return 1D;
+    }
+
+    if (nonConstCols.cardinality() < groupKey.cardinality()) {
+      // some const columns can be removed, call the method recursively
+      // with the trimmed columns
+      return getDistinctRowCount(rel, mq, nonConstCols, predicate);
+    }
+
     ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
     ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();
@@ -285,8 +298,8 @@ public class RelMdDistinctRowCount
     return RelMdUtil.numDistinctVals(distinctRowCount, mq.getRowCount(rel));
   }
 
-  public Double getDistinctRowCount(RelSubset rel, RelMetadataQuery mq,
-      ImmutableBitSet groupKey, RexNode predicate) {
+  public @Nullable Double getDistinctRowCount(RelSubset rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, @Nullable RexNode predicate) {
     final RelNode best = rel.getBest();
     if (best != null) {
       return mq.getDistinctRowCount(best, groupKey, predicate);
@@ -307,5 +320,3 @@ public class RelMdDistinctRowCount
     return d;
   }
 }
-
-// End RelMdDistinctRowCount.java

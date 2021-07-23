@@ -16,20 +16,22 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.calcite.avatica.util.Spacer;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 
 /**
  * Converts an expression to Java code.
  */
 class ExpressionWriter {
-  static final Indent INDENT = new Indent(20);
+  /** How many spaces to indent Java code. */
+  private static final int INDENT = 2;
 
+  private final Spacer spacer = new Spacer(0);
   private final StringBuilder buf = new StringBuilder();
-  private int level;
-  private String indent = "";
   private boolean indentPending;
   private final boolean generics;
 
@@ -75,14 +77,14 @@ class ExpressionWriter {
    * Increases the indentation level.
    */
   public void begin() {
-    indent = INDENT.get(++level);
+    spacer.add(INDENT);
   }
 
   /**
    * Decreases the indentation level.
    */
   public void end() {
-    indent = INDENT.get(--level);
+    spacer.subtract(INDENT);
   }
 
   public ExpressionWriter newlineAndIndent() {
@@ -92,7 +94,7 @@ class ExpressionWriter {
   }
 
   public ExpressionWriter indent() {
-    buf.append(indent);
+    spacer.spaces(buf);
     return this;
   }
 
@@ -130,13 +132,13 @@ class ExpressionWriter {
     return this;
   }
 
-  public ExpressionWriter append(Object o) {
+  public ExpressionWriter append(@Nullable Object o) {
     checkIndent();
     buf.append(o);
     return this;
   }
 
-  public ExpressionWriter append(String s) {
+  public ExpressionWriter append(@Nullable String s) {
     checkIndent();
     buf.append(s);
     return this;
@@ -144,7 +146,7 @@ class ExpressionWriter {
 
   private void checkIndent() {
     if (indentPending) {
-      buf.append(indent);
+      spacer.spaces(buf);
       indentPending = false;
     }
   }
@@ -194,31 +196,4 @@ class ExpressionWriter {
       indentPending = false;
     }
   }
-
-  /** Helps generate strings of spaces, to indent text. */
-  private static class Indent extends ArrayList<String> {
-    Indent(int initialCapacity) {
-      super(initialCapacity);
-      ensureSize(initialCapacity);
-    }
-
-    public synchronized String of(int index) {
-      ensureSize(index + 1);
-      return get(index);
-    }
-
-    private void ensureSize(int targetSize) {
-      if (targetSize < size()) {
-        return;
-      }
-      char[] chars = new char[2 * targetSize];
-      Arrays.fill(chars, ' ');
-      clear();
-      for (int i = 0; i < targetSize; i++) {
-        add(String.valueOf(chars, 0, i * 2));
-      }
-    }
-  }
 }
-
-// End ExpressionWriter.java

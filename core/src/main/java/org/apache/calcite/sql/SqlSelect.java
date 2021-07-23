@@ -21,9 +21,13 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlSelect</code> is a node of a parse tree which represents a select
@@ -40,46 +44,49 @@ public class SqlSelect extends SqlCall {
 
   SqlNodeList keywordList;
   SqlNodeList selectList;
-  SqlNode from;
-  SqlNode where;
-  SqlNodeList groupBy;
-  SqlNode having;
+  @Nullable SqlNode from;
+  @Nullable SqlNode where;
+  @Nullable SqlNodeList groupBy;
+  @Nullable SqlNode having;
   SqlNodeList windowDecls;
-  SqlNodeList orderBy;
-  SqlNode offset;
-  SqlNode fetch;
+  @Nullable SqlNodeList orderBy;
+  @Nullable SqlNode offset;
+  @Nullable SqlNode fetch;
+  @Nullable SqlNodeList hints;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlSelect(SqlParserPos pos,
-      SqlNodeList keywordList,
+      @Nullable SqlNodeList keywordList,
       SqlNodeList selectList,
-      SqlNode from,
-      SqlNode where,
-      SqlNodeList groupBy,
-      SqlNode having,
-      SqlNodeList windowDecls,
-      SqlNodeList orderBy,
-      SqlNode offset,
-      SqlNode fetch) {
+      @Nullable SqlNode from,
+      @Nullable SqlNode where,
+      @Nullable SqlNodeList groupBy,
+      @Nullable SqlNode having,
+      @Nullable SqlNodeList windowDecls,
+      @Nullable SqlNodeList orderBy,
+      @Nullable SqlNode offset,
+      @Nullable SqlNode fetch,
+      @Nullable SqlNodeList hints) {
     super(pos);
-    this.keywordList = Objects.requireNonNull(keywordList != null
+    this.keywordList = requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
-    this.selectList = selectList;
+    this.selectList = requireNonNull(selectList, "selectList");
     this.from = from;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
-    this.windowDecls = Objects.requireNonNull(windowDecls != null
+    this.windowDecls = requireNonNull(windowDecls != null
         ? windowDecls : new SqlNodeList(pos));
     this.orderBy = orderBy;
     this.offset = offset;
     this.fetch = fetch;
+    this.hints = hints;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return SqlSelectOperator.INSTANCE;
   }
 
@@ -87,18 +94,19 @@ public class SqlSelect extends SqlCall {
     return SqlKind.SELECT;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch);
+        groupBy, having, windowDecls, orderBy, offset, fetch, hints);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
-      keywordList = Objects.requireNonNull((SqlNodeList) operand);
+      keywordList = requireNonNull((SqlNodeList) operand);
       break;
     case 1:
-      selectList = (SqlNodeList) operand;
+      selectList = requireNonNull((SqlNodeList) operand);
       break;
     case 2:
       from = operand;
@@ -113,7 +121,7 @@ public class SqlSelect extends SqlCall {
       having = operand;
       break;
     case 6:
-      windowDecls = Objects.requireNonNull((SqlNodeList) operand);
+      windowDecls = requireNonNull((SqlNodeList) operand);
       break;
     case 7:
       orderBy = (SqlNodeList) operand;
@@ -133,7 +141,7 @@ public class SqlSelect extends SqlCall {
     return getModifierNode(SqlSelectKeyword.DISTINCT) != null;
   }
 
-  public final SqlNode getModifierNode(SqlSelectKeyword modifier) {
+  public final @Nullable SqlNode getModifierNode(SqlSelectKeyword modifier) {
     for (SqlNode keyword : keywordList) {
       SqlSelectKeyword keyword2 =
           ((SqlLiteral) keyword).symbolValue(SqlSelectKeyword.class);
@@ -144,30 +152,34 @@ public class SqlSelect extends SqlCall {
     return null;
   }
 
-  public final SqlNode getFrom() {
+  @Pure
+  public final @Nullable SqlNode getFrom() {
     return from;
   }
 
-  public void setFrom(SqlNode from) {
+  public void setFrom(@Nullable SqlNode from) {
     this.from = from;
   }
 
-  public final SqlNodeList getGroup() {
+  @Pure
+  public final @Nullable SqlNodeList getGroup() {
     return groupBy;
   }
 
-  public void setGroupBy(SqlNodeList groupBy) {
+  public void setGroupBy(@Nullable SqlNodeList groupBy) {
     this.groupBy = groupBy;
   }
 
-  public final SqlNode getHaving() {
+  @Pure
+  public final @Nullable SqlNode getHaving() {
     return having;
   }
 
-  public void setHaving(SqlNode having) {
+  public void setHaving(@Nullable SqlNode having) {
     this.having = having;
   }
 
+  @Pure
   public final SqlNodeList getSelectList() {
     return selectList;
   }
@@ -176,43 +188,62 @@ public class SqlSelect extends SqlCall {
     this.selectList = selectList;
   }
 
-  public final SqlNode getWhere() {
+  @Pure
+  public final @Nullable SqlNode getWhere() {
     return where;
   }
 
-  public void setWhere(SqlNode whereClause) {
+  public void setWhere(@Nullable SqlNode whereClause) {
     this.where = whereClause;
   }
 
-  @Nonnull public final SqlNodeList getWindowList() {
+  public final SqlNodeList getWindowList() {
     return windowDecls;
   }
 
-  public final SqlNodeList getOrderList() {
+  @Pure
+  public final @Nullable SqlNodeList getOrderList() {
     return orderBy;
   }
 
-  public void setOrderBy(SqlNodeList orderBy) {
+  public void setOrderBy(@Nullable SqlNodeList orderBy) {
     this.orderBy = orderBy;
   }
 
-  public final SqlNode getOffset() {
+  @Pure
+  public final @Nullable SqlNode getOffset() {
     return offset;
   }
 
-  public void setOffset(SqlNode offset) {
+  public void setOffset(@Nullable SqlNode offset) {
     this.offset = offset;
   }
 
-  public final SqlNode getFetch() {
+  @Pure
+  public final @Nullable SqlNode getFetch() {
     return fetch;
   }
 
-  public void setFetch(SqlNode fetch) {
+  public void setFetch(@Nullable SqlNode fetch) {
     this.fetch = fetch;
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  public void setHints(@Nullable SqlNodeList hints) {
+    this.hints = hints;
+  }
+
+  @Pure
+  public @Nullable SqlNodeList getHints() {
+    return this.hints;
+  }
+
+  @EnsuresNonNullIf(expression = "hints", result = true)
+  public boolean hasHints() {
+    // The hints may be passed as null explicitly.
+    return this.hints != null && this.hints.size() > 0;
+  }
+
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateQuery(this, scope, validator.getUnknownType());
   }
 
@@ -243,5 +274,3 @@ public class SqlSelect extends SqlCall {
     return getModifierNode(targetKeyWord) != null;
   }
 }
-
-// End SqlSelect.java

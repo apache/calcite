@@ -21,28 +21,38 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalAggregate}
- * to an {@link EnumerableAggregate}.
+ * Rule to convert a {@link LogicalAggregate} to an {@link EnumerableAggregate}.
+ * You may provide a custom config to convert other nodes that extend {@link Aggregate}.
+ *
+ * @see EnumerableRules#ENUMERABLE_AGGREGATE_RULE
  */
 class EnumerableAggregateRule extends ConverterRule {
-  EnumerableAggregateRule() {
-    super(LogicalAggregate.class, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableAggregateRule");
+  /** Default configuration. */
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalAggregate.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableAggregateRule")
+      .withRuleFactory(EnumerableAggregateRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableAggregateRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
-    final LogicalAggregate agg = (LogicalAggregate) rel;
-    final RelTraitSet traitSet =
-        agg.getTraitSet().replace(EnumerableConvention.INSTANCE);
+  @Override public @Nullable RelNode convert(RelNode rel) {
+    final Aggregate agg = (Aggregate) rel;
+    final RelTraitSet traitSet = rel.getCluster()
+        .traitSet().replace(EnumerableConvention.INSTANCE);
     try {
       return new EnumerableAggregate(
           rel.getCluster(),
           traitSet,
-          convert(agg.getInput(), EnumerableConvention.INSTANCE),
-          agg.indicator,
+          convert(agg.getInput(), traitSet),
           agg.getGroupSet(),
           agg.getGroupSets(),
           agg.getAggCallList());
@@ -52,5 +62,3 @@ class EnumerableAggregateRule extends ConverterRule {
     }
   }
 }
-
-// End EnumerableAggregateRule.java

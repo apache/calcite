@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -46,7 +48,7 @@ public class GeodeTableScan extends TableScan implements GeodeRel {
    */
   GeodeTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, GeodeTable geodeTable, RelDataType projectRowType) {
-    super(cluster, traitSet, table);
+    super(cluster, traitSet, ImmutableList.of(), table);
     this.geodeTable = geodeTable;
     this.projectRowType = projectRowType;
 
@@ -76,5 +78,3 @@ public class GeodeTableScan extends TableScan implements GeodeRel {
     geodeImplementContext.table = table;
   }
 }
-
-// End GeodeTableScan.java

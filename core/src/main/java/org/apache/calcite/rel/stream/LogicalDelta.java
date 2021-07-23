@@ -57,5 +57,3 @@ public final class LogicalDelta extends Delta {
     return new LogicalDelta(getCluster(), traitSet, sole(inputs));
   }
 }
-
-// End LogicalDelta.java

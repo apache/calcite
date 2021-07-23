@@ -17,6 +17,9 @@
 package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -27,19 +30,12 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
-import org.apache.calcite.rel.rules.CalcSplitRule;
-import org.apache.calcite.rel.rules.FilterTableScanRule;
-import org.apache.calcite.rel.rules.ProjectTableScanRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
@@ -53,7 +49,10 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import java.math.BigDecimal;
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,10 +60,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Interpreter.
@@ -73,7 +72,7 @@ import java.util.Objects;
  * particular it holds working state while the data flow graph is being
  * assembled.
  */
-public class Interpreter extends AbstractEnumerable<Object[]>
+public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     implements AutoCloseable {
   private final Map<RelNode, NodeInfo> nodes;
   private final DataContext dataContext;
@@ -81,31 +80,35 @@ public class Interpreter extends AbstractEnumerable<Object[]>
 
   /** Creates an Interpreter. */
   public Interpreter(DataContext dataContext, RelNode rootRel) {
-    this.dataContext = Objects.requireNonNull(dataContext);
+    this.dataContext = requireNonNull(dataContext, "dataContext");
     final RelNode rel = optimize(rootRel);
     final CompilerImpl compiler =
         new Nodes.CoreCompiler(this, rootRel.getCluster());
+    @SuppressWarnings("method.invocation.invalid")
     Pair<RelNode, Map<RelNode, NodeInfo>> pair = compiler.visitRoot(rel);
     this.rootRel = pair.left;
     this.nodes = ImmutableMap.copyOf(pair.right);
   }
 
-  private RelNode optimize(RelNode rootRel) {
+  private static RelNode optimize(RelNode rootRel) {
     final HepProgram hepProgram = new HepProgramBuilder()
-        .addRuleInstance(CalcSplitRule.INSTANCE)
-        .addRuleInstance(FilterTableScanRule.INSTANCE)
-        .addRuleInstance(FilterTableScanRule.INTERPRETER)
-        .addRuleInstance(ProjectTableScanRule.INSTANCE)
-        .addRuleInstance(ProjectTableScanRule.INTERPRETER).build();
+        .addRuleInstance(CoreRules.CALC_SPLIT)
+        .addRuleInstance(CoreRules.FILTER_SCAN)
+        .addRuleInstance(CoreRules.FILTER_INTERPRETER_SCAN)
+        .addRuleInstance(CoreRules.PROJECT_TABLE_SCAN)
+        .addRuleInstance(CoreRules.PROJECT_INTERPRETER_TABLE_SCAN)
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .build();
     final HepPlanner planner = new HepPlanner(hepProgram);
     planner.setRoot(rootRel);
     rootRel = planner.findBestExp();
     return rootRel;
   }
 
-  public Enumerator<Object[]> enumerator() {
+  @Override public Enumerator<@Nullable Object[]> enumerator() {
     start();
-    final NodeInfo nodeInfo = nodes.get(rootRel);
+    final NodeInfo nodeInfo = requireNonNull(nodes.get(rootRel),
+        () -> "nodeInfo for " + rootRel);
     final Enumerator<Row> rows;
     if (nodeInfo.rowEnumerable != null) {
       rows = nodeInfo.rowEnumerable.enumerator();
@@ -115,18 +118,20 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       rows = Linq4j.iterableEnumerator(queue);
     }
 
-    return new TransformedEnumerator<Row, Object[]>(rows) {
-      protected Object[] transform(Row row) {
+    return new TransformedEnumerator<Row, @Nullable Object[]>(rows) {
+      @Override protected @Nullable Object[] transform(Row row) {
         return row.getValues();
       }
     };
   }
 
+  @SuppressWarnings("CatchAndPrintStackTrace")
   private void start() {
     // We rely on the nodes being ordered leaves first.
     for (Map.Entry<RelNode, NodeInfo> entry : nodes.entrySet()) {
       final NodeInfo nodeInfo = entry.getValue();
       try {
+        assert nodeInfo.node != null : "node must not be null for nodeInfo, rel=" + nodeInfo.rel;
         nodeInfo.node.run();
       } catch (InterruptedException e) {
         e.printStackTrace();
@@ -134,127 +139,28 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     }
   }
 
-  public void close() {
-  }
-
-  /** Not used. */
-  private class FooCompiler implements ScalarCompiler {
-    public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
-      final RexNode node = nodes.get(0);
-      if (node instanceof RexCall) {
-        final RexCall call = (RexCall) node;
-        final Scalar argScalar = compile(call.getOperands(), inputRowType);
-        return new Scalar() {
-          final Object[] args = new Object[call.getOperands().size()];
-
-          public void execute(final Context context, Object[] results) {
-            results[0] = execute(context);
-          }
-
-          public Object execute(Context context) {
-            Comparable o0;
-            Comparable o1;
-            switch (call.getKind()) {
-            case LESS_THAN:
-            case LESS_THAN_OR_EQUAL:
-            case GREATER_THAN:
-            case GREATER_THAN_OR_EQUAL:
-            case EQUALS:
-            case NOT_EQUALS:
-              argScalar.execute(context, args);
-              o0 = (Comparable) args[0];
-              if (o0 == null) {
-                return null;
-              }
-              o1 = (Comparable) args[1];
-              if (o1 == null) {
-                return null;
-              }
-              if (o0 instanceof BigDecimal) {
-                if (o1 instanceof Double || o1 instanceof Float) {
-                  o1 = new BigDecimal(((Number) o1).doubleValue());
-                } else {
-                  o1 = new BigDecimal(((Number) o1).longValue());
-                }
-              }
-              if (o1 instanceof BigDecimal) {
-                if (o0 instanceof Double || o0 instanceof Float) {
-                  o0 = new BigDecimal(((Number) o0).doubleValue());
-                } else {
-                  o0 = new BigDecimal(((Number) o0).longValue());
-                }
-              }
-              final int c = o0.compareTo(o1);
-              switch (call.getKind()) {
-              case LESS_THAN:
-                return c < 0;
-              case LESS_THAN_OR_EQUAL:
-                return c <= 0;
-              case GREATER_THAN:
-                return c > 0;
-              case GREATER_THAN_OR_EQUAL:
-                return c >= 0;
-              case EQUALS:
-                return c == 0;
-              case NOT_EQUALS:
-                return c != 0;
-              default:
-                throw new AssertionError("unknown expression " + call);
-              }
-            default:
-              if (call.getOperator() == SqlStdOperatorTable.UPPER) {
-                argScalar.execute(context, args);
-                String s0 = (String) args[0];
-                if (s0 == null) {
-                  return null;
-                }
-                return s0.toUpperCase(Locale.ROOT);
-              }
-              if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
-                argScalar.execute(context, args);
-                String s0 = (String) args[0];
-                Number i1 = (Number) args[1];
-                Number i2 = (Number) args[2];
-                if (s0 == null || i1 == null || i2 == null) {
-                  return null;
-                }
-                return s0.substring(i1.intValue() - 1,
-                    i1.intValue() - 1 + i2.intValue());
-              }
-              throw new AssertionError("unknown expression " + call);
-            }
-          }
-        };
-      }
-      return new Scalar() {
-        public void execute(Context context, Object[] results) {
-          results[0] = execute(context);
-        }
-
-        public Object execute(Context context) {
-          switch (node.getKind()) {
-          case LITERAL:
-            return ((RexLiteral) node).getValueAs(Comparable.class);
-          case INPUT_REF:
-            return context.values[((RexInputRef) node).getIndex()];
-          default:
-            throw new RuntimeException("unknown expression type " + node);
-          }
-        }
-      };
-    }
+  @Override public void close() {
+    nodes.values().forEach(NodeInfo::close);
   }
 
   /** Information about a node registered in the data flow graph. */
   private static class NodeInfo {
     final RelNode rel;
     final Map<Edge, ListSink> sinks = new LinkedHashMap<>();
-    final Enumerable<Row> rowEnumerable;
-    Node node;
+    final @Nullable Enumerable<Row> rowEnumerable;
+    @Nullable Node node;
 
-    NodeInfo(RelNode rel, Enumerable<Row> rowEnumerable) {
+    NodeInfo(RelNode rel, @Nullable Enumerable<Row> rowEnumerable) {
       this.rel = rel;
       this.rowEnumerable = rowEnumerable;
+    }
+
+    void close() {
+      if (node != null) {
+        final Node n = node;
+        node = null;
+        n.close();
+      }
     }
   }
 
@@ -266,10 +172,10 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     private final Enumerator<Row> enumerator;
 
     EnumeratorSource(final Enumerator<Row> enumerator) {
-      this.enumerator = Objects.requireNonNull(enumerator);
+      this.enumerator = requireNonNull(enumerator, "enumerator");
     }
 
-    @Override public Row receive() {
+    @Override public @Nullable Row receive() {
       if (enumerator.moveNext()) {
         return enumerator.current();
       }
@@ -291,11 +197,11 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       this.list = list;
     }
 
-    public void send(Row row) throws InterruptedException {
+    @Override public void send(Row row) throws InterruptedException {
       list.add(row);
     }
 
-    public void end() throws InterruptedException {
+    @Override public void end() throws InterruptedException {
     }
 
     @SuppressWarnings("deprecation")
@@ -313,13 +219,13 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   /** Implementation of {@link Source} using a {@link java.util.ArrayDeque}. */
   private static class ListSource implements Source {
     private final ArrayDeque<Row> list;
-    private Iterator<Row> iterator = null;
+    private @Nullable Iterator<Row> iterator;
 
     ListSource(ArrayDeque<Row> list) {
       this.list = list;
     }
 
-    public Row receive() {
+    @Override public @Nullable Row receive() {
       try {
         if (iterator == null) {
           iterator = list.iterator();
@@ -344,13 +250,13 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       this.queues = ImmutableList.copyOf(queues);
     }
 
-    public void send(Row row) throws InterruptedException {
+    @Override public void send(Row row) throws InterruptedException {
       for (ArrayDeque<Row> queue : queues) {
         queue.add(row);
       }
     }
 
-    public void end() throws InterruptedException {
+    @Override public void end() throws InterruptedException {
     }
 
     @SuppressWarnings("deprecation")
@@ -383,10 +289,11 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     final ScalarCompiler scalarCompiler;
     private final ReflectiveVisitDispatcher<CompilerImpl, RelNode> dispatcher =
         ReflectUtil.createDispatcher(CompilerImpl.class, RelNode.class);
+    @NotOnlyInitialized
     protected final Interpreter interpreter;
-    protected RelNode rootRel;
-    protected RelNode rel;
-    protected Node node;
+    protected @Nullable RelNode rootRel;
+    protected @Nullable RelNode rel;
+    protected @Nullable Node node;
     final Map<RelNode, NodeInfo> nodes = new LinkedHashMap<>();
     final Map<RelNode, List<RelNode>> relInputs = new HashMap<>();
     final Multimap<RelNode, Edge> outEdges = LinkedHashMultimap.create();
@@ -394,7 +301,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     private static final String REWRITE_METHOD_NAME = "rewrite";
     private static final String VISIT_METHOD_NAME = "visit";
 
-    CompilerImpl(Interpreter interpreter, RelOptCluster cluster) {
+    CompilerImpl(@UnknownInitialization Interpreter interpreter, RelOptCluster cluster) {
       this.interpreter = interpreter;
       this.scalarCompiler = new JaninoRexCompiler(cluster.getRexBuilder());
     }
@@ -403,10 +310,10 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     Pair<RelNode, Map<RelNode, NodeInfo>> visitRoot(RelNode p) {
       rootRel = p;
       visit(p, 0, null);
-      return Pair.of(rootRel, nodes);
+      return Pair.of(requireNonNull(rootRel, "rootRel"), nodes);
     }
 
-    @Override public void visit(RelNode p, int ordinal, RelNode parent) {
+    @Override public void visit(RelNode p, int ordinal, @Nullable RelNode parent) {
       for (;;) {
         rel = null;
         boolean found = dispatcher.invokeVisitor(this, p, REWRITE_METHOD_NAME);
@@ -417,10 +324,10 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         if (rel == null) {
           break;
         }
-        if (CalcitePrepareImpl.DEBUG) {
+        if (CalciteSystemProperty.DEBUG.value()) {
           System.out.println("Interpreter: rewrite " + p + " to " + rel);
         }
-        p = rel;
+        p = requireNonNull(rel, "rel");
         if (parent != null) {
           List<RelNode> inputs = relInputs.get(parent);
           if (inputs == null) {
@@ -435,9 +342,9 @@ public class Interpreter extends AbstractEnumerable<Object[]>
 
       // rewrite children first (from left to right)
       final List<RelNode> inputs = relInputs.get(p);
-      for (Ord<RelNode> input : Ord.zip(Util.first(inputs, p.getInputs()))) {
-        outEdges.put(input.e, new Edge(p, input.i));
-      }
+      RelNode finalP = p;
+      Ord.forEach(Util.first(inputs, p.getInputs()),
+          (r, i) -> outEdges.put(r, new Edge(finalP, i)));
       if (inputs != null) {
         for (int i = 0; i < inputs.size(); i++) {
           RelNode input = inputs.get(i);
@@ -453,7 +360,8 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         if (p instanceof InterpretableRel) {
           InterpretableRel interpretableRel = (InterpretableRel) p;
           node = interpretableRel.implement(
-              new InterpretableRel.InterpreterImplementor(this, null, null));
+              new InterpretableRel.InterpreterImplementor(this, null,
+                  DataContexts.EMPTY));
         } else {
           // Probably need to add a visit(XxxRel) method to CoreCompiler.
           throw new AssertionError("interpreter: no implementation for "
@@ -479,24 +387,29 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     public void rewrite(RelNode r) {
     }
 
-    public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
+    @Override public Scalar compile(List<RexNode> nodes, @Nullable RelDataType inputRowType) {
       if (inputRowType == null) {
-        inputRowType = interpreter.dataContext.getTypeFactory().builder()
+        inputRowType = getTypeFactory().builder()
             .build();
       }
-      return scalarCompiler.compile(nodes, inputRowType);
+      return scalarCompiler.compile(nodes, inputRowType)
+          .apply(interpreter.dataContext);
     }
 
-    public RelDataType combinedRowType(List<RelNode> inputs) {
+    private JavaTypeFactory getTypeFactory() {
+      return interpreter.dataContext.getTypeFactory();
+    }
+
+    @Override public RelDataType combinedRowType(List<RelNode> inputs) {
       final RelDataTypeFactory.Builder builder =
-          interpreter.dataContext.getTypeFactory().builder();
+          getTypeFactory().builder();
       for (RelNode input : inputs) {
         builder.addAll(input.getRowType().getFieldList());
       }
       return builder.build();
     }
 
-    public Source source(RelNode rel, int ordinal) {
+    @Override public Source source(RelNode rel, int ordinal) {
       final RelNode input = getInput(rel, ordinal);
       final Edge edge = new Edge(rel, ordinal);
       final Collection<Edge> edges = outEdges.get(input);
@@ -524,7 +437,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       return rel.getInput(ordinal);
     }
 
-    public Sink sink(RelNode rel) {
+    @Override public Sink sink(RelNode rel) {
       final Collection<Edge> edges = outEdges.get(rel);
       final Collection<Edge> edges2 = edges.isEmpty()
           ? ImmutableList.of(new Edge(null, 0))
@@ -534,6 +447,13 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         nodeInfo = new NodeInfo(rel, null);
         nodes.put(rel, nodeInfo);
         for (Edge edge : edges2) {
+          nodeInfo.sinks.put(edge, new ListSink(new ArrayDeque<>()));
+        }
+      } else {
+        for (Edge edge : edges2) {
+          if (nodeInfo.sinks.containsKey(edge)) {
+            continue;
+          }
           nodeInfo.sinks.put(edge, new ListSink(new ArrayDeque<>()));
         }
       }
@@ -548,23 +468,23 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       }
     }
 
-    public void enumerable(RelNode rel, Enumerable<Row> rowEnumerable) {
+    @Override public void enumerable(RelNode rel, Enumerable<Row> rowEnumerable) {
       NodeInfo nodeInfo = new NodeInfo(rel, rowEnumerable);
       nodes.put(rel, nodeInfo);
     }
 
-    public Context createContext() {
+    @Override public Context createContext() {
       return new Context(getDataContext());
     }
 
-    public DataContext getDataContext() {
+    @Override public DataContext getDataContext() {
       return interpreter.dataContext;
     }
   }
 
   /** Edge between a {@link RelNode} and one of its inputs. */
-  static class Edge extends Pair<RelNode, Integer> {
-    Edge(RelNode parent, int ordinal) {
+  static class Edge extends Pair<@Nullable RelNode, Integer> {
+    Edge(@Nullable RelNode parent, int ordinal) {
       super(parent, ordinal);
     }
   }
@@ -572,8 +492,6 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   /** Converts a list of expressions to a scalar that can compute their
    * values. */
   interface ScalarCompiler {
-    Scalar compile(List<RexNode> nodes, RelDataType inputRowType);
+    Scalar.Producer compile(List<RexNode> nodes, RelDataType inputRowType);
   }
 }
-
-// End Interpreter.java

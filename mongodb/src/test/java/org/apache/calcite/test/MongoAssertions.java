@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.util.Util;
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.Ordering;
 
@@ -27,16 +28,19 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Util class which needs to be in the same package as {@link CalciteAssert}
  * due to package-private visibility.
  */
 public class MongoAssertions {
+
+  private static final Pattern PATTERN = Pattern.compile("\\.0$");
 
   private MongoAssertions() {}
 
@@ -58,15 +62,16 @@ public class MongoAssertions {
         CalciteAssert.toStringList(resultSet, actualList);
         for (int i = 0; i < actualList.size(); i++) {
           String s = actualList.get(i);
-          actualList.set(i,
-              s.replaceAll("\\.0;", ";").replaceAll("\\.0$", ""));
+          s = s.replace(".0;", ";");
+          s = PATTERN.matcher(s).replaceAll("");
+          actualList.set(i, s);
         }
         Collections.sort(actualList);
 
         assertThat(Ordering.natural().immutableSortedCopy(actualList),
             equalTo(expectedList));
       } catch (SQLException e) {
-        throw new RuntimeException(e);
+        throw TestUtil.rethrow(e);
       }
     };
   }
@@ -79,17 +84,18 @@ public class MongoAssertions {
    * @return Whether current tests should use an external mongo instance
    */
   public static boolean useMongo() {
-    return Util.getBooleanProperty("calcite.integrationTest")
-            && Util.getBooleanProperty("calcite.test.mongodb", true);
+    return CalciteSystemProperty.INTEGRATION_TEST.value()
+            && CalciteSystemProperty.TEST_MONGODB.value();
   }
 
   /**
-   * Checks wherever tests should use Fongo instead of Mongo. Opposite of {@link #useMongo()}.
+   * Checks wherever tests should use Embedded Fake Mongo instead of connecting to real
+   * mongodb instance. Opposite of {@link #useMongo()}.
    *
    * @return Whether current tests should use embedded
-   * <a href="https://github.com/fakemongo/fongo">Fongo</a> instance
+   * <a href="https://github.com/bwaldvogel/mongo-java-server">Mongo Java Server</a> instance
    */
-  public static boolean useFongo() {
+  public static boolean useFake() {
     return !useMongo();
   }
 
@@ -100,8 +106,6 @@ public class MongoAssertions {
    * @see <a href="https://github.com/fakemongo/fongo/issues/152">Aggregation with $cond (172)</a>
    */
   public static void assumeRealMongoInstance() {
-    assumeTrue("Expect mongo instance", useMongo());
+    assumeTrue(useMongo(), "Expect mongo instance");
   }
 }
-
-// End MongoAssertions.java

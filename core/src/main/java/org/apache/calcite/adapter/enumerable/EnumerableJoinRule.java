@@ -17,31 +17,39 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+ * {@link LogicalJoin} relational expression
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ * You may provide a custom config to convert other nodes that extend {@link Join}.
+ *
+ * @see EnumerableRules#ENUMERABLE_JOIN_RULE */
 class EnumerableJoinRule extends ConverterRule {
-  EnumerableJoinRule() {
-    super(
-        LogicalJoin.class,
-        Convention.NONE,
-        EnumerableConvention.INSTANCE,
-        "EnumerableJoinRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalJoin.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableJoinRule")
+      .withRuleFactory(EnumerableJoinRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableJoinRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {
-    LogicalJoin join = (LogicalJoin) rel;
+    Join join = (Join) rel;
     List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : join.getInputs()) {
       if (!(input.getConvention() instanceof EnumerableConvention)) {
@@ -53,45 +61,42 @@ class EnumerableJoinRule extends ConverterRule {
       }
       newInputs.add(input);
     }
-    final RelOptCluster cluster = join.getCluster();
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final RelNode left = newInputs.get(0);
     final RelNode right = newInputs.get(1);
-    final JoinInfo info = JoinInfo.of(left, right, join.getCondition());
-    if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
-      // EnumerableJoinRel only supports equi-join. We can put a filter on top
-      // if it is an inner join.
-      try {
-        return EnumerableThetaJoin.create(
-            left,
-            right,
-            join.getCondition(),
-            join.getVariablesSet(),
-            join.getJoinType());
-      } catch (InvalidRelException e) {
-        EnumerableRules.LOGGER.debug(e.toString());
-        return null;
+    final JoinInfo info = join.analyzeCondition();
+
+    // If the join has equiKeys (i.e. complete or partial equi-join),
+    // create an EnumerableHashJoin, which supports all types of joins,
+    // even if the join condition contains partial non-equi sub-conditions;
+    // otherwise (complete non-equi-join), create an EnumerableNestedLoopJoin,
+    // since a hash join strategy in this case would not be beneficial.
+    final boolean hasEquiKeys = !info.leftKeys.isEmpty()
+        && !info.rightKeys.isEmpty();
+    if (hasEquiKeys) {
+      // Re-arrange condition: first the equi-join elements, then the non-equi-join ones (if any);
+      // this is not strictly necessary but it will be useful to avoid spurious errors in the
+      // unit tests when verifying the plan.
+      final RexNode equi = info.getEquiCondition(left, right, rexBuilder);
+      final RexNode condition;
+      if (info.isEqui()) {
+        condition = equi;
+      } else {
+        final RexNode nonEqui = RexUtil.composeConjunction(rexBuilder, info.nonEquiConditions);
+        condition = RexUtil.composeConjunction(rexBuilder, Arrays.asList(equi, nonEqui));
       }
-    }
-    RelNode newRel;
-    try {
-      newRel = EnumerableJoin.create(
+      return EnumerableHashJoin.create(
           left,
           right,
-          info.getEquiCondition(left, right, cluster.getRexBuilder()),
-          info.leftKeys,
-          info.rightKeys,
+          condition,
           join.getVariablesSet(),
           join.getJoinType());
-    } catch (InvalidRelException e) {
-      EnumerableRules.LOGGER.debug(e.toString());
-      return null;
     }
-    if (!info.isEqui()) {
-      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-          newRel, info.getRemaining(cluster.getRexBuilder()));
-    }
-    return newRel;
+    return EnumerableNestedLoopJoin.create(
+        left,
+        right,
+        join.getCondition(),
+        join.getVariablesSet(),
+        join.getJoinType());
   }
 }
-
-// End EnumerableJoinRule.java

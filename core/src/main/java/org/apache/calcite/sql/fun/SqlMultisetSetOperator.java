@@ -35,6 +35,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 public class SqlMultisetSetOperator extends SqlBinaryOperator {
   //~ Instance fields --------------------------------------------------------
 
+  @SuppressWarnings("unused")
   private final boolean all;
 
   //~ Constructors -----------------------------------------------------------
@@ -51,5 +52,3 @@ public class SqlMultisetSetOperator extends SqlBinaryOperator {
     this.all = all;
   }
 }
-
-// End SqlMultisetSetOperator.java

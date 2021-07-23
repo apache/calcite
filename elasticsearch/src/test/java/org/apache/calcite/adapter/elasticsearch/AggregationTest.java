@@ -28,9 +28,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -45,16 +47,15 @@ import java.util.Map;
 /**
  * Testing Elasticsearch aggregation transformations.
  */
-public class AggregationTest {
+@ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
+class AggregationTest {
 
-  @ClassRule
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   private static final String NAME = "aggs";
 
-  @BeforeClass
+  @BeforeAll
   public static void setupInstance() throws Exception {
-
     final Map<String, String> mappings = ImmutableMap.<String, String>builder()
         .put("cat1", "keyword")
         .put("cat2", "keyword")
@@ -110,13 +111,40 @@ public class AggregationTest {
     };
   }
 
-  @Test
-  public void countStar() {
+  /**
+   * Currently the patterns like below will be converted to Search in range
+   * which is not supported in elastic search adapter.
+   * (val1 >= 10 and val1 <= 20)
+   * (val1 <= 10 or val1 >=20)
+   * (val1 <= 10) or (val1 > 15 and val1 <= 20)
+   * So disable this test case until the translation from Search in range
+   * to rang Query in ES is implemented.
+   */
+  @Disabled
+  @Test void searchInRange() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 >= 10 and val1 <=20")
+        .returns("EXPR$0=1\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 <= 10 or val1 >=20")
+        .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
+        .returns("EXPR$0=2\n");
+  }
+
+  @Test void countStar() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select count(*) from view")
         .queryContains(
-            ElasticsearchChecker.elasticsearchChecker("_source:false, size:0"))
+            ElasticsearchChecker.elasticsearchChecker(
+                "_source:false, 'stored_fields': '_none_', size:0, track_total_hits:true"))
         .returns("EXPR$0=3\n");
 
     CalciteAssert.that()
@@ -128,15 +156,30 @@ public class AggregationTest {
         .with(newConnectionFactory())
         .query("select count(*) from view where cat1 in ('a', 'b')")
         .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 in (10, 20)")
+        .returns("EXPR$0=0\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where cat4 in ('2018-01-01', '2019-12-12')")
+        .returns("EXPR$0=2\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where cat4 not in ('2018-01-01', '2019-12-12')")
+        .returns("EXPR$0=1\n");
   }
 
-  @Test
-  public void all() {
+  @Test void all() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select count(*), sum(val1), sum(val2) from view")
         .queryContains(
-            ElasticsearchChecker.elasticsearchChecker("_source:false, size:0",
+            ElasticsearchChecker.elasticsearchChecker(
+                "_source:false, size:0, track_total_hits:true", "'stored_fields': '_none_'",
                 "aggregations:{'EXPR$0.value_count.field': '_id'",
                     "'EXPR$1.sum.field': 'val1'",
                     "'EXPR$2.sum.field': 'val2'}"))
@@ -146,15 +189,15 @@ public class AggregationTest {
         .with(newConnectionFactory())
         .query("select min(val1), max(val2), count(*) from view")
         .queryContains(
-            ElasticsearchChecker.elasticsearchChecker("_source:false, size:0",
+            ElasticsearchChecker.elasticsearchChecker(
+                "_source:false, 'stored_fields': '_none_', size:0, track_total_hits:true",
                 "aggregations:{'EXPR$0.min.field': 'val1'",
                 "'EXPR$1.max.field': 'val2'",
                 "'EXPR$2.value_count.field': '_id'}"))
         .returns("EXPR$0=1.0; EXPR$1=42.0; EXPR$2=3\n");
   }
 
-  @Test
-  public void cat1() {
+  @Test void cat1() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, sum(val1), sum(val2) from view group by cat1")
@@ -185,8 +228,7 @@ public class AggregationTest {
                 "cat1=null; EXPR$1=1; EXPR$2=0.0; EXPR$3=5.0");
   }
 
-  @Test
-  public void cat2() {
+  @Test void cat2() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat2, min(val1), max(val1), min(val2), max(val2) from view group by cat2")
@@ -206,8 +248,7 @@ public class AggregationTest {
                   "cat2=h; EXPR$1=1");
   }
 
-  @Test
-  public void cat1Cat2() {
+  @Test void cat1Cat2() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, cat2, sum(val1), sum(val2) from view group by cat1, cat2")
@@ -223,8 +264,7 @@ public class AggregationTest {
             "cat1=b; cat2=h; EXPR$2=1");
   }
 
-  @Test
-  public void cat1Cat3() {
+  @Test void cat1Cat3() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, cat3, sum(val1), sum(val2) from view group by cat1, cat3")
@@ -233,11 +273,9 @@ public class AggregationTest {
             "cat1=b; cat3=z; EXPR$2=7.0; EXPR$3=42.0");
   }
 
-  /**
-   * Testing {@link org.apache.calcite.sql.SqlKind#ANY_VALUE} aggregate function
-   */
-  @Test
-  public void anyValue() {
+  /** Tests the {@link org.apache.calcite.sql.SqlKind#ANY_VALUE} aggregate
+   * function. */
+  @Test void anyValue() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, any_value(cat2) from view group by cat1")
@@ -256,11 +294,32 @@ public class AggregationTest {
         .query("select cat2, any_value(cat3) from view group by cat2")
         .returnsUnordered("cat2=g; EXPR$1=y", // EXPR$1=null is also valid
             "cat2=h; EXPR$1=z");
-
   }
 
-  @Test
-  public void cat1Cat2Cat3() {
+  @Test void anyValueWithOtherAgg() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat1, any_value(cat2), max(val1) from view group by cat1")
+        .returnsUnordered("cat1=a; EXPR$1=g; EXPR$2=1.0",
+            "cat1=null; EXPR$1=g; EXPR$2=null",
+            "cat1=b; EXPR$1=h; EXPR$2=7.0");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select max(val1), cat1, any_value(cat2) from view group by cat1")
+        .returnsUnordered("EXPR$0=1.0; cat1=a; EXPR$2=g",
+            "EXPR$0=null; cat1=null; EXPR$2=g",
+            "EXPR$0=7.0; cat1=b; EXPR$2=h");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select any_value(cat2), cat1, max(val1) from view group by cat1")
+        .returnsUnordered("EXPR$0=g; cat1=a; EXPR$2=1.0",
+            "EXPR$0=g; cat1=null; EXPR$2=null",
+            "EXPR$0=h; cat1=b; EXPR$2=7.0");
+  }
+
+  @Test void cat1Cat2Cat3() {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select cat1, cat2, cat3, count(*), sum(val1), sum(val2) from view "
@@ -275,8 +334,7 @@ public class AggregationTest {
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html">
    * date</a> data type.
    */
-  @Test
-  public void dateCat() {
+  @Test void dateCat() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat4, sum(val1) from view group by cat4")
@@ -290,8 +348,7 @@ public class AggregationTest {
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/number.html">
    * number</a> data type.
    */
-  @Test
-  public void integerCat() {
+  @Test void integerCat() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat5, sum(val1) from view group by cat5")
@@ -303,8 +360,7 @@ public class AggregationTest {
   /**
    * Validate {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#APPROX_COUNT_DISTINCT}.
    */
-  @Test
-  public void approximateCountDistinct() {
+  @Test void approximateCountDistinct() {
     // approx_count_distinct counts distinct *non-null* values
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -329,6 +385,21 @@ public class AggregationTest {
                           "cat1=b; EXPR$1=1",
                           "cat1=null; EXPR$1=1");
   }
-}
 
-// End AggregationTest.java
+  /** Tests aggregation with cast,
+   * {@code select max(cast(_MAP['foo'] as integer)) from tbl}. */
+  @Test void aggregationWithCast() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query(
+            String.format(Locale.ROOT, "select max(cast(_MAP['val1'] as integer)) as v1, "
+                + "min(cast(_MAP['val2'] as integer)) as v2 from elastic.%s", NAME))
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker(
+            "_source:false, 'stored_fields': '_none_', size:0, track_total_hits:true",
+            "aggregations:{'v1.max.field': 'val1'",
+            "'v2.min.field': 'val2'}"))
+        .returnsUnordered("v1=7; v2=5");
+
+  }
+}

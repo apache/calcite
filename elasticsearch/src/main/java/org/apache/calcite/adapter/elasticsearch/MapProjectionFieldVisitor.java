@@ -39,5 +39,3 @@ class MapProjectionFieldVisitor extends RexVisitorImpl<String> {
     return super.visitCall(call);
   }
 }
-
-// End MapProjectionFieldVisitor.java

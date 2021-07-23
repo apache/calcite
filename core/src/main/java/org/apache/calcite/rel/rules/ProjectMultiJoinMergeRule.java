@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -31,24 +31,35 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * creating a richer {@code MultiJoin}.
  *
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
+ * @see CoreRules#PROJECT_MULTI_JOIN_MERGE
  */
-public class ProjectMultiJoinMergeRule extends RelOptRule {
-  public static final ProjectMultiJoinMergeRule INSTANCE =
-      new ProjectMultiJoinMergeRule(RelFactories.LOGICAL_BUILDER);
-
-  //~ Constructors -----------------------------------------------------------
+public class ProjectMultiJoinMergeRule
+    extends RelRule<ProjectMultiJoinMergeRule.Config>
+    implements TransformationRule {
 
   /** Creates a ProjectMultiJoinMergeRule. */
+  protected ProjectMultiJoinMergeRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public ProjectMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(LogicalProject.class,
-            operand(MultiJoin.class, any())), relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public ProjectMultiJoinMergeRule(Class<? extends Project> projectClass,
+      RelBuilderFactory relBuilderFactory) {
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(projectClass, MultiJoin.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
-    LogicalProject project = call.rel(0);
+  @Override public void onMatch(RelOptRuleCall call) {
+    Project project = call.rel(0);
     MultiJoin multiJoin = call.rel(1);
 
     // if all inputs have their projFields set, then projection information
@@ -74,6 +85,23 @@ public class ProjectMultiJoinMergeRule extends RelOptRule {
 
     call.transformTo(relBuilder.build());
   }
-}
 
-// End ProjectMultiJoinMergeRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalProject.class, MultiJoin.class);
+
+    @Override default ProjectMultiJoinMergeRule toRule() {
+      return new ProjectMultiJoinMergeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Project> projectClass,
+        Class<MultiJoin> multiJoinClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(projectClass).oneInput(b1 ->
+              b1.operand(multiJoinClass).anyInputs()))
+          .as(Config.class);
+    }
+  }
+}

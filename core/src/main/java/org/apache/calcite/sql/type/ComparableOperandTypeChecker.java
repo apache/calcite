@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import java.util.Objects;
 
@@ -45,12 +46,12 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       RelDataTypeComparability requiredComparability, Consistency consistency) {
     super(nOperands);
     this.requiredComparability = requiredComparability;
-    this.consistency = Objects.requireNonNull(consistency);
+    this.consistency = Objects.requireNonNull(consistency, "consistency");
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     boolean b = true;
@@ -58,13 +59,20 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       RelDataType type = callBinding.getOperandType(i);
       if (!checkType(callBinding, throwOnFailure, type)) {
         b = false;
+        break;
       }
     }
     if (b) {
-      b = super.checkOperandTypes(callBinding, false);
-      if (!b && throwOnFailure) {
-        throw callBinding.newValidationSignatureError();
+      // Coerce type first.
+      if (callBinding.isTypeCoercionEnabled()) {
+        TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+        // For comparison operators, i.e. >, <, =, >=, <=.
+        typeCoercion.binaryComparisonCoercion(callBinding);
       }
+      b = super.checkOperandTypes(callBinding, false);
+    }
+    if (!b && throwOnFailure) {
+      throw callBinding.newValidationSignatureError();
     }
     return b;
   }
@@ -90,17 +98,18 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
    * {@link #checkOperandTypes(SqlCallBinding, boolean)}, but not part of the
    * interface, and cannot throw an error.
    */
-  public boolean checkOperandTypes(
-      SqlOperatorBinding callBinding) {
+  @Override public boolean checkOperandTypes(
+      SqlOperatorBinding operatorBinding, SqlCallBinding callBinding) {
     boolean b = true;
     for (int i = 0; i < nOperands; ++i) {
       RelDataType type = callBinding.getOperandType(i);
       if (type.getComparability().ordinal() < requiredComparability.ordinal()) {
         b = false;
+        break;
       }
     }
     if (b) {
-      b = super.checkOperandTypes(callBinding);
+      b = super.checkOperandTypes(operatorBinding, callBinding);
     }
     return b;
   }
@@ -113,5 +122,3 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
     return consistency;
   }
 }
-
-// End ComparableOperandTypeChecker.java

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import org.apache.calcite.util.TestUtil;
+
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 
@@ -36,6 +38,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
+import static java.util.Collections.emptyMap;
+
 /**
  * Represents a single elastic search node which can run embedded in a java application.
  *
@@ -51,9 +55,12 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   }
 
   /**
-   * Creates an instance with existing settings
-   * @param settings configuration parameters of ES instance
-   * @return instance which needs to be explicitly started (using {@link #start()})
+   * Creates an instance with existing settings.
+   *
+   * @param settings Configuration parameters of ES instance
+   *
+   * @return instance that needs to be explicitly started (using
+   * {@link #start()})
    */
   private static EmbeddedElasticsearchNode create(Settings settings) {
     // ensure PainlessPlugin is installed or otherwise scripted fields would not work
@@ -87,16 +94,14 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
     return create(settings);
   }
 
-  /**
-   * Starts current node
-   */
+  /** Starts the current node. */
   public void start() {
     Preconditions.checkState(!isStarted, "already started");
     try {
       node.start();
       this.isStarted = true;
     } catch (NodeValidationException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
@@ -152,10 +157,11 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   private static class LocalNode extends Node {
 
     private LocalNode(Settings settings, Collection<Class<? extends Plugin>> classpathPlugins) {
-      super(InternalSettingsPreparer.prepareEnvironment(settings, null),
-          classpathPlugins);
+      super(
+          InternalSettingsPreparer.prepareEnvironment(settings, emptyMap(),
+            null, () -> "default_node_name"),
+          classpathPlugins,
+          false);
     }
   }
 }
-
-// End EmbeddedElasticsearchNode.java

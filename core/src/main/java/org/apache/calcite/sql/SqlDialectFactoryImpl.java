@@ -16,13 +16,16 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.dialect.AccessSqlDialect;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.dialect.ClickHouseSqlDialect;
 import org.apache.calcite.sql.dialect.Db2SqlDialect;
 import org.apache.calcite.sql.dialect.DerbySqlDialect;
+import org.apache.calcite.sql.dialect.ExasolSqlDialect;
 import org.apache.calcite.sql.dialect.FirebirdSqlDialect;
 import org.apache.calcite.sql.dialect.H2SqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
@@ -41,13 +44,15 @@ import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.ParaccelSqlDialect;
 import org.apache.calcite.sql.dialect.PhoenixSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
+import org.apache.calcite.sql.dialect.SnowflakeSqlDialect;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
@@ -57,14 +62,12 @@ import java.util.Locale;
  * The default implementation of a <code>SqlDialectFactory</code>.
  */
 public class SqlDialectFactoryImpl implements SqlDialectFactory {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SqlDialectFactoryImpl.class);
-
   public static final SqlDialectFactoryImpl INSTANCE = new SqlDialectFactoryImpl();
 
   private final JethroDataSqlDialect.JethroInfoCache jethroCache =
       JethroDataSqlDialect.createCache();
 
-  public SqlDialect create(DatabaseMetaData databaseMetaData) {
+  @Override public SqlDialect create(DatabaseMetaData databaseMetaData) {
     String databaseProductName;
     int databaseMajorVersion;
     int databaseMinorVersion;
@@ -81,20 +84,30 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
         databaseProductName.toUpperCase(Locale.ROOT).trim();
     final String quoteString = getIdentifierQuoteString(databaseMetaData);
     final NullCollation nullCollation = getNullCollation(databaseMetaData);
+    final Casing unquotedCasing = getCasing(databaseMetaData, false);
+    final Casing quotedCasing = getCasing(databaseMetaData, true);
+    final boolean caseSensitive = isCaseSensitive(databaseMetaData);
     final SqlDialect.Context c = SqlDialect.EMPTY_CONTEXT
         .withDatabaseProductName(databaseProductName)
         .withDatabaseMajorVersion(databaseMajorVersion)
         .withDatabaseMinorVersion(databaseMinorVersion)
         .withDatabaseVersion(databaseVersion)
         .withIdentifierQuoteString(quoteString)
+        .withUnquotedCasing(unquotedCasing)
+        .withQuotedCasing(quotedCasing)
+        .withCaseSensitive(caseSensitive)
         .withNullCollation(nullCollation);
     switch (upperProductName) {
     case "ACCESS":
       return new AccessSqlDialect(c);
     case "APACHE DERBY":
       return new DerbySqlDialect(c);
+    case "CLICKHOUSE":
+      return new ClickHouseSqlDialect(c);
     case "DBMS:CLOUDSCAPE":
       return new DerbySqlDialect(c);
+    case "EXASOL":
+      return new ExasolSqlDialect(c);
     case "HIVE":
       return new HiveSqlDialect(c);
     case "INGRES":
@@ -113,9 +126,16 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     case "MYSQL (INFOBRIGHT)":
       return new InfobrightSqlDialect(c);
     case "MYSQL":
-      return new MysqlSqlDialect(c);
+      return new MysqlSqlDialect(
+          c.withDataTypeSystem(MysqlSqlDialect.MYSQL_TYPE_SYSTEM));
     case "REDSHIFT":
       return new RedshiftSqlDialect(c);
+    case "SNOWFLAKE":
+      return new SnowflakeSqlDialect(c);
+    case "SPARK":
+      return new SparkSqlDialect(c);
+    default:
+      break;
     }
     // Now the fuzzy matches.
     if (databaseProductName.startsWith("DB2")) {
@@ -131,7 +151,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     } else if (databaseProductName.startsWith("HP Neoview")) {
       return new NeoviewSqlDialect(c);
     } else if (upperProductName.contains("POSTGRE")) {
-      return new PostgresqlSqlDialect(c);
+      return new PostgresqlSqlDialect(
+          c.withDataTypeSystem(PostgresqlSqlDialect.POSTGRESQL_TYPE_SYSTEM));
     } else if (upperProductName.contains("SQL SERVER")) {
       return new MssqlSqlDialect(c);
     } else if (upperProductName.contains("SYBASE")) {
@@ -144,12 +165,49 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new H2SqlDialect(c);
     } else if (upperProductName.contains("VERTICA")) {
       return new VerticaSqlDialect(c);
+    } else if (upperProductName.contains("SNOWFLAKE")) {
+      return new SnowflakeSqlDialect(c);
+    } else if (upperProductName.contains("SPARK")) {
+      return new SparkSqlDialect(c);
     } else {
       return new AnsiSqlDialect(c);
     }
   }
 
-  private NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
+  private static Casing getCasing(DatabaseMetaData databaseMetaData, boolean quoted) {
+    try {
+      if (quoted
+          ? databaseMetaData.storesUpperCaseQuotedIdentifiers()
+          : databaseMetaData.storesUpperCaseIdentifiers()) {
+        return Casing.TO_UPPER;
+      } else if (quoted
+          ? databaseMetaData.storesLowerCaseQuotedIdentifiers()
+          : databaseMetaData.storesLowerCaseIdentifiers()) {
+        return Casing.TO_LOWER;
+      } else if (quoted
+          ? (databaseMetaData.storesMixedCaseQuotedIdentifiers()
+              || databaseMetaData.supportsMixedCaseQuotedIdentifiers())
+          : (databaseMetaData.storesMixedCaseIdentifiers()
+              || databaseMetaData.supportsMixedCaseIdentifiers())) {
+        return Casing.UNCHANGED;
+      } else {
+        return Casing.UNCHANGED;
+      }
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce casing", e);
+    }
+  }
+
+  private static boolean isCaseSensitive(DatabaseMetaData databaseMetaData) {
+    try {
+      return databaseMetaData.supportsMixedCaseIdentifiers()
+          || databaseMetaData.supportsMixedCaseQuotedIdentifiers();
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce case-sensitivity", e);
+    }
+  }
+
+  private static NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
     try {
       if (databaseMetaData.nullsAreSortedAtEnd()) {
         return NullCollation.LAST;
@@ -159,6 +217,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
         return NullCollation.LOW;
       } else if (databaseMetaData.nullsAreSortedHigh()) {
         return NullCollation.HIGH;
+      } else if (isBigQuery(databaseMetaData)) {
+        return NullCollation.LOW;
       } else {
         throw new IllegalArgumentException("cannot deduce null collation");
       }
@@ -167,7 +227,13 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     }
   }
 
-  private String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
+  private static boolean isBigQuery(DatabaseMetaData databaseMetaData)
+      throws SQLException {
+    return databaseMetaData.getDatabaseProductName()
+        .equals("Google Big Query");
+  }
+
+  private static String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
     try {
       return databaseMetaData.getIdentifierQuoteString();
     } catch (SQLException e) {
@@ -176,7 +242,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
   }
 
   /** Returns a basic dialect for a given product, or null if none is known. */
-  static SqlDialect simple(SqlDialect.DatabaseProduct databaseProduct) {
+  static @Nullable SqlDialect simple(SqlDialect.DatabaseProduct databaseProduct) {
     switch (databaseProduct) {
     case ACCESS:
       return AccessSqlDialect.DEFAULT;
@@ -184,10 +250,14 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return BigQuerySqlDialect.DEFAULT;
     case CALCITE:
       return CalciteSqlDialect.DEFAULT;
+    case CLICKHOUSE:
+      return ClickHouseSqlDialect.DEFAULT;
     case DB2:
       return Db2SqlDialect.DEFAULT;
     case DERBY:
       return DerbySqlDialect.DEFAULT;
+    case EXASOL:
+      return ExasolSqlDialect.DEFAULT;
     case FIREBIRD:
       return FirebirdSqlDialect.DEFAULT;
     case H2:
@@ -224,6 +294,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return PhoenixSqlDialect.DEFAULT;
     case POSTGRESQL:
       return PostgresqlSqlDialect.DEFAULT;
+    case PRESTO:
+      return PrestoSqlDialect.DEFAULT;
     case REDSHIFT:
       return RedshiftSqlDialect.DEFAULT;
     case SYBASE:
@@ -232,6 +304,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return TeradataSqlDialect.DEFAULT;
     case VERTICA:
       return VerticaSqlDialect.DEFAULT;
+    case SPARK:
+      return SparkSqlDialect.DEFAULT;
     case SQLSTREAM:
     case UNKNOWN:
     default:
@@ -240,5 +314,3 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
   }
 
 }
-
-// End SqlDialectFactoryImpl.java

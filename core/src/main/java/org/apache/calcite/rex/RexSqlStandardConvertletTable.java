@@ -22,11 +22,13 @@ import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlCaseOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +41,7 @@ public class RexSqlStandardConvertletTable
     extends RexSqlReflectiveConvertletTable {
   //~ Constructors -----------------------------------------------------------
 
+  @SuppressWarnings("method.invocation.invalid")
   public RexSqlStandardConvertletTable() {
     super();
 
@@ -58,6 +61,10 @@ public class RexSqlStandardConvertletTable
     registerEquivOp(SqlStdOperatorTable.NOT_LIKE);
     registerEquivOp(SqlStdOperatorTable.SIMILAR_TO);
     registerEquivOp(SqlStdOperatorTable.NOT_SIMILAR_TO);
+    registerEquivOp(SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE);
+    registerEquivOp(SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE);
+    registerEquivOp(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE);
+    registerEquivOp(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE);
     registerEquivOp(SqlStdOperatorTable.PLUS);
     registerEquivOp(SqlStdOperatorTable.MINUS);
     registerEquivOp(SqlStdOperatorTable.MULTIPLY);
@@ -100,7 +107,7 @@ public class RexSqlStandardConvertletTable
     registerEquivOp(SqlStdOperatorTable.TRANSLATE);
     registerEquivOp(SqlStdOperatorTable.OVERLAY);
     registerEquivOp(SqlStdOperatorTable.TRIM);
-    registerEquivOp(OracleSqlOperatorTable.TRANSLATE3);
+    registerEquivOp(SqlLibraryOperators.TRANSLATE3);
     registerEquivOp(SqlStdOperatorTable.POSITION);
     registerEquivOp(SqlStdOperatorTable.CHAR_LENGTH);
     registerEquivOp(SqlStdOperatorTable.CHARACTER_LENGTH);
@@ -136,7 +143,7 @@ public class RexSqlStandardConvertletTable
    * @param call      Call
    * @return Sql call
    */
-  public SqlNode convertCall(
+  public @Nullable SqlNode convertCall(
       RexToSqlNodeConverter converter,
       RexCall call) {
     if (get(call) == null) {
@@ -156,16 +163,17 @@ public class RexSqlStandardConvertletTable
         SqlParserPos.ZERO);
   }
 
-  private SqlNode[] convertExpressionList(
+  private static SqlNode @Nullable [] convertExpressionList(
       RexToSqlNodeConverter converter,
       List<RexNode> nodes) {
     final SqlNode[] exprs = new SqlNode[nodes.size()];
     for (int i = 0; i < nodes.size(); i++) {
       RexNode node = nodes.get(i);
-      exprs[i] = converter.convertNode(node);
-      if (exprs[i] == null) {
+      SqlNode converted = converter.convertNode(node);
+      if (converted == null) {
         return null;
       }
+      exprs[i] = converted;
     }
     return exprs;
   }
@@ -238,14 +246,14 @@ public class RexSqlStandardConvertletTable
 
   /** Convertlet that converts a {@link SqlCall} to a {@link RexCall} of the
    * same operator. */
-  private class EquivConvertlet implements RexSqlConvertlet {
+  private static class EquivConvertlet implements RexSqlConvertlet {
     private final SqlOperator op;
 
     EquivConvertlet(SqlOperator op) {
       this.op = op;
     }
 
-    public SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
+    @Override public @Nullable SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
       SqlNode[] operands = convertExpressionList(converter, call.operands);
       if (operands == null) {
         return null;
@@ -254,5 +262,3 @@ public class RexSqlStandardConvertletTable
     }
   }
 }
-
-// End RexSqlStandardConvertletTable.java

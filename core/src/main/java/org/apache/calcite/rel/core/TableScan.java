@@ -19,14 +19,16 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -36,14 +38,20 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * Relational operator that returns the contents of a table.
  */
-public abstract class TableScan extends AbstractRelNode {
+public abstract class TableScan
+    extends AbstractRelNode implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   /**
@@ -51,22 +59,35 @@ public abstract class TableScan extends AbstractRelNode {
    */
   protected final RelOptTable table;
 
+  /**
+   * The table hints.
+   */
+  protected final ImmutableList<RelHint> hints;
+
   //~ Constructors -----------------------------------------------------------
 
   protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table) {
+      List<RelHint> hints, RelOptTable table) {
     super(cluster, traitSet);
-    this.table = table;
-    if (table.getRelOptSchema() != null) {
-      cluster.getPlanner().registerSchema(table.getRelOptSchema());
+    this.table = Objects.requireNonNull(table, "table");
+    RelOptSchema relOptSchema = table.getRelOptSchema();
+    if (relOptSchema != null) {
+      cluster.getPlanner().registerSchema(relOptSchema);
     }
+    this.hints = ImmutableList.copyOf(hints);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
+      RelOptTable table) {
+    this(cluster, traitSet, ImmutableList.of(), table);
   }
 
   /**
    * Creates a TableScan by parsing serialized output.
    */
   protected TableScan(RelInput input) {
-    this(input.getCluster(), input.getTraitSet(), input.getTable("table"));
+    this(input.getCluster(), input.getTraitSet(), ImmutableList.of(), input.getTable("table"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -79,12 +100,7 @@ public abstract class TableScan extends AbstractRelNode {
     return table;
   }
 
-  @SuppressWarnings("deprecation")
-  @Override public List<RelCollation> getCollationList() {
-    return table.getCollationList();
-  }
-
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = table.getRowCount();
     double dCpu = dRows + 1; // ensure non-zero cost
@@ -137,8 +153,9 @@ public abstract class TableScan extends AbstractRelNode {
         && extraFields.isEmpty()) {
       return this;
     }
-    final List<RexNode> exprList = new ArrayList<>();
-    final List<String> nameList = new ArrayList<>();
+    int fieldSize = fieldsUsed.size() + extraFields.size();
+    final List<RexNode> exprList = new ArrayList<>(fieldSize);
+    final List<String> nameList = new ArrayList<>(fieldSize);
     final RexBuilder rexBuilder = getCluster().getRexBuilder();
     final List<RelDataTypeField> fields = getRowType().getFieldList();
 
@@ -152,11 +169,7 @@ public abstract class TableScan extends AbstractRelNode {
     // Project nulls for the extra fields. (Maybe a sub-class table has
     // extra fields, but we don't.)
     for (RelDataTypeField extraField : extraFields) {
-      exprList.add(
-          rexBuilder.ensureType(
-              extraField.getType(),
-              rexBuilder.constantNull(),
-              true));
+      exprList.add(rexBuilder.makeNullLiteral(extraField.getType()));
       nameList.add(extraField.getName());
     }
 
@@ -166,6 +179,8 @@ public abstract class TableScan extends AbstractRelNode {
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
-}
 
-// End TableScan.java
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
+  }
+}

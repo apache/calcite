@@ -17,28 +17,33 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
 
-import java.util.function.Predicate;
-
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject} to an
- * {@link EnumerableProject}.
+ * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}.
+ * You may provide a custom config to convert other nodes that extend {@link Project}.
+ *
+ * @see EnumerableRules#ENUMERABLE_PROJECT_RULE
  */
 class EnumerableProjectRule extends ConverterRule {
-  EnumerableProjectRule() {
-    super(LogicalProject.class,
-        (Predicate<LogicalProject>) RelOptUtil::containsMultisetOrWindowedAgg,
-        Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.LOGICAL_BUILDER, "EnumerableProjectRule");
+  /** Default configuration. */
+  static final Config DEFAULT_CONFIG = Config.EMPTY
+      .as(Config.class)
+      .withConversion(LogicalProject.class, p -> !p.containsOver(),
+          Convention.NONE, EnumerableConvention.INSTANCE,
+          "EnumerableProjectRule")
+      .withRuleFactory(EnumerableProjectRule::new);
+
+  /** Creates an EnumerableProjectRule. */
+  protected EnumerableProjectRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
-    final LogicalProject project = (LogicalProject) rel;
+  @Override public RelNode convert(RelNode rel) {
+    final Project project = (Project) rel;
     return EnumerableProject.create(
         convert(project.getInput(),
             project.getInput().getTraitSet()
@@ -47,5 +52,3 @@ class EnumerableProjectRule extends ConverterRule {
         project.getRowType());
   }
 }
-
-// End EnumerableProjectRule.java

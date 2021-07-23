@@ -32,6 +32,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +51,7 @@ public interface SqlSplittableAggFunction {
   /** Called to generate an aggregate for the other side of the join
    * than the side aggregate call's arguments come from. Returns null if
    * no aggregate is required. */
-  AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e);
+  @Nullable AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e);
 
   /** Generates an aggregate call to merge sub-totals.
    *
@@ -95,6 +97,20 @@ public interface SqlSplittableAggFunction {
   RexNode singleton(RexBuilder rexBuilder, RelDataType inputRowType,
       AggregateCall aggregateCall);
 
+  /**
+   * Merge top and bottom aggregate calls into a single aggregate call,
+   * if they are legit to merge.
+   *
+   * <p>SUM of SUM becomes SUM; SUM of COUNT becomes COUNT;
+   * MAX of MAX becomes MAX; MIN of MIN becomes MIN.
+   * AVG of AVG would not match, nor would COUNT of COUNT.
+   *
+   * @param top top aggregate call
+   * @param bottom bottom aggregate call
+   * @return Merged aggregate call, null if fails to merge aggregate calls
+   */
+  @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom);
+
   /** Collection in which one can register an element. Registering may return
    * a reference to an existing element.
    *
@@ -112,18 +128,19 @@ public interface SqlSplittableAggFunction {
   class CountSplitter implements SqlSplittableAggFunction {
     public static final CountSplitter INSTANCE = new CountSplitter();
 
-    public AggregateCall split(AggregateCall aggregateCall,
+    @Override public AggregateCall split(AggregateCall aggregateCall,
         Mappings.TargetMapping mapping) {
       return aggregateCall.transform(mapping);
     }
 
-    public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          ImmutableIntList.of(), -1, RelCollations.EMPTY,
+          false, ImmutableIntList.of(), -1, null, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
 
-    public AggregateCall topSplit(RexBuilder rexBuilder,
+    @Override public AggregateCall topSplit(RexBuilder rexBuilder,
         Registry<RexNode> extra, int offset, RelDataType inputRowType,
         AggregateCall aggregateCall, int leftSubTotal, int rightSubTotal) {
       final List<RexNode> merges = new ArrayList<>();
@@ -148,8 +165,8 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
-          ImmutableList.of(ordinal), -1, aggregateCall.collation,
-          aggregateCall.type, aggregateCall.name);
+          false, ImmutableList.of(ordinal), -1, aggregateCall.distinctKeys,
+          aggregateCall.collation, aggregateCall.type, aggregateCall.name);
     }
 
     /**
@@ -159,7 +176,7 @@ public interface SqlSplittableAggFunction {
      * become {@code 1}; otherwise
      * {@code CASE WHEN arg0 IS NOT NULL THEN 1 ELSE 0 END}.
      */
-    public RexNode singleton(RexBuilder rexBuilder, RelDataType inputRowType,
+    @Override public RexNode singleton(RexBuilder rexBuilder, RelDataType inputRowType,
         AggregateCall aggregateCall) {
       final List<RexNode> predicates = new ArrayList<>();
       for (Integer arg : aggregateCall.getArgList()) {
@@ -172,12 +189,27 @@ public interface SqlSplittableAggFunction {
       }
       final RexNode predicate =
           RexUtil.composeConjunction(rexBuilder, predicates, true);
+      final RexNode rexOne = rexBuilder.makeExactLiteral(
+          BigDecimal.ONE, aggregateCall.getType());
       if (predicate == null) {
-        return rexBuilder.makeExactLiteral(BigDecimal.ONE);
+        return rexOne;
       } else {
-        return rexBuilder.makeCall(SqlStdOperatorTable.CASE, predicate,
-            rexBuilder.makeExactLiteral(BigDecimal.ONE),
-            rexBuilder.makeExactLiteral(BigDecimal.ZERO));
+        return rexBuilder.makeCall(SqlStdOperatorTable.CASE, predicate, rexOne,
+            rexBuilder.makeExactLiteral(BigDecimal.ZERO, aggregateCall.getType()));
+      }
+    }
+
+    @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
+      if (bottom.getAggregation().getKind() == SqlKind.COUNT
+          && (top.getAggregation().getKind() == SqlKind.SUM
+              || top.getAggregation().getKind() == SqlKind.SUM0)) {
+        return AggregateCall.create(bottom.getAggregation(),
+            bottom.isDistinct(), bottom.isApproximate(), false,
+            bottom.getArgList(), bottom.filterArg,
+            bottom.distinctKeys, bottom.getCollation(),
+            bottom.getType(), top.getName());
+      } else {
+        return null;
       }
     }
   }
@@ -188,56 +220,69 @@ public interface SqlSplittableAggFunction {
   class SelfSplitter implements SqlSplittableAggFunction {
     public static final SelfSplitter INSTANCE = new SelfSplitter();
 
-    public RexNode singleton(RexBuilder rexBuilder,
+    @Override public RexNode singleton(RexBuilder rexBuilder,
         RelDataType inputRowType, AggregateCall aggregateCall) {
       final int arg = aggregateCall.getArgList().get(0);
       final RelDataTypeField field = inputRowType.getFieldList().get(arg);
       return rexBuilder.makeInputRef(field.getType(), arg);
     }
 
-    public AggregateCall split(AggregateCall aggregateCall,
+    @Override public AggregateCall split(AggregateCall aggregateCall,
         Mappings.TargetMapping mapping) {
       return aggregateCall.transform(mapping);
     }
 
-    public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return null; // no aggregate function required on other side
     }
 
-    public AggregateCall topSplit(RexBuilder rexBuilder,
+    @Override public AggregateCall topSplit(RexBuilder rexBuilder,
         Registry<RexNode> extra, int offset, RelDataType inputRowType,
         AggregateCall aggregateCall, int leftSubTotal, int rightSubTotal) {
       assert (leftSubTotal >= 0) != (rightSubTotal >= 0);
       assert aggregateCall.collation.getFieldCollations().isEmpty();
       final int arg = leftSubTotal >= 0 ? leftSubTotal : rightSubTotal;
-      return aggregateCall.copy(ImmutableIntList.of(arg), -1,
-          RelCollations.EMPTY);
+      return aggregateCall.withArgList(ImmutableIntList.of(arg));
+    }
+
+    @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
+      if (top.getAggregation().getKind() == bottom.getAggregation().getKind()) {
+        return AggregateCall.create(bottom.getAggregation(),
+            bottom.isDistinct(), bottom.isApproximate(), false,
+            bottom.getArgList(), bottom.filterArg,
+            bottom.distinctKeys, bottom.getCollation(),
+            bottom.getType(), top.getName());
+      } else {
+        return null;
+      }
     }
   }
 
   /** Common splitting strategy for {@code SUM} and {@code SUM0} functions. */
   abstract class AbstractSumSplitter implements SqlSplittableAggFunction {
 
-    public RexNode singleton(RexBuilder rexBuilder,
+    @Override public RexNode singleton(RexBuilder rexBuilder,
         RelDataType inputRowType, AggregateCall aggregateCall) {
       final int arg = aggregateCall.getArgList().get(0);
       final RelDataTypeField field = inputRowType.getFieldList().get(arg);
-      return rexBuilder.makeInputRef(field.getType(), arg);
+      final RelDataType fieldType = field.getType();
+      return rexBuilder.makeInputRef(fieldType, arg);
     }
 
-    public AggregateCall split(AggregateCall aggregateCall,
+    @Override public AggregateCall split(AggregateCall aggregateCall,
         Mappings.TargetMapping mapping) {
       return aggregateCall.transform(mapping);
     }
 
-    public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          ImmutableIntList.of(), -1,
-          RelCollations.EMPTY,
+          false, ImmutableIntList.of(), -1, null, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
 
-    public AggregateCall topSplit(RexBuilder rexBuilder,
+    @Override public AggregateCall topSplit(RexBuilder rexBuilder,
         Registry<RexNode> extra, int offset, RelDataType inputRowType,
         AggregateCall aggregateCall, int leftSubTotal, int rightSubTotal) {
       final List<RexNode> merges = new ArrayList<>();
@@ -264,8 +309,24 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(getMergeAggFunctionOfTopSplit(), false, false,
-          ImmutableList.of(ordinal), -1, aggregateCall.collation,
+          false, ImmutableList.of(ordinal), -1,
+          aggregateCall.distinctKeys, aggregateCall.collation,
           aggregateCall.type, aggregateCall.name);
+    }
+
+    @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
+      SqlKind topKind = top.getAggregation().getKind();
+      if (topKind == bottom.getAggregation().getKind()
+          && (topKind == SqlKind.SUM
+              || topKind == SqlKind.SUM0)) {
+        return AggregateCall.create(bottom.getAggregation(),
+            bottom.isDistinct(), bottom.isApproximate(), false,
+            bottom.getArgList(), bottom.filterArg,
+            bottom.distinctKeys, bottom.getCollation(),
+            bottom.getType(), top.getName());
+      } else {
+        return null;
+      }
     }
 
     protected abstract SqlAggFunction getMergeAggFunctionOfTopSplit();
@@ -288,7 +349,20 @@ public interface SqlSplittableAggFunction {
     @Override public SqlAggFunction getMergeAggFunctionOfTopSplit() {
       return SqlStdOperatorTable.SUM0;
     }
+
+    @Override public RexNode singleton(RexBuilder rexBuilder,
+        RelDataType inputRowType, AggregateCall aggregateCall) {
+      final int arg = aggregateCall.getArgList().get(0);
+      final RelDataType type = inputRowType.getFieldList().get(arg).getType();
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RelDataType type1 = typeFactory.getTypeSystem().deriveSumType(typeFactory, type);
+      final RexNode inputRef = rexBuilder.makeInputRef(type1, arg);
+      if (type.isNullable()) {
+        return rexBuilder.makeCall(SqlStdOperatorTable.COALESCE, inputRef,
+            rexBuilder.makeExactLiteral(BigDecimal.ZERO, type));
+      } else {
+        return inputRef;
+      }
+    }
   }
 }
-
-// End SqlSplittableAggFunction.java

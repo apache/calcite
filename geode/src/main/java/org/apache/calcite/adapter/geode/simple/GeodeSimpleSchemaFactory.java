@@ -49,5 +49,3 @@ public class GeodeSimpleSchemaFactory implements SchemaFactory {
     return new GeodeSimpleSchema(locatorHost, locatorPort, regionNames, pdxSerializablePackagePath);
   }
 }
-
-// End GeodeSimpleSchemaFactory.java

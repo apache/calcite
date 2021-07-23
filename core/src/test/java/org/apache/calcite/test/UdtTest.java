@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.test;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for user-defined types.
  */
-public class UdtTest {
+class UdtTest {
   private CalciteAssert.AssertThat withUdt() {
     final String model = "{\n"
         + "  version: '1.0',\n"
@@ -53,11 +53,18 @@ public class UdtTest {
     return CalciteAssert.model(model);
   }
 
-  @Test public void testUdt() {
+  @Test void testUdt() {
     final String sql = "select CAST(\"id\" AS \"adhoc\".mytype1) as ld "
         + "from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")";
     withUdt().query(sql).returns("LD=1\n");
   }
-}
 
-// End UdtTest.java
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3045">[CALCITE-3045]
+   * NullPointerException when casting null literal to composite user defined type</a>. */
+  @Test void testCastNullLiteralToCompositeUdt() {
+    final String sql = "select CAST(null AS \"adhoc\".mytype2) as c "
+        + "from (VALUES (1))";
+    withUdt().query(sql).returns("C=null\n");
+  }
+}

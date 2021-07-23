@@ -19,9 +19,4 @@
  * Pig query provider.
  *
  */
-@PackageMarker
 package org.apache.calcite.adapter.pig;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

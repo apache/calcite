@@ -17,18 +17,35 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.server.DdlExecutorImpl;
+import org.apache.calcite.server.ServerDdlExecutor;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.ddl.SqlCreateForeignSchema;
+import org.apache.calcite.sql.ddl.SqlCreateFunction;
+import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
+import org.apache.calcite.sql.ddl.SqlCreateSchema;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.ddl.SqlCreateType;
+import org.apache.calcite.sql.ddl.SqlCreateView;
+import org.apache.calcite.sql.ddl.SqlDropFunction;
+import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
+import org.apache.calcite.sql.ddl.SqlDropSchema;
 
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Struct;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -36,29 +53,58 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for server and DDL.
  */
-public class ServerTest {
+class ServerTest {
 
   static final String URL = "jdbc:calcite:";
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   static Connection connect() throws SQLException {
     return DriverManager.getConnection(URL,
         CalciteAssert.propBuilder()
             .set(CalciteConnectionProperty.PARSER_FACTORY,
-                SqlDdlParserImpl.class.getName() + "#FACTORY")
+                ServerDdlExecutor.class.getName() + "#PARSER_FACTORY")
             .set(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED,
                 "true")
+            .set(CalciteConnectionProperty.FUN, "standard,oracle")
             .build());
   }
 
-  @Test public void testStatement() throws Exception {
+  /** Contains calls to all overloaded {@code execute} methods in
+   * {@link DdlExecutorImpl} to silence warnings that these methods are not
+   * called. (They are, not from this test, but via reflection.) */
+  @Test void testAll() {
+    //noinspection ConstantConditions
+    if (true) {
+      return;
+    }
+    final ServerDdlExecutor executor = ServerDdlExecutor.INSTANCE;
+    final Object o = "x";
+    final CalcitePrepare.Context context = (CalcitePrepare.Context) o;
+    executor.execute((SqlNode) o, context);
+    executor.execute((SqlCreateFunction) o, context);
+    executor.execute((SqlCreateTable) o, context);
+    executor.execute((SqlCreateSchema) o, context);
+    executor.execute((SqlCreateMaterializedView) o, context);
+    executor.execute((SqlCreateView) o, context);
+    executor.execute((SqlCreateType) o, context);
+    executor.execute((SqlCreateSchema) o, context);
+    executor.execute((SqlCreateForeignSchema) o, context);
+    executor.execute((SqlDropMaterializedView) o, context);
+    executor.execute((SqlDropFunction) o, context);
+    executor.execute((SqlDropSchema) o, context);
+  }
+
+  @Test void testStatement() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement();
          ResultSet r = s.executeQuery("values 1, 2")) {
@@ -69,7 +115,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testCreateSchema() throws Exception {
+  @Test void testCreateSchema() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create schema s");
@@ -83,10 +129,20 @@ public class ServerTest {
         assertThat(r.getInt(1), is(1));
         assertThat(r.next(), is(false));
       }
+
+      assertDoesNotThrow(() -> {
+        s.execute("create schema if not exists s");
+        s.executeUpdate("insert into s.t values 2");
+      }, "IF NOT EXISTS should not overwrite the existing schema");
+
+      assertDoesNotThrow(() -> {
+        s.execute("create or replace schema s");
+        s.execute("create table s.t (i int not null)");
+      }, "REPLACE must overwrite the existing schema");
     }
   }
 
-  @Test public void testCreateType() throws Exception {
+  @Test void testCreateType() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create type mytype1 as BIGINT");
@@ -115,7 +171,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testDropType() throws Exception {
+  @Test void testDropType() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create type mytype1 as BIGINT");
@@ -125,7 +181,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testCreateTable() throws Exception {
+  @Test void testCreateTable() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       boolean b = s.execute("create table t (i int not null)");
@@ -139,10 +195,135 @@ public class ServerTest {
         assertThat(r.getInt(1), is(4));
         assertThat(r.next(), is(false));
       }
+
+      // CALCITE-2464: Allow to set nullability for columns of structured types
+      b = s.execute("create type mytype as (i int)");
+      assertThat(b, is(false));
+      b = s.execute("create table w (i int not null, j mytype)");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into w values (1, NULL)");
+      assertThat(x, is(1));
+
+      // Test user defined type name as component identifier.
+      b = s.execute("create schema a");
+      assertThat(b, is(false));
+      b = s.execute("create schema a.b");
+      assertThat(b, is(false));
+      b = s.execute("create type a.b.mytype as (i varchar(5))");
+      assertThat(b, is(false));
+      b = s.execute("create table t2 (i int not null, j a.b.mytype)");
+      assertThat(b, is(false));
+      x = s.executeUpdate("insert into t2 values (1, NULL)");
+      assertThat(x, is(1));
+
+      assertDoesNotThrow(() -> {
+        s.execute("create or replace table t2 (i int not null)");
+        s.executeUpdate("insert into t2 values (1)");
+      }, "REPLACE must recreate the table, leaving only one column");
     }
   }
 
-  @Test public void testStoredGeneratedColumn() throws Exception {
+  @Test void testCreateFunction() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create schema s");
+      assertThat(b, is(false));
+      try {
+        boolean f = s.execute("create function if not exists s.t\n"
+                + "as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
+                + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
+        fail("expected error, got " + f);
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+            containsString("CREATE FUNCTION is not supported"));
+      }
+    }
+  }
+
+  @Test void testDropFunction() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create schema s");
+      assertThat(b, is(false));
+
+      boolean f = s.execute("drop function if exists t");
+      assertThat(f, is(false));
+
+      try {
+        boolean f2 = s.execute("drop function t");
+        assertThat(f2, is(false));
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+                containsString("Error while executing SQL \"drop function t\":"
+                        + " At line 1, column 15: Function 'T' not found"));
+      }
+
+      CalciteConnection calciteConnection = (CalciteConnection) c;
+      calciteConnection.getRootSchema().add("T", new Function() {
+        @Override public List<FunctionParameter> getParameters() {
+          return new ArrayList<>();
+        }
+      });
+
+      boolean f3 = s.execute("drop function t");
+      assertThat(f3, is(false));
+
+      // case sensitive function name
+      calciteConnection.getRootSchema().add("t", new Function() {
+        @Override public List<FunctionParameter> getParameters() {
+          return new ArrayList<>();
+        }
+      });
+
+      try {
+        boolean f4 = s.execute("drop function t");
+        assertThat(f4, is(false));
+      } catch (SQLException e) {
+        assertThat(e.getMessage(),
+                containsString("Error while executing SQL \"drop function t\":"
+                        + " At line 1, column 15: Function 'T' not found"));
+      }
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3046">[CALCITE-3046]
+   * CompileException when inserting casted value of composited user defined type
+   * into table</a>. */
+  @Test void testInsertCastedValueOfCompositeUdt() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create type mytype as (i int, j int)");
+      assertThat(b, is(false));
+      b = s.execute("create table w (i int not null, j mytype)");
+      assertThat(b, is(false));
+      int x = s.executeUpdate("insert into w "
+          + "values (1, cast((select j from w limit 1) as mytype))");
+      assertThat(x, is(1));
+    }
+  }
+
+  @Test void testInsertCreateNewCompositeUdt() throws Exception {
+    try (Connection c = connect();
+        Statement s = c.createStatement()) {
+      boolean b = s.execute("create type mytype as (i int, j int)");
+      assertFalse(b);
+      b = s.execute("create table w (i int not null, j mytype)");
+      assertFalse(b);
+      int x = s.executeUpdate("insert into w "
+          + "values (1, mytype(1, 1))");
+      assertEquals(x, 1);
+
+      try (ResultSet r = s.executeQuery("select * from w")) {
+        assertTrue(r.next());
+        assertEquals(r.getInt("i"), 1);
+        assertArrayEquals(r.getObject("j", Struct.class).getAttributes(), new Object[] {1, 1});
+        assertFalse(r.next());
+      }
+    }
+  }
+
+  @Test void testStoredGeneratedColumn() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       final String sql0 = "create table t (\n"
@@ -182,7 +363,6 @@ public class ServerTest {
       // No target column list; too few values provided
       try {
         x = s.executeUpdate("insert into t values (2, 3)");
-        fail("expected error, got " + x);
       } catch (SQLException e) {
         assertThat(e.getMessage(),
             containsString("Number of INSERT target columns (3) does not equal "
@@ -253,15 +433,15 @@ public class ServerTest {
       assertThat(x, is(2));
       try (ResultSet r = s.executeQuery("select sum(i), count(*) from t")) {
         assertThat(r.next(), is(true));
-        assertThat(r.getInt(1), is(19));
-        assertThat(r.getInt(2), is(9));
+        assertThat(r.getInt(1), is(22));
+        assertThat(r.getInt(2), is(10));
         assertThat(r.next(), is(false));
       }
     }
   }
 
-  @Ignore("not working yet")
-  @Test public void testStoredGeneratedColumn2() throws Exception {
+  @Disabled("not working yet")
+  @Test void testStoredGeneratedColumn2() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       final String sql = "create table t (\n"
@@ -283,7 +463,7 @@ public class ServerTest {
     }
   }
 
-  @Test public void testVirtualColumn() throws Exception {
+  @Test void testVirtualColumn() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       final String sql0 = "create table t (\n"
@@ -315,6 +495,64 @@ public class ServerTest {
       }
     }
   }
-}
 
-// End ServerTest.java
+  @Test void testVirtualColumnWithFunctions() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      // Test builtin and library functions.
+      final String create = "create table t1 (\n"
+          + " h varchar(3) not null,\n"
+          + " i varchar(3),\n"
+          + " j int not null as (char_length(h)) virtual,\n"
+          + " k varchar(3) null as (rtrim(i)) virtual)";
+      boolean b = s.execute(create);
+      assertThat(b, is(false));
+
+      int x = s.executeUpdate("insert into t1 (h, i) values ('abc', 'de ')");
+      assertThat(x, is(1));
+
+      // In plan, "j" is replaced by "char_length(h)".
+      final String select = "select * from t1";
+      try (ResultSet r = s.executeQuery(select)) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), is("abc"));
+        assertThat(r.getString(2), is("de "));
+        assertThat(r.getInt(3), is(3));
+        assertThat(r.getString(4), is("de"));
+        assertThat(r.next(), is(false));
+      }
+
+      final String plan = ""
+          + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CHAR_LENGTH($t0)], "
+          + "expr#3=[FLAG(TRAILING)], expr#4=[' '], "
+          + "expr#5=[TRIM($t3, $t4, $t1)], proj#0..2=[{exprs}], K=[$t5])\n"
+          + "  EnumerableTableScan(table=[[T1]])\n";
+      try (ResultSet r = s.executeQuery("explain plan for " + select)) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), isLinux(plan));
+      }
+    }
+  }
+
+  @Test public void testDropWithFullyQualifiedNameWhenSchemaDoesntExist() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "schema", "Schema");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "table", "Table");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "materialized view", "Table");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "view", "View");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "type", "Type");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "function", "Function");
+    }
+  }
+
+  private void checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(
+      Statement statement, String objectType, String objectTypeInErrorMessage) throws Exception {
+    SQLException e = assertThrows(SQLException.class, () ->
+        statement.execute("drop " + objectType + " s.o"),
+        "expected error because the object doesn't exist");
+    assertThat(e.getMessage(), containsString(objectTypeInErrorMessage + " 'O' not found"));
+
+    statement.execute("drop " + objectType + " if exists s.o");
+  }
+}

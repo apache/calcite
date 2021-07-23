@@ -28,7 +28,7 @@ public class SqlValuesOperator extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -42,5 +42,3 @@ public class SqlValuesOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlValuesOperator.java

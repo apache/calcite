@@ -51,5 +51,3 @@ public class RelColumnMapping {
    */
   public final boolean derived;
 }
-
-// End RelColumnMapping.java

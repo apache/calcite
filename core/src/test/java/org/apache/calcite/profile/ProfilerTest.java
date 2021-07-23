@@ -22,9 +22,9 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.Matchers;
-import org.apache.calcite.test.SlowTests;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
@@ -33,9 +33,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -53,15 +53,15 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for {@link Profiler}.
  */
-@Category(SlowTests.class)
-public class ProfilerTest {
-  @Test public void testProfileZeroRows() throws Exception {
+@Tag("slow")
+class ProfilerTest {
+  @Test void testProfileZeroRows() throws Exception {
     final String sql = "select * from \"scott\".dept where false";
     sql(sql).unordered(
         "{type:distribution,columns:[DEPTNO,DNAME,LOC],cardinality:0}",
@@ -76,7 +76,7 @@ public class ProfilerTest {
         "{type:unique,columns:[]}");
   }
 
-  @Test public void testProfileOneRow() throws Exception {
+  @Test void testProfileOneRow() throws Exception {
     final String sql = "select * from \"scott\".dept where deptno = 10";
     sql(sql).unordered(
         "{type:distribution,columns:[DEPTNO,DNAME,LOC],cardinality:1}",
@@ -91,7 +91,7 @@ public class ProfilerTest {
         "{type:unique,columns:[]}");
   }
 
-  @Test public void testProfileTwoRows() throws Exception {
+  @Test void testProfileTwoRows() throws Exception {
     final String sql = "select * from \"scott\".dept where deptno in (10, 20)";
     sql(sql).unordered(
         "{type:distribution,columns:[DEPTNO,DNAME,LOC],cardinality:2}",
@@ -108,7 +108,7 @@ public class ProfilerTest {
         "{type:unique,columns:[LOC]}");
   }
 
-  @Test public void testProfileScott() throws Exception {
+  @Test void testProfileScott() throws Exception {
     final String sql = "select * from \"scott\".emp\n"
         + "join \"scott\".dept on emp.deptno = dept.deptno";
     sql(sql)
@@ -192,7 +192,7 @@ public class ProfilerTest {
 
   /** As {@link #testProfileScott()}, but prints only the most surprising
    * distributions. */
-  @Test public void testProfileScott2() throws Exception {
+  @Test void testProfileScott2() throws Exception {
     scott().factory(Fluid.SIMPLE_FACTORY).unordered(
         "{type:distribution,columns:[COMM],values:[0.00,300.00,500.00,1400.00],cardinality:5,nullCount:10,expectedCardinality:14,surprise:0.474}",
         "{type:distribution,columns:[DEPTNO,DEPTNO0],cardinality:3,expectedCardinality:7.2698,surprise:0.416}",
@@ -218,7 +218,7 @@ public class ProfilerTest {
   /** As {@link #testProfileScott2()}, but uses the breadth-first profiler.
    * Results should be the same, but are slightly different (extra EMPNO
    * and ENAME distributions). */
-  @Test public void testProfileScott3() throws Exception {
+  @Test void testProfileScott3() throws Exception {
     scott().factory(Fluid.BETTER_FACTORY).unordered(
         "{type:distribution,columns:[COMM],values:[0.00,300.00,500.00,1400.00],cardinality:5,nullCount:10,expectedCardinality:14,surprise:0.474}",
         "{type:distribution,columns:[DEPTNO,DEPTNO0,DNAME,LOC],cardinality:3,expectedCardinality:7.2698,surprise:0.416}",
@@ -242,7 +242,7 @@ public class ProfilerTest {
   /** As {@link #testProfileScott3()}, but uses the breadth-first profiler
    * and deems everything uninteresting. Only first-level combinations (those
    * consisting of a single column) are computed. */
-  @Test public void testProfileScott4() throws Exception {
+  @Test void testProfileScott4() throws Exception {
     scott().factory(Fluid.INCURIOUS_PROFILER_FACTORY).unordered(
         "{type:distribution,columns:[COMM],values:[0.00,300.00,500.00,1400.00],cardinality:5,nullCount:10,expectedCardinality:14,surprise:0.474}",
         "{type:distribution,columns:[DEPTNO0,DNAME,LOC],cardinality:3,expectedCardinality:14,surprise:0.647}",
@@ -260,8 +260,8 @@ public class ProfilerTest {
   }
 
   /** As {@link #testProfileScott3()}, but uses the breadth-first profiler. */
-  @Ignore
-  @Test public void testProfileScott5() throws Exception {
+  @Disabled
+  @Test void testProfileScott5() throws Exception {
     scott().factory(Fluid.PROFILER_FACTORY).unordered(
         "{type:distribution,columns:[COMM],values:[0.00,300.00,500.00,1400.00],cardinality:5,nullCount:10,expectedCardinality:14.0,surprise:0.473}",
         "{type:distribution,columns:[DEPTNO,DEPTNO0,DNAME,LOC],cardinality:3,expectedCardinality:7.269,surprise:0.415}",
@@ -284,8 +284,8 @@ public class ProfilerTest {
 
   /** Profiles a star-join query on the Foodmart schema using the breadth-first
    * profiler. */
-  @Ignore
-  @Test public void testProfileFoodmart() throws Exception {
+  @Disabled
+  @Test void testProfileFoodmart() throws Exception {
     foodmart().factory(Fluid.PROFILER_FACTORY).unordered(
         "{type:distribution,columns:[brand_name],cardinality:111,expectedCardinality:86837.0,surprise:0.997}",
         "{type:distribution,columns:[cases_per_pallet],values:[5,6,7,8,9,10,11,12,13,14],cardinality:10,expectedCardinality:86837.0,surprise:0.999}",
@@ -322,7 +322,7 @@ public class ProfilerTest {
 
   /** Tests
    * {@link org.apache.calcite.profile.ProfilerImpl.SurpriseQueue}. */
-  @Test public void testSurpriseQueue() {
+  @Test void testSurpriseQueue() {
     ProfilerImpl.SurpriseQueue q = new ProfilerImpl.SurpriseQueue(4, 3);
     assertThat(q.offer(2), is(true));
     assertThat(q.toString(), is("min: 2.0, contents: [2.0]"));
@@ -468,10 +468,10 @@ public class ProfilerTest {
         Predicate<Profiler.Statistic> predicate,
         Comparator<Profiler.Statistic> comparator, int limit,
         List<String> columns) {
-      this.sql = Objects.requireNonNull(sql);
-      this.factory = Objects.requireNonNull(factory);
+      this.sql = Objects.requireNonNull(sql, "sql");
+      this.factory = Objects.requireNonNull(factory, "factory");
       this.columns = ImmutableList.copyOf(columns);
-      this.predicate = Objects.requireNonNull(predicate);
+      this.predicate = Objects.requireNonNull(predicate, "predicate");
       this.comparator = comparator; // null means sort on JSON representation
       this.limit = limit;
       this.config = config;
@@ -560,7 +560,7 @@ public class ProfilerTest {
                       .collect(Collectors.toList());
               assertThat(strings, matcher);
             } catch (SQLException e) {
-              throw new RuntimeException(e);
+              throw TestUtil.rethrow(e);
             }
           });
       return this;
@@ -573,7 +573,7 @@ public class ProfilerTest {
             final ResultSet r = s.executeQuery();
             return getListEnumerator(r, r.getMetaData().getColumnCount());
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         }
       };
@@ -590,7 +590,7 @@ public class ProfilerTest {
               final Comparable value = (Comparable) r.getObject(i + 1);
               values[i] = NullSentinel.mask(value);
             } catch (SQLException e) {
-              throw new RuntimeException(e);
+              throw TestUtil.rethrow(e);
             }
           }
           return ImmutableList.copyOf(values);
@@ -600,7 +600,7 @@ public class ProfilerTest {
           try {
             return r.next();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         }
 
@@ -611,7 +611,7 @@ public class ProfilerTest {
           try {
             r.close();
           } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw TestUtil.rethrow(e);
           }
         }
       };
@@ -629,11 +629,10 @@ public class ProfilerTest {
           map1.keySet().retainAll(Fluid.this.columns);
         }
         final String json = jb.toJsonString(map);
-        return json.replaceAll("\n", "").replaceAll(" ", "")
-            .replaceAll("\"", "");
+        return json.replace("\n", "")
+            .replace(" ", "")
+            .replace("\"", "");
       }
     }
   }
 }
-
-// End ProfilerTest.java

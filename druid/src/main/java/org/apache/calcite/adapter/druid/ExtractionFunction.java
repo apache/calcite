@@ -23,5 +23,3 @@ package org.apache.calcite.adapter.druid;
  */
 public interface ExtractionFunction extends DruidJson {
 }
-
-// End ExtractionFunction.java

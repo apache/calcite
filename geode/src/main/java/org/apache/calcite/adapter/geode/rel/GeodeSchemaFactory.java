@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Map;
 
+import static org.apache.calcite.adapter.geode.util.GeodeUtils.createClientCache;
+
 /**
  * Factory that creates a {@link GeodeSchema}.
  */
@@ -44,7 +46,7 @@ public class GeodeSchemaFactory implements SchemaFactory {
     // Do Nothing
   }
 
-  public synchronized Schema create(SchemaPlus parentSchema, String name,
+  @Override public synchronized Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
     String locatorHost = (String) map.get(LOCATOR_HOST);
@@ -62,9 +64,8 @@ public class GeodeSchemaFactory implements SchemaFactory {
           GeoFunctions.class.getName(), "*", true);
     }
 
-    return new GeodeSchema(locatorHost, locatorPort, Arrays.asList(regionNames),
-        pbxSerializablePackagePath);
+    return new GeodeSchema(
+        createClientCache(locatorHost, locatorPort, pbxSerializablePackagePath, true),
+        Arrays.asList(regionNames));
   }
 }
-
-// End GeodeSchemaFactory.java

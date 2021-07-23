@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Locale;
@@ -29,13 +31,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 /**
  * Stores Elasticsearch
  * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html">
- * mapping</a> information for particular index/type. This information is
- * extracted from {@code /$index/$type/_mapping} endpoint.
+ * mapping</a> information for particular index. This information is
+ * extracted from {@code /$index/_mapping} endpoint.
  *
  * <p>Instances of this class are immutable.
  */
@@ -43,14 +44,11 @@ class ElasticsearchMapping {
 
   private final String index;
 
-  private final String type;
-
   private final Map<String, Datatype> mapping;
 
-  ElasticsearchMapping(final String index, final String type,
+  ElasticsearchMapping(final String index,
       final Map<String, String> mapping) {
     this.index = Objects.requireNonNull(index, "index");
-    this.type = Objects.requireNonNull(type, "type");
     Objects.requireNonNull(mapping, "mapping");
 
     final Map<String, Datatype> transformed = mapping.entrySet().stream()
@@ -83,7 +81,7 @@ class ElasticsearchMapping {
   Optional<JsonNode> missingValueFor(String fieldName) {
     if (!mapping().containsKey(fieldName)) {
       final String message = String.format(Locale.ROOT,
-          "Field %s not defined for %s/%s", fieldName, index, type);
+          "Field %s not defined for %s", fieldName, index);
       throw new IllegalArgumentException(message);
     }
 
@@ -92,10 +90,6 @@ class ElasticsearchMapping {
 
   String index() {
     return this.index;
-  }
-
-  String type() {
-    return this.type;
   }
 
   /**
@@ -161,6 +155,8 @@ class ElasticsearchMapping {
             .atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
         // by default elastic returns dates as longs
         return FACTORY.numberNode(millisEpoch);
+      default:
+        break;
       }
 
       // this is unknown type
@@ -184,5 +180,3 @@ class ElasticsearchMapping {
   }
 
 }
-
-// End ElasticsearchMapping.java

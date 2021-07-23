@@ -76,5 +76,3 @@ public final class LogicalIntersect extends Intersect {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalIntersect.java

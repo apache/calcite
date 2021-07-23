@@ -43,5 +43,3 @@ public interface QueryableTable extends Table {
    */
   Expression getExpression(SchemaPlus schema, String tableName, Class clazz);
 }
-
-// End QueryableTable.java

@@ -20,25 +20,37 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.util.Util;
+
+import java.util.List;
 
 /**
- * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalUnion} to an
- * {@link EnumerableUnion}.
+ * Rule to convert an {@link LogicalUnion} to an {@link EnumerableUnion}.
+ * You may provide a custom config to convert other nodes that extend {@link Union}.
+ *
+ * @see EnumerableRules#ENUMERABLE_UNION_RULE
  */
 class EnumerableUnionRule extends ConverterRule {
-  EnumerableUnionRule() {
-    super(LogicalUnion.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableUnionRule");
+  /** Default configuration. */
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalUnion.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableUnionRule")
+      .withRuleFactory(EnumerableUnionRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableUnionRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
-    final LogicalUnion union = (LogicalUnion) rel;
+  @Override public RelNode convert(RelNode rel) {
+    final Union union = (Union) rel;
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
-    final RelTraitSet traitSet = union.getTraitSet().replace(out);
+    final RelTraitSet traitSet = rel.getCluster().traitSet().replace(out);
+    final List<RelNode> newInputs = Util.transform(
+        union.getInputs(), n -> convert(n, traitSet));
     return new EnumerableUnion(rel.getCluster(), traitSet,
-        convertList(union.getInputs(), out), union.all);
+        newInputs, union.all);
   }
 }
-
-// End EnumerableUnionRule.java

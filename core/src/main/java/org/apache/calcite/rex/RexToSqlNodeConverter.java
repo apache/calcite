@@ -20,8 +20,14 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Converts expressions from {@link RexNode} to {@link SqlNode}.
+ *
+ * <p>For most purposes, {@link org.apache.calcite.rel.rel2sql.SqlImplementor}
+ * is superior. See in particular
+ * {@link org.apache.calcite.rel.rel2sql.SqlImplementor.Context#toSql(RexProgram, RexNode)}.
  */
 public interface RexToSqlNodeConverter {
   //~ Methods ----------------------------------------------------------------
@@ -33,7 +39,7 @@ public interface RexToSqlNodeConverter {
    * @param node RexNode to translate
    * @return SqlNode, or null if no translation was available
    */
-  SqlNode convertNode(RexNode node);
+  @Nullable SqlNode convertNode(RexNode node);
 
   /**
    * Converts a {@link RexCall} to a {@link SqlNode} expression.
@@ -41,7 +47,7 @@ public interface RexToSqlNodeConverter {
    * @param call RexCall to translate
    * @return SqlNode, or null if no translation was available
    */
-  SqlNode convertCall(RexCall call);
+  @Nullable SqlNode convertCall(RexCall call);
 
   /**
    * Converts a {@link RexLiteral} to a {@link SqlLiteral}.
@@ -49,7 +55,7 @@ public interface RexToSqlNodeConverter {
    * @param literal RexLiteral to translate
    * @return SqlNode, or null if no translation was available
    */
-  SqlNode convertLiteral(RexLiteral literal);
+  @Nullable SqlNode convertLiteral(RexLiteral literal);
 
   /**
    * Converts a {@link RexInputRef} to a {@link SqlIdentifier}.
@@ -57,7 +63,5 @@ public interface RexToSqlNodeConverter {
    * @param ref RexInputRef to translate
    * @return SqlNode, or null if no translation was available
    */
-  SqlNode convertInputRef(RexInputRef ref);
+  @Nullable SqlNode convertInputRef(RexInputRef ref);
 }
-
-// End RexToSqlNodeConverter.java

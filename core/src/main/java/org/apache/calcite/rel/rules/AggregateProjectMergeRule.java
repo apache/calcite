@@ -16,31 +16,33 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that recognizes a {@link org.apache.calcite.rel.core.Aggregate}
@@ -52,22 +54,30 @@ import java.util.TreeSet;
  *
  * <p>In some cases, this rule has the effect of trimming: the aggregate will
  * use fewer columns than the project did.
+ *
+ * @see CoreRules#AGGREGATE_PROJECT_MERGE
  */
-public class AggregateProjectMergeRule extends RelOptRule {
-  public static final AggregateProjectMergeRule INSTANCE =
-      new AggregateProjectMergeRule(Aggregate.class, Project.class, RelFactories.LOGICAL_BUILDER);
+public class AggregateProjectMergeRule
+    extends RelRule<AggregateProjectMergeRule.Config>
+    implements TransformationRule {
 
+  /** Creates an AggregateProjectMergeRule. */
+  protected AggregateProjectMergeRule(Config config) {
+    super(config);
+  }
+
+  @Deprecated // to be removed before 2.0
   public AggregateProjectMergeRule(
       Class<? extends Aggregate> aggregateClass,
       Class<? extends Project> projectClass,
       RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(aggregateClass,
-            operand(projectClass, any())),
-        relBuilderFactory, null);
+    this(CoreRules.AGGREGATE_PROJECT_MERGE.config
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class)
+        .withOperandFor(aggregateClass, projectClass));
   }
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final Project project = call.rel(1);
     RelNode x = apply(call, aggregate, project);
@@ -76,18 +86,10 @@ public class AggregateProjectMergeRule extends RelOptRule {
     }
   }
 
-  public static RelNode apply(RelOptRuleCall call, Aggregate aggregate,
+  public static @Nullable RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
     // Find all fields which we need to be straightforward field projections.
-    final Set<Integer> interestingFields = new TreeSet<>();
-    interestingFields.addAll(aggregate.getGroupSet().asList());
-    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-      interestingFields.addAll(aggregateCall.getArgList());
-      if (aggregateCall.filterArg >= 0) {
-        interestingFields.add(aggregateCall.filterArg);
-      }
-      interestingFields.addAll(RelCollations.ordinals(aggregateCall.collation));
-    }
+    final Set<Integer> interestingFields = RelOptUtil.getAllFields(aggregate);
 
     // Build the map from old to new; abort if any entry is not a
     // straightforward field projection.
@@ -120,27 +122,22 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), project.getInput(),
-            aggregate.indicator, newGroupSet, newGroupingSets,
-            aggCalls.build());
+            newGroupSet, newGroupingSets, aggCalls.build());
 
     // Add a project if the group set is not in the same order or
     // contains duplicates.
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newAggregate);
     final List<Integer> newKeys =
-        Lists.transform(aggregate.getGroupSet().asList(), map::get);
+        Util.transform(aggregate.getGroupSet().asList(),
+            key -> requireNonNull(map.get(key),
+                () -> "no value found for key " + key + " in " + map));
     if (!newKeys.equals(newGroupSet.asList())) {
       final List<Integer> posList = new ArrayList<>();
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
       }
-      if (aggregate.indicator) {
-        for (int newKey : newKeys) {
-          posList.add(aggregate.getGroupCount() + newGroupSet.indexOf(newKey));
-        }
-      }
-      for (int i = newAggregate.getGroupCount()
-                   + newAggregate.getIndicatorCount();
+      for (int i = newAggregate.getGroupCount();
            i < newAggregate.getRowType().getFieldCount(); i++) {
         posList.add(i);
       }
@@ -149,6 +146,22 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
     return relBuilder.build();
   }
-}
 
-// End AggregateProjectMergeRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(Aggregate.class, Project.class);
+
+    @Override default AggregateProjectMergeRule toRule() {
+      return new AggregateProjectMergeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Aggregate> aggregateClass,
+        Class<? extends Project> projectClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(aggregateClass).oneInput(b1 ->
+              b1.operand(projectClass).anyInputs())).as(Config.class);
+    }
+  }
+}

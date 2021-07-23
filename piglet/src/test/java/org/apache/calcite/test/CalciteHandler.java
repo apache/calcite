@@ -20,6 +20,7 @@ import org.apache.calcite.piglet.Handler;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.PigRelBuilder;
 import org.apache.calcite.tools.RelRunners;
+import org.apache.calcite.util.TestUtil;
 
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -42,15 +43,20 @@ class CalciteHandler extends Handler {
   }
 
   @Override protected void dump(RelNode rel) {
+    dump(rel, writer);
+  }
+
+  public static void dump(RelNode rel, Writer writer) {
     try (PreparedStatement preparedStatement = RelRunners.run(rel)) {
       final ResultSet resultSet = preparedStatement.executeQuery();
-      dump(resultSet, true);
+      dump(resultSet, true, new PrintWriter(writer));
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
-  private void dump(ResultSet resultSet, boolean newline) throws SQLException {
+  private static void dump(ResultSet resultSet, boolean newline, PrintWriter writer)
+      throws SQLException {
     final int columnCount = resultSet.getMetaData().getColumnCount();
     int r = 0;
     while (resultSet.next()) {
@@ -65,10 +71,10 @@ class CalciteHandler extends Handler {
         }
       } else {
         writer.print('(');
-        dumpColumn(resultSet, 1);
+        dumpColumn(resultSet, 1, writer);
         for (int i = 2; i <= columnCount; i++) {
           writer.print(',');
-          dumpColumn(resultSet, i);
+          dumpColumn(resultSet, i, writer);
         }
         if (newline) {
           writer.println(')');
@@ -83,13 +89,16 @@ class CalciteHandler extends Handler {
    *
    * @param i Column ordinal, 1-based
    */
-  private void dumpColumn(ResultSet resultSet, int i) throws SQLException {
+  private static void dumpColumn(ResultSet resultSet, int i, PrintWriter writer)
+      throws SQLException {
     final int t = resultSet.getMetaData().getColumnType(i);
     switch (t) {
     case Types.ARRAY:
       final Array array = resultSet.getArray(i);
       writer.print("{");
-      dump(array.getResultSet(), false);
+      if (array != null) {
+        dump(array.getResultSet(), false, writer);
+      }
       writer.print("}");
       return;
     case Types.REAL:
@@ -101,5 +110,3 @@ class CalciteHandler extends Handler {
     }
   }
 }
-
-// End CalciteHandler.java

@@ -24,6 +24,7 @@ import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcImplementor;
 import org.apache.calcite.adapter.jdbc.JdbcRel;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -33,12 +34,13 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.BuiltInMethod;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,12 +62,12 @@ public class JdbcToSparkConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  public SparkRel.Result implementSpark(SparkRel.Implementor implementor) {
+  @Override public SparkRel.Result implementSpark(SparkRel.Implementor implementor) {
     // Generate:
     //   ResultSetEnumerable.of(schema.getDataSource(), "select ...")
     final BlockBuilder list = new BlockBuilder();
@@ -77,7 +79,7 @@ public class JdbcToSparkConverter
     final JdbcConvention jdbcConvention =
         (JdbcConvention) child.getConvention();
     String sql = generateSql(jdbcConvention.dialect);
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("[" + sql + "]");
     }
     final Expression sqlLiteral =
@@ -113,9 +115,7 @@ public class JdbcToSparkConverter
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitChild(0, getInput());
+        jdbcImplementor.visitInput(this, 0);
     return result.asStatement().toSqlString(dialect).getSql();
   }
 }
-
-// End JdbcToSparkConverter.java

@@ -24,5 +24,3 @@ import org.apache.calcite.plan.RelOptRule;
  */
 public interface RuleSet extends Iterable<RelOptRule> {
 }
-
-// End RuleSet.java

@@ -31,16 +31,7 @@ public enum NullPolicy {
   SEMI_STRICT,
   /** If any of the arguments are null, return null. */
   ANY,
-  /** If any of the arguments are false, result is false; else if any
-   * arguments are null, result is null; else true. */
-  AND,
-  /** If any of the arguments are true, result is true; else if any
-   * arguments are null, result is null; else false. */
-  OR,
-  /** If any argument is true, result is false; else if any argument is null,
-   * result is null; else true. */
-  NOT,
+  /** If the first argument is null, return null. */
+  ARG0,
   NONE
 }
-
-// End NullPolicy.java

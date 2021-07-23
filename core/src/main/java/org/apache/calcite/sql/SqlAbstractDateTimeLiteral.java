@@ -22,6 +22,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampString;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A SQL literal representing a DATE, TIME or TIMESTAMP value.
  *
@@ -55,7 +57,7 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
 
   /** Converts this literal to a {@link TimestampString}. */
   protected TimestampString getTimestamp() {
-    return (TimestampString) value;
+    return (TimestampString) requireNonNull(value, "value");
   }
 
   public int getPrec() {
@@ -65,25 +67,23 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   /**
    * Returns e.g. <code>DATE '1969-07-21'</code>.
    */
-  public abstract String toString();
+  @Override public abstract String toString();
 
   /**
    * Returns e.g. <code>1969-07-21</code>.
    */
   public abstract String toFormattedString();
 
-  public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
     return typeFactory.createSqlType(
         getTypeName(),
         getPrec());
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
     writer.literal(this.toString());
   }
 }
-
-// End SqlAbstractDateTimeLiteral.java

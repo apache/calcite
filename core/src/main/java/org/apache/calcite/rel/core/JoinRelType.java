@@ -16,13 +16,61 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apiguardian.api.API;
+
 import java.util.Locale;
 
 /**
  * Enumeration of join types.
  */
 public enum JoinRelType {
-  INNER, LEFT, RIGHT, FULL;
+  /**
+   * Inner join.
+   */
+  INNER,
+
+  /**
+   * Left-outer join.
+   */
+  LEFT,
+
+  /**
+   * Right-outer join.
+   */
+  RIGHT,
+
+  /**
+   * Full-outer join.
+   */
+  FULL,
+
+  /**
+   * Semi-join.
+   *
+   * <p>For example, {@code EMP semi-join DEPT} finds all {@code EMP} records
+   * that have a corresponding {@code DEPT} record:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
+   */
+  SEMI,
+
+  /**
+   * Anti-join (also known as Anti-semi-join).
+   *
+   * <p>For example, {@code EMP anti-join DEPT} finds all {@code EMP} records
+   * that do not have a corresponding {@code DEPT} record:
+   *
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE NOT EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
+   * </blockquote>
+   */
+  ANTI;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
@@ -41,6 +89,14 @@ public enum JoinRelType {
    */
   public boolean generatesNullsOnLeft() {
     return (this == RIGHT) || (this == FULL);
+  }
+
+  /**
+   * Returns whether a join of this type is an outer join, returns true if the join type may
+   * generate NULL values, either on the left-hand side or right-hand side.
+   */
+  public boolean isOuterJoin() {
+    return (this == LEFT) || (this == RIGHT) || (this == FULL);
   }
 
   /**
@@ -94,6 +150,38 @@ public enum JoinRelType {
       return this;
     }
   }
-}
 
-// End JoinRelType.java
+  public boolean projectsRight() {
+    return this != SEMI && this != ANTI;
+  }
+
+  /** Returns whether this join type accepts pushing predicates from above into its predicate. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
+  public boolean canPushIntoFromAbove() {
+    return (this == INNER) || (this == SEMI);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from above into its left input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
+  public boolean canPushLeftFromAbove() {
+    return (this == INNER) || (this == LEFT) || (this == SEMI) || (this == ANTI);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from above into its right input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
+  public boolean canPushRightFromAbove() {
+    return (this == INNER) || (this == RIGHT);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from within into its left input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
+  public boolean canPushLeftFromWithin() {
+    return (this == INNER) || (this == RIGHT) || (this == SEMI);
+  }
+
+  /** Returns whether this join type accepts pushing predicates from within into its right input. */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
+  public boolean canPushRightFromWithin() {
+    return (this == INNER) || (this == LEFT) || (this == SEMI);
+  }
+}

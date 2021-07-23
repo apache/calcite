@@ -17,51 +17,73 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Utilities for {@link RelOptTable.ViewExpander} and
  * {@link RelOptTable.ToRelContext}.
  */
-@Nonnull
 public abstract class ViewExpanders {
   private ViewExpanders() {}
 
   /** Converts a {@code ViewExpander} to a {@code ToRelContext}. */
   public static RelOptTable.ToRelContext toRelContext(
-      RelOptTable.ViewExpander viewExpander, RelOptCluster cluster) {
-    if (viewExpander instanceof RelOptTable.ToRelContext) {
-      return (RelOptTable.ToRelContext) viewExpander;
-    }
+      RelOptTable.ViewExpander viewExpander,
+      RelOptCluster cluster,
+      List<RelHint> hints) {
     return new RelOptTable.ToRelContext() {
-      public RelOptCluster getCluster() {
+      @Override public RelOptCluster getCluster() {
         return cluster;
       }
 
-      public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath, List<String> viewPath) {
+      @Override public List<RelHint> getTableHints() {
+        return hints;
+      }
+
+      @Override public RelRoot expandView(RelDataType rowType, String queryString,
+          List<String> schemaPath, @Nullable List<String> viewPath) {
         return viewExpander.expandView(rowType, queryString, schemaPath,
             viewPath);
       }
     };
   }
 
+  /** Converts a {@code ViewExpander} to a {@code ToRelContext}. */
+  public static RelOptTable.ToRelContext toRelContext(
+      RelOptTable.ViewExpander viewExpander,
+      RelOptCluster cluster) {
+    return toRelContext(viewExpander, cluster, ImmutableList.of());
+  }
+
   /** Creates a simple {@code ToRelContext} that cannot expand views. */
   public static RelOptTable.ToRelContext simpleContext(RelOptCluster cluster) {
+    return simpleContext(cluster, ImmutableList.of());
+  }
+
+  /** Creates a simple {@code ToRelContext} that cannot expand views. */
+  public static RelOptTable.ToRelContext simpleContext(
+      RelOptCluster cluster,
+      List<RelHint> hints) {
     return new RelOptTable.ToRelContext() {
-      public RelOptCluster getCluster() {
+      @Override public RelOptCluster getCluster() {
         return cluster;
       }
 
-      public RelRoot expandView(RelDataType rowType, String queryString,
-          List<String> schemaPath, List<String> viewPath) {
+      @Override public RelRoot expandView(RelDataType rowType, String queryString,
+          List<String> schemaPath, @Nullable List<String> viewPath) {
         throw new UnsupportedOperationException();
+      }
+
+      @Override public List<RelHint> getTableHints() {
+        return hints;
       }
     };
   }
 }
-
-// End ViewExpanders.java

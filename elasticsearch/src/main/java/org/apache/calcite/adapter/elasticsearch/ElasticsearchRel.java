@@ -131,5 +131,3 @@ public interface ElasticsearchRel extends RelNode {
 
   }
 }
-
-// End ElasticsearchRel.java

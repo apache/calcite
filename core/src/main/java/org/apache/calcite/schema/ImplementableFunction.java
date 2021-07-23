@@ -31,5 +31,3 @@ public interface ImplementableFunction extends Function {
    */
   CallImplementor getImplementor();
 }
-
-// End ImplementableFunction.java

@@ -34,6 +34,7 @@ public interface Visitor<R> {
   R visit(DynamicExpression dynamicExpression);
   R visit(FieldDeclaration fieldDeclaration);
   R visit(ForStatement forStatement);
+  R visit(ForEachStatement forEachStatement);
   R visit(FunctionExpression functionExpression);
   R visit(GotoStatement gotoStatement);
   R visit(IndexExpression indexExpression);
@@ -56,5 +57,3 @@ public interface Visitor<R> {
   R visit(UnaryExpression unaryExpression);
   R visit(WhileStatement whileStatement);
 }
-
-// End Visitor.java

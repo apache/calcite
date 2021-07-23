@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * String of bits.
@@ -48,7 +51,7 @@ public class BitString {
   protected BitString(
       String bits,
       int bitCount) {
-    assert bits.replaceAll("1", "").replaceAll("0", "").length() == 0
+    assert bits.replace("1", "").replace("0", "").length() == 0
         : "bit string '" + bits + "' contains digits other than {0, 1}";
     this.bits = bits;
     this.bitCount = bitCount;
@@ -86,8 +89,19 @@ public class BitString {
     return new BitString(s, n);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return toBitString();
+  }
+
+  @Override public int hashCode() {
+    return bits.hashCode() + bitCount;
+  }
+
+  @Override public boolean equals(@Nullable Object o) {
+    return o == this
+        || o instanceof BitString
+        && bits.equals(((BitString) o).bits)
+        && bitCount == ((BitString) o).bitCount;
   }
 
   public int getBitCount() {
@@ -122,6 +136,8 @@ public class BitString {
     case 7: // B'1000000' -> X'40'
     case 0: // B'10000000' -> X'80', and B'' -> X''
       return s;
+    default:
+      break;
     }
     if ((bitCount % 8) == 4) {
       return s.substring(1);
@@ -192,17 +208,15 @@ public class BitString {
    * @return BitString
    */
   public static BitString createFromBytes(byte[] bytes) {
-    assert bytes != null;
-    int bitCount = bytes.length * 8;
+    int bitCount = Objects.requireNonNull(bytes, "bytes").length * 8;
     StringBuilder sb = new StringBuilder(bitCount);
     for (byte b : bytes) {
-      for (int i = 7; i >= 0; --i) {
-        sb.append(((b & 1) == 0) ? '0' : '1');
-        b >>= 1;
+      final String s = Integer.toBinaryString(Byte.toUnsignedInt(b));
+      for (int i = s.length(); i < 8; i++) {
+        sb.append('0'); // pad to length 8
       }
+      sb.append(s);
     }
     return new BitString(sb.toString(), bitCount);
   }
 }
-
-// End BitString.java

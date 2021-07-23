@@ -20,7 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
 /**
- * Variable which references a field of an input relational expression
+ * Variable that references a field of an input relational expression.
  */
 public class RexPatternFieldRef extends RexInputRef {
   private final String alpha;
@@ -55,5 +55,3 @@ public class RexPatternFieldRef extends RexInputRef {
     return SqlKind.PATTERN_INPUT_REF;
   }
 }
-
-// End RexPatternFieldRef.java

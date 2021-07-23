@@ -35,10 +35,8 @@ public class OrdinalReturnTypeInference implements SqlReturnTypeInference {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     return opBinding.getOperandType(ordinal);
   }
 }
-
-// End OrdinalReturnTypeInference.java

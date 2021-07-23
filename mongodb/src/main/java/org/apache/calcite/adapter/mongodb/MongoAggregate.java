@@ -29,6 +29,8 @@ import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,15 +46,14 @@ public class MongoAggregate
   public MongoAggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
-      boolean indicator,
+      RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() == MongoRel.CONVENTION;
-    assert getConvention() == child.getConvention();
+    assert getConvention() == input.getConvention();
 
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.isDistinct()) {
@@ -69,11 +70,20 @@ public class MongoAggregate
     }
   }
 
+  @Deprecated // to be removed before 2.0
+  public MongoAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+      throws InvalidRelException {
+    this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
+  }
+
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      boolean indicator, ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
     try {
-      return new MongoAggregate(getCluster(), traitSet, input, indicator,
+      return new MongoAggregate(getCluster(), traitSet, input,
           groupSet, groupSets, aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
@@ -82,7 +92,7 @@ public class MongoAggregate
     }
   }
 
-  public void implement(Implementor implementor) {
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     List<String> list = new ArrayList<>();
     final List<String> inNames =
@@ -146,7 +156,7 @@ public class MongoAggregate
     }
   }
 
-  private String toMongo(SqlAggFunction aggregation, List<String> inNames,
+  private static String toMongo(SqlAggFunction aggregation, List<String> inNames,
       List<Integer> args) {
     if (aggregation == SqlStdOperatorTable.COUNT) {
       if (args.size() == 0) {
@@ -180,5 +190,3 @@ public class MongoAggregate
     }
   }
 }
-
-// End MongoAggregate.java

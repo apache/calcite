@@ -25,14 +25,19 @@ import org.apache.calcite.sql.advise.SqlAdvisor;
 
 import com.google.common.base.CaseFormat;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Modifier;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Runtime context allowing access to the tables in a database.
+ *
+ * @see DataContexts
  */
 public interface DataContext {
   ParameterExpression ROOT =
@@ -41,7 +46,7 @@ public interface DataContext {
   /**
    * Returns a sub-schema with a given name, or null.
    */
-  SchemaPlus getRootSchema();
+  @Nullable SchemaPlus getRootSchema();
 
   /**
    * Returns the type factory.
@@ -61,7 +66,7 @@ public interface DataContext {
    *
    * @param name Name of variable
    */
-  Object get(String name);
+  @Nullable Object get(String name);
 
   /** Variable that may be asked for in a call to {@link DataContext#get}. */
   enum Variable {
@@ -101,10 +106,27 @@ public interface DataContext {
     /** Writer to the standard output (stdout). */
     STDOUT("stdout", OutputStream.class),
 
+    /** Locale in which the current statement is executing.
+     * Affects the behavior of functions such as {@code DAYNAME} and
+     * {@code MONTHNAME}. Required; defaults to the root locale if the
+     * connection does not specify a locale. */
+    LOCALE("locale", Locale.class),
+
     /** Time zone in which the current statement is executing. Required;
      * defaults to the time zone of the JVM if the connection does not specify a
      * time zone. */
-    TIME_ZONE("timeZone", TimeZone.class);
+    TIME_ZONE("timeZone", TimeZone.class),
+
+    /** The query user.
+     *
+     * <p>Default value is "sa". */
+    USER("user", String.class),
+
+    /** The system user.
+     *
+     * <p>Default value is "user.name" from
+     * {@link System#getProperty(String)}. */
+    SYSTEM_USER("systemUser", String.class);
 
     public final String camelName;
     public final Class clazz;
@@ -123,5 +145,3 @@ public interface DataContext {
     }
   }
 }
-
-// End DataContext.java

@@ -36,5 +36,3 @@ public abstract class Statement extends AbstractNode {
   // kind of statement; it can't become an expression.
   @Override public abstract Statement accept(Shuttle shuttle);
 }
-
-// End Statement.java

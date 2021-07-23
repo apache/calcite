@@ -34,5 +34,3 @@ public class Chi extends SingleRel {
     super(cluster, traits, input);
   }
 }
-
-// End Chi.java

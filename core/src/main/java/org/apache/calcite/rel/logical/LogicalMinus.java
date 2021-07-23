@@ -76,5 +76,3 @@ public final class LogicalMinus extends Minus {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalMinus.java

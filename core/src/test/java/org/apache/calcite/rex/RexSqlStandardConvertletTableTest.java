@@ -30,21 +30,21 @@ import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Closer;
+import org.apache.calcite.util.TestUtil;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit test for {@link org.apache.calcite.rex.RexSqlStandardConvertletTable}.
  */
-public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
+class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
 
-  @Test
-  public void testCoalesce() {
+  @Test void testCoalesce() {
     final Project project = (Project) convertSqlToRel(
             "SELECT COALESCE(NULL, 'a')", false);
-    final RexNode rex = project.getChildExps().get(0);
+    final RexNode rex = project.getProjects().get(0);
     final RexToSqlNodeConverter rexToSqlNodeConverter = rexToSqlNodeConverter();
     final SqlNode convertedSql = rexToSqlNodeConverter.convertNode(rex);
     assertEquals(
@@ -52,12 +52,11 @@ public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
             convertedSql.toString());
   }
 
-  @Test
-  public void testCaseWithValue() {
+  @Test void testCaseWithValue() {
     final Project project =
             (Project) convertSqlToRel(
                     "SELECT CASE NULL WHEN NULL THEN NULL ELSE 'a' END", false);
-    final RexNode rex = project.getChildExps().get(0);
+    final RexNode rex = project.getProjects().get(0);
     final RexToSqlNodeConverter rexToSqlNodeConverter = rexToSqlNodeConverter();
     final SqlNode convertedSql = rexToSqlNodeConverter.convertNode(rex);
     assertEquals(
@@ -65,11 +64,10 @@ public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
             convertedSql.toString());
   }
 
-  @Test
-  public void testCaseNoValue() {
+  @Test void testCaseNoValue() {
     final Project project = (Project) convertSqlToRel(
             "SELECT CASE WHEN NULL IS NULL THEN NULL ELSE 'a' END", false);
-    final RexNode rex = project.getChildExps().get(0);
+    final RexNode rex = project.getProjects().get(0);
     final RexToSqlNodeConverter rexToSqlNodeConverter = rexToSqlNodeConverter();
     final SqlNode convertedSql = rexToSqlNodeConverter.convertNode(rex);
     assertEquals(
@@ -80,7 +78,7 @@ public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
   private RelNode convertSqlToRel(String sql, boolean simplifyRex) {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
             .defaultSchema(CalciteSchema.createRootSchema(false).plus())
-            .parserConfig(SqlParser.configBuilder().build())
+            .parserConfig(SqlParser.config())
             .build();
     final Planner planner = Frameworks.getPlanner(config);
     try (Closer closer = new Closer()) {
@@ -89,7 +87,7 @@ public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
       final SqlNode validated = planner.validate(parsed);
       return planner.rel(validated).rel;
     } catch (SqlParseException | RelConversionException | ValidationException e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
@@ -99,5 +97,3 @@ public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
   }
 
 }
-
-// End RexSqlStandardConvertletTableTest.java

@@ -18,9 +18,4 @@
 /**
  * Defines a type system for relational expressions.
  */
-@PackageMarker
 package org.apache.calcite.rel.type;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

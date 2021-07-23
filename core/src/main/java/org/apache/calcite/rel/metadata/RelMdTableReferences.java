@@ -20,13 +20,17 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
@@ -34,6 +38,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -67,21 +73,25 @@ public class RelMdTableReferences
 
   //~ Methods ----------------------------------------------------------------
 
-  public MetadataDef<BuiltInMetadata.TableReferences> getDef() {
+  @Override public MetadataDef<BuiltInMetadata.TableReferences> getDef() {
     return BuiltInMetadata.TableReferences.DEF;
   }
 
   // Catch-all rule when none of the others apply.
-  public Set<RelTableRef> getTableReferences(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(RelNode rel, RelMetadataQuery mq) {
     return null;
   }
 
-  public Set<RelTableRef> getTableReferences(HepRelVertex rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(HepRelVertex rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getCurrentRel());
   }
 
-  public Set<RelTableRef> getTableReferences(RelSubset rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(Util.first(rel.getBest(), rel.getOriginal()));
+  public @Nullable Set<RelTableRef> getTableReferences(RelSubset rel, RelMetadataQuery mq) {
+    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
+    if (bestOrOriginal == null) {
+      return null;
+    }
+    return mq.getTableReferences(bestOrOriginal);
   }
 
   /**
@@ -94,14 +104,14 @@ public class RelMdTableReferences
   /**
    * Table references from Aggregate.
    */
-  public Set<RelTableRef> getTableReferences(Aggregate rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(Aggregate rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
 
   /**
    * Table references from Join.
    */
-  public Set<RelTableRef> getTableReferences(Join rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(Join rel, RelMetadataQuery mq) {
     final RelNode leftInput = rel.getLeft();
     final RelNode rightInput = rel.getRight();
     final Set<RelTableRef> result = new HashSet<>();
@@ -143,12 +153,12 @@ public class RelMdTableReferences
   }
 
   /**
-   * Table references from {@link Union}.
+   * Table references from Union, Intersect, Minus.
    *
    * <p>For Union operator, we might be able to extract multiple table
    * references.
    */
-  public Set<RelTableRef> getTableReferences(Union rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(SetOp rel, RelMetadataQuery mq) {
     final Set<RelTableRef> result = new HashSet<>();
 
     // Infer column origin expressions for given references
@@ -186,30 +196,57 @@ public class RelMdTableReferences
   /**
    * Table references from Project.
    */
-  public Set<RelTableRef> getTableReferences(Project rel, final RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(Project rel, final RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
 
   /**
    * Table references from Filter.
    */
-  public Set<RelTableRef> getTableReferences(Filter rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(Filter rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /**
+   * Table references from Calc.
+   */
+  public @Nullable Set<RelTableRef> getTableReferences(Calc rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
 
   /**
    * Table references from Sort.
    */
-  public Set<RelTableRef> getTableReferences(Sort rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(Sort rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /**
+   * Table references from TableModify.
+   */
+  public @Nullable Set<RelTableRef> getTableReferences(TableModify rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
 
   /**
    * Table references from Exchange.
    */
-  public Set<RelTableRef> getTableReferences(Exchange rel, RelMetadataQuery mq) {
+  public @Nullable Set<RelTableRef> getTableReferences(Exchange rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
-}
 
-// End RelMdTableReferences.java
+  /**
+   * Table references from Window.
+   */
+  public @Nullable Set<RelTableRef> getTableReferences(Window rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /**
+   * Table references from Sample.
+   */
+  public @Nullable Set<RelTableRef> getTableReferences(Sample rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+}

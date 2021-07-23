@@ -76,5 +76,3 @@ class SqlTimestampDiffFunction extends SqlFunction {
         SqlFunctionCategory.TIMEDATE);
   }
 }
-
-// End SqlTimestampDiffFunction.java

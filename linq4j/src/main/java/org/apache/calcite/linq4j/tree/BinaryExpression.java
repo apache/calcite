@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents an expression that has a binary operator.
@@ -25,7 +29,7 @@ import java.util.Objects;
 public class BinaryExpression extends Expression {
   public final Expression expression0;
   public final Expression expression1;
-  private final Primitive primitive;
+  private final @Nullable Primitive primitive;
 
   BinaryExpression(ExpressionType nodeType, Type type, Expression expression0,
       Expression expression1) {
@@ -44,109 +48,179 @@ public class BinaryExpression extends Expression {
     return visitor.visit(this, expression0, expression1);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public Object evaluate(Evaluator evaluator) {
+  @Override public Object evaluate(Evaluator evaluator) {
     switch (nodeType) {
     case AndAlso:
-      return (Boolean) expression0.evaluate(evaluator)
-             && (Boolean) expression1.evaluate(evaluator);
+      return evaluateBoolean(evaluator, expression0)
+             && evaluateBoolean(evaluator, expression1);
     case Add:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator) + (Integer) expression1
-            .evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) + evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) + evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) + evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) + evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               + (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) + evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) + evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
     case Divide:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator) / (Integer) expression1
-            .evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) / evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) / evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) / evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) / evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               / (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) / evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) / evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
     case Equal:
-      return expression0.evaluate(evaluator)
-          .equals(expression1.evaluate(evaluator));
+      return Objects.equals(expression0.evaluate(evaluator), expression1.evaluate(evaluator));
     case GreaterThan:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator) > (Integer) expression1
-            .evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) > evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) > evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) > evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) > evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               > (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) > evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) > evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
     case GreaterThanOrEqual:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator)
-               >= (Integer) expression1.evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) >= evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) >= evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) >= evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) >= evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               >= (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) >= evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) >= evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
     case LessThan:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator) < (Integer) expression1
-            .evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) < evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) < evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) < evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) < evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               < (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) < evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) < evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
     case LessThanOrEqual:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator)
-               <= (Integer) expression1.evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) <= evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) <= evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) <= evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) <= evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               <= (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) <= evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) <= evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
     case Multiply:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator) * (Integer) expression1
-            .evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) * evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) * evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) * evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) * evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               * (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) * evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) * evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
     case NotEqual:
-      return !expression0.evaluate(evaluator)
-          .equals(expression1.evaluate(evaluator));
+      return !Objects.equals(expression0.evaluate(evaluator), expression1.evaluate(evaluator));
     case OrElse:
-      return (Boolean) expression0.evaluate(evaluator)
-             || (Boolean) expression1.evaluate(evaluator);
+      return evaluateBoolean(evaluator, expression0)
+             || evaluateBoolean(evaluator, expression1);
     case Subtract:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
-        return (Integer) expression0.evaluate(evaluator) - (Integer) expression1
-            .evaluate(evaluator);
+        return evaluateInt(expression0, evaluator) - evaluateInt(expression1, evaluator);
+      case SHORT:
+        return evaluateShort(expression0, evaluator) - evaluateShort(expression1, evaluator);
+      case BYTE:
+        return evaluateByte(expression0, evaluator) - evaluateByte(expression1, evaluator);
+      case FLOAT:
+        return evaluateFloat(expression0, evaluator) - evaluateFloat(expression1, evaluator);
       case DOUBLE:
-        return (Double) expression0.evaluate(evaluator)
-               - (Double) expression1.evaluate(evaluator);
+        return evaluateDouble(expression0, evaluator) - evaluateDouble(expression1, evaluator);
+      case LONG:
+        return evaluateLong(expression0, evaluator) - evaluateLong(expression1, evaluator);
       default:
         throw cannotEvaluate();
       }
@@ -155,7 +229,7 @@ public class BinaryExpression extends Expression {
     }
   }
 
-  void accept(ExpressionWriter writer, int lprec, int rprec) {
+  @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     if (writer.requireParentheses(this, lprec, rprec)) {
       return;
     }
@@ -169,7 +243,43 @@ public class BinaryExpression extends Expression {
       + nodeType + ", primitive=" + primitive);
   }
 
-  @Override public boolean equals(Object o) {
+  private static boolean evaluateBoolean(Evaluator evaluator, Expression expression) {
+    return (Boolean) requireNonNull(
+        expression.evaluate(evaluator),
+        () -> "boolean expected, got null while evaluating " + expression);
+  }
+
+  private static Number evaluateNumber(Expression expression, Evaluator evaluator) {
+    return (Number) requireNonNull(
+        expression.evaluate(evaluator),
+        () -> "number expected, got null while evaluating " + expression);
+  }
+
+  private static int evaluateInt(Expression expression, Evaluator evaluator) {
+    return evaluateNumber(expression, evaluator).intValue();
+  }
+
+  private static short evaluateShort(Expression expression, Evaluator evaluator) {
+    return evaluateNumber(expression, evaluator).shortValue();
+  }
+
+  private static long evaluateLong(Expression expression, Evaluator evaluator) {
+    return evaluateNumber(expression, evaluator).longValue();
+  }
+
+  private static byte evaluateByte(Expression expression, Evaluator evaluator) {
+    return evaluateNumber(expression, evaluator).byteValue();
+  }
+
+  private static float evaluateFloat(Expression expression, Evaluator evaluator) {
+    return evaluateNumber(expression, evaluator).floatValue();
+  }
+
+  private static double evaluateDouble(Expression expression, Evaluator evaluator) {
+    return evaluateNumber(expression, evaluator).doubleValue();
+  }
+
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -199,5 +309,3 @@ public class BinaryExpression extends Expression {
     return Objects.hash(nodeType, type, expression0, expression1, primitive);
   }
 }
-
-// End BinaryExpression.java

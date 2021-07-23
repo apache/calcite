@@ -20,7 +20,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 
 import com.google.common.collect.ImmutableMultiset;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -30,14 +30,14 @@ import java.sql.Statement;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Test case for CALCITE-542. */
-public class RelMdColumnOriginsTest {
+class RelMdColumnOriginsTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-542">[CALCITE-542]
    * Support for Aggregate with grouping sets in RelMdColumnOrigins</a>. */
-  @Test public void testQueryWithAggregateGroupingSets() throws Exception {
+  @Test void testQueryWithAggregateGroupingSets() throws Exception {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
@@ -75,5 +75,3 @@ public class RelMdColumnOriginsTest {
     connection.close();
   }
 }
-
-// End RelMdColumnOriginsTest.java

@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
@@ -85,9 +86,9 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       RelProtoDataType protoRowType, Set<String> metricFieldNames,
       String timestampFieldName, List<Interval> intervals,
       Map<String, List<ComplexMetric>> complexMetrics, Map<String, SqlTypeName> allFields) {
-    this.timestampFieldName = Objects.requireNonNull(timestampFieldName);
-    this.schema = Objects.requireNonNull(schema);
-    this.dataSource = Objects.requireNonNull(dataSource);
+    this.timestampFieldName = Objects.requireNonNull(timestampFieldName, "timestampFieldName");
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
     this.protoRowType = protoRowType;
     this.metricFieldNames = ImmutableSet.copyOf(metricFieldNames);
     this.intervals = intervals != null ? ImmutableList.copyOf(intervals)
@@ -180,7 +181,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   }
 
   @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-      SqlNode parent, CalciteConnectionConfig config) {
+      @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
     assert isRolledUp(column);
     // Our rolled up columns are only allowed in COUNT(DISTINCT ...) aggregate functions.
     // We only allow this when approximate results are acceptable.
@@ -192,13 +193,13 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
         && isValidParentKind(parent);
   }
 
-  private boolean isValidParentKind(SqlNode node) {
+  private static boolean isValidParentKind(SqlNode node) {
     return node.getKind() == SqlKind.SELECT
             || node.getKind() == SqlKind.FILTER
             || isSupportedPostAggOperation(node.getKind());
   }
 
-  private boolean isCountDistinct(SqlCall call) {
+  private static boolean isCountDistinct(SqlCall call) {
     return call.getKind() == SqlKind.COUNT
             && call.getFunctionQuantifier() != null
             && call.getFunctionQuantifier().getValue() == SqlSelectKeyword.DISTINCT;
@@ -206,32 +207,29 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
 
   // Post aggs support +, -, /, * so we should allow the parent of a count distinct to be any one of
   // those.
-  private boolean isSupportedPostAggOperation(SqlKind kind) {
+  private static boolean isSupportedPostAggOperation(SqlKind kind) {
     return kind == SqlKind.PLUS
             || kind == SqlKind.MINUS
             || kind == SqlKind.DIVIDE
             || kind == SqlKind.TIMES;
   }
 
-  /**
-   * Returns the list of {@link ComplexMetric} that match the given <code>alias</code> if it exists,
-   * otherwise returns an empty list, never <code>null</code>
-   * */
+  /** Returns the list of {@link ComplexMetric} that match the given
+   * <code>alias</code> if it exists, otherwise returns an empty list, never
+   * <code>null</code>. */
   public List<ComplexMetric> getComplexMetricsFrom(String alias) {
     return complexMetrics.containsKey(alias)
             ? complexMetrics.get(alias)
             : new ArrayList<>();
   }
 
-  /**
-   * Returns true if and only if the given <code>alias</code> is a reference to a registered
-   * {@link ComplexMetric}
-   * */
+  /** Returns whether the given <code>alias</code> is a reference to a
+   * registered {@link ComplexMetric}. */
   public boolean isComplexMetric(String alias) {
     return complexMetrics.get(alias) != null;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
     final List<String> fieldNames = rowType.getFieldNames();
     Preconditions.checkArgument(fieldNames.contains(timestampFieldName));
@@ -239,10 +237,10 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     return rowType;
   }
 
-  public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
-    final TableScan scan = LogicalTableScan.create(cluster, relOptTable);
+    final TableScan scan = LogicalTableScan.create(cluster, relOptTable, ImmutableList.of());
     return DruidQuery.create(cluster,
         cluster.traitSetOf(BindableConvention.INSTANCE), relOptTable, this,
         ImmutableList.of(scan));
@@ -268,7 +266,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       this.timestampColumn = timestampColumn;
     }
 
-    public RelDataType apply(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType apply(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Map.Entry<String, SqlTypeName> field : fields.entrySet()) {
         final String key = field.getKey();
@@ -280,5 +278,3 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     }
   }
 }
-
-// End DruidTable.java

@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,7 +51,6 @@ public final class HrClusteredSchema extends AbstractSchema {
   private final ImmutableMap<String, Table> tables;
 
   public HrClusteredSchema() {
-    super();
     tables = ImmutableMap.<String, Table>builder()
         .put("emps",
             new PkClusteredTable(
@@ -66,8 +67,7 @@ public final class HrClusteredSchema extends AbstractSchema {
                     new Object[]{100, 10, "Bill", 10000, 1000},
                     new Object[]{110, 10, "Theodore", 11500, 250},
                     new Object[]{150, 10, "Sebastian", 7000, null},
-                    new Object[]{200, 20, "Eric", 8000, 500})
-            ))
+                    new Object[]{200, 20, "Eric", 8000, 500})))
         .put("depts",
             new PkClusteredTable(
                 factory ->
@@ -79,8 +79,8 @@ public final class HrClusteredSchema extends AbstractSchema {
                 Arrays.asList(
                     new Object[]{10, "Sales"},
                     new Object[]{30, "Marketing"},
-                    new Object[]{40, "HR"})
-            )).build();
+                    new Object[]{40, "HR"})))
+        .build();
   }
 
   @Override protected Map<String, Table> getTableMap() {
@@ -121,10 +121,9 @@ public final class HrClusteredSchema extends AbstractSchema {
       return typeBuilder.apply(typeFactory);
     }
 
-    @Override public Enumerable<Object[]> scan(final DataContext root) {
+    @Override public Enumerable<@Nullable Object[]> scan(final DataContext root) {
       return Linq4j.asEnumerable(data);
     }
 
   }
 }
-// End HrClusteredSchema.java

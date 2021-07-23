@@ -21,17 +21,27 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Sort;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Rule to convert an {@link org.apache.calcite.rel.core.Sort} to an
  * {@link EnumerableSort}.
+ *
+ * @see EnumerableRules#ENUMERABLE_SORT_RULE
  */
 class EnumerableSortRule extends ConverterRule {
-  EnumerableSortRule() {
-    super(Sort.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableSortRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(Sort.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableSortRule")
+      .withRuleFactory(EnumerableSortRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableSortRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public @Nullable RelNode convert(RelNode rel) {
     final Sort sort = (Sort) rel;
     if (sort.offset != null || sort.fetch != null) {
       return null;
@@ -46,5 +56,3 @@ class EnumerableSortRule extends ConverterRule {
         null);
   }
 }
-
-// End EnumerableSortRule.java

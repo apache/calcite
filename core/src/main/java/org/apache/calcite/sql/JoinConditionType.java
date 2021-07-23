@@ -16,36 +16,24 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.parser.SqlParserPos;
-
 /**
  * Enumerates the types of condition in a join expression.
  */
-public enum JoinConditionType {
+public enum JoinConditionType implements Symbolizable {
   /**
-   * Join clause has no condition, for example "FROM EMP, DEPT"
+   * Join clause has no condition, for example "{@code FROM EMP, DEPT}".
    */
   NONE,
 
   /**
-   * Join clause has an ON condition, for example "FROM EMP JOIN DEPT ON
-   * EMP.DEPTNO = DEPT.DEPTNO"
+   * Join clause has an {@code ON} condition,
+   * for example "{@code FROM EMP JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO}".
    */
   ON,
 
   /**
-   * Join clause has a USING condition, for example "FROM EMP JOIN DEPT
-   * USING (DEPTNO)"
+   * Join clause has a {@code USING} condition,
+   * for example "{@code FROM EMP JOIN DEPT USING (DEPTNO)}".
    */
-  USING;
-
-  /**
-   * Creates a parse-tree node representing an occurrence of this join
-   * type at a particular position in the parsed text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
-  }
+  USING
 }
-
-// End JoinConditionType.java

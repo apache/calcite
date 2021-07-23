@@ -33,27 +33,25 @@ import java.util.function.Function;
  */
 public abstract class WinAggAddContextImpl extends WinAggResultContextImpl
     implements WinAggAddContext {
-  public WinAggAddContextImpl(BlockBuilder block, List<Expression> accumulator,
+  protected WinAggAddContextImpl(BlockBuilder block, List<Expression> accumulator,
       Function<BlockBuilder, WinAggFrameResultContext> frame) {
     super(block, accumulator, frame);
   }
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
-  public WinAggAddContextImpl(BlockBuilder block, List<Expression> accumulator,
+  protected WinAggAddContextImpl(BlockBuilder block, List<Expression> accumulator,
       com.google.common.base.Function<BlockBuilder, WinAggFrameResultContext> frame) {
     this(block, accumulator, (Function<BlockBuilder, WinAggFrameResultContext>) frame::apply);
   }
 
-  public final RexToLixTranslator rowTranslator() {
+  @Override public final RexToLixTranslator rowTranslator() {
     return rowTranslator(
         computeIndex(Expressions.constant(0),
             WinAggImplementor.SeekType.AGG_INDEX));
   }
 
-  public final List<Expression> arguments() {
+  @Override public final List<Expression> arguments() {
     return rowTranslator().translateList(rexArguments());
   }
 }
-
-// End WinAggAddContextImpl.java

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.function.UnaryOperator;
+
 /**
  * A mutable slot that can contain one object.
  *
@@ -46,10 +50,20 @@ public class Holder<E> {
     return e;
   }
 
+  /** Applies a transform to the value. */
+  public Holder<E> accept(UnaryOperator<E> transform) {
+    e = transform.apply(e);
+    return this;
+  }
+
   /** Creates a holder containing a given value. */
   public static <E> Holder<E> of(E e) {
     return new Holder<>(e);
   }
-}
 
-// End Holder.java
+  /** Creates a holder containing null. */
+  @SuppressWarnings("ConstantConditions")
+  public static <E> Holder<@Nullable E> empty() {
+    return new Holder<@Nullable E>(null);
+  }
+}

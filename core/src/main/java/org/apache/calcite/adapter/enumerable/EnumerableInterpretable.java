@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.Helper;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Compiler;
 import org.apache.calcite.interpreter.InterpretableConvention;
 import org.apache.calcite.interpreter.InterpretableRel;
@@ -30,10 +31,11 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.FieldDeclaration;
+import org.apache.calcite.linq4j.tree.VisitorImpl;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.runtime.ArrayBindable;
@@ -43,6 +45,10 @@ import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IClassBodyEvaluator;
@@ -50,8 +56,10 @@ import org.codehaus.commons.compiler.ICompilerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Relational expression that converts an enumerable input to interpretable
@@ -72,18 +80,31 @@ public class EnumerableInterpretable extends ConverterImpl
     return new EnumerableInterpretable(getCluster(), sole(inputs));
   }
 
-  public Node implement(final InterpreterImplementor implementor) {
+  @Override public Node implement(final InterpreterImplementor implementor) {
     final Bindable bindable = toBindable(implementor.internalParameters,
             implementor.spark, (EnumerableRel) getInput(),
         EnumerableRel.Prefer.ARRAY);
     final ArrayBindable arrayBindable = box(bindable);
-    final Enumerable<Object[]> enumerable =
+    final Enumerable<@Nullable Object[]> enumerable =
         arrayBindable.bind(implementor.dataContext);
     return new EnumerableNode(enumerable, implementor.compiler, this);
   }
 
+  /**
+   * The cache storing Bindable objects, instantiated via dynamically generated Java classes.
+   *
+   * <p>It allows to re-use Bindable objects for queries appearing relatively
+   * often. It is used to avoid the cost of compiling and generating a new class
+   * and also instantiating the object.
+   */
+  private static final Cache<String, Bindable> BINDABLE_CACHE =
+      CacheBuilder.newBuilder()
+          .concurrencyLevel(CalciteSystemProperty.BINDABLE_CACHE_CONCURRENCY_LEVEL.value())
+          .maximumSize(CalciteSystemProperty.BINDABLE_CACHE_MAX_SIZE.value())
+          .build();
+
   public static Bindable toBindable(Map<String, Object> parameters,
-      CalcitePrepare.SparkHandler spark, EnumerableRel rel,
+      CalcitePrepare.@Nullable SparkHandler spark, EnumerableRel rel,
       EnumerableRel.Prefer prefer) {
     EnumerableRelImplementor relImplementor =
         new EnumerableRelImplementor(rel.getCluster().getRexBuilder(),
@@ -92,7 +113,7 @@ public class EnumerableInterpretable extends ConverterImpl
     final ClassDeclaration expr = relImplementor.implementRoot(rel, prefer);
     String s = Expressions.toString(expr.memberDeclarations, "\n", false);
 
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);
     }
 
@@ -110,14 +131,8 @@ public class EnumerableInterpretable extends ConverterImpl
     }
   }
 
-  static ArrayBindable getArrayBindable(ClassDeclaration expr, String s,
-      int fieldCount) throws CompileException, IOException {
-    Bindable bindable = getBindable(expr, s, fieldCount);
-    return box(bindable);
-  }
-
   static Bindable getBindable(ClassDeclaration expr, String s, int fieldCount)
-      throws CompileException, IOException {
+      throws CompileException, IOException, ExecutionException {
     ICompilerFactory compilerFactory;
     try {
       compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
@@ -125,7 +140,7 @@ public class EnumerableInterpretable extends ConverterImpl
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
     }
-    IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
+    final IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
     cbe.setClassName(expr.name);
     cbe.setExtendedClass(Utilities.class);
     cbe.setImplementedInterfaces(
@@ -133,11 +148,31 @@ public class EnumerableInterpretable extends ConverterImpl
             ? new Class[] {Bindable.class, Typed.class}
             : new Class[] {ArrayBindable.class});
     cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
-    if (CalcitePrepareImpl.DEBUG) {
+    if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);
     }
+
+    if (CalciteSystemProperty.BINDABLE_CACHE_MAX_SIZE.value() != 0) {
+      StaticFieldDetector detector = new StaticFieldDetector();
+      expr.accept(detector);
+      if (!detector.containsStaticField) {
+        return BINDABLE_CACHE.get(s, () -> (Bindable) cbe.createInstance(new StringReader(s)));
+      }
+    }
     return (Bindable) cbe.createInstance(new StringReader(s));
+  }
+
+  /**
+   * A visitor detecting if the Java AST contains static fields.
+   */
+  static class StaticFieldDetector extends VisitorImpl<Void> {
+    boolean containsStaticField = false;
+
+    @Override public Void visit(final FieldDeclaration fieldDeclaration) {
+      containsStaticField = (fieldDeclaration.modifier & Modifier.STATIC) != 0;
+      return containsStaticField ? null : super.visit(fieldDeclaration);
+    }
   }
 
   /** Converts a bindable over scalar values into an array bindable, with each
@@ -147,29 +182,29 @@ public class EnumerableInterpretable extends ConverterImpl
       return (ArrayBindable) bindable;
     }
     return new ArrayBindable() {
-      public Class<Object[]> getElementType() {
+      @Override public Class<Object[]> getElementType() {
         return Object[].class;
       }
 
-      public Enumerable<Object[]> bind(DataContext dataContext) {
+      @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
         final Enumerable<?> enumerable = bindable.bind(dataContext);
-        return new AbstractEnumerable<Object[]>() {
-          public Enumerator<Object[]> enumerator() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
             final Enumerator<?> enumerator = enumerable.enumerator();
-            return new Enumerator<Object[]>() {
-              public Object[] current() {
+            return new Enumerator<@Nullable Object[]>() {
+              @Override public @Nullable Object[] current() {
                 return new Object[] {enumerator.current()};
               }
 
-              public boolean moveNext() {
+              @Override public boolean moveNext() {
                 return enumerator.moveNext();
               }
 
-              public void reset() {
+              @Override public void reset() {
                 enumerator.reset();
               }
 
-              public void close() {
+              @Override public void close() {
                 enumerator.close();
               }
             };
@@ -183,23 +218,21 @@ public class EnumerableInterpretable extends ConverterImpl
    *
    * <p>From the interpreter's perspective, it is a leaf node. */
   private static class EnumerableNode implements Node {
-    private final Enumerable<Object[]> enumerable;
+    private final Enumerable<@Nullable Object[]> enumerable;
     private final Sink sink;
 
-    EnumerableNode(Enumerable<Object[]> enumerable, Compiler compiler,
+    EnumerableNode(Enumerable<@Nullable Object[]> enumerable, Compiler compiler,
         EnumerableInterpretable rel) {
       this.enumerable = enumerable;
       this.sink = compiler.sink(rel);
     }
 
-    public void run() throws InterruptedException {
-      final Enumerator<Object[]> enumerator = enumerable.enumerator();
+    @Override public void run() throws InterruptedException {
+      final Enumerator<@Nullable Object[]> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {
-        Object[] values = enumerator.current();
+        @Nullable Object[] values = enumerator.current();
         sink.send(Row.of(values));
       }
     }
   }
 }
-
-// End EnumerableInterpretable.java

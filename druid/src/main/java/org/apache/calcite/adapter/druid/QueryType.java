@@ -34,5 +34,3 @@ public enum QueryType {
     return this.queryName;
   }
 }
-
-// End QueryType.java

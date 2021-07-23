@@ -81,7 +81,6 @@ import java.util.regex.Pattern;
  */
 public class ConcurrentTestCommandScript
     extends ConcurrentTestCommandGenerator {
-  //~ Static fields/initializers ---------------------------------------------
 
   private static final String PRE_SETUP_STATE = "pre-setup";
   private static final String SETUP_STATE = "setup";
@@ -261,8 +260,6 @@ public class ConcurrentTestCommandScript
   private final Map<Integer, ResultsReader> threadResultsReaders =
       new HashMap<>();
 
-  //~ Constructors -----------------------------------------------------------
-
   public ConcurrentTestCommandScript() throws IOException {
     super();
   }
@@ -346,7 +343,7 @@ public class ConcurrentTestCommandScript
 
   /**
    * Gets ready to execute: loads script FILENAME applying external variable
-   * BINDINGS
+   * BINDINGS.
    */
   private void prepare(String filename, List<String> bindings)
       throws IOException {
@@ -370,7 +367,7 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Executes the script
+   * Executes the script.
    */
   public void execute() throws Exception {
     scriptStartTime = System.currentTimeMillis();
@@ -500,7 +497,7 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Identifies the start of a comment line; same rules as sqlline
+   * Identifies the start of a comment line; same rules as sqlline.
    */
   private boolean isComment(String line) {
     return line.startsWith("--") || line.startsWith("#");
@@ -2180,5 +2177,3 @@ public class ConcurrentTestCommandScript
     Unsafe.systemExit(status);
   }
 }
-
-// End ConcurrentTestCommandScript.java

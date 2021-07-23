@@ -87,6 +87,9 @@ public class Handler {
         switch (field.getType().getSqlTypeName()) {
         case ARRAY:
           System.out.println(field);
+          break;
+        default:
+          break;
         }
       }
       for (Ast.Stmt stmt : foreachNested.nestedStmtList) {
@@ -216,15 +219,15 @@ public class Handler {
     switch (node.op) {
     case LITERAL:
       final Ast.Literal literal = (Ast.Literal) node;
-      return (RexLiteral) rexBuilder.makeLiteral(literal.value, type, false);
+      return rexBuilder.makeLiteral(literal.value, type);
     case TUPLE:
       final Ast.Call tuple = (Ast.Call) node;
       final ImmutableList<RexLiteral> list = tuple(tuple.operands, type);
-      return (RexLiteral) rexBuilder.makeLiteral(list, type, false);
+      return rexBuilder.makeLiteral(list, type);
     case BAG:
       final Ast.Call bag = (Ast.Call) node;
       final ImmutableList<RexLiteral> list2 = bag(bag.operands, type);
-      return (RexLiteral) rexBuilder.makeLiteral(list2, type, false);
+      return rexBuilder.makeLiteral(list2, type);
     default:
       throw new IllegalArgumentException("not a literal: " + node);
     }
@@ -298,6 +301,9 @@ public class Handler {
         switch (pair.right) {
         case DESC:
           node = builder.desc(node);
+          break;
+        default:
+          break;
         }
         nodes.add(node);
       }
@@ -306,6 +312,9 @@ public class Handler {
       switch (pair.right) {
       case DESC:
         node = builder.desc(node);
+        break;
+      default:
+        break;
       }
       nodes.add(node);
     }
@@ -388,5 +397,3 @@ public class Handler {
     map.put(name, builder.peek());
   }
 }
-
-// End Handler.java

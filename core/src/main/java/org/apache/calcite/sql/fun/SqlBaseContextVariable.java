@@ -26,8 +26,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
- * Base class for functions such as "PI", "USER", "CURRENT_ROLE", and
- * "CURRENT_PATH".
+ * Base class for functions such as "USER", "CURRENT_ROLE", and "CURRENT_PATH".
  */
 public class SqlBaseContextVariable extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
@@ -41,7 +40,7 @@ public class SqlBaseContextVariable extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION_ID;
   }
 
@@ -51,9 +50,7 @@ public class SqlBaseContextVariable extends SqlFunction {
   }
 
   // Plans referencing context variables should never be cached
-  public boolean isDynamicFunction() {
+  @Override public boolean isDynamicFunction() {
     return true;
   }
 }
-
-// End SqlBaseContextVariable.java

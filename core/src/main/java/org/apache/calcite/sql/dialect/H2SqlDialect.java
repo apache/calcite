@@ -16,16 +16,18 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.sql.SqlDialect;
 
 /**
  * A <code>SqlDialect</code> implementation for the H2 database.
  */
 public class H2SqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new H2SqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.H2)
-          .withIdentifierQuoteString("\""));
+  public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.H2)
+      .withIdentifierQuoteString("\"");
+
+  public static final SqlDialect DEFAULT = new H2SqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an H2SqlDialect. */
   public H2SqlDialect(Context context) {
@@ -39,6 +41,8 @@ public class H2SqlDialect extends SqlDialect {
   @Override public boolean supportsWindowFunctions() {
     return false;
   }
-}
 
-// End H2SqlDialect.java
+  @Override public boolean supportsJoinType(JoinRelType joinType) {
+    return joinType != JoinRelType.FULL;
+  }
+}

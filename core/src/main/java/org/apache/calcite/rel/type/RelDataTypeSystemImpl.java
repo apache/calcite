@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
@@ -33,7 +36,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * </table>
  */
 public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
-  public int getMaxScale(SqlTypeName typeName) {
+  @Override public int getMaxScale(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
       return getMaxNumericScale();
@@ -153,7 +156,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return 19;
   }
 
-  @Override public String getLiteral(SqlTypeName typeName, boolean isPrefix) {
+  @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {
     switch (typeName) {
     case VARBINARY:
     case VARCHAR:
@@ -217,6 +220,21 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
+    if (argumentType instanceof BasicSqlType) {
+      SqlTypeName typeName = argumentType.getSqlTypeName();
+      if (typeName.allowsPrec()
+          && argumentType.getPrecision() != RelDataType.PRECISION_NOT_SPECIFIED) {
+        int precision = typeFactory.getTypeSystem().getMaxPrecision(typeName);
+        if (typeName.allowsScale()) {
+          argumentType = typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(typeName, precision, argumentType.getScale()),
+              argumentType.isNullable());
+        } else {
+          argumentType = typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(typeName, precision), argumentType.isNullable());
+        }
+      }
+    }
     return argumentType;
   }
 
@@ -240,11 +258,11 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
         typeFactory.createSqlType(SqlTypeName.BIGINT), false);
   }
 
-  public boolean isSchemaCaseSensitive() {
+  @Override public boolean isSchemaCaseSensitive() {
     return true;
   }
 
-  public boolean shouldConvertRaggedUnionTypesToVarying() {
+  @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
     return false;
   }
 
@@ -253,5 +271,3 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
 }
-
-// End RelDataTypeSystemImpl.java

@@ -26,21 +26,26 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlValidator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Locale;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>JSON_ARRAY</code> function.
  */
 public class SqlJsonArrayFunction extends SqlFunction {
   public SqlJsonArrayFunction() {
-    super("JSON_ARRAY", SqlKind.OTHER_FUNCTION, ReturnTypes.VARCHAR_2000, null,
-        OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
+    super("JSON_ARRAY", SqlKind.OTHER_FUNCTION, ReturnTypes.VARCHAR_2000,
+        InferTypes.ANY_NULLABLE, OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
@@ -48,12 +53,12 @@ public class SqlJsonArrayFunction extends SqlFunction {
   }
 
   @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
+      @Nullable SqlOperandTypeChecker argType, SqlCall call) {
     assert call.operandCount() >= 1;
   }
 
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
+  @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+      SqlParserPos pos, @Nullable SqlNode... operands) {
     if (operands[0] == null) {
       operands[0] =
           SqlLiteral.createSymbol(SqlJsonConstructorNullClause.ABSENT_ON_NULL,
@@ -62,7 +67,7 @@ public class SqlJsonArrayFunction extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 
-  @Override public String getSignatureTemplate(int operandsCount) {
+  @Override public @Nullable String getSignatureTemplate(int operandsCount) {
     assert operandsCount >= 1;
     final StringBuilder sb = new StringBuilder();
     sb.append("{0}(");
@@ -98,9 +103,8 @@ public class SqlJsonArrayFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
-    return (E) ((SqlLiteral) operand).getValue();
+  @SuppressWarnings("unchecked")
+  private static <E extends Enum<E>> E getEnumValue(SqlNode operand) {
+    return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
   }
 }
-
-// End SqlJsonArrayFunction.java

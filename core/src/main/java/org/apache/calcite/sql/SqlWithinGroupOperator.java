@@ -21,6 +21,9 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -38,7 +41,7 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
 
   public SqlWithinGroupOperator() {
     super("WITHIN GROUP", SqlKind.WITHIN_GROUP, 100, true, ReturnTypes.ARG0,
-        null, OperandTypes.ANY_ANY);
+        null, OperandTypes.ANY_IGNORE);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -48,32 +51,31 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     final SqlWriter.Frame orderFrame =
         writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, "(", ")");
     writer.keyword("ORDER BY");
-    ((SqlNodeList) call.operand(1)).commaList(writer);
+    call.operand(1).unparse(writer, 0, 0);
     writer.endList(orderFrame);
   }
 
-  public void validateCall(
+  @Override public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
     assert call.operandCount() == 2;
-    SqlCall aggCall = call.operand(0);
-    if (!aggCall.getOperator().isAggregator()) {
+    final SqlValidatorUtil.FlatAggregate flat = SqlValidatorUtil.flatten(call);
+    if (!flat.aggregateCall.getOperator().isAggregator()) {
       throw validator.newValidationError(call,
-          RESOURCE.withinGroupNotAllowed(aggCall.getOperator().getName()));
+          RESOURCE.withinGroupNotAllowed(
+              flat.aggregateCall.getOperator().getName()));
     }
-    final SqlNodeList orderList = call.operand(1);
-    for (SqlNode order : orderList) {
-      RelDataType nodeType =
-          validator.deriveType(scope, order);
-      assert nodeType != null;
+    for (SqlNode order : Objects.requireNonNull(flat.orderList)) {
+      Objects.requireNonNull(validator.deriveType(scope, order));
     }
-    validator.validateAggregateParams(aggCall, null, orderList, scope);
+    validator.validateAggregateParams(flat.aggregateCall, flat.filter,
+        flat.distinctList, flat.orderList, scope);
   }
 
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -81,5 +83,3 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     return validateOperands(validator, scope, call);
   }
 }
-
-// End SqlWithinGroupOperator.java

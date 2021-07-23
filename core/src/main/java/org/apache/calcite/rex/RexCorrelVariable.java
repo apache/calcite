@@ -20,6 +20,8 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -38,16 +40,16 @@ public class RexCorrelVariable extends RexVariable {
       CorrelationId id,
       RelDataType type) {
     super(id.getName(), type);
-    this.id = Objects.requireNonNull(id);
+    this.id = Objects.requireNonNull(id, "id");
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitCorrelVariable(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitCorrelVariable(this, arg);
   }
 
@@ -55,10 +57,10 @@ public class RexCorrelVariable extends RexVariable {
     return SqlKind.CORREL_VARIABLE;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RexCorrelVariable
-        && digest.equals(((RexCorrelVariable) obj).digest)
+        && Objects.equals(digest, ((RexCorrelVariable) obj).digest)
         && type.equals(((RexCorrelVariable) obj).type)
         && id.equals(((RexCorrelVariable) obj).id);
   }
@@ -67,5 +69,3 @@ public class RexCorrelVariable extends RexVariable {
     return Objects.hash(digest, type, id);
   }
 }
-
-// End RexCorrelVariable.java

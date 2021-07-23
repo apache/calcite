@@ -22,12 +22,13 @@ import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A binary (or hexadecimal) string literal.
  *
- * <p>The {@link #value} field is a {@link BitString} and {@link #typeName} is
- * {@link SqlTypeName#BINARY}.
+ * <p>The {@link #value} field is a {@link BitString} and {@link #getTypeName()}
+ * is {@link SqlTypeName#BINARY}.
  */
 public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
 
@@ -41,32 +42,35 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return the underlying BitString
+  /** Returns the underlying {@link BitString}.
+   *
+   * @deprecated Use {@link SqlLiteral#getValueAs getValueAs(BitString.class)}
    */
+  @Deprecated // to be removed before 2.0
   public BitString getBitString() {
-    return (BitString) value;
+    return getValueNonNull();
+  }
+
+  private BitString getValueNonNull() {
+    return (BitString) Objects.requireNonNull(value, "value");
   }
 
   @Override public SqlBinaryStringLiteral clone(SqlParserPos pos) {
-    return new SqlBinaryStringLiteral((BitString) value, pos);
+    return new SqlBinaryStringLiteral(getValueNonNull(), pos);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    assert value instanceof BitString;
-    writer.literal("X'" + ((BitString) value).toHexString() + "'");
+    writer.literal("X'" + getValueNonNull().toHexString() + "'");
   }
 
-  protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
+  @Override protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlBinaryStringLiteral(
         BitString.concat(
             Util.transform(literals,
-                literal -> ((SqlBinaryStringLiteral) literal).getBitString())),
+                literal -> literal.getValueAs(BitString.class))),
         literals.get(0).getParserPosition());
   }
 }
-
-// End SqlBinaryStringLiteral.java

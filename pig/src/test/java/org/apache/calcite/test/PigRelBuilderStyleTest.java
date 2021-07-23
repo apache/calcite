@@ -25,9 +25,11 @@ import org.apache.calcite.adapter.pig.PigTable;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
-import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterJoinRule.FilterIntoJoinRule;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -35,6 +37,7 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.TestUtil;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.pigunit.Cluster;
@@ -42,34 +45,35 @@ import org.apache.pig.pigunit.PigTest;
 import org.apache.pig.pigunit.pig.PigServer;
 import org.apache.pig.test.Util;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
-import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.pig} package that tests the
  * building of {@link PigRel} relational expressions using {@link RelBuilder} and
  * associated factories in {@link PigRelFactories}.
  */
-public class PigRelBuilderStyleTest extends AbstractPigTest {
+@Disabled
+class PigRelBuilderStyleTest extends AbstractPigTest {
 
-  public PigRelBuilderStyleTest() {
-    Assume.assumeThat("Pigs don't like Windows", File.separatorChar, is('/'));
+  PigRelBuilderStyleTest() {
+    assumeTrue(File.separatorChar == '/',
+        () -> "Pig tests expects File.separatorChar to be /, actual one is "
+          + File.separatorChar);
   }
 
-  @Test
-  public void testScanAndFilter() throws Exception {
+  @Disabled("CALCITE-3660")
+  @Test void testScanAndFilter() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
@@ -82,8 +86,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(b,2)", "(c,3)" });
   }
 
-  @Test
-  @Ignore("CALCITE-1751")
+  @Test @Disabled("CALCITE-1751")
   public void testImplWithMultipleFilters() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -100,8 +103,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(c,3)" });
   }
 
-  @Test
-  @Ignore("CALCITE-1751")
+  @Test @Disabled("CALCITE-1751")
   public void testImplWithGroupByAndCount() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -119,8 +121,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(a,1)", "(b,1)", "(c,1)" });
   }
 
-  @Test
-  public void testImplWithCountWithoutGroupBy() {
+  @Test void testImplWithCountWithoutGroupBy() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
@@ -136,8 +137,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(3)" });
   }
 
-  @Test
-  @Ignore("CALCITE-1751")
+  @Test @Disabled("CALCITE-1751")
   public void testImplWithGroupByMultipleFields() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -155,8 +155,8 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(a,1,1)", "(b,2,1)", "(c,3,1)" });
   }
 
-  @Test
-  public void testImplWithGroupByCountDistinct() {
+  @Disabled("CALCITE-3660")
+  @Test void testImplWithGroupByCountDistinct() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
@@ -174,8 +174,8 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(a,1,1)", "(b,2,1)", "(c,3,1)" });
   }
 
-  @Test
-  public void testImplWithJoin() throws Exception {
+  @Disabled("CALCITE-3660")
+  @Test void testImplWithJoin() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t").scan("s")
@@ -193,8 +193,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(b,2,2,label2)" });
   }
 
-  @Test
-  @Ignore("CALCITE-1751")
+  @Test @Disabled("CALCITE-1751")
   public void testImplWithJoinAndGroupBy() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -249,11 +248,25 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     for (RelOptRule r : PigRules.ALL_PIG_OPT_RULES) {
       planner.addRule(r);
     }
-    planner.removeRule(FilterAggregateTransposeRule.INSTANCE);
-    planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
+    planner.removeRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE);
+    planner.removeRule(CoreRules.FILTER_INTO_JOIN);
+    planner.addRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
+        .withRelBuilderFactory(builderFactory)
+        .as(FilterAggregateTransposeRule.Config.class)
+        .withOperandFor(PigFilter.class, PigAggregate.class)
+        .toRule());
     planner.addRule(
-        new FilterAggregateTransposeRule(PigFilter.class, builderFactory, PigAggregate.class));
-    planner.addRule(new FilterIntoJoinRule(true, builderFactory, TRUE_PREDICATE));
+        CoreRules.FILTER_INTO_JOIN.config
+            .withRelBuilderFactory(builderFactory)
+            .withOperandSupplier(b0 ->
+                b0.operand(Filter.class).oneInput(b1 ->
+                    b1.operand(Join.class).anyInputs()))
+            .withDescription("FilterJoinRule:filter")
+            .as(FilterIntoJoinRule.Config.class)
+            .withSmart(true)
+            .withPredicate((join, joinType, exp) -> true)
+            .as(FilterIntoJoinRule.Config.class)
+            .toRule());
     planner.setRoot(root);
     return planner;
   }
@@ -266,7 +279,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
       PigTest pigTest = new PigTest(script.split("[\\r\\n]+"));
       pigTest.assertOutputAnyOrder(expectedResults);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw TestUtil.rethrow(e);
     }
   }
 
@@ -276,7 +289,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     return impl.getScript();
   }
 
-  @After
+  @AfterEach
   public void shutdownPigServer() {
     PigServer pigServer = PigTest.getPigServer();
     if (pigServer != null) {
@@ -284,7 +297,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setupDataFilesForPigServer() throws Exception {
     System.getProperties().setProperty("pigunit.exectype",
         Util.getLocalTestMode().toString());
@@ -298,5 +311,3 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new Path("target/data2.txt"));
   }
 }
-
-// End PigRelBuilderStyleTest.java

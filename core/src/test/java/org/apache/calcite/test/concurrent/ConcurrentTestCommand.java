@@ -76,7 +76,7 @@ public interface ConcurrentTestCommand {
 
   /**
    * Indicates that a command should have failed, but instead succeeded, which
-   * is a test error
+   * is a test error.
    */
   class ShouldHaveFailedException extends RuntimeException {
     private final String description;
@@ -90,5 +90,3 @@ public interface ConcurrentTestCommand {
     }
   }
 }
-
-// End ConcurrentTestCommand.java

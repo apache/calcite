@@ -32,7 +32,8 @@ interface ElasticsearchConstants {
   String SOURCE_GROOVY = "_source";
 
   /**
-   * Attribute which uniquely identifies a document (ID)
+   * Attribute that uniquely identifies a document (ID).
+   *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">ID Field</a>
    */
   String ID = "_id";
@@ -40,6 +41,13 @@ interface ElasticsearchConstants {
 
   Set<String> META_COLUMNS = ImmutableSet.of(UID, ID, TYPE, INDEX);
 
-}
+  /**
+   * Detects {@code select * from elastic} types of field name (select star).
+   * @param name name of the field
+   * @return {@code true} if this field represents whole raw, {@code false} otherwise
+   */
+  static boolean isSelectAll(String name) {
+    return "_MAP".equals(name);
+  }
 
-// End ElasticsearchConstants.java
+}

@@ -24,5 +24,3 @@ public enum SqlJsonQueryWrapperBehavior {
   WITH_CONDITIONAL_ARRAY,
   WITH_UNCONDITIONAL_ARRAY
 }
-
-// End SqlJsonQueryWrapperBehavior.java

@@ -37,5 +37,3 @@ public class ConnectionSpec {
     this.catalog = null;
   }
 }
-
-// End ConnectionSpec.java

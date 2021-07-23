@@ -51,5 +51,3 @@ public class MutableMinus extends MutableSetOp {
     return MutableMinus.of(rowType, cloneChildren(), all);
   }
 }
-
-// End MutableMinus.java

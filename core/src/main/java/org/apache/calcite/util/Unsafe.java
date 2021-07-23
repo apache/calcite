@@ -17,6 +17,8 @@
 package org.apache.calcite.util;
 
 import java.io.StringWriter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Contains methods that call JDK methods that the
@@ -40,21 +42,49 @@ public class Unsafe {
   }
 
   /** Calls {@link Object#wait()}. */
+  @SuppressWarnings("WaitNotInLoop")
   public static void wait(Object o) throws InterruptedException {
     o.wait();
   }
 
   /** Clears the contents of a {@link StringWriter}. */
+  @SuppressWarnings("JdkObsolete")
   public static void clear(StringWriter sw) {
     // Included in this class because StringBuffer is banned.
     sw.getBuffer().setLength(0);
   }
 
-  /** Appends to {@link StringWriter}. */
-  public static void append(StringWriter sw, CharSequence charSequence, int start, int end) {
-    // Included in this class because StringBuffer is banned.
-    sw.getBuffer().append(charSequence, start, end);
+  /** Helper for the SQL {@code REGEXP_REPLACE} function.
+   *
+   * <p>It is marked "unsafe" because it uses {@link StringBuffer};
+   * Versions of {@link Matcher#appendReplacement(StringBuffer, String)}
+   * and {@link Matcher#appendTail(StringBuffer)}
+   * that use {@link StringBuilder} are not available until JDK 9. */
+  @SuppressWarnings("JdkObsolete")
+  public static String regexpReplace(String s, Pattern pattern,
+      String replacement, int pos, int occurrence) {
+    Bug.upgrade("when we drop JDK 8, replace StringBuffer with StringBuilder");
+    final StringBuffer sb = new StringBuffer();
+    final String input;
+    if (pos != 1) {
+      sb.append(s, 0, pos - 1);
+      input = s.substring(pos - 1);
+    } else {
+      input = s;
+    }
+
+    int count = 0;
+    Matcher matcher = pattern.matcher(input);
+    while (matcher.find()) {
+      if (occurrence == 0) {
+        matcher.appendReplacement(sb, replacement);
+      } else if (++count == occurrence) {
+        matcher.appendReplacement(sb, replacement);
+        break;
+      }
+    }
+    matcher.appendTail(sb);
+
+    return sb.toString();
   }
 }
-
-// End Unsafe.java

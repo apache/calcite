@@ -65,8 +65,7 @@ void debug_message1()
 }
 
 JAVACODE String unquotedIdentifier() {
-  return SqlParserUtil.strip(getToken(0).image, null, null, null,
-    Casing.UNCHANGED);
+  return SqlParserUtil.toCase(getToken(0).image, Casing.UNCHANGED);
 }
 
 String nonReservedKeyWord() :
@@ -186,7 +185,7 @@ Stmt stmt() :
 }
 {
   (
-    target = simpleIdentifier() <EQ>
+    LOOKAHEAD(2) target = simpleIdentifier() <EQ>
     (
       s = loadStmt(target)
     |
@@ -205,6 +204,7 @@ Stmt stmt() :
       s = groupStmt(target)
     )
   |
+    LOOKAHEAD(2)
     s = describeStmt()
   |
     s = dumpStmt()
@@ -311,7 +311,6 @@ Assignment foreachStmt(final Identifier target) :
 {
   <FOREACH> id = simpleIdentifier()
   (
-    LOOKAHEAD(1)
     <GENERATE> expList = expCommaList() <SEMICOLON> {
       return new ForeachStmt(pos3(target), target, id, expList, schema);
     }
@@ -333,6 +332,7 @@ List<Stmt> nestedStmtList() :
     list.add(s);
   }
   (
+    LOOKAHEAD(2)
     s = nestedStmt() {
       list.add(s);
     }
@@ -450,6 +450,7 @@ GroupStmt groupStmt(final Identifier target) :
   |
     <BY>
     (
+      LOOKAHEAD(3)
       keys = tuple()
     |
       exp = exp() {
@@ -594,6 +595,7 @@ Node exp3() :
 }
 {
   (
+    LOOKAHEAD(3)
     <NOT> {
       p = pos();
     }
@@ -1212,5 +1214,3 @@ MORE :
     ]
     >
 }
-
-// End PigletParser.jj

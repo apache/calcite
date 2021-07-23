@@ -95,14 +95,11 @@ class Scrolling {
     private final Iterator<ElasticsearchJson.Result> delegate;
     private final Consumer<String> closer;
 
-    /**
-     * Was {@link #closer} consumer already called ?
-     */
+    /** Returns whether {@link #closer} consumer was already called. */
     private boolean closed;
 
-    /**
-     * Keeps last value of {@code scrollId} in memory so scroll can be released upon termination
-     */
+    /** Keeps last value of {@code scrollId} in memory so scroll can be released
+     * upon termination. */
     private String scrollId;
 
     private AutoClosingIterator(
@@ -171,5 +168,3 @@ class Scrolling {
     }
   }
 }
-
-// End Scrolling.java

@@ -17,6 +17,7 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.RelMultipleTrait;
+import org.apache.calcite.util.ImmutableIntList;
 
 import java.util.List;
 
@@ -33,6 +34,17 @@ public interface RelCollation extends RelMultipleTrait {
    * Returns the ordinals and directions of the columns in this ordering.
    */
   List<RelFieldCollation> getFieldCollations();
-}
 
-// End RelCollation.java
+  /**
+   * Returns the ordinals of the key columns.
+   */
+  default ImmutableIntList getKeys() {
+    final List<RelFieldCollation> collations = getFieldCollations();
+    final int size = collations.size();
+    final int[] keys = new int[size];
+    for (int i = 0; i < size; i++) {
+      keys[i] = collations.get(i).getFieldIndex();
+    }
+    return ImmutableIntList.of(keys);
+  }
+}

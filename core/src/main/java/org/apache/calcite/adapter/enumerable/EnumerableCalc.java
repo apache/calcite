@@ -39,6 +39,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
@@ -50,9 +51,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.BRIDGE_METHODS;
@@ -71,7 +73,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
       RelTraitSet traitSet,
       RelNode input,
       RexProgram program) {
-    super(cluster, traitSet, input, program);
+    super(cluster, traitSet, ImmutableList.of(), input, program);
     assert getConvention() instanceof EnumerableConvention;
     assert !program.containsAggs();
   }
@@ -107,7 +109,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     return new EnumerableCalc(getCluster(), traitSet, child, program);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
@@ -136,14 +138,14 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
                 Enumerator.class, inputJavaType),
             "inputEnumerator");
     Expression input =
-        RexToLixTranslator.convert(
+        EnumUtils.convert(
             Expressions.call(
                 inputEnumerator,
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
             inputJavaType);
 
     final RexBuilder rexBuilder = getCluster().getRexBuilder();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = getCluster().getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(child);
     final RexSimplify simplify =
         new RexSimplify(rexBuilder, predicates, RexUtil.EXECUTOR);
@@ -163,9 +165,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
               program,
               typeFactory,
               builder2,
-              new RexToLixTranslator.InputGetterImpl(
-                  Collections.singletonList(
-                      Pair.of(input, result.physType))),
+              new RexToLixTranslator.InputGetterImpl(input, result.physType),
               implementor.allCorrelateVariables, implementor.getConformance());
       builder2.add(
           Expressions.ifThen(
@@ -194,11 +194,10 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             typeFactory,
             conformance,
             builder3,
+            null,
             physType,
             DataContext.ROOT,
-            new RexToLixTranslator.InputGetterImpl(
-                Collections.singletonList(
-                    Pair.of(input, result.physType))),
+            new RexToLixTranslator.InputGetterImpl(input, result.physType),
             implementor.allCorrelateVariables);
     builder3.add(
         Expressions.return_(
@@ -265,9 +264,25 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 
-  public RexProgram getProgram() {
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    final List<RexNode> exps = Util.transform(program.getProjectList(),
+        program::expandLocalRef);
+
+    return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
+        input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
+  }
+
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    final List<RexNode> exps = Util.transform(program.getProjectList(),
+        program::expandLocalRef);
+
+    return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
+        input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
+  }
+
+  @Override public RexProgram getProgram() {
     return program;
   }
 }
-
-// End EnumerableCalc.java

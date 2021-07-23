@@ -17,9 +17,10 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexBuilder;
@@ -31,7 +32,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
 /**
- * Planner rule which merges a
+ * Planner rule that merges a
  * {@link org.apache.calcite.rel.logical.LogicalProject} and a
  * {@link org.apache.calcite.rel.logical.LogicalCalc}.
  *
@@ -41,33 +42,28 @@ import org.apache.calcite.util.Pair;
  * of the original {@link org.apache.calcite.rel.logical.LogicalCalc}'s inputs.
  *
  * @see FilterCalcMergeRule
+ * @see CoreRules#PROJECT_CALC_MERGE
  */
-public class ProjectCalcMergeRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
+public class ProjectCalcMergeRule
+    extends RelRule<ProjectCalcMergeRule.Config>
+    implements TransformationRule {
 
-  public static final ProjectCalcMergeRule INSTANCE =
-      new ProjectCalcMergeRule(RelFactories.LOGICAL_BUILDER);
+  /** Creates a ProjectCalcMergeRule. */
+  protected ProjectCalcMergeRule(Config config) {
+    super(config);
+  }
 
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a ProjectCalcMergeRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  @Deprecated // to be removed before 2.0
   public ProjectCalcMergeRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(
-            LogicalProject.class,
-            operand(LogicalCalc.class, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
-    final LogicalProject project = call.rel(0);
-    final LogicalCalc calc = call.rel(1);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final Project project = call.rel(0);
+    final Calc calc = call.rel(1);
 
     // Don't merge a project which contains windowed aggregates onto a
     // calc. That would effectively be pushing a windowed aggregate down
@@ -110,6 +106,23 @@ public class ProjectCalcMergeRule extends RelOptRule {
         LogicalCalc.create(calc.getInput(), mergedProgram);
     call.transformTo(newCalc);
   }
-}
 
-// End ProjectCalcMergeRule.java
+  /** Rule configuration. */
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = EMPTY.as(Config.class)
+        .withOperandFor(LogicalProject.class, LogicalCalc.class);
+
+    @Override default ProjectCalcMergeRule toRule() {
+      return new ProjectCalcMergeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Project> projectClass,
+        Class<? extends Calc> calcClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(projectClass).oneInput(b1 ->
+              b1.operand(calcClass).anyInputs()))
+          .as(Config.class);
+    }
+  }
+}

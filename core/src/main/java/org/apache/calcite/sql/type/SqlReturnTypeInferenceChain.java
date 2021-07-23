@@ -19,7 +19,10 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Strategy to infer the type of an operator call from the type of the operands
@@ -41,17 +44,13 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
    * Use {@link org.apache.calcite.sql.type.ReturnTypes#chain}.</p>
    */
   SqlReturnTypeInferenceChain(SqlReturnTypeInference... rules) {
-    assert rules != null;
-    assert rules.length > 1;
-    for (SqlReturnTypeInference rule : rules) {
-      assert rule != null;
-    }
+    Preconditions.checkArgument(rules.length > 1);
     this.rules = ImmutableList.copyOf(rules);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public @Nullable RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     for (SqlReturnTypeInference rule : rules) {
       RelDataType ret = rule.inferReturnType(opBinding);
       if (ret != null) {
@@ -61,5 +60,3 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
     return null;
   }
 }
-
-// End SqlReturnTypeInferenceChain.java

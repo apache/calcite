@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Test for {@link Types#gcd}.
  */
-public class TypeTest {
-  @Test public void testGcd() {
+class TypeTest {
+  @Test void testGcd() {
     int i = 0;
     char c = 0;
     byte b = 0;
@@ -63,5 +63,3 @@ public class TypeTest {
     java.io.Serializable o = true ? "x" : 1;
   }
 }
-
-// End TypeTest.java

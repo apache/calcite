@@ -18,7 +18,9 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
@@ -26,6 +28,13 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -59,15 +68,33 @@ public class EnumerableFilter
     return new EnumerableFilter(cluster, traitSet, input, condition);
   }
 
-  public EnumerableFilter copy(RelTraitSet traitSet, RelNode input,
+  @Override public EnumerableFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new EnumerableFilter(getCluster(), traitSet, input, condition);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalc is always better
     throw new UnsupportedOperationException();
   }
-}
 
-// End EnumerableFilter.java
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      RelTraitSet required) {
+    RelCollation collation = required.getCollation();
+    if (collation == null || collation == RelCollations.EMPTY) {
+      return null;
+    }
+    RelTraitSet traits = traitSet.replace(collation);
+    return Pair.of(traits, ImmutableList.of(traits));
+  }
+
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    RelCollation collation = childTraits.getCollation();
+    if (collation == null || collation == RelCollations.EMPTY) {
+      return null;
+    }
+    RelTraitSet traits = traitSet.replace(collation);
+    return Pair.of(traits, ImmutableList.of(traits));
+  }
+}

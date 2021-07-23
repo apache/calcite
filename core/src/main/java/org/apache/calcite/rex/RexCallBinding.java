@@ -31,6 +31,8 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -60,19 +62,30 @@ public class RexCallBinding extends SqlOperatorBinding {
   public static RexCallBinding create(RelDataTypeFactory typeFactory,
       RexCall call,
       List<RelCollation> inputCollations) {
+    return create(typeFactory, call, null, inputCollations);
+  }
+
+  /** Creates a binding of the appropriate type, optionally with a program. */
+  public static RexCallBinding create(RelDataTypeFactory typeFactory,
+      RexCall call, @Nullable RexProgram program,
+      List<RelCollation> inputCollations) {
+    final List<RexNode> operands =
+        program != null ? program.expandList(call.getOperands())
+            : call.getOperands();
     switch (call.getKind()) {
     case CAST:
       return new RexCastCallBinding(typeFactory, call.getOperator(),
-          call.getOperands(), call.getType(), inputCollations);
+          operands, call.getType(), inputCollations);
+    default:
+      return new RexCallBinding(typeFactory, call.getOperator(),
+          operands, inputCollations);
     }
-    return new RexCallBinding(typeFactory, call.getOperator(),
-        call.getOperands(), inputCollations);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @SuppressWarnings("deprecation")
-  @Override public String getStringLiteralOperand(int ordinal) {
+  @Override public @Nullable String getStringLiteralOperand(int ordinal) {
     return RexLiteral.stringValue(operands.get(ordinal));
   }
 
@@ -81,7 +94,7 @@ public class RexCallBinding extends SqlOperatorBinding {
     return RexLiteral.intValue(operands.get(ordinal));
   }
 
-  @Override public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
+  @Override public <T> @Nullable T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     final RexNode node = operands.get(ordinal);
     if (node instanceof RexLiteral) {
       return ((RexLiteral) node).getValueAs(clazz);
@@ -122,17 +135,21 @@ public class RexCallBinding extends SqlOperatorBinding {
     return RexUtil.isLiteral(operands.get(ordinal), allowCast);
   }
 
+  public List<RexNode> operands() {
+    return operands;
+  }
+
   // implement SqlOperatorBinding
-  public int getOperandCount() {
+  @Override public int getOperandCount() {
     return operands.size();
   }
 
   // implement SqlOperatorBinding
-  public RelDataType getOperandType(int ordinal) {
+  @Override public RelDataType getOperandType(int ordinal) {
     return operands.get(ordinal).getType();
   }
 
-  public CalciteException newError(
+  @Override public CalciteException newError(
       Resources.ExInst<SqlValidatorException> e) {
     return SqlUtil.newContextException(SqlParserPos.ZERO, e);
   }
@@ -142,8 +159,7 @@ public class RexCallBinding extends SqlOperatorBinding {
   private static class RexCastCallBinding extends RexCallBinding {
     private final RelDataType type;
 
-    RexCastCallBinding(
-        RelDataTypeFactory typeFactory,
+    RexCastCallBinding(RelDataTypeFactory typeFactory,
         SqlOperator sqlOperator, List<? extends RexNode> operands,
         RelDataType type,
         List<RelCollation> inputCollations) {
@@ -159,5 +175,3 @@ public class RexCallBinding extends SqlOperatorBinding {
     }
   }
 }
-
-// End RexCallBinding.java

@@ -23,6 +23,8 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -92,7 +94,7 @@ public interface PhysType {
    * @return Expression to access the field of the expression
    */
   Expression fieldReference(Expression expression, int field,
-      Type storageType);
+      @Nullable Type storageType);
 
   /** Generates an accessor function for a given list of fields.  The resulting
    * object is a {@link List} (implementing {@link Object#hashCode()} and
@@ -177,7 +179,7 @@ public interface PhysType {
 
   /** Returns a expression that yields a comparer, or null if this type
    * is comparable. */
-  Expression comparer();
+  @Nullable Expression comparer();
 
   /** Generates an expression that creates a record for a row, initializing
    * its fields with the given expressions. There must be one expression per
@@ -198,8 +200,17 @@ public interface PhysType {
   PhysType makeNullable(boolean nullable);
 
   /** Converts an enumerable of this physical type to an enumerable that uses a
-   * given physical type for its rows. */
+   * given physical type for its rows.
+   *
+   * @deprecated Use {@link #convertTo(Expression, JavaRowFormat)}.
+   * The use of PhysType as a second parameter is misleading since only the row
+   * format of the expression is affected by the conversion. Moreover it requires
+   * to have at hand a PhysType object which is not really necessary for achieving
+   * the desired result. */
+  @Deprecated // to be removed before 2.0
   Expression convertTo(Expression expression, PhysType targetPhysType);
-}
 
-// End PhysType.java
+  /** Converts an enumerable of this physical type to an enumerable that uses
+   * the <code>targetFormat</code> for representing its rows. */
+  Expression convertTo(Expression expression, JavaRowFormat targetFormat);
+}

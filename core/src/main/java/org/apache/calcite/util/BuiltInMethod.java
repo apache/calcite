@@ -18,23 +18,28 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
-import org.apache.calcite.adapter.enumerable.OrderedAggregateLambdaFactory;
-import org.apache.calcite.adapter.enumerable.SequencedAdderAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.MatchUtils;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.interpreter.Context;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Scalar;
 import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.ExtendedEnumerable;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.EqualityComparer;
@@ -47,6 +52,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
@@ -56,6 +62,7 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCount;
@@ -73,16 +80,24 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
+import org.apache.calcite.runtime.Automaton;
 import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.CompressionFunctions;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.FunctionContexts;
+import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.runtime.JsonFunctions;
+import org.apache.calcite.runtime.Matcher;
+import org.apache.calcite.runtime.Pattern;
 import org.apache.calcite.runtime.RandomFunction;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
@@ -99,9 +114,12 @@ import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -112,10 +130,17 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import javax.sql.DataSource;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Built-in methods.
@@ -155,19 +180,42 @@ public enum BuiltInMethod {
       ResultSetEnumerable.PreparedStatementEnricher.class),
   CREATE_ENRICHER(ResultSetEnumerable.class, "createEnricher", Integer[].class,
       DataContext.class),
-  JOIN(ExtendedEnumerable.class, "join", Enumerable.class, Function1.class,
-      Function1.class, Function2.class),
+  HASH_JOIN(ExtendedEnumerable.class, "hashJoin", Enumerable.class,
+      Function1.class,
+      Function1.class, Function2.class, EqualityComparer.class,
+      boolean.class, boolean.class, Predicate2.class),
+  MATCH(Enumerables.class, "match", Enumerable.class, Function1.class,
+      Matcher.class, Enumerables.Emitter.class, int.class, int.class),
+  PATTERN_BUILDER(Utilities.class, "patternBuilder"),
+  PATTERN_BUILDER_SYMBOL(Pattern.PatternBuilder.class, "symbol", String.class),
+  PATTERN_BUILDER_SEQ(Pattern.PatternBuilder.class, "seq"),
+  PATTERN_BUILDER_BUILD(Pattern.PatternBuilder.class, "build"),
+  PATTERN_TO_AUTOMATON(Pattern.PatternBuilder.class, "automaton"),
+  MATCHER_BUILDER(Matcher.class, "builder", Automaton.class),
+  MATCHER_BUILDER_ADD(Matcher.Builder.class, "add", String.class,
+      Predicate.class),
+  MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
+  MATCH_UTILS_LAST_WITH_SYMBOL(MatchUtils.class, "lastWithSymbol", String.class,
+      List.class, List.class, int.class),
+  EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
+      List.class, int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
-      Enumerable.class, Function1.class, Function1.class, Function2.class,
-      boolean.class, boolean.class),
+      Enumerable.class, Function1.class, Function1.class, Predicate2.class, Function2.class,
+      JoinType.class, Comparator.class),
   SLICE0(Enumerables.class, "slice0", Enumerable.class),
   SEMI_JOIN(EnumerableDefaults.class, "semiJoin", Enumerable.class,
-      Enumerable.class, Function1.class, Function1.class),
-  THETA_JOIN(EnumerableDefaults.class, "thetaJoin", Enumerable.class,
-      Enumerable.class, Predicate2.class, Function2.class, boolean.class,
-      boolean.class),
+      Enumerable.class, Function1.class, Function1.class,
+      EqualityComparer.class, Predicate2.class),
+  ANTI_JOIN(EnumerableDefaults.class, "antiJoin", Enumerable.class,
+      Enumerable.class, Function1.class, Function1.class,
+      EqualityComparer.class, Predicate2.class),
+  NESTED_LOOP_JOIN(EnumerableDefaults.class, "nestedLoopJoin", Enumerable.class,
+      Enumerable.class, Predicate2.class, Function2.class, JoinType.class),
   CORRELATE_JOIN(ExtendedEnumerable.class, "correlateJoin",
-      CorrelateJoinType.class, Function1.class, Function2.class),
+      JoinType.class, Function1.class, Function2.class),
+  CORRELATE_BATCH_JOIN(EnumerableDefaults.class, "correlateBatchJoin",
+      JoinType.class, Enumerable.class, Function1.class, Function2.class,
+      Predicate2.class, int.class),
   SELECT(ExtendedEnumerable.class, "select", Function1.class),
   SELECT2(ExtendedEnumerable.class, "select", Function2.class),
   SELECT_MANY(ExtendedEnumerable.class, "selectMany", Function1.class),
@@ -175,6 +223,8 @@ public enum BuiltInMethod {
   WHERE2(ExtendedEnumerable.class, "where", Predicate2.class),
   DISTINCT(ExtendedEnumerable.class, "distinct"),
   DISTINCT2(ExtendedEnumerable.class, "distinct", EqualityComparer.class),
+  SORTED_GROUP_BY(ExtendedEnumerable.class, "sortedGroupBy", Function1.class,
+      Function0.class, Function2.class, Function2.class, Comparator.class),
   GROUP_BY(ExtendedEnumerable.class, "groupBy", Function1.class),
   GROUP_BY2(ExtendedEnumerable.class, "groupBy", Function1.class,
       Function0.class, Function2.class, Function2.class),
@@ -185,16 +235,26 @@ public enum BuiltInMethod {
       Function2.class, Function1.class),
   ORDER_BY(ExtendedEnumerable.class, "orderBy", Function1.class,
       Comparator.class),
+  ORDER_BY_WITH_FETCH_AND_OFFSET(EnumerableDefaults.class, "orderBy", Enumerable.class,
+      Function1.class, Comparator.class, int.class, int.class),
   UNION(ExtendedEnumerable.class, "union", Enumerable.class),
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
-  INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class),
-  EXCEPT(ExtendedEnumerable.class, "except", Enumerable.class),
+  REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,
+      Enumerable.class, int.class, boolean.class, EqualityComparer.class),
+  MERGE_UNION(EnumerableDefaults.class, "mergeUnion", List.class, Function1.class,
+      Comparator.class, boolean.class, EqualityComparer.class),
+  LAZY_COLLECTION_SPOOL(EnumerableDefaults.class, "lazyCollectionSpool", Collection.class,
+      Enumerable.class),
+  INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class, boolean.class),
+  EXCEPT(ExtendedEnumerable.class, "except", Enumerable.class, boolean.class),
   SKIP(ExtendedEnumerable.class, "skip", int.class),
   TAKE(ExtendedEnumerable.class, "take", int.class),
   SINGLETON_ENUMERABLE(Linq4j.class, "singletonEnumerable", Object.class),
   EMPTY_ENUMERABLE(Linq4j.class, "emptyEnumerable"),
   NULLS_COMPARATOR(Functions.class, "nullsComparator", boolean.class,
       boolean.class),
+  NULLS_COMPARATOR2(Functions.class, "nullsComparator", boolean.class,
+      boolean.class, Comparator.class),
   ARRAY_COMPARER(Functions.class, "arrayComparer"),
   FUNCTION0_APPLY(Function0.class, "apply"),
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
@@ -202,6 +262,7 @@ public enum BuiltInMethod {
   ARRAY(SqlFunctions.class, "array", Object[].class),
   FLAT_PRODUCT(SqlFunctions.class, "flatProduct", int[].class, boolean.class,
       FlatProductInputType[].class),
+  FLAT_LIST(SqlFunctions.class, "flatList"),
   LIST_N(FlatLists.class, "copyOf", Comparable[].class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),
@@ -218,12 +279,19 @@ public enum BuiltInMethod {
   AS_ENUMERABLE2(Linq4j.class, "asEnumerable", Iterable.class),
   ENUMERABLE_TO_LIST(ExtendedEnumerable.class, "toList"),
   AS_LIST(Primitive.class, "asList", Object.class),
+  MEMORY_GET0(MemoryFactory.Memory.class, "get"),
+  MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),
   ENUMERATOR_CURRENT(Enumerator.class, "current"),
   ENUMERATOR_MOVE_NEXT(Enumerator.class, "moveNext"),
   ENUMERATOR_CLOSE(Enumerator.class, "close"),
   ENUMERATOR_RESET(Enumerator.class, "reset"),
   ENUMERABLE_ENUMERATOR(Enumerable.class, "enumerator"),
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
+  ITERABLE_FOR_EACH(Iterable.class, "forEach", Consumer.class),
+  FUNCTION_APPLY(Function.class, "apply", Object.class),
+  PREDICATE_TEST(Predicate.class, "test", Object.class),
+  BI_PREDICATE_TEST(BiPredicate.class, "test", Object.class, Object.class),
+  CONSUMER_ACCEPT(Consumer.class, "accept", Object.class),
   TYPED_GET_ELEMENT_TYPE(ArrayBindable.class, "getElementType"),
   BINDABLE_BIND(Bindable.class, "bind", DataContext.class),
   RESULT_SET_GET_DATE2(ResultSet.class, "getDate", int.class, Calendar.class),
@@ -242,6 +310,7 @@ public enum BuiltInMethod {
   MAP_PUT(Map.class, "put", Object.class, Object.class),
   COLLECTION_ADD(Collection.class, "add", Object.class),
   COLLECTION_ADDALL(Collection.class, "addAll", Collection.class),
+  COLLECTION_RETAIN_ALL(Collection.class, "retainAll", Collection.class),
   LIST_GET(List.class, "get", int.class),
   ITERATOR_HAS_NEXT(Iterator.class, "hasNext"),
   ITERATOR_NEXT(Iterator.class, "next"),
@@ -265,38 +334,67 @@ public enum BuiltInMethod {
   ANY_ITEM(SqlFunctions.class, "itemOptional", Object.class, Object.class),
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
-  JSONIZE(SqlFunctions.class, "jsonize", Object.class),
-  JSON_VALUE_EXPRESSION(SqlFunctions.class, "jsonValueExpression",
+  ASCII(SqlFunctions.class, "ascii", String.class),
+  REPEAT(SqlFunctions.class, "repeat", String.class, int.class),
+  SPACE(SqlFunctions.class, "space", int.class),
+  SOUNDEX(SqlFunctions.class, "soundex", String.class),
+  STRCMP(SqlFunctions.class, "strcmp", String.class, String.class),
+  DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
+  REVERSE(SqlFunctions.class, "reverse", String.class),
+  LEFT(SqlFunctions.class, "left", String.class, int.class),
+  RIGHT(SqlFunctions.class, "right", String.class, int.class),
+  TO_BASE64(SqlFunctions.class, "toBase64", String.class),
+  FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
+  MD5(SqlFunctions.class, "md5", String.class),
+  SHA1(SqlFunctions.class, "sha1", String.class),
+  THROW_UNLESS(SqlFunctions.class, "throwUnless", boolean.class, String.class),
+  COMPRESS(CompressionFunctions.class, "compress", String.class),
+  EXTRACT_VALUE(XmlFunctions.class, "extractValue", String.class, String.class),
+  XML_TRANSFORM(XmlFunctions.class, "xmlTransform", String.class, String.class),
+  EXTRACT_XML(XmlFunctions.class, "extractXml", String.class, String.class, String.class),
+  EXISTS_NODE(XmlFunctions.class, "existsNode", String.class, String.class, String.class),
+  JSONIZE(JsonFunctions.class, "jsonize", Object.class),
+  DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
+  JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
       String.class),
-  JSON_STRUCTURED_VALUE_EXPRESSION(SqlFunctions.class,
-      "jsonStructuredValueExpression", Object.class),
-  JSON_API_COMMON_SYNTAX(SqlFunctions.class, "jsonApiCommonSyntax",
-      Object.class, String.class),
-  JSON_EXISTS(SqlFunctions.class, "jsonExists", Object.class),
-  JSON_VALUE_ANY(SqlFunctions.class, "jsonValueAny", Object.class,
+  JSON_API_COMMON_SYNTAX(JsonFunctions.class, "jsonApiCommonSyntax",
+      String.class, String.class),
+  JSON_EXISTS(JsonFunctions.class, "jsonExists", String.class, String.class),
+  JSON_VALUE(JsonFunctions.class, "jsonValue", String.class, String.class,
       SqlJsonValueEmptyOrErrorBehavior.class, Object.class,
       SqlJsonValueEmptyOrErrorBehavior.class, Object.class),
-  JSON_QUERY(SqlFunctions.class, "jsonQuery", Object.class,
+  JSON_QUERY(JsonFunctions.class, "jsonQuery", String.class,
+      String.class,
       SqlJsonQueryWrapperBehavior.class,
       SqlJsonQueryEmptyOrErrorBehavior.class,
       SqlJsonQueryEmptyOrErrorBehavior.class),
-  JSON_OBJECT(SqlFunctions.class, "jsonObject",
+  JSON_OBJECT(JsonFunctions.class, "jsonObject",
       SqlJsonConstructorNullClause.class),
-  JSON_OBJECTAGG_ADD(SqlFunctions.class, "jsonObjectAggAdd", Map.class,
+  JSON_TYPE(JsonFunctions.class, "jsonType", String.class),
+  JSON_DEPTH(JsonFunctions.class, "jsonDepth", String.class),
+  JSON_KEYS(JsonFunctions.class, "jsonKeys", String.class),
+  JSON_PRETTY(JsonFunctions.class, "jsonPretty", String.class),
+  JSON_LENGTH(JsonFunctions.class, "jsonLength", String.class),
+  JSON_REMOVE(JsonFunctions.class, "jsonRemove", String.class),
+  JSON_STORAGE_SIZE(JsonFunctions.class, "jsonStorageSize", String.class),
+  JSON_OBJECTAGG_ADD(JsonFunctions.class, "jsonObjectAggAdd", Map.class,
       String.class, Object.class, SqlJsonConstructorNullClause.class),
-  JSON_ARRAY(SqlFunctions.class, "jsonArray",
+  JSON_ARRAY(JsonFunctions.class, "jsonArray",
       SqlJsonConstructorNullClause.class),
-  JSON_ARRAYAGG_ADD(SqlFunctions.class, "jsonArrayAggAdd",
+  JSON_ARRAYAGG_ADD(JsonFunctions.class, "jsonArrayAggAdd",
       List.class, Object.class, SqlJsonConstructorNullClause.class),
-  IS_JSON_VALUE(SqlFunctions.class, "isJsonValue", String.class),
-  IS_JSON_OBJECT(SqlFunctions.class, "isJsonObject", String.class),
-  IS_JSON_ARRAY(SqlFunctions.class, "isJsonArray", String.class),
-  IS_JSON_SCALAR(SqlFunctions.class, "isJsonScalar", String.class),
+  IS_JSON_VALUE(JsonFunctions.class, "isJsonValue", String.class),
+  IS_JSON_OBJECT(JsonFunctions.class, "isJsonObject", String.class),
+  IS_JSON_ARRAY(JsonFunctions.class, "isJsonArray", String.class),
+  IS_JSON_SCALAR(JsonFunctions.class, "isJsonScalar", String.class),
+  ST_GEOM_FROM_TEXT(GeoFunctions.class, "ST_GeomFromText", String.class),
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),
+  OCTET_LENGTH(SqlFunctions.class, "octetLength", ByteString.class),
   CHAR_LENGTH(SqlFunctions.class, "charLength", String.class),
   STRING_CONCAT(SqlFunctions.class, "concat", String.class, String.class),
+  MULTI_STRING_CONCAT(SqlFunctions.class, "concatMulti", String[].class),
   FLOOR_DIV(DateTimeUtils.class, "floorDiv", long.class, long.class),
   FLOOR_MOD(DateTimeUtils.class, "floorMod", long.class, long.class),
   ADD_MONTHS(SqlFunctions.class, "addMonths", long.class, int.class),
@@ -305,6 +403,7 @@ public enum BuiltInMethod {
       long.class),
   FLOOR(SqlFunctions.class, "floor", int.class, int.class),
   CEIL(SqlFunctions.class, "ceil", int.class, int.class),
+  COSH(SqlFunctions.class, "cosh", long.class),
   OVERLAY(SqlFunctions.class, "overlay", String.class, String.class, int.class),
   OVERLAY3(SqlFunctions.class, "overlay", String.class, String.class, int.class,
       int.class),
@@ -314,6 +413,8 @@ public enum BuiltInMethod {
   RAND_INTEGER(RandomFunction.class, "randInteger", int.class),
   RAND_INTEGER_SEED(RandomFunction.class, "randIntegerSeed", int.class,
       int.class),
+  TANH(SqlFunctions.class, "tanh", long.class),
+  SINH(SqlFunctions.class, "sinh", long.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),
   TRUNCATE_OR_PAD(SqlFunctions.class, "truncateOrPad", String.class, int.class),
   TRIM(SqlFunctions.class, "trim", boolean.class, boolean.class, String.class,
@@ -324,7 +425,18 @@ public enum BuiltInMethod {
   LTRIM(SqlFunctions.class, "ltrim", String.class),
   RTRIM(SqlFunctions.class, "rtrim", String.class),
   LIKE(SqlFunctions.class, "like", String.class, String.class),
+  ILIKE(SqlFunctions.class, "ilike", String.class, String.class),
+  RLIKE(SqlFunctions.class, "rlike", String.class, String.class),
   SIMILAR(SqlFunctions.class, "similar", String.class, String.class),
+  POSIX_REGEX(SqlFunctions.class, "posixRegex", String.class, String.class, boolean.class),
+  REGEXP_REPLACE3(SqlFunctions.class, "regexpReplace", String.class,
+      String.class, String.class),
+  REGEXP_REPLACE4(SqlFunctions.class, "regexpReplace", String.class,
+      String.class, String.class, int.class),
+  REGEXP_REPLACE5(SqlFunctions.class, "regexpReplace", String.class,
+      String.class, String.class, int.class, int.class),
+  REGEXP_REPLACE6(SqlFunctions.class, "regexpReplace", String.class,
+      String.class, String.class, int.class, int.class, String.class),
   IS_TRUE(SqlFunctions.class, "isTrue", Boolean.class),
   IS_NOT_FALSE(SqlFunctions.class, "isNotFalse", Boolean.class),
   NOT(SqlFunctions.class, "not", Boolean.class),
@@ -332,6 +444,7 @@ public enum BuiltInMethod {
   GREATER(SqlFunctions.class, "greater", Comparable.class, Comparable.class),
   BIT_AND(SqlFunctions.class, "bitAnd", long.class, long.class),
   BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),
+  BIT_XOR(SqlFunctions.class, "bitXor", long.class, long.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
   SCANNABLE_TABLE_SCAN(ScannableTable.class, "scan", DataContext.class),
@@ -386,12 +499,24 @@ public enum BuiltInMethod {
       TimeUnitRange.class, long.class),
   UNIX_TIMESTAMP_CEIL(DateTimeUtils.class, "unixTimestampCeil",
       TimeUnitRange.class, long.class),
+  LAST_DAY(SqlFunctions.class, "lastDay", int.class),
+  DAYNAME_WITH_TIMESTAMP(SqlFunctions.class,
+      "dayNameWithTimestamp", long.class, Locale.class),
+  DAYNAME_WITH_DATE(SqlFunctions.class,
+      "dayNameWithDate", int.class, Locale.class),
+  MONTHNAME_WITH_TIMESTAMP(SqlFunctions.class,
+      "monthNameWithTimestamp", long.class, Locale.class),
+  MONTHNAME_WITH_DATE(SqlFunctions.class,
+      "monthNameWithDate", int.class, Locale.class),
   CURRENT_TIMESTAMP(SqlFunctions.class, "currentTimestamp", DataContext.class),
   CURRENT_TIME(SqlFunctions.class, "currentTime", DataContext.class),
   CURRENT_DATE(SqlFunctions.class, "currentDate", DataContext.class),
   LOCAL_TIMESTAMP(SqlFunctions.class, "localTimestamp", DataContext.class),
   LOCAL_TIME(SqlFunctions.class, "localTime", DataContext.class),
   TIME_ZONE(SqlFunctions.class, "timeZone", DataContext.class),
+  USER(SqlFunctions.class, "user", DataContext.class),
+  SYSTEM_USER(SqlFunctions.class, "systemUser", DataContext.class),
+  LOCALE(SqlFunctions.class, "locale", DataContext.class),
   BOOLEAN_TO_STRING(SqlFunctions.class, "toString", boolean.class),
   JDBC_ARRAY_TO_LIST(SqlFunctions.class, "arrayToList", java.sql.Array.class),
   OBJECT_TO_STRING(Object.class, "toString"),
@@ -402,6 +527,11 @@ public enum BuiltInMethod {
       Comparable.class),
   COMPARE_NULLS_LAST(Utilities.class, "compareNullsLast", Comparable.class,
       Comparable.class),
+  COMPARE2(Utilities.class, "compare", Comparable.class, Comparable.class, Comparator.class),
+  COMPARE_NULLS_FIRST2(Utilities.class, "compareNullsFirst", Comparable.class,
+      Comparable.class, Comparator.class),
+  COMPARE_NULLS_LAST2(Utilities.class, "compareNullsLast", Comparable.class,
+      Comparable.class, Comparator.class),
   ROUND_LONG(SqlFunctions.class, "round", long.class, long.class),
   ROUND_INT(SqlFunctions.class, "round", int.class, int.class),
   DATE_TO_INT(SqlFunctions.class, "toInt", java.util.Date.class),
@@ -444,6 +574,8 @@ public enum BuiltInMethod {
   AVERAGE_COLUMN_SIZES(Size.class, "averageColumnSizes"),
   IS_PHASE_TRANSITION(Parallelism.class, "isPhaseTransition"),
   SPLIT_COUNT(Parallelism.class, "splitCount"),
+  LOWER_BOUND_COST(LowerBoundCost.class, "getLowerBoundCost",
+      VolcanoPlanner.class),
   MEMORY(Memory.class, "memory"),
   CUMULATIVE_MEMORY_WITHIN_PHASE(Memory.class, "cumulativeMemoryWithinPhase"),
   CUMULATIVE_MEMORY_WITHIN_PHASE_SPLIT(Memory.class,
@@ -475,15 +607,18 @@ public enum BuiltInMethod {
   SCALAR_EXECUTE2(Scalar.class, "execute", Context.class, Object[].class),
   CONTEXT_VALUES(Context.class, "values", true),
   CONTEXT_ROOT(Context.class, "root", true),
+  FUNCTION_CONTEXTS_OF(FunctionContexts.class, "of", DataContext.class,
+      Object[].class),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
   METADATA_REL(Metadata.class, "rel"),
   STRUCT_ACCESS(SqlFunctions.class, "structAccess", Object.class, int.class,
       String.class),
   SOURCE_SORTER(SourceSorter.class, Function2.class, Function1.class,
       Comparator.class),
-  ORDERED_AGGREGATE_LAMBDA_FACTORY(OrderedAggregateLambdaFactory.class,
+  BASIC_LAZY_ACCUMULATOR(BasicLazyAccumulator.class, Function2.class),
+  LAZY_AGGREGATE_LAMBDA_FACTORY(LazyAggregateLambdaFactory.class,
       Function0.class, List.class),
-  SEQUENCED_ADDER_AGGREGATE_LAMBDA_FACTORY(SequencedAdderAggregateLambdaFactory.class,
+  BASIC_AGGREGATE_LAMBDA_FACTORY(BasicAggregateLambdaFactory.class,
       Function0.class, List.class),
   AGG_LAMBDA_FACTORY_ACC_INITIALIZER(AggregateLambdaFactory.class,
       "accumulatorInitializer"),
@@ -491,10 +626,19 @@ public enum BuiltInMethod {
   AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR(AggregateLambdaFactory.class,
       "resultSelector", Function2.class),
   AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
-      "singleGroupResultSelector", Function1.class);
+      "singleGroupResultSelector", Function1.class),
+  TUMBLING(EnumUtils.class, "tumbling", Enumerable.class, Function1.class),
+  HOPPING(EnumUtils.class, "hopping", Enumerator.class, int.class, long.class,
+      long.class, long.class),
+  SESSIONIZATION(EnumUtils.class, "sessionize", Enumerator.class, int.class, int.class,
+      long.class),
+  BIG_DECIMAL_NEGATE(BigDecimal.class, "negate");
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Constructor constructor;
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Field field;
 
   public static final ImmutableMap<Method, BuiltInMethod> MAP;
@@ -510,10 +654,11 @@ public enum BuiltInMethod {
     MAP = builder.build();
   }
 
-  BuiltInMethod(Method method, Constructor constructor, Field field) {
-    this.method = method;
-    this.constructor = constructor;
-    this.field = field;
+  BuiltInMethod(@Nullable Method method, @Nullable Constructor constructor, @Nullable Field field) {
+    // TODO: split enum in three different ones
+    this.method = castNonNull(method);
+    this.constructor = castNonNull(constructor);
+    this.field = castNonNull(field);
   }
 
   /** Defines a method. */
@@ -531,6 +676,8 @@ public enum BuiltInMethod {
     this(null, null, Types.lookupField(clazz, fieldName));
     assert dummy : "dummy value for method overloading must be true";
   }
-}
 
-// End BuiltInMethod.java
+  public String getMethodName() {
+    return castNonNull(method).getName();
+  }
+}

@@ -56,9 +56,7 @@ class EmpInitializerExpressionFactory
       return rexBuilder.makeExactLiteral(new BigDecimal(555),
           typeFactory.createSqlType(SqlTypeName.INTEGER));
     default:
-      return rexBuilder.constantNull();
+      return super.newColumnDefaultValue(table, iColumn, context);
     }
   }
 }
-
-// End EmpInitializerExpressionFactory.java

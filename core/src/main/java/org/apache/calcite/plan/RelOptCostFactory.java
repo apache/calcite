@@ -45,5 +45,3 @@ public interface RelOptCostFactory {
    */
   RelOptCost makeZeroCost();
 }
-
-// End RelOptCostFactory.java
