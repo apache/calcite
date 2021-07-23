@@ -135,7 +135,8 @@ public class EnumerableInterpretable extends ConverterImpl
       throws CompileException, IOException, ExecutionException {
     ICompilerFactory compilerFactory;
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
+          EnumerableInterpretable.class.getClassLoader());
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
