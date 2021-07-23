@@ -54,7 +54,6 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
 import org.hamcrest.Matcher;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -510,8 +509,7 @@ class RexProgramTest extends RexProgramTestBase {
         "false");
   }
 
-  @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy")
-  @Test void reproducerFor3457() {
+  @Test void testCastEqualsSimplify() {
     // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
     checkSimplify(
         eq(unaryMinus(abstractCast(literal(1), tInt(true))),
