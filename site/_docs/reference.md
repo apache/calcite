@@ -1824,33 +1824,33 @@ and `LISTAGG`).
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
-| COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
-| LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
-| COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
-| COUNT(*)                           | Returns the number of input rows
-| FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
-| INTERSECTION(multiset)             | Returns the multiset intersection of *multiset* across all input values
+| ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
-| SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
-| MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
-| MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
-| ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
-| SOME(condition)                               | Returns TRUE if one or more of the values of *condition* is TRUE
-| EVERY(condition)                              | Returns TRUE if all of the values of *condition* are TRUE
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none; integer and binary types are supported
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none; integer and binary types are supported
 | BIT_XOR( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise XOR of all non-null input values, or null if none; integer and binary types are supported
+| COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
+| COUNT(*)                                      | Returns the number of input rows
+| COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
+| COVAR_POP(numeric1, numeric2)                 | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
+| COVAR_SAMP(numeric1, numeric2)                | Returns the sample covariance of the pair (*numeric1*, *numeric2*) across all input values
+| EVERY(condition)                              | Returns TRUE if all of the values of *condition* are TRUE
+| FUSION(multiset)                              | Returns the multiset union of *multiset* across all input values
+| INTERSECTION(multiset)                        | Returns the multiset intersection of *multiset* across all input values
+| LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
+| MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
+| MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
+| REGR_COUNT(numeric1, numeric2)                | Returns the number of rows where both dependent and independent expressions are not null
+| REGR_SXX(numeric1, numeric2)                  | Returns the sum of squares of the dependent expression in a linear regression model
+| REGR_SYY(numeric1, numeric2)                  | Returns the sum of squares of the independent expression in a linear regression model
+| SOME(condition)                               | Returns TRUE if one or more of the values of *condition* is TRUE
+| STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
 | STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
-| STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
+| SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
 | VAR_POP( [ ALL &#124; DISTINCT ] value)       | Returns the population variance (square of the population standard deviation) of *numeric* across all input values
 | VAR_SAMP( [ ALL &#124; DISTINCT ] numeric)    | Returns the sample variance (square of the sample standard deviation) of *numeric* across all input values
-| COVAR_POP(numeric1, numeric2)      | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
-| COVAR_SAMP(numeric1, numeric2)     | Returns the sample covariance of the pair (*numeric1*, *numeric2*) across all input values
-| REGR_COUNT(numeric1, numeric2)     | Returns the number of rows where both dependent and independent expressions are not null
-| REGR_SXX(numeric1, numeric2)       | Returns the sum of squares of the dependent expression in a linear regression model
-| REGR_SYY(numeric1, numeric2)       | Returns the sum of squares of the independent expression in a linear regression model
 
 Not implemented:
 
