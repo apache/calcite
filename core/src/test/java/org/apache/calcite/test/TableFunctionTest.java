@@ -526,4 +526,26 @@ class TableFunctionTest {
       assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4448">[CALCITE-4448]
+   * Use TableMacro user-defined table functions with QueryableTable</a>. */
+  @Test void testQueryableTableWithTableMacro() throws SQLException {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      schema.add("simple", new Smalls.SimpleTableMacro());
+
+      String sql = "select * from table(\"s\".\"simple\"())";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      String expected = "A=foo; B=5\n"
+          + "A=bar; B=4\n"
+          + "A=foo; B=3\n";
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo(expected));
+    }
+  }
 }

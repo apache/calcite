@@ -59,7 +59,7 @@ public class PigTable extends AbstractTable implements ScannableTable {
       RelDataType rowType, List<String> names) {
     final PigTable pigTable = new PigTable(rowType);
     return RelOptTableImpl.create(schema, rowType, names, pigTable,
-        Expressions.constant(Boolean.TRUE));
+        c -> Expressions.constant(Boolean.TRUE));
   }
 
   @Override public RelDataType getRowType(final RelDataTypeFactory typeFactory) {

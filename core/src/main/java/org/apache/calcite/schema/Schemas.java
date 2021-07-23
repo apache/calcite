@@ -184,6 +184,35 @@ public final class Schemas {
     return EnumUtils.convert(expression, clazz);
   }
 
+  /**
+   * Generates an expression with which table can be referenced in
+   * generated code.
+   *
+   * @param schema    Schema
+   * @param tableName Table name (unique within schema)
+   * @param table     Table to be referenced
+   * @param clazz     Class that provides specific methods for accessing table data.
+   *                  It may differ from the {@code table} class; for example {@code clazz} may be
+   *                  {@code MongoTable.MongoQueryable}, though {@code table} is {@code MongoTable}
+   */
+  public static Expression getTableExpression(SchemaPlus schema, String tableName,
+      Table table, Class<?> clazz) {
+    if (table instanceof QueryableTable) {
+      QueryableTable queryableTable = (QueryableTable) table;
+      return queryableTable.getExpression(schema, tableName, clazz);
+    } else if (table instanceof ScannableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      return tableExpression(schema, Object[].class, tableName,
+          table.getClass());
+    } else if (table instanceof StreamableTable) {
+      return getTableExpression(schema, tableName,
+          ((StreamableTable) table).stream(), clazz);
+    } else {
+      throw new UnsupportedOperationException();
+    }
+  }
+
   public static DataContext createDataContext(
       Connection connection, @Nullable SchemaPlus rootSchema) {
     return DataContexts.of((CalciteConnection) connection, rootSchema);
