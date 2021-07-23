@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.mutable.Holder;
 import org.apache.calcite.rel.mutable.MutableAggregate;
 import org.apache.calcite.rel.mutable.MutableCalc;
+import org.apache.calcite.rel.mutable.MutableCorrelate;
 import org.apache.calcite.rel.mutable.MutableFilter;
 import org.apache.calcite.rel.mutable.MutableIntersect;
 import org.apache.calcite.rel.mutable.MutableJoin;
@@ -134,6 +135,9 @@ public class SubstitutionVisitor {
           JoinOnLeftCalcToJoinUnifyRule.INSTANCE,
           JoinOnRightCalcToJoinUnifyRule.INSTANCE,
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
+          CorrelateOnLeftCalcToCorrelateUnifyRule.INSTANCE,
+          CorrelateOnRightCalcToCorrelateUnifyRule.INSTANCE,
+          CorrelateOnCalcsToCorrelateUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
           AggregateOnCalcToAggregateUnifyRule.INSTANCE,
           UnionToUnionUnifyRule.INSTANCE,
@@ -1182,6 +1186,192 @@ public class SubstitutionVisitor {
   }
 
   /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableCorrelate} which has
+   * {@link MutableCalc} as left child to a {@link MutableCorrelate}. We try to pull up the {@link
+   * MutableCalc} to top of {@link MutableCorrelate}, then match the {@link MutableCorrelate} in
+   * query to {@link MutableCorrelate} in target.
+   */
+  private static class CorrelateOnLeftCalcToCorrelateUnifyRule extends AbstractUnifyRule {
+
+    public static final CorrelateOnLeftCalcToCorrelateUnifyRule INSTANCE =
+        new CorrelateOnLeftCalcToCorrelateUnifyRule();
+
+    private CorrelateOnLeftCalcToCorrelateUnifyRule() {
+      super(
+          operand(MutableCorrelate.class, operand(MutableCalc.class, query(0)), query(1)),
+          operand(MutableCorrelate.class, target(0), target(1)), 2);
+    }
+
+    @Override protected UnifyResult apply(UnifyRuleCall call) {
+      final MutableCorrelate query = (MutableCorrelate) call.query;
+      final MutableCalc qInput0 = (MutableCalc) query.getLeft();
+      final Pair<RexNode, List<RexNode>> qInput0Explained = explainCalc(qInput0);
+      final RexNode qInput0Cond = qInput0Explained.left;
+      final List<RexNode> qInput0Projs = qInput0Explained.right;
+      final MutableCorrelate target = (MutableCorrelate) call.target;
+
+      final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+      final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
+      if (joinRelType == null) {
+        return null;
+      }
+      if (joinRelType != JoinRelType.INNER && !joinRelType.isOuterJoin()) {
+        return null;
+      }
+      if (!checkRequiredColumns(query, target)) {
+        return null;
+      }
+
+      // compensate condition
+      final RexNode compenCond = qInput0Cond;
+      // compensate project
+      final List<RexNode> compenProjs = new ArrayList<>();
+      for (int i = 0; i < fieldCnt(query); i++) {
+        if (i < fieldCnt(qInput0)) {
+          compenProjs.add(qInput0Projs.get(i));
+        } else {
+          final int newIdx = i - fieldCnt(qInput0) + fieldCnt(qInput0.getInput());
+          compenProjs.add(
+              new RexInputRef(newIdx, query.rowType.getFieldList().get(i).getType()));
+        }
+      }
+      final RexProgram compenRexProgram = RexProgram.create(
+          target.rowType, compenProjs, compenCond,
+          query.rowType, rexBuilder);
+      final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
+
+      return tryMergeParentCalcAndGenResult(call, compenCalc);
+
+    }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableCorrelate} which has
+   * {@link MutableCalc} as left child to a {@link MutableCorrelate}. We try to pull up the {@link
+   * MutableCalc} to top of {@link MutableCorrelate}, then match the {@link MutableCorrelate} in
+   * query to {@link MutableCorrelate} in target.
+   */
+  private static class CorrelateOnRightCalcToCorrelateUnifyRule extends AbstractUnifyRule {
+
+    public static final CorrelateOnRightCalcToCorrelateUnifyRule INSTANCE =
+        new CorrelateOnRightCalcToCorrelateUnifyRule();
+
+    private CorrelateOnRightCalcToCorrelateUnifyRule() {
+      super(
+          operand(MutableCorrelate.class, query(0), operand(MutableCalc.class, query(1))),
+          operand(MutableCorrelate.class, target(0), target(1)), 2);
+    }
+
+    @Override protected UnifyResult apply(UnifyRuleCall call) {
+      final MutableCorrelate query = (MutableCorrelate) call.query;
+      final MutableRel qInput0 = query.getLeft();
+      final MutableCalc qInput1 = (MutableCalc) query.getRight();
+      final Pair<RexNode, List<RexNode>> qInput1Explained = explainCalc(qInput1);
+      final RexNode qInput1Cond = qInput1Explained.left;
+      final List<RexNode> qInput1Projs = qInput1Explained.right;
+      final MutableCorrelate target = (MutableCorrelate) call.target;
+
+      final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+      final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
+      if (joinRelType == null) {
+        return null;
+      }
+      if (joinRelType != JoinRelType.INNER && !joinRelType.isOuterJoin()) {
+        return null;
+      }
+      if (!checkRequiredColumns(query, target)) {
+        return null;
+      }
+
+      final RexNode compenCond = RexUtil.shift(qInput1Cond, qInput0.rowType.getFieldCount());
+      final List<RexNode> compenProjs = new ArrayList<>();
+      for (int i = 0; i < query.rowType.getFieldCount(); i++) {
+        if (i < fieldCnt(qInput0)) {
+          compenProjs.add(
+              new RexInputRef(i, query.rowType.getFieldList().get(i).getType()));
+        } else {
+          final RexNode shifted = RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
+              qInput0.rowType.getFieldCount());
+          compenProjs.add(shifted);
+        }
+      }
+      final RexProgram compenRexProgram = RexProgram.create(
+          target.rowType, compenProjs, compenCond,
+          query.rowType, rexBuilder);
+      final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
+
+      return tryMergeParentCalcAndGenResult(call, compenCalc);
+    }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableCorrelate} which has
+   * {@link MutableCalc} as children to a {@link MutableCorrelate}. We try to pull up the {@link
+   * MutableCalc} to top of {@link MutableCorrelate}, then match the {@link MutableCorrelate} in
+   * query to {@link MutableCorrelate} in target.
+   */
+  private static class CorrelateOnCalcsToCorrelateUnifyRule extends AbstractUnifyRule {
+
+    public static final CorrelateOnCalcsToCorrelateUnifyRule INSTANCE =
+        new CorrelateOnCalcsToCorrelateUnifyRule();
+
+    private CorrelateOnCalcsToCorrelateUnifyRule() {
+      super(
+          operand(MutableCorrelate.class,
+              operand(MutableCalc.class, query(0)), operand(MutableCalc.class, query(1))),
+          operand(MutableCorrelate.class, target(0), target(1)), 2);
+    }
+
+    @Override protected UnifyResult apply(UnifyRuleCall call) {
+      final MutableCorrelate query = (MutableCorrelate) call.query;
+      final MutableCalc qInput0 = (MutableCalc) query.getLeft();
+      final MutableCalc qInput1 = (MutableCalc) query.getRight();
+      final Pair<RexNode, List<RexNode>> qInput0Explained = explainCalc(qInput0);
+      final RexNode qInput0Cond = qInput0Explained.left;
+      final List<RexNode> qInput0Projs = qInput0Explained.right;
+      final Pair<RexNode, List<RexNode>> qInput1Explained = explainCalc(qInput1);
+      final RexNode qInput1Cond = qInput1Explained.left;
+      final List<RexNode> qInput1Projs = qInput1Explained.right;
+
+      final MutableCorrelate target = (MutableCorrelate) call.target;
+
+      final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+      final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
+      if (joinRelType == null) {
+        return null;
+      }
+      if (joinRelType != JoinRelType.INNER && !(joinRelType.isOuterJoin()
+          && qInput0Cond.isAlwaysTrue() && qInput1Cond.isAlwaysTrue())) {
+        return null;
+      }
+      if (!checkRequiredColumns(query, target)) {
+        return null;
+      }
+
+      final RexNode qInput1CondShifted =
+          RexUtil.shift(qInput1Cond, fieldCnt(qInput0.getInput()));
+      final RexNode compenCond = RexUtil.composeConjunction(rexBuilder,
+          ImmutableList.of(qInput0Cond, qInput1CondShifted));
+      final List<RexNode> compenProjs = new ArrayList<>();
+      for (int i = 0; i < query.rowType.getFieldCount(); i++) {
+        if (i < fieldCnt(qInput0)) {
+          compenProjs.add(qInput0Projs.get(i));
+        } else {
+          RexNode shifted = RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
+              fieldCnt(qInput0.getInput()));
+          compenProjs.add(shifted);
+        }
+      }
+      final RexProgram compensatingRexProgram = RexProgram.create(
+          target.rowType, compenProjs, compenCond,
+          query.rowType, rexBuilder);
+      final MutableCalc compensatingCalc =
+          MutableCalc.of(target, compensatingRexProgram);
+      return tryMergeParentCalcAndGenResult(call, compensatingCalc);
+    }
+  }
+
+  /**
    * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableJoin}
    * which has {@link MutableCalc} as left child to a {@link MutableJoin}.
    * We try to pull up the {@link MutableCalc} to top of {@link MutableJoin},
@@ -1736,6 +1926,28 @@ public class SubstitutionVisitor {
     }
 
     return null;
+  }
+
+  /**
+   * Check if query equivalent to target required columns
+   */
+  private static boolean checkRequiredColumns(MutableCorrelate query,
+      MutableCorrelate target) {
+    final ImmutableBitSet queryRequiredColumns = query.requiredColumns;
+    final ImmutableBitSet targetRequiredColumns = target.requiredColumns;
+    if (queryRequiredColumns.cardinality() != targetRequiredColumns.cardinality()) {
+      return false;
+    }
+    for (int i = 0; i < queryRequiredColumns.cardinality(); i++) {
+      final String queryRequiredColumn = query.rowType.getFieldList().get(
+          queryRequiredColumns.nextSetBit(i)).getName();
+      final String targetRequiredColumn = target.rowType.getFieldList().get(
+          targetRequiredColumns.nextSetBit(i)).getName();
+      if (!queryRequiredColumn.equalsIgnoreCase(targetRequiredColumn)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Check if list0 and list1 contains the same nodes -- order is not considered. */
