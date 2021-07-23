@@ -17,6 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
     api("com.google.guava:guava")
     api("org.slf4j:slf4j-api")
 

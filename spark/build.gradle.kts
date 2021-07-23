@@ -17,6 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
     api("org.apache.spark:spark-core_2.10")
 
     implementation("com.google.guava:guava")
