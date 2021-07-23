@@ -18,6 +18,7 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -57,7 +58,7 @@ public class SqlSubstringFunction extends SqlFunction {
         "SUBSTRING",
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.ARG0_NULLABLE_VARYING,
-        null,
+        SqlSubstringFunction::inferOperandTypes,
         null,
         SqlFunctionCategory.STRING);
   }
@@ -170,5 +171,17 @@ public class SqlSubstringFunction extends SqlFunction {
       }
     }
     return super.getMonotonicity(call);
+  }
+
+  private static void inferOperandTypes(SqlCallBinding callBinding, RelDataType returnType,
+      RelDataType[] operandTypes) {
+    // Use return type as the return type to differentiate whether the type is a string or a
+    // binary.
+    operandTypes[0] = returnType;
+    RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+    operandTypes[1] = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    if (operandTypes.length == 3) {
+      operandTypes[2] = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    }
   }
 }
