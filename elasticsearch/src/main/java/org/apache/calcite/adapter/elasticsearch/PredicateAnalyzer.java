@@ -148,6 +148,7 @@ class PredicateAnalyzer {
         case OR:
         case LIKE:
         case EQUALS:
+        case IN:
         case NOT_EQUALS:
         case GREATER_THAN:
         case GREATER_THAN_OR_EQUAL:
@@ -240,7 +241,12 @@ class PredicateAnalyzer {
 
       switch (syntax) {
       case BINARY:
-        return binary(call);
+        switch (call.getKind()) {
+        case IN:
+          return in(call);
+        default:
+          return binary(call);
+        }
       case POSTFIX:
         return postfix(call);
       case PREFIX:
@@ -270,10 +276,10 @@ class PredicateAnalyzer {
               operands.get(operands.size() - 1));
           return QueryExpression.create(new NamedFieldExpression()).queryString(query);
         }
-        // fall through
+      // fall through
       default:
         String message = format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]",
-            syntax, call);
+              syntax, call);
         throw new PredicateAnalyzerException(message);
       }
     }
@@ -281,7 +287,7 @@ class PredicateAnalyzer {
     private static String convertQueryString(List<Expression> fields, Expression query) {
       int index = 0;
       Preconditions.checkArgument(query instanceof LiteralExpression,
-          "Query string must be a string literal");
+           "Query string must be a string literal");
       String queryString = ((LiteralExpression) query).stringValue();
       @SuppressWarnings("ModifiedButNotUsed")
       Map<String, String> fieldMap = new LinkedHashMap<>();
@@ -301,7 +307,7 @@ class PredicateAnalyzer {
 
     private QueryExpression prefix(RexCall call) {
       Preconditions.checkArgument(call.getKind() == SqlKind.NOT,
-          "Expected %s got %s", SqlKind.NOT, call.getKind());
+           "Expected %s got %s", SqlKind.NOT, call.getKind());
 
       if (call.getOperands().size() != 1) {
         String message = String.format(Locale.ROOT, "Unsupported NOT operator: [%s]", call);
@@ -326,6 +332,19 @@ class PredicateAnalyzer {
       isColumn(a, call, ElasticsearchConstants.INDEX, true);
       QueryExpression operand = QueryExpression.create((TerminalExpression) a);
       return call.getKind() == SqlKind.IS_NOT_NULL ? operand.exists() : operand.notExists();
+    }
+
+    /**
+     * Process a call which is a IN operation, transforming into an equivalent
+     * query expression. Note that the incoming call will not be a simple binary
+     * expression, such as {@code foo IN(1,2,3)}
+     *
+     * @param call existing call
+     * @return evaluated expression
+     */
+    private QueryExpression in(RexCall call) {
+      return QueryExpression.create((TerminalExpression) call.getOperands().get(0).accept(this))
+              .in(call.getOperands());
     }
 
     /**
@@ -363,7 +382,7 @@ class PredicateAnalyzer {
           break;
         default:
           throw new PredicateAnalyzerException(
-              "Cannot handle " + call.getKind() + " expression for _id field, " + call);
+                "Cannot handle " + call.getKind() + " expression for _id field, " + call);
         }
       }
 
@@ -444,7 +463,8 @@ class PredicateAnalyzer {
       case AND:
         return CompoundQueryExpression.and(partial, expressions);
       default:
-        String message = String.format(Locale.ROOT, "Unable to handle call: [%s]", call);
+        String message = String.format(Locale.ROOT,
+                "Unable to handle call: [%s]", call);
         throw new PredicateAnalyzerException(message);
       }
     }
@@ -502,7 +522,7 @@ class PredicateAnalyzer {
 
       if (literal == null || terminal == null) {
         String message = String.format(Locale.ROOT,
-            "Unexpected combination of expressions [left: %s] [right: %s]", left, right);
+             "Unexpected combination of expressions [left: %s] [right: %s]", left, right);
         throw new PredicateAnalyzerException(message);
       }
 
@@ -535,7 +555,7 @@ class PredicateAnalyzer {
     }
 
     private static boolean isColumn(Expression exp, RexNode node,
-        String columnName, boolean throwException) {
+                                    String columnName, boolean throwException) {
       if (!(exp instanceof NamedFieldExpression)) {
         return false;
       }
@@ -580,6 +600,8 @@ class PredicateAnalyzer {
     public abstract QueryExpression notExists();
 
     public abstract QueryExpression like(LiteralExpression literal);
+
+    public abstract QueryExpression in(List literal);
 
     public abstract QueryExpression notLike(LiteralExpression literal);
 
@@ -682,17 +704,22 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression notExists() {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notExists'] "
-          + "cannot be applied to a compound expression");
+           + "cannot be applied to a compound expression");
+    }
+
+    @Override public QueryExpression in(List literal) {
+      throw new PredicateAnalyzerException("SqlOperatorImpl ['in'] "
+           + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression like(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['like'] "
-          + "cannot be applied to a compound expression");
+         + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression notLike(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notLike'] "
-          + "cannot be applied to a compound expression");
+         + "cannot be applied to a compound expression");
     }
 
     @Override public QueryExpression equals(LiteralExpression literal) {
@@ -813,6 +840,17 @@ class PredicateAnalyzer {
       return this;
     }
 
+    @Override public QueryExpression in(List literal) {
+      List values = new ArrayList();
+      //converting rest operands to list of values
+      for (RexLiteral value : (List<RexLiteral>) literal.subList(1, literal.size())) {
+        values.add(((LiteralExpression) value.accept(new Visitor())).value());
+      }
+
+      builder = termsQuery(getFieldReference(), values);
+      return this;
+    }
+
     @Override public QueryExpression notEquals(LiteralExpression literal) {
       Object value = literal.value();
       if (value instanceof GregorianCalendar) {
@@ -884,7 +922,7 @@ class PredicateAnalyzer {
    * @return existing builder with possible {@code format} attribute
    */
   private static RangeQueryBuilder addFormatIfNecessary(LiteralExpression literal,
-      RangeQueryBuilder rangeQueryBuilder) {
+                                                        RangeQueryBuilder rangeQueryBuilder) {
     if (literal.value() instanceof GregorianCalendar) {
       rangeQueryBuilder.format("date_time");
     }
