@@ -331,17 +331,23 @@ public class RelToSqlConverter extends SqlImplementor
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       SqlNode condition = builder.context.toSql(null, e.getCondition());
-      if (ImmutableBitSet.union(aggregate.getGroupSets()).cardinality()
-          != aggregate.getGroupSet().cardinality()) {
-        final SqlNodeList groupingList =  new SqlNodeList(ImmutableList.of(), SqlParserPos.ZERO);
-        aggregate.getGroupSet().forEach(value -> groupingList.add(builder.context.field(value)));
-        condition = SqlStdOperatorTable.AND.createCall(SqlParserPos.ZERO, condition,
-            SqlStdOperatorTable.NOT_EQUALS.createCall(
-                SqlParserPos.ZERO,
-                SqlNumericLiteral.createExactNumeric(
-                    String.valueOf(0),
-                    SqlParserPos.ZERO),
-                SqlStdOperatorTable.GROUPING_ID.createCall(groupingList)));
+
+      if (!aggregate.getGroupSet()
+          .equals(ImmutableBitSet.union(aggregate.getGroupSets()))) {
+        // groupSet contains at least one column that is not in any groupSet.
+        // To make such columns must appear in the output (their value will
+        // always be NULL), we generate an extra grouping set, then filter
+        // it out using a "HAVING GROUPING_ID(groupSets) <> 0".
+        // We want to generate the
+        final SqlNodeList groupingList = new SqlNodeList(POS);
+        aggregate.getGroupSet().forEach(g ->
+            groupingList.add(builder.context.field(g)));
+        SqlNumericLiteral zero =
+            SqlNumericLiteral.createExactNumeric(String.valueOf(0), POS);
+        condition = SqlUtil.andExpressions(condition,
+            SqlStdOperatorTable.NOT_EQUALS.createCall(POS,
+                SqlStdOperatorTable.GROUPING_ID.createCall(groupingList),
+                zero));
       }
       builder.setHaving(condition);
       return builder.result();
@@ -518,16 +524,21 @@ public class RelToSqlConverter extends SqlImplementor
           SqlStdOperatorTable.ROLLUP.createCall(SqlParserPos.ZERO, groupKeys));
     default:
     case OTHER:
-      List<SqlNode> groupingSetsList = aggregate.getGroupSets().stream()
-          .map(groupSet -> groupItem(groupKeys, groupSet, aggregate.getGroupSet()))
-          .collect(Collectors.toList());
-      if (ImmutableBitSet.union(aggregate.getGroupSets()).cardinality()
-          != aggregate.getGroupSet().cardinality()) {
-        groupingSetsList.add(
-            groupItem(groupKeys, aggregate.getGroupSet(), aggregate.getGroupSet()));
+      // Make sure that the group sets contains all bits.
+      final List<ImmutableBitSet> groupSets;
+      if (aggregate.getGroupSet()
+          .equals(ImmutableBitSet.union(aggregate.groupSets))) {
+        groupSets = aggregate.getGroupSets();
+      } else {
+        groupSets = new ArrayList<>(aggregate.getGroupSets());
+        groupSets.add(0, aggregate.getGroupSet());
       }
       return ImmutableList.of(
-          SqlStdOperatorTable.GROUPING_SETS.createCall(SqlParserPos.ZERO, groupingSetsList));
+          SqlStdOperatorTable.GROUPING_SETS.createCall(SqlParserPos.ZERO,
+              groupSets.stream()
+                  .map(groupSet ->
+                      groupItem(groupKeys, groupSet, aggregate.getGroupSet()))
+                  .collect(Collectors.toList())));
     }
   }
 
