@@ -534,6 +534,28 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expectedSql);
   }
 
+  /** As {@link #testGroupSuperset()}, but with no Filter between the Aggregate
+   * and the Project. */
+  @Test void testGroupSuperset4() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1),
+                        ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .project(b.field("JOB"))
+        .build();
+    final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
+        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0";
+    relFn(relFn).ok(expectedSql);
+  }
+
   /** Tests GROUP BY ROLLUP of two columns. The SQL for MySQL has
    * "GROUP BY ... ROLLUP" but no "ORDER BY". */
   @Test void testSelectQueryWithGroupByRollup() {
