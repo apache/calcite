@@ -937,7 +937,7 @@ public class RelBuilder {
    * are coming from an existing {@link Aggregate}.
    *
    * <p>It is possible for {@code groupSet} to be strict superset of all
-   * {@code groupKeys}. For example, in the pseudo SQL
+   * {@code groupSets}. For example, in the pseudo SQL
    *
    * <pre>{@code
    * GROUP BY 0, 1, 2

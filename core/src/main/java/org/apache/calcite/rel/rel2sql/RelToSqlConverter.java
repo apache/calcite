@@ -426,8 +426,9 @@ public class RelToSqlConverter extends SqlImplementor
     // Set of clauses that we expect the builder need to add extra Clause.HAVING
     // then can add extra Having filter condition in buildAggregate.
     if (!e.getGroupSet().equals(ImmutableBitSet.union(e.getGroupSets()))) {
-      clauses = Arrays.copyOf(clauses, clauses.length + 1);
-      clauses[clauses.length - 1] = Clause.HAVING;
+      Clause[] newClauses = Arrays.copyOf(clauses, clauses.length + 1);
+      newClauses[clauses.length - 1] = Clause.HAVING;
+      clauses = newClauses;
     }
     // "select a, b, sum(x) from ( ... ) group by a, b"
     final boolean ignoreClauses = e.getInput() instanceof Project;
