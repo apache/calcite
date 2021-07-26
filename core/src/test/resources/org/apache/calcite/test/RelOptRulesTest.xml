@@ -1097,6 +1097,39 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateUnionTransposeWithTopLevelGroupSetRemapping">
+    <Resource name="sql">
+      <![CDATA[select count(t1), t2 from (
+select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from sales.emp e1
+union all
+select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from sales.emp e2)
+group by t2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1], T2=[$0])
+  LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+    LogicalUnion(all=[true])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1], T2=[$0])
+  LogicalAggregate(group=[{0}], EXPR$0=[$SUM0($1)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateWithDynamicParam">
     <Resource name="sql">
       <![CDATA[SELECT sal, COUNT(1) AS count_val
