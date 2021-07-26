@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Bug;
@@ -49,6 +50,7 @@ import com.google.common.collect.TreeRangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -311,6 +313,11 @@ public class RexSimplify {
       return simplifyUnaryMinus((RexCall) e, unknownAs);
     case PLUS_PREFIX:
       return simplifyUnaryPlus((RexCall) e, unknownAs);
+    case PLUS:
+    case MINUS:
+    case TIMES:
+    case DIVIDE:
+      return simplifyArithmetic((RexCall) e);
     default:
       if (e.getClass() == RexCall.class) {
         return simplifyGenericNode((RexCall) e);
@@ -387,6 +394,89 @@ public class RexSimplify {
       return e;
     }
     return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
+  }
+
+  /**
+   * Try to find a literal with the given value in the input list.
+   * The type of the literal must be one of the numeric types.
+   */
+  private int findLiteralIndex(List<RexNode> operands, BigDecimal value) {
+    for (int i = 0; i < operands.size(); i++) {
+      if (operands.get(i).isA(SqlKind.LITERAL)) {
+        Comparable comparable = ((RexLiteral) operands.get(i)).getValue();
+        if (comparable instanceof BigDecimal
+            && value.compareTo((BigDecimal) comparable) == 0) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  private RexNode simplifyArithmetic(RexCall e) {
+    if (e.getType().getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC
+        || e.getOperands().stream().anyMatch(
+          o -> e.getType().getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC)) {
+      // we only support simplifying numeric types.
+      return simplifyGenericNode(e);
+    }
+
+    assert e.getOperands().size() == 2;
+
+    switch (e.getKind()) {
+    case PLUS:
+      return simplifyPlus(e);
+    case MINUS:
+      return simplifyMinus(e);
+    case TIMES:
+      return simplifyMultiply(e);
+    case DIVIDE:
+      return simplifyDivide(e);
+    default:
+      throw new IllegalArgumentException("Unsupported arithmeitc operation " + e.getKind());
+    }
+  }
+
+  private RexNode simplifyPlus(RexCall e) {
+    final int zeroIndex = findLiteralIndex(e.operands, BigDecimal.ZERO);
+    if (zeroIndex >= 0) {
+      // return the other operand.
+      RexNode other = e.getOperands().get((zeroIndex + 1) % 2);
+      return other.getType().equals(e.getType())
+          ? other : rexBuilder.makeCast(e.getType(), other);
+    }
+    return simplifyGenericNode(e);
+  }
+
+  private RexNode simplifyMinus(RexCall e) {
+    final int zeroIndex = findLiteralIndex(e.operands, BigDecimal.ZERO);
+    if (zeroIndex == 1) {
+      RexNode leftOperand = e.getOperands().get(0);
+      return leftOperand.getType().equals(e.getType())
+          ? leftOperand : rexBuilder.makeCast(e.getType(), leftOperand);
+    }
+    return simplifyGenericNode(e);
+  }
+
+  private RexNode simplifyMultiply(RexCall e) {
+    final int oneIndex = findLiteralIndex(e.operands, BigDecimal.ONE);
+    if (oneIndex >= 0) {
+      // return the other operand.
+      RexNode other = e.getOperands().get((oneIndex + 1) % 2);
+      return other.getType().equals(e.getType())
+          ? other : rexBuilder.makeCast(e.getType(), other);
+    }
+    return simplifyGenericNode(e);
+  }
+
+  private RexNode simplifyDivide(RexCall e) {
+    final int oneIndex = findLiteralIndex(e.operands, BigDecimal.ONE);
+    if (oneIndex == 1) {
+      RexNode leftOperand = e.getOperands().get(0);
+      return leftOperand.getType().equals(e.getType())
+          ? leftOperand : rexBuilder.makeCast(e.getType(), leftOperand);
+    }
+    return simplifyGenericNode(e);
   }
 
   private RexNode simplifyLike(RexCall e, RexUnknownAs unknownAs) {

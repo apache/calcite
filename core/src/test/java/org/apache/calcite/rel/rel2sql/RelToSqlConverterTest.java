@@ -1755,6 +1755,17 @@ class RelToSqlConverterTest {
     sql(query).withMssql().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4690">[CALCITE-4690]
+   * Error when executing query with CHARACTER SET in Redshift</a>. */
+  @Test void testRedshiftCharacterSet() {
+    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT \"hire_date\", CAST(\"hire_date\" AS VARCHAR(10))\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
+    sql(query).withRedshift().ok(expected);
+  }
+
   @Test void testExasolCharacterSet() {
     String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
         + "from \"foodmart\".\"reserve_employee\"";
@@ -3191,6 +3202,16 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4674">[CALCITE-4674]
+   * Excess quotes in generated SQL when STAR is a column alias</a>. */
+  @Test void testAliasOnStarNoExcessQuotes() {
+    final String query = "select \"customer_id\" as \"*\" from \"customer\"";
+    final String expected = "SELECT \"customer_id\" AS \"*\"\n"
+        + "FROM \"foodmart\".\"customer\"";
+    sql(query).ok(expected);
+  }
+
   @Test void testLiteral() {
     checkLiteral("DATE '1978-05-02'");
     checkLiteral2("DATE '1978-5-2'", "DATE '1978-05-02'");
@@ -3400,6 +3421,22 @@ class RelToSqlConverterTest {
         CoreRules.JOIN_CONDITION_PUSH,
         CoreRules.AGGREGATE_PROJECT_MERGE, CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
     sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testMultiplicationNotAliasedToStar() {
+    final String sql = "select s.\"customer_id\", sum(s.\"store_sales\" * s.\"store_cost\")"
+        + "from \"sales_fact_1997\" as s\n"
+        + "join \"customer\" as c\n"
+        + "  on s.\"customer_id\" = c.\"customer_id\"\n"
+        + "group by s.\"customer_id\"";
+    final String expected = "SELECT \"t\".\"customer_id\", SUM(\"t\".\"EXPR$0\")\n"
+        + "FROM (SELECT \"customer_id\", \"store_sales\" * \"store_cost\" AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"customer_id\"\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t0\" ON \"t\".\"customer_id\" = \"t0\".\"customer_id\"\n"
+        + "GROUP BY \"t\".\"customer_id\"";
+    RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_JOIN_TRANSPOSE);
+    sql(sql).optimize(rules, null).ok(expected);
   }
 
   @Test void testRankFunctionForPrintingOfFrameBoundary() {
@@ -5557,6 +5594,24 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withOracle()
+        .ok(expected);
+  }
+
+  @Test void testRedshiftCastToTinyint() {
+    String query = "SELECT CAST(\"department_id\" AS tinyint) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"int2\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
+        .ok(expected);
+  }
+
+  @Test void testRedshiftCastToDouble() {
+    String query = "SELECT CAST(\"department_id\" AS double) FROM \"employee\"";
+    String expected = "SELECT CAST(\"department_id\" AS \"float8\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withRedshift()
         .ok(expected);
   }
 

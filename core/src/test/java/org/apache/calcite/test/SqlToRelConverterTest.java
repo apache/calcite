@@ -3871,6 +3871,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testModeFunction() {
+    final String sql = "select mode(deptno)\n"
+        + "from emp";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test void testModeFunctionWithWinAgg() {
+    final String sql = "select deptno, ename,\n"
+        + "  mode(job) over (partition by deptno order by ename)\n"
+        + "from emp";
+    sql(sql).trim(true).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4644">[CALCITE-4644]
    * Add PERCENTILE_CONT and PERCENTILE_DISC aggregate functions</a>. */

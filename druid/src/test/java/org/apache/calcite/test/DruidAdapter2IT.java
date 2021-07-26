@@ -3103,12 +3103,12 @@ public class DruidAdapter2IT {
             new DruidChecker(
                 "\"filter\":{\"type\":\"expression\",\"expression\":\"(((CAST(\\\"product_id\\\", ",
                 "LONG",
-                ") + (1 * \\\"store_sales\\\")) / (\\\"store_cost\\\" - 5))",
+                ") + \\\"store_sales\\\") / (\\\"store_cost\\\" - 5))",
                 " <= ((floor(\\\"store_sales\\\") * 25) + 2))\"}"))
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "filter=[<=(/(+(CAST($1):INTEGER, *(1, $90)), -($91, 5)), +(*(FLOOR($90), 25), 2))], "
+            + "filter=[<=(/(+(CAST($1):INTEGER, $90), -($91, 5)), +(*(FLOOR($90), 25), 2))], "
             + "groups=[{}], aggs=[[COUNT()]])")
         .returnsOrdered("EXPR$0=82129");
   }
@@ -3135,7 +3135,7 @@ public class DruidAdapter2IT {
         + "AND EXTRACT(MONTH FROM \"timestamp\") / 4 + 1 = 1";
     final String queryType = "{'queryType':'timeseries','dataSource':'foodmart'";
     final String filterExp1 = "{'type':'expression','expression':'(((CAST(\\'product_id\\'";
-    final String filterExpPart2 =  " (1 * \\'store_sales\\')) / (\\'store_cost\\' - 5)) "
+    final String filterExpPart2 =  " \\'store_sales\\') / (\\'store_cost\\' - 5)) "
         + "<= ((floor(\\'store_sales\\') * 25) + 2))'}";
     final String likeExpressionFilter = "{'type':'expression','expression':'like(\\'product_id\\'";
     final String likeExpressionFilter2 = "1%";
@@ -3157,7 +3157,7 @@ public class DruidAdapter2IT {
     final String quarterAsExpressionFilter3 = "/ 4) + 1) == 1)'}]}";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], filter=[AND(<=(/(+(CAST($1):INTEGER, *(1, $90)), "
+        + "2992-01-10T00:00:00.000Z]], filter=[AND(<=(/(+(CAST($1):INTEGER, $90), "
         + "-($91, 5)), +(*(FLOOR($90), 25), 2)), >($90, 0), LIKE($1, '1%'), >($91, 1), "
         + "<($0, 1997-01-02 00:00:00), =(EXTRACT(FLAG(MONTH), $0), 1), "
         + "=(EXTRACT(FLAG(DAY), $0), 1), =(+(/(EXTRACT(FLAG(MONTH), $0), 4), 1), 1))], "
