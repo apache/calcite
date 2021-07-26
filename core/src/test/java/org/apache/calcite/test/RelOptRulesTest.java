@@ -5405,6 +5405,17 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test void testAggregateUnionTransposeWithTopLevelGroupSetRemapping() {
+    final String sql = "select count(t1), t2 from (\n"
+        + "select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from sales.emp e1\n"
+        + "union all\n"
+        + "select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from sales.emp e2)\n"
+        + "group by t2";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .check();
+  }
 
   @Test void testSortJoinTranspose1() {
     final String sql = "select * from sales.emp e left join (\n"
