@@ -463,11 +463,10 @@ class RelToSqlConverterTest {
         .project(b.field("JOB"))
         .build();
     final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
-        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
-        + "HAVING \"JOB\" = 'DEVELOP' "
-        + "AND GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0";
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"), (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING \"JOB\" = 'DEVELOP' AND GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0) AS \"t\"";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -489,13 +488,11 @@ class RelToSqlConverterTest {
         .project(b.field("JOB"))
         .build();
     final String expectedSql = "SELECT \"JOB\"\n"
-        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\","
-        + " SUM(\"SAL\") AS \"S\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
-        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
-        + "HAVING COUNT(*) > 10 "
-        + "AND GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0) AS \"t0\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"), (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING \"C\" > 10 AND GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0) AS \"t\") AS \"t0\"\n"
         + "WHERE \"JOB\" = 'DEVELOP'";
     relFn(relFn).ok(expectedSql);
   }
@@ -523,13 +520,11 @@ class RelToSqlConverterTest {
         .project(b.field("JOB"))
         .build();
     final String expectedSql = "SELECT \"JOB\"\n"
-        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\","
-        + " SUM(\"SAL\") AS \"S\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
-        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\", ())\n"
-        + "HAVING (COUNT(*) > 10 OR SUM(\"SAL\") < 3000) "
-        + "AND GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0) AS \"t0\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"), (\"EMPNO\", \"ENAME\"), \"EMPNO\", ())\n"
+        + "HAVING (\"C\" > 10 OR \"S\" < 3000) AND GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0) AS \"t\") AS \"t0\"\n"
         + "WHERE \"JOB\" = 'DEVELOP'";
     relFn(relFn).ok(expectedSql);
   }
@@ -550,9 +545,58 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT \"JOB\"\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
-        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"), (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
         + "HAVING GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testGroupSuperset()}, but with no Filter between the Aggregate
+   * and the Sort. */
+  @Test void testGroupSuperset5() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1),
+                        ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .sort(b.field("C"))
+        .build();
+    final String expectedSql = "SELECT \"EMPNO\", \"ENAME\", \"JOB\","
+        + " COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"), (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0\n"
+        + "ORDER BY COUNT(*)";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testGroupSuperset()}, but with Filter condition and Where condition. */
+  @Test void testGroupSuperset6() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1),
+                        ImmutableBitSet.of(0), ImmutableBitSet.of())),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(
+            b.call(SqlStdOperatorTable.LESS_THAN,
+                b.call(SqlStdOperatorTable.GROUP_ID, b.field("EMPNO")), b.literal(1)))
+        .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB"))
+        .build();
+    final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"), (\"EMPNO\", \"ENAME\"), \"EMPNO\", ())\n"
+        + "HAVING GROUP_ID(\"EMPNO\") < 1 AND GROUPING_ID(\"EMPNO\", \"ENAME\", \"JOB\") <> 0) AS \"t\") AS \"t0\"\n"
+        + "WHERE \"JOB\" = 'DEVELOP'";
     relFn(relFn).ok(expectedSql);
   }
 

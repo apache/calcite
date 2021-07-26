@@ -100,6 +100,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -331,25 +332,16 @@ public class RelToSqlConverter extends SqlImplementor
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       SqlNode condition = builder.context.toSql(null, e.getCondition());
-
-      if (!aggregate.getGroupSet()
-          .equals(ImmutableBitSet.union(aggregate.getGroupSets()))) {
-        // groupSet contains at least one column that is not in any groupSet.
-        // To make such columns must appear in the output (their value will
-        // always be NULL), we generate an extra grouping set, then filter
-        // it out using a "HAVING GROUPING_ID(groupSets) <> 0".
-        // We want to generate the
-        final SqlNodeList groupingList = new SqlNodeList(POS);
-        aggregate.getGroupSet().forEach(g ->
-            groupingList.add(builder.context.field(g)));
-        SqlNumericLiteral zero =
-            SqlNumericLiteral.createExactNumeric(String.valueOf(0), POS);
-        condition = SqlUtil.andExpressions(condition,
-            SqlStdOperatorTable.NOT_EQUALS.createCall(POS,
-                SqlStdOperatorTable.GROUPING_ID.createCall(groupingList),
-                zero));
+      SqlNode existHaving = x.asSelect().getHaving();
+      if (existHaving != null) {
+        // if input Aggregate RelNode contains existHaving, need
+        // to create AND expression with connect condition and existHaving
+        // then update input Aggregate's Having condition.
+        condition = SqlUtil.andExpressions(condition, existHaving);
+        x.asSelect().setHaving(condition);
+      } else {
+        builder.setHaving(condition);
       }
-      builder.setHaving(condition);
       return builder.result();
     } else {
       final Result x = visitInput(e, 0, Clause.WHERE);
@@ -430,6 +422,13 @@ public class RelToSqlConverter extends SqlImplementor
 
   private Builder visitAggregate(Aggregate e, List<Integer> groupKeyList,
       Clause... clauses) {
+    // groupSet contains at least one column that is not in any groupSet.
+    // Set of clauses that we expect the builder need to add extra Clause.HAVING
+    // then can add extra Having filter condition in buildAggregate.
+    if (!e.getGroupSet().equals(ImmutableBitSet.union(e.getGroupSets()))) {
+      clauses = Arrays.copyOf(clauses, clauses.length + 1);
+      clauses[clauses.length - 1] = Clause.HAVING;
+    }
     // "select a, b, sum(x) from ( ... ) group by a, b"
     final boolean ignoreClauses = e.getInput() instanceof Project;
     final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
@@ -481,6 +480,22 @@ public class RelToSqlConverter extends SqlImplementor
       // Some databases don't support "GROUP BY ()". We can omit it as long
       // as there is at least one aggregate function.
       builder.setGroupBy(new SqlNodeList(groupByList, POS));
+    }
+
+    if (builder.clauses.contains(Clause.HAVING) && !e.getGroupSet()
+        .equals(ImmutableBitSet.union(e.getGroupSets()))) {
+      // groupSet contains at least one column that is not in any groupSets.
+      // To make such columns must appear in the output (their value will
+      // always be NULL), we generate an extra grouping set, then filter
+      // it out using a "HAVING GROUPING_ID(groupSets) <> 0".
+      // We want to generate the
+      final SqlNodeList groupingList = new SqlNodeList(POS);
+      e.getGroupSet().forEach(g ->
+          groupingList.add(builder.context.field(g)));
+      SqlNumericLiteral zero = SqlNumericLiteral.createExactNumeric(String.valueOf(0), POS);
+      SqlNode condition = SqlStdOperatorTable.NOT_EQUALS.createCall(POS,
+          SqlStdOperatorTable.GROUPING_ID.createCall(groupingList), zero);
+      builder.setHaving(condition);
     }
     return builder;
   }
