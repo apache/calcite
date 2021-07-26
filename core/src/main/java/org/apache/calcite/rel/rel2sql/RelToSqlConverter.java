@@ -100,7 +100,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -424,9 +423,12 @@ public class RelToSqlConverter extends SqlImplementor
       Clause... clauses) {
     // groupSet contains at least one column that is not in any groupSet.
     // Set of clauses that we expect the builder need to add extra Clause.HAVING
-    // then can add extra Having filter condition in buildAggregate.
+    // then can add Having filter condition in buildAggregate.
     if (!e.getGroupSet().equals(ImmutableBitSet.union(e.getGroupSets()))) {
-      Clause[] newClauses = Arrays.copyOf(clauses, clauses.length + 1);
+      Clause[] newClauses = new Clause[clauses.length + 1];
+      for (int i = 0; i < clauses.length; i++) {
+        newClauses[i] = clauses[i];
+      }
       newClauses[newClauses.length - 1] = Clause.HAVING;
       clauses = newClauses;
     }
