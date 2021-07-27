@@ -343,6 +343,12 @@ public class JdbcSchema implements Schema {
         }
       }
     }
+    if ((catalog == null || schema == null)
+        && metaData.getDatabaseProductName().equals("ClickHouse")) {
+      // support ClickHouse
+      catalog = connection.getCatalog();
+      schema = connection.getSchema();
+    }
     return Pair.of(catalog, schema);
   }
 
