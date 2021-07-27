@@ -117,16 +117,6 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       // It's possible that rel is a subset or is already registered.
       // Is there still a point in continuing? Yes, because we might
       // discover that two sets of expressions are actually equivalent.
-
-      if (LOGGER.isTraceEnabled()) {
-        // Cannot call RelNode.toString() yet, because rel has not
-        // been registered. For now, let's make up something similar.
-        String relDesc =
-            "rel#" + rel.getId() + ":" + rel.getRelTypeName();
-        LOGGER.trace("call#{}: Rule {} arguments {} created {}",
-            id, getRule(), Arrays.toString(rels), relDesc);
-      }
-
       if (volcanoPlanner.getListener() != null) {
         RelOptListener.RuleProductionEvent event =
             new RelOptListener.RuleProductionEvent(
@@ -212,12 +202,6 @@ public class VolcanoRuleCall extends RelOptRuleCall {
               getRule(), i, rel);
           return;
         }
-      }
-
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
-            "call#{}: Apply rule [{}] to {}",
-            id, getRule(), Arrays.toString(rels));
       }
 
       if (volcanoPlanner.getListener() != null) {
