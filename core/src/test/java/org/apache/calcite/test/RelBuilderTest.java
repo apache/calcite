@@ -1694,8 +1694,8 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4665">[CALCITE-4665]
-   * groupKeys contain unused column.</a>. */
-  @Test void testGroupingSetWithGroupKeysContainUnusedColumn() {
+   * Allow Aggregate.groupSet to contain columns not in any of the groupSets.</a>. */
+  @Test void testGroupingSetWithGroupKeysContainingUnusedColumn() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root = builder.scan("EMP")
         .aggregate(
