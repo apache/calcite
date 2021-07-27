@@ -22,6 +22,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -47,7 +48,7 @@ public class RuleEventLogger implements RelOptListener {
   @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
     if (event.isBefore() && LOG.isDebugEnabled()) {
       RelOptRuleCall call = event.getRuleCall();
-      RelNode newRel = event.getRel();
+      RelNode newRel = Objects.requireNonNull(event.getRel());
       String relPlan = RelOptUtil.toString(newRel);
       String relDesc = "rel#" + newRel.getId() + ":" + newRel.getRelTypeName();
       LOG.debug("call#{}: Rule [{}] produced [{}]:\n {}",
