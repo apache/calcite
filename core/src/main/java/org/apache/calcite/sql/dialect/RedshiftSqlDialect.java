@@ -18,12 +18,15 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -31,12 +34,35 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * A <code>SqlDialect</code> implementation for the Redshift database.
  */
 public class RedshiftSqlDialect extends SqlDialect {
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new RelDataTypeSystemImpl() {
+        @Override public int getMaxPrecision(SqlTypeName typeName) {
+          switch (typeName) {
+          case VARCHAR:
+            return 65535;
+          case CHAR:
+            return 4096;
+          default:
+            return super.getMaxPrecision(typeName);
+          }
+        }
+
+        @Override public int getMaxNumericPrecision() {
+          return 38;
+        }
+
+        @Override public int getMaxNumericScale() {
+          return 37;
+        }
+      };
+
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.REDSHIFT)
       .withIdentifierQuoteString("\"")
       .withQuotedCasing(Casing.TO_LOWER)
       .withUnquotedCasing(Casing.TO_LOWER)
-      .withCaseSensitive(false);
+      .withCaseSensitive(false)
+      .withDataTypeSystem(TYPE_SYSTEM);
 
   public static final SqlDialect DEFAULT = new RedshiftSqlDialect(DEFAULT_CONTEXT);
 
