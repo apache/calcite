@@ -646,7 +646,7 @@ public class SubQueryRemoveRule
     final CorrelationId id = join.getCluster().createCorrel();
     RexNode condition = RelOptUtil.correlateLeftShiftRight(builder.getRexBuilder(),
         join.getLeft(), id, join.getRight(), join.getCondition());
-    for(RexSubQuery subQuery = RexUtil.SubQueryFinder.find(condition); subQuery != null;
+    for (RexSubQuery subQuery = RexUtil.SubQueryFinder.find(condition); subQuery != null;
         subQuery = RexUtil.SubQueryFinder.find(condition)) {
       final Set<CorrelationId>  variablesSet =
           RelOptUtil.getVariablesUsed(subQuery.rel);
