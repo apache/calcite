@@ -639,30 +639,15 @@ public class SubQueryRemoveRule
 
   private static void matchJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
     final Join join = call.rel(0);
-    switch (join.getJoinType()) {
-    case INNER:
-    case LEFT:
-    case ANTI:
-    case SEMI:
-      break;
-    default:
-      //Incorrect queries will be produced for full and right joins.
-      return;
-    }
+    assert hasSubQueryAndJoinTypeIsRewritable(join);
     final RelBuilder builder = call.builder()
         .push(join.getLeft())
         .push(join.getRight());
     final CorrelationId id = join.getCluster().createCorrel();
     RexNode condition = RelOptUtil.correlateLeftShiftRight(builder.getRexBuilder(),
         join.getLeft(), id, join.getRight(), join.getCondition());
-    boolean found = false;
-    while (true) {
-      final RexSubQuery subQuery = RexUtil.SubQueryFinder.find(condition);
-      if (subQuery == null) {
-        assert found;
-        break;
-      }
-      found = true;
+    for(RexSubQuery subQuery = RexUtil.SubQueryFinder.find(condition); subQuery != null;
+        subQuery = RexUtil.SubQueryFinder.find(condition)) {
       final Set<CorrelationId>  variablesSet =
           RelOptUtil.getVariablesUsed(subQuery.rel);
       final RelOptUtil.Logic logic =
@@ -678,6 +663,19 @@ public class SubQueryRemoveRule
         .join(join.getJoinType(), builder.literal(true), ImmutableSet.of(id))
         .project(fields(builder, join.getRowType().getFieldCount()));
     call.transformTo(builder.build());
+  }
+
+  private static boolean hasSubQueryAndJoinTypeIsRewritable(Join join) {
+    switch (join.getJoinType()) {
+    case INNER:
+    case LEFT:
+    case ANTI:
+    case SEMI:
+      return RexUtil.SubQueryFinder.containsSubQuery(join);
+    default:
+      //Incorrect queries will be produced for full and right joins.
+      return false;
+    }
   }
 
   /** Shuttle that replaces occurrences of a given
@@ -717,7 +715,7 @@ public class SubQueryRemoveRule
     Config JOIN = EMPTY
         .withOperandSupplier(b ->
             b.operand(Join.class)
-                .predicate(RexUtil.SubQueryFinder::containsSubQuery)
+                .predicate(SubQueryRemoveRule::hasSubQueryAndJoinTypeIsRewritable)
                 .anyInputs())
         .withDescription("SubQueryRemoveRule:Join")
         .as(Config.class)

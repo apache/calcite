@@ -305,8 +305,15 @@ public abstract class RelOptUtil {
     }
   }
 
-  /** Shifts a predicate's inputs to the left, replacing early
-   * ones with references to a {@link RexCorrelVariable}. */
+  /** Rewrites an {@link RexNode} on top of a correlated join to the rights context by
+   * shifting {@link RexInputRef} if they are from the right side, and rewriting
+   * {@link RexInputRef} to field accesses of {@link RexCorrelVariable}.
+   * @param left Rel fields to be correlated
+   * @param id id to correlate
+   * @param right Rel field to be shifted to the right
+   * @param rexNode expression to be rewritten
+   * @return An expression
+   */
   public static RexNode correlateLeftShiftRight(RexBuilder rexBuilder,
       RelNode left, CorrelationId id, RelNode right, RexNode rexNode) {
     final RelDataType leftRowType = left.getRowType();
