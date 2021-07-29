@@ -726,7 +726,12 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   private void unparseExpressionIntervalCall(
       SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
-    SqlLiteral intervalLiteral = getIntervalLiteral(call);
+    SqlLiteral intervalLiteral;
+    if (call.operand(1) instanceof SqlIntervalLiteral) {
+      intervalLiteral = updateSqlIntervalLiteral(call.operand(1));
+    } else {
+      intervalLiteral = getIntervalLiteral(call);
+    }
     SqlNode identifier = getIdentifier(call);
     SqlIntervalLiteral.IntervalValue literalValue =
         (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
