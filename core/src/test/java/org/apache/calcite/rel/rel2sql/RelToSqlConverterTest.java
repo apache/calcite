@@ -91,6 +91,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -115,7 +116,7 @@ class RelToSqlConverterTest {
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
-        UnaryOperator.identity(), null, ImmutableList.of());
+        UnaryOperator.identity(), null, ImmutableList.of(), RelDataTypeSystem.DEFAULT);
   }
 
   /** Initiates a test case with a given {@link RelNode} supplier. */
@@ -128,7 +129,7 @@ class RelToSqlConverterTest {
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
-      Program... programs) {
+      RelDataTypeSystem typeSystem, Program... programs) {
     final MockSqlOperatorTable operatorTable =
         new MockSqlOperatorTable(
             SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
@@ -142,6 +143,7 @@ class RelToSqlConverterTest {
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
         .operatorTable(operatorTable)
+        .typeSystem(typeSystem)
         .build();
     return Frameworks.getPlanner(config);
   }
@@ -711,6 +713,59 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4706">[CALCITE-4706]
+   * JDBC adapter generates casts exceeding Redshift's data types bounds</a>.
+   */
+  @Test void testCastDecimalBigPrecision() {
+    final String query = "select cast(\"product_id\" as decimal(60,2)) "
+        + "from \"product\" ";
+    final String expectedRedshift = "SELECT CAST(\"product_id\" AS DECIMAL(38, 2))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withTypeSystem(new RelDataTypeSystemImpl() {
+          @Override public int getMaxNumericPrecision() {
+            // Ensures that parsed decimal will not be truncated during SQL to Rel transformation
+            // The default type system sets precision to 19 so it is not sufficient to test
+            // this change.
+            return 100;
+          }
+        })
+        .withRedshift()
+        .ok(expectedRedshift);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4706">[CALCITE-4706]
+   * JDBC adapter generates casts exceeding Redshift's data types bounds</a>.
+   */
+  @Test void testCastDecimalBigScale() {
+    final String query = "select cast(\"product_id\" as decimal(2,90)) "
+        + "from \"product\" ";
+    final String expectedRedshift = "SELECT CAST(\"product_id\" AS DECIMAL(2, 37))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withRedshift()
+        .ok(expectedRedshift);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4706">[CALCITE-4706]
+   * JDBC adapter generates casts exceeding Redshift's data types bounds</a>.
+   */
+  @Test void testCastLongChar() {
+    final String query = "select cast(\"product_id\" as char(9999999)) "
+        + "from \"product\" ";
+    final String expectedRedshift = "SELECT CAST(\"product_id\" AS CHAR(4096))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withRedshift()
+        .ok(expectedRedshift);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2713">[CALCITE-2713]
    * JDBC adapter may generate casts on PostgreSQL for VARCHAR type exceeding
@@ -720,15 +775,17 @@ class RelToSqlConverterTest {
         + " from \"expense_fact\"";
     final String expectedPostgreSQL = "SELECT CAST(\"store_id\" AS VARCHAR(256))\n"
         + "FROM \"foodmart\".\"expense_fact\"";
-    sql(query)
-        .withPostgresqlModifiedTypeSystem()
-        .ok(expectedPostgreSQL);
-
     final String expectedOracle = "SELECT CAST(\"store_id\" AS VARCHAR(512))\n"
         + "FROM \"foodmart\".\"expense_fact\"";
+    final String expectedRedshift = "SELECT CAST(\"store_id\" AS VARCHAR(65535))\n"
+        + "FROM \"foodmart\".\"expense_fact\"";
     sql(query)
+        .withPostgresqlModifiedTypeSystem()
+        .ok(expectedPostgreSQL)
         .withOracleModifiedTypeSystem()
-        .ok(expectedOracle);
+        .ok(expectedOracle)
+        .withRedshift()
+        .ok(expectedRedshift);
   }
 
   /** Test case for
@@ -5996,12 +6053,14 @@ class RelToSqlConverterTest {
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
+    private final RelDataTypeSystem typeSystem;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
         SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         @Nullable Function<RelBuilder, RelNode> relFn,
-        List<Function<RelNode, RelNode>> transforms) {
+        List<Function<RelNode, RelNode>> transforms,
+        RelDataTypeSystem typeSystem) {
       this.schemaSpec = schemaSpec;
       this.sql = sql;
       this.dialect = dialect;
@@ -6010,16 +6069,17 @@ class RelToSqlConverterTest {
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
       this.config = config;
+      this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
     }
 
     Sql dialect(SqlDialect dialect) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, typeSystem);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, typeSystem);
     }
 
     Sql withCalcite() {
@@ -6146,12 +6206,17 @@ class RelToSqlConverterTest {
 
     Sql parserConfig(SqlParser.Config parserConfig) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, typeSystem);
     }
 
     Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, typeSystem);
+    }
+
+    Sql withTypeSystem(RelDataTypeSystem typeSystem) {
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms, typeSystem);
     }
 
     final Sql withLibrary(SqlLibrary library) {
@@ -6160,7 +6225,7 @@ class RelToSqlConverterTest {
 
     Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
       return new Sql(schemaSpec, sql, dialect, parserConfig,
-          ImmutableSet.copyOf(librarySet), config, relFn, transforms);
+          ImmutableSet.copyOf(librarySet), config, relFn, transforms, typeSystem);
     }
 
     Sql optimize(final RuleSet ruleSet,
@@ -6177,7 +6242,7 @@ class RelToSqlConverterTest {
                 ImmutableList.of(), ImmutableList.of());
           });
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, typeSystem);
     }
 
     Sql ok(String expectedQuery) {
@@ -6212,7 +6277,7 @@ class RelToSqlConverterTest {
           final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
               .withTrimUnusedFields(false));
           final Planner planner =
-              getPlanner(null, parserConfig, defaultSchema, config, librarySet);
+              getPlanner(null, parserConfig, defaultSchema, config, librarySet, typeSystem);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).rel;
@@ -6228,7 +6293,7 @@ class RelToSqlConverterTest {
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, typeSystem);
     }
   }
 }

@@ -129,7 +129,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new MysqlSqlDialect(
           c.withDataTypeSystem(MysqlSqlDialect.MYSQL_TYPE_SYSTEM));
     case "REDSHIFT":
-      return new RedshiftSqlDialect(c);
+      return new RedshiftSqlDialect(
+          c.withDataTypeSystem(RedshiftSqlDialect.TYPE_SYSTEM));
     case "SNOWFLAKE":
       return new SnowflakeSqlDialect(c);
     case "SPARK":
