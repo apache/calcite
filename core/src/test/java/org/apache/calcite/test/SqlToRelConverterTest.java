@@ -4164,9 +4164,37 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .convertsTo("${plan_not_extended}");
   }
 
-  @Test void testDeduplicateCorrelationsWithoutWhereClause() {
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4673">[CALCITE-4673]</a><br>
+   * Erroneous correlates assigments of identical fields i.e :<br>
+   * LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor1.DEPTNO)]<br>
+   * Correct need to be:<br>
+   * LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.DEPTNO)]
+   */
+  @Test void testDeduplicateCorrelationsWithoutWhereClauseWithLateral() {
     String sql = ""
         + "select e.deptno, (select * from lateral table(DEDUP(e.deptno, e.deptno))) from emp e";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("${plan_extended}");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false))
+        .convertsTo("${plan_not_extended}");
+  }
+
+  /**
+   * Same as
+   * {@link SqlToRelConverterTest#testDeduplicateCorrelationsWithoutWhereClauseWithLateral()}
+   * but without a LATERAL.
+   */
+  @Test void testDeduplicateCorrelationsWithoutWhereClauseWithoutLateral() {
+    String sql = ""
+        + "select e.deptno, (select * from table(DEDUP(e.deptno, e.deptno))) from emp e";
     sql(sql)
         .withConfig(configBuilder -> configBuilder
             .withExpand(true)
