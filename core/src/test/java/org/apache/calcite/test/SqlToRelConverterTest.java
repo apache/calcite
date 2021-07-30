@@ -4197,6 +4197,28 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
             .withExpand(false)
             .withDecorrelationEnabled(false))
         .convertsTo("${plan_not_extended}");
+
+    sql = "SELECT deptno, ename\n"
+        + "FROM\n"
+        + "  (SELECT DISTINCT deptno FROM emp) t1,\n"
+        + "  LATERAL (\n"
+        + "    SELECT ename, sal\n"
+        + "    FROM emp\n"
+        + "    WHERE deptno IN (t1.deptno, t1.deptno)\n"
+        + "    AND   deptno = t1.deptno\n"
+        + "    ORDER BY sal\n"
+        + "    DESC LIMIT 3\n"
+        + "  )";
+    sql(sql).convertsTo("${plan_lateral_without_table_func}");
+
+    sql = "select emp.deptno, dept.deptno from emp, dept where exists (select * from emp where "
+        + "emp.deptno = dept.deptno and emp.deptno = dept.deptno and emp.deptno in "
+        + "(dept.deptno, dept.deptno))";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("${plan_with_exist}");
   }
 
   @Test void testImplicitJoinExpandAndDecorrelation() {

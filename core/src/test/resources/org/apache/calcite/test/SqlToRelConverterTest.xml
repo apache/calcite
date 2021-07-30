@@ -1113,6 +1113,32 @@ LogicalProject(NAME=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
+    <Resource name="plan_with_exist">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], DEPTNO1=[CAST($11):INTEGER], $f1=[CAST($12):BOOLEAN])
+    LogicalJoin(condition=[=($9, $11)], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$7], $f0=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="plan_lateral_without_table_func">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
+      LogicalProject(ENAME=[$1], SAL=[$5])
+        LogicalFilter(condition=[AND(OR(=($7, $cor0.DEPTNO), =($7, $cor0.DEPTNO)), =($7, $cor0.DEPTNO))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
     <Resource name="sql">
       <![CDATA[select e.deptno, (select * from [lateral] table(DEDUP(e.deptno, e.deptno))) from emp e]]>
     </Resource>
