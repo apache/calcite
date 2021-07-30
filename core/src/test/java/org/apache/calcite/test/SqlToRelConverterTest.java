@@ -4172,7 +4172,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Correct need to be:<br>
    * LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.DEPTNO)]
    */
-  @Test void testDeduplicateCorrelationsWithoutWhereClauseWithLateral() {
+  @Test void testDeduplicateCorrelationsWithoutWhereClause() {
     String sql = ""
         + "select e.deptno, (select * from lateral table(DEDUP(e.deptno, e.deptno))) from emp e";
     sql(sql)
@@ -4185,16 +4185,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
             .withExpand(false)
             .withDecorrelationEnabled(false))
         .convertsTo("${plan_not_extended}");
-  }
 
-  /**
-   * Same as
-   * {@link SqlToRelConverterTest#testDeduplicateCorrelationsWithoutWhereClauseWithLateral()}
-   * but without a LATERAL.
-   */
-  @Test void testDeduplicateCorrelationsWithoutWhereClauseWithoutLateral() {
-    String sql = ""
-        + "select e.deptno, (select * from table(DEDUP(e.deptno, e.deptno))) from emp e";
+    sql = "select e.deptno, (select * from table(DEDUP(e.deptno, e.deptno))) from emp e";
     sql(sql)
         .withConfig(configBuilder -> configBuilder
             .withExpand(true)
