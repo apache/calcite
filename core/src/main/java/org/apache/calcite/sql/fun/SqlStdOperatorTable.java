@@ -544,7 +544,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.NULL_EQUALS,
           30,
           true,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           InferTypes.FIRST_KNOWN,
           OperandTypes
 
