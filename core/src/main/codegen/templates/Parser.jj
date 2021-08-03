@@ -3697,6 +3697,8 @@ SqlKind comp() :
         }
         return SqlKind.NOT_EQUALS;
     }
+|
+    <NULLEQ> { return SqlKind.NULL_EQUALS; }
 }
 
 /**
@@ -7149,6 +7151,7 @@ SqlBinaryOperator BinaryRowOperator() :
         }
         return SqlStdOperatorTable.NOT_EQUALS;
     }
+|   <NULLEQ> { return SqlStdOperatorTable.NULL_EQUALS}
 |   <PLUS> { return SqlStdOperatorTable.PLUS; }
 |   <MINUS> { return SqlStdOperatorTable.MINUS; }
 |   <STAR> { return SqlStdOperatorTable.MULTIPLY; }
@@ -8110,6 +8113,7 @@ void NonReservedKeyWord2of3() :
 |   < GE: ">=" >
 |   < NE: "<>" >
 |   < NE2: "!=" >
+|   < NULLEQ: "<=>" >
 |   < PLUS: "+" >
 |   < MINUS: "-" >
 |   < STAR: "*" >
