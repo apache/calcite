@@ -910,7 +910,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PARSE_TIMESTAMP =
       new SqlFunction("PARSE_TIMESTAMP",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.DATE_NULLABLE,
+        ReturnTypes.TIMESTAMP_NULLABLE,
         null,
         OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
         SqlFunctionCategory.TIMEDATE);

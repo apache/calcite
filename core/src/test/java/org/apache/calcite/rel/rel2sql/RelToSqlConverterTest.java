@@ -9036,4 +9036,15 @@ class RelToSqlConverterTest {
         .withMssql()
         .ok(expectedMsSql);
   }
+
+  @Test public void testIntervalMultiplyWithInteger() {
+    String query = "select \"hire_date\" + 10 * INTERVAL '00:01:00' HOUR "
+        + "TO SECOND from \"employee\"";
+    final String expectedBQSql = "SELECT TIMESTAMP_ADD(hire_date, INTERVAL 10 * 60 SECOND)\n"
+        + "FROM foodmart.employee";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
 }

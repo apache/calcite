@@ -726,7 +726,12 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   private void unparseExpressionIntervalCall(
       SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
-    SqlLiteral intervalLiteral = getIntervalLiteral(call);
+    SqlLiteral intervalLiteral;
+    if (call.operand(1) instanceof SqlIntervalLiteral) {
+      intervalLiteral = modifiedSqlIntervalLiteral(call.operand(1));
+    } else {
+      intervalLiteral = getIntervalLiteral(call);
+    }
     SqlNode identifier = getIdentifier(call);
     SqlIntervalLiteral.IntervalValue literalValue =
         (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
@@ -1132,7 +1137,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   @Override public void unparseSqlIntervalLiteral(
     SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
-    literal = updateSqlIntervalLiteral(literal);
+    literal = modifiedSqlIntervalLiteral(literal);
     SqlIntervalLiteral.IntervalValue interval =
         literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
     writer.keyword("INTERVAL");
@@ -1149,7 +1154,7 @@ public class BigQuerySqlDialect extends SqlDialect {
             RelDataTypeSystem.DEFAULT);
   }
 
-  private SqlIntervalLiteral updateSqlIntervalLiteral(SqlIntervalLiteral literal) {
+  private SqlIntervalLiteral modifiedSqlIntervalLiteral(SqlIntervalLiteral literal) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
     switch (literal.getTypeName()) {
