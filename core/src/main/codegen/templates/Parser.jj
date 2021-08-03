@@ -7151,7 +7151,7 @@ SqlBinaryOperator BinaryRowOperator() :
         }
         return SqlStdOperatorTable.NOT_EQUALS;
     }
-|   <NULLEQ> { return SqlStdOperatorTable.NULL_EQUALS}
+|   <NULLEQ> { return SqlStdOperatorTable.NULL_EQUALS; }
 |   <PLUS> { return SqlStdOperatorTable.PLUS; }
 |   <MINUS> { return SqlStdOperatorTable.MINUS; }
 |   <STAR> { return SqlStdOperatorTable.MULTIPLY; }
