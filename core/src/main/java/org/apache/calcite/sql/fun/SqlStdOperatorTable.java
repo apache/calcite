@@ -536,6 +536,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
+   * Logical null equals operator, '<code>&lt;=&gt;</code>'.
+   */
+  public static final SqlBinaryOperator NULL_EQUALS =
+      new SqlBinaryOperator(
+          "<=>",
+          SqlKind.NULL_EQUALS,
+          30,
+          true,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
+
+  /**
    * Logical <code>OR</code> operator.
    */
   public static final SqlBinaryOperator OR =
