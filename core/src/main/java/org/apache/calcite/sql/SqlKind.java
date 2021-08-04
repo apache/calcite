@@ -310,7 +310,7 @@ public enum SqlKind {
    */
   NOT_EQUALS("<>"),
 
-  /** NULL-equals operator, "<=>". */
+  /** NULL-equals operator, "&lt;=&gt;". */
   NULL_EQUALS("<=>"),
 
   /** {@code IS DISTINCT FROM} operator. */

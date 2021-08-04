@@ -546,7 +546,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
           ReturnTypes.BOOLEAN_NULLABLE,
           InferTypes.FIRST_KNOWN,
-          OperandTypes
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
    * Logical <code>OR</code> operator.

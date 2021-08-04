@@ -7550,6 +7550,17 @@ public class SqlParserTest {
         .ok("(INTERVAL '1' HOUR >= INTERVAL '1' SECOND)");
   }
 
+  @Test void testColumnNullEquals() {
+    expr("x <=> y")
+        .ok("(`X` <=> `Y`)");
+    expr("x <=> 1")
+        .ok("(`X` <=> 1)");
+    expr("1 <=> y")
+        .ok("(1 <=> `Y`)");
+    expr("1 <=> 2")
+        .ok("(1 <=> 2)");
+  }
+
   @Test void testCastToInterval() {
     expr("cast(x as interval year)")
         .ok("CAST(`X` AS INTERVAL YEAR)");

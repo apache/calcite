@@ -9473,6 +9473,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "$IS_DIFFERENT_FROM left\n"
         + "< left\n"
         + "<= left\n"
+        + "<=> left\n"
         + "<> left\n"
         + "= left\n"
         + "> left\n"
