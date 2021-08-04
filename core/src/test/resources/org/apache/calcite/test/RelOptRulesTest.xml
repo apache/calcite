@@ -4164,7 +4164,7 @@ LogicalJoin(condition=[true], joinType=[inner])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testJoinOnCorrelated">
+  <TestCase name="testJoinOnMultipleCorrelatedSubQueries">
     <Resource name="query">
       <![CDATA[
 SELECT empno

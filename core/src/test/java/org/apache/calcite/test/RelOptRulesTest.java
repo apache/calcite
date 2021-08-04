@@ -5717,7 +5717,7 @@ class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
-  @Test void testJoinOnCorrelated() {
+  @Test void testJoinOnMultipleCorrelatedSubQueries() {
     final String sql = ""
         + "SELECT empno\n"
         + "FROM emp AS e\n"
