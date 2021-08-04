@@ -217,16 +217,22 @@ public class RelToSqlConverter extends SqlImplementor
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
     final SqlNode sqlCondition;
-    SqlLiteral condType = JoinConditionType.ON.symbol(POS);
+    final JoinConditionType condType;
     JoinType joinType = joinType(e.getJoinType());
-    if (isCrossJoin(e)) {
+    if (joinType == JoinType.INNER
+        && e.getCondition().isAlwaysTrue()) {
+      if (isCommaJoin(e)) {
+        joinType = JoinType.COMMA;
+      } else {
+        joinType = JoinType.CROSS;
+      }
       sqlCondition = null;
-      joinType = dialect.emulateJoinTypeForCrossJoin();
-      condType = JoinConditionType.NONE.symbol(POS);
+      condType = JoinConditionType.NONE;
     } else {
       sqlCondition =
           convertConditionToSqlNode(e.getCondition(), leftContext,
               rightContext);
+      condType = JoinConditionType.ON;
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -234,7 +240,7 @@ public class RelToSqlConverter extends SqlImplementor
             SqlLiteral.createBoolean(false, POS),
             joinType.symbol(POS),
             rightResult.asFrom(),
-            condType,
+            condType.symbol(POS),
             sqlCondition);
     return result(join, leftResult, rightResult);
   }
@@ -289,8 +295,88 @@ public class RelToSqlConverter extends SqlImplementor
     return result(resultNode, leftResult, rightResult);
   }
 
-  private static boolean isCrossJoin(final Join e) {
-    return e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue();
+  /** Returns whether this join should be unparsed as a {@link JoinType#COMMA}.
+   *
+   * <p>Comma-join is one possible syntax for {@code CROSS JOIN ... ON TRUE},
+   * supported on most but not all databases
+   * (see {@link SqlDialect#emulateJoinTypeForCrossJoin()}).
+   *
+   * <p>For example, the following queries are equivalent:
+   *
+   * <pre>{@code
+   * // Comma join
+   * SELECT *
+   * FROM Emp, Dept
+   *
+   * // Cross join
+   * SELECT *
+   * FROM Emp CROSS JOIN Dept
+   *
+   * // Inner join
+   * SELECT *
+   * FROM Emp INNER JOIN Dept ON TRUE
+   * }</pre>
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>{@code FROM (x CROSS JOIN y ON TRUE) CROSS JOIN z ON TRUE}
+   *   is a comma join, because all joins are comma joins;
+   *   <li>{@code FROM (x CROSS JOIN y ON TRUE) CROSS JOIN z ON TRUE}
+   *   would not be a comma join when run on Apache Spark, because Spark does
+   *   not support comma join;
+   *   <li>{@code FROM (x CROSS JOIN y ON TRUE) LEFT JOIN z ON TRUE}
+   *   is not comma join because one of the joins is not INNER;
+   *   <li>{@code FROM (x CROSS JOIN y ON c) CROSS JOIN z ON TRUE}
+   *   is not a comma join because one of the joins is ON TRUE.
+   * </ul>
+   */
+  private boolean isCommaJoin(Join join) {
+    if (!join.getCondition().isAlwaysTrue()) {
+      return false;
+    }
+    if (dialect.emulateJoinTypeForCrossJoin() != JoinType.COMMA) {
+      return false;
+    }
+
+    // Find the topmost enclosing Join. For example, if the tree is
+    //   Join((Join(a, b), Join(c, Join(d, e)))
+    // we get the same topJoin for a, b, c, d and e. Join. Stack is never empty,
+    // and frame.r on the first iteration is always "join".
+    assert !stack.isEmpty();
+    assert stack.element().r == join;
+    Join j = null;
+    for (Frame frame : stack) {
+      j = (Join) frame.r;
+      if (!(frame.parent instanceof Join)) {
+        break;
+      }
+    }
+    final Join topJoin = requireNonNull(j, "top join");
+
+    // Flatten the join tree, using a breadth-first algorithm.
+    // After flattening, the list contains all of the joins that will make up
+    // the FROM clause.
+    final List<Join> flatJoins = new ArrayList<>();
+    flatJoins.add(topJoin);
+    for (int i = 0; i < flatJoins.size();) {
+      final Join j2 = flatJoins.get(i++);
+      if (j2.getLeft() instanceof Join) {
+        flatJoins.add((Join) j2.getLeft());
+      }
+      if (j2.getRight() instanceof Join) {
+        flatJoins.add((Join) j2.getRight());
+      }
+    }
+
+    // If all joins are cross-joins (INNER JOIN ON TRUE), we can use
+    // we can use comma syntax "FROM a, b, c, d, e".
+    for (Join j2 : flatJoins) {
+      if (j2.getJoinType() != JoinRelType.INNER
+          || !j2.getCondition().isAlwaysTrue()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Visits a Correlate; called by {@link #dispatch} via reflection. */
