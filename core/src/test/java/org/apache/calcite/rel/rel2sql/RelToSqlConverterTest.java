@@ -1043,6 +1043,28 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4716">[CALCITE-4716]
+   * ClassCastException converting SARG in RelNode to SQL</a>. */
+  @Test void testSargConversion() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.or(
+              b.and(
+                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(10)),
+                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(12))),
+              b.and(
+                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(6)),
+                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(8)))))
+        .build();
+    final RuleSet rules = RuleSets.ofList(CoreRules.FILTER_TO_CALC);
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" >= 6 AND \"EMPNO\" < 8 OR \"EMPNO\" >= 10 AND \"EMPNO\" < 12";
+    relFn(relFn).optimize(rules, null).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1946">[CALCITE-1946]
    * JDBC adapter should generate sub-SELECT if dialect does not support nested
    * aggregate functions</a>. */
