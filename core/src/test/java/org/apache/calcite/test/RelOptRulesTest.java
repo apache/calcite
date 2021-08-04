@@ -5717,6 +5717,30 @@ class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Test void testJoinOnCorrelated() {
+    final String sql = ""
+        + "SELECT empno\n"
+        + "FROM emp AS e\n"
+        + "LEFT JOIN dept AS d\n"
+        + "  ON d.deptno = e.deptno\n"
+        + "    AND (e.sal in (\n"
+        + "      SELECT e2.sal FROM emp AS e2\n"
+        + "      WHERE e2.deptno > e.deptno)\n"
+        + "    OR e.sal < (\n"
+        + "      SELECT avg(e2.sal) FROM emp AS e2\n"
+        + "      WHERE e2.deptno = d.deptno)\n"
+        + "    OR e.sal > SOME (\n"
+        + "      SELECT MAX(e2.sal) FROM emp AS e2\n"
+        + "      WHERE e2.sal = e.sal"
+        + "      GROUP BY e2.deptno)\n"
+        + "    OR EXISTS (\n"
+        + "      SELECT e2.deptno FROM emp AS e2\n"
+        + "      WHERE e2.deptno = d.deptno\n"
+        + "      GROUP BY e2.deptno\n"
+        + "      HAVING SUM(e2.sal) > 1000000))";
+    checkSubQuery(sql).check();
+  }
+
   @Test void testDecorrelateExists() {
     final String sql = "select * from sales.emp\n"
         + "where EXISTS (\n"
