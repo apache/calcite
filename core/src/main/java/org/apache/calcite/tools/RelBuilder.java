@@ -2430,7 +2430,7 @@ public class RelBuilder {
         // For a LEFT/SEMI/ANTI, predicate must be evaluated first.
         stack.push(right);
         filter(
-            RelOptUtil.correlateLeftShiftRight(getRexBuilder(),
+            RelOptUtil.transformJoinConditionToCorrelate(getRexBuilder(),
                 left.rel, id, right.rel, condition));
         right = stack.pop();
         break;

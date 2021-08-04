@@ -305,8 +305,26 @@ public abstract class RelOptUtil {
     }
   }
 
-  /** Rewrites an {@link RexNode} on top of a correlated join to the rights context by
-   * shifting {@link RexInputRef} if they are from the right side, and rewriting
+  /**
+   * Transforms a join condition over two inputs to a correlated condition over the right input.
+   *
+   * Replaces references on the left relation with correlating variables and shifts references on
+   * the right relation as needed to be able to put the condition over the right relation.
+   *
+   * For example, given:
+   * <pre>{@code
+   * Join(condition=[($0, $9)])
+   *   Scan(table=[DEPT])
+   *   Scan(table=[EMP])
+   * }</pre>
+   * Returning the {@link RexNode} from the filter condition of:
+   * <pre>{@code
+   * Correlate(correlation=[$cor0])
+   *   Scan(table=[DEPT])
+   *   Filter(condition=[=($cor0.EMPNO, $7)])
+   *     Scan(table=[EMP])
+   * }</pre>
+   *
    * {@link RexInputRef} to field accesses of {@link RexCorrelVariable}.
    * @param left Rel fields to be correlated
    * @param id id to correlate
@@ -314,7 +332,7 @@ public abstract class RelOptUtil {
    * @param rexNode expression to be rewritten
    * @return An expression
    */
-  public static RexNode correlateLeftShiftRight(RexBuilder rexBuilder,
+  public static RexNode transformJoinConditionToCorrelate(RexBuilder rexBuilder,
       RelNode left, CorrelationId id, RelNode right, RexNode rexNode) {
     final RelDataType leftRowType = left.getRowType();
     final int leftCount = leftRowType.getFieldCount();
