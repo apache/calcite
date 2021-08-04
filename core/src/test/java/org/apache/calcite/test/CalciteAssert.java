@@ -30,6 +30,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.plan.Contexts;
@@ -39,12 +40,16 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.SchemaVersion;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -52,8 +57,10 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlGeoFunctions;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -61,6 +68,7 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.TpchSchema;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
@@ -77,6 +85,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
@@ -107,6 +116,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -793,6 +803,10 @@ public class CalciteAssert {
                   + "join \"foodmart\".\"product_class\" as pc on p.\"product_class_id\" = pc.\"product_class_id\"",
               true));
       return foodmart;
+
+    case MY_DB:
+      return rootSchema.add(schema.schemaName, MY_DB_SCHEMA);
+
     case SCOTT:
       jdbcScott = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_SCOTT);
       return rootSchema.add(schema.schemaName, new CloneSchema(jdbcScott));
@@ -803,6 +817,11 @@ public class CalciteAssert {
           new StreamTest.OrdersHistoryTable(
               StreamTest.OrdersStreamTableFactory.getRowList()));
       return scott;
+
+    case TPCH:
+      return rootSchema.add(schema.schemaName,
+          new ReflectiveSchema(new TpchSchema()));
+
     case CLONE_FOODMART:
       foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
@@ -2065,9 +2084,11 @@ public class CalciteAssert {
     JDBC_FOODMART_WITH_LATTICE("lattice"),
     GEO("GEO"),
     HR("hr"),
+    MY_DB("myDb"),
     JDBC_SCOTT("JDBC_SCOTT"),
     SCOTT("scott"),
     SCOTT_WITH_TEMPORAL("scott_temporal"),
+    TPCH("tpch"),
     BLANK("BLANK"),
     LINGUAL("SALES"),
     POST("POST"),
@@ -2237,4 +2258,108 @@ public class CalciteAssert {
       }
     }
   }
+
+  /** Schema instance for {@link SchemaSpec#MY_DB}. */
+  private static final Schema MY_DB_SCHEMA = new Schema() {
+
+    final Table table = new Table() {
+      /**
+       * {@inheritDoc}
+       *
+       * <p>Table schema is as follows:
+       *
+       * <pre>{@code
+       * myTable(
+       *      a: BIGINT,
+       *      n1: STRUCT<
+       *            n11: STRUCT<b: BIGINT>,
+       *            n12: STRUCT<c: BIGINT>
+       *          >,
+       *      n2: STRUCT<d: BIGINT>,
+       *      e: BIGINT)
+       * }</pre>
+       */
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        RelDataType bigint = typeFactory.createSqlType(SqlTypeName.BIGINT);
+        return typeFactory.builder()
+            .add("a", bigint)
+            .add("n1",
+                typeFactory.builder()
+                    .add("n11", typeFactory.builder().add("b", bigint).build())
+                    .add("n12", typeFactory.builder().add("c", bigint).build())
+                    .build())
+            .add("n2", typeFactory.builder().add("d", bigint).build())
+            .add("e", bigint)
+            .build();
+      }
+
+      @Override public Statistic getStatistic() {
+        return new Statistic() {
+          @Override public Double getRowCount() {
+            return 0D;
+          }
+        };
+      }
+
+      @Override public Schema.TableType getJdbcTableType() {
+        return null;
+      }
+
+      @Override public boolean isRolledUp(String column) {
+        return false;
+      }
+
+      @Override public boolean rolledUpColumnValidInsideAgg(String column,
+          SqlCall call, @Nullable SqlNode parent,
+          @Nullable CalciteConnectionConfig config) {
+        return false;
+      }
+    };
+
+    @Override public Table getTable(String name) {
+      return table;
+    }
+
+    @Override public Set<String> getTableNames() {
+      return ImmutableSet.of("myTable");
+    }
+
+    @Override public RelProtoDataType getType(String name) {
+      return null;
+    }
+
+    @Override public Set<String> getTypeNames() {
+      return ImmutableSet.of();
+    }
+
+    @Override public Collection<org.apache.calcite.schema.Function>
+      getFunctions(String name) {
+      return null;
+    }
+
+    @Override public Set<String> getFunctionNames() {
+      return ImmutableSet.of();
+    }
+
+    @Override public Schema getSubSchema(String name) {
+      return null;
+    }
+
+    @Override public Set<String> getSubSchemaNames() {
+      return ImmutableSet.of();
+    }
+
+    @Override public Expression getExpression(@Nullable SchemaPlus parentSchema,
+        String name) {
+      return null;
+    }
+
+    @Override public boolean isMutable() {
+      return false;
+    }
+
+    @Override public Schema snapshot(SchemaVersion version) {
+      return null;
+    }
+  };
 }

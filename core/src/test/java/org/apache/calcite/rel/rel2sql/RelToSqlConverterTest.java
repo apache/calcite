@@ -119,7 +119,9 @@ class RelToSqlConverterTest {
 
   /** Initiates a test case with a given {@link RelNode} supplier. */
   private Sql relFn(Function<RelBuilder, RelNode> relFn) {
-    return sql("?").relFn(relFn);
+    return sql("?")
+        .schema(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL)
+        .relFn(relFn);
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
@@ -5854,7 +5856,7 @@ class RelToSqlConverterTest {
 
   /** Fluid interface to run tests. */
   static class Sql {
-    private final SchemaPlus schema;
+    private final CalciteAssert.SchemaSpec schemaSpec;
     private final String sql;
     private final SqlDialect dialect;
     private final Set<SqlLibrary> librarySet;
@@ -5868,23 +5870,7 @@ class RelToSqlConverterTest {
         UnaryOperator<SqlToRelConverter.Config> config,
         @Nullable Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
-      final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-      this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
-      this.sql = sql;
-      this.dialect = dialect;
-      this.librarySet = librarySet;
-      this.relFn = relFn;
-      this.transforms = ImmutableList.copyOf(transforms);
-      this.parserConfig = parserConfig;
-      this.config = config;
-    }
-
-    Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
-        UnaryOperator<SqlToRelConverter.Config> config,
-        Function<RelBuilder, RelNode> relFn,
-        List<Function<RelNode, RelNode>> transforms) {
-      this.schema = schema;
+      this.schemaSpec = schemaSpec;
       this.sql = sql;
       this.dialect = dialect;
       this.librarySet = librarySet;
@@ -5895,12 +5881,12 @@ class RelToSqlConverterTest {
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
           relFn, transforms);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
           relFn, transforms);
     }
 
@@ -6027,12 +6013,12 @@ class RelToSqlConverterTest {
     }
 
     Sql parserConfig(SqlParser.Config parserConfig) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
           relFn, transforms);
     }
 
     Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
           relFn, transforms);
     }
 
@@ -6041,7 +6027,7 @@ class RelToSqlConverterTest {
     }
 
     Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
-      return new Sql(schema, sql, dialect, parserConfig,
+      return new Sql(schemaSpec, sql, dialect, parserConfig,
           ImmutableSet.copyOf(librarySet), config, relFn, transforms);
     }
 
@@ -6058,7 +6044,7 @@ class RelToSqlConverterTest {
             return program.run(p, r, r.getTraitSet(),
                 ImmutableList.of(), ImmutableList.of());
           });
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
           relFn, transforms);
     }
 
@@ -6080,14 +6066,21 @@ class RelToSqlConverterTest {
 
     String exec() {
       try {
+        final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+        final SchemaPlus defaultSchema =
+            CalciteAssert.addSchema(rootSchema, schemaSpec);
         RelNode rel;
         if (relFn != null) {
-          rel = relFn.apply(relBuilder());
+          final FrameworkConfig frameworkConfig = RelBuilderTest.config()
+              .defaultSchema(defaultSchema)
+              .build();
+          final RelBuilder relBuilder = RelBuilder.create(frameworkConfig);
+          rel = relFn.apply(relBuilder);
         } else {
           final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
               .withTrimUnusedFields(false));
           final Planner planner =
-              getPlanner(null, parserConfig, schema, config, librarySet);
+              getPlanner(null, parserConfig, defaultSchema, config, librarySet);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).rel;
