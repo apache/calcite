@@ -92,6 +92,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -5255,12 +5256,143 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test void testCrossJoinEmulationForSpark() {
-    String query = "select * from \"employee\", \"department\"";
-    final String expected = "SELECT *\n"
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4485">[CALCITE-4485]
+   * JDBC adapter generates invalid SQL when one of the joins is {@code INNER
+   * JOIN ... ON TRUE}</a>. */
+  @Test void testCommaCrossJoin() {
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("tpch", "customer")
+            .aggregate(b.groupKey(b.field("nation_name")),
+                b.count().as("cnt1"))
+            .project(b.field("nation_name"), b.field("cnt1"))
+            .as("cust")
+            .scan("tpch", "lineitem")
+            .aggregate(b.groupKey(),
+                b.count().as("cnt2"))
+            .project(b.field("cnt2"))
+            .as("lineitem")
+            .join(JoinRelType.INNER)
+            .scan("tpch", "part")
+            .join(JoinRelType.LEFT,
+                b.equals(b.field(2, "cust", "nation_name"),
+                    b.field(2, "part", "p_brand")))
+            .project(b.field("cust", "nation_name"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.MINUS,
+                        b.field("cnt1"),
+                        b.field("cnt2")),
+                    "f1"))
+            .build();
+
+    // For documentation purposes, here is the query that was generated before
+    // [CALCITE-4485] was fixed.
+    final String previousPostgresql = ""
+        + "SELECT \"t\".\"nation_name\", \"t\".\"cnt1\" - \"t0\".\"cnt2\" AS \"f1\"\n"
+        + "FROM (SELECT \"nation_name\", COUNT(*) AS \"cnt1\"\n"
+        + "FROM \"tpch\".\"customer\"\n"
+        + "GROUP BY \"nation_name\") AS \"t\",\n"
+        + "(SELECT COUNT(*) AS \"cnt2\"\n"
+        + "FROM \"tpch\".\"lineitem\") AS \"t0\"\n"
+        + "LEFT JOIN \"tpch\".\"part\" ON \"t\".\"nation_name\" = \"part\".\"p_brand\"";
+    final String expectedPostgresql = ""
+        + "SELECT \"t\".\"nation_name\", \"t\".\"cnt1\" - \"t0\".\"cnt2\" AS \"f1\"\n"
+        + "FROM (SELECT \"nation_name\", COUNT(*) AS \"cnt1\"\n"
+        + "FROM \"tpch\".\"customer\"\n"
+        + "GROUP BY \"nation_name\") AS \"t\"\n"
+        + "CROSS JOIN (SELECT COUNT(*) AS \"cnt2\"\n"
+        + "FROM \"tpch\".\"lineitem\") AS \"t0\"\n"
+        + "LEFT JOIN \"tpch\".\"part\" ON \"t\".\"nation_name\" = \"part\".\"p_brand\"";
+    relFn(relFn)
+        .schema(CalciteAssert.SchemaSpec.TPCH)
+        .withPostgresql()
+        .ok(expectedPostgresql);
+  }
+
+  /** A cartesian product is unparsed as a CROSS JOIN on Spark,
+   * comma join on other DBs.
+   *
+   * @see SqlDialect#emulateJoinTypeForCrossJoin()
+   */
+  @Test void testCrossJoinEmulation() {
+    final String expectedSpark = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
-    sql(query).withSpark().ok(expected);
+    final String expectedMysql = "SELECT *\n"
+        + "FROM `foodmart`.`employee`,\n"
+        + "`foodmart`.`department`";
+    Consumer<String> fn = sql ->
+        sql(sql)
+            .withSpark().ok(expectedSpark)
+            .withMysql().ok(expectedMysql);
+    fn.accept("select * from \"employee\", \"department\"");
+    fn.accept("select * from \"employee\" cross join \"department\"");
+    fn.accept("select * from \"employee\" join \"department\" on true");
+  }
+
+  /** Similar to {@link #testCommaCrossJoin()} (but uses SQL)
+   * and {@link #testCrossJoinEmulation()} (but is 3 way). We generate a comma
+   * join if the only joins are {@code CROSS JOIN} or
+   * {@code INNER JOIN ... ON TRUE}, and if we're not on Spark. */
+  @Test void testCommaCrossJoin3way() {
+    String sql = "select *\n"
+        + "from \"store\" as s\n"
+        + "inner join \"employee\" as e on true\n"
+        + "cross join \"department\" as d";
+    final String expectedMysql = "SELECT *\n"
+        + "FROM `foodmart`.`store`,\n"
+        + "`foodmart`.`employee`,\n"
+        + "`foodmart`.`department`";
+    final String expectedSpark = "SELECT *\n"
+        + "FROM foodmart.store\n"
+        + "CROSS JOIN foodmart.employee\n"
+        + "CROSS JOIN foodmart.department";
+    sql(sql)
+        .withMysql().ok(expectedMysql)
+        .withSpark().ok(expectedSpark);
+  }
+
+  /** As {@link #testCommaCrossJoin3way()}, but shows that if there is a
+   * {@code LEFT JOIN} in the FROM clause, we can't use comma-join. */
+  @Test void testLeftJoinPreventsCommaJoin() {
+    String sql = "select *\n"
+        + "from \"store\" as s\n"
+        + "left join \"employee\" as e on true\n"
+        + "cross join \"department\" as d";
+    final String expectedMysql = "SELECT *\n"
+        + "FROM `foodmart`.`store`\n"
+        + "LEFT JOIN `foodmart`.`employee` ON TRUE\n"
+        + "CROSS JOIN `foodmart`.`department`";
+    sql(sql).withMysql().ok(expectedMysql);
+  }
+
+  /** As {@link #testLeftJoinPreventsCommaJoin()}, but the non-cross-join
+   * occurs later in the FROM clause. */
+  @Test void testRightJoinPreventsCommaJoin() {
+    String sql = "select *\n"
+        + "from \"store\" as s\n"
+        + "cross join \"employee\" as e\n"
+        + "right join \"department\" as d on true";
+    final String expectedMysql = "SELECT *\n"
+        + "FROM `foodmart`.`store`\n"
+        + "CROSS JOIN `foodmart`.`employee`\n"
+        + "RIGHT JOIN `foodmart`.`department` ON TRUE";
+    sql(sql).withMysql().ok(expectedMysql);
+  }
+
+  /** As {@link #testLeftJoinPreventsCommaJoin()}, but the impediment is a
+   * {@code JOIN} whose condition is not {@code TRUE}. */
+  @Test void testOnConditionPreventsCommaJoin() {
+    String sql = "select *\n"
+        + "from \"store\" as s\n"
+        + "join \"employee\" as e on s.\"store_id\" = e.\"store_id\"\n"
+        + "cross join \"department\" as d";
+    final String expectedMysql = "SELECT *\n"
+        + "FROM `foodmart`.`store`\n"
+        + "INNER JOIN `foodmart`.`employee`"
+        + " ON `store`.`store_id` = `employee`.`store_id`\n"
+        + "CROSS JOIN `foodmart`.`department`";
+    sql(sql).withMysql().ok(expectedMysql);
   }
 
   @Test void testSubstringInSpark() {
