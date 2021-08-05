@@ -1258,10 +1258,85 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(DEDUP(dept.deptno, dept.name))").ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4673">[CALCITE-4673]</a><br>
+   * Correlate variables deduplication is not triggered when collection table function is
+   * present in subquery i.e we expect {@code LogicalTableFunctionScan} with two identical
+   * correlates like: $cor0.DEPTNO, but obtain different ones: $cor0.DEPTNO, $cor1.DEPTNO.
+   */
+  @Test void testCorrelationCollectionTableInSubQuery() {
+    String sql = ""
+        + "select e.deptno, (select * from lateral table(DEDUP(e.deptno, e.deptno))) from emp e";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("${plan_extended}");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false))
+        .convertsTo("${plan_not_extended}");
+
+    sql = "select e.deptno, (select * from table(DEDUP(e.deptno, e.deptno))) from emp e";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(true)
+            .withDecorrelationEnabled(true))
+        .convertsTo("${plan_extended}");
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false))
+        .convertsTo("${plan_not_extended}");
+  }
+
+  @Test void testCorrelationLateralSubQuery() {
+    String sql = "SELECT deptno, ename\n"
+        + "FROM\n"
+        + "  (SELECT DISTINCT deptno FROM emp) t1,\n"
+        + "  LATERAL (\n"
+        + "    SELECT ename, sal\n"
+        + "    FROM emp\n"
+        + "    WHERE deptno IN (t1.deptno, t1.deptno)\n"
+        + "    AND   deptno = t1.deptno\n"
+        + "    ORDER BY sal\n"
+        + "    DESC LIMIT 3\n"
+        + "  )";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false)).convertsTo("${plan}");
+  }
+
+  @Test void testCorrelationExistsWithSubQuery() {
+    String sql = ""
+        + "select emp.deptno, dept.deptno from emp, dept where exists (select * from emp where "
+        + "emp.deptno = dept.deptno and emp.deptno = dept.deptno and emp.deptno in "
+        + "(dept.deptno, dept.deptno))";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false))
+        .convertsTo("${plan}");
+  }
+
+  @Test void testCorrelationInWithSubQuery() {
+    String sql = "select deptno from emp where deptno in "
+        + "(select deptno from dept where emp.deptno = dept.deptno and emp.deptno = dept.deptno)";
+    sql(sql)
+        .withConfig(configBuilder -> configBuilder
+            .withExpand(false)
+            .withDecorrelationEnabled(false))
+        .convertsTo("${plan}");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3847">[CALCITE-3847]
    * Decorrelation for join with lateral table outputs wrong plan if the join
    * condition contains correlation variables</a>. */
+
   @Test void testJoinLateralTableWithConditionCorrelated() {
     final String sql = "select deptno, r.num from dept join\n"
         + " lateral table(ramp(dept.deptno)) as r(num)\n"
@@ -4162,63 +4237,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
             .withExpand(false)
             .withDecorrelationEnabled(false))
         .convertsTo("${plan_not_extended}");
-  }
-
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4673">[CALCITE-4673]</a><br>
-   * Erroneous correlates assigments of identical fields i.e :<br>
-   * LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor1.DEPTNO)]<br>
-   * Correct need to be:<br>
-   * LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.DEPTNO)]
-   */
-  @Test void testDeduplicateCorrelationsWithoutWhereClause() {
-    String sql = ""
-        + "select e.deptno, (select * from lateral table(DEDUP(e.deptno, e.deptno))) from emp e";
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(true)
-            .withDecorrelationEnabled(true))
-        .convertsTo("${plan_extended}");
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(false)
-            .withDecorrelationEnabled(false))
-        .convertsTo("${plan_not_extended}");
-
-    sql = "select e.deptno, (select * from table(DEDUP(e.deptno, e.deptno))) from emp e";
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(true)
-            .withDecorrelationEnabled(true))
-        .convertsTo("${plan_extended}");
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(false)
-            .withDecorrelationEnabled(false))
-        .convertsTo("${plan_not_extended}");
-
-    sql = "SELECT deptno, ename\n"
-        + "FROM\n"
-        + "  (SELECT DISTINCT deptno FROM emp) t1,\n"
-        + "  LATERAL (\n"
-        + "    SELECT ename, sal\n"
-        + "    FROM emp\n"
-        + "    WHERE deptno IN (t1.deptno, t1.deptno)\n"
-        + "    AND   deptno = t1.deptno\n"
-        + "    ORDER BY sal\n"
-        + "    DESC LIMIT 3\n"
-        + "  )";
-    sql(sql).convertsTo("${plan_lateral_without_table_func}");
-
-    sql = "select emp.deptno, dept.deptno from emp, dept where exists (select * from emp where "
-        + "emp.deptno = dept.deptno and emp.deptno = dept.deptno and emp.deptno in "
-        + "(dept.deptno, dept.deptno))";
-    sql(sql)
-        .withConfig(configBuilder -> configBuilder
-            .withExpand(true)
-            .withDecorrelationEnabled(true))
-        .convertsTo("${plan_with_exist}");
   }
 
   @Test void testImplicitJoinExpandAndDecorrelation() {
