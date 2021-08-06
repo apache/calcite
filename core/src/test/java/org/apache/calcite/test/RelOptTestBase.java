@@ -115,7 +115,6 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     final DiffRepository diffRepos = getDiffRepos();
     List<RelMetadataProvider> list = new ArrayList<>();
     list.add(DefaultRelMetadataProvider.INSTANCE);
-    planner.registerMetadataProviders(list);
     RelMetadataProvider plannerChain =
         ChainedRelMetadataProvider.of(list);
     final RelOptCluster cluster = relInitial.getCluster();

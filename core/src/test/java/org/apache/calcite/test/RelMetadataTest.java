@@ -66,7 +66,6 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.BuiltInMetadata;
-import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
@@ -80,6 +79,7 @@ import org.apache.calcite.rel.metadata.RelMdColumnUniqueness;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.metadata.UnboundMetadata;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -997,10 +997,6 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode rel =
         convertSql("select deptno, count(*) from emp where deptno > 10 "
             + "group by deptno having count(*) = 0");
-    rel.getCluster().setMetadataProvider(
-        new CachingRelMetadataProvider(
-            rel.getCluster().getMetadataProvider(),
-            rel.getCluster().getPlanner()));
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     Double result = mq.getSelectivity(rel, null);
     assertThat(result,
@@ -1023,9 +1019,18 @@ public class RelMetadataTest extends SqlToRelTestBase {
         rel.getCluster().getMetadataProvider();
     final RelOptPlanner planner = rel.getCluster().getPlanner();
     for (int i = 0; i < iterationCount; i++) {
-      RelMetadataQuery.THREAD_PROVIDERS.set(
-          JaninoRelMetadataProvider.of(
-              new CachingRelMetadataProvider(metadataProvider, planner)));
+      RelMetadataProvider wrappedProvider = new RelMetadataProvider() {
+        @Override public @Nullable <M extends @Nullable Metadata> UnboundMetadata<M> apply(
+            Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
+          return metadataProvider.apply(relClass, metadataClass);
+        }
+
+        @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+            MetadataDef<M> def) {
+          return metadataProvider.handlers(def);
+        }
+      };
+      RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(wrappedProvider));
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       final Double result = mq.getRowCount(rel);
       assertThat(result, within(14d, 0.1d));
@@ -1532,6 +1537,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
+  @Deprecated
   public String colType(RelMetadataQuery mq, RelNode rel, int column) {
     return rel.metadata(ColType.class, mq).getColType(column);
   }
@@ -1540,6 +1546,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     return myRelMetadataQuery.colType(rel, column);
   }
 
+  @Deprecated
   @Test void testCustomProviderWithRelMetadataFactory() {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
@@ -1582,7 +1589,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // generates a new call to the provider.
     final RelOptPlanner planner = rel.getCluster().getPlanner();
     rel.getCluster().setMetadataProvider(
-        new CachingRelMetadataProvider(
+        new org.apache.calcite.rel.metadata.CachingRelMetadataProvider(
             rel.getCluster().getMetadataProvider(), planner));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(5));
@@ -3433,6 +3440,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       implements MetadataHandler<ColType> {
     static final ThreadLocal<List<String>> THREAD_LIST = new ThreadLocal<>();
 
+    @Deprecated
     public MetadataDef<ColType> getDef() {
       return ColType.DEF;
     }

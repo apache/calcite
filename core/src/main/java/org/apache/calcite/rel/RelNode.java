@@ -18,6 +18,7 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelDigest;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptNode;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -205,6 +206,9 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Returns a metadata interface.
    *
+   * @deprecated Use {@link RelMetadataQuery} via {@link #getCluster()}.
+   *     {@link RelOptCluster#getMetadataQuery()}.
+   *
    * @param <M> Type of metadata being requested
    * @param metadataClass Metadata interface
    * @param mq Metadata query
@@ -213,6 +217,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *     although if the information is not present the metadata object may
    *     return null from all methods)
    */
+  @Deprecated // to be removed before 2.0
   <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
 
   /**

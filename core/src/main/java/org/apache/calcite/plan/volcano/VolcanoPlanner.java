@@ -1443,11 +1443,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
+  @Deprecated // to be removed before 2.0
   @Override public void registerMetadataProviders(List<RelMetadataProvider> list) {
     list.add(0, new VolcanoRelMetadataProvider());
   }
 
   // implement RelOptPlanner
+  @Deprecated
   @Override public long getRelMetadataTimestamp(RelNode rel) {
     RelSubset subset = getSubset(rel);
     if (subset == null) {
