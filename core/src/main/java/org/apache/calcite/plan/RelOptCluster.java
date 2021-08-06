@@ -160,7 +160,11 @@ public class RelOptCluster {
         .set(JaninoRelMetadataProvider.of(metadataProvider));
   }
 
-  /** @deprecated Use {@link #getMetadataQuery()}.*/
+  /**
+   * Returns a {@link MetadataFactory}.
+   *
+   * @deprecated Use {@link #getMetadataQuery()}.
+   */
   @Deprecated // to be removed before 2.0
   public MetadataFactory getMetadataFactory() {
     return metadataFactory;

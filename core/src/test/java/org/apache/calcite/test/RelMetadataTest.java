@@ -1017,9 +1017,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelNode rel = convertSql("select * from emp");
     final RelMetadataProvider metadataProvider =
         rel.getCluster().getMetadataProvider();
-    final RelOptPlanner planner = rel.getCluster().getPlanner();
     for (int i = 0; i < iterationCount; i++) {
       RelMetadataProvider wrappedProvider = new RelMetadataProvider() {
+        @Deprecated
         @Override public @Nullable <M extends @Nullable Metadata> UnboundMetadata<M> apply(
             Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
           return metadataProvider.apply(relClass, metadataClass);
