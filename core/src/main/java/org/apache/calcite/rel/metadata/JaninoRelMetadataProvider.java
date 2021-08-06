@@ -182,6 +182,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return 109 + provider.hashCode();
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     throw new UnsupportedOperationException();

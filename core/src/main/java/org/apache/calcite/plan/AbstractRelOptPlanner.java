@@ -222,6 +222,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   @Override public void registerSchema(RelOptSchema schema) {
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public long getRelMetadataTimestamp(RelNode rel) {
     return 0;
   }
@@ -253,7 +254,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return mq.getCumulativeCost(rel);
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated // to be removed before 2.0
   @Override public @Nullable RelOptCost getCost(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return getCost(rel, mq);
@@ -268,6 +269,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     listener.addListener(newListener);
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public void registerMetadataProviders(List<RelMetadataProvider> list) {
   }
 

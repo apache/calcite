@@ -35,6 +35,7 @@ import java.util.Objects;
  * VolcanoRelMetadataProvider implements the {@link RelMetadataProvider}
  * interface by combining metadata from the rels making up an equivalence class.
  */
+@Deprecated // to be removed before 2.0
 public class VolcanoRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
@@ -46,6 +47,7 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     return 103;
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
