@@ -8051,6 +8051,15 @@ public class JdbcTest {
     };
   }
 
+  public static class FoodmartSchemaIterable {
+    @org.apache.calcite.adapter.java.Array(component = SalesFact.class)
+    public final Iterable<SalesFact> sales_fact_1997;
+
+    public FoodmartSchemaIterable(Iterable<SalesFact> sales_fact_1997) {
+      this.sales_fact_1997 = sales_fact_1997;
+    }
+  }
+
   public static class LingualSchema {
     public final LingualEmp[] EMPS = {
       new LingualEmp(1, 10),
