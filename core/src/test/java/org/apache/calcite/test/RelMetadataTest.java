@@ -1019,7 +1019,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         rel.getCluster().getMetadataProvider();
     for (int i = 0; i < iterationCount; i++) {
       RelMetadataProvider wrappedProvider = new RelMetadataProvider() {
-        @Deprecated
+        @Deprecated // to be removed before 2.0
         @Override public @Nullable <M extends @Nullable Metadata> UnboundMetadata<M> apply(
             Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
           return metadataProvider.apply(relClass, metadataClass);
@@ -1537,7 +1537,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public String colType(RelMetadataQuery mq, RelNode rel, int column) {
     return rel.metadata(ColType.class, mq).getColType(column);
   }
@@ -1546,7 +1546,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     return myRelMetadataQuery.colType(rel, column);
   }
 
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   @Test void testCustomProviderWithRelMetadataFactory() {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);

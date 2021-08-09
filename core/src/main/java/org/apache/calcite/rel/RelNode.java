@@ -207,7 +207,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Returns a metadata interface.
    *
    * @deprecated Use {@link RelMetadataQuery} via {@link #getCluster()}.
-   *     {@link RelOptCluster#getMetadataQuery()}.
    *
    * @param <M> Type of metadata being requested
    * @param metadataClass Metadata interface

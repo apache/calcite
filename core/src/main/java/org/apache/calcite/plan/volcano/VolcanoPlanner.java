@@ -1449,7 +1449,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   @Override public long getRelMetadataTimestamp(RelNode rel) {
     RelSubset subset = getSubset(rel);
     if (subset == null) {
