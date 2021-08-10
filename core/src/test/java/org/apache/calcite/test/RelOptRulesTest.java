@@ -1458,11 +1458,45 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
+  /**
+   * Tests {@link AggregateExpandWithinDistinctRule}.
+   * If all agg calls have the same distinct keys, there is no need for multiple grouping sets.
+   */
+  @Test void testWithinDistinctUniformDistinctKeys() {
+    final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job),"
+        + " AVG(comm) WITHIN DISTINCT (job)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /**
+   * Tests {@link AggregateExpandWithinDistinctRule}.
+   * If all agg calls have the same distinct keys, and we're not checking for true uniqueness,
+   * there is no need for filtering in the outer agg.
+   */
+  @Test void testWithinDistinctUniformDistinctKeysNoThrow() {
+    final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job),"
+        + " AVG(comm) WITHIN DISTINCT (job)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(
+            CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config.withThrowIfNotUnique(false).toRule())
+        .build();
+    sql(sql).with(program).check();
+  }
+
   /** Tests that {@link AggregateExpandWithinDistinctRule} treats
    * "COUNT(DISTINCT x)" as if it were "COUNT(x) WITHIN DISTINCT (x)". */
   @Test void testWithinDistinctCountDistinct() {
     final String sql = "SELECT deptno,\n"
-        + "  SUM(sal) WITHIN DISTINCT (job) AS ss_j,\n"
+        + "  SUM(sal) WITHIN DISTINCT (comm) AS ss_c,\n"
         + "  COUNT(DISTINCT job) cdj,\n"
         + "  COUNT(job) WITHIN DISTINCT (job) AS cj_j,\n"
         + "  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j\n"
@@ -1472,6 +1506,73 @@ class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
         .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT
             .config.withThrowIfNotUnique(false).toRule())
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /**
+   * Tests {@link AggregateExpandWithinDistinctRule}.
+   * Includes multiple different filters for the agg calls.
+   */
+  @Test void testWithinDistinctFilteredAggs() {
+    final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),"
+        + " AVG(comm) WITHIN DISTINCT (sal) FILTER (WHERE ename LIKE '%ok%')\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /**
+   * Tests {@link AggregateExpandWithinDistinctRule}.
+   * Includes multiple different filters for the agg calls, and all agg calls have the same
+   * distinct keys.
+   */
+  @Test void testWithinDistinctFilteredAggsUniformDistinctKeys() {
+    final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),"
+        + " AVG(comm) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%')\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /**
+   * Tests {@link AggregateExpandWithinDistinctRule}.
+   * Includes multiple different filters for the agg calls, and all agg calls have the same
+   * distinct keys. Does not throw if not unique.
+   */
+  @Test void testWithinDistinctFilteredAggsUniformDistinctKeysNoThrow() {
+    final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),"
+        + " AVG(comm) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%')\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(
+            CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config.withThrowIfNotUnique(false).toRule())
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /**
+   * Tests {@link AggregateExpandWithinDistinctRule}.
+   * Includes multiple identical filters for the agg calls.
+   */
+  @Test void testWithinDistinctFilteredAggsSameFilter() {
+    final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%'),"
+        + " AVG(comm) WITHIN DISTINCT (sal) FILTER (WHERE ename LIKE '%ok%')\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
         .build();
     sql(sql).with(program).check();
   }
