@@ -891,4 +891,49 @@ FROM FriendJobs;
 more than one distinct value in agg UNIQUE_VALUE
 !error
 
+# Since all of the people from WY are filtered out, make sure both `COUNT(*)` and `AVG(age)` ignore that entire group.
+# Also, filters can be used to manufacture uniqueness within a distinct key set.
+# Without filters on these agg calls, the query would throw due to non-unique ages in each state.
+WITH FriendStates
+AS (SELECT * FROM (VALUES
+  ('Alice', 789, 'UT'),
+  ('Bob', 25, 'UT'),
+  ('Carlos', 25, 'UT'),
+  ('Dan', 12, 'UT'),
+  ('Erin', 567, 'WY'),
+  ('Frank', 456, 'WY')) AS FriendStates (name, age, state))
+SELECT AVG(age) WITHIN DISTINCT (state) FILTER (WHERE age < 100 AND age > 18) AS aa_s,
+  COUNT(*) WITHIN DISTINCT (state) FILTER (WHERE age < 100 AND age > 18) AS c_s
+FROM FriendStates;
++------+-----+
+| AA_S | C_S |
++------+-----+
+|   25 |   1 |
++------+-----+
+(1 row)
+
+!ok
+
+# Unlike the previous example with `FriendStates`, this one should count the null age of 'Forest' in WY,
+# however it should also be left out of the average because it's null.
+WITH FriendStates
+AS (SELECT * FROM (VALUES
+  ('Alice', 789, 'UT'),
+  ('Bob', 25, 'UT'),
+  ('Carlos', 25, 'UT'),
+  ('Dan', 678, 'UT'),
+  ('Erin', 567, 'WY'),
+  ('Forest', NULL, 'WY')) AS FriendStates (name, age, state))
+SELECT AVG(age) WITHIN DISTINCT (state) FILTER (WHERE name LIKE '%o%') AS aa_s,
+  COUNT(*) WITHIN DISTINCT (state) FILTER (WHERE name LIKE '%o%') AS c_s
+FROM FriendStates;
++------+-----+
+| AA_S | C_S |
++------+-----+
+|   25 |   2 |
++------+-----+
+(1 row)
+
+!ok
+
 # End within-distinct.iq
