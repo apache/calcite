@@ -747,7 +747,13 @@ final class ElasticsearchJson {
       } else if (keyNode.isTextual()) {
         key = keyNode.textValue();
       } else if (keyNode.isNumber()) {
-        key = keyNode.numberValue();
+        // fix date is returnd as number
+        JsonNode keyStringNode = node.get("key_as_string");
+        if (null != keyStringNode && !isMissingBucket(keyStringNode) && !keyStringNode.isNull() && keyStringNode.isTextual()) {
+           key = keyStringNode.textValue();
+        } else {
+           key = keyNode.numberValue();
+        }
       } else if (keyNode.isBoolean()) {
         key = keyNode.booleanValue();
       } else {
