@@ -19,6 +19,8 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -29,6 +31,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -161,8 +164,20 @@ public abstract class SqlImplementor {
 
   /** Visits a relational expression that has no parent. */
   public final Result visitRoot(RelNode r) {
+    RelNode best;
+    if (!this.dialect.supportsGroupByLiteral()) {
+      HepProgramBuilder hepProgramBuilder = new HepProgramBuilder();
+      hepProgramBuilder.addRuleInstance(
+          AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
+      HepPlanner hepPlanner = new HepPlanner(hepProgramBuilder.build());
+
+      hepPlanner.setRoot(r);
+      best = hepPlanner.findBestExp();
+    } else {
+      best = r;
+    }
     try {
-      return visitInput(holder(r), 0);
+      return visitInput(holder(best), 0);
     } catch (Error | RuntimeException e) {
       throw Util.throwAsRuntime("Error while converting RelNode to SqlNode:\n"
           + RelOptUtil.toString(r), e);

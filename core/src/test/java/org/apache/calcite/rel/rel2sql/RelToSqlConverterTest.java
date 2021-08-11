@@ -219,6 +219,30 @@ class RelToSqlConverterTest {
         .getSql();
   }
 
+  @Test void testGroupByBooleanLiteral() {
+    String query = "select avg(\"salary\") from \"employee\" group by true";
+    String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\",\n"
+        + "(SELECT TRUE AS \"$f0\") AS \"t\"\nGROUP BY \"t\".\"$f0\"";
+    String expectedInformix = "SELECT AVG(employee.salary)\nFROM foodmart.employee,"
+        + "\n(SELECT TRUE AS $f0) AS t\nGROUP BY t.$f0";
+    sql(query)
+        .withRedshift().ok(expectedRedshift)
+        .withInformix().ok(expectedInformix);
+  }
+
+  @Test void testGroupByDateLiteral() {
+    String query = "select avg(\"salary\") from \"employee\" group by DATE '2022-01-01'";
+    String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\",\n"
+        + "(SELECT DATE '2022-01-01' AS \"$f0\") AS \"t\"\nGROUP BY \"t\".\"$f0\"";
+    String expectedInformix = "SELECT AVG(employee.salary)\nFROM foodmart.employee,"
+        + "\n(SELECT DATE '2022-01-01' AS $f0) AS t\nGROUP BY t.$f0";
+    sql(query)
+        .withRedshift().ok(expectedRedshift)
+        .withInformix().ok(expectedInformix);
+  }
+
   @Test void testSimpleSelectStarFromProductTable() {
     String query = "select * from \"product\"";
     String expected = "SELECT *\n"
@@ -5083,7 +5107,9 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
     final String expectedSnowflake = expectedPostgresql;
-    final String expectedRedshift = expectedPostgresql;
+    final String expectedRedshift = "SELECT \"a\"\n"
+        + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
+        + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
     sql(sql)
         .withClickHouse().ok(expectedClickHouse)
         .withBigQuery().ok(expectedBigQuery)
@@ -6356,6 +6382,10 @@ class RelToSqlConverterTest {
 
     Sql withRedshift() {
       return dialect(DatabaseProduct.REDSHIFT.getDialect());
+    }
+
+    Sql withInformix() {
+      return dialect(DatabaseProduct.INFORMIX.getDialect());
     }
 
     Sql withSnowflake() {
