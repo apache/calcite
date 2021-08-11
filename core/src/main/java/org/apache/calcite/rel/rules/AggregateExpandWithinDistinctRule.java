@@ -239,7 +239,7 @@ public class AggregateExpandWithinDistinctRule
       final Map<IntPair, Integer> args = new HashMap<>();
       // Map agg calls from the original aggregation to inner query agg calls.
       final Map<Integer, Integer> aggs = new HashMap<>();
-      // Map agg calls from the original aggregation to inner query count calls, which are only
+      // Map agg calls from the original aggregation to inner-query `COUNT(*)` calls, which are only
       // needed for filters in the outer agg when the original agg call does not ignore null inputs.
       final Map<Integer, Integer> counts = new HashMap<>();
 
@@ -287,7 +287,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       /**
-       * Register an agg call is *not* a {@code WITHIN DISTINCT} call.
+       * Register an agg call that is *not* a {@code WITHIN DISTINCT} call.
        *
        * Unlike the case handled by {@link #register(int, int)} above, agg calls
        * without any distinct keys do not need a second round of aggregation in the outer query,
