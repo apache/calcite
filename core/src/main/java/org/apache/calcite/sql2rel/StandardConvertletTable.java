@@ -85,6 +85,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -230,28 +231,38 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // different types, say BIGINT.
     //
     // Similarly STDDEV_POP and STDDEV_SAMP, VAR_POP and VAR_SAMP.
-    registerOp(SqlStdOperatorTable.AVG,
-        new AvgVarianceConvertlet(SqlKind.AVG));
-    registerOp(SqlStdOperatorTable.STDDEV_POP,
-        new AvgVarianceConvertlet(SqlKind.STDDEV_POP));
-    registerOp(SqlStdOperatorTable.STDDEV_SAMP,
-        new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
-    registerOp(SqlStdOperatorTable.STDDEV,
-        new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
-    registerOp(SqlStdOperatorTable.VAR_POP,
-        new AvgVarianceConvertlet(SqlKind.VAR_POP));
-    registerOp(SqlStdOperatorTable.VAR_SAMP,
-        new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
-    registerOp(SqlStdOperatorTable.VARIANCE,
-        new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
-    registerOp(SqlStdOperatorTable.COVAR_POP,
-        new RegrCovarianceConvertlet(SqlKind.COVAR_POP));
-    registerOp(SqlStdOperatorTable.COVAR_SAMP,
-        new RegrCovarianceConvertlet(SqlKind.COVAR_SAMP));
-    registerOp(SqlStdOperatorTable.REGR_SXX,
-        new RegrCovarianceConvertlet(SqlKind.REGR_SXX));
-    registerOp(SqlStdOperatorTable.REGR_SYY,
-        new RegrCovarianceConvertlet(SqlKind.REGR_SYY));
+    boolean decompose_windowed_agg;
+    try {
+      decompose_windowed_agg = sql2relConfig.instance().DecomposeWindowedAggFns;
+    } catch (IOException e){
+      //Defualt to false in the case that no config file is found
+      decompose_windowed_agg = true;
+      System.out.println("Should never reach here\n");
+    }
+    if (decompose_windowed_agg){
+      registerOp(SqlStdOperatorTable.AVG,
+          new AvgVarianceConvertlet(SqlKind.AVG));
+      registerOp(SqlStdOperatorTable.STDDEV_POP,
+          new AvgVarianceConvertlet(SqlKind.STDDEV_POP));
+      registerOp(SqlStdOperatorTable.STDDEV_SAMP,
+          new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
+      registerOp(SqlStdOperatorTable.STDDEV,
+          new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
+      registerOp(SqlStdOperatorTable.VAR_POP,
+          new AvgVarianceConvertlet(SqlKind.VAR_POP));
+      registerOp(SqlStdOperatorTable.VAR_SAMP,
+          new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
+      registerOp(SqlStdOperatorTable.VARIANCE,
+          new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
+      registerOp(SqlStdOperatorTable.COVAR_POP,
+          new RegrCovarianceConvertlet(SqlKind.COVAR_POP));
+      registerOp(SqlStdOperatorTable.COVAR_SAMP,
+          new RegrCovarianceConvertlet(SqlKind.COVAR_SAMP));
+      registerOp(SqlStdOperatorTable.REGR_SXX,
+          new RegrCovarianceConvertlet(SqlKind.REGR_SXX));
+      registerOp(SqlStdOperatorTable.REGR_SYY,
+          new RegrCovarianceConvertlet(SqlKind.REGR_SYY));
+    }
 
     final SqlRexConvertlet floorCeilConvertlet = new FloorCeilConvertlet();
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
