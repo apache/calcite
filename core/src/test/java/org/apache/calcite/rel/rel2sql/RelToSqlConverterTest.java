@@ -5986,6 +5986,18 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4724">[CALCITE-4724]
+   * As for ClickHouse do not support values in from clause.
+   */
+  @Test void testAliasedValueForClickHouse() {
+    final String query = "select 1";
+    final String expected = "SELECT 1";
+    sql(query)
+        .withClickHouse()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
