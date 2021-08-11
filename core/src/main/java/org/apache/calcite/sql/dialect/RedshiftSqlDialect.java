@@ -22,13 +22,19 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /**
  * A <code>SqlDialect</code> implementation for the Redshift database.
@@ -105,5 +111,22 @@ public class RedshiftSqlDialect extends SqlDialect {
     return new SqlDataTypeSpec(
         new SqlUserDefinedTypeNameSpec(castSpec, SqlParserPos.ZERO),
         SqlParserPos.ZERO);
+  }
+
+  /**
+   * Converts a literal field to (SELECT 1) in GROUP BY.
+   * Example: GROUP BY TRUE -> GROUP BY (SELECT 1)
+   */
+  @Override public boolean allowsGroupByConstant(SqlNode field, List<SqlNode> groupKeys) {
+    if (field instanceof SqlLiteral) {
+      SqlNode node = SqlNumericLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+      groupKeys.add(
+          new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.of(node), null,
+              null, null, null, null, null,
+              null, null, null));
+      return false;
+    }
+
+    return true;
   }
 }

@@ -1183,6 +1183,13 @@ public class SqlDialect {
     }
   }
 
+  /**
+   * Allows GROUP BY CONSTANT to be handled differently in different dialects.
+   */
+  public boolean allowsGroupByConstant(SqlNode field, List<SqlNode> groupKeys) {
+    return true;
+  }
+
   /** Returns how unquoted identifiers are stored. */
   public Casing getUnquotedCasing() {
     return unquotedCasing;

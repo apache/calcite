@@ -23,11 +23,15 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -136,5 +140,22 @@ public class PostgresqlSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  /**
+   * Converts a character literal field to (SELECT 1) in GROUP BY.
+   * Example: GROUP BY 'a' -> GROUP BY (SELECT 1)
+   */
+  @Override public boolean allowsGroupByConstant(SqlNode field, List<SqlNode> groupKeys) {
+    if (field instanceof SqlCharStringLiteral) {
+      SqlNode node = SqlNumericLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+      groupKeys.add(
+          new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.of(node), null,
+              null, null, null, null, null,
+              null, null, null));
+      return false;
+    }
+
+    return true;
   }
 }
