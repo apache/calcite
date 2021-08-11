@@ -4036,6 +4036,81 @@ LogicalProject(EXPR$0=[1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testGroupByBooleanLiteralSimple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[true], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[$9], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ true }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByDateLiteralSimple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by DATE '2022-01-01']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[2022-01-01], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[$9], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ 2022-01-01 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByMultipleLiterals">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by false, deptno, true, true, empno, false, 'ab', DATE '2022-01-01']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$6])
+  LogicalAggregate(group=[{0, 1, 2, 3, 4, 5}], EXPR$0=[AVG($6)])
+    LogicalProject($f0=[false], DEPTNO=[$7], $f2=[true], EMPNO=[$0], $f4=['ab'], $f5=[2022-01-01], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$6])
+  LogicalAggregate(group=[{0, 1, 2, 3, 4, 5}], EXPR$0=[AVG($6)])
+    LogicalProject($f0=[$9], DEPTNO=[$7], $f2=[$10], EMPNO=[$0], $f4=[$11], $f5=[$12], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ false, true, 'ab', 2022-01-01 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testHeterogeneousConversion">
     <Resource name="sql">
       <![CDATA[select upper(ename) from emp union all

@@ -63,6 +63,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
+import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
@@ -198,6 +199,33 @@ class RelOptRulesTest extends RelOptTestBase {
   private static boolean skipItem(RexNode expr) {
     return expr instanceof RexCall
           && "item".equalsIgnoreCase(((RexCall) expr).getOperator().getName());
+  }
+
+  @Test void testGroupByDateLiteralSimple() {
+    final String query = "select avg(sal)\n"
+        + "from emp\n"
+        + "group by DATE '2022-01-01'";
+    sql(query)
+        .withRule(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule())
+        .check();
+  }
+
+  @Test void testGroupByBooleanLiteralSimple() {
+    final String query = "select avg(sal)\n"
+        + "from emp\n"
+        + "group by true";
+    sql(query)
+        .withRule(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule())
+        .check();
+  }
+
+  @Test void testGroupByMultipleLiterals() {
+    final String query = "select avg(sal)\n"
+        + "from emp\n"
+        + "group by false, deptno, true, true, empno, false, 'ab', DATE '2022-01-01'";
+    sql(query)
+        .withRule(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule())
+        .check();
   }
 
   @Test void testReduceNot() {
