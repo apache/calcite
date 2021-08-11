@@ -4817,6 +4817,10 @@ class RelToSqlConverterTest {
   @Test void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
+    final String expectedClickHouse = "SELECT `a`\n"
+        + "FROM (SELECT 1 AS `a`, 'x ' AS `b`\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS `a`, 'yy' AS `b`)"; // almost the same as MySQL
     final String expectedHsqldb = "SELECT a\n"
         + "FROM (VALUES (1, 'x '),\n"
         + "(2, 'yy')) AS t (a, b)";
@@ -4844,6 +4848,7 @@ class RelToSqlConverterTest {
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
     sql(sql)
+        .withClickHouse().ok(expectedClickHouse)
         .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expectedHive)
         .withHsqldb().ok(expectedHsqldb)
@@ -4869,24 +4874,33 @@ class RelToSqlConverterTest {
     final String expectedPostgresql = "SELECT *\n"
         + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
         + "WHERE 1 = 0";
+    final String expectedClickHouse = expectedMysql;
     sql(sql)
         .optimize(rules, null)
+        .withClickHouse().ok(expectedClickHouse)
         .withMysql().ok(expectedMysql)
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql);
   }
 
   /** Tests SELECT without FROM clause; effectively the same as a VALUES
-   * query. */
+   * query.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4724">[CALCITE-4724]
+   * In JDBC adapter for ClickHouse, implement Values by generating SELECT
+   * without FROM</a>. */
   @Test void testSelectWithoutFrom() {
     final String query = "select 2 + 2";
     final String expectedBigQuery = "SELECT 2 + 2";
+    final String expectedClickHouse = expectedBigQuery;
     final String expectedHive = expectedBigQuery;
-    final String expectedMysql = "SELECT 2 + 2";
+    final String expectedMysql = expectedBigQuery;
     final String expectedPostgresql = "SELECT 2 + 2\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
+        .withClickHouse().ok(expectedClickHouse)
         .withHive().ok(expectedHive)
         .withMysql().ok(expectedMysql)
         .withPostgresql().ok(expectedPostgresql);
@@ -4895,12 +4909,14 @@ class RelToSqlConverterTest {
   @Test void testSelectOne() {
     final String query = "select 1";
     final String expectedBigQuery = "SELECT 1";
+    final String expectedClickHouse = expectedBigQuery;
     final String expectedHive = expectedBigQuery;
     final String expectedMysql = expectedBigQuery;
     final String expectedPostgresql = "SELECT *\n"
         + "FROM (VALUES (1)) AS \"t\" (\"EXPR$0\")";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
+        .withClickHouse().ok(expectedClickHouse)
         .withHive().ok(expectedHive)
         .withMysql().ok(expectedMysql)
         .withPostgresql().ok(expectedPostgresql);
