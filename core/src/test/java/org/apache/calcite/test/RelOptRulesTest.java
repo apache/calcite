@@ -138,6 +138,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -6773,15 +6774,15 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   *  Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4652">[CALCITE-4652]
-   *  AggregateExpandDistinctAggregatesRule must cast top aggregates to original type</a>.
-   *
-   *  Checks AggregateExpandDistinctAggregatesRule when return type of the SUM aggregate
-   *  is changed (expanded) by define custom type factory.
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4652">[CALCITE-4652]
+   * AggregateExpandDistinctAggregatesRule must cast top aggregates to original type</a>.
+   * <p>
+   * Checks AggregateExpandDistinctAggregatesRule when return type of the SUM aggregate
+   * is changed (expanded) by define custom type factory.
    */
   @Test void testDistinctCountWithExpandSumType() {
-    /* Expand SUM return type. */
-    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+    // Define new type system to expand SUM return type.
+    RelDataTypeSystemImpl typeSystem = new RelDataTypeSystemImpl() {
       @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
           RelDataType argumentType) {
         switch (argumentType.getSqlTypeName()) {
@@ -6793,7 +6794,9 @@ class RelOptRulesTest extends RelOptTestBase {
           return super.deriveSumType(typeFactory, argumentType);
         }
       }
-    });
+    };
+
+    Supplier<RelDataTypeFactory> typeFactorySupplier = () -> new SqlTypeFactoryImpl(typeSystem);
 
     // Expected plan:
     // LogicalProject(EXPR$0=[CAST($0):BIGINT NOT NULL], EXPR$1=[$1])
@@ -6806,7 +6809,7 @@ class RelOptRulesTest extends RelOptTestBase {
     // because type of original expression 'COUNT(DISTINCT comm)' is BIGINT
     // and type of SUM (of BIGINT) is DECIMAL.
     sql("SELECT count(comm), COUNT(DISTINCT comm) FROM emp")
-        .withTester(t -> t.withTypeFactorySupplier(() -> typeFactory))
+        .withTester(t -> t.withTypeFactorySupplier(typeFactorySupplier))
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
         .check();
   }

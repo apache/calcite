@@ -102,7 +102,7 @@ public abstract class SqlToRelTestBase {
   //~ Static fields/initializers ---------------------------------------------
 
   protected static final String NL = System.getProperty("line.separator");
-  protected static final Supplier<RelDataTypeFactory> DFLT_TYPE_FACTORY_SUPPLIER =
+  protected static final Supplier<RelDataTypeFactory> DEFAULT_TYPE_FACTORY_SUPPLIER =
       Suppliers.memoize(() -> new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
 
   //~ Instance fields --------------------------------------------------------
@@ -115,7 +115,7 @@ public abstract class SqlToRelTestBase {
     final TesterImpl tester =
         new TesterImpl(getDiffRepos(), false, false, false, true, null, null,
             MockRelOptPlanner::new, UnaryOperator.identity(),
-            SqlConformanceEnum.DEFAULT, UnaryOperator.identity(), DFLT_TYPE_FACTORY_SUPPLIER);
+            SqlConformanceEnum.DEFAULT, UnaryOperator.identity(), DEFAULT_TYPE_FACTORY_SUPPLIER);
     return tester.withConfig(c ->
         c.withTrimUnusedFields(true)
             .withExpand(true)
@@ -579,7 +579,7 @@ public abstract class SqlToRelTestBase {
     protected TesterImpl(DiffRepository diffRepos) {
       this(diffRepos, true, true, false, true, null, null,
           MockRelOptPlanner::new, UnaryOperator.identity(),
-          SqlConformanceEnum.DEFAULT, c -> Contexts.empty(), DFLT_TYPE_FACTORY_SUPPLIER);
+          SqlConformanceEnum.DEFAULT, c -> Contexts.empty(), DEFAULT_TYPE_FACTORY_SUPPLIER);
     }
 
     /**
