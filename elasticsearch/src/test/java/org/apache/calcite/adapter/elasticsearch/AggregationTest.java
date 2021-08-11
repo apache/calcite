@@ -338,8 +338,8 @@ class AggregationTest {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat4, sum(val1) from view group by cat4")
-        .returnsUnordered("cat4=1514764800000; EXPR$1=1.0",
-            "cat4=1576108800000; EXPR$1=0.0",
+        .returnsUnordered("cat4=2018-01-01T00:00:00.000Z; EXPR$1=1.0",
+            "cat4=2019-12-12T00:00:00.000Z; EXPR$1=0.0",
             "cat4=null; EXPR$1=7.0");
   }
 
