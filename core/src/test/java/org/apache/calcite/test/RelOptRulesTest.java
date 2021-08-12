@@ -1499,7 +1499,8 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  SUM(sal) WITHIN DISTINCT (comm) AS ss_c,\n"
         + "  COUNT(DISTINCT job) cdj,\n"
         + "  COUNT(job) WITHIN DISTINCT (job) AS cj_j,\n"
-        + "  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j\n"
+        + "  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j,\n"
+        + "  COUNT(DISTINCT job) FILTER (WHERE sal > 1000) AS cdj_filtered\n"
         + "FROM emp\n"
         + "GROUP BY deptno";
     HepProgram program = new HepProgramBuilder()

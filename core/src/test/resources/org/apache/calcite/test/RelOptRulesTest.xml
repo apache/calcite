@@ -13482,24 +13482,25 @@ LogicalProject(DEPTNO=[$0], $f1=[CAST($1):INTEGER NOT NULL], $f2=[$2])
   SUM(sal) WITHIN DISTINCT (comm) AS ss_c,
   COUNT(DISTINCT job) cdj,
   COUNT(job) WITHIN DISTINCT (job) AS cj_j,
-  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j
+  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j,
+  COUNT(DISTINCT job) FILTER (WHERE sal > 1000) AS cdj_filtered
 FROM emp
 GROUP BY deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalAggregate(group=[{0}], SS_C=[SUM($1) WITHIN DISTINCT ($2)], CDJ=[COUNT(DISTINCT $3)], CJ_J=[COUNT() WITHIN DISTINCT ($3)], CDJ_J=[COUNT(DISTINCT $3) WITHIN DISTINCT ($3)])
-  LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6], JOB=[$2])
+LogicalAggregate(group=[{0}], SS_C=[SUM($1) WITHIN DISTINCT ($2)], CDJ=[COUNT(DISTINCT $3)], CJ_J=[COUNT() WITHIN DISTINCT ($3)], CDJ_J=[COUNT(DISTINCT $3) WITHIN DISTINCT ($3)], CDJ_FILTERED=[COUNT(DISTINCT $3) FILTER $4])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6], JOB=[$2], $f4=[>($5, 1000)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], $f1=[$1], $f2=[$2], $f20=[$2], $f21=[$2])
-  LogicalAggregate(group=[{0}], agg#0=[$SUM0($1) FILTER $2], agg#1=[COUNT() FILTER $3])
-    LogicalProject(DEPTNO=[$0], $f3=[$3], $f5=[=($4, 1)], $f6=[=($4, 2)])
-      LogicalAggregate(group=[{0, 2, 3}], groups=[[{0, 2}, {0, 3}]], agg#0=[MIN($1)], agg#1=[GROUPING($0, $2, $3)])
-        LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6], JOB=[$2])
+LogicalProject(DEPTNO=[$0], $f1=[$1], $f2=[$2], $f20=[$2], $f21=[$2], $f3=[$3])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($1) FILTER $3], agg#1=[COUNT() FILTER $4], agg#2=[COUNT($2) FILTER $4])
+    LogicalProject(DEPTNO=[$0], $f3=[$3], $f4=[$4], $f6=[=($5, 1)], $f7=[=($5, 2)])
+      LogicalAggregate(group=[{0, 2, 3}], groups=[[{0, 2}, {0, 3}]], agg#0=[MIN($1)], agg#1=[MIN($3) FILTER $4], agg#2=[GROUPING($0, $2, $3)])
+        LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6], JOB=[$2], $f4=[>($5, 1000)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
