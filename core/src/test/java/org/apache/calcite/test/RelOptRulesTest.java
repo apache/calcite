@@ -1567,7 +1567,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * Includes multiple identical filters for the agg calls.
    */
   @Test void testWithinDistinctFilteredAggsSameFilter() {
-    final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%'),"
+    final String sql =
+        "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%'),"
         + " AVG(comm) WITHIN DISTINCT (sal) FILTER (WHERE ename LIKE '%ok%')\n"
         + "FROM emp\n"
         + "GROUP BY deptno";

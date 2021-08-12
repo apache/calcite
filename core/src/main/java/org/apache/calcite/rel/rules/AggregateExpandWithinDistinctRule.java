@@ -449,10 +449,10 @@ public class AggregateExpandWithinDistinctRule
   }
 
   private static boolean mustBeCounted(AggregateCall aggCall) {
-    return aggCall.hasFilter() &&
-        !AGG_FUNCTIONS_THAT_IGNORE_NULL.contains(aggCall.getAggregation().getKind()) &&
-        !(SqlKind.COUNT.equals(aggCall.getAggregation().getKind()) &&
-            aggCall.getArgList().size() > 0);
+    return aggCall.hasFilter()
+        && !AGG_FUNCTIONS_THAT_IGNORE_NULL.contains(aggCall.getAggregation().getKind())
+        && !(SqlKind.COUNT.equals(aggCall.getAggregation().getKind())
+            && aggCall.getArgList().size() > 0);
   }
 
   /** Converts a {@code DISTINCT} aggregate call into an equivalent one with
