@@ -400,7 +400,7 @@ public class RexSimplify {
    * Try to find a literal with the given value in the input list.
    * The type of the literal must be one of the numeric types.
    */
-  private int findLiteralIndex(List<RexNode> operands, BigDecimal value) {
+  private static int findLiteralIndex(List<RexNode> operands, BigDecimal value) {
     for (int i = 0; i < operands.size(); i++) {
       if (operands.get(i).isA(SqlKind.LITERAL)) {
         Comparable comparable = ((RexLiteral) operands.get(i)).getValue();

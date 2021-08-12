@@ -1513,7 +1513,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Tests {@link AggregateExpandWithinDistinctRule}.
-   * Includes multiple different filters for the agg calls.
+   * Includes different distinct keys and different filters for each agg call.
+   * This is just a complex example to try to catch complex bugs.
    */
   @Test void testWithinDistinctFilteredAggs() {
     final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),"
@@ -1530,7 +1531,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /**
    * Tests {@link AggregateExpandWithinDistinctRule}.
    * Includes multiple different filters for the agg calls, and all agg calls have the same
-   * distinct keys.
+   * distinct keys, so there is no need to filter based on `GROUPING()`.
    */
   @Test void testWithinDistinctFilteredAggsUniformDistinctKeys() {
     final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),"
@@ -1547,7 +1548,8 @@ class RelOptRulesTest extends RelOptTestBase {
   /**
    * Tests {@link AggregateExpandWithinDistinctRule}.
    * Includes multiple different filters for the agg calls, and all agg calls have the same
-   * distinct keys. Does not throw if not unique.
+   * distinct keys, so there is no need to filter based on `GROUPING()`.
+   * Does *not* throw if not unique.
    */
   @Test void testWithinDistinctFilteredAggsUniformDistinctKeysNoThrow() {
     final String sql = "SELECT deptno, SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),"
@@ -1564,7 +1566,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Tests {@link AggregateExpandWithinDistinctRule}.
-   * Includes multiple identical filters for the agg calls.
+   * Includes multiple identical filters for the agg calls. The filters should be re-used.
    */
   @Test void testWithinDistinctFilteredAggsSameFilter() {
     final String sql =

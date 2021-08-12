@@ -104,13 +104,6 @@ import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule
 public class AggregateExpandWithinDistinctRule
     extends RelRule<AggregateExpandWithinDistinctRule.Config> {
 
-  // Maintain a list of agg functions that are known to ignore null inputs.
-  // If it's not on the list, assume it does not ignore nulls just to be safe.
-  // When a function does not ignore nulls, some extra care is required to ensure correct results.
-  // Do not add `COUNT` to this set; it's handled specially in `mustBeCounted`.
-  private static final ImmutableSet<SqlKind> AGG_FUNCTIONS_THAT_IGNORE_NULL =
-      ImmutableSet.of(SqlKind.SUM0);
-
   /** Creates an AggregateExpandWithinDistinctRule. */
   protected AggregateExpandWithinDistinctRule(Config config) {
     super(config);
@@ -253,7 +246,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       /**
-       * Compute an agg call argument's values for a {@code WITHIN DISTINCT} agg call.
+       * Computes an agg call argument's values for a {@code WITHIN DISTINCT} agg call.
        *
        * For example, to compute {@code SUM(x) WITHIN DISTINCT (y) GROUP BY (z)},
        * the inner aggregation must first group {@code x} by {@code (y, z)} -- using {@code MIN}
@@ -288,7 +281,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       /**
-       * Register an agg call that is *not* a {@code WITHIN DISTINCT} call.
+       * Registers an agg call that is *not* a {@code WITHIN DISTINCT} call.
        *
        * Unlike the case handled by {@link #register(int, int)} above, agg calls
        * without any distinct keys do not need a second round of aggregation in the outer query,
@@ -310,7 +303,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       /**
-       * Register an extra {@code COUNT} agg call when it's needed to filter out null inputs in the
+       * Registers an extra {@code COUNT} agg call when it's needed to filter out null inputs in the
        * outer aggregation.
        *
        * This should only be called for agg calls with filters. It's possible that the filter would
@@ -449,10 +442,15 @@ public class AggregateExpandWithinDistinctRule
   }
 
   private static boolean mustBeCounted(AggregateCall aggCall) {
-    return aggCall.hasFilter()
-        && !AGG_FUNCTIONS_THAT_IGNORE_NULL.contains(aggCall.getAggregation().getKind())
-        && !(SqlKind.COUNT.equals(aggCall.getAggregation().getKind())
-            && aggCall.getArgList().size() > 0);
+    // Always count filtered inner aggs to be safe.
+    // It's possible that, for some agg calls (namely, those that completely ignore null inputs),
+    // we could neglect counting the grouped-and-filtered rows of the inner agg and filtering
+    // the empty ones out from the outer agg, since those empty groups would produce null values
+    // as the result of `MIN` and thus be ignored by the outer agg anyway.
+    // Note that Using `aggCall.ignoreNulls()` is not necessarily sufficient to determine when it's
+    // safe to do this, since for `COUNT` the value of `ignoreNulls()` should generally be true
+    // even though `COUNT(*)` will never ignore anything.
+    return aggCall.hasFilter();
   }
 
   /** Converts a {@code DISTINCT} aggregate call into an equivalent one with
