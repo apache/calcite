@@ -6004,9 +6004,7 @@ class RelToSqlConverterTest {
   @Test void testAliasedValueForClickHouse() {
     final String query = "select 1";
     final String expected = "SELECT 1";
-    sql(query)
-        .withClickHouse()
-        .ok(expected);
+    sql(query).withClickHouse().ok(expected);
   }
 
   /** Fluid interface to run tests. */
