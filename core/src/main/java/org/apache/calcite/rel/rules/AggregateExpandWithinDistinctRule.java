@@ -107,6 +107,7 @@ public class AggregateExpandWithinDistinctRule
   // Maintain a list of agg functions that are known to ignore null inputs.
   // If it's not on the list, assume it does not ignore nulls just to be safe.
   // When a function does not ignore nulls, some extra care is required to ensure correct results.
+  // Do not add `COUNT` to this set; it's handled specially in `mustBeCounted`.
   private static final ImmutableSet<SqlKind> AGG_FUNCTIONS_THAT_IGNORE_NULL =
       ImmutableSet.of(SqlKind.SUM0);
 
