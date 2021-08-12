@@ -3136,12 +3136,12 @@ group by grouping sets (deptno, ename);
 !ok
 
 # [CALCITE-4665] When group key is a superset of the union of the groupKeys will generate the wrong Sql
-# use grouping_id filter the superset grouping sets out
+# use grouping filter the superset grouping sets out
 select ename, deptno, gender, grouping(ename), grouping(deptno), grouping(gender)
 from emp
 where gender = 'M'
 group by grouping sets (ename, deptno, (ename, deptno), (ename, deptno, gender))
-having grouping_id(ename, deptno, gender) <> 0
+having grouping(ename, deptno, gender) <> 0
 order by ename,deptno;
 +-------+--------+--------+--------+--------+--------+
 | ENAME | DEPTNO | GENDER | EXPR$3 | EXPR$4 | EXPR$5 |

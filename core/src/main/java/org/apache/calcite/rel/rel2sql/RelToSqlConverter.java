@@ -490,14 +490,14 @@ public class RelToSqlConverter extends SqlImplementor
       // groupSet contains at least one column that is not in any groupSets.
       // To make such columns must appear in the output (their value will
       // always be NULL), we generate an extra grouping set, then filter
-      // it out using a "HAVING GROUPING_ID(groupSets) <> 0".
+      // it out using a "HAVING GROUPING(groupSets) <> 0".
       // We want to generate the
       final SqlNodeList groupingList = new SqlNodeList(POS);
       e.getGroupSet().forEach(g ->
           groupingList.add(builder.context.field(g)));
       SqlNumericLiteral zero = SqlNumericLiteral.createExactNumeric(String.valueOf(0), POS);
       SqlNode condition = SqlStdOperatorTable.NOT_EQUALS.createCall(POS,
-          SqlStdOperatorTable.GROUPING_ID.createCall(groupingList), zero);
+          SqlStdOperatorTable.GROUPING.createCall(groupingList), zero);
       builder.setHaving(condition);
     }
     return builder;
