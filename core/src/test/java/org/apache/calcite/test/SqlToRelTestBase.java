@@ -685,7 +685,7 @@ public abstract class SqlToRelTestBase {
       RelOptTable.ViewExpander viewExpander =
           new MockViewExpander(validator, catalogReader, cluster, config);
       return new SqlToRelConverter(viewExpander, validator, catalogReader, cluster,
-          StandardConvertletTable.INSTANCE, config);
+          StandardConvertletTable.DEFAULT, config);
     }
 
     protected final RelDataTypeFactory getTypeFactory() {
@@ -1019,7 +1019,7 @@ public abstract class SqlToRelTestBase {
         SqlNode validatedNode = validator.validate(parsedNode);
         SqlToRelConverter converter = new SqlToRelConverter(
             this, validator, catalogReader, cluster,
-            StandardConvertletTable.INSTANCE, config);
+            StandardConvertletTable.DEFAULT, config);
         return converter.convertQuery(validatedNode, false, true);
       } catch (SqlParseException e) {
         throw new RuntimeException("Error happened while expanding view.", e);
