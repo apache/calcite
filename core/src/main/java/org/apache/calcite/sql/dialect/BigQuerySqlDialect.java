@@ -1290,9 +1290,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  private void unparseGroupingFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec){
+  private void unparseGroupingFunction(SqlWriter writer, SqlCall call,
+                                       int leftPrec, int rightPrec) {
     SqlCall isNull = new SqlBasicCall(IS_NULL, new SqlNode[]{call.operand(0)}, SqlParserPos.ZERO);
-    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1",SqlParserPos.ZERO);
+    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
     SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
     SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
     whenList.add(isNull);
