@@ -1042,6 +1042,15 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv, query).ok();
   }
 
+  @Test void testMoreSameExprInMv() {
+    final String mv = ""
+        + "select \"empid\", \"deptno\", sum(\"empid\") as s1, sum(\"empid\") as s2, count(*) as c\n"
+        + "from \"emps\" group by \"empid\", \"deptno\"";
+    final String query = ""
+        +  "select sum(\"empid\"), count(*) from \"emps\" group by \"empid\", \"deptno\"";
+    sql(mv, query).ok();
+  }
+
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
    * {@link RexUtil#simplify}. */
