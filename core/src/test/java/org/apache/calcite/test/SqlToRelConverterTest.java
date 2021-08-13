@@ -3474,6 +3474,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }).with(getTesterWithDynamicTable()).ok();
   }
 
+  @Test public void testConvertletConfigWindowedAggDecompose(){
+    String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
+    sql(query).ok();
+  }
+
+  @Test public void testConvertletConfigNoWindowedAggDecompose(){
+    String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
+    sql(query).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2366">[CALCITE-2366]
    * Add support for ANY_VALUE aggregate function</a>. */

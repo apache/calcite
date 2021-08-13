@@ -565,6 +565,28 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testConvertletConfigWindowedAggDecompose">
+    <Resource name="sql">
+      <![CDATA[SELECT AVG(emp.sal) from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST(/(SUM($5) OVER (PARTITION BY $7), COUNT($5) OVER (PARTITION BY $7))):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testConvertletConfigNoWindowedAggDecompose">
+    <Resource name="sql">
+      <![CDATA[SELECT AVG(emp.sal) from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST(/(SUM($5) OVER (PARTITION BY $7), COUNT($5) OVER (PARTITION BY $7))):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelateSortWithLimit">
     <Resource name="sql">
       <![CDATA[SELECT deptno, ename
