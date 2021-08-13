@@ -8998,4 +8998,17 @@ class RelToSqlConverterTest {
         .withMssql()
         .ok(expectedMsSql);
   }
+
+  @Test public void testGroupingFunction() {
+    String query = "SELECT \"first_name\",\"last_name\", grouping(\"first_name\")+ grouping(\"last_name\") from "
+      + "\"foodmart\".\"employee\" group by \"first_name\",\"last_name\"";
+    final String expectedBQSql = "SELECT first_name, last_name, CASE WHEN first_name IS NULL THEN"
+      + " 1 ELSE 0 END + CASE WHEN last_name IS NULL THEN 1 ELSE 0 END\n"
+      + "FROM foodmart.employee\n"
+      + "GROUP BY first_name, last_name";
+
+    sql(query)
+      .withBigQuery()
+      .ok(expectedBQSql);
+  }
 }
