@@ -14,23 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
- * This file reads a value out of a configuration file
- */
 package org.apache.calcite.sql2rel;
 
-public final class convertletTableConfig {
+/**
+ * This file contains a class that configures the behavior of the {@link org.apache.calcite.sql2rel.StandardConvertletTable}.
+ */
+public final class ConvertletTableConfig {
   private boolean decomposeWindowedAggregations;
 
-  public static final convertletTableConfig DEFAULT =
-      new convertletTableConfig(true);
+  public static final ConvertletTableConfig DEFAULT =
+      new ConvertletTableConfig(true);
 
-  public convertletTableConfig(boolean decompose){
+  public ConvertletTableConfig(boolean decompose) {
     this.decomposeWindowedAggregations = decompose;
   }
 
-  public boolean shouldDecomposeWindowedAggregations(){
+  public boolean shouldDecomposeWindowedAggregations() {
     return this.decomposeWindowedAggregations;
   }
 
