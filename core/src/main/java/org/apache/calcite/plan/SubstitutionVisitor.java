@@ -2017,8 +2017,12 @@ public class SubstitutionVisitor {
    * expressions to references to them. */
   private static RexShuttle getRexShuttle(List<RexNode> rexNodes) {
     final Map<RexNode, Integer> map = new HashMap<>();
-    for (RexNode e : rexNodes) {
-      map.put(e, map.size());
+    for (int i = 0; i < rexNodes.size(); i++) {
+      final RexNode rexNode = rexNodes.get(i);
+      if (map.containsKey(rexNode)) {
+        continue;
+      }
+      map.put(rexNode, i);
     }
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
