@@ -8152,6 +8152,44 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
   }
 
+  @Test public void datediffFunctionWithTwoOperands() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.DATE_DIFF,
+        builder.literal("1994-07-21"), builder.literal("1993-07-21"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "date_diff_value"))
+        .build();
+    final String expectedSql =
+        "SELECT DATE_DIFF('1994-07-21', '1993-07-21') AS \"date_diff_value\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQ =
+        "SELECT DATE_DIFF('1994-07-21', '1993-07-21') AS date_diff_value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void datediffFunctionWithThreeOperands() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.DATE_DIFF,
+        builder.literal("1994-07-21"), builder.literal("1993-07-21"), builder.literal("Month"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "date_diff_value"))
+        .build();
+    final String expectedSql =
+        "SELECT DATE_DIFF('1994-07-21', '1993-07-21', 'Month') AS \"date_diff_value\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQ =
+        "SELECT DATE_DIFF('1994-07-21', '1993-07-21', Month) AS date_diff_value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
   @Test public void testToDateFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_DATE,
@@ -8997,6 +9035,17 @@ class RelToSqlConverterTest {
         .ok(expectedBQSql)
         .withMssql()
         .ok(expectedMsSql);
+  }
+
+  @Test public void testIntervalMultiplyWithInteger() {
+    String query = "select \"hire_date\" + 10 * INTERVAL '00:01:00' HOUR "
+        + "TO SECOND from \"employee\"";
+    final String expectedBQSql = "SELECT TIMESTAMP_ADD(hire_date, INTERVAL 10 * 60 SECOND)\n"
+        + "FROM foodmart.employee";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
   }
 
   @Test public void testGroupingFunction() {

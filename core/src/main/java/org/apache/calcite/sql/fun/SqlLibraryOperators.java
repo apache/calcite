@@ -910,7 +910,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PARSE_TIMESTAMP =
       new SqlFunction("PARSE_TIMESTAMP",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.DATE_NULLABLE,
+        ReturnTypes.TIMESTAMP_NULLABLE,
         null,
         OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
         SqlFunctionCategory.TIMEDATE);
@@ -1091,7 +1091,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE_DIFF =
       new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER, null,
-          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.DATE, SqlTypeFamily.DATE,
+            SqlTypeFamily.STRING),
+            number -> number == 2),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})
