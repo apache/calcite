@@ -33,8 +33,6 @@ public class VisualizerRuleMatchInfo {
   private Set<String> newNodes;
   private Set<String> importanceZeroNodes;
 
-  public VisualizerRuleMatchInfo() {}
-
   public VisualizerRuleMatchInfo(
       Map<String, String> setLabels,
       Map<String, String> setOriginalRel,

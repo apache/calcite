@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-// 
+// sample generated visualizer data used by the visualizer JavaScript code
 var data = {
 
 	allNodes: {
 		"node1": {
-			label: "TableScan-1", // node label being displayed 
+			label: "TableScan-1", // node label being displayed
 			isSubset: false, // if the node is a RelSubset
 			explanation: "table=t1", // additional explanation of properties
 			finalCost: "100 cpu, 100io" // final cost (in string) of the node at the end of optimization
@@ -67,7 +67,7 @@ var data = {
 				"set1": ["node1"],
 				"set2": ["node2"],
 				"set3": ["node3"]
-			}, 
+			},
 			nodeInputs: {
 				"node2": ["node1"],
 				"node3": ["node2"]
@@ -90,7 +90,7 @@ var data = {
 				"set1": ["node1"],
 				"set2": ["node2", "node4"],
 				"set3": ["node3"]
-			}, 
+			},
 			nodeInputs: {
 				"node2": ["node1"],
 				"node3": ["node2", "node4"]
@@ -113,7 +113,7 @@ var data = {
 				"set1": ["node1"],
 				"set2": ["node2", "node4"],
 				"set3": ["node3"]
-			}, 
+			},
 			nodeInputs: {
 				"node2": ["node1"],
 				"node3": ["node2", "node4"]
@@ -124,47 +124,6 @@ var data = {
 		}
 	},
 
-	ruleMatchTvrInfoMap: {
-		"INITIAL": [{ 
-			"tvrId": "tvr1", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set1"] },
-			"tvrPropertyLinks": {}
-		}, { 
-			"tvrId": "tvr2", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set2"] },
-			"tvrPropertyLinks": {}
-		}, { 
-			"tvrId": "tvr3", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set3"] },
-			"tvrPropertyLinks": {}
-		}],
-		"IndexTableScanRule#1": [{ 
-			"tvrId": "tvr1", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set1"] },
-			"tvrPropertyLinks": { "TvrPropertyFoo": ["tvr2"] }
-		}, { 
-			"tvrId": "tvr2", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set2"] },
-			"tvrPropertyLinks": { "TvrPropertyBar": ["tvr3", "tvr1"] }
-		}, { 
-			"tvrId": "tvr3",
-			"tvrSets": { "SetSnapshot@(MAX)": ["set3"] },
-			"tvrPropertyLinks": {}
-		}],
-		"FINAL": [{ 
-			"tvrId": "tvr1", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set1"] },
-			"tvrPropertyLinks": { "TvrPropertyFoo": ["tvr2"] }
-		}, { 
-			"tvrId": "tvr2", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set2"] },
-			"tvrPropertyLinks": { "TvrPropertyBar": ["tvr3"] }
-		}, { 
-			"tvrId": "tvr3", 
-			"tvrSets": { "SetSnapshot@(MAX)": ["set3"] },
-			"tvrPropertyLinks": {}
-		}],
-	},
 
 	nodeAddedInRule: {
 		"node1": "INITIAL",

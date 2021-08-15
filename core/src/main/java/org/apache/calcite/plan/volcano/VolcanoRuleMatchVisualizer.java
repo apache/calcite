@@ -16,25 +16,26 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.visualizer.InputExcludedRelWriter;
 import org.apache.calcite.tools.visualizer.VisualizerNodeInfo;
 import org.apache.calcite.tools.visualizer.VisualizerRuleMatchInfo;
-import org.apache.calcite.tools.visualizer.VisualizerTvrInfo;
+
+import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
-import com.google.common.io.Resources;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -52,10 +53,11 @@ import static java.util.stream.Collectors.joining;
 /**
  * This is tool to visualize the rule match process of the VolcanoPlanner.
  *
- * To use the visualizer, add a listener before the VolcanoPlanner optimization phase,
- * and writes the output to a file after the optimization ends.
  *
- * ```
+ * <p>To use the visualizer, add a listener before the VolcanoPlanner optimization phase.
+ * Then writes the output to a file after the optimization ends.
+ *
+ * <pre>
  * // construct the visualizer and attach a listener to VolcanoPlanner
  * VolcanoRuleMatchVisualizerListener visualizerListener =
  *   new VolcanoRuleMatchVisualizerListener(volcanoPlanner);
@@ -63,11 +65,11 @@ import static java.util.stream.Collectors.joining;
  *
  * volcanoPlanner.findBestExpr();
  *
- * // after the optimization, adds the final best plan and writes the output to files
+ * // after the optimization, adds the final best plan
  * visualizerListener.getVisualizer().addFinalPlan();
- * visualizerListener.getVisualizer().writeToFile(outputDirectory, null);
- * ```
- *
+ * // writes the output to files
+ * visualizerListener.getVisualizer().writeToFile(outputDirectory, "");
+ * </pre>
  */
 public class VolcanoRuleMatchVisualizer {
 
@@ -77,7 +79,6 @@ public class VolcanoRuleMatchVisualizer {
   List<String> ruleMatchSequence = new ArrayList<>();
   // map of ruleMatch ID and the info, including the state snapshot at the time of ruleMatch
   Map<String, VisualizerRuleMatchInfo> ruleInfoMap = new HashMap<>();
-  Map<String, List<VisualizerTvrInfo>> ruleTvrInfoMap = new HashMap<>();
   // map of nodeID to the ruleID it's first added
   Map<String, String> nodeAddedInRule = new HashMap<>();
 
@@ -86,14 +87,11 @@ public class VolcanoRuleMatchVisualizer {
   // all RelNode are immutable in Calcite, therefore only new nodes will be added
   Map<String, RelNode> allNodes = new HashMap<>();
 
-  public boolean discardIfNoChange = true;
-
   public VolcanoRuleMatchVisualizer(VolcanoPlanner volcanoPlanner) {
     this.volcanoPlanner = volcanoPlanner;
   }
 
-  public void addRuleMatch(String ruleCallID, Collection<? extends RelNode> matchedRels,
-      boolean discardIfNoChange) {
+  public void addRuleMatch(String ruleCallID, Collection<? extends RelNode> matchedRels) {
 
     // store the current state snapshot
     // nodes contained in the sets
@@ -149,19 +147,6 @@ public class VolcanoRuleMatchVisualizer {
       set.subsets.forEach(addLink);
     });
 
-    // add tvr info
-    List<VisualizerTvrInfo> tvrs = volcanoPlanner.allSets.stream()
-        .flatMap(set -> set.tvrLinks.values().stream()).distinct()
-        .map(tvrMetaSet -> snapshotTvr(tvrMetaSet))
-        .collect(Collectors.toList());
-
-    boolean tvrChanged = ruleMatchSequence.isEmpty() || ruleTvrInfoMap
-        .get(ruleMatchSequence.get(ruleMatchSequence.size() - 1)).equals(tvrs);
-
-    if (newNodes.isEmpty() && !tvrChanged && this.discardIfNoChange && discardIfNoChange) {
-      return;
-    }
-
     // get the matched nodes of this rule
     Set<String> matchedNodeIDs = matchedRels.stream()
         .map(rel -> String.valueOf(rel.getId()))
@@ -178,13 +163,12 @@ public class VolcanoRuleMatchVisualizer {
 
     ruleMatchSequence.add(ruleCallID);
     ruleInfoMap.put(ruleCallID, ruleMatchInfo);
-    ruleTvrInfoMap.put(ruleCallID, tvrs);
 
     newNodes.forEach(newNode -> nodeAddedInRule.put(newNode, ruleCallID));
   }
 
   /**
-   * Add a final plan to the variable
+   * Add a final plan to the variable.
    */
   public void addFinalPlan() {
     assert !ruleMatchSequence.contains("FINAL");
@@ -207,37 +191,11 @@ public class VolcanoRuleMatchVisualizer {
       best.getInputs().stream().map(rel -> (RelSubset) rel).forEach(subsetsToVisit::add);
     }
 
-    this.addRuleMatch("FINAL", new ArrayList<>(finalPlanNodes), false);
+    this.addRuleMatch("FINAL", new ArrayList<>(finalPlanNodes));
   }
 
   private String getSetLabel(RelSet set) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("set-").append(set.id).append("    ");
-
-    String tvrLinksStr = set.tvrLinks.asMap().entrySet().stream().map(
-        e -> e.getKey() + "-[" + e.getValue().stream()
-            .map(metaSet -> Integer.toString(metaSet.tvrId))
-            .collect(joining(",")) + "]").collect(joining(", "));
-
-    sb.append(tvrLinksStr);
-
-    return sb.toString();
-  }
-
-
-  public VisualizerTvrInfo snapshotTvr(TvrMetaSet tvrMetaSet) {
-    SetMultimap<String, String> tvrSets = HashMultimap.create();
-    tvrMetaSet.tvrSets.forEach((tvrSemantics, set) -> {
-      tvrSets.put(tvrSemantics.toString(), "set-" + set.id);
-    });
-
-    SetMultimap<String, String> tvrPropertyLinks = HashMultimap.create();
-    tvrMetaSet.tvrPropertyLinks.forEach((tvrProperty, tvr) -> {
-      tvrPropertyLinks.put(tvrProperty.toString(), tvr.toString());
-    });
-
-    return new VisualizerTvrInfo(tvrMetaSet.toString(), tvrSets.asMap(),
-        tvrPropertyLinks.asMap());
+    return "set-" + set.id + "    ";
   }
 
   private String getJsonStringResult() {
@@ -245,9 +203,12 @@ public class VolcanoRuleMatchVisualizer {
       Map<String, VisualizerNodeInfo> nodeInfoMap = new HashMap<>();
       for (String nodeID : allNodes.keySet()) {
         RelNode relNode = allNodes.get(nodeID);
-
-        RelOptCost cost = volcanoPlanner.getCost(
-            relNode, volcanoPlanner.getRoot().getCluster().getMetadataQuery());
+        RelNode root = volcanoPlanner.getRoot();
+        if (root == null) {
+          throw new RuntimeException("volcano planner root is null");
+        }
+        RelOptCluster cluster = root.getCluster();
+        RelOptCost cost = volcanoPlanner.getCost(relNode, cluster.getMetadataQuery());
         Double rowCount =
             relNode.getCluster().getMetadataQuery().getRowCount(relNode);
 
@@ -280,7 +241,6 @@ public class VolcanoRuleMatchVisualizer {
       data.put("allNodes", nodeInfoMap);
       data.put("ruleMatchSequence", ruleMatchSequence);
       data.put("ruleMatchInfoMap", ruleInfoMap);
-      data.put("ruleMatchTvrInfoMap", ruleTvrInfoMap);
       data.put("nodeAddedInRule", nodeAddedInRule);
 
       ObjectMapper objectMapper = new ObjectMapper();
@@ -292,11 +252,11 @@ public class VolcanoRuleMatchVisualizer {
 
   /**
    * Writes the HTML and JS files of the rule match visualization.
-   *
+   * <p>
    * The old files with the same name will be replaced.
    *
    * @param outputDirectory directory of the output files
-   * @param suffix file name suffix, can be null
+   * @param suffix          file name suffix, can be null
    */
   public void writeToFile(String outputDirectory, String suffix) {
     // default HTML template is under "resources"
@@ -305,21 +265,11 @@ public class VolcanoRuleMatchVisualizer {
 
   public void writeToFile(String templateDirectory, String outputDirectory, String suffix) {
     try {
-      if (suffix == null) {
-        suffix = "";
-      }
-
-      String htmlTemplate = Resources.toString(
-          Resources.getResource(
-          Paths.get(templateDirectory).resolve("viz-template.html").toString()),
-          Charsets.UTF_8);
-      String tvrHtmlTemplate = Resources.toString(
-          Resources.getResource(
-          Paths.get(templateDirectory).resolve("viz-tvr-template.html").toString()),
-          Charsets.UTF_8);
+      String templatePath = Paths.get(templateDirectory).resolve("viz-template.html").toString();
+      String htmlTemplate = IOUtils.toString(getClass().getResourceAsStream(templatePath),
+          StandardCharsets.UTF_8);
 
       String htmlFileName = "volcano-viz" + suffix + ".html";
-      String tvrHtmlFileName = "volcano-viz-tvr" + suffix + ".html";
       String dataFileName = "volcano-viz-data" + suffix + ".js";
 
       String replaceString = "src=\"volcano-viz-data.js\"";
@@ -328,31 +278,20 @@ public class VolcanoRuleMatchVisualizer {
           + "src=\"" + dataFileName + "\""
           + htmlTemplate.substring(replaceIndex + replaceString.length());
 
-      int tvrReplaceIndex = tvrHtmlTemplate.indexOf(replaceString);
-      String tvrHtmlContent = tvrHtmlTemplate.substring(0, tvrReplaceIndex)
-          + "src=\"" + dataFileName + "\""
-          + tvrHtmlTemplate.substring(tvrReplaceIndex + replaceString.length());
-
       String dataJsContent = "var data = " + getJsonStringResult() + ";\n";
 
       Path outputDirPath = Paths.get(outputDirectory);
       Path htmlOutput = outputDirPath.resolve(htmlFileName);
-      Path tvrHtmlOutput = outputDirPath.resolve(tvrHtmlFileName);
       Path dataOutput = outputDirPath.resolve(dataFileName);
 
-      if (! Files.exists(outputDirPath)) {
+      if (!Files.exists(outputDirPath)) {
         Files.createDirectories(outputDirPath);
       }
 
-      Files.deleteIfExists(htmlOutput);
-      Files.deleteIfExists(tvrHtmlOutput);
-      Files.deleteIfExists(dataOutput);
-      Files.createFile(htmlOutput);
-      Files.createFile(tvrHtmlOutput);
-      Files.createFile(dataOutput);
-      Files.write(htmlOutput, htmlContent.getBytes(Charsets.UTF_8));
-      Files.write(tvrHtmlOutput, tvrHtmlContent.getBytes(Charsets.UTF_8));
-      Files.write(dataOutput, dataJsContent.getBytes(Charsets.UTF_8));
+      Files.write(htmlOutput, htmlContent.getBytes(Charsets.UTF_8), StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
+      Files.write(dataOutput, dataJsContent.getBytes(Charsets.UTF_8), StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

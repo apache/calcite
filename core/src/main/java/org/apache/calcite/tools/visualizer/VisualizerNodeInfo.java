@@ -18,6 +18,8 @@ package org.apache.calcite.tools.visualizer;
 
 import org.apache.calcite.plan.RelOptCost;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.Locale;
@@ -33,20 +35,8 @@ public class VisualizerNodeInfo {
   private String explanation;
   private String finalCost;
 
-  public VisualizerNodeInfo() {
-  }
-
-  public VisualizerNodeInfo(
-      String label, boolean isSubset, String explanation, String finalCost
-  ) {
-    this.label = label;
-    this.isSubset = isSubset;
-    this.explanation = explanation;
-    this.finalCost = finalCost;
-  }
-
   public VisualizerNodeInfo(String label, boolean isSubset, String explanation,
-      RelOptCost finalCost, Double rowCount) {
+      @Nullable RelOptCost finalCost, Double rowCount) {
     this.label = label;
     this.isSubset = isSubset;
     this.explanation = explanation;
@@ -85,7 +75,10 @@ public class VisualizerNodeInfo {
     this.finalCost = finalCost;
   }
 
-  private static String formatCost(Double rowCount, RelOptCost cost) {
+  private static String formatCost(Double rowCount, @Nullable RelOptCost cost) {
+    if (cost == null) {
+      return "null";
+    }
     String originalStr = cost.toString();
     if (originalStr.contains("inf") || originalStr.contains("huge")
         || originalStr.contains("tiny")) {

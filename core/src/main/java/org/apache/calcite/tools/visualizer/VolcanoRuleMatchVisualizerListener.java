@@ -27,12 +27,12 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /**
- * Visualizer Listener listens to events of Volcano Planner,
- * whenever a rule is successfully applied, it adds the information to the visualizer.
+ * Visualizer Listener listens to events of Volcano Planner.
+ * Whenever a rule is successfully applied, it adds the information to the visualizer.
  */
 public class VolcanoRuleMatchVisualizerListener implements RelOptListener {
 
-  private VolcanoRuleMatchVisualizer visualizer;
+  private final VolcanoRuleMatchVisualizer visualizer;
   private String latestRuleID = "";
   private int latestRuleTransformCount = 1;
 
@@ -41,7 +41,7 @@ public class VolcanoRuleMatchVisualizerListener implements RelOptListener {
   }
 
   /**
-   * After a rule is matched, record the rule and the state after matching
+   * After a rule is matched, record the rule and the state after matching.
    */
   @Override public void ruleAttempted(RuleAttemptedEvent event) {
   }
@@ -59,7 +59,7 @@ public class VolcanoRuleMatchVisualizerListener implements RelOptListener {
     if (event.isBefore()) {
       // add the initialState
       if (latestRuleID.isEmpty()) {
-        visualizer.addRuleMatch("INITIAL", new ArrayList<>(), false);
+        visualizer.addRuleMatch("INITIAL", new ArrayList<>());
         this.latestRuleID = "INITIAL";
       }
       return;
@@ -81,7 +81,7 @@ public class VolcanoRuleMatchVisualizerListener implements RelOptListener {
     this.latestRuleID = ruleID;
 
     visualizer.addRuleMatch(displayRuleName, Arrays.stream(ruleCall.rels)
-        .collect(Collectors.toList()), true);
+        .collect(Collectors.toList()));
   }
 
   @Override public void relDiscarded(RelDiscardedEvent event) {

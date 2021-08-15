@@ -97,7 +97,7 @@ limitations under the License.
     }
 
     .tippy-content {
-        word-break: break-all; 
+        word-break: break-all;
         word-wrap: break-word;
     }
 </style>
@@ -113,7 +113,7 @@ limitations under the License.
         </ul>
     </div>
     <div class="column2">
-        <svg id="svg-canvas" width="1000px" height="800px"></svg>
+        <svg id="svg-canvas" width="1200px" height="800px"></svg>
     </div>
 </div>
 
@@ -148,7 +148,7 @@ limitations under the License.
 
     // Set up zoom support
     var svg = d3.select("svg")
-        .attr("width", "1000px")
+        .attr("width", "1200px")
         .attr("height", "800px")
         .call(d3.zoom().on("zoom", function () {
             svgGroup.attr("transform", d3.event.transform)

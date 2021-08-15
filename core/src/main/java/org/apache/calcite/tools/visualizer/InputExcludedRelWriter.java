@@ -21,6 +21,8 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,18 +31,18 @@ import java.util.Map;
  * This RelWriter is indented to be used for getting a digest of a relNode,
  *  excluding the field of the relNode's inputs.
  * The result digest of the RelNode only contains its own properties.
+ * <p>
  *
- * Example:
- * ```
+ * <pre>
  * InputExcludedRelWriter relWriter = new InputExcludedRelWriter();
  * rel.explain(relWriter);
  * String digest = relWriter.toString();
- * ```
+ * </pre>
  *
  */
 public class InputExcludedRelWriter implements RelWriter {
 
-  private Map<String, Object> values = new LinkedHashMap<>();
+  private final Map<String, Object> values = new LinkedHashMap<>();
 
   public InputExcludedRelWriter() {
   }
@@ -59,12 +61,12 @@ public class InputExcludedRelWriter implements RelWriter {
     return this;
   }
 
-  @Override public RelWriter item(String term, Object value) {
+  @Override public RelWriter item(String term, @Nullable Object value) {
     this.values.put(term, value);
     return this;
   }
 
-  @Override public RelWriter itemIf(String term, Object value, boolean condition) {
+  @Override public RelWriter itemIf(String term, @Nullable Object value, boolean condition) {
     if (condition) {
       this.values.put(term, value);
     }
