@@ -3474,14 +3474,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }).with(getTesterWithDynamicTable()).ok();
   }
 
-  @Test public void testConvertletConfigWindowedAggDecompose(){
+  @Test public void testConvertletConfigWindowedAggDecompose() {
     String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
     sql(query).ok();
   }
 
-  @Test public void testConvertletConfigNoWindowedAggDecompose(){
+  @Test public void testConvertletConfigNoWindowedAggDecompose() {
     String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
-    sql(query).ok();
+    sql(query).ok(); //.with(tester)
   }
 
   /** Test case for

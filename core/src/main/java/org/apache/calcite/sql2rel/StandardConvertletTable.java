@@ -104,12 +104,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   public static final StandardConvertletTable DEFAULT =
       new StandardConvertletTable(ConvertletTableConfig.DEFAULT);
 
-  public StandardConvertletTable withConfig(ConvertletTableConfig config) {
-    return new StandardConvertletTable(config);
-  }
-
   //~ Constructors -----------------------------------------------------------
-  private StandardConvertletTable(ConvertletTableConfig config) {
+  public StandardConvertletTable(ConvertletTableConfig config) {
     super();
 
     // Register aliases (operators which have a different name but

@@ -64,6 +64,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.ConvertletTableConfig;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
@@ -668,14 +669,17 @@ public abstract class SqlToRelTestBase {
           validator,
           catalogReader,
           typeFactory,
-          config);
+          config,
+          ConvertletTableConfig.DEFAULT);
     }
 
     protected SqlToRelConverter createSqlToRelConverter(
         final SqlValidator validator,
         final Prepare.CatalogReader catalogReader,
         final RelDataTypeFactory typeFactory,
-        final SqlToRelConverter.Config config) {
+        final SqlToRelConverter.Config config,
+        ConvertletTableConfig convertletTableConfig
+    ) {
       final RexBuilder rexBuilder = new RexBuilder(typeFactory);
       RelOptCluster cluster =
           RelOptCluster.create(getPlanner(), rexBuilder);
@@ -685,7 +689,7 @@ public abstract class SqlToRelTestBase {
       RelOptTable.ViewExpander viewExpander =
           new MockViewExpander(validator, catalogReader, cluster, config);
       return new SqlToRelConverter(viewExpander, validator, catalogReader, cluster,
-          StandardConvertletTable.DEFAULT, config);
+          new StandardConvertletTable(convertletTableConfig), config);
     }
 
     protected final RelDataTypeFactory getTypeFactory() {

@@ -565,7 +565,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testConvertletConfigWindowedAggDecompose">
+  <TestCase name="testConvertletConfigNoWindowedAggDecompose">
     <Resource name="sql">
       <![CDATA[SELECT AVG(emp.sal) from emp]]>
     </Resource>
@@ -576,7 +576,7 @@ LogicalProject(EXPR$0=[CAST(/(SUM($5) OVER (PARTITION BY $7), COUNT($5) OVER (PA
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testConvertletConfigNoWindowedAggDecompose">
+  <TestCase name="testConvertletConfigWindowedAggDecompose">
     <Resource name="sql">
       <![CDATA[SELECT AVG(emp.sal) from emp]]>
     </Resource>
