@@ -47,6 +47,8 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.sql2rel.StandardConvertletTableConfig;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
@@ -3481,7 +3483,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testConvertletConfigNoWindowedAggDecompose() {
     String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
-    sql(query).ok(); //.with(tester)
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
   }
 
   /** Test case for
@@ -3506,6 +3508,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   private Tester getExtendedTester() {
     return tester.withCatalogReaderFactory(MockCatalogReaderExtended::new);
+  }
+
+  private Tester getNoWindowedAggDecompositionTester() {
+    //changes the sql2rel config to not decompose windowed aggregations
+    return tester.withConvertletTable(
+        new StandardConvertletTable(new StandardConvertletTableConfig(false)));
   }
 
   @Test void testLarge() {

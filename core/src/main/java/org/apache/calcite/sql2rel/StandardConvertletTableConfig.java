@@ -19,13 +19,13 @@ package org.apache.calcite.sql2rel;
 /**
  * This file contains a class that configures the behavior of the {@link org.apache.calcite.sql2rel.StandardConvertletTable}.
  */
-public final class ConvertletTableConfig {
+public final class StandardConvertletTableConfig {
   private boolean decomposeWindowedAggregations;
 
-  public static final ConvertletTableConfig DEFAULT =
-      new ConvertletTableConfig(true);
+  public static final StandardConvertletTableConfig DEFAULT =
+      new StandardConvertletTableConfig(true);
 
-  public ConvertletTableConfig(boolean decompose) {
+  public StandardConvertletTableConfig(boolean decompose) {
     this.decomposeWindowedAggregations = decompose;
   }
 

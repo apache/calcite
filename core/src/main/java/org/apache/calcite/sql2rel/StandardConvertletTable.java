@@ -102,10 +102,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
   /** Singleton instance. */
   public static final StandardConvertletTable DEFAULT =
-      new StandardConvertletTable(ConvertletTableConfig.DEFAULT);
+      new StandardConvertletTable(StandardConvertletTableConfig.DEFAULT);
 
   //~ Constructors -----------------------------------------------------------
-  public StandardConvertletTable(ConvertletTableConfig config) {
+  public StandardConvertletTable(StandardConvertletTableConfig config) {
     super();
 
     // Register aliases (operators which have a different name but

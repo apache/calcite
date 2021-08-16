@@ -111,7 +111,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql2rel.ConvertletTableConfig;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReader;
@@ -1227,8 +1226,7 @@ class RelOptRulesTest extends RelOptTestBase {
         t.createSqlToRelConverter(
             validator,
             catalogReader,
-            typeFactory, SqlToRelConverter.config(),
-            ConvertletTableConfig.DEFAULT);
+            typeFactory, SqlToRelConverter.config());
 
     final SqlNode sqlQuery = t.parseQuery(sql);
     final SqlNode validatedQuery = validator.validate(sqlQuery);
@@ -1251,7 +1249,7 @@ class RelOptRulesTest extends RelOptTestBase {
     String planBefore = NL + RelOptUtil.toString(root.rel);
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
     converter = t.createSqlToRelConverter(validator, catalogReader, typeFactory,
-        SqlToRelConverter.config().withTrimUnusedFields(true), ConvertletTableConfig.DEFAULT);
+        SqlToRelConverter.config().withTrimUnusedFields(true));
     root = root.withRel(converter.trimUnusedFields(false, root.rel));
     String planAfter = NL + RelOptUtil.toString(root.rel);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);

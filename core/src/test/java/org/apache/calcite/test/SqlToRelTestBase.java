@@ -64,8 +64,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
-import org.apache.calcite.sql2rel.ConvertletTableConfig;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.test.catalog.MockCatalogReader;
@@ -112,7 +112,8 @@ public abstract class SqlToRelTestBase {
     final TesterImpl tester =
         new TesterImpl(getDiffRepos(), false, false, false, true, null, null,
             MockRelOptPlanner::new, UnaryOperator.identity(),
-            SqlConformanceEnum.DEFAULT, UnaryOperator.identity());
+            SqlConformanceEnum.DEFAULT, UnaryOperator.identity(),
+            StandardConvertletTable.DEFAULT);
     return tester.withConfig(c ->
         c.withTrimUnusedFields(true)
             .withExpand(true)
@@ -290,6 +291,8 @@ public abstract class SqlToRelTestBase {
 
     /** Trims a RelNode. */
     RelNode trimRelNode(RelNode relNode);
+
+    Tester withConvertletTable(SqlRexConvertletTable convertletTable);
 
     SqlNode parseExpression(String expr) throws Exception;
   }
@@ -568,12 +571,14 @@ public abstract class SqlToRelTestBase {
     private RelDataTypeFactory typeFactory;
     private final UnaryOperator<SqlToRelConverter.Config> configTransform;
     private final UnaryOperator<Context> contextTransform;
+    private final SqlRexConvertletTable convertletTable;
 
     /** Creates a TesterImpl with default options. */
     protected TesterImpl(DiffRepository diffRepos) {
       this(diffRepos, true, true, false, true, null, null,
           MockRelOptPlanner::new, UnaryOperator.identity(),
-          SqlConformanceEnum.DEFAULT, c -> Contexts.empty());
+          SqlConformanceEnum.DEFAULT, c -> Contexts.empty(),
+          StandardConvertletTable.DEFAULT);
     }
 
     /**
@@ -592,7 +597,8 @@ public abstract class SqlToRelTestBase {
         Function<RelOptCluster, RelOptCluster> clusterFactory,
         Function<Context, RelOptPlanner> plannerFactory,
         UnaryOperator<SqlToRelConverter.Config> configTransform,
-        SqlConformance conformance, UnaryOperator<Context> contextTransform) {
+        SqlConformance conformance, UnaryOperator<Context> contextTransform,
+        SqlRexConvertletTable convertletTable) {
       this.diffRepos = diffRepos;
       this.enableDecorrelate = enableDecorrelate;
       this.enableTrim = enableTrim;
@@ -604,6 +610,7 @@ public abstract class SqlToRelTestBase {
       this.plannerFactory = Objects.requireNonNull(plannerFactory, "plannerFactory");
       this.conformance = Objects.requireNonNull(conformance, "conformance");
       this.contextTransform = Objects.requireNonNull(contextTransform, "contextTransform");
+      this.convertletTable = Objects.requireNonNull(convertletTable, "convertletTable");
     }
 
     public RelRoot convertSqlToRel(String sql) {
@@ -669,16 +676,14 @@ public abstract class SqlToRelTestBase {
           validator,
           catalogReader,
           typeFactory,
-          config,
-          ConvertletTableConfig.DEFAULT);
+          config);
     }
 
     protected SqlToRelConverter createSqlToRelConverter(
         final SqlValidator validator,
         final Prepare.CatalogReader catalogReader,
         final RelDataTypeFactory typeFactory,
-        final SqlToRelConverter.Config config,
-        ConvertletTableConfig convertletTableConfig
+        final SqlToRelConverter.Config config
     ) {
       final RexBuilder rexBuilder = new RexBuilder(typeFactory);
       RelOptCluster cluster =
@@ -687,9 +692,9 @@ public abstract class SqlToRelTestBase {
         cluster = clusterFactory.apply(cluster);
       }
       RelOptTable.ViewExpander viewExpander =
-          new MockViewExpander(validator, catalogReader, cluster, config);
+          new MockViewExpander(validator, catalogReader, cluster, config, convertletTable);
       return new SqlToRelConverter(viewExpander, validator, catalogReader, cluster,
-          new StandardConvertletTable(convertletTableConfig), config);
+          convertletTable, config);
     }
 
     protected final RelDataTypeFactory getTypeFactory() {
@@ -903,7 +908,7 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, convertletTable);
     }
 
     public TesterImpl withLateDecorrelation(boolean enableLateDecorrelate) {
@@ -912,7 +917,7 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, convertletTable);
     }
 
     public Tester withConfig(UnaryOperator<SqlToRelConverter.Config> transform) {
@@ -921,7 +926,7 @@ public abstract class SqlToRelTestBase {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, convertletTable);
     }
 
     public TesterImpl withTrim(boolean enableTrim) {
@@ -930,21 +935,21 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, convertletTable);
     }
 
     public TesterImpl withConformance(SqlConformance conformance) {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, convertletTable);
     }
 
     public Tester enableTypeCoercion(boolean enableTypeCoercion) {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, convertletTable);
     }
 
     public Tester withCatalogReaderFactory(
@@ -952,7 +957,7 @@ public abstract class SqlToRelTestBase {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, convertletTable);
     }
 
     public Tester withClusterFactory(
@@ -960,7 +965,7 @@ public abstract class SqlToRelTestBase {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          contextTransform);
+          contextTransform, convertletTable);
     }
 
     public Tester withPlannerFactory(
@@ -970,14 +975,21 @@ public abstract class SqlToRelTestBase {
           : new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
               enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
               clusterFactory, plannerFactory, configTransform, conformance,
-              contextTransform);
+              contextTransform, convertletTable);
     }
 
     public TesterImpl withContext(UnaryOperator<Context> context) {
       return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
           enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
           clusterFactory, plannerFactory, configTransform, conformance,
-          context);
+          context, convertletTable);
+    }
+
+    public TesterImpl withConvertletTable(SqlRexConvertletTable convertletTable) {
+      return new TesterImpl(diffRepos, enableDecorrelate, enableTrim,
+          enableLateDecorrelate, enableTypeCoercion, catalogReaderFactory,
+          clusterFactory, plannerFactory, configTransform, conformance,
+          contextTransform, convertletTable);
     }
 
     public boolean isLateDecorrelate() {
@@ -1004,16 +1016,19 @@ public abstract class SqlToRelTestBase {
     private final Prepare.CatalogReader catalogReader;
     private final RelOptCluster cluster;
     private final SqlToRelConverter.Config config;
+    private final SqlRexConvertletTable convertletTable;
 
     MockViewExpander(
         SqlValidator validator,
         Prepare.CatalogReader catalogReader,
         RelOptCluster cluster,
-        SqlToRelConverter.Config config) {
+        SqlToRelConverter.Config config,
+        SqlRexConvertletTable convertletTable) {
       this.validator = validator;
       this.catalogReader = catalogReader;
       this.cluster = cluster;
       this.config = config;
+      this.convertletTable = convertletTable;
     }
 
     @Override public RelRoot expandView(RelDataType rowType, String queryString,
@@ -1023,7 +1038,7 @@ public abstract class SqlToRelTestBase {
         SqlNode validatedNode = validator.validate(parsedNode);
         SqlToRelConverter converter = new SqlToRelConverter(
             this, validator, catalogReader, cluster,
-            StandardConvertletTable.DEFAULT, config);
+            convertletTable, config);
         return converter.convertQuery(validatedNode, false, true);
       } catch (SqlParseException e) {
         throw new RuntimeException("Error happened while expanding view.", e);
