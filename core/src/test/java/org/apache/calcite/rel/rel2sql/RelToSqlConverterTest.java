@@ -9047,4 +9047,22 @@ class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBQSql);
   }
+
+  @Test public void testDegree() {
+    String query = "select degrees(0.12)";
+    final String expectedBQSql = "SELECT 0.12 * (180 / 3.14)";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
+  @Test public void testRadian() {
+    String query = "SELECT radians(0.12)";
+    final String expectedBQSql = "SELECT 0.12 * (3.14 / 180)";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
 }

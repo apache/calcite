@@ -925,6 +925,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(date_diff);
       break;
+    case "DEGREES":
+      unparseDegrees(writer, call, leftPrec, rightPrec);
+      break;
+    case "RADIANS":
+      unparseRadians(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1035,6 +1041,22 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlNode numericNode = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
     SqlCall acosCall = ACOS.createCall(SqlParserPos.ZERO, numericNode);
     unparseCall(writer, acosCall, leftPrec, rightPrec);
+  }
+
+  private void unparseDegrees(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall sqlCall = MULTIPLY.createCall(SqlParserPos.ZERO, call.operand(0),
+        DIVIDE.createCall(SqlParserPos.ZERO,
+            SqlLiteral.createExactNumeric("180", SqlParserPos.ZERO),
+            SqlLiteral.createExactNumeric("3.14", SqlParserPos.ZERO)));
+    unparseCall(writer, sqlCall, leftPrec, rightPrec);
+  }
+
+  private void unparseRadians(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall sqlCall = MULTIPLY.createCall(SqlParserPos.ZERO, call.operand(0),
+        DIVIDE.createCall(SqlParserPos.ZERO,
+            SqlLiteral.createExactNumeric("3.14", SqlParserPos.ZERO),
+            SqlLiteral.createExactNumeric("180", SqlParserPos.ZERO)));
+    unparseCall(writer, sqlCall, leftPrec, rightPrec);
   }
 
   private void unparseOctetLength(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
