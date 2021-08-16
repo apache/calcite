@@ -308,8 +308,8 @@ public class ReflectiveSchemaTest {
         .withSchema("s", new ReflectiveSchema(new DateColumnSchema()))
         .query("select * from \"s\".\"emps\"")
         .returns(""
-            + "hireDate=1970-01-01; empid=10; deptno=20; name=fred; salary=0.0; commission=null\n"
-            + "hireDate=1970-04-11; empid=10; deptno=20; name=bill; salary=0.0; commission=null\n");
+            + "empid=10; deptno=20; name=fred; salary=0.0; commission=null; hireDate=1970-01-01\n"
+            + "empid=10; deptno=20; name=bill; salary=0.0; commission=null; hireDate=1970-04-11\n");
   }
 
   /** Tests querying an object that has no public fields. */
@@ -727,7 +727,7 @@ public class ReflectiveSchemaTest {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select * from \"s\".\"badTypes\"")
-        .returns("integer=0; bitSet={}\n");
+        .returns("bitSet={}; integer=0\n");
   }
 
   /** Tests that a schema with a field whose type cannot be recognized

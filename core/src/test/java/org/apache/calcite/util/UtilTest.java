@@ -114,6 +114,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -2284,7 +2285,7 @@ class UtilTest {
   /** Tests {@link org.apache.calcite.util.ReflectUtil#getParameterName}. */
   @Test void testParameterName() throws NoSuchMethodException {
     final Method method = UtilTest.class.getMethod("foo", int.class, int.class);
-    assertThat(ReflectUtil.getParameterName(method, 0), is("arg0"));
+    assertThat(ReflectUtil.getParameterName(method, 0), anyOf(is("i"), is("arg0")));
     assertThat(ReflectUtil.getParameterName(method, 1), is("j"));
   }
 
