@@ -899,11 +899,11 @@ AS (SELECT * FROM (VALUES
   ('Alice', 789, 'UT'),
   ('Bob', 25, 'UT'),
   ('Carlos', 25, 'UT'),
-  ('Dan', 678, 'UT'),
+  ('Dan', 12, 'UT'),
   ('Erin', 567, 'WY'),
   ('Frank', 456, 'WY')) AS FriendStates (name, age, state))
-SELECT AVG(age) WITHIN DISTINCT (state) FILTER (WHERE age < 100) AS aa_s,
-  COUNT(*) WITHIN DISTINCT (state) FILTER (WHERE age < 100) AS c_s
+SELECT AVG(age) WITHIN DISTINCT (state) FILTER (WHERE age < 100 AND age > 18) AS aa_s,
+  COUNT(*) WITHIN DISTINCT (state) FILTER (WHERE age < 100 AND age > 18) AS c_s
 FROM FriendStates;
 +------+-----+
 | AA_S | C_S |
