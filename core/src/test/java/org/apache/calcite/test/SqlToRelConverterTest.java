@@ -3476,15 +3476,42 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }).with(getTesterWithDynamicTable()).ok();
   }
 
-  @Test public void testConvertletConfigWindowedAggDecompose() {
-    String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
-    sql(query).ok();
-  }
-
-  @Test public void testConvertletConfigNoWindowedAggDecompose() {
+  @Test public void testConvertletConfigNoWindowedAggDecomposeAvgSimple() {
     String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
     sql(query).with(getNoWindowedAggDecompositionTester()).ok();
   }
+
+  @Test public void testConvertletConfigNoWindowedAggDecomposeAvg() {
+    String query = "SELECT emp.sal, AVG(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal"
+        +
+        " ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeStd() {
+    String query = "SELECT emp.sal, STDDEV(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal"
+        +
+        " ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeStdPop() {
+    String query = "SELECT emp.sal, STDDEV_POP(emp.sal) OVER (PARTITION BY emp.deptno "
+        +
+        "ORDER BY emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeVar() {
+    String query = "SELECT emp.sal, VARIANCE(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY"
+        +
+        " emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeVarPop() {
+    String query = "SELECT emp.sal, VAR_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal"
+        +
+        " ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2366">[CALCITE-2366]
