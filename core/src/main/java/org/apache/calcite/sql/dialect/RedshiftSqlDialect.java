@@ -115,7 +115,7 @@ public class RedshiftSqlDialect extends SqlDialect {
 
   /**
    * Converts a literal field to (SELECT 1) in GROUP BY.
-   * Example: GROUP BY TRUE -> GROUP BY (SELECT 1)
+   * Example: GROUP BY TRUE to GROUP BY (SELECT 1)
    */
   @Override public boolean allowsGroupByConstant(SqlNode field, List<SqlNode> groupKeys) {
     if (field instanceof SqlLiteral) {
