@@ -9524,6 +9524,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "- left\n"
         + "- -\n"
         + "EXISTS pre\n"
+        + "UNIQUE pre\n"
         + "\n"
         + "< ALL left\n"
         + "< SOME left\n"

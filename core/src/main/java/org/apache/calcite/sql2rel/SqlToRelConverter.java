@@ -1284,7 +1284,8 @@ public class SqlToRelConverter {
       }
       subQuery.expr = bb.register(converted.r, JoinRelType.LEFT);
       return;
-
+    case UNIQUE:
+      return;
     case SCALAR_QUERY:
       // Convert the sub-query.  If it's non-correlated, convert it
       // to a constant expression.
@@ -1843,6 +1844,7 @@ public class SqlToRelConverter {
     final SqlKind kind = node.getKind();
     switch (kind) {
     case EXISTS:
+    case UNIQUE:
     case SELECT:
     case MULTISET_QUERY_CONSTRUCTOR:
     case MULTISET_VALUE_CONSTRUCTOR:
@@ -5025,6 +5027,12 @@ public class SqlToRelConverter {
           }
           return RexSubQuery.exists(rel);
 
+        case UNIQUE:
+          call = (SqlCall) expr;
+          query = Iterables.getOnlyElement(call.getOperandList());
+          root = convertQueryRecursive(query, false, null);
+          return RexSubQuery.unique(root.rel);
+
         case SCALAR_QUERY:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
@@ -5039,6 +5047,7 @@ public class SqlToRelConverter {
       switch (kind) {
       case SOME:
       case ALL:
+      case UNIQUE:
         if (config.isExpand()) {
           throw new RuntimeException(kind
               + " is only supported if expand = false");

@@ -5043,6 +5043,121 @@ public class JdbcTest {
             "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500; I=null");
   }
 
+  @Test void testUniqueCorrelated() {
+    final String sql = "select*from \"hr\".\"emps\" where unique (\n"
+        + " select 1 from \"hr\".\"depts\"\n"
+        + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
+    final String plan = ""
+        + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        + "  LogicalFilter(condition=[UNIQUE({\n"
+        + "LogicalProject(EXPR$0=[1])\n"
+        + "  LogicalFilter(condition=[=($cor0.deptno, $0)])\n"
+        + "    LogicalTableScan(table=[[hr, depts]])\n"
+        + "})], variablesSet=[[$cor0]])\n"
+        + "    LogicalTableScan(table=[[hr, emps]])\n";
+    CalciteAssert.hr().query(sql).convertContains(plan)
+        .returnsUnordered(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250",
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
+  }
+
+  @Test void testNotUniqueCorrelated() {
+    final String plan = "PLAN="
+        + "EnumerableCalc(expr#0..5=[{inputs}], empid=[$t1], deptno=[$t2], name=[$t3], salary=[$t4], commission=[$t5])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
+        + "      EnumerableAggregate(group=[{0}], count=[COUNT()])\n"
+        + "        EnumerableTableScan(table=[[hr, depts]])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n\n";
+    final String sql = "select * from \"hr\".\"emps\" where not unique (\n"
+        + " select 1 from \"hr\".\"depts\"\n"
+        + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(plan)
+        .returnsUnordered("");
+  }
+
+  @Test void testUniqueWithLimit() {
+    final String plan = "PLAN="
+        + "EnumerableTableScan(table=[[hr, emps]])\n\n";
+    final String sql = "select * from \"hr\".\"emps\" where unique (\n"
+        + " select * from \"hr\".\"depts\" limit 1)";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(plan)
+        .returnsUnordered(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250",
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
+  }
+
+  @Test void testUniqueWithDistinct() {
+    final String plan = "PLAN="
+        + "EnumerableTableScan(table=[[hr, emps]])\n\n";
+    final String sql = "select * from \"hr\".\"emps\" where unique (\n"
+        + " select distinct \"deptno\",\"name\" from \"hr\".\"depts\")";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(plan)
+        .returnsUnordered(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250",
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
+  }
+
+  @Test void testUniqueWithGroupBy() {
+    final String plan = "PLAN="
+        + "EnumerableTableScan(table=[[hr, emps]])\n\n";
+    final String sql = "select * from \"hr\".\"emps\" where unique (\n"
+        + " select \"deptno\" from \"hr\".\"depts\" group by \"deptno\")";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(plan)
+        .returnsUnordered(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250",
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
+  }
+
+  @Test void testUniqueWithAgg() {
+    final String plan = "PLAN="
+        + "EnumerableTableScan(table=[[hr, emps]])\n\n";
+    final String sql = "select * from \"hr\".\"emps\" where unique (\n"
+        + " select \"deptno\",count(\"name\") from \"hr\".\"depts\" group by \"deptno\")";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(plan)
+        .returnsUnordered(
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250",
+            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
+  }
+
+  @Test void testUniqueWithAgg2() {
+    final String plan = "PLAN="
+        + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL($t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+        + "  EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n"
+        + "    EnumerableAggregate(group=[{0}])\n"
+        + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])\n"
+        + "        EnumerableAggregate(group=[{1}], count=[COUNT()])\n"
+        + "          EnumerableAggregate(group=[{0}], EXPR$0=[COUNT($1)])\n"
+        + "            EnumerableTableScan(table=[[hr, depts]])\n\n";
+    final String sql = "select * from \"hr\".\"emps\" where unique (\n"
+        + " select count(\"name\") from \"hr\".\"depts\" group by \"deptno\")";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains(plan)
+        .returnsUnordered("");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-313">[CALCITE-313]
    * Query decorrelation fails</a>. */

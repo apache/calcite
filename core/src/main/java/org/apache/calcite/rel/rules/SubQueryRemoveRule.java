@@ -26,6 +26,9 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -49,6 +52,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -94,6 +98,8 @@ public class SubQueryRemoveRule
       return rewriteIn(e, variablesSet, logic, builder, offset);
     case EXISTS:
       return rewriteExists(e, variablesSet, logic, builder);
+    case UNIQUE:
+      return rewriteUnique(e, builder);
     default:
       throw new AssertionError(e.getKind());
     }
@@ -306,6 +312,98 @@ public class SubQueryRemoveRule
     builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
 
     return builder.isNotNull(Util.last(builder.fields()));
+  }
+
+  /**
+   * Rewrites a UNIQUE RexSubQuery into an EXISTS RexSubQuery.
+   *
+   * @param e            UNIQUE sub-query to rewrite
+   * @param builder      Builder
+   *
+   * @return Expression that may be used to replace the RexSubQuery
+   *
+   * for example UNIQUE SubQuery:
+   * UNIQUE (SELECT PUBLISHED_IN FROM BOOK
+   *             WHERE AUTHOR_ID = 3)
+   * rewrite to EXISTS SubQuery:
+   * NOT EXISTS (
+   *   SELECT 1 FROM (
+   *     SELECT PUBLISHED_IN
+   *     FROM BOOK
+   *     WHERE AUTHOR_ID = 3
+   *   ) T
+   *   WHERE (T.PUBLISHED_IN) IS NOT NULL
+   *   GROUP BY T.PUBLISHED_IN
+   *   HAVING COUNT(*) > 1
+   * )
+   *
+   */
+  private static RexNode rewriteUnique(
+      RexSubQuery e, RelBuilder builder) {
+    // if subquery always return unique value return
+    if (isAlwaysUniqueSubquery(e.rel)) {
+      return builder.getRexBuilder().makeLiteral(true);
+    }
+    builder.push(e.rel);
+    List<RexNode> notNullCondition = new ArrayList<>();
+    notNullCondition.add(builder.literal(true));
+    builder.fields().forEach(
+        field -> notNullCondition.add(
+        builder.getRexBuilder().makeCall(SqlStdOperatorTable.IS_NOT_NULL, field)));
+    RexNode filterCondition =
+        builder.getRexBuilder().makeCall(SqlStdOperatorTable.AND, notNullCondition);
+    RelNode relNode = builder
+        .filter(filterCondition)
+        .aggregate(builder.groupKey(builder.fields()), builder.countStar("count"))
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field("count"),
+            builder.literal(1))).build();
+    builder.push(relNode);
+    builder.project(builder.literal(1));
+    relNode = builder.build();
+    return builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(relNode));
+  }
+
+  private static boolean isAlwaysUniqueSubquery(RelNode rel) {
+    // when return rows is less than or equals 1 (limit 1 or limit 0)
+    if (rel instanceof LogicalSort) {
+      LogicalSort sortRelNode = (LogicalSort) rel;
+      if (sortRelNode.fetch != null) {
+        final int limit = RexLiteral.intValue(sortRelNode.fetch);
+        if (limit >= 0 && limit <= 1) {
+          return true;
+        }
+      }
+    }
+
+    // when group by every column is similar with distinct
+    if (rel instanceof LogicalAggregate) {
+      if (((LogicalAggregate) rel).groupSets.size() <= 1) {
+        return true;
+      }
+    }
+
+    // when project group column
+    if (rel instanceof LogicalProject) {
+      Set<String> projectNames = new HashSet<>(rel.getRowType().getFieldNames());
+      RelNode logicalProjectInput = rel.getInput(0);
+      if (logicalProjectInput instanceof LogicalAggregate) {
+        ImmutableList<ImmutableBitSet> groupSets =
+            ((LogicalAggregate) logicalProjectInput).groupSets;
+        List<String> names = logicalProjectInput.getRowType().getFieldNames();
+        if (groupSets.size() > 1) {
+          return false;
+        }
+        int groupColumn = groupSets.get(0).cardinality();
+        for (int i = 0; i < groupColumn; i++) {
+          if (projectNames.contains(names.get(i))) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   /**

@@ -866,6 +866,26 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
+  public static final SqlPrefixOperator UNIQUE =
+      new SqlPrefixOperator(
+          "UNIQUE",
+          SqlKind.UNIQUE,
+          40,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.ANY) {
+        @Override public boolean argumentMustBeScalar(int ordinal) {
+          return false;
+        }
+
+        @Override public boolean validRexOperands(int count, Litmus litmus) {
+          if (count != 0) {
+            return litmus.fail("wrong operand count {} for {}", count, this);
+          }
+          return litmus.succeed();
+        }
+      };
+
   public static final SqlPrefixOperator NOT =
       new SqlPrefixOperator(
           "NOT",

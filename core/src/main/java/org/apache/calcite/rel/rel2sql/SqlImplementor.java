@@ -698,6 +698,7 @@ public abstract class SqlImplementor {
         return toSql(program, search.operands.get(0), literal.getType(), sarg);
 
       case EXISTS:
+      case UNIQUE:
       case SCALAR_QUERY:
         subQuery = (RexSubQuery) rex;
         sqlSubQuery =

@@ -71,6 +71,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -1554,6 +1555,49 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select*from emp where exists (\n"
         + "  select 1 from dept where emp.deptno=dept.deptno limit 1)";
     sql(sql).decorrelate(true).expand(false).ok();
+  }
+
+  @Test void testUniqueWithExpand() {
+    try {
+      final String sql = "select*from emp\n"
+          + "where unique (select 1 from dept where deptno=55)";
+      sql(sql).expand(true).ok();
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          containsString(
+              "UNIQUE is only supported if expand = false"));
+    }
+
+  }
+
+  @Test void testUniqueWithProjectLateral() {
+    final String sql = "select*from emp\n"
+        + "where unique (select 1 from dept where deptno=55)";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test void testUniqueWithOneProject() {
+    final String sql = "select*from emp\n"
+        + "where unique (select name from dept where deptno=55)";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test void testUniqueWithManyProject() {
+    final String sql = "select*from emp\n"
+        + "where unique (select * from dept)";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test void testNotUnique() {
+    final String sql = "select*from emp\n"
+        + "where not unique (select 1 from dept where deptno=55)";
+    sql(sql).expand(false).ok();
+  }
+
+  @Test void testNotUniqueCorrelated() {
+    final String sql = "select * from emp where not unique (\n"
+        + "  select 1 from dept where emp.deptno=dept.deptno)";
+    sql(sql).expand(false).ok();
   }
 
   @Test void testInValueListShort() {
