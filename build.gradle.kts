@@ -71,10 +71,10 @@ val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
 val enableDependencyAnalysis by props()
-val enableParameters by props(true)
 val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
+val skipJavacParameterNames by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
@@ -699,7 +699,7 @@ allprojects {
                 if (enableCheckerframework) {
                     options.forkOptions.memoryMaximumSize = "2g"
                 }
-                if (enableParameters) {
+                if (!skipJavacParameterNames) {
                     options.compilerArgs.add("-parameters")
                 }
             }

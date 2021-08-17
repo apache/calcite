@@ -34,9 +34,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.extension.ConditionEvaluationResult.disabled;
 import static org.junit.jupiter.api.extension.ConditionEvaluationResult.enabled;
 
@@ -84,15 +85,15 @@ class TypeTest {
     java.io.Serializable o = true ? "x" : 1;
   }
 
-  private static void assertFields(List<Field> expected, List<Field> computed) {
-    assertEquals(expected, computed, "Expected field(s) ["
-        + expected + "] but found [" + computed + "]");
+  private static void assertFields(List<Field> expected, List<Field> computed, Class<?> clazz) {
+    assertEquals(expected, computed, "The list of computed fields for class "
+        + clazz.getName() + " does not match the list of its public and non-static fields");
   }
 
   @Test void testExcludedStaticFieldsAndViaAnnotation() throws NoSuchFieldException {
     List<Field> fieldNames = Collections.singletonList(A.class.getField("strField"));
 
-    assertFields(fieldNames, Types.getClassFields(A.class));
+    assertFields(fieldNames, Types.getClassFields(A.class), A.class);
   }
 
   @Test void testAlphabeticalAndHierarchicalOrder() throws NoSuchFieldException {
@@ -102,7 +103,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AB.class, true,
-        Types.FieldsOrdering.ALPHABETICAL, null));
+        Types.FieldsOrdering.ALPHABETICAL, null), AB.class);
   }
 
   @Test void testOrderViaFieldNamesAndClassHierarchy() throws NoSuchFieldException {
@@ -112,7 +113,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AB.class, true,
-        Types.FieldsOrdering.ALPHABETICAL_AND_HIERARCHY, null));
+        Types.FieldsOrdering.ALPHABETICAL_AND_HIERARCHY, null), AB.class);
   }
 
   @Test void testNoHierarchyConstructorAlphabetical() throws NoSuchFieldException {
@@ -121,7 +122,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AB.class, false,
-        Types.FieldsOrdering.CONSTRUCTOR, null));
+        Types.FieldsOrdering.CONSTRUCTOR, null), AB.class);
   }
 
   @TestIfParameterNames(clazz = AC.class)
@@ -131,7 +132,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AC.class, false,
-        Types.FieldsOrdering.CONSTRUCTOR, null));
+        Types.FieldsOrdering.CONSTRUCTOR, null), AC.class);
   }
 
 
@@ -143,7 +144,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AB.class, true,
-        Types.FieldsOrdering.CONSTRUCTOR, null));
+        Types.FieldsOrdering.CONSTRUCTOR, null), AB.class);
   }
 
   @TestIfParameterNames(clazz = AC.class)
@@ -154,7 +155,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AC.class, true,
-            Types.FieldsOrdering.CONSTRUCTOR, null));
+            Types.FieldsOrdering.CONSTRUCTOR, null), AC.class);
   }
 
   @TestIfParameterNames(clazz = AD.class)
@@ -165,7 +166,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AD.class, true,
-            Types.FieldsOrdering.CONSTRUCTOR, null));
+            Types.FieldsOrdering.CONSTRUCTOR, null), AD.class);
   }
 
   @Test void testExplicitFieldNames() throws NoSuchFieldException {
@@ -177,7 +178,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AC.class, true,
-            Types.FieldsOrdering.EXPLICIT, classFieldsMap));
+            Types.FieldsOrdering.EXPLICIT, classFieldsMap), AC.class);
   }
 
   @Test void testExplicitFieldNamesIncompleteKO() throws NoSuchFieldException {
@@ -185,18 +186,20 @@ class TypeTest {
     List<Field> fieldNames = Arrays.asList(AC.class.getField("zField"),
         A.class.getField("strField"));
     classFieldsMap.put(AC.class, fieldNames);
+    Field missingField = AC.class.getField("aField");
 
     Types.FieldsOrdering explicitFieldsOrdering = Types.FieldsOrdering.EXPLICIT;
 
     IllegalArgumentException thrown = assertThrows(
         IllegalArgumentException.class,
         () -> Types.getClassFields(AC.class, true, explicitFieldsOrdering, classFieldsMap),
-        "Expected 'Types.getClassFields' to throw on incomplete field list"
+        "Expected 'Types.getClassFields' to throw on incomplete list of fields ("
+            + missingField + " is missing)"
     );
 
     String expectedErrorPrefix = "Incomplete list of fields is not compatible with \""
         + explicitFieldsOrdering + "\"";
-    assertTrue(thrown.getMessage().contains(expectedErrorPrefix));
+    assertThat(thrown.getMessage(), containsString(expectedErrorPrefix));
   }
 
   @Test void testExplicitTolerantFieldNamesIncomplete() throws NoSuchFieldException {
@@ -207,7 +210,7 @@ class TypeTest {
 
     assertFields(
         fieldNames, Types.getClassFields(AC.class, true,
-            Types.FieldsOrdering.EXPLICIT_TOLERANT, classFieldsMap));
+            Types.FieldsOrdering.EXPLICIT_TOLERANT, classFieldsMap), AC.class);
   }
 
   /** Parent class with ignored (static and private) fields. */
