@@ -47,6 +47,8 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
+import org.apache.calcite.sql2rel.StandardConvertletTableConfig;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
@@ -3474,6 +3476,43 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }).with(getTesterWithDynamicTable()).ok();
   }
 
+  @Test public void testConvertletConfigNoWindowedAggDecomposeAvgSimple() {
+    String query = "SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+
+  @Test public void testConvertletConfigNoWindowedAggDecomposeAvg() {
+    String query = "SELECT emp.sal, AVG(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal"
+        +
+        " ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeStd() {
+    String query = "SELECT emp.sal, STDDEV(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal"
+        +
+        " ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeStdPop() {
+    String query = "SELECT emp.sal, STDDEV_POP(emp.sal) OVER (PARTITION BY emp.deptno "
+        +
+        "ORDER BY emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeVar() {
+    String query = "SELECT emp.sal, VARIANCE(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY"
+        +
+        " emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+  @Test public void testConvertletConfigNoWindowedAggDecomposeVarPop() {
+    String query = "SELECT emp.sal, VAR_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal"
+        +
+        " ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp";
+    sql(query).with(getNoWindowedAggDecompositionTester()).ok();
+  }
+
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2366">[CALCITE-2366]
    * Add support for ANY_VALUE aggregate function</a>. */
@@ -3496,6 +3535,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   private Tester getExtendedTester() {
     return tester.withCatalogReaderFactory(MockCatalogReaderExtended::new);
+  }
+
+  private Tester getNoWindowedAggDecompositionTester() {
+    //changes the sql2rel config to not decompose windowed aggregations
+    return tester.withConvertletTable(
+        new StandardConvertletTable(new StandardConvertletTableConfig(false)));
   }
 
   @Test void testLarge() {
