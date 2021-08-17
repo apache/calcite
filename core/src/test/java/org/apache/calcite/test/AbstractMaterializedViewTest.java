@@ -194,7 +194,7 @@ public abstract class AbstractMaterializedViewTest {
     final SqlToRelConverter converter = new SqlToRelConverter(
         (rowType, queryString, schemaPath, viewPath) -> {
           throw new UnsupportedOperationException("cannot expand view");
-        }, validator, catalogReader, cluster, StandardConvertletTable.INSTANCE, config);
+        }, validator, catalogReader, cluster, StandardConvertletTable.DEFAULT, config);
     return converter.convertQuery(validated, false, true).rel;
   }
 

@@ -565,6 +565,72 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testConvertletConfigNoWindowedAggDecomposeAvg">
+    <Resource name="sql">
+      <![CDATA[SELECT emp.sal, AVG(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[AVG($5) OVER (PARTITION BY $7 ORDER BY $5 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testConvertletConfigNoWindowedAggDecomposeAvgSimple">
+    <Resource name="sql">
+      <![CDATA[SELECT AVG(emp.sal) from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[AVG($5) OVER (PARTITION BY $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testConvertletConfigNoWindowedAggDecomposeStd">
+    <Resource name="sql">
+      <![CDATA[SELECT emp.sal, STDDEV(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[STDDEV($5) OVER (PARTITION BY $7 ORDER BY $5 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testConvertletConfigNoWindowedAggDecomposeStdPop">
+    <Resource name="sql">
+      <![CDATA[SELECT emp.sal, STDDEV_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[STDDEV_POP($5) OVER (PARTITION BY $7 ORDER BY $5 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testConvertletConfigNoWindowedAggDecomposeVar">
+    <Resource name="sql">
+      <![CDATA[SELECT emp.sal, VARIANCE(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[VARIANCE($5) OVER (PARTITION BY $7 ORDER BY $5 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testConvertletConfigNoWindowedAggDecomposeVarPop">
+    <Resource name="sql">
+      <![CDATA[SELECT emp.sal, VAR_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[VAR_POP($5) OVER (PARTITION BY $7 ORDER BY $5 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelateSortWithLimit">
     <Resource name="sql">
       <![CDATA[SELECT deptno, ename

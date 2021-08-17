@@ -233,7 +233,7 @@ public class Frameworks {
 
     /** Creates a ConfigBuilder, initializing to defaults. */
     private ConfigBuilder() {
-      convertletTable = StandardConvertletTable.INSTANCE;
+      convertletTable = StandardConvertletTable.DEFAULT;
       operatorTable = SqlStdOperatorTable.instance();
       programs = ImmutableList.of();
       context = Contexts.empty();

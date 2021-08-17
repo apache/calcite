@@ -101,12 +101,11 @@ import static java.util.Objects.requireNonNull;
 public class StandardConvertletTable extends ReflectiveConvertletTable {
 
   /** Singleton instance. */
-  public static final StandardConvertletTable INSTANCE =
-      new StandardConvertletTable();
+  public static final StandardConvertletTable DEFAULT =
+      new StandardConvertletTable(StandardConvertletTableConfig.DEFAULT);
 
   //~ Constructors -----------------------------------------------------------
-
-  private StandardConvertletTable() {
+  public StandardConvertletTable(StandardConvertletTableConfig config) {
     super();
 
     // Register aliases (operators which have a different name but
@@ -229,29 +228,32 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // division by zero. We need the cast because SUM and COUNT may use
     // different types, say BIGINT.
     //
-    // Similarly STDDEV_POP and STDDEV_SAMP, VAR_POP and VAR_SAMP.
-    registerOp(SqlStdOperatorTable.AVG,
-        new AvgVarianceConvertlet(SqlKind.AVG));
-    registerOp(SqlStdOperatorTable.STDDEV_POP,
-        new AvgVarianceConvertlet(SqlKind.STDDEV_POP));
-    registerOp(SqlStdOperatorTable.STDDEV_SAMP,
-        new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
-    registerOp(SqlStdOperatorTable.STDDEV,
-        new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
-    registerOp(SqlStdOperatorTable.VAR_POP,
-        new AvgVarianceConvertlet(SqlKind.VAR_POP));
-    registerOp(SqlStdOperatorTable.VAR_SAMP,
-        new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
-    registerOp(SqlStdOperatorTable.VARIANCE,
-        new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
-    registerOp(SqlStdOperatorTable.COVAR_POP,
-        new RegrCovarianceConvertlet(SqlKind.COVAR_POP));
-    registerOp(SqlStdOperatorTable.COVAR_SAMP,
-        new RegrCovarianceConvertlet(SqlKind.COVAR_SAMP));
-    registerOp(SqlStdOperatorTable.REGR_SXX,
-        new RegrCovarianceConvertlet(SqlKind.REGR_SXX));
-    registerOp(SqlStdOperatorTable.REGR_SYY,
-        new RegrCovarianceConvertlet(SqlKind.REGR_SYY));
+    // Similarly STDDEV_POP and STDDEV_SAMP, VAR_POP and VAR_SAMP
+
+    if (config.shouldDecomposeWindowedAggregations()) {
+      registerOp(SqlStdOperatorTable.AVG,
+          new AvgVarianceConvertlet(SqlKind.AVG));
+      registerOp(SqlStdOperatorTable.STDDEV_POP,
+          new AvgVarianceConvertlet(SqlKind.STDDEV_POP));
+      registerOp(SqlStdOperatorTable.STDDEV_SAMP,
+          new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
+      registerOp(SqlStdOperatorTable.STDDEV,
+          new AvgVarianceConvertlet(SqlKind.STDDEV_SAMP));
+      registerOp(SqlStdOperatorTable.VAR_POP,
+          new AvgVarianceConvertlet(SqlKind.VAR_POP));
+      registerOp(SqlStdOperatorTable.VAR_SAMP,
+          new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
+      registerOp(SqlStdOperatorTable.VARIANCE,
+          new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
+      registerOp(SqlStdOperatorTable.COVAR_POP,
+          new RegrCovarianceConvertlet(SqlKind.COVAR_POP));
+      registerOp(SqlStdOperatorTable.COVAR_SAMP,
+          new RegrCovarianceConvertlet(SqlKind.COVAR_SAMP));
+      registerOp(SqlStdOperatorTable.REGR_SXX,
+          new RegrCovarianceConvertlet(SqlKind.REGR_SXX));
+      registerOp(SqlStdOperatorTable.REGR_SYY,
+          new RegrCovarianceConvertlet(SqlKind.REGR_SYY));
+    }
 
     final SqlRexConvertlet floorCeilConvertlet = new FloorCeilConvertlet();
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
