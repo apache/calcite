@@ -192,4 +192,18 @@ class RelDataTypeSystemTest {
     assertEquals(28, dataType.getPrecision());
     assertEquals(10, dataType.getScale());
   }
+
+  @Test void testAvgAggFnReturnTypeInference(){
+
+    //AVG of float type should return an integer type
+    RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType dataType1 = SqlStdOperatorTable.AVG.inferReturnType(CUSTOM_FACTORY, Lists.newArrayList(operand1));
+    assertEquals(SqlTypeName.DOUBLE, dataType1.getSqlTypeName());
+
+    //AVG of integer type should also return a float type.
+    RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.INTEGER);
+    RelDataType dataType2 = SqlStdOperatorTable.AVG.inferReturnType(CUSTOM_FACTORY, Lists.newArrayList(operand2));
+    assertEquals(SqlTypeName.DOUBLE, dataType2.getSqlTypeName());
+  }
+
 }

@@ -240,7 +240,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
-    return argumentType;
+    return typeFactory.createSqlType(SqlTypeName.DOUBLE);
   }
 
   @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
