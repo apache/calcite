@@ -81,6 +81,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
@@ -1863,11 +1864,32 @@ public abstract class SqlImplementor {
       return wrapSelect(node);
     }
 
+    /**
+     * replace generated alias in cast(original as alias) by original.
+     */
+    private class GeneratedAliasReplacer extends SqlShuttle {
+      String alias;
+      SqlNode original;
+
+      GeneratedAliasReplacer(String alias, SqlNode original) {
+        this.alias = alias;
+        this.original = original;
+      }
+
+      @Override public @Nullable SqlNode visit(SqlIdentifier id) {
+        if (id.isSimple() && id.getSimple().equals(alias)) {
+          return this.original;
+        }
+        return super.visit(id);
+      }
+    }
+
     public void stripTrivialAliases(SqlNode node) {
       switch (node.getKind()) {
       case SELECT:
         final SqlSelect select = (SqlSelect) node;
         final SqlNodeList nodeList = select.getSelectList();
+        SqlNode having = select.getHaving();
         if (nodeList != null) {
           for (int i = 0; i < nodeList.size(); i++) {
             final SqlNode n = nodeList.get(i);
@@ -1877,9 +1899,15 @@ public abstract class SqlImplementor {
               if (identifier.getSimple().toLowerCase(Locale.ROOT)
                   .startsWith("expr$")) {
                 nodeList.set(i, call.operand(0));
+                if (having != null && dialect.getConformance().isHavingAlias()) {
+                  GeneratedAliasReplacer replacer = new GeneratedAliasReplacer(
+                      identifier.getSimple(), call.operand(0));
+                  having = having.accept(replacer);
+                }
               }
             }
           }
+          select.setHaving(having);
         }
         break;
 
