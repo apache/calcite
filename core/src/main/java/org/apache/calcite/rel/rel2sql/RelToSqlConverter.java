@@ -332,14 +332,14 @@ public class RelToSqlConverter extends SqlImplementor
       final Builder builder = x.builder(e);
       SqlNode condition = builder.context.toSql(null, e.getCondition());
       SqlNode existHaving = x.asSelect().getHaving();
-      if (existHaving != null) {
+      if (existHaving == null) {
+        builder.setHaving(condition);
+      } else {
         // if input Aggregate RelNode contains existHaving, need
         // to create AND expression with connect condition and existHaving
         // then update input Aggregate's Having condition.
         condition = SqlUtil.andExpressions(condition, existHaving);
         x.asSelect().setHaving(condition);
-      } else {
-        builder.setHaving(condition);
       }
       return builder.result();
     } else {
@@ -548,8 +548,9 @@ public class RelToSqlConverter extends SqlImplementor
           .equals(ImmutableBitSet.union(aggregate.groupSets))) {
         groupSets = aggregate.getGroupSets();
       } else {
-        groupSets = new ArrayList<>(aggregate.getGroupSets());
-        groupSets.add(0, aggregate.getGroupSet());
+        groupSets = new ArrayList<>(aggregate.getGroupSets().size() + 1);
+        groupSets.add(aggregate.getGroupSet());
+        groupSets.addAll(aggregate.getGroupSets());
       }
       return ImmutableList.of(
           SqlStdOperatorTable.GROUPING_SETS.createCall(SqlParserPos.ZERO,
