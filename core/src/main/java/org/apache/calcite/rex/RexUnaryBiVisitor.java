@@ -60,6 +60,10 @@ public class RexUnaryBiVisitor<@Nullable R> extends RexBiVisitorImpl<R, R> {
     return end(dynamicParam, arg);
   }
 
+  @Override public R visitNamedParam(RexNamedParam namedParam, R arg) {
+    return end(namedParam, arg);
+  }
+
   @Override public R visitRangeRef(RexRangeRef rangeRef, R arg) {
     return end(rangeRef, arg);
   }

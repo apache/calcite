@@ -377,6 +377,12 @@ public interface SqlWriter {
    */
   void dynamicParam(int index);
 
+
+  /**
+   * Prints a named parameter (e.g. {@code @name} for default JDBC)
+   */
+  void namedParam(String name);
+
   /**
    * Prints the OFFSET/FETCH clause.
    */

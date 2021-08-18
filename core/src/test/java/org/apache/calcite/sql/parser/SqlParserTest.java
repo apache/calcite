@@ -7561,6 +7561,143 @@ public class SqlParserTest {
         .ok("(1 <=> 2)");
   }
 
+  @Test void testNamedParameterOperators() {
+    expr("@q")
+        .ok("@q");
+    expr("a > @Q")
+        .ok("(`A` > @Q)");
+    expr("a + @Q")
+        .ok("(`A` + @Q)");
+    expr("1 <=> @WeWon")
+        .ok("(1 <=> @WeWon)");
+  }
+
+  @Test void testNamedParameterWhere() {
+    // Name matches a column name
+    String sql = "SELECT B from table1 where A > @B";
+    String expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE (`A` > @B)";
+    sql(sql).ok(expected);
+    // Name doesn't match a column name + case insensitive
+    sql = "SELECT B from table1 where A = @GoBears";
+    expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE (`A` = @GoBears)";
+    sql(sql).ok(expected);
+
+    // Test the boundary of letters?
+    sql = "SELECT B from table1 where A between @a and @z";
+    expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE (`A` BETWEEN ASYMMETRIC @a AND @z)";
+    sql(sql).ok(expected);
+
+    // Test the boundary of letters? + AND
+    sql = "SELECT B from table1 where @A < A and C >= @Z";
+    expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE ((@A < `A`) AND (`C` >= @Z))";
+    sql(sql).ok(expected);
+
+    // Test underscore
+    sql = "SELECT B from table1 where @_1 < A or C >= @_";
+    expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE ((@_1 < `A`) OR (`C` >= @_))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testNamedParameterLimit() {
+    String sql = "SELECT B from table1 limit @B";
+    String expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "FETCH NEXT @B ROWS ONLY";
+    sql(sql).ok(expected);
+    // Test @a because A is a non-reserved keyword
+    sql = "SELECT B from table1 limit @a";
+    expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "FETCH NEXT @a ROWS ONLY";
+    sql(sql).ok(expected);
+    // Test for case insensitive
+    sql = "SELECT B from table1 limit @RuDy";
+    expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "FETCH NEXT @RuDy ROWS ONLY";
+    sql(sql).ok(expected);
+    // Test for offset
+    sql = "SELECT B from table1 limit @alpha offset @beta";
+    expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "OFFSET @beta ROWS\n"
+        + "FETCH NEXT @alpha ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testNamedParameterHaving() {
+    String sql = "SELECT B from table1 Group By C Having @Be21e213 > 5";
+    String expected = "SELECT `B`\n"
+        + "FROM `TABLE1`\n"
+        + "GROUP BY `C`\n"
+        + "HAVING (@Be21e213 > 5)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testNamedParameterCase() {
+    String sql = "SELECT Case WHEN @e IS NULL THEN @a"
+        + " WHEN @_3424 IS NOT NULL THEN 1"
+        + " WHEN -@FWEFW < 0 THEN CAST(@_NONINT as int)"
+        + " ELSE @FWEFW - 1 "
+        + "END from table1";
+    String expected = "SELECT (CASE WHEN (@e IS NULL) THEN @a"
+        + " WHEN (@_3424 IS NOT NULL) THEN 1"
+        + " WHEN ((- @FWEFW) < 0)"
+        + " THEN CAST(@_NONINT AS INTEGER)"
+        + " ELSE (@FWEFW - 1) END)\n"
+        + "FROM `TABLE1`";
+    sql(sql).ok(expected);
+    sql = "SELECT Case WHEN @e IS TRUE THEN @a / 6"
+        + " WHEN @_3424 IS NOT TRUE THEN 15 / @a"
+        + " WHEN @FWEFW IS FALSE THEN 4 * @a"
+        + " WHEN @e IS NOT FALSE THEN @a"
+        + " END from table1";
+    expected = "SELECT (CASE WHEN (@e IS TRUE) THEN (@a / 6)"
+        + " WHEN (@_3424 IS NOT TRUE) THEN (15 / @a)"
+        + " WHEN (@FWEFW IS FALSE) THEN (4 * @a)"
+        + " WHEN (@e IS NOT FALSE) THEN @a"
+        + " ELSE NULL END)\n"
+        + "FROM `TABLE1`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testNamedParameterLike() {
+    String sql = "SELECT A from table1 where B LIKE @b";
+    String expected = "SELECT `A`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE (`B` LIKE @b)";
+    sql(sql).ok(expected);
+    sql = "SELECT A from table1 where B not LIKE @b";
+    expected = "SELECT `A`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE (`B` NOT LIKE @b)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testNamedParameterFunction() {
+    // Test a builtin numeric function
+    String sql = "SELECT A + CEIL(@break) from table1";
+    String expected = "SELECT (`A` + CEIL(@break))\n"
+        + "FROM `TABLE1`";
+    sql(sql).ok(expected);
+    // Test a builtin string function
+    sql = "SELECT A from table1 where B <> TRIM(@_24)";
+    expected = "SELECT `A`\n"
+        + "FROM `TABLE1`\n"
+        + "WHERE (`B` <> TRIM(BOTH ' ' FROM @_24))";
+    sql(sql).ok(expected);
+  }
+
   @Test void testCastToInterval() {
     expr("cast(x as interval year)")
         .ok("CAST(`X` AS INTERVAL YEAR)");

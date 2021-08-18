@@ -69,6 +69,7 @@ public class SqlTestFactory {
                   .with(
                       new CalciteAssert.AddSchemaSpecPostProcessor(
                           CalciteAssert.SchemaSpec.HR)))
+          .put("namedParamTable", "")
           .build();
 
   public static final SqlTestFactory INSTANCE =
@@ -82,6 +83,7 @@ public class SqlTestFactory {
   private final Supplier<SqlOperatorTable> operatorTable;
   private final Supplier<SqlValidatorCatalogReader> catalogReader;
   private final Supplier<SqlParser.Config> parserConfig;
+  private final SqlValidator.Config config;
 
   protected SqlTestFactory() {
     this(DEFAULT_OPTIONS, MockCatalogReaderSimple::new, SqlValidatorUtil::newValidator);
@@ -102,6 +104,17 @@ public class SqlTestFactory {
         () -> catalogReaderFactory.create(typeFactory.get(), caseSensitive).init());
     this.parserConfig = Suppliers.memoize(
         () -> createParserConfig(options));
+    final SqlConformance conformance =
+        (SqlConformance) options.get("conformance");
+    final boolean lenientOperatorLookup =
+        (boolean) options.get("lenientOperatorLookup");
+    final boolean enableTypeCoercion = (boolean) options.get("enableTypeCoercion");
+    final String namedParamTable = (String) options.get("namedParamTable");
+    this.config = SqlValidator.Config.DEFAULT
+        .withSqlConformance(conformance)
+        .withTypeCoercionEnabled(enableTypeCoercion)
+        .withLenientOperatorLookup(lenientOperatorLookup)
+        .withNamedParamTableName(namedParamTable);
   }
 
   private static SqlOperatorTable createOperatorTable(SqlOperatorTable opTab0) {
@@ -128,15 +141,7 @@ public class SqlTestFactory {
   }
 
   public SqlValidator getValidator() {
-    final SqlConformance conformance =
-        (SqlConformance) options.get("conformance");
-    final boolean lenientOperatorLookup =
-        (boolean) options.get("lenientOperatorLookup");
-    final boolean enableTypeCoercion = (boolean) options.get("enableTypeCoercion");
-    final SqlValidator.Config config = SqlValidator.Config.DEFAULT
-        .withSqlConformance(conformance)
-        .withTypeCoercionEnabled(enableTypeCoercion)
-        .withLenientOperatorLookup(lenientOperatorLookup);
+    String tableName = config.namedParamTableName();
     return validatorFactory.create(operatorTable.get(),
         catalogReader.get(),
         typeFactory.get(),

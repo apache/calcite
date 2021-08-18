@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNamedParam;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
@@ -214,6 +215,10 @@ public abstract class ProjectToWindowRule
               return true;
             }
 
+            @Override protected boolean canImplement(RexNamedParam param) {
+              return true;
+            }
+
             @Override protected boolean canImplement(RexLiteral literal) {
               return true;
             }
@@ -237,6 +242,10 @@ public abstract class ProjectToWindowRule
           }
 
           @Override protected boolean canImplement(RexDynamicParam param) {
+            return false;
+          }
+
+          @Override protected boolean canImplement(RexNamedParam param) {
             return false;
           }
 

@@ -124,6 +124,10 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return getOrUnbound(dynamicParam);
   }
 
+  @Override public Comparable visitNamedParam(RexNamedParam namedParam) {
+    return getOrUnbound(namedParam);
+  }
+
   @Override public Comparable visitRangeRef(RexRangeRef rangeRef) {
     throw unbound(rangeRef);
   }

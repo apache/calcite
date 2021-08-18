@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNamedParam;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
@@ -1347,6 +1348,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final Result result = new Result(isNullVariable, valueVariable);
     rexWithStorageTypeResultMap.put(key, result);
     return result;
+  }
+
+  @Override public Result visitNamedParam(RexNamedParam namedParam) {
+    // TODO: Actually implement. It seems like this class isn't used by
+    // BodoSQL so we aren't going to implement it
+    return null;
   }
 
   @Override public Result visitFieldAccess(RexFieldAccess fieldAccess) {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
@@ -60,6 +61,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -150,6 +152,7 @@ import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getCondition;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getTable;
+import static org.apache.calcite.sql.validate.SqlValidator.NAMED_PARAM_TABLE_NAME_EMPTY;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -1773,6 +1776,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (type != null) {
       return type;
     }
+    if (node instanceof SqlNamedParam) {
+      SqlNamedParam namedParam = (SqlNamedParam) node;
+      // Named Param is always in the default schema with the encoded table name.
+      String tableName = config().namedParamTableName();
+      if (tableName.equals(NAMED_PARAM_TABLE_NAME_EMPTY)) {
+        throw newValidationError(node, RESOURCE.namedParamTableNotRegistered());
+      }
+      // TODO: Set caseSensitive?
+      CalciteSchema.TableEntry entry =
+          SqlValidatorUtil.getTableEntry(getCatalogReader(), ImmutableList.of(tableName));
+      if (entry == null) {
+        throw newValidationError(node, RESOURCE.namedParamTableNotFound(tableName));
+      }
+      Table table = entry.getTable();
+      RelDataType rowStruct = table.getRowType(typeFactory);
+      String name = namedParam.getName();
+      // TODO: Set caseSensitive?
+      RelDataTypeField typeField = rowStruct.getField(name, false, false);
+      if (typeField == null) {
+        throw newValidationError(node, RESOURCE.namedParamParameterNotFound(name));
+      }
+      // Get the type of the parameter. This stored as a column in a parameter table.
+      return typeField.getType();
+    }
     final SqlValidatorNamespace ns = getNamespace(node);
     if (ns != null) {
       return ns.getType();
@@ -2013,6 +2040,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         inferUnknownTypes(type, scope, child);
       }
+    } else if (node instanceof SqlNamedParam) {
+      // Register SqlNamedParams into the namespace
+      RelDataType typeName = getValidatedNodeType(node);
+      setValidatedNodeType(node, typeName);
     } else if (node instanceof SqlCase) {
       final SqlCase caseCall = (SqlCase) node;
 
@@ -4406,11 +4437,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // Use the field list size to record the field index
         // because the select item may be a STAR(*), which could have been expanded.
         final int fieldIdx = fieldList.size();
-        final RelDataType fieldType =
-                targetRowType.isStruct()
-                        && targetRowType.getFieldCount() > fieldIdx
-                ? targetRowType.getFieldList().get(fieldIdx).getType()
-                : unknownType;
+        RelDataType fieldType;
+        // Determine types if Named Parameters are used in select statements
+        if (selectItem instanceof SqlNamedParam) {
+          fieldType = getValidatedNodeType(selectItem);
+        } else {
+          fieldType =
+              targetRowType.isStruct()
+                  && targetRowType.getFieldCount() > fieldIdx
+                  ? targetRowType.getFieldList().get(fieldIdx).getType()
+                  : unknownType;
+        }
         expandSelectItem(
             selectItem,
             select,
@@ -5226,6 +5263,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public void validateDynamicParam(SqlDynamicParam dynamicParam) {
+  }
+
+  // TODO: Do any necessary validation here.
+  @Override public void validateNamedParam(SqlNamedParam namedParam) {
   }
 
   /**
@@ -6069,7 +6110,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             }
             return param;
           }
+          @Override public SqlNode visit(SqlNamedParam param) {
+            RelDataType type = getValidatedNodeType(param);
+            types.add(type);
+            return param;
+          }
         });
+    // TODO: Figure out if we need to make changes for Named Parameters
     return typeFactory.createStructType(
         types,
         new AbstractList<String>() {
@@ -6230,6 +6277,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw Util.needToImplement(param);
     }
 
+    @Override public Void visit(SqlNamedParam param) {
+      throw Util.needToImplement(param);
+    }
+
     @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
       throw Util.needToImplement(intervalQualifier);
     }
@@ -6360,6 +6411,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public RelDataType visit(SqlDynamicParam param) {
+      return unknownType;
+    }
+
+    // TODO: Fix DataType
+    @Override public RelDataType visit(SqlNamedParam param) {
       return unknownType;
     }
 
@@ -6992,6 +7048,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public Set<String> visit(SqlDynamicParam param) {
+      return ImmutableSet.of();
+    }
+
+    @Override public Set<String> visit(SqlNamedParam param) {
       return ImmutableSet.of();
     }
   }

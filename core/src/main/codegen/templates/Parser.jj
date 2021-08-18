@@ -79,6 +79,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
@@ -272,6 +273,11 @@ void debug_message1() {
 
 JAVACODE String unquotedIdentifier() {
     return SqlParserUtil.toCase(getToken(0).image, unquotedCasing);
+}
+
+JAVACODE String pythonUnquotedIdentifier() {
+    // Strip the @ from the name
+    return SqlParserUtil.toCase(getToken(0).image.substring(1), Casing.UNCHANGED);
 }
 
 /**
@@ -3850,6 +3856,8 @@ SqlNode UnsignedNumericLiteralOrParam() :
         e = UnsignedNumericLiteral()
     |
         e = DynamicParam()
+    |
+        e = NamedParam()
     )
     { return e; }
 }
@@ -3975,6 +3983,8 @@ SqlNode AtomicRowExpression() :
         e = LiteralOrIntervalExpression()
     |
         e = DynamicParam()
+    |
+        e = NamedParam()
     |
         LOOKAHEAD(2)
         e = BuiltinFunctionCall()
@@ -4928,6 +4938,27 @@ SqlDynamicParam DynamicParam() :
 {
     <HOOK> {
         return new SqlDynamicParam(nDynamicParams++, getPos());
+    }
+}
+
+/**
+ * Parses a named parameter marker.
+ */
+SqlNamedParam NamedParam() :
+{
+    final String name;
+    final SqlParserPos pos;
+}
+{
+    <PARAM_IDENTIFIER>
+    (
+      {
+        name = pythonUnquotedIdentifier();
+        pos = getPos();
+      }
+    )
+    {
+      return new SqlNamedParam(name, getPos());
     }
 }
 
@@ -8298,6 +8329,11 @@ MORE :
 <DEFAULT, DQID, BTID, BQID> TOKEN :
 {
     < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+}
+
+<DEFAULT, DQID, BTID, BQID> TOKEN :
+{
+    < PARAM_IDENTIFIER: "@" (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
 }
 
 <DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :

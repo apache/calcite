@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNamedParam;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
@@ -759,6 +760,8 @@ public abstract class CalcRelSplitter {
 
     protected abstract boolean canImplement(RexDynamicParam param);
 
+    protected abstract boolean canImplement(RexNamedParam param);
+
     protected abstract boolean canImplement(RexLiteral literal);
 
     protected abstract boolean canImplement(RexCall call);
@@ -838,6 +841,13 @@ public abstract class CalcRelSplitter {
 
     @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
       if (!relType.canImplement(dynamicParam)) {
+        throw CannotImplement.INSTANCE;
+      }
+      return null;
+    }
+
+    @Override public Void visitNamedParam(RexNamedParam namedParam) {
+      if (!relType.canImplement(namedParam)) {
         throw CannotImplement.INSTANCE;
       }
       return null;

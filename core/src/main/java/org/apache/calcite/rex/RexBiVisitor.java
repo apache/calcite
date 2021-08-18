@@ -47,6 +47,8 @@ public interface RexBiVisitor<R, P> {
 
   R visitDynamicParam(RexDynamicParam dynamicParam, P arg);
 
+  R visitNamedParam(RexNamedParam namedParam, P arg);
+
   R visitRangeRef(RexRangeRef rangeRef, P arg);
 
   R visitFieldAccess(RexFieldAccess fieldAccess, P arg);

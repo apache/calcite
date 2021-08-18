@@ -90,6 +90,10 @@ class RexCopier extends RexShuttle {
         dynamicParam.getIndex());
   }
 
+  @Override public RexNode visitNamedParam(RexNamedParam namedParam) {
+    return new RexNamedParam(copy(namedParam.getType()), namedParam.getName());
+  }
+
   @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
     return builder.makeRangeReference(copy(rangeRef.getType()),
         rangeRef.getOffset(), false);

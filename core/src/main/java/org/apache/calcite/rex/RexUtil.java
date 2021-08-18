@@ -727,6 +727,12 @@ public class RexUtil {
       return true;
     }
 
+    @Override public Boolean visitNamedParam(RexNamedParam namedParam) {
+      // Named parameters should not be considered constant because we cannot
+      // support using the variable where values must be constants
+      return false;
+    }
+
     @Override public Boolean visitCall(RexCall call) {
       // Constant if operator meets the following conditions:
       // 1. It is deterministic;
@@ -2416,6 +2422,10 @@ public class RexUtil {
 
     @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
       return register(dynamicParam);
+    }
+
+    @Override public RexNode visitNamedParam(RexNamedParam namedParam) {
+      return register(namedParam);
     }
 
     @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {

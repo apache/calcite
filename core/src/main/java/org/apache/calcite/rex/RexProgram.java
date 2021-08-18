@@ -989,6 +989,10 @@ public class RexProgram {
       return dynamicParam;
     }
 
+    @Override public RexNode visitNamedParam(RexNamedParam namedParam) {
+      return namedParam;
+    }
+
     @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
       return rangeRef;
     }

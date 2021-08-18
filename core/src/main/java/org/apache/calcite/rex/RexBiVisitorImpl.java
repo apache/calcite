@@ -87,6 +87,10 @@ public class RexBiVisitorImpl<@Nullable R, P> implements RexBiVisitor<R, P> {
     return null;
   }
 
+  @Override public R visitNamedParam(RexNamedParam namedParam, P arg) {
+    return null;
+  }
+
   @Override public R visitRangeRef(RexRangeRef rangeRef, P arg) {
     return null;
   }

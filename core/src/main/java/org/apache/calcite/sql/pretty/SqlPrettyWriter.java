@@ -1028,6 +1028,12 @@ public class SqlPrettyWriter implements SqlWriter {
     setNeedWhitespace(true);
   }
 
+  @Override public void namedParam(String name) {
+    print("@");
+    print(name);
+    setNeedWhitespace(true);
+  }
+
   @Override public void fetchOffset(@Nullable SqlNode fetch, @Nullable SqlNode offset) {
     if (fetch == null && offset == null) {
       return;

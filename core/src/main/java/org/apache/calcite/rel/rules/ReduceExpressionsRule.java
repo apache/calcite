@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexNamedParam;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
@@ -1134,6 +1135,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+      return pushVariable();
+    }
+
+    @Override public Void visitNamedParam(RexNamedParam namedParam) {
       return pushVariable();
     }
 

@@ -47,6 +47,8 @@ public interface RexVisitor<R> {
 
   R visitDynamicParam(RexDynamicParam dynamicParam);
 
+  R visitNamedParam(RexNamedParam namedParam);
+
   R visitRangeRef(RexRangeRef rangeRef);
 
   R visitFieldAccess(RexFieldAccess fieldAccess);

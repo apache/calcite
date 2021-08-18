@@ -1272,6 +1272,10 @@ public class RexSimplify {
       return false;
     }
 
+    @Override public Boolean visitNamedParam(RexNamedParam namedParam) {
+      return false;
+    }
+
     @Override public Boolean visitRangeRef(RexRangeRef rangeRef) {
       return false;
     }

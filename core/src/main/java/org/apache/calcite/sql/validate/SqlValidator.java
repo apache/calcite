@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -113,6 +114,10 @@ import java.util.function.UnaryOperator;
  * names in a particular clause of a SQL statement.</p>
  */
 public interface SqlValidator {
+
+  /** Table Name that indicates no named Parameter table was provided. */
+  String NAMED_PARAM_TABLE_NAME_EMPTY = "";
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -272,6 +277,13 @@ public interface SqlValidator {
    * @param dynamicParam Dynamic parameter
    */
   void validateDynamicParam(SqlDynamicParam dynamicParam);
+
+  /**
+   * Validates a named parameter.
+   *
+   * @param namedParam Named parameter
+   */
+  void validateNamedParam(SqlNamedParam namedParam);
 
   /**
    * Validates the right-hand side of an OVER expression. It might be either
@@ -918,5 +930,15 @@ public interface SqlValidator {
 
     /** Sets up the sql conformance of the validator. */
     Config withSqlConformance(SqlConformance conformance);
+
+    /** Returns the name of the table used to determine
+     * named parameters' types. Default is
+     * "". */
+    @ImmutableBeans.Property
+    @ImmutableBeans.StringDefault(NAMED_PARAM_TABLE_NAME_EMPTY)
+    String namedParamTableName();
+
+    /** Sets {@link #namedParamTableName()}. */
+    Config withNamedParamTableName(String namedParamTable);
   }
 }

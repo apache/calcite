@@ -70,7 +70,8 @@ public interface CalciteResource {
   @BaseMessage("Illegal expression. Was expecting \"(DATETIME - DATETIME) INTERVALQUALIFIER\"")
   ExInst<CalciteException> illegalMinusDate();
 
-  @BaseMessage("Illegal overlaps expression. Was expecting expression on the form \"(DATETIME, EXPRESSION) OVERLAPS (DATETIME, EXPRESSION)\"")
+  @BaseMessage("Illegal overlaps expression. Was expecting expression on the form \"(DATETIME, "
+      + "EXPRESSION) OVERLAPS (DATETIME, EXPRESSION)\"")
   ExInst<CalciteException> illegalOverlaps();
 
   @BaseMessage("Non-query expression encountered in illegal context")
@@ -119,20 +120,23 @@ public interface CalciteResource {
   @BaseMessage("UESCAPE cannot be specified without Unicode literal introducer")
   ExInst<CalciteException> unicodeEscapeUnexpected();
 
-  @BaseMessage("Unicode escape sequence starting at character {0,number,#} is not exactly four hex digits")
+  @BaseMessage("Unicode escape sequence starting at character {0,number,#} is not exactly four "
+      + "hex digits")
   ExInst<SqlValidatorException> unicodeEscapeMalformed(int a0);
 
   @BaseMessage("No match found for function signature {0}")
   ExInst<SqlValidatorException> validatorUnknownFunction(String a0);
 
-  @BaseMessage("Invalid number of arguments to function ''{0}''. Was expecting {1,number,#} arguments")
+  @BaseMessage("Invalid number of arguments to function ''{0}''. Was expecting {1,number,#} "
+      + "arguments")
   ExInst<SqlValidatorException> invalidArgCount(String a0, int a1);
 
   @BaseMessage("At line {0,number,#}, column {1,number,#}")
   ExInstWithCause<CalciteContextException> validatorContextPoint(int a0,
       int a1);
 
-  @BaseMessage("From line {0,number,#}, column {1,number,#} to line {2,number,#}, column {3,number,#}")
+  @BaseMessage("From line {0,number,#}, column {1,number,#} to line {2,number,#}, column {3,"
+      + "number,#}")
   ExInstWithCause<CalciteContextException> validatorContext(int a0, int a1,
       int a2,
       int a3);
@@ -168,13 +172,15 @@ public interface CalciteResource {
   @BaseMessage("Target column ''{0}'' is assigned more than once")
   ExInst<SqlValidatorException> duplicateTargetColumn(String a0);
 
-  @BaseMessage("Number of INSERT target columns ({0,number}) does not equal number of source items ({1,number})")
+  @BaseMessage("Number of INSERT target columns ({0,number}) does not equal number of source "
+      + "items ({1,number})")
   ExInst<SqlValidatorException> unmatchInsertColumn(int a0, int a1);
 
   @BaseMessage("Column ''{0}'' has no default value and does not allow NULLs")
   ExInst<SqlValidatorException> columnNotNullable(String a0);
 
-  @BaseMessage("Cannot assign to target field ''{0}'' of type {1} from source field ''{2}'' of type {3}")
+  @BaseMessage("Cannot assign to target field ''{0}'' of type {1} from source field ''{2}'' of "
+      + "type {3}")
   ExInst<SqlValidatorException> typeNotAssignable(String a0, String a1,
       String a2, String a3);
 
@@ -255,7 +261,8 @@ public interface CalciteResource {
   @BaseMessage("Illegal mixing of types in CASE or COALESCE statement")
   ExInst<SqlValidatorException> illegalMixingOfTypes();
 
-  @BaseMessage("Invalid compare. Comparing (collation, coercibility): ({0}, {1} with ({2}, {3}) is illegal")
+  @BaseMessage("Invalid compare. Comparing (collation, coercibility): ({0}, {1} with ({2}, {3}) "
+      + "is illegal")
   ExInst<CalciteException> invalidCompare(String a0, String a1, String a2,
       String a3);
 
@@ -292,19 +299,22 @@ public interface CalciteResource {
   @BaseMessage("Expecting alias, found character literal")
   ExInst<SqlValidatorException> charLiteralAliasNotValid();
 
-  @BaseMessage("List of column aliases must have same degree as table; table has {0,number,#} columns {1}, whereas alias list has {2,number,#} columns")
+  @BaseMessage("List of column aliases must have same degree as table; table has {0,number,#} "
+      + "columns {1}, whereas alias list has {2,number,#} columns")
   ExInst<SqlValidatorException> aliasListDegree(int a0, String a1, int a2);
 
   @BaseMessage("Duplicate name ''{0}'' in column alias list")
   ExInst<SqlValidatorException> aliasListDuplicate(String a0);
 
-  @BaseMessage("INNER, LEFT, RIGHT or FULL join requires a condition (NATURAL keyword or ON or USING clause)")
+  @BaseMessage("INNER, LEFT, RIGHT or FULL join requires a condition (NATURAL keyword or ON or "
+      + "USING clause)")
   ExInst<SqlValidatorException> joinRequiresCondition();
 
   @BaseMessage("Cannot qualify common column ''{0}''")
   ExInst<SqlValidatorException> disallowsQualifyingCommonColumn(String a0);
 
-  @BaseMessage("Cannot specify condition (NATURAL keyword, or ON or USING clause) following CROSS JOIN")
+  @BaseMessage("Cannot specify condition (NATURAL keyword, or ON or USING clause) following CROSS"
+      + " JOIN")
   ExInst<SqlValidatorException> crossJoinDisallowsCondition();
 
   @BaseMessage("Cannot specify NATURAL keyword with ON or USING clause")
@@ -313,7 +323,8 @@ public interface CalciteResource {
   @BaseMessage("Column name ''{0}'' in USING clause is not unique on one side of join")
   ExInst<SqlValidatorException> columnInUsingNotUnique(String a0);
 
-  @BaseMessage("Column ''{0}'' matched using NATURAL keyword or USING clause has incompatible types: cannot compare ''{1}'' to ''{2}''")
+  @BaseMessage("Column ''{0}'' matched using NATURAL keyword or USING clause has incompatible "
+      + "types: cannot compare ''{1}'' to ''{2}''")
   ExInst<SqlValidatorException> naturalOrUsingColumnNotCompatible(String a0,
       String a1, String a2);
 
@@ -558,7 +569,8 @@ public interface CalciteResource {
   @BaseMessage("''{0}'' is not a valid boolean value")
   ExInst<CalciteException> invalidBoolean(String a0);
 
-  @BaseMessage("Argument to function ''{0}'' must be a valid precision between ''{1,number,#}'' and ''{2,number,#}''")
+  @BaseMessage("Argument to function ''{0}'' must be a valid precision between ''{1,number,#}'' "
+      + "and ''{2,number,#}''")
   ExInst<SqlValidatorException> argumentMustBeValidPrecision(String a0, int a1,
       int a2);
 
@@ -616,7 +628,8 @@ public interface CalciteResource {
   @Property(name = "FeatureDefinition", value = "SQL:2003 Part 2 Annex F")
   Feature sQLFeature_T613();
 
-  @BaseMessage("Execution of a new autocommit statement while a cursor is still open on same connection is not supported")
+  @BaseMessage("Execution of a new autocommit statement while a cursor is still open on same "
+      + "connection is not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
   ExInst<CalciteException> sQLConformance_MultipleActiveAutocommitStatements();
 
@@ -662,10 +675,12 @@ public interface CalciteResource {
   @BaseMessage("Column has duplicate column name ''{0}'' and no column list specified")
   ExInst<SqlValidatorException> duplicateColumnAndNoColumnList(String s);
 
-  @BaseMessage("Declaring class ''{0}'' of non-static user-defined function must have a public constructor with zero parameters")
+  @BaseMessage("Declaring class ''{0}'' of non-static user-defined function must have a public "
+      + "constructor with zero parameters")
   ExInst<RuntimeException> requireDefaultConstructor(String className);
 
-  @BaseMessage("In user-defined aggregate class ''{0}'', first parameter to ''add'' method must be the accumulator (the return type of the ''init'' method)")
+  @BaseMessage("In user-defined aggregate class ''{0}'', first parameter to ''add'' method must "
+      + "be the accumulator (the return type of the ''init'' method)")
   ExInst<RuntimeException> firstParameterOfAdd(String className);
 
   @BaseMessage("FilterableTable.scan returned a filter that was not in the original list: {0}")
@@ -680,7 +695,8 @@ public interface CalciteResource {
   @BaseMessage("Cannot convert stream ''{0}'' to relation")
   ExInst<SqlValidatorException> cannotConvertToRelation(String tableName);
 
-  @BaseMessage("Streaming aggregation requires at least one monotonic expression in GROUP BY clause")
+  @BaseMessage("Streaming aggregation requires at least one monotonic expression in GROUP BY "
+      + "clause")
   ExInst<SqlValidatorException> streamMustGroupByMonotonic();
 
   @BaseMessage("Streaming ORDER BY must start with monotonic expression")
@@ -701,13 +717,16 @@ public interface CalciteResource {
   @BaseMessage("Modifiable view must be predicated only on equality expressions")
   ExInst<SqlValidatorException> modifiableViewMustHaveOnlyEqualityPredicates();
 
-  @BaseMessage("View is not modifiable. More than one expression maps to column ''{0}'' of base table ''{1}''")
+  @BaseMessage("View is not modifiable. More than one expression maps to column ''{0}'' of base "
+      + "table ''{1}''")
   ExInst<SqlValidatorException> moreThanOneMappedColumn(String columnName, String tableName);
 
-  @BaseMessage("View is not modifiable. No value is supplied for NOT NULL column ''{0}'' of base table ''{1}''")
+  @BaseMessage("View is not modifiable. No value is supplied for NOT NULL column ''{0}'' of base "
+      + "table ''{1}''")
   ExInst<SqlValidatorException> noValueSuppliedForViewColumn(String columnName, String tableName);
 
-  @BaseMessage("Modifiable view constraint is not satisfied for column ''{0}'' of base table ''{1}''")
+  @BaseMessage("Modifiable view constraint is not satisfied for column ''{0}'' of base table "
+      + "''{1}''")
   ExInst<SqlValidatorException> viewConstraintNotSatisfied(String columnName, String tableName);
 
   @BaseMessage("Not a record type. The ''*'' operator requires a record")
@@ -716,7 +735,8 @@ public interface CalciteResource {
   @BaseMessage("FILTER expression must be of type BOOLEAN")
   ExInst<CalciteException> filterMustBeBoolean();
 
-  @BaseMessage("Cannot stream results of a query with no streaming inputs: ''{0}''. At least one input should be convertible to a stream")
+  @BaseMessage("Cannot stream results of a query with no streaming inputs: ''{0}''. At least one "
+      + "input should be convertible to a stream")
   ExInst<SqlValidatorException> cannotStreamResultsForNonStreamingInputs(String inputs);
 
   @BaseMessage("MINUS is not allowed under the current SQL conformance level")
@@ -728,22 +748,26 @@ public interface CalciteResource {
   @BaseMessage("Group function ''{0}'' can only appear in GROUP BY clause")
   ExInst<SqlValidatorException> groupFunctionMustAppearInGroupByClause(String funcName);
 
-  @BaseMessage("Call to auxiliary group function ''{0}'' must have matching call to group function ''{1}'' in GROUP BY clause")
+  @BaseMessage("Call to auxiliary group function ''{0}'' must have matching call to group "
+      + "function ''{1}'' in GROUP BY clause")
   ExInst<SqlValidatorException> auxiliaryWithoutMatchingGroupCall(String func1, String func2);
 
   @BaseMessage("Measure expression in PIVOT must use aggregate function")
   ExInst<SqlValidatorException> pivotAggMalformed();
 
-  @BaseMessage("Value count in PIVOT ({0,number,#}) must match number of FOR columns ({1,number,#})")
+  @BaseMessage("Value count in PIVOT ({0,number,#}) must match number of FOR columns ({1,number,"
+      + "#})")
   ExInst<SqlValidatorException> pivotValueArityMismatch(int valueCount, int forCount);
 
   @BaseMessage("Duplicate column name ''{0}'' in UNPIVOT")
   ExInst<SqlValidatorException> unpivotDuplicate(String columnName);
 
-  @BaseMessage("Value count in UNPIVOT ({0,number,#}) must match number of FOR columns ({1,number,#})")
+  @BaseMessage("Value count in UNPIVOT ({0,number,#}) must match number of FOR columns ({1,"
+      + "number,#})")
   ExInst<SqlValidatorException> unpivotValueArityMismatch(int valueCount, int forCount);
 
-  @BaseMessage("In UNPIVOT, cannot derive type for measure ''{0}'' because source columns have different data types")
+  @BaseMessage("In UNPIVOT, cannot derive type for measure ''{0}'' because source columns have "
+      + "different data types")
   ExInst<SqlValidatorException> unpivotCannotDeriveMeasureType(String measureName);
 
   @BaseMessage("In UNPIVOT, cannot derive type for axis ''{0}''")
@@ -767,7 +791,8 @@ public interface CalciteResource {
   @BaseMessage("The system time period specification expects Timestamp type but is ''{0}''")
   ExInst<SqlValidatorException> illegalExpressionForTemporal(String type);
 
-  @BaseMessage("Table ''{0}'' is not a temporal table, can not be queried in system time period specification")
+  @BaseMessage("Table ''{0}'' is not a temporal table, can not be queried in system time period "
+      + "specification")
   ExInst<SqlValidatorException> notTemporalTable(String tableName);
 
   @BaseMessage("Cannot use RUNNING/FINAL in DEFINE ''{0}''")
@@ -836,6 +861,17 @@ public interface CalciteResource {
   @BaseMessage("Dialect does not support feature: ''{0}''")
   ExInst<SqlValidatorException> dialectDoesNotSupportFeature(String featureName);
 
+  @BaseMessage("Named Parameter table is not registered. To use named parameters in a query "
+      + "please  register a table name in the configuration.")
+  ExInst<SqlValidatorException> namedParamTableNotRegistered();
+
+  @BaseMessage("Named Parameter table is registered with the name ''{0}'' but no table exists "
+      + "with that name. To use namedParameters you must supply a namedParameters table.")
+  ExInst<SqlValidatorException> namedParamTableNotFound(String tableName);
+
+  @BaseMessage("SQL query contains a unregistered parameter: ''@{0}''")
+  ExInst<SqlValidatorException> namedParamParameterNotFound(String paramName);
+
   @BaseMessage("Substring error: negative substring length not allowed")
   ExInst<CalciteException> illegalNegativeSubstringLength();
 
@@ -863,7 +899,8 @@ public interface CalciteResource {
   ExInstWithCause<CalciteException> failedToAccessField(
       @Nullable String fieldName, int fieldIndex, String typeName);
 
-  @BaseMessage("Illegal jsonpath spec ''{0}'', format of the spec should be: ''<lax|strict> $'{'expr'}'''")
+  @BaseMessage("Illegal jsonpath spec ''{0}'', format of the spec should be: ''<lax|strict> "
+      + "$'{'expr'}'''")
   ExInst<CalciteException> illegalJsonPathSpec(String pathSpec);
 
   @BaseMessage("Illegal jsonpath mode ''{0}''")
@@ -899,7 +936,8 @@ public interface CalciteResource {
   @BaseMessage("Illegal empty behavior ''{0}'' specified in JSON_VALUE function")
   ExInst<CalciteException> illegalEmptyBehaviorInJsonQueryFunc(String emptyBehavior);
 
-  @BaseMessage("Strict jsonpath mode requires array or object value, and the actual value is: ''{0}''")
+  @BaseMessage("Strict jsonpath mode requires array or object value, and the actual value is: "
+      + "''{0}''")
   ExInst<CalciteException> arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(String value);
 
   @BaseMessage("Illegal error behavior ''{0}'' specified in JSON_VALUE function")
@@ -908,10 +946,12 @@ public interface CalciteResource {
   @BaseMessage("Null key of JSON object is not allowed")
   ExInst<CalciteException> nullKeyOfJsonObjectNotAllowed();
 
-  @BaseMessage("Timeout of ''{0}'' ms for query execution is reached. Query execution started at ''{1}''")
+  @BaseMessage("Timeout of ''{0}'' ms for query execution is reached. Query execution started at "
+      + "''{1}''")
   ExInst<CalciteException> queryExecutionTimeoutReached(String timeout, String queryStart);
 
-  @BaseMessage("Including both WITHIN GROUP(...) and inside ORDER BY in a single JSON_ARRAYAGG call is not allowed")
+  @BaseMessage("Including both WITHIN GROUP(...) and inside ORDER BY in a single JSON_ARRAYAGG "
+      + "call is not allowed")
   ExInst<CalciteException> ambiguousSortOrderInJsonArrayAggFunc();
 
   @BaseMessage("While executing SQL [{0}] on JDBC sub-schema")
@@ -956,6 +996,7 @@ public interface CalciteResource {
   @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
   ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);
 
-  @BaseMessage("Different length for bitwise operands: the first: {0,number,#}, the second: {1,number,#}")
+  @BaseMessage("Different length for bitwise operands: the first: {0,number,#}, the second: {1,"
+      + "number,#}")
   ExInst<CalciteException> differentLengthForBitwiseOperands(int l0, int l1);
 }

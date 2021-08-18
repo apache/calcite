@@ -44,6 +44,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -1317,6 +1318,10 @@ public class SqlValidatorUtil {
     }
 
     @Override public SqlNode visit(SqlDynamicParam param) {
+      return SqlNode.clone(param);
+    }
+
+    @Override public SqlNode visit(SqlNamedParam param) {
       return SqlNode.clone(param);
     }
 

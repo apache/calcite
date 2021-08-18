@@ -79,6 +79,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNamedParam;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
@@ -113,6 +114,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
@@ -3371,6 +3373,15 @@ public class SqlToRelConverter {
   }
 
   /**
+   * Converts a SQLNamedParam to a RexNamedParam.
+   */
+  public RexNode convertNamedParam(SqlNamedParam namedParam) {
+    RelDataType paramType = validator().getValidatedNodeType(namedParam);
+    String name = namedParam.getName();
+    return new RexNamedParam(paramType, name);
+  }
+
+  /**
    * Creates a list of collations required to implement the ORDER BY clause,
    * if there is one. Populates <code>extraOrderExprs</code> with any sort
    * expressions which are not in the select clause.
@@ -5286,6 +5297,10 @@ public class SqlToRelConverter {
       return convertDynamicParam(param);
     }
 
+    @Override public RexNode visit(SqlNamedParam param) {
+      return convertNamedParam(param);
+    }
+
     @Override public RexNode visit(SqlIntervalQualifier intervalQualifier) {
       return convertInterval(intervalQualifier);
     }
@@ -5510,6 +5525,10 @@ public class SqlToRelConverter {
     }
 
     @Override public Void visit(SqlDynamicParam param) {
+      return null;
+    }
+
+    @Override public Void visit(SqlNamedParam param) {
       return null;
     }
 
@@ -6297,6 +6316,7 @@ public class SqlToRelConverter {
 
     /** Sets {@link #getHintStrategyTable()}. */
     Config withHintStrategyTable(HintStrategyTable hintStrategyTable);
+
   }
 
   /** Builder for a {@link Config}. */

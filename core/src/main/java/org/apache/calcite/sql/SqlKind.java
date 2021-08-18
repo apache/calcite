@@ -157,6 +157,9 @@ public enum SqlKind {
   /** A dynamic parameter. */
   DYNAMIC_PARAM,
 
+  /** A named parameter used by Bodo for runtime variables. */
+  NAMED_PARAM,
+
   /**
    * ORDER BY clause.
    *

@@ -34,6 +34,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
+import org.apache.calcite.test.catalog.MockCatalogReaderSimpleNamedParam;
 import org.apache.calcite.testlib.annotations.WithLex;
 
 import com.google.common.base.Preconditions;
@@ -64,6 +65,13 @@ public class SqlValidatorTestCase {
   private static final SqlTestFactory EXTENDED_TEST_FACTORY =
       SqlTestFactory.INSTANCE.withCatalogReader(MockCatalogReaderExtended::new);
 
+  private static final SqlTestFactory NAMED_PARAM_TEST_FACTORY =
+      SqlTestFactory.INSTANCE.with("namedParamTable", "BodoNamedParams").withCatalogReader(
+          MockCatalogReaderSimpleNamedParam::new);
+
+  private static final SqlTestFactory NAMED_PARAM_TEST_FACTORY_NO_SCHEMA =
+      SqlTestFactory.INSTANCE.with("namedParamTable", "BodoNamedParams");
+
   static final SqlTester EXTENDED_CATALOG_TESTER =
       new SqlValidatorTester(EXTENDED_TEST_FACTORY);
 
@@ -74,6 +82,12 @@ public class SqlValidatorTestCase {
   static final SqlTester EXTENDED_CATALOG_TESTER_LENIENT =
       new SqlValidatorTester(EXTENDED_TEST_FACTORY)
           .withConformance(SqlConformanceEnum.LENIENT);
+
+  static final SqlTester NAMED_PARAMS_TESTER =
+      new SqlValidatorTester(NAMED_PARAM_TEST_FACTORY);
+
+  static final SqlTester NAMED_PARAMS_TESTER_NO_SCHEMA =
+      new SqlValidatorTester(NAMED_PARAM_TEST_FACTORY_NO_SCHEMA);
 
   protected SqlTester tester;
 
@@ -291,6 +305,14 @@ public class SqlValidatorTestCase {
 
     Sql withExtendedCatalog() {
       return withTester(tester -> EXTENDED_CATALOG_TESTER);
+    }
+
+    public Sql withNamedParamters() {
+      return withTester(tester -> NAMED_PARAMS_TESTER);
+    }
+
+    public Sql withNamedParametersNoSchema() {
+      return withTester(tester -> NAMED_PARAMS_TESTER_NO_SCHEMA);
     }
 
     public Sql withQuoting(Quoting quoting) {
