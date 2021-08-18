@@ -5458,7 +5458,19 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testSomeWithEquality2() {
     final String sql = "select * from emp e1\n"
-        + "  where e1.ename= SOME (select name from dept)";
+        + "  where e1.ename = SOME (select name from dept)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test void testSomeWithNotEquality() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.deptno <> SOME (select deptno from dept)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test void testSomeWithNotEquality2() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.ename <> SOME (select name from dept)";
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 

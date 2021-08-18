@@ -1677,6 +1677,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).ok();
   }
 
+  @Test void testSomeWithNotEquality() {
+    final String sql = "select empno from emp where deptno <> some (\n"
+        + "  select deptno from dept)";
+    sql(sql).expand(false).ok();
+  }
+
   @Test void testNotInUncorrelatedSubQueryRex() {
     final String sql = "select empno from emp where deptno not in"
         + " (select deptno from dept)";

@@ -5012,6 +5012,10 @@ public class SqlToRelConverter {
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
                   RexSubQuery.in(root.rel, list));
             case SOME:
+              if (call.getOperator() == SqlStdOperatorTable.SOME_NE) {
+                return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
+                    RexSubQuery.in(root.rel, list));
+              }
               return RexSubQuery.some(root.rel, list,
                   (SqlQuantifyOperator) call.getOperator());
             case ALL:
