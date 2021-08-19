@@ -182,6 +182,11 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     } else {
       removeMinorityVertices(collection);
     }
+
+    // remove all edges ref from this.edges
+    for (V v: collection) {
+      edges.removeIf(e -> e.source.equals(v) || e.target.equals(v));
+    }
   }
 
   /** Implementation of {@link #removeAllVertices(Collection)} that is efficient
