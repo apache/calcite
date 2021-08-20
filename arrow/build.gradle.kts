@@ -27,3 +27,8 @@ dependencies {
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
 }
+
+task("runWithJavaExec", JavaExec::class) {
+    main = "org.apache.calcite.adapter.arrow.ArrowData"
+    classpath = sourceSets["test"].runtimeClasspath
+}

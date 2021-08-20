@@ -57,8 +57,8 @@ class ArrowAdapterTest {
   }
 
   ArrowAdapterTest() {
-    assumeTrue(SystemUtils.IS_OS_LINUX,
-        "Arrow adapter requires Linux, until [ARROW-11135] is fixed");
+//    assumeTrue(SystemUtils.IS_OS_LINUX,
+//        "Arrow adapter requires Linux, until [ARROW-11135] is fixed");
   }
 
   /** Test to read an Arrow file and check its field names. */
@@ -68,23 +68,38 @@ class ArrowAdapterTest {
     Map<String, Table> tableMap = arrowSchema.getTableMap();
     RelDataTypeFactory typeFactory =
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    RelDataType relDataType = tableMap.get("TEST").getRowType(typeFactory);
+    RelDataType relDataType = tableMap.get("ARROWDATA").getRowType(typeFactory);
 
-    assertThat(relDataType.getFieldNames().get(0), is("fieldOne"));
-    assertThat(relDataType.getFieldNames().get(1), is("fieldTwo"));
-    assertThat(relDataType.getFieldNames().get(2), is("fieldThree"));
+    assertThat(relDataType.getFieldNames().get(0), is("intField"));
+    assertThat(relDataType.getFieldNames().get(1), is("stringField"));
+    assertThat(relDataType.getFieldNames().get(2), is("floatField"));
   }
 
   @Test void testArrowProjectAllFields() {
-    String sql = "select * from test\n";
+    String sql = "select * from arrowdata\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
-    String result = "fieldOne=1; fieldTwo=abc; fieldThree=1.2\n"
-        + "fieldOne=2; fieldTwo=def; fieldThree=3.4\n"
-        + "fieldOne=3; fieldTwo=xyz; fieldThree=5.6\n"
-        + "fieldOne=4; fieldTwo=abcd; fieldThree=1.22\n"
-        + "fieldOne=5; fieldTwo=defg; fieldThree=3.45\n"
-        + "fieldOne=6; fieldTwo=xyza; fieldThree=5.67\n";
+        + "  ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+    String result = "intField=0; stringField=0; floatField=0.0\n"
+        + "intField=1; stringField=1; floatField=1.0\n"
+        + "intField=2; stringField=2; floatField=2.0\n"
+        + "intField=3; stringField=3; floatField=3.0\n"
+        + "intField=4; stringField=4; floatField=4.0\n"
+        + "intField=5; stringField=5; floatField=5.0\n";
+    CalciteAssert.that()
+        .with(ARROW)
+        .query(sql)
+        .limit(6)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectSingleField() {
+    String sql = "select \"intField\" from arrowdata\n";
+    String result = "intField=0\nintField=1\nintField=2\n"
+        + "intField=3\nintField=4\nintField=5\n";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
         .with(ARROW)
         .query(sql)
@@ -94,16 +109,16 @@ class ArrowAdapterTest {
   }
 
   @Test void testArrowProjectTwoFields() {
-    String sql = "select \"fieldOne\", \"fieldTwo\" from test\n";
-    String result = "fieldOne=1; fieldTwo=abc\n"
-        + "fieldOne=2; fieldTwo=def\n"
-        + "fieldOne=3; fieldTwo=xyz\n"
-        + "fieldOne=4; fieldTwo=abcd\n"
-        + "fieldOne=5; fieldTwo=defg\n"
-        + "fieldOne=6; fieldTwo=xyza\n";
+    String sql = "select \"intField\", \"stringField\" from arrowdata\n";
+    String result = "intField=0; stringField=0\n"
+        + "intField=1; stringField=1\n"
+        + "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n"
+        + "intField=4; stringField=4\n"
+        + "intField=5; stringField=5\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
-        + "    ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
         .with(ARROW)
         .query(sql)
@@ -112,59 +127,53 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Test void testArrowProjectOneField() {
-    String sql = "select \"fieldOne\" from test\n";
-    String result = "fieldOne=1\n"
-        + "fieldOne=2\n"
-        + "fieldOne=3\n"
-        + "fieldOne=4\n"
-        + "fieldOne=5\n"
-        + "fieldOne=6\n";
+  @Test void testArrowProjectFieldsWithIntegerFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" < 4";
+    String result = "intField=0; stringField=0\n" +
+        "intField=1; stringField=1\n" +
+        "intField=2; stringField=2\n" +
+        "intField=3; stringField=3\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(fieldOne=[$0])\n"
-        + "    ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
-    CalciteAssert.that()
-        .with(ARROW)
-        .query(sql)
-        .limit(6)
-        .returns(result)
-        .explainContains(plan);
-  }
-
-  @Test void testArrowProjectFieldsWithFilter() {
-    String sql = "select \"fieldOne\", \"fieldTwo\"\n"
-        + "from test\n"
-        + "where \"fieldOne\" < 4";
-    String result = "fieldOne=1; fieldTwo=abc\n"
-        + "fieldOne=2; fieldTwo=def\n"
-        + "fieldOne=3; fieldTwo=xyz\n";
-    String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(fieldOne=[$0], fieldTwo=[$1])\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
         + "    ArrowFilter(condition=[<($0, 4)])\n"
-        + "      ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
         .with(ARROW)
         .query(sql)
-        .limit(3)
+        .limit(4)
         .returns(result)
         .explainContains(plan);
   }
 
   @Test void testArrowProjectFieldsWithMultipleFilters() {
-    String sql = "select \"fieldOne\"\n"
-        + "from test\n"
-        + "where \"fieldOne\" > 2 and \"fieldOne\" < 6";
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\"=12 and \"stringField\"='12'";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(fieldOne=[$0])\n"
-        + "    ArrowFilter(condition=[SEARCH($0, Sarg[(2..6)])])\n"
-        + "      ArrowTableScan(table=[[ARROW, TEST]], fields=[[0, 1, 2]])\n\n";
-    String result = "fieldOne=3\n"
-        + "fieldOne=4\n"
-        + "fieldOne=5\n";
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[AND(=($0, 12), =($1, '12'))])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+    String result = "intField=12; stringField=12\n";
     CalciteAssert.that()
         .with(ARROW)
         .query(sql)
         .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithFloatFilter() {
+    String sql = "select * from arrowdata\n"
+        + " where \"floatField\"=15.0";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowFilter(condition=[=(CAST($2):DOUBLE, 15.0)])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+    String result = "intField=15; stringField=15; floatField=15.0\n";
+    CalciteAssert.that()
+        .with(ARROW)
+        .query(sql)
         .returns(result)
         .explainContains(plan);
   }

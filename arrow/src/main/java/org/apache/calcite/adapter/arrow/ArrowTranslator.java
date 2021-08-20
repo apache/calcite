@@ -196,9 +196,9 @@ class ArrowTranslator {
       BigDecimal bigDecimalLiteral = (BigDecimal) literal;
       int scale = bigDecimalLiteral.scale();
       if (scale == 0) {
-        return "long";
+        return "integer";
       } else if (scale > 0) {
-        return "double";
+        return "float";
       }
     } else if (String.class.equals(literal.getClass())) {
       return "string";

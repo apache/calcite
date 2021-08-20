@@ -172,7 +172,6 @@ class ArrowEnumerator implements Enumerator<Object> {
         if (buf != null) {
           buf.close();
         }
-        allocator.close();
         filter.close();
       }
     } catch (GandivaException e) {

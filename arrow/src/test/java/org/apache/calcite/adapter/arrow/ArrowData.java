@@ -33,39 +33,46 @@ import org.apache.arrow.vector.util.Text;
 import java.io.File;
 import java.io.FileOutputStream;
 
+import org.apache.calcite.util.Sources;
+
+import org.junit.jupiter.api.Test;
+
 public class ArrowData {
 
-  private FileOutputStream fileOutputStream;
   private int batchSize;
-  private VectorSchemaRoot vectorSchemaRoot;
-  private ArrowFileWriter arrowFileWriter;
-  private int entries;
+  private final int entries;
+  private int intValue;
+  private int stringValue;
+  private float floatValue;
 
   public ArrowData() {
-
-    this.batchSize = 100;
-    this.entries = 10;
+    this.batchSize = 20;
+    this.entries = 50;
+    this.intValue = 0;
+    this.stringValue = 0;
+    this.floatValue = 0;
   }
 
   private Schema makeArrowSchema(){
     ImmutableList.Builder<Field> childrenBuilder = ImmutableList.builder();
-    childrenBuilder.add(new Field("int", FieldType.nullable(new ArrowType.Int(32, true)), null));
-    childrenBuilder.add(new Field("float", FieldType.nullable(new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE)), null));
-    childrenBuilder.add(new Field("varchar", FieldType.nullable(new ArrowType.Utf8()), null));
+    childrenBuilder.add(new Field("intField", FieldType.nullable(new ArrowType.Int(32, true)), null));
+    childrenBuilder.add(new Field("stringField", FieldType.nullable(new ArrowType.Utf8()), null));
+    childrenBuilder.add(new Field("floatField", FieldType.nullable(new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE)), null));
     return new Schema(childrenBuilder.build(), null);
   }
 
   public void writeArrowData() throws Exception {
-    File file = new File("");
-    this.fileOutputStream = new FileOutputStream(file);
+    File file = new File("src/test/resources/arrow/arrowData.arrow");
+    file.createNewFile();
+    FileOutputStream fileOutputStream = new FileOutputStream(file);
     Schema arrowSchema = makeArrowSchema();
-    this.vectorSchemaRoot = VectorSchemaRoot.create(arrowSchema, new RootAllocator(Integer.MAX_VALUE));
+    VectorSchemaRoot vectorSchemaRoot = VectorSchemaRoot.create(arrowSchema,
+        new RootAllocator(Integer.MAX_VALUE));
     DictionaryProvider.MapDictionaryProvider provider = new DictionaryProvider.MapDictionaryProvider();
-    this.arrowFileWriter = new ArrowFileWriter(vectorSchemaRoot, provider,
-        this.fileOutputStream.getChannel());
+    ArrowFileWriter arrowFileWriter = new ArrowFileWriter(vectorSchemaRoot, provider,
+        fileOutputStream.getChannel());
 
-    this.batchSize = 100;
-    this.arrowFileWriter.start();
+    arrowFileWriter.start();
 
     for (int i = 0; i < this.entries; ) {
       int numRows = Math.min(this.batchSize, this.entries - i);
@@ -73,17 +80,17 @@ public class ArrowData {
       for (Field field : vectorSchemaRoot.getSchema().getFields()) {
         FieldVector vector = vectorSchemaRoot.getVector(field.getName());
         switch (vector.getMinorType()) {
-        case INT:
-          intField(vector, numRows);
-          break;
-        case FLOAT4:
-          floatField(vector, numRows);
-          break;
-        case VARBINARY:
-          varCharField(vector, numRows);
-          break;
-        default:
-          throw new Exception("Not supported yet type: " + vector.getMinorType());
+          case INT:
+            intField(vector, numRows);
+            break;
+          case FLOAT4:
+            floatField(vector, numRows);
+            break;
+          case VARCHAR:
+            varCharField(vector, numRows);
+            break;
+          default:
+            throw new Exception("Not supported type yet: " + vector.getMinorType());
         }
       }
       arrowFileWriter.writeBatch();
@@ -100,7 +107,8 @@ public class ArrowData {
     intVector.setInitialCapacity(rowCount);
     intVector.allocateNew();
     for(int i = 0; i < rowCount; i++){
-      intVector.set(i, 1, i);
+      intVector.set(i, 1, intValue);
+      this.intValue++;
     }
     fieldVector.setValueCount(rowCount);
   }
@@ -110,8 +118,9 @@ public class ArrowData {
     floatingPointVector.setInitialCapacity(rowCount);
     floatingPointVector.allocateNew();
     for(int i = 0; i < rowCount; i++){
-      float floatValue = i;
-      floatingPointVector.setWithPossibleTruncate(i, floatValue);
+      float value = this.floatValue;
+      floatingPointVector.setWithPossibleTruncate(i, value);
+      this.floatValue++;
     }
     fieldVector.setValueCount(rowCount);
   }
@@ -121,7 +130,9 @@ public class ArrowData {
     varCharVector.setInitialCapacity(rowCount);
     varCharVector.allocateNew();
     for(int i = 0; i < rowCount; i++){
-      varCharVector.set(i, new Text("abc"));
+      String value = String.valueOf(this.stringValue);
+      varCharVector.set(i, new Text(value));
+      this.stringValue++;
     }
     fieldVector.setValueCount(rowCount);
   }
