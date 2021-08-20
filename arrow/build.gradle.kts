@@ -24,3 +24,8 @@ dependencies {
 
     testImplementation(project(":core", "testClasses"))
 }
+
+task("runWithJavaExec", JavaExec::class) {
+    main = "org.apache.calcite.adapter.arrow.ArrowData"
+    classpath = sourceSets["test"].runtimeClasspath
+}

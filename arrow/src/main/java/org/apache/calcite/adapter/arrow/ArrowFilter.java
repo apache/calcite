@@ -201,8 +201,8 @@ public class ArrowFilter extends Filter implements ArrowRel {
       if (literal instanceof BigDecimal) {
         BigDecimal bigDecimalLiteral = (BigDecimal) literal;
         int scale = bigDecimalLiteral.scale();
-        if (scale == 0) return "long";
-        else if (scale > 0) return "double";
+        if (scale == 0) return "integer";
+        else if (scale > 0) return "float";
       }
       else if (String.class.equals(literal.getClass())) return "string";
       throw new AssertionError("Invalid literal");

@@ -184,7 +184,7 @@ public class ArrowTable extends AbstractTable implements TranslatableTable, Quer
     } else if (type.equals("double")) {
       return TreeBuilder.makeLiteral(Double.parseDouble(literal));
     } else if (type.equals("string")) {
-      return TreeBuilder.makeStringLiteral(literal);
+      return TreeBuilder.makeStringLiteral(literal.substring(1, literal.length()-1));
     }
     throw new AssertionError("Invalid literal");
   }
