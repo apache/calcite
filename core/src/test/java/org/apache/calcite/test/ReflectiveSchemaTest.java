@@ -56,7 +56,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Stream;
 
@@ -873,10 +879,9 @@ public class ReflectiveSchemaTest {
     }
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4708">[CALCITE-4708]
-   */
+   * Infer list generic type while Table instance is created at ReflectiveSchema class</a> */
   @ParameterizedTest
   @MethodSource("provideTestTableArrayAnnotation")
   void testTableArrayAnnotation(Iterable<JdbcTest.SalesFact> dataList) throws SQLException {
@@ -910,9 +915,7 @@ public class ReflectiveSchemaTest {
     }
   }
 
-  /**
-   * Test data for test {@link ReflectiveSchemaTest#testTableArrayAnnotation(Iterable)}
-   */
+  /** Test data for test {@link ReflectiveSchemaTest#testTableArrayAnnotation(Iterable)} */
   private static Stream<Arguments> provideTestTableArrayAnnotation() {
     List<JdbcTest.SalesFact> dataList = Arrays.asList(
         new JdbcTest.SalesFact(100, 10),
