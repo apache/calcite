@@ -1675,7 +1675,7 @@ public class RelBuilderTest {
     }
   }
 
-  @Test void testAggregateGroupingSetDuplicateIgnored() {
+  @Test void testAggregateGroupingSetDuplicate() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -1687,7 +1687,7 @@ public class RelBuilderTest {
                             ImmutableBitSet.of(7))))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
+        + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}, {7}]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }

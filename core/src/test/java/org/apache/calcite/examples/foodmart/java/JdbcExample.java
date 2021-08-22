@@ -46,14 +46,11 @@ public class JdbcExample {
     rootSchema.add("hr", new ReflectiveSchema(new Hr()));
     rootSchema.add("foodmart", new ReflectiveSchema(new Foodmart()));
     Statement statement = connection.createStatement();
-    final String SQL1 =
-        "select \"prod_id\",sum(\"cust_id\") from \"foodmart\".\"sales_fact_1997\" as s group by grouping sets(\"prod_id\",\"prod_id\",\"prod_id\")";
-    final String SQL2 =
-        "select \"prod_id\" from \"foodmart\".\"sales_fact_1997\" as s group by grouping sets(\"prod_id\")";
-    final String SQL3 =
-        "select \"prod_id\",\"cust_id\",sum(\"cust_id\") from \"foodmart\".\"sales_fact_1997\" as s group by grouping sets(\"prod_id\",\"cust_id\")";
     ResultSet resultSet =
-        statement.executeQuery(SQL1);
+        statement.executeQuery("select *\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"hr\".\"emps\" as e\n"
+            + "on e.\"empid\" = s.\"cust_id\"");
     final StringBuilder buf = new StringBuilder();
     while (resultSet.next()) {
       int n = resultSet.getMetaData().getColumnCount();
