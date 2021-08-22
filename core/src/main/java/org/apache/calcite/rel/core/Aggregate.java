@@ -160,7 +160,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       this.groupSets = ImmutableList.of(groupSet);
     } else {
       this.groupSets = ImmutableList.copyOf(groupSets);
-      assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
+      assert ImmutableBitSet.ORDERING.isOrdered(groupSets) : groupSets;
       for (ImmutableBitSet set : groupSets) {
         assert groupSet.contains(set);
       }
@@ -483,8 +483,11 @@ public abstract class Aggregate extends SingleRel implements Hintable {
 
     public static Group induce(ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets) {
-      if (!ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets)) {
+      if (!ImmutableBitSet.ORDERING.isOrdered(groupSets)) {
         throw new IllegalArgumentException("must be sorted: " + groupSets);
+      }
+      if (!ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets)) {
+        return OTHER;
       }
       if (groupSets.size() == 1 && groupSets.get(0).equals(groupSet)) {
         return SIMPLE;

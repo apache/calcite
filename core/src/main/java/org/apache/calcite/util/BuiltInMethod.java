@@ -239,6 +239,7 @@ public enum BuiltInMethod {
       Function1.class, Comparator.class, int.class, int.class),
   UNION(ExtendedEnumerable.class, "union", Enumerable.class),
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
+  CONCATALL(EnumerableDefaults.class, "concatAll", List.class),
   REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,
       Enumerable.class, int.class, boolean.class, EqualityComparer.class),
   MERGE_UNION(EnumerableDefaults.class, "mergeUnion", List.class, Function1.class,

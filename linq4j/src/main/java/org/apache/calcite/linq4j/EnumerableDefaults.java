@@ -348,6 +348,14 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * Concatenates more sequences.
+   */
+  public static <TSource> Enumerable<TSource> concatAll(
+      Enumerable<TSource>... enumerables) {
+    return Linq4j.concat(Arrays.asList(enumerables));
+  }
+
+  /**
    * Determines whether a sequence contains a specified
    * element by using the default equality comparer.
    */
