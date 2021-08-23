@@ -5473,6 +5473,17 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNoReduceDynamic">
+    <Resource name="sql">
+      <![CDATA[select USER from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(USER=[USER])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNoReduceSum">
     <Resource name="sql">
       <![CDATA[select name, sum(deptno) from sales.dept group by name]]>
@@ -10576,6 +10587,23 @@ LogicalProject(ENAME=[$1])
 LogicalProject(ENAME=[$1])
   LogicalCalc(expr#0..8=[{inputs}], expr#9=[10:BIGINT], expr#10=[*($t5, $t9)], expr#11=[100.0:DECIMAL(4, 1)], expr#12=[Reinterpret($t11)], expr#13=[>($t10, $t12)], proj#0..8=[{exprs}], $condition=[$t13])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testReduceDynamic">
+    <Resource name="sql">
+      <![CDATA[select USER from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(USER=[USER])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(USER=['happyCalciteUser':VARCHAR(2000)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
