@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableLimitSort;
@@ -26,6 +28,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -92,6 +95,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -143,6 +147,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for rules in {@code org.apache.calcite.rel} and subpackages.
@@ -2835,6 +2840,47 @@ class RelOptRulesTest extends RelOptTestBase {
             .as(ProjectReduceExpressionsRule.ProjectReduceExpressionsRuleConfig.class)
             .toRule();
     checkReduceNullableToNotNull(rule);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2736">[CALCITE-2736]
+   * ReduceExpressionsRule never reduces dynamic expressions but this should be
+   * configurable</a>. Tests that a dynamic function (USER) is reduced if and
+   * only if {@link ReduceExpressionsRule.Config#treatDynamicCallsAsConstant()}
+   * is true. */
+  @Test public void testReduceDynamic() {
+    checkDynamicFunctions(true).check();
+  }
+
+  /** As {@link #testReduceDynamic()}. */
+  @Test public void testNoReduceDynamic() {
+    checkDynamicFunctions(false).checkUnchanged();
+  }
+
+  private Sql checkDynamicFunctions(boolean treatDynamicCallsAsConstant) {
+    // Create a customized executor with given context operator that reduces
+    // "USER" to "happyCalciteUser"
+    final RexExecutorImpl executor =
+        new RexExecutorImpl(
+            DataContexts.of(name ->
+                name.equals(DataContext.Variable.USER.camelName)
+                    ? "happyCalciteUser"
+                    : fail("unknown: " + name)));
+
+    RelOptPlanner planner = new MockRelOptPlanner(Contexts.empty());
+    planner.setExecutor(executor);
+
+    final ReduceExpressionsRule<?> rule =
+        CoreRules.PROJECT_REDUCE_EXPRESSIONS.config
+            .withOperandFor(LogicalProject.class)
+            .withTreatDynamicCallsAsConstant(treatDynamicCallsAsConstant)
+            .as(ProjectReduceExpressionsRule.Config.class)
+            .toRule();
+
+    final String sql = "select USER from emp";
+    return sql(sql)
+        .withTester(t -> ((TesterImpl) tester).withPlannerFactory(context -> planner))
+        .withRule(rule);
   }
 
   @Test void testReduceConstantsIsNull() {

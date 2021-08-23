@@ -174,7 +174,7 @@ public class ValuesReduceRule
     // Compute the values they reduce to.
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     ReduceExpressionsRule.reduceExpressions(values, reducibleExps, predicates,
-        false, true);
+        false, true, false);
 
     int changeCount = 0;
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tuplesBuilder =
