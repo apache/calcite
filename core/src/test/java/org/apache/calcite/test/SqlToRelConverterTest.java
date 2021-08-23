@@ -1559,7 +1559,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testUniqueWithExpand() {
     try {
-      final String sql = "select*from emp\n"
+      final String sql = "select * from emp\n"
           + "where unique (select 1 from dept where deptno=55)";
       sql(sql).expand(true).ok();
     } catch (RuntimeException e) {
@@ -1571,25 +1571,25 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testUniqueWithProjectLateral() {
-    final String sql = "select*from emp\n"
+    final String sql = "select * from emp\n"
         + "where unique (select 1 from dept where deptno=55)";
     sql(sql).expand(false).ok();
   }
 
   @Test void testUniqueWithOneProject() {
-    final String sql = "select*from emp\n"
+    final String sql = "select * from emp\n"
         + "where unique (select name from dept where deptno=55)";
     sql(sql).expand(false).ok();
   }
 
   @Test void testUniqueWithManyProject() {
-    final String sql = "select*from emp\n"
+    final String sql = "select * from emp\n"
         + "where unique (select * from dept)";
     sql(sql).expand(false).ok();
   }
 
   @Test void testNotUnique() {
-    final String sql = "select*from emp\n"
+    final String sql = "select * from emp\n"
         + "where not unique (select 1 from dept where deptno=55)";
     sql(sql).expand(false).ok();
   }
