@@ -565,6 +565,17 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testConvertletConfigNoTimestampdiffDecompose">
+    <Resource name="sql">
+      <![CDATA[SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[TIMESTAMPDIFF(FLAG(DAY), 2021-02-02 00:00:00, 2022-02-01 00:00:00)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testConvertletConfigNoWindowedAggDecomposeAvg">
     <Resource name="sql">
       <![CDATA[SELECT emp.sal, AVG(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
@@ -628,6 +639,17 @@ LogicalProject(SAL=[$5], EXPR$1=[VARIANCE($5) OVER (PARTITION BY $7 ORDER BY $5 
       <![CDATA[
 LogicalProject(SAL=[$5], EXPR$1=[VAR_POP($5) OVER (PARTITION BY $7 ORDER BY $5 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testConvertletConfigTimestampdiffDecompose">
+    <Resource name="sql">
+      <![CDATA[SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST(/INT(Reinterpret(-(2022-02-01 00:00:00, 2021-02-02 00:00:00)), 86400000)):INTEGER NOT NULL])
+  LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>

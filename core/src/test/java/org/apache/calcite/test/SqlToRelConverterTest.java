@@ -3512,6 +3512,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(query).with(getNoWindowedAggDecompositionTester()).ok();
   }
 
+  @Test public void testConvertletConfigTimestampdiffDecompose() {
+    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
+    sql(query).ok();
+  }
+  @Test public void testConvertletConfigNoTimestampdiffDecompose() {
+    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
+    sql(query).with(getNoTimestampdiffDecompositionTester()).ok();
+  }
+
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2366">[CALCITE-2366]
@@ -3540,7 +3549,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   private Tester getNoWindowedAggDecompositionTester() {
     //changes the sql2rel config to not decompose windowed aggregations
     return tester.withConvertletTable(
-        new StandardConvertletTable(new StandardConvertletTableConfig(false)));
+        new StandardConvertletTable(new StandardConvertletTableConfig(false, true)));
+  }
+
+  private Tester getNoTimestampdiffDecompositionTester() {
+    //changes the sql2rel config to not decompose windowed aggregations
+    return tester.withConvertletTable(
+        new StandardConvertletTable(new StandardConvertletTableConfig(true, false)));
   }
 
   @Test void testLarge() {

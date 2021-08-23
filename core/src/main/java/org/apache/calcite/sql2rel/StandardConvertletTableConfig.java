@@ -21,16 +21,22 @@ package org.apache.calcite.sql2rel;
  */
 public final class StandardConvertletTableConfig {
   private boolean decomposeWindowedAggregations;
+  private boolean decomposeTimestampdiff;
 
   public static final StandardConvertletTableConfig DEFAULT =
-      new StandardConvertletTableConfig(true);
+      new StandardConvertletTableConfig(true, true);
 
-  public StandardConvertletTableConfig(boolean decompose) {
-    this.decomposeWindowedAggregations = decompose;
+  public StandardConvertletTableConfig(boolean decomposeWinAgg, boolean decomposeTimestampdiff) {
+    this.decomposeWindowedAggregations = decomposeWinAgg;
+    this.decomposeTimestampdiff = decomposeTimestampdiff;
   }
 
   public boolean shouldDecomposeWindowedAggregations() {
     return this.decomposeWindowedAggregations;
+  }
+
+  public boolean shouldDecomposeTimestampdiff() {
+    return this.decomposeTimestampdiff;
   }
 
 }
