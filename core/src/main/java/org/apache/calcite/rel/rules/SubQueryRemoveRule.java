@@ -313,14 +313,14 @@ public class SubQueryRemoveRule
   /**
    * Rewrites a UNIQUE RexSubQuery into an EXISTS RexSubQuery.
    *
-   * <p>For example UNIQUE SubQuery:
+   * <p>For example UNIQUE sub-query:
    * <pre>{@code
    * UNIQUE (SELECT PUBLISHED_IN
    * FROM BOOK
    * WHERE AUTHOR_ID = 3)
    * }</pre>
    *
-   * rewrite to EXISTS SubQuery:
+   * rewrite to EXISTS sub-query:
    *
    * <pre>{@code
    * NOT EXISTS (
@@ -342,7 +342,7 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteUnique(
       RexSubQuery e, RelBuilder builder) {
-    // if sub-query always return unique value return
+    // if sub-query always return unique value.
     final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
     Boolean isUnique = mq.areRowsUnique(e.rel, true);
     if (isUnique != null && isUnique) {

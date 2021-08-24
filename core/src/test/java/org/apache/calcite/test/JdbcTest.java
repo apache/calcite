@@ -5103,24 +5103,6 @@ public class JdbcTest {
             "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
   }
 
-  @Test void testUniqueWithAgg2() {
-    final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL($t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-        + "  EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n"
-        + "    EnumerableAggregate(group=[{0}])\n"
-        + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])\n"
-        + "        EnumerableAggregate(group=[{1}], count=[COUNT()])\n"
-        + "          EnumerableAggregate(group=[{0}], EXPR$0=[COUNT($1)])\n"
-        + "            EnumerableTableScan(table=[[hr, depts]])\n\n";
-    final String sql = "select * from \"hr\".\"emps\" where unique (\n"
-        + " select count(\"name\") from \"hr\".\"depts\" group by \"deptno\")";
-    CalciteAssert.hr()
-        .query(sql)
-        .explainContains(plan)
-        .returnsUnordered("");
-  }
-
   @Test void testUniqueWithNullValueInSingleColumn() {
     // make sure the unique predicate can work with single-column values.
     CalciteAssert.that()

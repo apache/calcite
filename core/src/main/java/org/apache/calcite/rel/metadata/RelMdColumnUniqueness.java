@@ -148,7 +148,7 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Sort rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-      // when return rows is less than or equals 1 (limit 1 or limit 0)
+    // when return rows is less than or equals 1 (limit 1 or limit 0).
     if (rel.fetch != null) {
       int limit = RexLiteral.intValue(rel.fetch);
       if (limit >= 0 && limit <= 1) {
