@@ -154,7 +154,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
       @Nullable Project topProject,
       RelNode node,
       BiMap<RelTableRef, RelTableRef> viewToQueryTableMapping,
-      EquivalenceClasses viewEC, EquivalenceClasses queryEC) {
+      EquivalenceClasses viewEC, EquivalenceClasses queryEC, boolean pushQueryFilter) {
     // Our target node is the node below the root, which should have the maximum
     // number of available expressions in the tree in order to maximize our
     // number of rewritings.

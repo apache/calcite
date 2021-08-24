@@ -23,13 +23,16 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -242,7 +245,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       @Nullable Project topProject,
       RelNode node,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
-      EquivalenceClasses viewEC, EquivalenceClasses queryEC) {
+      EquivalenceClasses viewEC, EquivalenceClasses queryEC, boolean pushQueryFilter) {
     Aggregate aggregate = (Aggregate) node;
 
     // Our target node is the node below the root, which should have the maximum
@@ -292,10 +295,36 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
                 otherCompensationPred)));
 
     // Generate query rewriting.
-    RelNode rewrittenPlan = relBuilder
-        .push(target)
-        .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
-        .build();
+    RelNode rewrittenPlan = null;
+    if (pushQueryFilter) {
+      rewrittenPlan = target.accept(
+          // Push the queryCompensationPred down into any filter that is present in the plan
+          new RelShuttleImpl() {
+            @Override public RelNode visit(LogicalFilter filter) {
+              RexNode condition =
+                  RexUtil.flatten(rexBuilder,
+                      rexBuilder.makeCall(
+                          SqlStdOperatorTable.AND,
+                          filter.getCondition(),
+                          queryCompensationPred));
+              return filter.copy(filter.getTraitSet(), filter.getInput(), condition);
+            }
+
+            @Override public RelNode visit(RelNode other) {
+              if (other instanceof RelSubset) {
+                RelSubset relSubset = (RelSubset) other;
+                return relSubset.getBestOrOriginal().accept(this);
+              } else {
+                return visitChildren(other);
+              }
+            }
+          });
+    } else {
+      rewrittenPlan = relBuilder
+          .push(target)
+          .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
+          .build();
+    }
     if (config.unionRewritingPullProgram() != null) {
       return aggregate.copy(aggregate.getTraitSet(),
           ImmutableList.of(

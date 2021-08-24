@@ -17,16 +17,41 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.BuiltInMetadata;
+import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMdRowCount;
+import org.apache.calcite.rel.metadata.RelMdSelectivity;
+import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Sarg;
+import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -337,6 +362,157 @@ class MaterializedViewRelOptRulesTest {
         .checkingThatResultContains("EnumerableTableScan(table=[[hr, events]])")
         .ok();
   }
+
+  /**
+   * Modify the selectivity of SArg to be more selective for a smaller range.
+   */
+  @SuppressWarnings("BetaApi")
+  public static class TestRelMdSelectivity extends RelMdSelectivity {
+
+    public static final RelMetadataProvider SOURCE =
+        ReflectiveRelMetadataProvider.reflectiveSource(
+            new TestRelMdSelectivity(), BuiltInMetadata.Selectivity.Handler.class);
+
+    public Double getSelectivity(RelNode rel, RelMetadataQuery mq,
+        @Nullable RexNode predicate) {
+      if (predicate == null) {
+        return RelMdUtil.guessSelectivity(predicate);
+      }
+      final RexExecutor executor =
+          Util.first(rel.getCluster().getPlanner().getExecutor(), RexUtil.EXECUTOR);
+      final RexSimplify rexSimplify = new RexSimplify(rel.getCluster().getRexBuilder(),
+          RelOptPredicateList.EMPTY, executor);
+      RexNode e = rexSimplify.simplify(predicate);
+      if (e.getKind() == SqlKind.SEARCH) {
+        RexCall call = (RexCall) e;
+        Sarg sarg = ((RexLiteral) call.getOperands().get(1)).getValueAs(Sarg.class);
+        double selectivity = 0.d;
+        for (Object o : sarg.rangeSet.asRanges()) {
+          Range r = (Range) o;
+          if (!r.hasLowerBound() || !r.hasUpperBound()) {
+            return RelMdUtil.guessSelectivity(predicate);
+          }
+          long lowerBound = ((TimestampString) r.lowerEndpoint()).getMillisSinceEpoch();
+          long upperBound = ((TimestampString) r.upperEndpoint()).getMillisSinceEpoch();
+          // only used for a range less than one day
+          selectivity += (upperBound - lowerBound) / (Double.valueOf(DateTimeUtils.MILLIS_PER_DAY));
+        }
+        return selectivity;
+      }
+      return RelMdUtil.guessSelectivity(predicate);
+    }
+  }
+
+  /**
+   * Modify the rowCount of the materialized view to be lower than the base table.
+   */
+  public static class TestRelMdRowCount extends RelMdRowCount {
+    public static final RelMetadataProvider SOURCE =
+        ReflectiveRelMetadataProvider.reflectiveSource(
+            new TestRelMdRowCount(), BuiltInMetadata.RowCount.Handler.class);
+
+    public Double getRowCount(TableScan rel, RelMetadataQuery mq) {
+      if (rel.getTable().getQualifiedName().toString().equalsIgnoreCase("[hr, events]")) {
+        return 100000d;
+      } else {
+        return 100d;
+      }
+    }
+  }
+
+  @Test void testAggregateMaterializationAggregateFuncsRange1() {
+    // if range predicate aligns on the rollup column boundary verify that only view is used
+    sql("select \"eventid\", floor(\"ts\" to minute), count(*) "
+            + "from \"events\""
+            + " group by \"eventid\", floor(\"ts\" to minute)",
+        "select \"eventid\", floor(\"ts\" to minute), count(*) \n"
+            + "from \"events\""
+            + " where \"ts\" >= TIMESTAMP'2018-01-01 00:02:00' "
+            + "AND \"ts\" < TIMESTAMP'2018-01-01 00:05:00'"
+            + "group by \"eventid\", floor(\"ts\" to minute)")
+        .checkingThatResultContains("EnumerableCalc(expr#0..2=[{inputs}], "
+            + "expr#3=[Sarg[[2018-01-01 00:02:00..2018-01-01 00:05:00)]], expr#4=[SEARCH($t1, $t3)"
+            + "], proj#0..2=[{exprs}], $condition=[$t4])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .withMetadataProvider(
+            ChainedRelMetadataProvider.of(
+                ImmutableList.of(TestRelMdRowCount.SOURCE, TestRelMdSelectivity.SOURCE,
+                    DefaultRelMetadataProvider.INSTANCE))
+        )
+        .ok();
+  }
+
+  @Test void testAggregateMaterializationAggregateFuncsRange2() {
+    // if range predicate doesn't align on the rollup column boundary verify that a union on both
+    // the table and view is used
+    sql("select \"eventid\", floor(\"ts\" to minute), count(*) "
+            + "from \"events\""
+            + " group by \"eventid\", floor(\"ts\" to minute)",
+        "select \"eventid\", floor(\"ts\" to minute), count(*) \n"
+            + "from \"events\""
+            + " where \"ts\" > TIMESTAMP'2018-01-01 00:02:30' "
+            + "AND \"ts\" <= TIMESTAMP'2018-01-01 00:05:30'"
+            + "group by \"eventid\", floor(\"ts\" to minute)")
+        .checkingThatResultContains("EnumerableAggregate(group=[{0, 1}], EXPR$2=[$SUM0($2)])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableAggregate(group=[{0, 1}], EXPR$2=[COUNT()])\n"
+            + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[FLAG(MINUTE)], expr#3=[FLOOR($t1,"
+            + " $t2)], expr#4=[Sarg[(2018-01-01 00:02:30..2018-01-01 00:03:00), [2018-01-01 "
+            + "00:05:00..2018-01-01 00:05:30]]], expr#5=[SEARCH($t1, $t4)], eventid=[$t0], "
+            + "$f1=[$t3], $condition=[$t5])\n"
+            + "        EnumerableTableScan(table=[[hr, events]])\n"
+            + "    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[Sarg[[2018-01-01 00:03:00."
+            + ".2018-01-01 00:05:00)]], expr#4=[SEARCH($t1, $t3)], proj#0..2=[{exprs}], "
+            + "$condition=[$t4])\n"
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
+        .withMetadataProvider(
+            ChainedRelMetadataProvider.of(
+                ImmutableList.of(TestRelMdRowCount.SOURCE, TestRelMdSelectivity.SOURCE,
+                    DefaultRelMetadataProvider.INSTANCE))
+        )
+        .ok();
+  }
+
+  @Test void testAggregateMaterializationAggregateFuncsRange31() {
+    // test using multiple views
+    String mv0 = "select \"eventid\", floor(\"ts\" to hour), "
+        + "count(*)\n"
+        + "from \"events\""
+        + " group by \"eventid\", floor(\"ts\" to hour)";
+    String mv1 = "select \"eventid\", floor(\"ts\" to minute), "
+        + "count(*)\n"
+        + "from \"events\""
+        + " group by \"eventid\", floor(\"ts\" to minute)";
+
+    String query = "select floor(\"ts\" to hour), count(*)\n"
+        + "from \"events\" where \"ts\" >= TIMESTAMP'2018-01-01 00:30:30' "
+        + "AND \"ts\" < TIMESTAMP'2018-01-01 02:30:30'"
+        + "group by floor(\"ts\" to hour)";
+
+    List<Pair<String, String>> mvs = Lists.newArrayList(
+        Pair.of(mv0, "mv0"), Pair.of(mv1, "mv1"));
+    fixture(query)
+        .withMaterializations(mvs)
+        .checkingThatResultContains("EnumerableAggregate(group=[{0}], EXPR$1=[$SUM0($1)])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
+            + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[FLAG(HOUR)], expr#3=[FLOOR($t1, "
+            + "$t2)], expr#4=[Sarg[[2018-01-01 00:30:30..2018-01-01 00:31:00), [2018-01-01 02:30:00"
+            + "..2018-01-01 02:30:30)]], expr#5=[SEARCH($t1, $t4)], $f0=[$t3], $condition=[$t5])\n"
+            + "        EnumerableTableScan(table=[[hr, events]])\n"
+            + "    EnumerableAggregate(group=[{1}], EXPR$1=[$SUM0($0)])\n"
+            + "      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[FLAG(HOUR)], expr#4=[FLOOR($t1, "
+            + "$t3)], expr#5=[Sarg[[2018-01-01 00:31:00..2018-01-01 02:30:00)]], expr#6=[SEARCH"
+            + "($t1, $t5)], EXPR$2=[$t2], $f3=[$t4], $condition=[$t6])\n"
+            + "        EnumerableTableScan(table=[[hr, mv1]])")
+        .withMetadataProvider(
+            ChainedRelMetadataProvider.of(
+                ImmutableList.of(TestRelMdRowCount.SOURCE, TestRelMdSelectivity.SOURCE,
+                    DefaultRelMetadataProvider.INSTANCE))
+        )
+        .ok();
+  }
+
 
   @Test void testAggregateMaterializationAggregateFuncs18() {
     sql("select \"empid\", \"deptno\", count(*) + 1 as c, sum(\"empid\") as s\n"

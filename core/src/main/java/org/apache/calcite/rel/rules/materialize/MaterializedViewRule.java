@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules.materialize;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -39,6 +40,8 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexInterpreter;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
@@ -46,9 +49,13 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Sarg;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -58,10 +65,12 @@ import org.apache.calcite.util.mapping.Mapping;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.BoundType;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -246,9 +255,25 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           // Skip it
           continue;
         }
-        final RexNode viewPred = simplify.simplifyUnknownAsFalse(
+        RexNode viewPred = simplify.simplifyUnknownAsFalse(
             RexUtil.composeConjunction(rexBuilder,
                 viewPredicateList.pulledUpPredicates));
+        RexNode viewFilter = null;
+        boolean pushQueryFilter = false;
+        if (!queryPreds.right.isAlwaysTrue() && viewPred.isAlwaysTrue()) {
+          // If there is no view predicate add one based on the query predicate if the
+          // view is a rollup ( contains an aggregation that groups by FLOOR )
+          Pair<RexNode, RexNode> viewPredAndFilter = generateViewPredicateAndFilter(view,
+              viewNode, rexBuilder, queryPreds);
+          // Skip this view
+          if (viewPredAndFilter == null) {
+            continue;
+          }   else {
+            viewPred = viewPredAndFilter.left;
+            viewFilter = viewPredAndFilter.right;
+            pushQueryFilter = true;
+          }
+        }
         final Pair<RexNode, RexNode> viewPreds = splitPredicates(rexBuilder, viewPred);
 
         // Extract view tables
@@ -380,17 +405,23 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             // b. Generate union branch (query).
             final RelNode unionInputQuery = rewriteQuery(call.builder(), rexBuilder,
                 simplify, mq, compensationColumnsEquiPred, otherCompensationPred,
-                topProject, node, queryToViewTableMapping, queryBasedVEC, currQEC);
+                topProject, node, queryToViewTableMapping, queryBasedVEC, currQEC, pushQueryFilter);
             if (unionInputQuery == null) {
               // Skip it
               continue;
+            }
+
+            if (viewFilter != null) {
+              RelBuilder builder =
+                  call.builder().transform(c -> c.withPruneInputOfAggregate(false));
+              view = builder.push(view).filter(viewFilter).build();
             }
 
             // c. Generate union branch (view).
             // We trigger the unifying method. This method will either create a Project
             // or an Aggregate operator on top of the view. It will also compute the
             // output expressions for the query.
-            final RelNode unionInputView = rewriteView(call.builder(), rexBuilder, simplify, mq,
+            RelNode unionInputView = rewriteView(call.builder(), rexBuilder, simplify, mq,
                 matchModality, true, view, topProject, node, topViewProject, viewNode,
                 queryToViewTableMapping, currQEC);
             if (unionInputView == null) {
@@ -455,7 +486,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             if (!viewCompensationPred.isAlwaysTrue()) {
               RexNode newPred =
                   simplify.simplifyUnknownAsFalse(viewCompensationPred);
-              viewWithFilter = builder.push(view).filter(newPred).build();
+              viewWithFilter = getViewWithFilter(view, viewFilter, builder, newPred);
               // No need to do anything if it's a leaf node.
               if (viewWithFilter.getInputs().isEmpty()) {
                 call.transformTo(viewWithFilter);
@@ -469,7 +500,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
               topViewProject = (Project) pushedNodes.left;
               viewNode = pushedNodes.right;
             } else {
-              viewWithFilter = builder.push(view).build();
+              viewWithFilter = getViewWithFilter(view, viewFilter, builder, null);
             }
             final RelNode result = rewriteView(builder, rexBuilder, simplify, mq, matchModality,
                 false, viewWithFilter, topProject, node, topViewProject, viewNode,
@@ -483,6 +514,54 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
         }
       }
     }
+  }
+
+  private static RelNode getViewWithFilter(RelNode view, @Nullable RexNode viewFilter,
+      RelBuilder builder, @Nullable RexNode newPred) {
+    RelNode viewWithFilter;
+    if (viewFilter != null) {
+      viewWithFilter = builder.push(view).filter(viewFilter).build();
+    } else if (newPred != null) {
+      viewWithFilter = builder.push(view).filter(newPred).build();
+    } else {
+      viewWithFilter = builder.push(view).build();
+    }
+    return viewWithFilter;
+  }
+
+  /**
+   * If the view contains a FLOOR(col) and the query contains a range predicate on the col then
+   * generate a filter on the view based on the query predicate so that the view can be used.
+   */
+  private @Nullable Pair<RexNode, RexNode> generateViewPredicateAndFilter(RelNode view,
+      RelNode viewNode, RexBuilder rexBuilder, Pair<RexNode, RexNode> queryPreds) {
+    if (viewNode instanceof Aggregate) {
+      Aggregate aggregate = (Aggregate) viewNode;
+      RelNode input = aggregate.getInput();
+      if (input instanceof Project) {
+        Project project = (Project) input;
+        int viewColumnIndex = 0;
+        for (RexNode rexNode : project.getProjects()) {
+          if (rexNode instanceof RexCall) {
+            RexCall rexCall = (RexCall) rexNode;
+            if (rexCall.getOperator() instanceof SqlFloorFunction) {
+              RexInputRef rexInputRef = RexInputRef.of(viewColumnIndex, view.getRowType());
+              ImplicitViewPredicateShuttle viewPredicateShuttle =
+                  new ImplicitViewPredicateShuttle(rexBuilder, rexCall, rexInputRef, false);
+              ImplicitViewPredicateShuttle viewPredicateShuttle2 =
+                  new ImplicitViewPredicateShuttle(rexBuilder, rexCall, rexInputRef, true);
+              RexNode modifiedQueryPred = queryPreds.right.accept(viewPredicateShuttle);
+              if (viewPredicateShuttle.isRangeMatched()) {
+                return new Pair<>(modifiedQueryPred,
+                    queryPreds.right.accept(viewPredicateShuttle2));
+              }
+            }
+          }
+          viewColumnIndex++;
+        }
+      }
+    }
+    return null;
   }
 
   protected abstract boolean isValidPlan(@Nullable Project topProject, RelNode node,
@@ -514,7 +593,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       RexNode compensationColumnsEquiPred, RexNode otherCompensationPred,
       @Nullable Project topProject, RelNode node,
       BiMap<RelTableRef, RelTableRef> viewToQueryTableMapping,
-      EquivalenceClasses viewEC, EquivalenceClasses queryEC);
+      EquivalenceClasses viewEC, EquivalenceClasses queryEC, boolean pushQueryFilter);
 
   /**
    * If the view will be used in a union rewriting, this method is responsible for
@@ -1051,6 +1130,10 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
           lineages.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
       exprsLineage.put(e, i);
+      if (e instanceof RexCall && e.getKind() == SqlKind.FLOOR) {
+        RexCall c = (RexCall) e;
+        exprsLineage.put(c.getOperands().get(0), i);
+      }
       if (RexUtil.isLosslessCast(e)) {
         exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
       }
@@ -1250,6 +1333,189 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       Util.swallow(ex, null);
       return null;
     }
+  }
+
+  /**
+   * Used to generate a view predicate that is added to a materialized view that aggregates
+   * over a FLOOR() when the query has a range predicate on the same column.
+   */
+  static class ImplicitViewPredicateShuttle extends RexShuttle {
+
+    private final RexBuilder rexBuilder;
+    private final RexCall floorCall;
+    private final RexInputRef rexInputRef;
+    private final boolean generateViewFilter;
+    private long lowerBound;
+    private long upperBound;
+
+    ImplicitViewPredicateShuttle(RexBuilder rexBuilder, RexCall floorCall,
+        RexInputRef rexInputRef,
+        boolean generateViewFilter) {
+      this.floorCall = floorCall;
+      this.rexBuilder = rexBuilder;
+      this.rexInputRef = rexInputRef;
+      this.generateViewFilter = generateViewFilter;
+    }
+
+    private RexNode transformCall(RexCall call, boolean isLowerBound) {
+      SqlOperator transformedCallOperator = isLowerBound
+          ? SqlStdOperatorTable.GREATER_THAN_OR_EQUAL : SqlStdOperatorTable.LESS_THAN;
+      // matches functions of the form x > 5 or 5 > x
+      RexNode literalOperand = call.operands.get(0);
+      RexNode tableInputRefOperand = call.operands.get(1);
+      final int floorIndex = ((RexInputRef) floorCall.getOperands().get(0)).getIndex();
+      boolean reverseOperands = false;
+      if ((literalOperand.getKind() == SqlKind.LITERAL
+          && tableInputRefOperand.getKind() == SqlKind.TABLE_INPUT_REF)
+          || (literalOperand.getKind() == SqlKind.TABLE_INPUT_REF
+          && tableInputRefOperand.getKind() == SqlKind.LITERAL)) {
+        if (literalOperand.getKind() == SqlKind.TABLE_INPUT_REF
+            && tableInputRefOperand.getKind() == SqlKind.LITERAL) {
+          literalOperand = call.operands.get(1);
+          tableInputRefOperand = call.operands.get(0);
+          reverseOperands = true;
+        }
+        int predicateIndex = ((RexTableInputRef) tableInputRefOperand).getIndex();
+        if (floorIndex == predicateIndex) {
+          // if the query predicate contains a range over the column that is floored in the
+          // materialized view we can generate a filter on the view
+          boolean shiftTruncatedVal = call.getOperator() != transformedCallOperator;
+          long truncatedVal = getModifiedVal(shiftTruncatedVal, isLowerBound, literalOperand);
+          RexNode truncatedLiteral =
+              rexBuilder.makeTimestampLiteral(TimestampString.fromMillisSinceEpoch(truncatedVal),
+                  0);
+          if (isLowerBound) {
+            lowerBound = truncatedVal;
+          } else {
+            upperBound = truncatedVal;
+          }
+          if (generateViewFilter) {
+            tableInputRefOperand = rexInputRef;
+          }
+          RexNode modifiedCall = rexBuilder.makeCall(call.getType(), transformedCallOperator,
+              reverseOperands ? ImmutableList.of(tableInputRefOperand, truncatedLiteral)
+                  : ImmutableList.of(truncatedLiteral, tableInputRefOperand));
+          return modifiedCall;
+        } else {
+          // ignore predicates on different columns
+          return rexBuilder.makeLiteral(true);
+        }
+      }
+      return super.visitCall(call);
+    }
+
+    private long getModifiedVal(boolean shiftModifiedVal, boolean isLowerBound,
+        RexNode literalOperand) {
+      SqlOperator floorOperator = isLowerBound ? SqlStdOperatorTable.CEIL
+          : SqlStdOperatorTable.FLOOR;
+      RexNode truncatedLiteral = rexBuilder.makeCall(floorCall.getType(),
+          floorOperator, ImmutableList.of(literalOperand, floorCall.getOperands().get(1)));
+      Comparable v0 = RexInterpreter.evaluate(truncatedLiteral, Collections.emptyMap());
+      if (v0 == null) {
+        throw new AssertionError("interpreter returned null for " + v0);
+      }
+      Comparable v1 = RexInterpreter.evaluate(literalOperand, Collections.emptyMap());
+      if (v1 == null) {
+        throw new AssertionError("interpreter returned null for " + v1);
+      }
+      long modifiedVal = (long) v0;
+      final long originalVal = (long) v1;
+      // Since the view contains a FLOOR() if the query does a > or <= and the operand is already
+      // a FLOORED value we have to shift the value to the next higher or lower floored value
+      // If the query contains a >= or < we don't need to shift the modified value
+      if (shiftModifiedVal && modifiedVal == originalVal) {
+        final RexLiteral literal = (RexLiteral) floorCall.getOperands().get(1);
+        final TimeUnitRange unit = castNonNull(literal.getValueAs(TimeUnitRange.class));
+        if (isLowerBound) {
+          modifiedVal += RexInterpreter.getFloorMod(unit);
+        } else {
+          modifiedVal -= RexInterpreter.getFloorMod(unit);
+        }
+      }
+      return modifiedVal;
+    }
+
+    /**
+     * Generates a predicate that is added to the view so that we can use union rewriting.
+     *
+     * @param call the query predicate
+     * @return the predicate that is to be used as the view predicate or a view filter
+     */
+    @SuppressWarnings("BetaApi")
+    @Override public RexNode visitCall(RexCall call) {
+      switch (call.getKind()) {
+      case SEARCH:
+        Sarg sarg = castNonNull(((RexLiteral) call.getOperands().get(1)).getValueAs(Sarg.class));
+        if (sarg.rangeSet.asRanges().size() != 1) {
+          return super.visitCall(call);
+        }
+        Range r = (Range) sarg.rangeSet.asRanges().iterator().next();
+        final int floorIndex = ((RexInputRef) floorCall.getOperands().get(0)).getIndex();
+        RexNode tableInputRefOperand = call.operands.get(0);
+        if (!(tableInputRefOperand instanceof RexTableInputRef)) {
+          // ignore SARG that isn't on table column
+          return rexBuilder.makeLiteral(true);
+        }
+        int predicateIndex = ((RexTableInputRef) tableInputRefOperand).getIndex();
+        if (floorIndex != predicateIndex) {
+          // ignore predicates on different columns
+          return rexBuilder.makeLiteral(true);
+        }
+        RexNode lb = rexBuilder.makeTimestampLiteral((TimestampString) r.lowerEndpoint(), 0);
+        // if the lower bound is exclusive we need to shift the modified value to the next higher
+        // floored value
+        long modifiedLbVal = getModifiedVal(r.lowerBoundType() == BoundType.OPEN, true, lb);
+        RexNode truncatedLb =
+            rexBuilder.makeTimestampLiteral(TimestampString.fromMillisSinceEpoch(modifiedLbVal),
+                0);
+        RexNode ub = rexBuilder.makeTimestampLiteral((TimestampString) r.upperEndpoint(), 0);
+        // if the upper bound is inclusive we need to shift the modified value to the previous lower
+        // floored value
+        long modifiedUbVal = getModifiedVal(r.upperBoundType() == BoundType.CLOSED, false, ub);
+        RexNode truncatedUb =
+            rexBuilder.makeTimestampLiteral(TimestampString.fromMillisSinceEpoch(modifiedUbVal),
+                0);
+
+        lowerBound = modifiedLbVal;
+        upperBound = modifiedUbVal;
+
+        if (generateViewFilter) {
+          tableInputRefOperand = rexInputRef;
+        }
+        RexNode res = rexBuilder.makeCall(SqlStdOperatorTable.AND,
+            rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, tableInputRefOperand,
+                truncatedLb),
+            rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, tableInputRefOperand, truncatedUb));
+        return res;
+      // Since the view contains a FLOOR() we use GREATER_THAN_OR_EQUAL for the lower bound
+      // range comparison
+      case GREATER_THAN_OR_EQUAL:
+      case GREATER_THAN:
+        // CEIL is used to determine the lower bound range that for the view predicate
+        // For eg if the query has (date > TIMESTAMP'2018-01-01 01:00:00') and we have a view
+        // that rolls up to the minute we generate a predicate (date >= TIMESTAMP'2018-01-01
+        // 02:00:00')
+        return transformCall(call, true);
+      // since the view contains a FLOOR() we use LESS_THAN for the upper bound
+      // range comparison
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+        // FLOOR is used to determine the upper bound range that for the view predicate
+        // For eg if the query has (date <= TIMESTAMP'2018-01-01 05:00:00') and we have a view
+        // that rolls up to the minute we generate a predicate (date < TIMESTAMP'2018-01-01
+        // 04:00:00')
+        return transformCall(call, false);
+      case EQUALS:
+        return rexBuilder.makeLiteral(true);
+      default:
+        return super.visitCall(call);
+      }
+    }
+
+    public boolean isRangeMatched() {
+      return lowerBound != 0L || upperBound != 0L && lowerBound != upperBound;
+    }
+
   }
 
   /**

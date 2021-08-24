@@ -340,24 +340,27 @@ public class RexInterpreter implements RexVisitor<Comparable> {
         return DateTimeUtils.unixTimestampCeil(unit, v);
       }
     default:
-      break;
-    }
-    final TimeUnitRange subUnit = subUnit(unit);
-    for (long v2 = v;;) {
-      final int e = DateTimeUtils.unixTimestampExtract(subUnit, v2);
-      if (e == 0) {
-        return v2;
+      switch (call.getKind()) {
+      case FLOOR:
+        return SqlFunctions.floor(v, getFloorMod(unit));
+      default:
+        return SqlFunctions.ceil(v, getFloorMod(unit));
       }
-      v2 -= unit.startUnit.multiplier.longValue();
     }
   }
 
-  private static TimeUnitRange subUnit(TimeUnitRange unit) {
+  public static long getFloorMod(TimeUnitRange unit) {
     switch (unit) {
-    case QUARTER:
-      return TimeUnitRange.MONTH;
+    case DAY:
+      return DateTimeUtils.MILLIS_PER_DAY;
+    case HOUR:
+      return DateTimeUtils.MILLIS_PER_HOUR;
+    case MINUTE:
+      return DateTimeUtils.MILLIS_PER_MINUTE;
+    case SECOND:
+      return DateTimeUtils.MILLIS_PER_SECOND;
     default:
-      return TimeUnitRange.DAY;
+      throw new AssertionError(unit);
     }
   }
 
