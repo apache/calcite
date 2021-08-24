@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -366,12 +367,15 @@ public final class AggregateExpandDistinctAggregatesRule
         final int arg = bottomGroups.size() + nonDistinctAggCallProcessedSoFar;
         final List<Integer> newArgs = ImmutableList.of(arg);
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
+          RelDataTypeFactory typeFactory = aggregate.getCluster().getTypeFactory();
+
           newCall =
               AggregateCall.create(new SqlSumEmptyIsZeroAggFunction(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   newArgs, -1, aggCall.distinctKeys, aggCall.collation,
                   originalGroupSet.cardinality(), relBuilder.peek(),
-                  aggCall.getType(), aggCall.getName());
+                  typeFactory.getTypeSystem().deriveSumType(typeFactory, aggCall.getType()),
+                  aggCall.getName());
         } else {
           newCall =
               AggregateCall.create(aggCall.getAggregation(), false,
@@ -400,6 +404,12 @@ public final class AggregateExpandDistinctAggregatesRule
     relBuilder.push(
         aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
             ImmutableBitSet.of(topGroupSet), null, topAggregateCalls));
+
+    // Add projection node for case: SUM of COUNT(*):
+    // Type of the SUM may be larger than type of COUNT.
+    // CAST to original type must be added.
+    relBuilder.convert(aggregate.getRowType(), true);
+
     return relBuilder;
   }
 

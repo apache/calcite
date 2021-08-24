@@ -789,10 +789,15 @@ public class SqlDialect {
   * {@code CAST(NULL AS <nulltype>)} is rendered as {@code NULL}. */
   public @Nullable SqlNode getCastSpec(RelDataType type) {
     int maxPrecision = -1;
+    int maxScale = -1;
     if (type instanceof AbstractSqlType) {
       switch (type.getSqlTypeName()) {
       case NULL:
         return null;
+      case DECIMAL:
+        maxScale = getTypeSystem().getMaxScale(type.getSqlTypeName());
+        // fall through
+      case CHAR:
       case VARCHAR:
         // if needed, adjust varchar length to max length supported by the system
         maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());
@@ -803,7 +808,7 @@ public class SqlDialect {
       String charSet = type.getCharset() != null && supportsCharSet()
           ? type.getCharset().name()
           : null;
-      return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision);
+      return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision, maxScale);
     }
     return SqlTypeUtil.convertTypeToSpec(type);
   }
