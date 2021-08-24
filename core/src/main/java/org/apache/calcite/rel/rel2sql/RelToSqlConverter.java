@@ -332,15 +332,11 @@ public class RelToSqlConverter extends SqlImplementor
       final Builder builder = x.builder(e);
       SqlNode condition = builder.context.toSql(null, e.getCondition());
       SqlNode existHaving = x.asSelect().getHaving();
-      if (existHaving == null) {
-        builder.setHaving(condition);
-      } else {
-        // if input Aggregate RelNode contains existHaving, need
-        // to create AND expression with connect condition and existHaving
-        // then update input Aggregate's Having condition.
-        condition = SqlUtil.andExpressions(condition, existHaving);
-        x.asSelect().setHaving(condition);
-      }
+      // if input Aggregate RelNode contains existHaving, need
+      // to create AND expression with connect condition and existHaving
+      // then update input Aggregate's Having condition.
+      condition = SqlUtil.andExpressions(existHaving, condition);
+      x.asSelect().setHaving(condition);
       return builder.result();
     } else {
       final Result x = visitInput(e, 0, Clause.WHERE);
