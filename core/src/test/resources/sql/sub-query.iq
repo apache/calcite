@@ -2161,4 +2161,193 @@ EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
 
 !ok
 
+# UNIQUE sub-query
+!use post
+!set expand false
+!set outputformat mysql
+
+# sub-query have duplicate value
+select "deptno"
+from "hr"."depts"
+where unique (select 1 from "hr"."emps");
++--------+
+| deptno |
++--------+
++--------+
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+      EnumerableAggregate(group=[{0}], count=[COUNT()])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], EXPR$0=[$t5])
+          EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# As above, but NOT UNIQUE
+select "deptno"
+from "hr"."depts"
+where not unique (select 1 from "hr"."emps");
++--------+
+| deptno |
++--------+
+|     10 |
+|     30 |
+|     40 |
++--------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+      EnumerableAggregate(group=[{0}], count=[COUNT()])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], EXPR$0=[$t5])
+          EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# As above, project many columns have unique value
+select "deptno"
+from "hr"."depts"
+where unique (select * from "hr"."emps");
++--------+
+| deptno |
++--------+
+|     10 |
+|     30 |
+|     40 |
++--------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..5=[{inputs}], expr#6=[true], expr#7=[1], expr#8=[>($t5, $t7)], i=[$t6], $condition=[$t8])
+        EnumerableAggregate(group=[{0, 1, 2, 3, 4}], count=[COUNT()])
+          EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t2)], expr#6=[IS NOT NULL($t4)], expr#7=[AND($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])
+            EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# as above, but project one column with unique value
+select "deptno"
+from "hr"."depts"
+where unique (select "empid" from "hr"."emps");
++--------+
+| deptno |
++--------+
+|     10 |
+|     30 |
+|     40 |
++--------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{0}], count=[COUNT()])
+          EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# as above, but have duplicate value
+select "deptno"
+from "hr"."depts"
+where unique (select "deptno" from "hr"."emps" where "deptno" = 10);
++--------+
+| deptno |
++--------+
++--------+
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+      EnumerableAggregate(group=[{1}], count=[COUNT()])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[10], expr#7=[=($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])
+          EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# as above, but table empty
+select "deptno"
+from "hr"."depts"
+where unique (select "deptno" from "hr"."emps" where "deptno" = 30);
++--------+
+| deptno |
++--------+
+|     10 |
+|     30 |
+|     40 |
++--------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+      EnumerableAggregate(group=[{1}], count=[COUNT()])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[30], expr#7=[=($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])
+          EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# Correlated UNIQUE sub-query
+select *
+from "hr"."depts"
+where unique (
+    select 1 from "hr"."emps" where "depts"."deptno" = "emps"."deptno");
++--------+-----------+--------------------------------+----------+
+| deptno | name      | employees                      | location |
++--------+-----------+--------------------------------+----------+
+|     30 | Marketing | []                             | {0, 52}  |
+|     40 | HR        | [{200, 20, Eric, 8000.0, 500}] |          |
++--------+-----------+--------------------------------+----------+
+(2 rows)
+
+!ok
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL($t4)], proj#0..3=[{exprs}], $condition=[$t6])
+  EnumerableMergeJoin(condition=[=($0, $5)], joinType=[left])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableTableScan(table=[[hr, depts]])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], deptno=[$t0], $condition=[$t4])
+        EnumerableAggregate(group=[{1}], count=[COUNT()])
+          EnumerableTableScan(table=[[hr, emps]])
+!plan
+
+# Correlated NOT UNIQUE sub-query
+select *
+from "hr"."depts"
+where not unique (
+    select 1 from "hr"."emps" where "depts"."deptno" = "emps"."deptno");
++--------+-------+----------------------------------------------------------------------+------------+
+| deptno | name  | employees                                                            | location   |
++--------+-------+----------------------------------------------------------------------+------------+
+|     10 | Sales | [{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}] | {-122, 38} |
++--------+-------+----------------------------------------------------------------------+------------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], name=[$t2], employees=[$t3], location=[$t4])
+  EnumerableHashJoin(condition=[=($0, $1)], joinType=[inner])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t1, $t2)], deptno=[$t0], $condition=[$t3])
+      EnumerableAggregate(group=[{1}], count=[COUNT()])
+        EnumerableTableScan(table=[[hr, emps]])
+    EnumerableTableScan(table=[[hr, depts]])
+!plan
+
 # End sub-query.iq

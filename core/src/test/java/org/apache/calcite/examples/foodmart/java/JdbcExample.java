@@ -47,10 +47,19 @@ public class JdbcExample {
     rootSchema.add("foodmart", new ReflectiveSchema(new Foodmart()));
     Statement statement = connection.createStatement();
     ResultSet resultSet =
-        statement.executeQuery("select *\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "join \"hr\".\"emps\" as e\n"
-            + "on e.\"empid\" = s.\"cust_id\"");
+        /**
+         * values (0, 10, 15),
+         *     (1, 20, 25),
+         *     (2, cast(NULL as integer), 50)
+         */
+        statement.executeQuery("selectn"
+  +
+            "unique(values(1,2,3),(1,2,3))," +
+            "unique(values(1,2,3),(1,2,4))," +
+            "unique(values(1,2,3),(1,2,null))," +
+            "unique(select null,1,1 as table4)," +
+            "unique(select 1,1 as table4)," +
+            "unique(select null,2,1 as table5) ");
     final StringBuilder buf = new StringBuilder();
     while (resultSet.next()) {
       int n = resultSet.getMetaData().getColumnCount();

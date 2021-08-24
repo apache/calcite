@@ -5043,43 +5043,6 @@ public class JdbcTest {
             "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500; I=null");
   }
 
-  @Test void testUniqueCorrelated() {
-    final String sql = "select*from \"hr\".\"emps\" where unique (\n"
-        + " select 1 from \"hr\".\"depts\"\n"
-        + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
-    final String plan = ""
-        + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-        + "  LogicalFilter(condition=[UNIQUE({\n"
-        + "LogicalProject(EXPR$0=[1])\n"
-        + "  LogicalFilter(condition=[=($cor0.deptno, $0)])\n"
-        + "    LogicalTableScan(table=[[hr, depts]])\n"
-        + "})], variablesSet=[[$cor0]])\n"
-        + "    LogicalTableScan(table=[[hr, emps]])\n";
-    CalciteAssert.hr().query(sql).convertContains(plan)
-        .returnsUnordered(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
-            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250",
-            "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
-  }
-
-  @Test void testNotUniqueCorrelated() {
-    final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..5=[{inputs}], empid=[$t1], deptno=[$t2], name=[$t3], salary=[$t4], commission=[$t5])\n"
-        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
-        + "      EnumerableAggregate(group=[{0}], count=[COUNT()])\n"
-        + "        EnumerableTableScan(table=[[hr, depts]])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n\n";
-    final String sql = "select * from \"hr\".\"emps\" where not unique (\n"
-        + " select 1 from \"hr\".\"depts\"\n"
-        + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
-    CalciteAssert.hr()
-        .query(sql)
-        .explainContains(plan)
-        .returnsUnordered("");
-  }
-
   @Test void testUniqueWithLimit() {
     final String plan = "PLAN="
         + "EnumerableTableScan(table=[[hr, emps]])\n\n";
@@ -5156,6 +5119,55 @@ public class JdbcTest {
         .query(sql)
         .explainContains(plan)
         .returnsUnordered("");
+  }
+
+  @Test void testUniqueWithNullValueInSingleColumn() {
+    // make sure the unique predicate can work with single-column values.
+    CalciteAssert.that()
+        .query("select unique(values(1),(2),(3))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1),(2),(3),(1))")
+        .returns("EXPR$0=false\n");
+    // unique sub-query with single-column have NULL value.
+    CalciteAssert.that()
+        .query("select unique(values(NULL),(NULL))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1),(2),(3),(NULL))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1),(2),(NULL),(NULL))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1),(2),(NULL),(1))")
+        .returns("EXPR$0=false\n");
+  }
+
+  @Test void testUniqueWithNullValueInMoreColumns() {
+    // make sure the unique predicate can work with more-column values.
+    CalciteAssert.that()
+        .query("select unique(values(1,1),(2,2),(3,3))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1,1),(2,2),(3,3),(1,1))")
+        .returns("EXPR$0=false\n");
+    // unique sub-query with more-column have NULL value.
+    CalciteAssert.that()
+        .query("select unique(values(NULL,NULL),(NULL,NULL))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1,1),(2,2),(3,3),(NULL,NULL))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1,1),(2,2),(NULL,NULL),(NULL,NULL))")
+        .returns("EXPR$0=true\n");
+    CalciteAssert.that()
+        .query("select unique(values(1,2),(2,1),(NULL,NULL),(1,2))")
+        .returns("EXPR$0=false\n");
+    CalciteAssert.that()
+        .query("select unique(values(1,1),(1,NULL))")
+        .returns("EXPR$0=true\n");
   }
 
   /** Test case for

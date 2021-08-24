@@ -1558,16 +1558,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testUniqueWithExpand() {
-    try {
-      final String sql = "select * from emp\n"
-          + "where unique (select 1 from dept where deptno=55)";
-      sql(sql).expand(true).ok();
-    } catch (RuntimeException e) {
-      assertThat(e.getMessage(),
-          containsString(
-              "UNIQUE is only supported if expand = false"));
-    }
-
+    final String sql = "select * from emp\n"
+        + "where unique (select 1 from dept where deptno=55)";
+    sql(sql).expand(true).throws_("UNIQUE is only supported if expand = false");
   }
 
   @Test void testUniqueWithProjectLateral() {
@@ -4353,6 +4346,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
     public void ok() {
       convertsTo("${plan}");
+    }
+
+    public void throws_(String message) {
+      try {
+        ok();
+      } catch (Throwable throwable) {
+        assertThat(TestUtil.printStackTrace(throwable), containsString(message));
+      }
     }
 
     public void convertsTo(String plan) {

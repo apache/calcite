@@ -480,14 +480,16 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * statistic over all columns.
    *
    * @param rel     the relational expression
+   * @param ignoreNulls if true, ignore null values when determining column
+   *                    uniqueness
    *
    * @return true or false depending on whether the rows are unique, or
    * null if not enough information is available to make that determination
    */
-  public @Nullable Boolean areRowsUnique(RelNode rel) {
+  public @Nullable Boolean areRowsUnique(RelNode rel, boolean ignoreNulls) {
     final ImmutableBitSet columns =
         ImmutableBitSet.range(rel.getRowType().getFieldCount());
-    return areColumnsUnique(rel, columns, false);
+    return areColumnsUnique(rel, columns, ignoreNulls);
   }
 
   /**

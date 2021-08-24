@@ -1241,7 +1241,7 @@ completeness.
 | value comparison ANY (sub-query)                  | Synonym for `SOME`
 | value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
-| UNIQUE (sub-query)                                | Whether *sub-query* returns row is unique
+| UNIQUE (sub-query)                                | Whether *sub-query* returns unique row
 
 {% highlight sql %}
 comp:
