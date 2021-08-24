@@ -493,6 +493,21 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   }
 
   /**
+   * Returns whether the rows of a given relational expression are distinct.
+   * This is derived by applying the
+   * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
+   * statistic over all columns.
+   *
+   * @param rel     the relational expression
+   *
+   * @return true or false depending on whether the rows are unique, or
+   * null if not enough information is available to make that determination
+   */
+  public @Nullable Boolean areRowsUnique(RelNode rel) {
+    return areRowsUnique(rel, false);
+  }
+
+  /**
    * Returns the
    * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(ImmutableBitSet, boolean)}
    * statistic.
