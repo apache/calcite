@@ -1255,18 +1255,18 @@ public class SqlToRelConverter {
       //
       // If there is no correlation, the expression is replaced with a
       // boolean indicating whether the sub-query returned 0 or >= 1 row.
-      call = (SqlBasicCall) subQuery.node;
-      query = call.operand(0);
       if (!config.isExpand()) {
         return;
       }
+      call = (SqlBasicCall) subQuery.node;
+      query = call.operand(0);
       final SqlValidatorScope seekScope =
           (query instanceof SqlSelect)
               ? validator().getSelectScope((SqlSelect) query)
               : null;
       final Blackboard seekBb = createBlackboard(seekScope, null, false);
       final RelNode seekRel = convertQueryOrInList(seekBb, query, null);
-      requireNonNull(seekRel, () -> "seelkRel is null for query " + query);
+      requireNonNull(seekRel, () -> "seekRel is null for query " + query);
       // An EXIST sub-query whose inner child has at least 1 tuple
       // (e.g. an Aggregate with no grouping columns or non-empty Values
       // node) should be simplified to a Boolean constant expression.
@@ -1635,7 +1635,7 @@ public class SqlToRelConverter {
             : null;
     final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
-    requireNonNull(seekRel, () -> "seelkRel is null for query " + seek);
+    requireNonNull(seekRel, () -> "seekRel is null for query " + seek);
 
     return RelOptUtil.createExistsPlan(seekRel,
         subQueryType, logic, notIn, relBuilder);
@@ -2645,6 +2645,7 @@ public class SqlToRelConverter {
     final List<RelNode> inputs = bb.retrieveCursors();
     Set<RelColumnMapping> columnMappings =
         getColumnMappings(operator);
+
     LogicalTableFunctionScan callRel =
         LogicalTableFunctionScan.create(
             cluster,
@@ -2653,6 +2654,17 @@ public class SqlToRelConverter {
             elementType,
             validator().getValidatedNodeType(call),
             columnMappings);
+
+    final SqlValidatorScope selectScope =
+        ((DelegatingScope) bb.scope()).getParent();
+    final Blackboard seekBb = createBlackboard(selectScope, null, false);
+
+    final CorrelationUse p = getCorrelationUse(seekBb, callRel);
+    if (p != null) {
+      assert p.r instanceof LogicalTableFunctionScan;
+      callRel = (LogicalTableFunctionScan) p.r;
+    }
+
     bb.setRoot(callRel, true);
     afterTableFunction(bb, call, callRel);
   }

@@ -20,18 +20,55 @@ package org.apache.calcite.tools;
  * TPC-H table schema.
  */
 public class TpchSchema {
+  public final Customer[] customer = { c(1), c(2) };
+  public final LineItem[] lineitem = { li(1), li(2) };
   public final Part[] part = { p(1), p(2) };
   public final PartSupp[] partsupp = { ps(1, 250), ps(2, 100) };
+
+  /**
+   * Customer in TPC-H.
+   */
+  public static class Customer {
+    public final int custId;
+    // CHECKSTYLE: IGNORE 1
+    public final String nation_name;
+
+    public Customer(int custId) {
+      this.custId = custId;
+      this.nation_name = "USA";
+    }
+
+    @Override public String toString() {
+      return "Customer [custId=" + custId + "]";
+    }
+  }
+
+  /**
+   * Line Item in TPC-H.
+   */
+  public static class LineItem {
+    public final int custId;
+
+    public LineItem(int custId) {
+      this.custId = custId;
+    }
+
+    @Override public String toString() {
+      return "LineItem [custId=" + custId + "]";
+    }
+  }
 
   /**
    * Part in TPC-H.
    */
   public static class Part {
-    public int pPartkey;
-
+    public final int pPartkey;
+    // CHECKSTYLE: IGNORE 1
+    public final String p_brand;
 
     public Part(int pPartkey) {
       this.pPartkey = pPartkey;
+      this.p_brand = "brand" + pPartkey;
     }
 
     @Override public String toString() {
@@ -55,6 +92,14 @@ public class TpchSchema {
       return "PartSupp [pSupplyCost=" + psPartkey + ", pSupplyCost="
         + psSupplyCost + "]";
     }
+  }
+
+  public static Customer c(int custId) {
+    return new Customer(custId);
+  }
+
+  public static LineItem li(int custId) {
+    return new LineItem(custId);
   }
 
   public static PartSupp ps(int pPartkey, int pSupplyCost) {

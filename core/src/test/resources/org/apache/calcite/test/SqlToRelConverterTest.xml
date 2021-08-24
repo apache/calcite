@@ -659,6 +659,33 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelationCollectionTableInSubQuery">
+    <Resource name="planExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], EXPR$1=[$9])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+        LogicalProject(NAME=[$0])
+          LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.DEPTNO)], rowType=[RecordType(VARCHAR(1024) NAME)])
+]]>
+    </Resource>
+    <Resource name="planNotExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], EXPR$1=[$SCALAR_QUERY({
+LogicalProject(NAME=[$0])
+  LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.DEPTNO)], rowType=[RecordType(VARCHAR(1024) NAME)])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select e.deptno,
+  (select * from lateral table(DEDUP(e.deptno, e.deptno)))
+from emp e]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelationExistsAndFilter">
     <Resource name="sql">
       <![CDATA[SELECT e1.empno
@@ -736,6 +763,49 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelationExistsWithSubQuery">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($7, $cor2.DEPTNO0), =($7, $cor2.DEPTNO0), OR(=($7, $cor2.DEPTNO0), =($7, $cor2.DEPTNO0)))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor2]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select emp.deptno, dept.deptno
+from emp, dept
+where exists (select * from emp
+  where emp.deptno = dept.deptno
+  and emp.deptno = dept.deptno
+  and emp.deptno in (dept.deptno, dept.deptno))]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelationInWithSubQuery">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.DEPTNO, $0), =($cor0.DEPTNO, $0))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select deptno
+from emp
+where deptno in (select deptno
+    from dept
+    where emp.deptno = dept.deptno
+    and emp.deptno = dept.deptno)]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelationJoin">
     <Resource name="plan">
       <![CDATA[
@@ -770,6 +840,33 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
         LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelationLateralSubQuery">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
+      LogicalProject(ENAME=[$1], SAL=[$5])
+        LogicalFilter(condition=[AND(OR(=($7, $cor0.DEPTNO), =($7, $cor0.DEPTNO)), =($7, $cor0.DEPTNO))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, ename
+FROM
+  (SELECT DISTINCT deptno FROM emp) t1,
+  LATERAL (
+    SELECT ename, sal
+    FROM emp
+    WHERE deptno IN (t1.deptno, t1.deptno)
+    AND   deptno = t1.deptno
+    ORDER BY sal
+    DESC LIMIT 3)]]>
     </Resource>
   </TestCase>
   <TestCase name="testCorrelationMultiScalarAggregate">
@@ -2125,7 +2222,7 @@ LogicalProject(DEPTNO=[$7])
     </Resource>
   </TestCase>
   <TestCase name="testImplicitJoinExpandAndDecorrelation">
-    <Resource name="plan_extended">
+    <Resource name="planExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
   LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10], DEPTNO1=[CAST($11):INTEGER], EXPR$0=[CAST($12):INTEGER])
@@ -2138,7 +2235,7 @@ LogicalProject(DEPTNO=[$9], SAL=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
-    <Resource name="plan_not_extended">
+    <Resource name="planNotExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
   LogicalFilter(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({
@@ -2702,7 +2799,7 @@ from (values (cast(null as int), 1),
     </Resource>
   </TestCase>
   <TestCase name="testJoinExpandAndDecorrelation">
-    <Resource name="plan_extended">
+    <Resource name="planExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
   LogicalJoin(condition=[AND(=($9, $0), <($7, $0))], joinType=[inner])
@@ -2715,7 +2812,7 @@ LogicalProject(DEPTNO=[$9], SAL=[$7])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
-    <Resource name="plan_not_extended">
+    <Resource name="planNotExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
   LogicalJoin(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({

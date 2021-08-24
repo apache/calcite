@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUnknownAs;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
@@ -692,10 +693,13 @@ public abstract class SqlImplementor {
 
       case SEARCH:
         final RexCall search = (RexCall) rex;
-        literal = (RexLiteral) search.operands.get(1);
-        final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
-        //noinspection unchecked
-        return toSql(program, search.operands.get(0), literal.getType(), sarg);
+        if (search.operands.get(1).getKind() == SqlKind.LITERAL) {
+          literal = (RexLiteral) search.operands.get(1);
+          final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
+          //noinspection unchecked
+          return toSql(program, search.operands.get(0), literal.getType(), sarg);
+        }
+        return toSql(program, RexUtil.expandSearch(implementor().rexBuilder, program, search));
 
       case EXISTS:
       case UNIQUE:
