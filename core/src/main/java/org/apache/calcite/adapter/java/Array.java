@@ -21,13 +21,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Annotation that indicates that a field is an array type.
+/** Annotation that indicates that a field is an array type.
  *
  * Annotation usage cases:
  * - supply class type at runtime for column in table.
- * - supply class type at runtime for table. Expected that field implements {@link Iterable} interface
- */
+ * - supply class type at runtime for table. Expected that field implements {@link Iterable} interface. */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Array {

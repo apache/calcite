@@ -191,7 +191,7 @@ public class ReflectiveSchema
   /** Returns a table based on a particular field of this schema.
    * If the field is not of the right type to be a relation, returns null.
    * Method infer Iterable generic type if the field is annotated with {@link Array}
-   * and Iterable item class is set at {@link Array#component(). */
+   * and Iterable item class is set at {@link Array#component()}. */
   private <T> @Nullable Table fieldRelation(final Field field) {
     Array arrayAnnotation = field.getAnnotation(Array.class);
     Class<?> iterableItemClass = arrayAnnotation != null ? arrayAnnotation.component() : null;
