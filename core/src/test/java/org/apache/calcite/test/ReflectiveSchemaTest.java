@@ -881,13 +881,13 @@ public class ReflectiveSchemaTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4708">[CALCITE-4708]
-   * Infer list generic type while Table instance is created at ReflectiveSchema class</a> */
+   * Infer list generic type while Table instance is created at ReflectiveSchema class</a>. */
   @ParameterizedTest
   @MethodSource("provideTestTableArrayAnnotation")
   void testTableArrayAnnotation(Iterable<JdbcTest.SalesFact> dataList) throws SQLException {
     Properties properties = new Properties();
     properties.put("lex", "JAVA");
-    try(Connection connection = DriverManager.getConnection("jdbc:calcite:", properties)) {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", properties)) {
       JdbcTest.FoodmartSchemaIterable schemaJava = new JdbcTest.FoodmartSchemaIterable(dataList);
       ReflectiveSchema schema = new ReflectiveSchema(schemaJava);
 
@@ -915,7 +915,7 @@ public class ReflectiveSchemaTest {
     }
   }
 
-  /** Test data for test {@link ReflectiveSchemaTest#testTableArrayAnnotation(Iterable)} */
+  /** Test data for test {@link ReflectiveSchemaTest#testTableArrayAnnotation(Iterable)}. */
   private static Stream<Arguments> provideTestTableArrayAnnotation() {
     List<JdbcTest.SalesFact> dataList = Arrays.asList(
         new JdbcTest.SalesFact(100, 10),

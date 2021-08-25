@@ -188,16 +188,10 @@ public class ReflectiveSchema
         target.getClass());
   }
 
-  /**
-   * Returns a table based on a particular field of this schema.
+  /** Returns a table based on a particular field of this schema.
    * If the field is not of the right type to be a relation, returns null.
-   *
    * Method infer Iterable generic type if the field is annotated with {@link Array}
-   * and Iterable item class is set at {@link Array#component()}
-   *
-   * @param field schema field
-   * @return table instance based on a particular field of this schema
-   */
+   * and Iterable item class is set at {@link Array#component(). */
   private <T> @Nullable Table fieldRelation(final Field field) {
     Array arrayAnnotation = field.getAnnotation(Array.class);
     Class<?> iterableItemClass = arrayAnnotation != null ? arrayAnnotation.component() : null;
@@ -218,17 +212,15 @@ public class ReflectiveSchema
     return new FieldTable<>(field, elementType, enumerable);
   }
 
-  /**
-   * Deduces the element type of a collection;
-   * Collection represent set of rows in table;
-   * Method returns null if class is not collection;
+  /** Deduces the element type of a collection.
+   * Collection represent set of rows in table.
+   * Method returns null if class is not collection.
    *
    * same logic as {@link #toEnumerable}.
    *
    * @param clazz collection class. Parameter is mandatory
    * @param iterableItemClass item's class of iterable collection. Parameter is optional
-   * @return element type of a collection
-   */
+   * @return element type of a collection. */
   private static @Nullable Type getElementType(Class clazz, Class<?> iterableItemClass) {
     if (clazz.isArray()) {
       return clazz.getComponentType();
