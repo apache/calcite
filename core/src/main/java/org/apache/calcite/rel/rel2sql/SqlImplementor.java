@@ -116,7 +116,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -1888,8 +1887,7 @@ public abstract class SqlImplementor {
             if (n.getKind() == SqlKind.AS) {
               final SqlCall call = (SqlCall) n;
               final SqlIdentifier identifier = call.operand(1);
-              if (identifier.getSimple().toLowerCase(Locale.ROOT)
-                  .startsWith("expr$")) {
+              if (SqlUtil.isGeneratedAlias(identifier.getSimple())) {
                 nodeList.set(i, call.operand(0));
               }
             }
