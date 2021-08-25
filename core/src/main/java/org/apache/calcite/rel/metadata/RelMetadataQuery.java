@@ -489,7 +489,9 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * null if not enough information is available to make that determination
    */
   public @Nullable Boolean areRowsUnique(RelNode rel, boolean ignoreNulls) {
-    if(this.getRowCount(rel) <= 1) return true;
+    if (this.getRowCount(rel) <= 1) {
+      return true;
+    }
     final ImmutableBitSet columns = ImmutableBitSet.range(rel.getRowType().getFieldCount());
     return areColumnsUnique(rel, columns, ignoreNulls);
   }
