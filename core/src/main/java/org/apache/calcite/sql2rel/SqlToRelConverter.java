@@ -4380,8 +4380,8 @@ public class SqlToRelConverter {
       Collection<String> aliases,
       final int ordinal) {
     String alias = validator().deriveAlias(node, ordinal);
-    if ((alias == null) || aliases.contains(alias)) {
-      String aliasBase = (alias == null) ? "EXPR$" : alias;
+    if (alias == null || aliases.contains(alias)) {
+      final String aliasBase = Util.first(alias, SqlUtil.GENERATED_EXPR_ALIAS_PREFIX);
       for (int j = 0;; j++) {
         alias = aliasBase + j;
         if (!aliases.contains(alias)) {
