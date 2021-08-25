@@ -49,6 +49,10 @@ public class FunctionContexts {
       return root.getTypeFactory();
     }
 
+    @Override public DataContext getDataContext() {
+      return root;
+    }
+
     @Override public int getParameterCount() {
       return argumentValues.length;
     }

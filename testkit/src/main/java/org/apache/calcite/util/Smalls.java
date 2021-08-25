@@ -509,6 +509,9 @@ public class Smalls {
     private final int initY;
 
     public MyPlusInitFunction(FunctionContext fx) {
+      if (fx.getDataContext() == null) {
+        throw new IllegalStateException("Data context is not set in function context");
+      }
       INSTANCE_COUNT.get().incrementAndGet();
       final StringBuilder b = new StringBuilder();
       final int parameterCount = fx.getParameterCount();
