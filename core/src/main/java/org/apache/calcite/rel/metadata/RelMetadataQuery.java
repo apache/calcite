@@ -475,7 +475,9 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   /**
    * Returns whether the rows of a given relational expression are distinct.
-   * This is derived by applying the
+   * This is derived by
+   * {@link BuiltInMetadata.RowCount#getRowCount()}
+   * get rowcount and applying the
    * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
    * statistic over all columns.
    *
@@ -487,14 +489,16 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * null if not enough information is available to make that determination
    */
   public @Nullable Boolean areRowsUnique(RelNode rel, boolean ignoreNulls) {
-    final ImmutableBitSet columns =
-        ImmutableBitSet.range(rel.getRowType().getFieldCount());
+    if(this.getRowCount(rel) <= 1) return true;
+    final ImmutableBitSet columns = ImmutableBitSet.range(rel.getRowType().getFieldCount());
     return areColumnsUnique(rel, columns, ignoreNulls);
   }
 
   /**
    * Returns whether the rows of a given relational expression are distinct.
-   * This is derived by applying the
+   * This is derived by
+   * {@link BuiltInMetadata.RowCount#getRowCount()}
+   * get rowcount and applying the
    * {@link BuiltInMetadata.ColumnUniqueness#areColumnsUnique(org.apache.calcite.util.ImmutableBitSet, boolean)}
    * statistic over all columns.
    *

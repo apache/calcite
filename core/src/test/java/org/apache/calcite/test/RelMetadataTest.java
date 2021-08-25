@@ -1275,14 +1275,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1)), is(true));
   }
 
-  @Test void testColumnUniquenessForSortWithLimit() {
+  @Test void testRowUniquenessForSortWithLimit() {
     final String sql = ""
         + "select sal\n"
         + "from emp\n"
         + "limit 1";
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of()), is(true));
+    assertThat(mq.areRowsUnique(rel), is(true));
   }
 
   @Test void testColumnUniquenessForJoinWithConstantColumns() {
