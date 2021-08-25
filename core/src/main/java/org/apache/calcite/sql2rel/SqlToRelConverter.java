@@ -207,6 +207,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql.SqlUtil.GENERATED_EXPR_ALIAS_PREFIX;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static java.util.Objects.requireNonNull;
@@ -4379,7 +4380,7 @@ public class SqlToRelConverter {
       final int ordinal) {
     String alias = validator().deriveAlias(node, ordinal);
     if ((alias == null) || aliases.contains(alias)) {
-      String aliasBase = (alias == null) ? "EXPR$" : alias;
+      String aliasBase = (alias == null) ? GENERATED_EXPR_ALIAS_PREFIX : alias;
       for (int j = 0;; j++) {
         alias = aliasBase + j;
         if (!aliases.contains(alias)) {
