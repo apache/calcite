@@ -3788,6 +3788,43 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(tester).ok();
   }
 
+  /** Tests WHERE X <=> ALL (a,b,c) case. */
+  @Test protected void testSomeNullEqNonNullTuple() {
+    final String sql = "SELECT ename from emp where sal <=> SOME (1000, 2000, 3000)";
+
+    sql(sql).withConfig(c -> c.withExpand(false)).ok();
+  }
+
+  /** Tests WHERE X <=> ALL (a,b,c) case. */
+  @Test protected void testAllNullEqNonNullTuple() {
+    final String sql = "SELECT ename from emp where sal <=> ALL (1000, 2000, 3000)";
+    sql(sql).withConfig(c -> c.withExpand(false)).ok();
+  }
+
+  /** Tests WHERE X LIKE SOME (a,b,c) case. */
+  @Test protected void testSomeLikeNonNullTuple() {
+    final String sql = "SELECT ename from emp where ename LIKE SOME ('bob', 'alex', 'john')";
+    sql(sql).withConfig(c -> c.withExpand(false)).ok();
+  }
+
+  /** Tests WHERE X LIKE ALL (a,b,c) case. */
+  @Test protected void testAllLikeNonNullTuple() {
+    final String sql = "SELECT ename from emp where ename LIKE ALL ('bob', 'alex', 'john')";
+    sql(sql).withConfig(c -> c.withExpand(false)).ok();
+  }
+
+  /** Tests WHERE X NOT LIKE SOME (a,b,c) case. */
+  @Test protected void testSomeNotLikeNonNullTuple() {
+    final String sql = "SELECT ename from emp where ename NOT LIKE SOME ('bob', 'alex', 'john')";
+    sql(sql).withConfig(c -> c.withExpand(false)).ok();
+  }
+
+  /** Tests WHERE X NOT LIKE ALL (a,b,c) case. */
+  @Test protected void testAllNotLikeNonNullTuple() {
+    final String sql = "SELECT ename from emp where ename NOT LIKE ALL ('bob', 'alex', 'john')";
+    sql(sql).withConfig(c -> c.withExpand(false)).ok();
+  }
+
   @Test void testJsonValueExpressionOperator() {
     final String sql = "select ename format json,\n"
         + "ename format json encoding utf8,\n"

@@ -1141,8 +1141,7 @@ public class SqlToRelConverter {
 
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
-        if (!containsNullLiteral(valueList)
-            && valueList.size() < config.getInSubQueryThreshold()) {
+        if (valueList.size() < config.getInSubQueryThreshold()) {
           // We're under the threshold, so convert to OR.
           subQuery.expr =
               convertInToOr(
@@ -1535,15 +1534,17 @@ public class SqlToRelConverter {
       SqlNodeList valuesList,
       SqlInOperator op) {
     final List<RexNode> comparisons = new ArrayList<>();
+    final SqlOperator comparisonOp;
+
+    if (op instanceof SqlQuantifyOperator) {
+      comparisonOp = RelOptUtil.op(((SqlQuantifyOperator) op).comparisonKind,
+          SqlStdOperatorTable.EQUALS);
+    } else {
+      comparisonOp = SqlStdOperatorTable.EQUALS;
+    }
+
     for (SqlNode rightVals : valuesList) {
       RexNode rexComparison;
-      final SqlOperator comparisonOp;
-      if (op instanceof SqlQuantifyOperator) {
-        comparisonOp = RelOptUtil.op(((SqlQuantifyOperator) op).comparisonKind,
-            SqlStdOperatorTable.EQUALS);
-      } else {
-        comparisonOp = SqlStdOperatorTable.EQUALS;
-      }
       if (leftKeys.size() == 1) {
         rexComparison =
             rexBuilder.makeCall(comparisonOp,
@@ -1567,15 +1568,29 @@ public class SqlToRelConverter {
       comparisons.add(rexComparison);
     }
 
+    SqlQuantifyOperator quantifyOp;
     switch (op.kind) {
     case ALL:
-      return RexUtil.composeConjunction(rexBuilder, comparisons, true);
+      quantifyOp = (SqlQuantifyOperator) op;
+      if (quantifyOp.isNegated) {
+        return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
+            RexUtil.composeDisjunction(rexBuilder, comparisons, true));
+      } else {
+        return RexUtil.composeConjunction(rexBuilder, comparisons, true);
+      }
     case NOT_IN:
       return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
           RexUtil.composeDisjunction(rexBuilder, comparisons));
     case IN:
-    case SOME:
       return RexUtil.composeDisjunction(rexBuilder, comparisons, true);
+    case SOME:
+      quantifyOp = (SqlQuantifyOperator) op;
+      if (quantifyOp.isNegated) {
+        return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
+            RexUtil.composeConjunction(rexBuilder, comparisons, true));
+      } else {
+        return RexUtil.composeDisjunction(rexBuilder, comparisons, true);
+      }
     default:
       throw new AssertionError();
     }
@@ -1898,7 +1913,7 @@ public class SqlToRelConverter {
     }
 
     // Now that we've located any scalar sub-queries inside the IN
-    // expression, register the IN expression itself.  We need to
+    // expression, register the IN expression itself. We need to
     // register the scalar sub-queries first so they can be converted
     // before the IN expression is converted.
     switch (kind) {
@@ -5010,6 +5025,8 @@ public class SqlToRelConverter {
             case NOT_IN:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
                   RexSubQuery.in(root.rel, list));
+            //TODO: Both of these cases will need to be updated to support NULL EQ and
+            // LIKE/NOT LIKE when it comes to supporting full subqueries
             case SOME:
               return RexSubQuery.some(root.rel, list,
                   (SqlQuantifyOperator) call.getOperator());
@@ -5313,6 +5330,9 @@ public class SqlToRelConverter {
 
   private static SqlQuantifyOperator negate(SqlQuantifyOperator operator) {
     assert operator.kind == SqlKind.ALL;
+    if (operator.comparisonKind == SqlKind.LIKE || operator.comparisonKind == SqlKind.NULL_EQUALS) {
+      throw new AssertionError("TODO! Needed for full subquerry support, See BS-552");
+    }
     return SqlStdOperatorTable.some(operator.comparisonKind.negateNullSafe());
   }
 

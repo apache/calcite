@@ -3117,11 +3117,13 @@ class RexProgramTest extends RexProgramTestBase {
     // NOT LIKE and NOT SIMILAR TO are not allowed in Rex land
     try {
       rexBuilder.makeCall(SqlStdOperatorTable.NOT_LIKE, ref, literal("%"));
+      assert false;
     } catch (AssertionError e) {
       assertThat(e.getMessage(), is("unsupported negated operator NOT LIKE"));
     }
     try {
       rexBuilder.makeCall(SqlStdOperatorTable.NOT_SIMILAR_TO, ref, literal("%"));
+      assert false;
     } catch (AssertionError e) {
       assertThat(e.getMessage(),
           is("unsupported negated operator NOT SIMILAR TO"));

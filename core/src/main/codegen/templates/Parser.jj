@@ -3518,10 +3518,16 @@ List<Object> Expression2(ExprContext exprContext) :
             (
                 // Special case for "IN", because RHS of "IN" is the only place
                 // that an expression-list is allowed ("exp IN (exp1, exp2)").
-                LOOKAHEAD(2) {
+
+                // In default calcite, this is LR(2). We need this to be at least LR(3)
+                // else we get conflicts due to .... NOT LIKE <Const string> vs NOT LIKE SOME
+                // (checkNonQueryExpression doesn't have any tokens, just java code that does some debug asserts)
+                LOOKAHEAD(3) {
                     checkNonQueryExpression(exprContext);
                 }
                 (
+                    //Need this lookahead here, so we we can decide if we're parsing NOT IN or NOT LIKE
+                    LOOKAHEAD(2)
                     <NOT> <IN> { op = SqlStdOperatorTable.NOT_IN; }
                 |
                     <IN> { op = SqlStdOperatorTable.IN; }
@@ -3534,6 +3540,24 @@ List<Object> Expression2(ExprContext exprContext) :
                         <ANY> { op = SqlStdOperatorTable.some(k); }
                     |
                         <ALL> { op = SqlStdOperatorTable.all(k); }
+                    )
+                |
+                    <LIKE>
+                    (
+                        <SOME> { op = SqlStdOperatorTable.SOME_LIKE; }
+                    |
+                        <ANY> { op = SqlStdOperatorTable.SOME_LIKE; }
+                    |
+                        <ALL> { op = SqlStdOperatorTable.ALL_LIKE; }
+                    )
+                |
+                    <NOT> <LIKE>
+                    (
+                        <SOME> { op = SqlStdOperatorTable.SOME_NOT_LIKE; }
+                    |
+                        <ANY> { op = SqlStdOperatorTable.SOME_NOT_LIKE; }
+                    |
+                        <ALL> { op = SqlStdOperatorTable.ALL_NOT_LIKE; }
                     )
                 )
                 { s.clear().add(this); }

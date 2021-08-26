@@ -9343,7 +9343,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * need to change
    * <a href="http://calcite.apache.org/docs/reference.html#operator-precedence">
    * the documentation</a>. */
-  @Test void testOperatorsSortedByPrecedence() {
+  @Test void  testOperatorsSortedByPrecedence() {
     final StringBuilder b = new StringBuilder();
     final Comparator<SqlOperator> comparator = (o1, o2) -> {
       int c = Integer.compare(prec(o1), prec(o2));
@@ -9447,6 +9447,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "< SOME left\n"
         + "<= ALL left\n"
         + "<= SOME left\n"
+        + "<=> ALL left\n"
+        + "<=> SOME left\n"
         + "<> ALL left\n"
         + "<> SOME left\n"
         + "= ALL left\n"
@@ -9459,12 +9461,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "BETWEEN SYMMETRIC -\n"
         + "IN left\n"
         + "LIKE -\n"
+        + "LIKE ALL left\n"
+        + "LIKE SOME left\n"
         + "NEGATED POSIX REGEX CASE INSENSITIVE left\n"
         + "NEGATED POSIX REGEX CASE SENSITIVE left\n"
         + "NOT BETWEEN ASYMMETRIC -\n"
         + "NOT BETWEEN SYMMETRIC -\n"
         + "NOT IN left\n"
         + "NOT LIKE -\n"
+        + "NOT LIKE ALL left\n"
+        + "NOT LIKE SOME left\n"
         + "NOT SIMILAR TO -\n"
         + "POSIX REGEX CASE INSENSITIVE left\n"
         + "POSIX REGEX CASE SENSITIVE left\n"

@@ -1500,6 +1500,8 @@ public abstract class RelOptUtil {
       return SqlStdOperatorTable.EQUALS;
     case NOT_EQUALS:
       return SqlStdOperatorTable.NOT_EQUALS;
+    case NULL_EQUALS:
+      return SqlStdOperatorTable.NULL_EQUALS;
     case GREATER_THAN:
       return SqlStdOperatorTable.GREATER_THAN;
     case GREATER_THAN_OR_EQUAL:
@@ -1512,6 +1514,8 @@ public abstract class RelOptUtil {
       return SqlStdOperatorTable.IS_DISTINCT_FROM;
     case IS_NOT_DISTINCT_FROM:
       return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM;
+    case LIKE:
+      return SqlStdOperatorTable.LIKE;
     default:
       return operator;
     }

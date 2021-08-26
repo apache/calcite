@@ -427,43 +427,61 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>&lt; ANY</code>).
    */
   public static final SqlQuantifyOperator SOME_LT =
-      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.LESS_THAN);
+      new SqlQuantifyOperator("< SOME", SqlKind.SOME, SqlKind.LESS_THAN, false);
 
   public static final SqlQuantifyOperator SOME_LE =
-      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.LESS_THAN_OR_EQUAL);
+      new SqlQuantifyOperator("<= SOME", SqlKind.SOME, SqlKind.LESS_THAN_OR_EQUAL, false);
 
   public static final SqlQuantifyOperator SOME_GT =
-      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.GREATER_THAN);
+      new SqlQuantifyOperator("> SOME", SqlKind.SOME, SqlKind.GREATER_THAN, false);
 
   public static final SqlQuantifyOperator SOME_GE =
-      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.GREATER_THAN_OR_EQUAL);
+      new SqlQuantifyOperator(">= SOME", SqlKind.SOME, SqlKind.GREATER_THAN_OR_EQUAL, false);
 
   public static final SqlQuantifyOperator SOME_EQ =
-      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.EQUALS);
+      new SqlQuantifyOperator("= SOME", SqlKind.SOME, SqlKind.EQUALS, false);
 
   public static final SqlQuantifyOperator SOME_NE =
-      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.NOT_EQUALS);
+      new SqlQuantifyOperator("<> SOME", SqlKind.SOME, SqlKind.NOT_EQUALS, false);
+
+  public static final SqlQuantifyOperator SOME_NULLEQ =
+      new SqlQuantifyOperator("<=> SOME", SqlKind.SOME, SqlKind.NULL_EQUALS, false);
+
+  public static final SqlQuantifyOperator SOME_LIKE =
+      new SqlQuantifyOperator("LIKE SOME", SqlKind.SOME, SqlKind.LIKE, false);
+
+  public static final SqlQuantifyOperator SOME_NOT_LIKE =
+      new SqlQuantifyOperator("NOT LIKE SOME", SqlKind.SOME, SqlKind.LIKE, true);
 
   /**
    * The <code>&lt; ALL</code> operator.
    */
   public static final SqlQuantifyOperator ALL_LT =
-      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.LESS_THAN);
+      new SqlQuantifyOperator("< ALL", SqlKind.ALL, SqlKind.LESS_THAN, false);
 
   public static final SqlQuantifyOperator ALL_LE =
-      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.LESS_THAN_OR_EQUAL);
+      new SqlQuantifyOperator("<= ALL", SqlKind.ALL, SqlKind.LESS_THAN_OR_EQUAL, false);
 
   public static final SqlQuantifyOperator ALL_GT =
-      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.GREATER_THAN);
+      new SqlQuantifyOperator("> ALL", SqlKind.ALL, SqlKind.GREATER_THAN, false);
 
   public static final SqlQuantifyOperator ALL_GE =
-      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.GREATER_THAN_OR_EQUAL);
+      new SqlQuantifyOperator(">= ALL", SqlKind.ALL, SqlKind.GREATER_THAN_OR_EQUAL, false);
 
   public static final SqlQuantifyOperator ALL_EQ =
-      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.EQUALS);
+      new SqlQuantifyOperator("= ALL", SqlKind.ALL, SqlKind.EQUALS, false);
 
   public static final SqlQuantifyOperator ALL_NE =
-      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.NOT_EQUALS);
+      new SqlQuantifyOperator("<> ALL", SqlKind.ALL, SqlKind.NOT_EQUALS, false);
+
+  public static final SqlQuantifyOperator ALL_NULLEQ =
+      new SqlQuantifyOperator("<=> ALL", SqlKind.ALL, SqlKind.NULL_EQUALS, false);
+
+  public static final SqlQuantifyOperator ALL_LIKE =
+      new SqlQuantifyOperator("LIKE ALL", SqlKind.ALL, SqlKind.LIKE, false);
+
+  public static final SqlQuantifyOperator ALL_NOT_LIKE =
+      new SqlQuantifyOperator("NOT LIKE ALL", SqlKind.ALL, SqlKind.LIKE, true);
 
   /**
    * Logical less-than operator, '<code>&lt;</code>'.
@@ -2595,6 +2613,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return SOME_GT;
     case GREATER_THAN_OR_EQUAL:
       return SOME_GE;
+    case NULL_EQUALS:
+      return SOME_NULLEQ;
     default:
       throw new AssertionError(comparisonKind);
     }
@@ -2615,6 +2635,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return ALL_GT;
     case GREATER_THAN_OR_EQUAL:
       return ALL_GE;
+    case NULL_EQUALS:
+      return ALL_NULLEQ;
     default:
       throw new AssertionError(comparisonKind);
     }
