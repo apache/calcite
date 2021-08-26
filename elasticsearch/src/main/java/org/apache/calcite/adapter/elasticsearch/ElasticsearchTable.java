@@ -201,13 +201,36 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     // due to ES aggregation format. fields in "order by" clause should go first
     // if "order by" is missing. order in "group by" is un-important
     final Set<String> orderedGroupBy = new LinkedHashSet<>();
+    final Map<String, RelFieldCollation.Direction> fieldsNotInGroup = new LinkedHashMap<>();
     orderedGroupBy.addAll(sort.stream().map(Map.Entry::getKey).collect(Collectors.toList()));
     orderedGroupBy.addAll(groupBy);
 
     // construct nested aggregations node(s)
     ObjectNode parent = query.with(AGGREGATIONS);
+    int i = 0;
+    List<String> aggFields = new ArrayList<>();
     for (String name: orderedGroupBy) {
+      i++;
+      if (!groupBy.contains(name)) {
+        sort.stream().filter(e -> e.getKey().equals(name)).findAny()
+            .ifPresent(s -> fieldsNotInGroup.put(name, s.getValue()));
+        if (i == orderedGroupBy.size()) {
+          if (aggFields.size() > 0) {
+            ObjectNode order = query;
+            for (int j = 0; j < aggFields.size(); j++) {
+              order = (ObjectNode) order.get(AGGREGATIONS).get(aggFields.get(j));
+            }
+            final ArrayNode orders = (ArrayNode) order.get("terms").get("order");
+            fieldsNotInGroup.forEach(
+                (key, value) -> orders.add(mapper.createObjectNode()
+                .put(key, value.isDescending() ? "desc" : "asc")));
+            fieldsNotInGroup.clear();
+          }
+        }
+        continue;
+      }
       final String aggName = "g_" + name;
+      aggFields.add(aggName);
       fieldMap.put(aggName, name);
 
       final ObjectNode section = parent.with(aggName);
@@ -224,9 +247,26 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       }
 
       sort.stream().filter(e -> e.getKey().equals(name)).findAny()
-          .ifPresent(s ->
-              terms.with("order")
-                  .put("_key", s.getValue().isDescending() ? "desc" : "asc"));
+          .ifPresent(s -> {
+            final ArrayNode orders = terms.withArray("order");
+            if (fieldsNotInGroup.size() > 0) {
+              fieldsNotInGroup.forEach(
+                  (key, value) -> orders.add(mapper.createObjectNode()
+                  .put(key, value.isDescending() ? "desc" : "asc")));
+              fieldsNotInGroup.clear();
+            }
+            orders.add(mapper.createObjectNode()
+                .put("_key", s.getValue().isDescending() ? "desc" : "asc"));
+          });
+
+      // only sort aggregation result
+      if (fieldsNotInGroup.size() > 0) {
+        final ArrayNode orders = terms.withArray("order");
+        fieldsNotInGroup.forEach(
+            (key, value) -> orders.add(mapper.createObjectNode()
+            .put(key, value.isDescending() ? "desc" : "asc")));
+        fieldsNotInGroup.clear();
+      }
 
       parent = section.with(AGGREGATIONS);
     }
