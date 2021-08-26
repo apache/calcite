@@ -1934,8 +1934,9 @@ public class RelBuilder {
       final ImmutableSortedMultiset<ImmutableBitSet> groupSetMultiset =
           ImmutableSortedMultiset.copyOf(ImmutableBitSet.COMPARATOR,
               groupSetList);
-      if (Iterables.any(aggCalls, RelBuilder::isGroupId)) {
-        return rewriteAggregateWithGroupId(groupSet, groupSetMultiset,
+      if (Iterables.any(aggCalls, RelBuilder::isGroupId)
+          ||!ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetList)) {
+        return rewriteAggregateWithGroupIdOrDuplicateGroupSets(groupSet, groupSetMultiset,
             ImmutableList.copyOf(aggCalls));
       }
       groupSets = ImmutableList.copyOf(groupSetMultiset.elementSet());
@@ -2094,13 +2095,17 @@ public class RelBuilder {
    * Therefore, it is impossible to implement the function in runtime.
    *
    * <p>To fill this gap, an aggregation query that contains {@code GROUP_ID()}
-   * function will generally be rewritten into UNION when converting to RelNode.
+   * function or contains duplicate group sets will generally be rewritten into
+   * UNION when converting to RelNode.
    *
    * <p>Also see the discussion in
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1824">[CALCITE-1824]
    * GROUP_ID returns wrong result</a>.
+   * and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4748">[CALCITE-4748]
+   * If there are duplicate GROUPING SETS, Calcite should return duplicate rows</a>.
    */
-  private RelBuilder rewriteAggregateWithGroupId(ImmutableBitSet groupSet,
+  private RelBuilder rewriteAggregateWithGroupIdOrDuplicateGroupSets(ImmutableBitSet groupSet,
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggCall> aggregateCalls) {
     final List<String> fieldNamesIfNoRewrite =
