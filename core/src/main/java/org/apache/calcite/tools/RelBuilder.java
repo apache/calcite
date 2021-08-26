@@ -1920,7 +1920,7 @@ public class RelBuilder {
         return rewriteAggregateWithGroupId(groupSet, groupSetMultiset,
             ImmutableList.copyOf(aggCalls));
       }
-      groupSets = ImmutableList.copyOf(groupSetMultiset);
+      groupSets = ImmutableList.copyOf(groupSetMultiset.elementSet());
       if (registrar.extraNodes.size() > sizeBefore) {
         throw new IllegalArgumentException("group sets contained expressions "
             + "not in group key: "
@@ -1943,7 +1943,7 @@ public class RelBuilder {
           ((AggCallPlus) aggCall).aggregateCall(registrar, groupSet, r));
     }
 
-    assert ImmutableBitSet.ORDERING.isOrdered(groupSets) : groupSets;
+    assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
     for (ImmutableBitSet set : groupSets) {
       assert groupSet.contains(set);
     }

@@ -268,65 +268,36 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
     }
     resultBlock.add(physType.record(results));
     if (getGroupType() != Group.SIMPLE) {
+      final List<Expression> list = new ArrayList<>();
+      for (ImmutableBitSet set : groupSets) {
+        list.add(
+            inputPhysType.generateSelector(parameter, groupSet.asList(),
+                set.asList(), keyPhysType.getFormat()));
+      }
+      final Expression keySelectors_ =
+          builder.append("keySelectors",
+              Expressions.call(BuiltInMethod.ARRAYS_AS_LIST.method,
+                  list));
       final Expression resultSelector =
           builder.append("resultSelector",
               Expressions.lambda(Function2.class,
                   resultBlock.toBlock(),
                   requireNonNull(key_, "key_"),
                   acc_));
-      Expression resultExpresion = null;
-      if (ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets)) {
-        final List<Expression> list = new ArrayList<>();
-        for (ImmutableBitSet set : groupSets) {
-          list.add(
-              inputPhysType.generateSelector(parameter, groupSet.asList(),
-                  set.asList(), keyPhysType.getFormat()));
-        }
-        final Expression keySelectors_ =
-            builder.append("keySelectors",
-                Expressions.call(BuiltInMethod.ARRAYS_AS_LIST.method,
-                    list));
-        resultExpresion = Expressions.call(
-            BuiltInMethod.GROUP_BY_MULTIPLE.method,
-            Expressions.list(childExp,
-                    keySelectors_,
-                    Expressions.call(lambdaFactory,
-                        BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
-                    Expressions.call(lambdaFactory,
-                        BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
-                    Expressions.call(lambdaFactory,
-                        BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
-                        resultSelector))
-                .appendIfNotNull(keyPhysType.comparer()));
-      } else {
-        final List<List<Expression>> keySelectorsList = new ArrayList<>(groupSets.size());
-        for (ImmutableBitSet set : groupSets) {
-          keySelectorsList.add(new ArrayList<Expression>() {{
-              add(
-                  inputPhysType.generateSelector(parameter, groupSet.asList(),
-                      set.asList(), keyPhysType.getFormat()));
-            }});
-        }
-        final List<Expression> expressionList = new ArrayList<>();
-        keySelectorsList.forEach(
-            keySelectors_ -> expressionList.add(
-                Expressions.call(
-            BuiltInMethod.GROUP_BY_MULTIPLE.method,
-            Expressions.list(childExp,
-                    builder.append("keySelectors",
-                        Expressions.call(BuiltInMethod.ARRAYS_AS_LIST.method,
-                            keySelectors_)),
-                    Expressions.call(lambdaFactory,
-                        BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
-                    Expressions.call(lambdaFactory,
-                        BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
-                    Expressions.call(lambdaFactory,
-                        BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
-                        resultSelector))
-                .appendIfNotNull(keyPhysType.comparer()))));
-        resultExpresion = Expressions.call(BuiltInMethod.CONCATALL.method, expressionList);
-      }
-      builder.add(Expressions.return_(null, resultExpresion));
+      builder.add(
+          Expressions.return_(null,
+              Expressions.call(
+                  BuiltInMethod.GROUP_BY_MULTIPLE.method,
+                  Expressions.list(childExp,
+                      keySelectors_,
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_INITIALIZER.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
+                      Expressions.call(lambdaFactory,
+                          BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
+                          resultSelector))
+                      .appendIfNotNull(keyPhysType.comparer()))));
     } else if (groupCount == 0) {
       final Expression resultSelector =
           builder.append(
