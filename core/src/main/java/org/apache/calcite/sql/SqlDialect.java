@@ -1184,10 +1184,20 @@ public class SqlDialect {
   }
 
   /**
-   * Allows GROUP BY CONSTANT to be handled differently in different dialects.
+   * Returns true if group by constant is allowed by the dialect, returns false otherwise.
+   * Some examples of GROUP BY Constant:
+   *    - GROUP BY true
+   *    - GROUP BY false
+   *    - GROUP BY 'a'
    */
-  public boolean allowsGroupByConstant(SqlNode field, List<SqlNode> groupKeys) {
-    return true;
+  public boolean allowsGroupByConstant() {
+    return false;
+  }
+
+  /**
+   * Rewrites GROUP BY CONSTANT to GROUP BY (SELECT 1) whenever allowed by the dialect.
+   */
+  public void rewriteGroupByConstant(List<SqlNode> groupKeys) {
   }
 
   /** Returns how unquoted identifiers are stored. */

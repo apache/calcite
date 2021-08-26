@@ -599,12 +599,12 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> groupKeys = new ArrayList<>();
     for (int key : groupList) {
       final SqlNode field = builder.context.field(key);
-      // if dialect allows group by constant, no need to transform the field, and it can be simply
-      // added to the groupKeys.
-      if (this.dialect.allowsGroupByConstant(field, groupKeys)) {
-        groupKeys.add(field);
-      }
+      groupKeys.add(field);
     }
+    if (this.dialect.allowsGroupByConstant()) {
+      this.dialect.rewriteGroupByConstant(groupKeys);
+    }
+
     for (int key : sortedGroupList) {
       final SqlNode field = builder.context.field(key);
       addSelect(selectList, field, aggregate.getRowType());

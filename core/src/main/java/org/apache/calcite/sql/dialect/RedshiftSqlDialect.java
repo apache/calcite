@@ -113,20 +113,26 @@ public class RedshiftSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
+  @Override public boolean allowsGroupByConstant() {
+    return true;
+  }
+
   /**
    * Converts a literal field to (SELECT 1) in GROUP BY.
    * Example: GROUP BY TRUE to GROUP BY (SELECT 1)
    */
-  @Override public boolean allowsGroupByConstant(SqlNode field, List<SqlNode> groupKeys) {
-    if (field instanceof SqlLiteral) {
-      SqlNode node = SqlNumericLiteral.createExactNumeric("1", SqlParserPos.ZERO);
-      groupKeys.add(
-          new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.of(node), null,
-              null, null, null, null, null,
-              null, null, null));
-      return false;
+  @Override public void rewriteGroupByConstant(List<SqlNode> groupKeys) {
+    if (!allowsGroupByConstant()) {
+      return;
     }
-
-    return true;
+    for (int i = 0; i < groupKeys.size(); i++) {
+      if (groupKeys.get(i) instanceof SqlLiteral) {
+        SqlNode node = SqlNumericLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+        groupKeys.set(
+            i, new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.of(node),
+            null, null, null, null, null, null,
+            null, null, null));
+      }
+    }
   }
 }
