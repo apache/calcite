@@ -299,14 +299,13 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
                         resultSelector))
                 .appendIfNotNull(keyPhysType.comparer()));
       } else {
-        // If there are duplicate GROUPING SETS, we concat the result.
         final List<List<Expression>> keySelectorsList = new ArrayList<>(groupSets.size());
         for (ImmutableBitSet set : groupSets) {
-          final List<Expression> list = new ArrayList<>();
-          list.add(
-              inputPhysType.generateSelector(parameter, groupSet.asList(),
-                  set.asList(), keyPhysType.getFormat()));
-          keySelectorsList.add(list);
+          keySelectorsList.add(new ArrayList<Expression>() {{
+              add(
+                  inputPhysType.generateSelector(parameter, groupSet.asList(),
+                      set.asList(), keyPhysType.getFormat()));
+            }});
         }
         final List<Expression> expressionList = new ArrayList<>();
         keySelectorsList.forEach(
