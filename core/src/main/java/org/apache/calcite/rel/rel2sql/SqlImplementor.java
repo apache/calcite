@@ -65,6 +65,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
@@ -135,6 +136,14 @@ public abstract class SqlImplementor {
   // no idea about whether it is quoted or not for the original sql statement.
   // So we just quote it.
   public static final SqlParserPos POS = SqlParserPos.QUOTED_ZERO;
+
+  /** SQL numeric literal {@code 0}. */
+  static final SqlNumericLiteral ZERO =
+      SqlNumericLiteral.createExactNumeric("0", POS);
+
+  /** SQL numeric literal {@code 1}. */
+  static final SqlNumericLiteral ONE =
+      SqlLiteral.createExactNumeric("1", POS);
 
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
@@ -982,8 +991,7 @@ public abstract class SqlImplementor {
         // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"
         final SqlCall node =
             createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct);
-        return SqlStdOperatorTable.COALESCE.createCall(POS, node,
-            SqlLiteral.createExactNumeric("0", POS));
+        return SqlStdOperatorTable.COALESCE.createCall(POS, node, ZERO);
       }
       SqlCall aggFunctionCall;
       if (isDistinct) {
@@ -1129,8 +1137,7 @@ public abstract class SqlImplementor {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         final SqlNode node = toSql(SqlStdOperatorTable.SUM, distinct,
             operandList, filterArg, collation);
-        return SqlStdOperatorTable.COALESCE.createCall(POS, node,
-            SqlLiteral.createExactNumeric("0", POS));
+        return SqlStdOperatorTable.COALESCE.createCall(POS, node, ZERO);
       }
 
       // Handle filter on dialects that do support FILTER by generating CASE.
@@ -1142,7 +1149,7 @@ public abstract class SqlImplementor {
         final SqlNodeList whenList = SqlNodeList.of(field(filterArg));
         final SqlNodeList thenList =
             SqlNodeList.of(operandList.isEmpty()
-                ? SqlLiteral.createExactNumeric("1", POS)
+                ? ONE
                 : operandList.get(0));
         final SqlNode elseList = SqlLiteral.createNull(POS);
         final SqlCall caseCall =

@@ -1675,7 +1675,7 @@ public class RelBuilderTest {
     }
   }
 
-  @Test void testAggregateGroupingSetDuplicateIgnored() {
+  @Test void testAggregateGroupingSetDuplicate() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -1687,8 +1687,45 @@ public class RelBuilderTest {
                             ImmutableBitSet.of(7))))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+        + "LogicalUnion(all=[true])\n"
+        + "  LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalAggregate(group=[{6, 7}], groups=[[{7}]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4665">[CALCITE-4665]
+   * Allow Aggregate.groupSet to contain columns not in any of the groupSets.</a>. */
+  @Test void testGroupingSetWithGroupKeysContainingUnusedColumn() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP")
+        .aggregate(
+            builder.groupKey(
+                ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+            builder.count(false, "C"),
+            builder.sum(false, "S", builder.field("SAL")))
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.GREATER_THAN,
+                builder.field("C"),
+                builder.literal(10)))
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.EQUALS,
+                builder.field("JOB"),
+                builder.literal("DEVELOP")))
+        .project(builder.field("JOB")).build();
+    final String expected = ""
+        + "LogicalProject(JOB=[$2])\n"
+        + "  LogicalFilter(condition=[=($2, 'DEVELOP')])\n"
+        + "    LogicalFilter(condition=[>($3, 10)])\n"
+        + "      LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1}, {0}]], C=[COUNT()], S=[SUM"
+        + "($5)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 

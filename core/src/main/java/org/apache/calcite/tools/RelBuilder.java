@@ -934,7 +934,25 @@ public class RelBuilder {
    *
    * <p>This method of creating a group key does not allow you to group on new
    * expressions, only column projections, but is efficient, especially when you
-   * are coming from an existing {@link Aggregate}. */
+   * are coming from an existing {@link Aggregate}.
+   *
+   * <p>It is possible for {@code groupSet} to be strict superset of all
+   * {@code groupSets}. For example, in the pseudo SQL
+   *
+   * <pre>{@code
+   * GROUP BY 0, 1, 2
+   * GROUPING SETS ((0, 1), 0)
+   * }</pre>
+   *
+   * <p>column 2 does not appear in either grouping set. This is not valid SQL.
+   * We can approximate in actual SQL by adding an extra grouping set and
+   * filtering out using {@code HAVING}, as follows:
+   *
+   * <pre>{@code
+   * GROUP BY GROUPING SETS ((0, 1, 2), (0, 1), 0)
+   * HAVING GROUPING_ID(0, 1, 2) <> 0
+   * }</pre>
+   */
   public GroupKey groupKey(ImmutableBitSet groupSet,
       Iterable<? extends ImmutableBitSet> groupSets) {
     return groupKey_(groupSet, ImmutableList.copyOf(groupSets));
@@ -1916,8 +1934,9 @@ public class RelBuilder {
       final ImmutableSortedMultiset<ImmutableBitSet> groupSetMultiset =
           ImmutableSortedMultiset.copyOf(ImmutableBitSet.COMPARATOR,
               groupSetList);
-      if (Iterables.any(aggCalls, RelBuilder::isGroupId)) {
-        return rewriteAggregateWithGroupId(groupSet, groupSetMultiset,
+      if (Iterables.any(aggCalls, RelBuilder::isGroupId)
+          || !ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetList)) {
+        return rewriteAggregateWithGroupIdOrDuplicateGroupSets(groupSet, groupSetMultiset,
             ImmutableList.copyOf(aggCalls));
       }
       groupSets = ImmutableList.copyOf(groupSetMultiset.elementSet());
@@ -2076,13 +2095,17 @@ public class RelBuilder {
    * Therefore, it is impossible to implement the function in runtime.
    *
    * <p>To fill this gap, an aggregation query that contains {@code GROUP_ID()}
-   * function will generally be rewritten into UNION when converting to RelNode.
+   * function or contains duplicate group sets will generally be rewritten into
+   * UNION when converting to RelNode.
    *
    * <p>Also see the discussion in
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1824">[CALCITE-1824]
    * GROUP_ID returns wrong result</a>.
+   * and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4748">[CALCITE-4748]
+   * If there are duplicate GROUPING SETS, Calcite should return duplicate rows</a>.
    */
-  private RelBuilder rewriteAggregateWithGroupId(ImmutableBitSet groupSet,
+  private RelBuilder rewriteAggregateWithGroupIdOrDuplicateGroupSets(ImmutableBitSet groupSet,
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggCall> aggregateCalls) {
     final List<String> fieldNamesIfNoRewrite =
