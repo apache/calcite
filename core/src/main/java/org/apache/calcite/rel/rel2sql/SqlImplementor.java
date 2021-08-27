@@ -1139,7 +1139,7 @@ public abstract class SqlImplementor {
         // COUNT(*) FILTER(WHERE b)  ==>  COUNT(CASE WHEN b THEN 1 END)
         // COUNT(x) FILTER(WHERE b)  ==>  COUNT(CASE WHEN b THEN x END)
         // COUNT(x, y) FILTER(WHERE b)  ==>  COUNT(CASE WHEN b THEN x END, y)
-        final SqlNodeList whenList = SqlNodeList.of(field(filterArg));
+        final SqlNodeList whenList = getWhenList(filterArg);
         final SqlNodeList thenList =
             SqlNodeList.of(operandList.isEmpty()
                 ? SqlLiteral.createExactNumeric("1", POS)
@@ -1176,6 +1176,17 @@ public abstract class SqlImplementor {
 
       // Handle collation
       return withOrder(call2, collation);
+    }
+
+    /** Removes IS TRUE from inside a CASE WHEN clause if the dialect
+     *  does not support it. */
+    private SqlNodeList  getWhenList(int filterArg) {
+      SqlNode node = field(filterArg);
+      if (SqlKind.IS_TRUE == node.getKind() && !dialect.supportsIsTrueInsideCaseWhen()) {
+        node = ((SqlCall) node).operand(0);
+      }
+      return SqlNodeList.of(node);
+
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
