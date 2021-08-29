@@ -221,7 +221,7 @@ public class ReflectiveSchema
    * @param clazz collection class. Parameter is mandatory
    * @param iterableItemClass item's class of iterable collection. Parameter is optional
    * @return element type of a collection. */
-  private static @Nullable Type getElementType(Class clazz, Class<?> iterableItemClass) {
+  private static @Nullable Type getElementType(Class clazz, @Nullable Class<?> iterableItemClass) {
     if (clazz.isArray()) {
       return clazz.getComponentType();
     }
