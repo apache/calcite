@@ -3487,6 +3487,24 @@ public class JdbcTest {
             + "EXPR$0=250\n");
   }
 
+  @Test void testSelectValuesIncludeNull() {
+    if (!Bug.CALCITE_4757_FIXED) {
+      return;
+    }
+    CalciteAssert.that()
+        .query("select * from (values (null))")
+        .returns("EXPR$0=null\n");
+  }
+
+  @Test void testSelectValuesIncludeNull2() {
+    if (!Bug.CALCITE_4757_FIXED) {
+      return;
+    }
+    CalciteAssert.that()
+        .query("select * from (values (null, true))")
+        .returns("EXPR$0=null; EXPR$1=true\n");
+  }
+
   @Test void testSelectDistinct() {
     CalciteAssert.hr()
         .query("select distinct \"deptno\"\n"
