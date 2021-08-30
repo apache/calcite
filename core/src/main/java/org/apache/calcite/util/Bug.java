@@ -201,6 +201,11 @@ public abstract class Bug {
    * fixed. */
   public static final boolean CALCITE_4213_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4757">[CALCITE-4757]
+   * Avatica support Null type</a> is fixed. */
+  public static final boolean CALCITE_4757_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
