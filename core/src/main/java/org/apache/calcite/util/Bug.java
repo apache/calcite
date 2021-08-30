@@ -200,7 +200,11 @@ public abstract class Bug {
    * Druid plans with small intervals should be chosen over full interval scan plus filter</a> is
    * fixed. */
   public static final boolean CALCITE_4213_FIXED = false;
-
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4758">[CALCITE-4758]
+   * When All sub-query contains 3-valued logic, Calcite returns wrong result</a> is
+   * fixed. */
+  public static final boolean CALCITE_4758_FIXED = false;
   /**
    * Use this to flag temporary code.
    */

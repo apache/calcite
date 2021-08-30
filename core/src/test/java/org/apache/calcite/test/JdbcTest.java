@@ -5319,6 +5319,19 @@ public class JdbcTest {
         });
   }
 
+  @Test void testSubqueryWithNullValue() {
+    CalciteAssert.that().query("select 1 in (null)").returns("EXPR$0=null\n");
+    CalciteAssert.that().query("select 1 in (null, 1)").returns("EXPR$0=true\n");
+    CalciteAssert.that().query("select 1 = some(null)").returns("EXPR$0=null\n");
+    CalciteAssert.that().query("select 1 = some(null, 2)").returns("EXPR$0=null\n");
+    CalciteAssert.that().query("select 1 = some(null, 1, 2)").returns("EXPR$0=true\n");
+    CalciteAssert.that().query("select 1 = all(null)").returns("EXPR$0=null\n");
+    if (Bug.CALCITE_4758_FIXED) {
+      CalciteAssert.that().query("select 1 = all(null, 2)").returns("EXPR$0=false\n");
+      CalciteAssert.that().query("select 1 = all(null, 2, 1)").returns("EXPR$0=false\n");
+    }
+  }
+
   /** Tests a {@link PreparedStatement} with parameters. */
   @Test void testPreparedStatement() throws Exception {
     CalciteAssert.hr()

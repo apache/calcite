@@ -1676,15 +1676,12 @@ public class SqlToRelConverter {
 
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tupleList =
         ImmutableList.builder();
+    final RelDataType rowListType = validator().getValidatedNodeType(rowList);
     final RelDataType rowType;
     if (targetRowType != null) {
-      rowType = targetRowType;
+      rowType = typeFactory.createTypeWithNullability(targetRowType, rowListType.isNullable());
     } else {
-      rowType =
-          SqlTypeUtil.promoteToRowType(
-              typeFactory,
-              validator().getValidatedNodeType(rowList),
-              null);
+      rowType = SqlTypeUtil.promoteToRowType(typeFactory, rowListType, null);
     }
 
     final List<RelNode> unionInputs = new ArrayList<>();
