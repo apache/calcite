@@ -3462,6 +3462,21 @@ public class JdbcTest {
             + "EXPR$0=250\n");
   }
 
+  @Test void testSelectValuesIncludeNull() {
+    CalciteAssert.that()
+        .query("select * from (values (null))")
+        .returns("EXPR$0=null\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4757">[CALCITE-4757]
+   * In Avatica, support columns of type "NULL" in query results</a>. */
+  @Test void testSelectValuesIncludeNull2() {
+    CalciteAssert.that()
+        .query("select * from (values (null, true))")
+        .returns("EXPR$0=null; EXPR$1=true\n");
+  }
+
   @Test void testSelectDistinct() {
     CalciteAssert.hr()
         .query("select distinct \"deptno\"\n"
