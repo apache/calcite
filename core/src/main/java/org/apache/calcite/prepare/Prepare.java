@@ -112,6 +112,9 @@ public abstract class Prepare {
   public static final TryThreadLocal<@Nullable Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
 
+  public static final TryThreadLocal<@Nullable Integer> THREAD_INSUBQUERY_THRESHOLD =
+      TryThreadLocal.of(20);
+
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
     assert context != null;
@@ -232,6 +235,7 @@ public abstract class Prepare {
         SqlToRelConverter.config()
             .withTrimUnusedFields(true)
             .withExpand(castNonNull(THREAD_EXPAND.get()))
+            .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()))
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
     final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
     Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.run(configHolder);
@@ -369,7 +373,8 @@ public abstract class Prepare {
   protected RelRoot trimUnusedFields(RelRoot root) {
     final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(castNonNull(THREAD_EXPAND.get()));
+        .withExpand(castNonNull(THREAD_EXPAND.get()))
+        .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();

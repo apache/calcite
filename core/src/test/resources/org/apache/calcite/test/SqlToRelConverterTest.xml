@@ -6117,6 +6117,29 @@ LogicalProject(DEPTNO=[$7])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSubQuerySqlNodeList">
+    <Resource name="sql">
+      <![CDATA[select empno
+from EMP as e
+WHERE e.empno > all (130, 131, 132, 133, 134)]]>
+    </Resource>
+    <Resource name="planNotConverted">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(>($0, 130), >($0, 131), >($0, 132), >($0, 133), >($0, 134))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planConverted">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(<= SOME($0, {
+LogicalValues(tuples=[[{ 130 }, { 131 }, { 132 }, { 133 }, { 134 }]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSubQueryOr">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno = 10 or deptno in (

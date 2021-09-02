@@ -2945,6 +2945,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testSubQuerySqlNodeList() {
+    final String sql = "SELECT empno\n"
+        + "FROM emp AS e\n"
+        + "WHERE e.empno > all(130, 131, 132, 133, 134)";
+    sql(sql)
+        .withConfig(b -> b.withInSubQueryThreshold(10))
+        .withConfig(b -> b.withExpand(false))
+        .convertsTo("${planNotConverted}");
+    sql(sql)
+        .withConfig(b -> b.withInSubQueryThreshold(2))
+        .withConfig(b -> b.withExpand(false))
+        .convertsTo("${planConverted}");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-710">[CALCITE-710]

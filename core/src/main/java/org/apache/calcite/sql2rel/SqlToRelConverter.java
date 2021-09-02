@@ -1137,6 +1137,10 @@ public class SqlToRelConverter {
         leftKeys = ImmutableList.of(bb.convertExpression(leftKeyNode));
       }
 
+      final RelDataType targetRowType =
+          SqlTypeUtil.promoteToRowType(typeFactory,
+              validator().getValidatedNodeType(leftKeyNode), null);
+
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
         if (!containsNullLiteral(valueList)
@@ -1151,6 +1155,20 @@ public class SqlToRelConverter {
           return;
         }
 
+        if (!(subQuery.node.getKind() == SqlKind.IN || subQuery.node.getKind() == SqlKind.NOT_IN)) {
+          final SqlNodeList listConstantRow = new SqlNodeList(SqlParserPos.ZERO);
+          valueList.forEach(value -> {
+                // convert "1" to "row(1)"
+                final SqlCall sqlCall = SqlStdOperatorTable.ROW
+                    .createCall(SqlParserPos.ZERO, value);
+                listConstantRow.add(sqlCall);
+              }
+          );
+          call.setOperand(1, SqlStdOperatorTable.VALUES.createCall(listConstantRow));
+          validator().validate(call.operand(1));
+          validator().setValidatedNodeType(call.operand(1), targetRowType);
+          return;
+        }
         // Otherwise, let convertExists translate
         // values list into an inline table for the
         // reference to Q below.
@@ -1189,9 +1207,6 @@ public class SqlToRelConverter {
       if (bb.root == null) {
         return;
       }
-      final RelDataType targetRowType =
-          SqlTypeUtil.promoteToRowType(typeFactory,
-              validator().getValidatedNodeType(leftKeyNode), null);
       final boolean notIn = call.getOperator().kind == SqlKind.NOT_IN;
       converted =
           convertExists(query, RelOptUtil.SubQueryType.IN, subQuery.logic,
