@@ -9047,4 +9047,22 @@ class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBQSql);
   }
+
+  @Test public void testhashbucket() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatDateRexNode = builder.call(SqlStdOperatorTable.HASHBUCKET,
+        builder.call(SqlStdOperatorTable.FARM_FINGERPRINT, builder.scan("EMP").field(0)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatDateRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT HASHBUCKET(FARM_FINGERPRINT(\"EMPNO\")) AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(EMPNO) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
 }

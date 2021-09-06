@@ -178,6 +178,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
 
+  public static final SqlFunction HASHBUCKET =
+      new SqlFunction(
+          "HASHBUCKET",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.SYSTEM);
+
+  public static final SqlFunction FARM_FINGERPRINT =
+      new SqlFunction(
+          "FARM_FINGERPRINT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.SYSTEM);
+
   /**
    * <code>AS</code> operator associates an expression in the SELECT clause
    * with an alias.
