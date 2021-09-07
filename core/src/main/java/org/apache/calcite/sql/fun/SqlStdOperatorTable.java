@@ -177,31 +177,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.BOOLEAN_NULLABLE_OPTIMIZED,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
-
-  /**
-   * {@code HASHBUCKET} function returns the bucket number in HASHMAP which
-   * will hold the table row.*/
-  public static final SqlFunction HASHBUCKET =
-      new SqlFunction(
-          "HASHBUCKET",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE,
-          null,
-          OperandTypes.INTEGER,
-          SqlFunctionCategory.SYSTEM);
-
-  /**
-   * {@code FARM_FINGERPRINT} function hashes the input string and returns a fixed integer.
-    */
-  public static final SqlFunction FARM_FINGERPRINT =
-      new SqlFunction(
-          "FARM_FINGERPRINT",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE,
-          null,
-          OperandTypes.STRING,
-          SqlFunctionCategory.SYSTEM);
-
   /**
    * <code>AS</code> operator associates an expression in the SELECT clause
    * with an alias.

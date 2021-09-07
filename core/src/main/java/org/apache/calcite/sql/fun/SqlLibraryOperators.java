@@ -1244,4 +1244,24 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction HASHBUCKET =
+      new SqlFunction(
+          "HASHBUCKET",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FARM_FINGERPRINT =
+      new SqlFunction(
+          "FARM_FINGERPRINT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
 }

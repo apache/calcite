@@ -9078,8 +9078,8 @@ class RelToSqlConverterTest {
 
   @Test public void testhashbucket() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatDateRexNode = builder.call(SqlStdOperatorTable.HASHBUCKET,
-        builder.call(SqlStdOperatorTable.FARM_FINGERPRINT, builder.scan("EMP").field(0)));
+    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.HASHBUCKET,
+        builder.call(SqlLibraryOperators.FARM_FINGERPRINT, builder.scan("EMP").field(0)));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatDateRexNode, "FD"))
