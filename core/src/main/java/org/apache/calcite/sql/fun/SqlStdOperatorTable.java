@@ -178,6 +178,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
 
+  /**
+   * {@code HASHBUCKET} function returns the bucket number in HASHMAP which
+   * will hold the table row.*/
   public static final SqlFunction HASHBUCKET =
       new SqlFunction(
           "HASHBUCKET",
@@ -187,13 +190,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.INTEGER,
           SqlFunctionCategory.SYSTEM);
 
+  /**
+   * {@code FARM_FINGERPRINT} function hashes the input string and returns a fixed integer.
+    */
   public static final SqlFunction FARM_FINGERPRINT =
       new SqlFunction(
           "FARM_FINGERPRINT",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
-          OperandTypes.INTEGER,
+          OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
 
   /**

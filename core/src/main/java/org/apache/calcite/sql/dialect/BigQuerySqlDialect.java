@@ -40,11 +40,13 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -140,6 +142,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
@@ -571,6 +574,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case EXTRACT:
       unparseExtractFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case GROUPING:
+      unparseGroupingFunction(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1287,6 +1293,19 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlCall extractCall = extractFormatUtil.unparseCall(call, this);
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseGroupingFunction(SqlWriter writer, SqlCall call,
+                                       int leftPrec, int rightPrec) {
+    SqlCall isNull = new SqlBasicCall(IS_NULL, new SqlNode[]{call.operand(0)}, SqlParserPos.ZERO);
+    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+    SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+    SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
+    whenList.add(isNull);
+    SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
+    thenList.add(oneLiteral);
+    SqlCall groupingSqlCall = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, zeroLiteral);
+    unparseCall(writer, groupingSqlCall, leftPrec, rightPrec);
   }
 
   private boolean isIntervalHourAndSecond(SqlCall call) {
