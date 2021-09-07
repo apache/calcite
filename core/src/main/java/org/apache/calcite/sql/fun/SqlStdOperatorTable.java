@@ -177,6 +177,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.BOOLEAN_NULLABLE_OPTIMIZED,
           InferTypes.BOOLEAN,
           OperandTypes.BOOLEAN_BOOLEAN);
+
   /**
    * <code>AS</code> operator associates an expression in the SELECT clause
    * with an alias.
