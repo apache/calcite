@@ -1384,18 +1384,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     switch (kind) {
     case VALUES:
       // CHECKSTYLE: IGNORE 1
-      if (underFrom || true) {
-        // leave FROM (VALUES(...)) [ AS alias ] clauses alone,
-        // otherwise they grow cancerously if this rewrite is invoked
-        // over and over
-        return node;
-      } else {
-        final SqlNodeList selectList =
-            new SqlNodeList(SqlParserPos.ZERO);
-        selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
-        return new SqlSelect(node.getParserPosition(), null, selectList, node,
-            null, null, null, null, null, null, null, null);
-      }
+      // leave FROM (VALUES(...)) [ AS alias ] clauses alone,
+      // otherwise they grow cancerously if this rewrite is invoked
+      // over and over
+      return node;
 
     case ORDER_BY: {
       SqlOrderBy orderBy = (SqlOrderBy) node;
