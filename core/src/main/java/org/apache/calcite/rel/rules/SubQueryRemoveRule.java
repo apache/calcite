@@ -158,15 +158,145 @@ public class SubQueryRemoveRule
     //
     final SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
 
-    // SOME_EQ & SOME_NE should have been rewritten into IN/ NOT IN
+    // SOME_EQ should have been rewritten into IN/ NOT IN
     assert op == SqlStdOperatorTable.SOME_GE || op == SqlStdOperatorTable.SOME_LE
-        || op == SqlStdOperatorTable.SOME_LT || op == SqlStdOperatorTable.SOME_GT;
+        || op == SqlStdOperatorTable.SOME_LT || op == SqlStdOperatorTable.SOME_GT
+        || op == SqlStdOperatorTable.SOME_NE;
 
     final RexNode caseRexNode;
     final RexNode literalFalse = builder.literal(false);
     final RexNode literalTrue = builder.literal(true);
     final RexLiteral literalUnknown =
         builder.getRexBuilder().makeNullLiteral(literalFalse.getType());
+
+    if (op == SqlStdOperatorTable.SOME_NE) {
+      if (variablesSet.isEmpty()) {
+        // for non-correlated case queries such as
+        // select e.deptno, e.deptno <> some (select deptno from emp) as v
+        // from emp as e
+        //
+        // becomes
+        //
+        // select e.deptno,
+        //   case
+        //   when q.c = 0 then false // sub-query is empty
+        //   when e.deptno is null then unknown
+        //   when q.c <> q.d && q.d <= 1 then e.deptno != m || unknown
+        //   when q.d = 1 then e.deptno != m // sub-query has the distinct result
+        //   else true
+        //   end as v
+        // from emp as e
+        // cross join (
+        //   select count(*) as c, count(deptno) as d, max(deptno) as m
+        //   from (select distinct deptno from emp)) as q
+        builder.push(e.rel);
+        builder.distinct()
+            .aggregate(
+                builder.groupKey(),
+                builder.count(false, "c"),
+                builder.count(false, "d", builder.field(0)),
+                builder.aggregateCall(SqlStdOperatorTable.MAX, builder.field(0)).as("m"))
+            .as("q")
+            .join(JoinRelType.INNER);
+        caseRexNode = builder.call(
+            SqlStdOperatorTable.CASE,
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("c"),
+                builder.literal(0)),
+            literalFalse,
+            builder.call(SqlStdOperatorTable.IS_NULL,
+                e.getOperands().get(0)),
+            literalUnknown,
+            builder.call(SqlStdOperatorTable.AND,
+                builder.call(SqlStdOperatorTable.NOT_EQUALS,
+                    builder.field("d"),
+                    builder.field("c")),
+                builder.call(SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                    builder.field("d"),
+                    builder.literal(1)
+                )),
+            builder.call(SqlStdOperatorTable.OR,
+                builder.call(SqlStdOperatorTable.NOT_EQUALS,
+                    e.operands.get(0), builder.field("q", "m")),
+                literalUnknown),
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("d"),
+                builder.literal(1)
+            ),
+            builder.call(SqlStdOperatorTable.NOT_EQUALS,
+                e.operands.get(0), builder.field("q", "m")),
+            literalTrue);
+      } else {
+        // for correlated case queries such as
+        //
+        // select e.deptno, e.deptno <> some (
+        //   select deptno from emp where emp.name = e.name) as v
+        // from emp as e
+        //
+        // becomes
+        //
+        // select e.deptno,
+        //   case
+        //   when indicator is null then false // sub-query is empty for corresponding corr value
+        //   when q.c = 0 then false // sub-query is empty
+        //   when e.deptno is null then unknown
+        //   when q.c <> q.d && q.d <= 1 then e.deptno != m || unknown
+        //   when q.d = 1 then e.deptno != m // sub-query has the distinct result
+        //   else true
+        //   end as v
+        // from emp as e
+        // left outer join (
+        //   select name, count(distinct *) as c, count(distinct deptno) as d, max(deptno) as m
+        //   "alwaysTrue" as indicator
+        //   from emp group by name) as q on e.name = q.name
+        builder.push(e.rel)
+            .aggregate(builder.groupKey(),
+                builder.count(true, "c"),
+                builder.count(true, "d", builder.field(0)),
+                builder.aggregateCall(SqlStdOperatorTable.MAX, builder.field(0)).as("m"));
+
+        final List<RexNode> parentQueryFields = new ArrayList<>(builder.fields());
+        String indicator = "trueLiteral";
+        parentQueryFields.add(builder.alias(literalTrue, indicator));
+        builder.project(parentQueryFields).as("q");
+        builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
+        caseRexNode = builder.call(SqlStdOperatorTable.CASE,
+            builder.call(SqlStdOperatorTable.IS_NULL,
+                builder.field("q", indicator)),
+            literalFalse,
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("c"),
+                builder.literal(0)),
+            literalFalse,
+            builder.call(SqlStdOperatorTable.IS_NULL,
+                e.getOperands().get(0)),
+            literalUnknown,
+            builder.call(SqlStdOperatorTable.AND,
+                builder.call(SqlStdOperatorTable.NOT_EQUALS,
+                    builder.field("d"),
+                    builder.field("c")),
+                builder.call(SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                    builder.field("d"),
+                    builder.literal(1)
+                )),
+            builder.call(SqlStdOperatorTable.OR,
+                builder.call(SqlStdOperatorTable.NOT_EQUALS,
+                    e.operands.get(0), builder.field("q", "m")),
+                literalUnknown),
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("d"),
+                builder.literal(1)
+            ),
+            builder.call(SqlStdOperatorTable.NOT_EQUALS,
+                e.operands.get(0), builder.field("q", "m")),
+            literalTrue);
+      }
+      if (!e.getType().isNullable()) {
+        return builder.cast(caseRexNode, e.getType().getSqlTypeName());
+      }
+      return caseRexNode;
+    }
+
     final SqlAggFunction minMax = op.comparisonKind == SqlKind.GREATER_THAN
         || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
         ? SqlStdOperatorTable.MIN

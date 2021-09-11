@@ -11542,6 +11542,48 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSomeWithNotEquality">
+    <Resource name="sql">
+      <![CDATA[select * from emp e1
+  where e1.deptno <> SOME (select deptno from dept)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[<> SOME($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(AND(<>($10, $9), <=($10, 1), OR(<>($7, $11), null), <>($9, 0)), AND(=($10, 1), <>($7, $11), <>($9, 0), OR(=($10, $9), >($10, 1))), AND(<>($9, 0), OR(=($10, $9), >($10, 1)), <>($10, 1)))])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(c=[$0], d=[$0], m=[$1])
+          LogicalAggregate(group=[{}], c=[COUNT()], m=[MAX($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(AND(<>($10, $9), <=($10, 1), OR(<>($7, $11), null), <>($9, 0)), AND(=($10, 1), <>($7, $11), <>($9, 0), OR(=($10, $9), >($10, 1))), AND(<>($9, 0), OR(=($10, $9), >($10, 1)), <>($10, 1)))])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(c=[$0], d=[$0], m=[$1])
+          LogicalAggregate(group=[{}], c=[COUNT()], m=[MAX($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortJoinCopyInnerJoinOrderBy">
     <Resource name="sql">
       <![CDATA[select * from sales.emp join sales.dept on

@@ -2161,4 +2161,258 @@ EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
 
 !ok
 
+!set outputformat mysql
+# Correlated SOME sub-query with not equality
+# Both sides Not NUll.
+select empno
+from "scott".emp emp1
+where empno <> some (select emp2.empno from "scott".emp emp2 where emp2.empno = emp1.empno);
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[<>($t2, $t1)], expr#7=[1], expr#8=[<=($t2, $t7)], expr#9=[<>($t0, $t3)], expr#10=[IS NULL($t4)], expr#11=[0], expr#12=[=($t1, $t11)], expr#13=[OR($t10, $t12)], expr#14=[IS NOT TRUE($t13)], expr#15=[AND($t6, $t8, $t9, $t14)], expr#16=[=($t2, $t7)], expr#17=[IS NOT NULL($t2)], expr#18=[AND($t6, $t17)], expr#19=[IS NOT TRUE($t18)], expr#20=[AND($t16, $t9, $t14, $t19)], expr#21=[AND($t6, $t8)], expr#22=[IS NOT TRUE($t21)], expr#23=[IS NOT TRUE($t16)], expr#24=[AND($t14, $t22, $t23)], expr#25=[OR($t15, $t20, $t24)], EMPNO=[$t0], $condition=[$t25])
+  EnumerableMergeJoin(condition=[=($0, $5)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableSort(sort0=[$4], dir0=[ASC])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1:BIGINT], expr#9=[true], c=[$t8], d=[$t8], m=[$t0], trueLiteral=[$t9], EMPNO1=[$t0])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# Previous, as scalar sub-query.
+select empno, empno <> some (select emp2.empno from "scott".emp emp2 where emp2.empno = emp1.empno) as x
+from "scott".emp emp1;
+
++-------+-------+
+| EMPNO | X     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
+
+# left side NOT NULL, correlated sub-query nullable.
+select *
+from "scott".emp emp1
+where empno <> some (select comm from "scott".emp where deptno = emp1.deptno);
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#15=[<=($t9, $t14)], expr#16=[AND($t13, $t15)], expr#17=[=($t9, $t14)], expr#18=[OR($t16, $t17)], expr#19=[<>($t0, $t10)], expr#20=[IS NULL($t11)], expr#21=[0], expr#22=[=($t8, $t21)], expr#23=[OR($t20, $t22)], expr#24=[IS NOT TRUE($t23)], expr#25=[AND($t18, $t19, $t24)], expr#26=[IS NOT TRUE($t18)], expr#27=[AND($t24, $t26)], expr#28=[OR($t25, $t27)], proj#0..7=[{exprs}], $condition=[$t28])
+  EnumerableMergeJoin(condition=[=($7, $12)], joinType=[left])
+    EnumerableSort(sort0=[$7], dir0=[ASC])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableSort(sort0=[$4], dir0=[ASC])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], c=[$t1], d=[$t2], m=[$t3], trueLiteral=[$t4], DEPTNO=[$t0])
+        EnumerableAggregate(group=[{0}], c=[COUNT() FILTER $4], d=[COUNT($1) FILTER $3], m=[MIN($2) FILTER $4])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[=($t3, $t6)], DEPTNO=[$t1], COMM=[$t0], m=[$t2], $g_0=[$t5], $g_1=[$t7])
+            EnumerableAggregate(group=[{6, 7}], groups=[[{6, 7}, {7}]], m=[MAX($6)], $g=[GROUPING($7, $6)])
+              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+                EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+--------+----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+----------+------+------------+---------+---------+--------+
+|  7499 | ALLEN  | SALESMAN | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER  | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7844 | TURNER | SALESMAN | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7900 | JAMES  | CLERK    | 7698 | 1981-12-03 |  950.00 |         |     30 |
++-------+--------+----------+------+------------+---------+---------+--------+
+(6 rows)
+
+!ok
+
+# Previous, as scalar sub-query.
+select *, empno <> some (select comm from "scott".emp where deptno = emp1.deptno) as x
+from "scott".emp as emp1;
+
++-------+--------+-----------+------+------------+---------+---------+--------+------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X    |
++-------+--------+-----------+------+------------+---------+---------+--------+------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |      |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 | true |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 | true |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |      |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 | true |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 | true |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |      |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |      |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |      |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 | true |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |      |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 | true |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |      |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |      |
++-------+--------+-----------+------+------------+---------+---------+--------+------+
+(14 rows)
+
+!ok
+
+# left side NOT NULL, correlated sub-query empty.
+select *
+from "scott".emp as emp1
+where empno <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno);
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#15=[<=($t9, $t14)], expr#16=[<>($t0, $t10)], expr#17=[IS NULL($t11)], expr#18=[0], expr#19=[=($t8, $t18)], expr#20=[OR($t17, $t19)], expr#21=[IS NOT TRUE($t20)], expr#22=[AND($t13, $t15, $t16, $t21)], expr#23=[=($t9, $t14)], expr#24=[IS NOT NULL($t9)], expr#25=[AND($t13, $t24)], expr#26=[IS NOT TRUE($t25)], expr#27=[AND($t23, $t16, $t21, $t26)], expr#28=[AND($t13, $t15)], expr#29=[IS NOT TRUE($t28)], expr#30=[IS NOT TRUE($t23)], expr#31=[AND($t21, $t29, $t30)], expr#32=[OR($t22, $t27, $t31)], proj#0..7=[{exprs}], $condition=[$t32])
+  EnumerableMergeJoin(condition=[=($0, $12)], joinType=[left])
+    EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableSort(sort0=[$4], dir0=[ASC])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[true], c=[$t1], d=[$t2], m=[$t4], trueLiteral=[$t5], DEPTNO0=[$t0])
+        EnumerableAggregate(group=[{0}], c=[COUNT() FILTER $4], d=[COUNT($1) FILTER $3], m=[MIN($2) FILTER $4])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[=($t3, $t6)], proj#0..2=[{exprs}], $g_0=[$t5], $g_1=[$t7])
+            EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], m=[MAX($1)], $g=[GROUPING($0, $1)])
+              EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
+                EnumerableTableScan(table=[[scott, DEPT]])
+!plan
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+# Previous, as scalar sub-query.
+select *, empno <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno) as x
+from "scott".emp as emp1;
+
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 | false |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 | false |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 | false |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 | false |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 | false |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 | false |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 | false |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 | false |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 | false |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 | false |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 | false |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 | false |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 | false |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 | false |
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+(14 rows)
+
+!ok
+
+# left side nullable, correlated sub-query empty.
+select *
+from "scott".emp as emp1
+where comm <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno);
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#15=[<=($t9, $t14)], expr#16=[AND($t13, $t15)], expr#17=[=($t9, $t14)], expr#18=[OR($t16, $t17)], expr#19=[<>($t6, $t10)], expr#20=[IS NULL($t11)], expr#21=[IS NULL($t6)], expr#22=[0], expr#23=[=($t8, $t22)], expr#24=[OR($t20, $t21, $t23)], expr#25=[IS NOT TRUE($t24)], expr#26=[AND($t18, $t19, $t25)], expr#27=[IS NOT TRUE($t18)], expr#28=[AND($t25, $t27)], expr#29=[OR($t26, $t28)], proj#0..7=[{exprs}], $condition=[$t29])
+  EnumerableMergeJoin(condition=[=($0, $12)], joinType=[left])
+    EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableSort(sort0=[$4], dir0=[ASC])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[true], c=[$t1], d=[$t2], m=[$t4], trueLiteral=[$t5], DEPTNO0=[$t0])
+        EnumerableAggregate(group=[{0}], c=[COUNT() FILTER $4], d=[COUNT($1) FILTER $3], m=[MIN($2) FILTER $4])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[=($t3, $t6)], proj#0..2=[{exprs}], $g_0=[$t5], $g_1=[$t7])
+            EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], m=[MAX($1)], $g=[GROUPING($0, $1)])
+              EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
+                EnumerableTableScan(table=[[scott, DEPT]])
+!plan
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+# Previous, as scalar sub-query.
+select *, comm <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno) as x
+from "scott".emp as emp1;
+
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 | false |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 | false |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 | false |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 | false |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 | false |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 | false |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 | false |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 | false |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 | false |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 | false |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 | false |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 | false |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 | false |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 | false |
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+(14 rows)
+
+!ok
+
+# left side nullable, correlated sub-query nullable.
+select *
+from "scott".emp emp1
+where emp1.comm <> some (select comm from "scott".emp emp2 where emp2.sal = emp1.sal);
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#15=[<=($t9, $t14)], expr#16=[AND($t13, $t15)], expr#17=[=($t9, $t14)], expr#18=[OR($t16, $t17)], expr#19=[<>($t6, $t10)], expr#20=[IS NULL($t11)], expr#21=[IS NULL($t6)], expr#22=[0], expr#23=[=($t8, $t22)], expr#24=[OR($t20, $t21, $t23)], expr#25=[IS NOT TRUE($t24)], expr#26=[AND($t18, $t19, $t25)], expr#27=[IS NOT TRUE($t18)], expr#28=[AND($t25, $t27)], expr#29=[OR($t26, $t28)], proj#0..7=[{exprs}], $condition=[$t29])
+  EnumerableMergeJoin(condition=[=($5, $12)], joinType=[left])
+    EnumerableSort(sort0=[$5], dir0=[ASC])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableSort(sort0=[$4], dir0=[ASC])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], c=[$t1], d=[$t2], m=[$t3], trueLiteral=[$t4], SAL=[$t0])
+        EnumerableAggregate(group=[{0}], c=[COUNT() FILTER $4], d=[COUNT($1) FILTER $3], m=[MIN($2) FILTER $4])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[=($t3, $t6)], proj#0..2=[{exprs}], $g_0=[$t5], $g_1=[$t7])
+            EnumerableAggregate(group=[{5, 6}], groups=[[{5, 6}, {5}]], m=[MAX($6)], $g=[GROUPING($5, $6)])
+              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t5)], proj#0..7=[{exprs}], $condition=[$t8])
+                EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+--------+----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+----------+------+------------+---------+---------+--------+
+|  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
++-------+--------+----------+------+------------+---------+---------+--------+
+(2 rows)
+
+!ok
+
+# Previous, as scalar sub-query.
+select *, emp1.comm <> some (select comm from "scott".emp where sal = emp1.sal) as x
+from "scott".emp emp1;
+
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |       |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 | false |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 | true  |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |       |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 | true  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |       |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |       |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |       |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |       |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 | false |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |       |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |       |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |       |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |       |
++-------+--------+-----------+------+------------+---------+---------+--------+-------+
+(14 rows)
+
+!ok
+
 # End sub-query.iq
