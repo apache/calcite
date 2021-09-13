@@ -1860,10 +1860,28 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /**
-   * Rule to remove single_value rel. For cases like
+   * Rule to remove an Aggregate with SINGLE_VALUE. For cases like:
    *
-   * <blockquote>AggRel single_value proj/filter/agg/ join on unique LHS key
-   * AggRel single group</blockquote>
+   * Aggregate(SINGLE_VALUE)
+   *   Project(single expression)
+   *     Aggregate
+   *
+   * For instance (subtree taken from TPCH query 17):
+   *
+   * LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+   *   LogicalProject(EXPR$0=[*(0.2:DECIMAL(2, 1), $0)])
+   *     LogicalAggregate(group=[{}], agg#0=[AVG($0)])
+   *       LogicalProject(L_QUANTITY=[$4])
+   *         LogicalFilter(condition=[=($1, $cor0.P_PARTKEY)])
+   *           LogicalTableScan(table=[[TPCH_01, LINEITEM]])
+   *
+   * Will be converted into:
+   *
+   * LogicalProject($f0=[*(0.2:DECIMAL(2, 1), $0)])
+   *   LogicalAggregate(group=[{}], agg#0=[AVG($0)])
+   *     LogicalProject(L_QUANTITY=[$4])
+   *       LogicalFilter(condition=[=($1, $cor0.P_PARTKEY)])
+   *         LogicalTableScan(table=[[TPCH_01, LINEITEM]])
    */
   public static final class RemoveSingleAggregateRule
       extends RelRule<RemoveSingleAggregateRule.Config> {
@@ -1882,11 +1900,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
-      Aggregate singleAggregate = call.rel(0);
-      Project project = call.rel(1);
-      Aggregate aggregate = call.rel(2);
+      final Aggregate singleAggregate = call.rel(0);
+      final Project project = call.rel(1);
+      final Aggregate aggregate = call.rel(2);
 
-      // check singleAggRel is single_value agg
+      // check the top aggregate is a single value agg function
       if (!singleAggregate.getGroupSet().isEmpty()
           || (singleAggregate.getAggCallList().size() != 1)
           || !(singleAggregate.getAggCallList().get(0).getAggregation()
@@ -1894,10 +1912,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return;
       }
 
-      // check projRel only projects one expression
-      // check this project only projects one expression, i.e. scalar
-      // sub-queries.
-      List<RexNode> projExprs = project.getProjects();
+      // check the project only projects one expression, i.e. scalar sub-queries.
+      final List<RexNode> projExprs = project.getProjects();
       if (projExprs.size() != 1) {
         return;
       }
@@ -1907,16 +1923,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return;
       }
 
-      // singleAggRel produces a nullable type, so create the new
-      // projection that casts proj expr to a nullable type.
+      // ensure we keep the same type after removing the SINGLE_VALUE Aggregate
       final RelBuilder relBuilder = call.builder();
-      final RelDataType type =
-          relBuilder.getTypeFactory()
-              .createTypeWithNullability(projExprs.get(0).getType(), true);
-      final RexNode cast =
-          relBuilder.getRexBuilder().makeCast(type, projExprs.get(0));
-      relBuilder.push(aggregate)
-          .project(cast);
+      final RelDataType singleAggType =
+          singleAggregate.getRowType().getFieldList().get(0).getType();
+      final RexNode oldProjectExp = projExprs.get(0);
+      final RexNode newProjectExp = singleAggType.equals(oldProjectExp.getType())
+              ? oldProjectExp
+              : relBuilder.getRexBuilder().makeCast(singleAggType, oldProjectExp);
+      relBuilder.push(aggregate).project(newProjectExp);
       call.transformTo(relBuilder.build());
     }
 
