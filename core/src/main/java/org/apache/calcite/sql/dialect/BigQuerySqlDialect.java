@@ -932,8 +932,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(date_diff);
       break;
     case "HASHBUCKET":
-      if (!call.getOperandList().isEmpty() && call.operand(0).getKind() != SqlKind.LITERAL) {
+      if (!call.getOperandList().isEmpty()) {
         unparseCall(writer, call.operand(0), leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
     default:

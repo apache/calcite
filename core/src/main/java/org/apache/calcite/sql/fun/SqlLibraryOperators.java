@@ -1255,7 +1255,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, TERADATA})
   public static final SqlFunction FARM_FINGERPRINT =
       new SqlFunction(
           "FARM_FINGERPRINT",
