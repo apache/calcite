@@ -26,7 +26,9 @@ limitations under the License.
 
 # Upcoming talks
 
-There are no upcoming talks at the moment. Stay tuned!
+## Building modern SQL query optimizers with Apache Calcite (Vladimir Ozerov)
+
+At [ApacheCon 2021](https://www.apachecon.com/acah2021/tracks/bigdatasql.html), September 22, 2021.
 
 # Project Members
 
@@ -86,6 +88,13 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## Apache Calcite Tutorial
+
+At [BOSS 2021](https://boss-workshop.github.io/boss-2021/), Copenhagen, Denmark, August 16, 2021;
+[[summary](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.md)],
+[[slides](https://www.slideshare.net/StamatisZampetakis/apache-calcite-tutorial-boss-21)],
+[[pdf](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.pdf)].
 
 ## An introduction to query processing & Apache Calcite
 
