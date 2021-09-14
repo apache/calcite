@@ -44,6 +44,9 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,6 +58,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.TreeSet;
 
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
@@ -1297,6 +1301,26 @@ public class ExpressionTest {
             + "}\n",
         Expressions.toString(expression));
     expression.accept(new Shuttle());
+  }
+
+  @Test public void testTimeRelatedConstantExpression() {
+    TimeZone currentTimeZone = TimeZone.getDefault();
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    assertThat(
+        Expressions.toString(
+            Expressions.constant("2019-10-12 19:00:35", Timestamp.class)),
+        is("2019-10-12 19:00:35.0"));
+
+    assertThat(
+        Expressions.toString(
+            Expressions.constant("2019-10-12", Date.class)),
+        is("2019-10-12"));
+
+    assertThat(
+        Expressions.toString(
+            Expressions.constant("19:00:35", Time.class)),
+        is("19:00:35"));
+    TimeZone.setDefault(currentTimeZone);
   }
 
   @Test void testConstantExpression() {

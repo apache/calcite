@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Extensions;
 import org.apache.calcite.linq4j.function.Function;
 import org.apache.calcite.linq4j.function.Function0;
@@ -35,11 +36,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
@@ -564,9 +569,10 @@ public abstract class Expressions {
         String stringValue = String.valueOf(value);
         if (type == BigDecimal.class) {
           value = new BigDecimal(stringValue);
-        }
-        if (type == BigInteger.class) {
+        } else if (type == BigInteger.class) {
           value = new BigInteger(stringValue);
+        } else if (type == Timestamp.class || type == Date.class || type == Time.class) {
+          value = parseUTCString(stringValue, type);
         }
         if (primitive != null) {
           value = primitive.parse(stringValue);
@@ -574,6 +580,21 @@ public abstract class Expressions {
       }
     }
     return new ConstantExpression(type, value);
+  }
+
+  private static @Nullable Object parseUTCString(String value, Type type) {
+    TimeZone currentTimeZone = DateTimeUtils.DEFAULT_ZONE;
+    TimeZone.setDefault(DateTimeUtils.UTC_ZONE);
+    Object result = null;
+    if (type == Timestamp.class) {
+      result = Timestamp.valueOf(value);
+    } else if (type == Date.class) {
+      result = Date.valueOf(value);
+    } else if (type == Time.class) {
+      result = Time.valueOf(value);
+    }
+    TimeZone.setDefault(currentTimeZone);
+    return result;
   }
 
   /**
