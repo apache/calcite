@@ -285,6 +285,8 @@ public class SubstitutionVisitor {
   public static @Nullable RexNode splitFilter(final RexSimplify simplify,
       RexNode condition, RexNode target) {
     final RexBuilder rexBuilder = simplify.rexBuilder;
+    condition = simplify.simplify(condition);
+    target = simplify.simplify(target);
     RexNode condition2 = canonizeNode(rexBuilder, condition);
     RexNode target2 = canonizeNode(rexBuilder, target);
 

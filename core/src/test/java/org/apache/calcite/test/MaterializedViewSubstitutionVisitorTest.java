@@ -1575,6 +1575,38 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv, query).ok();
   }
 
+  @Test void testRexPredicate() {
+    final String mv = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100 and \"deptno\" > 50\n"
+        + "group by \"name\"";
+    final String query = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100"
+        + "group by \"name\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testRexPredicate1() {
+    final String query = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100 and \"deptno\" > 50\n"
+        + "group by \"name\"";
+    final String mv = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100"
+        + "group by \"name\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
