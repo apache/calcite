@@ -1255,7 +1255,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {BIG_QUERY, TERADATA})
+  @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHROW =
       new SqlFunction(
           "HASHROW",
