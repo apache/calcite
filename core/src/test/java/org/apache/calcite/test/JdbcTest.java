@@ -966,6 +966,35 @@ public class JdbcTest {
     }
   }
 
+  /**
+   * {@link ResultSetMetaData#getCatalogName(int)},
+   * {@link ResultSetMetaData#getSchemaName(int)},
+   * {@link ResultSetMetaData#getTableName(int)}
+   * should return empty string rather than null when not applicable to map to a value.
+   */
+  @Test public void testResultSetMetadataWhenFailToMapAValue() throws Exception {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .doWithConnection(c -> {
+          try {
+            final Statement s = c.createStatement();
+            final String query = ""
+                + "select \"employee_id\", \"employee_id\" + 1\n"
+                + "from \"foodmart\".\"employee\"";
+            final ResultSet rs = s.executeQuery(query);
+            final ResultSetMetaData rsm = rs.getMetaData();
+            assertThat(rsm.getCatalogName(1), equalTo(""));
+            assertThat(rsm.getCatalogName(2), equalTo(""));
+            assertThat(rsm.getSchemaName(1), equalTo("foodmart"));
+            assertThat(rsm.getSchemaName(2), equalTo(""));
+            assertThat(rsm.getTableName(1), equalTo("employee"));
+            assertThat(rsm.getTableName(2), equalTo(""));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
   private void checkResultSetMetaData(Connection connection, String sql)
       throws SQLException {
     try (Statement statement = connection.createStatement();
@@ -980,7 +1009,7 @@ public class JdbcTest {
       assertEquals("emps", metaData.getTableName(2));
       assertEquals("Y", metaData.getColumnLabel(3));
       assertEquals("Y", metaData.getColumnName(3));
-      assertEquals(null, metaData.getTableName(3));
+      assertEquals("", metaData.getTableName(3));
     }
   }
 
