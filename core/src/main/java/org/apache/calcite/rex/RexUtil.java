@@ -64,6 +64,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -318,6 +319,21 @@ public class RexUtil {
         return e;
       }
     }
+  }
+
+  /**
+   * Removes cast if raw type can be cast to target type.
+   */
+  public static RexNode removeCastIfConvertible(RexNode rexNode) {
+    RelDataType toType = rexNode.getType();
+    RexNode origin = RexUtil.removeCast(rexNode);
+    if (SqlTypeUtil.canCastFrom(toType, origin.getType(), true)) {
+      return origin;
+    }
+    throw new UnsupportedOperationException(
+        String.format(
+            Locale.ROOT, "Cannot cast %s to %s",
+            origin.getType().getSqlTypeName(), toType.getSqlTypeName()));
   }
 
   /** Creates a map containing each (e, constant) pair that occurs within

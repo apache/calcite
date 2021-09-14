@@ -476,7 +476,7 @@ public class RexImplicationChecker {
 
     private void updateUnaryOpUsage(RexCall call) {
       final List<RexNode> operands = call.getOperands();
-      RexNode first = RexUtil.removeCast(operands.get(0));
+      RexNode first = RexUtil.removeCastIfConvertible(operands.get(0));
 
       if (first.isA(SqlKind.INPUT_REF)) {
         updateUsage(call.getOperator(), (RexInputRef) first, null);
@@ -485,8 +485,8 @@ public class RexImplicationChecker {
 
     private void updateBinaryOpUsage(RexCall call) {
       final List<RexNode> operands = call.getOperands();
-      RexNode first = RexUtil.removeCast(operands.get(0));
-      RexNode second = RexUtil.removeCast(operands.get(1));
+      RexNode first = RexUtil.removeCastIfConvertible(operands.get(0));
+      RexNode second = RexUtil.removeCastIfConvertible(operands.get(1));
 
       if (first.isA(SqlKind.INPUT_REF)
           && second.isA(SqlKind.LITERAL)) {

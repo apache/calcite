@@ -55,6 +55,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for {@link RexImplicationChecker}.
@@ -373,6 +374,74 @@ public class RexImplicationCheckerTest {
         f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, false)
             .toString(),
         is("2014"));
+  }
+
+  @Test public void testRexImplifyWithCast1() {
+    final Fixture f = new Fixture();
+    final RexNode left = f.rexBuilder.makeCall(
+        SqlStdOperatorTable.AND,
+        f.rexBuilder.makeCall(
+            SqlStdOperatorTable.EQUALS,
+            f.str,
+            f.cast(
+                f.stringDataType,
+                f.literal(1))),
+        f.rexBuilder.makeCall(
+            SqlStdOperatorTable.EQUALS,
+            f.i,
+            f.literal(1)));
+    final RexNode right = f.rexBuilder.makeCall(
+        SqlStdOperatorTable.EQUALS,
+        f.i,
+        f.literal(1));
+    f.checkImplies(left, right);
+  }
+
+  @Test public void testRexImplifyWithCast2() {
+    final Fixture f = new Fixture();
+    final RexNode left = f.rexBuilder.makeCall(
+        SqlStdOperatorTable.AND,
+        f.rexBuilder.makeCall(
+            SqlStdOperatorTable.EQUALS,
+            f.str,
+            f.cast(
+                f.stringDataType,
+                f.literal(1))),
+        f.rexBuilder.makeCall(
+            SqlStdOperatorTable.EQUALS,
+            f.i,
+            f.literal(1)));
+    final RexNode right = f.rexBuilder.makeCall(
+        SqlStdOperatorTable.EQUALS,
+        f.str,
+        f.charLiteral("1"));
+    f.checkImplies(left, right);
+  }
+
+  @Test public void testRexImplifyWithUncastable() {
+    try {
+      final Fixture f = new Fixture();
+      final RexNode left = f.rexBuilder.makeCall(
+          SqlStdOperatorTable.AND,
+          f.rexBuilder.makeCall(
+              SqlStdOperatorTable.EQUALS,
+              f.bl,
+              f.cast(
+                  f.boolRelDataType,
+                  f.timeLiteral(new TimeString("16:20:18")))),
+          f.rexBuilder.makeCall(
+              SqlStdOperatorTable.EQUALS,
+              f.i,
+              f.literal(1)));
+      final RexNode right = f.rexBuilder.makeCall(
+          SqlStdOperatorTable.EQUALS,
+          f.bl,
+          f.rexBuilder.makeLiteral(true));
+      f.checkImplies(left, right);
+      fail();
+    } catch (UnsupportedOperationException e) {
+      assertThat(e.getMessage(), is("Cannot cast TIME to BOOLEAN"));
+    }
   }
 
   /** Test case for simplifier of ceil/floor. */

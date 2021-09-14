@@ -1140,6 +1140,9 @@ public class RexLiteral extends RexNode {
     default:
       break;
     }
+    if (clazz == String.class) {
+      return clazz.cast(value.toString());
+    }
     throw new AssertionError("cannot convert " + typeName
         + " literal to " + clazz);
   }
