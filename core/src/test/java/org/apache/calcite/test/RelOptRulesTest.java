@@ -5790,7 +5790,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinIn() {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
@@ -5798,7 +5797,6 @@ class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
-  @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinInComposite() {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
@@ -5811,6 +5809,17 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
         + "on exists (select deptno from sales.emp where empno < 20)";
+    checkSubQuery(sql).check();
+  }
+
+  @Test void testJoinOnMultipleCorrelatedSubQueries() {
+    final String sql = ""
+        + "SELECT empno\n"
+        + "FROM emp AS e\n"
+        + "LEFT JOIN dept AS d\n"
+        + "    ON e.sal IN (SELECT sal FROM emp)\n"
+        + "    OR e.sal < (SELECT avg(sal) FROM emp)\n"
+        + "    OR EXISTS (SELECT 1 FROM emp AS e2 WHERE e2.deptno = d.deptno)\n";
     checkSubQuery(sql).check();
   }
 

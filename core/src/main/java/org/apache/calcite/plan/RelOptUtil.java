@@ -108,6 +108,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import org.apiguardian.api.API;
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -303,6 +304,57 @@ public abstract class RelOptUtil {
     } else {
       return litmus.fail("contains {}", correlationId);
     }
+  }
+
+  /**
+   * Transforms a join condition over two inputs to a correlated condition over the right input.
+   *
+   * Replaces references on the left relation with correlating variables and shifts references on
+   * the right relation as needed to be able to put the condition over the right relation.
+   *
+   * Example:
+   * Consider as input the expression {@code ($0, $9)} from a plan such the one below.
+   * <pre>{@code
+   * Join(condition=[($0, $9)])
+   *   Scan(table=[DEPT])
+   *   Scan(table=[EMP])
+   * }</pre>
+   *
+   * This method returns the expression {@code =($cor0.EMPNO, $7)} that is meant to be used
+   * to create a plan like the following.
+   * <pre>{@code
+   * Correlate(correlation=[$cor0])
+   *   Scan(table=[DEPT])
+   *   Filter(condition=[=($cor0.EMPNO, $7)])
+   *     Scan(table=[EMP])
+   * }</pre>
+   *
+   * @param condition to be transformed
+   * @param id to use for correlating variables
+   * @param left relation
+   * @param right relation
+   * @return a new condition with input references replaced by other expressions when necessary
+   */
+  @API(since = "1.28", status = API.Status.EXPERIMENTAL)
+  public static RexNode transformJoinConditionToCorrelate(RexNode condition, CorrelationId id,
+      RelNode left, RelNode right) {
+    // Obtain the RexBuilder from left/right relation.
+    // It is unlikely that another (custom) RexBuilder is necessary here but if it happens to be
+    // the case we can consider adding a new parameter to this method then.
+    RexBuilder builder = left.getCluster().getRexBuilder();
+    final RelDataType leftRowType = left.getRowType();
+    final int leftCount = leftRowType.getFieldCount();
+    RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
+        if (inputRef.getIndex() < leftCount) {
+          final RexNode v = builder.makeCorrel(leftRowType, id);
+          return builder.makeFieldAccess(v, inputRef.getIndex());
+        } else {
+          return builder.makeInputRef(right, inputRef.getIndex() - leftCount);
+        }
+      }
+    };
+    return shuttle.apply(condition);
   }
 
   /**

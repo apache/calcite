@@ -47,6 +47,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -763,24 +764,33 @@ public class SubQueryRemoveRule
 
   private static void matchJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
     final Join join = call.rel(0);
-    final RelBuilder builder = call.builder();
-    final RexSubQuery e =
-        RexUtil.SubQueryFinder.find(join.getCondition());
-    assert e != null;
-    final RelOptUtil.Logic logic =
-        LogicVisitor.find(RelOptUtil.Logic.TRUE,
-            ImmutableList.of(join.getCondition()), e);
-    builder.push(join.getLeft());
-    builder.push(join.getRight());
-    final int fieldCount = join.getRowType().getFieldCount();
-    final Set<CorrelationId>  variablesSet =
-        RelOptUtil.getVariablesUsed(e.rel);
-    final RexNode target = rule.apply(e, variablesSet,
-        logic, builder, 2, fieldCount);
-    final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-    builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
-    builder.project(fields(builder, join.getRowType().getFieldCount()));
+    assert containsSubQueryAndJoinTypeIsRewritable(join);
+    final RelBuilder builder = call.builder()
+        .push(join.getLeft())
+        .push(join.getRight());
+    final CorrelationId id = join.getCluster().createCorrel();
+    RexNode condition = RelOptUtil.transformJoinConditionToCorrelate(join.getCondition(), id,
+        join.getLeft(), join.getRight());
+    for (RexSubQuery subQuery = RexUtil.SubQueryFinder.find(condition); subQuery != null;
+        subQuery = RexUtil.SubQueryFinder.find(condition)) {
+      final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(subQuery.rel);
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition), subQuery);
+      final int offset = builder.peek().getRowType().getFieldCount();
+      final RexNode target = rule.apply(subQuery, variablesSet, logic, builder, 1, offset);
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(subQuery, target);
+      condition = shuttle.apply(condition);
+    }
+    builder
+        .filter(condition)
+        .join(join.getJoinType(), builder.literal(true), ImmutableSet.of(id))
+        .project(fields(builder, join.getRowType().getFieldCount()));
     call.transformTo(builder.build());
+  }
+
+  private static boolean containsSubQueryAndJoinTypeIsRewritable(Join join) {
+    return !join.getJoinType().generatesNullsOnLeft()
+        && RexUtil.SubQueryFinder.containsSubQuery(join);
   }
 
   /** Shuttle that replaces occurrences of a given
@@ -820,7 +830,7 @@ public class SubQueryRemoveRule
     Config JOIN = EMPTY
         .withOperandSupplier(b ->
             b.operand(Join.class)
-                .predicate(RexUtil.SubQueryFinder::containsSubQuery)
+                .predicate(SubQueryRemoveRule::containsSubQueryAndJoinTypeIsRewritable)
                 .anyInputs())
         .withDescription("SubQueryRemoveRule:Join")
         .as(Config.class)

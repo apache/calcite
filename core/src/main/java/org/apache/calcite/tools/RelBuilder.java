@@ -2480,7 +2480,7 @@ public class RelBuilder {
       case ANTI:
         // For a LEFT/SEMI/ANTI, predicate must be evaluated first.
         stack.push(right);
-        filter(condition.accept(new Shifter(left.rel, id, right.rel)));
+        filter(RelOptUtil.transformJoinConditionToCorrelate(condition, id, left.rel, right.rel));
         right = stack.pop();
         break;
       case INNER:
@@ -4147,33 +4147,6 @@ public class RelBuilder {
       final ImmutableSet<String> aliasList =
           ImmutableSet.<String>builder().addAll(left).add(alias).build();
       return new Field(aliasList, right);
-    }
-  }
-
-  /** Shuttle that shifts a predicate's inputs to the left, replacing early
-   * ones with references to a
-   * {@link RexCorrelVariable}. */
-  private class Shifter extends RexShuttle {
-    private final RelNode left;
-    private final CorrelationId id;
-    private final RelNode right;
-
-    Shifter(RelNode left, CorrelationId id, RelNode right) {
-      this.left = left;
-      this.id = id;
-      this.right = right;
-    }
-
-    @Override public RexNode visitInputRef(RexInputRef inputRef) {
-      final RelDataType leftRowType = left.getRowType();
-      final RexBuilder rexBuilder = getRexBuilder();
-      final int leftCount = leftRowType.getFieldCount();
-      if (inputRef.getIndex() < leftCount) {
-        final RexNode v = rexBuilder.makeCorrel(leftRowType, id);
-        return rexBuilder.makeFieldAccess(v, inputRef.getIndex());
-      } else {
-        return rexBuilder.makeInputRef(right, inputRef.getIndex() - leftCount);
-      }
     }
   }
 
