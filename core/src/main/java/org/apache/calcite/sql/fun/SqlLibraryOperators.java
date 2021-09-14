@@ -1244,4 +1244,24 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction HASHBUCKET =
+      new SqlFunction(
+          "HASHBUCKET",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction HASHROW =
+      new SqlFunction(
+          "HASHROW",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
 }
