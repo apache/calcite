@@ -711,7 +711,7 @@ class ElasticSearchAdapterTest {
   void notEqualsTest() {
     calciteAssert()
         .query("select * from zips where state <> 'MA'")
-        .returnCounts(146);
+        .returnsCount(146);
   }
 
 }
