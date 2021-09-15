@@ -704,4 +704,14 @@ class ElasticSearchAdapterTest {
             "state=AR; EXPR$1=3; EXPR$2=3");
   }
 
+  /**
+   * Tests the {@code NOT EQUALS} operator.
+   */
+  @Test
+  void notEqualsTest() {
+    calciteAssert()
+        .query("select * from zips where state <> 'MA'")
+        .returnCounts(146);
+  }
+
 }
