@@ -707,8 +707,7 @@ class ElasticSearchAdapterTest {
   /**
    * Tests the {@code NOT EQUALS} operator.
    */
-  @Test
-  void notEqualsTest() {
+  @Test void notEqualsTest() {
     calciteAssert()
         .query("select * from zips where state <> 'MA'")
         .returnsCount(146);
