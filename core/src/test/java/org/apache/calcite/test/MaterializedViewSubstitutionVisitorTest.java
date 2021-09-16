@@ -1135,6 +1135,85 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv, query).ok();
   }
 
+  /**
+   * It's match, distinct agg-call could be expressed by mv's grouping.
+   */
+  @Test void testAggDistinctInMvGrouping() {
+    final String mv = ""
+        + "select \"deptno\", \"name\""
+        + "from \"emps\" group by \"deptno\", \"name\"";
+    final String query = ""
+        + "select \"deptno\", \"name\", count(distinct \"name\")"
+        + "from \"emps\" group by \"deptno\", \"name\"";
+    sql(mv, query).ok();
+  }
+
+  /**
+   * It's match, `Optionality.IGNORED` agg-call could be expressed by mv's grouping.
+   */
+  @Test void testAggOptionalityInMvGrouping() {
+    final String mv = ""
+        + "select \"deptno\", \"salary\""
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    final String query = ""
+        + "select \"deptno\", \"salary\", max(\"salary\")"
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    sql(mv, query).ok();
+  }
+
+  /**
+   * It's not match, normal agg-call could be expressed by mv's grouping.
+   * Such as: sum, count
+   */
+  @Test void testAggNormalInMvGrouping() {
+    final String mv = ""
+        + "select \"deptno\", \"salary\""
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    final String query = ""
+        + "select \"deptno\", sum(\"salary\")"
+        + "from \"emps\" group by \"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /**
+   * It's not match, which is count(*) with same grouping.
+   */
+  @Test void testGenerateQueryAggCallByMvGroupingForEmptyArg1() {
+    final String mv = ""
+        + "select \"deptno\""
+        + "from \"emps\" group by \"deptno\"";
+    final String query = ""
+        + "select \"deptno\", count(*)"
+        + "from \"emps\" group by \"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /**
+   * It's not match, which is count(*) with rollup grouping.
+   */
+  @Test void testGenerateQueryAggCallByMvGroupingForEmptyArg2() {
+    final String mv = ""
+        + "select \"deptno\", \"commission\", \"salary\""
+        + "from \"emps\" group by \"deptno\", \"commission\", \"salary\"";
+    final String query = ""
+        + "select \"deptno\", \"commission\", count(*)"
+        + "from \"emps\" group by \"deptno\", \"commission\"";
+    sql(mv, query).noMat();
+  }
+
+  /**
+   * It's match, when query's agg-calls could be both rollup and expressed by mv's grouping.
+   */
+  @Test void testAggCallBothGenByMvGroupingAndRollupOk() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", \"empid\", min(\"commission\")"
+        + "from \"emps\" group by \"name\", \"deptno\", \"empid\"";
+    final String query = ""
+        + "select \"name\", max(\"deptno\"), count(distinct \"empid\"), min(\"commission\")"
+        + "from \"emps\" group by \"name\"";
+    sql(mv, query).ok();
+  }
+
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
    * {@link RexUtil#simplify}. */
