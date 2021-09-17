@@ -2115,6 +2115,60 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionSessionWithPartitionByClause() {
+    final String sql = "select *\n"
+        + "from table(session(table Shipments partition by orderId, "
+        + "descriptor(rowtime), INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionSessionWithPartitionByClauseAndParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "session(\n"
+        + "  DATA => table Shipments partition by orderId,\n"
+        + "  TIMECOL => descriptor(rowtime),\n"
+        + "  SIZE => INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionSessionWithPartitionByClauseAndParamReordered() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "session(\n"
+        + "  DATA => table Shipments partition by orderId,\n"
+        + "  SIZE => INTERVAL '10' MINUTE,\n"
+        + "  TIMECOL => descriptor(rowtime)))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionSessionWithPartitionByClauseAndSubQueryParam() {
+    final String sql = "select *\n"
+        + "from table("
+        + "session("
+        + "select * from Shipments partition by orderId, "
+        + "descriptor(rowtime), "
+        + "INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionSessionWithPartitionByClauseAndKeyDescriptor() {
+    final String sql = "select *\n"
+        + "from table(session(select * from Orders partition by (orderId, productId), "
+        + "descriptor(rowtime), "
+        + "descriptor(orderId, productId), "
+        + "INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionSessionWithPartitionByClauseAndCompoundSessionKey() {
+    final String sql = "select *\n"
+        + "from table(session(table Orders partition by (orderId, productId), "
+        + "descriptor(rowtime), "
+        + "INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
   @Test void testTableFunctionSessionWithSubQueryParam() {
     final String sql = "select *\n"
         + "from table(session((select * from Shipments), descriptor(rowtime), "

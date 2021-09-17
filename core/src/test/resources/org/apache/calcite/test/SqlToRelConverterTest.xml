@@ -1649,7 +1649,7 @@ LogicalProject(EXPR$0=[ROW(ITEM($3, 1).EMPNO, ITEM($3, 1).ENAME, ROW(ITEM($3, 1)
   <TestCase name="testFunctionExprInOver">
     <Resource name="sql">
       <![CDATA[select ename, row_number() over(partition by char_length(ename)
-order by deptno desc) as rn
+ order by deptno desc) as rn
 from emp
 where deptno = 10]]>
     </Resource>
@@ -6362,6 +6362,98 @@ session(
   KEY => descriptor(orderId),
   TIMECOL => descriptor(rowtime),
   SIZE => INTERVAL '10' MINUTE))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
+  LogicalTableFunctionScan(invocation=[SESSION(DESCRIPTOR($1), DESCRIPTOR($0), 600000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
+    LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionSessionWithPartitionByClause">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(session(table Shipments partition by orderId, descriptor(rowtime), INTERVAL '10' MINUTE))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
+  LogicalTableFunctionScan(invocation=[SESSION(DESCRIPTOR($1), DESCRIPTOR($0), 600000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
+    LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionSessionWithPartitionByClauseAndCompoundSessionKey">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(session(table Orders partition by (orderId, productId), descriptor(rowtime), INTERVAL '10' MINUTE))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], window_start=[$3], window_end=[$4])
+  LogicalTableFunctionScan(invocation=[SESSION(DESCRIPTOR($0), DESCRIPTOR($2, $1), 600000:INTERVAL MINUTE)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
+    LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionSessionWithPartitionByClauseAndKeyDescriptor">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(session(select * from Orders partition by (orderId, productId), descriptor(rowtime), descriptor(orderId, productId), INTERVAL '10' MINUTE))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], window_start=[$3], window_end=[$4])
+  LogicalTableFunctionScan(invocation=[SESSION(DESCRIPTOR($0), DESCRIPTOR($2, $1), 600000:INTERVAL MINUTE)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
+    LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionSessionWithPartitionByClauseAndParamNames">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+session(
+  DATA => table Shipments partition by orderId,
+  TIMECOL => descriptor(rowtime),
+  SIZE => INTERVAL '10' MINUTE))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
+  LogicalTableFunctionScan(invocation=[SESSION(DESCRIPTOR($1), DESCRIPTOR($0), 600000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
+    LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionSessionWithPartitionByClauseAndParamReordered">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+session(
+  DATA => table Shipments partition by orderId,
+  SIZE => INTERVAL '10' MINUTE,
+  TIMECOL => descriptor(rowtime)))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
+  LogicalTableFunctionScan(invocation=[SESSION(DESCRIPTOR($1), DESCRIPTOR($0), 600000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
+    LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionSessionWithPartitionByClauseAndSubQueryParam">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(session(select * from Shipments partition by orderId, descriptor(rowtime), INTERVAL '10' MINUTE))]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[

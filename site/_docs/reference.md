@@ -2021,6 +2021,24 @@ orders that tells data completeness.
 In streaming queries, SESSION assigns windows that cover rows based on *datetime*. Within a session window, distances
 of rows are less than *interval*. Session window is applied per *key*.
 
+Note:
+
+According to SQL standard 2017 (Polymorphic table functions in SQL), each PTF requires input table to be row semantics or set semantics:
+
+* Row semantics means that the result of the PTF is decided on a row-by-row basis. As an extreme example, the DBMS could atomize the input table into individual rows, and send each single row to a different virtual processor. Or the DBMS might process them all on the same virtual processor. A table should be given row semantics if the PTF does not care how rows are assigned to virtual processors.
+* Set semantics means that the outcome of the function depends on how the data is partitioned. A table should be given set semantics if all rows of a partition should be processed on the same virtual processor.
+
+Both `Tumble` and `Hop` window table function require input table to be row semantics while `SESSION` window table function requires input table to be set semantics.
+The input tables with row semantics may not be partitioned while input tables with set semantics may be partitioned on one or more columns.
+
+How to specify partition keys for input tables with set semantics of Session Window Table Function?
+
+There are two options:
+
+* Defines partition keys in `PARTITION BY` clause
+* Defines partition keys in *key* DESCRIPTOR
+
+We strongly recommand the first option because it complies with the SQL standard.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2029,6 +2047,22 @@ of rows are less than *interval*. Session window is applied per *key*.
 Here is an example:
 
 {% highlight sql %}
+-- defines partition key in `PARTITION BY` clause
+SELECT * FROM TABLE(
+  SESSION(
+    TABLE orders PARTITION BY product,
+    DESCRIPTOR(rowtime),
+    INTERVAL '20' MINUTE));
+
+-- or with the named params
+-- note: the DATA param must be the first
+SELECT * FROM TABLE(
+  SESSION(
+    DATA => TABLE orders PARTITION BY product,
+    TIMECOL => DESCRIPTOR(rowtime),
+    SIZE => INTERVAL '20' MINUTE));
+
+-- defines partition key in key DESCRIPTOR
 SELECT * FROM TABLE(
   SESSION(
     TABLE orders,

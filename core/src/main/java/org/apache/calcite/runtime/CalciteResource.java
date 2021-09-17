@@ -971,4 +971,8 @@ public interface CalciteResource {
   @BaseMessage("No operator for ''{0}'' with kind: ''{1}'', syntax: ''{2}'' during JSON deserialization")
   ExInst<CalciteException> noOperator(String name, String kind, String syntax);
 
+  @BaseMessage("Different partition keys for a session window table function: the partition keys defined in partition-by clause: ''{0}'', the partition keys defined in key descriptor: ''{1}''")
+  ExInst<SqlValidatorException> differentPartitionKeysForSessionWTF(String partitionKeysInClause,
+      String partitionKeysInDescriptor);
+
 }

@@ -49,6 +49,8 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlPartitionBy;
+import org.apache.calcite.sql.SqlSessionTableFunction;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
@@ -749,6 +751,38 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         cx.getValidator().getValidatedNodeTypeIfKnown(call);
     if (returnType == null) {
       returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
+    }
+    return cx.getRexBuilder().makeCall(returnType, fun, exprs);
+  }
+
+  public RexNode convertSessionWindowFunction(
+      SqlRexContext cx,
+      SqlSessionTableFunction fun,
+      SqlCall call) {
+    // The first operand of window function is actually a query, skip that.
+    final List<SqlNode> operands = Util.skip(call.getOperandList());
+    final List<RexNode> exprs =
+        convertOperands(cx, call, operands,
+            SqlOperandTypeChecker.Consistency.NONE);
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    if (returnType == null) {
+      returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
+    }
+    if (exprs.size() == 2) {
+      SqlPartitionBy sqlPartitionBy = call.operand(0);
+      // Converts partition keys which are defined in `PARTITION BY` clause to RexNode
+      if (!sqlPartitionBy.partitionList.isEmpty()) {
+        List<RexNode> partitionKeys = convertOperands(
+            cx,
+            sqlPartitionBy,
+            sqlPartitionBy.partitionList,
+            SqlOperandTypeChecker.Consistency.NONE);
+        RexNode partitionKeyExprs = cx.getRexBuilder().makeCall(
+            SqlStdOperatorTable.DESCRIPTOR,
+            partitionKeys);
+        exprs.add(1, partitionKeyExprs);
+      }
     }
     return cx.getRexBuilder().makeCall(returnType, fun, exprs);
   }

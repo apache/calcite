@@ -11036,6 +11036,86 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'TABLER_NOT_EXIST' not found");
   }
 
+  @Test public void testSessionTableFunctionWithPartitionByClause() {
+    // test partition by clause for session window tvf
+    sql("select * from table(\n"
+        + "session(\n"
+        + "table orders partition by productid,\n"
+        + "descriptor(rowtime),\n"
+        + "interval '1' hour))")
+        .ok();
+    // test partition by clause for session window tvf with named params
+    sql("select * from table(\n"
+        + "session(\n"
+        + "data => table orders partition by productid,\n"
+        + "timecol => descriptor(rowtime),\n"
+        + "size => interval '1' hour))")
+        .ok();
+    // test partition by clause for session window tvf with named params reorder
+    sql("select * from table(\n"
+        + "session("
+        + "data => table orders partition by productid,"
+        + "size => interval '1' hour,"
+        + "timecol => descriptor(rowtime)))")
+        .ok();
+    // test partition by clause for session window tvf with multiple partition keys
+    sql("select * from table(\n"
+        + "session("
+        + "data => table orders partition by (orderId, productId),"
+        + "size => interval '1' hour,"
+        + "timecol => descriptor(rowtime)))")
+        .ok();
+    // test partition by clause for session window tvf with sub-query
+    sql("select *\n"
+        + "from table("
+        + "session("
+        + "select * from Orders partition by (orderId, productId),"
+        + "descriptor(rowtime),"
+        + "INTERVAL '10' MINUTE))")
+        .ok();
+    sql("select *\n"
+        + "from table("
+        + "session("
+        + "data => select * from Orders partition by (orderId, productId),"
+        + "timecol => descriptor(rowtime),"
+        + "size => INTERVAL '10' MINUTE))")
+        .ok();
+    // if both partition by clause and key descriptor appears, test they must be same with each
+    sql("select * from table(\n"
+        + "session("
+        + "table orders partition by (orderId, productId),"
+        + "descriptor(rowtime),"
+        + "descriptor(orderId, productId),"
+        + "interval '1' hour))")
+        .ok();
+    sql("select *\n"
+        + "from table("
+        + "session(select * from Orders partition by (orderId, productId),"
+        + "descriptor(rowtime),"
+        + "descriptor(orderId, productId),"
+        + "INTERVAL '10' MINUTE))")
+        .ok();
+    // if both partition by clause and key descriptor appears,
+    // test failed if they are different with each other
+    sql("select *\n"
+        + "from table("
+        + "session(select * from Orders partition by ^(orderId, productId)^,"
+        + "descriptor(rowtime),"
+        + "descriptor(orderId),"
+        + "INTERVAL '10' MINUTE))")
+        .fails("Different partition keys for a session window table function: the partition keys "
+            + "defined in partition-by clause: '\\[ORDERID, PRODUCTID\\]', "
+            + "the partition keys defined in key descriptor: '\\[ORDERID\\]'");
+    sql("select *\n"
+        + "from table(session(select * from Orders partition by ^(orderId, productId)^, "
+        + "descriptor(rowtime), "
+        + "descriptor(orderId), "
+        + "INTERVAL '10' MINUTE))")
+        .fails("Different partition keys for a session window table function: the partition keys "
+            + "defined in partition-by clause: '\\[ORDERID, PRODUCTID]\\', "
+            + "the partition keys defined in key descriptor: '\\[ORDERID\\]'");
+  }
+
   @Test public void testStreamTumble() {
     // TUMBLE
     sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"

@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableList;
  */
 public class SqlHopTableFunction extends SqlWindowTableFunction {
   public SqlHopTableFunction() {
-    super(SqlKind.HOP.name(), new OperandMetadataImpl());
+    super(SqlKind.HOP.name(), new OperandMetadataImpl(), InputSemantics.ROW);
   }
 
   /** Operand type checker for HOP. */
@@ -40,11 +40,15 @@ public class SqlHopTableFunction extends SqlWindowTableFunction {
     OperandMetadataImpl() {
       super(
           ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_SLIDE,
-              PARAM_SIZE, PARAM_OFFSET), 4);
+              PARAM_SIZE, PARAM_OFFSET), 4,
+          InputSemantics.ROW);
     }
 
     @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
         boolean throwOnFailure) {
+      if (!checkInputTableSemantic(callBinding)) {
+        return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
+      }
       if (!checkTableAndDescriptorOperands(callBinding, 1)) {
         return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
       }

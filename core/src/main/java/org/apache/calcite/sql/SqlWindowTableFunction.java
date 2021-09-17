@@ -64,6 +64,9 @@ public class SqlWindowTableFunction extends SqlFunction
   /** The slide interval, only used for HOP window. */
   protected static final String PARAM_SLIDE = "SLIDE";
 
+  /** Input of Window TableFunction has to be either row semantics or set semantics. */
+  protected final InputSemantics inputSemantics;
+
   /**
    * Type-inference strategy whereby the row type of a table function call is a
    * ROW, which is combined from the row type of operand #0 (which is a TABLE)
@@ -78,9 +81,13 @@ public class SqlWindowTableFunction extends SqlFunction
       SqlWindowTableFunction::inferRowType;
 
   /** Creates a window table function with a given name. */
-  public SqlWindowTableFunction(String name, SqlOperandMetadata operandMetadata) {
+  public SqlWindowTableFunction(
+      String name,
+      SqlOperandMetadata operandMetadata,
+      InputSemantics inputSemantics) {
     super(name, SqlKind.OTHER_FUNCTION, ReturnTypes.CURSOR, null,
         operandMetadata, SqlFunctionCategory.SYSTEM);
+    this.inputSemantics = inputSemantics;
   }
 
   @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
@@ -119,13 +126,15 @@ public class SqlWindowTableFunction extends SqlFunction
       implements SqlOperandMetadata {
     final List<String> paramNames;
     final int mandatoryParamCount;
+    final InputSemantics inputSemantics;
 
     AbstractOperandMetadata(List<String> paramNames,
-        int mandatoryParamCount) {
+        int mandatoryParamCount, InputSemantics inputSemantics) {
       this.paramNames = ImmutableList.copyOf(paramNames);
       this.mandatoryParamCount = mandatoryParamCount;
       Preconditions.checkArgument(mandatoryParamCount >= 0
           && mandatoryParamCount <= paramNames.size());
+      this.inputSemantics = inputSemantics;
     }
 
     @Override public SqlOperandCountRange getOperandCountRange() {
@@ -244,5 +253,53 @@ public class SqlWindowTableFunction extends SqlFunction
         }
       });
     }
+
+    /**
+     * Checks whether input table satisfy requirement of input semantics.
+     * Based on SQL standard 2016 Polymorphic Table Functions:
+     * the input with row semantics may not be partitioned.
+     * the input with set semantics may be partitioned on one or more columns.
+     *
+     * @param callBinding The call binding
+     * @return true if validation passes
+     */
+    boolean checkInputTableSemantic(SqlCallBinding callBinding) {
+      boolean isValid;
+      switch (inputSemantics) {
+      case SET:
+        // First operand of Window Table Function with set semantics must be `SqlPartitionBy`.
+        // Even if without partitioning column, the node is still wrapped as `SqlPartitionBy` be
+        // empty partitionList.
+        isValid = callBinding.operand(0) instanceof SqlPartitionBy;
+        break;
+      case ROW:
+        isValid = !(callBinding.operand(0) instanceof SqlPartitionBy);
+        break;
+      default:
+        throw new IllegalStateException("Unknown input semantics: " + inputSemantics);
+      }
+      return isValid;
+    }
+  }
+
+  /**
+   * Input of Window TableFunction has to be either row semantics or set semantics.
+   */
+  enum InputSemantics {
+    /**
+     * Row semantics means that the the result of the Window TableFunction is decided on a
+     * row-by-row basis.
+     * As an extreme example, the DBMS could atomize the input table into individual rows, and
+     * send each single row to a different virtual processor.
+     */
+    ROW,
+
+    /**
+     * Set semantics means that the outcome of the Window TableFunction depends on how the data
+     * is partitioned.
+     * A partition may not be split across virtual processors, nor may a virtual processor handle
+     * more than one partition.
+     */
+    SET
   }
 }

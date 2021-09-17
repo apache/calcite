@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableList;
  */
 public class SqlTumbleTableFunction extends SqlWindowTableFunction {
   public SqlTumbleTableFunction() {
-    super(SqlKind.TUMBLE.name(), new OperandMetadataImpl());
+    super(SqlKind.TUMBLE.name(), new OperandMetadataImpl(), InputSemantics.ROW);
   }
 
   /** Operand type checker for TUMBLE. */
@@ -39,11 +39,15 @@ public class SqlTumbleTableFunction extends SqlWindowTableFunction {
     OperandMetadataImpl() {
       super(
           ImmutableList.of(PARAM_DATA, PARAM_TIMECOL, PARAM_SIZE, PARAM_OFFSET),
-          3);
+          3,
+          InputSemantics.ROW);
     }
 
     @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
         boolean throwOnFailure) {
+      if (!checkInputTableSemantic(callBinding)) {
+        return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
+      }
       // There should only be three operands, and number of operands are checked before
       // this call.
       if (!checkTableAndDescriptorOperands(callBinding, 1)) {
