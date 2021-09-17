@@ -203,7 +203,7 @@ public abstract class Bug {
 
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4757">[CALCITE-4757]
-   * Avatica support Null type</a> is fixed. */
+   * In Avatica, support columns of type "NULL" in query results</a> is fixed. */
   public static final boolean CALCITE_4757_FIXED = false;
 
   /**
