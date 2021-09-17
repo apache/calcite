@@ -502,7 +502,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
       for (SqlNode operand : call.getOperandList()) {
         writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
+        if (operand instanceof SqlCharStringLiteral) {
+          writer.literal(((SqlCharStringLiteral) operand).getValue().toString()
+              .replaceAll("\\\\", "\\\\\\\\"));
+        } else {
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
       }
       writer.endFunCall(concatFrame);
       break;

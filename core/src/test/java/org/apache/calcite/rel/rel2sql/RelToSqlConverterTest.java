@@ -9093,4 +9093,14 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testConcatFunction() {
+    String query = "select '\\\\PWAPIKB01E\\Labelfiles\\' || 'abc'";
+    final String expectedBQSql = "SELECT CONCAT('\\\\\\\\PWAPIKB01E\\\\Labelfiles"
+        + "\\\\', 'abc')";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
 }
