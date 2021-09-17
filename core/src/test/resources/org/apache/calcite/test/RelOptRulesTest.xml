@@ -3142,6 +3142,106 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDecorrelateIn">
+    <Resource name="sql">
+      <![CDATA[select deptno from (select deptno, empno from emp) p
+where empno in
+(select n from (select deptno, count(*) n from dept
+where p.deptno = dept.deptno group by deptno) t)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[IN($1, {
+LogicalProject(N=[$1])
+  LogicalAggregate(group=[{0}], N=[COUNT()])
+    LogicalProject(DEPTNO=[$0])
+      LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], EMPNO=[$1])
+    LogicalFilter(condition=[=($1, $2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(N=[$1])
+            LogicalAggregate(group=[{0}], N=[COUNT()])
+              LogicalProject(DEPTNO=[$0])
+                LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $3), =($1, $2))], joinType=[inner])
+    LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(N=[$2], DEPTNO1=[$1])
+        LogicalAggregate(group=[{0, 1}], N=[COUNT()])
+          LogicalProject(DEPTNO=[$0], DEPTNO1=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDecorrelateIn2">
+    <Resource name="sql">
+      <![CDATA[select deptno from (select deptno, empno from emp) p
+where empno in
+(select count(*) from dept
+where p.deptno = dept.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[IN($1, {
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], EMPNO=[$1])
+    LogicalFilter(condition=[=($1, $2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+          LogicalProject($f0=[0])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], EMPNO=[$1])
+    LogicalFilter(condition=[=($1, $2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+          LogicalProject($f0=[0])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExpandFilterIn3Value">
     <Resource name="sql">
       <![CDATA[select empno

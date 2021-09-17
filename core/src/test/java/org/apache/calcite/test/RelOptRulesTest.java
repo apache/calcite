@@ -5660,6 +5660,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test public void testDecorrelateIn() throws Exception {
+    final String sql = "select deptno from (select deptno, empno from emp) p\n"
+        + "where empno in\n"
+        + "(select n from (select deptno, count(*) n from dept\n"
+        + " where p.deptno = dept.deptno group by deptno) t)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testDecorrelateIn2() throws Exception {
+    final String sql = "select deptno from (select deptno, empno from emp) p\n"
+        + "where empno in\n"
+        + "(select count(*) from dept\n"
+        + " where p.deptno = dept.deptno)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   /** An EXISTS filter that can be converted into true/false. */
   @Test void testExpandFilterExists() {
     final String sql = "select empno\n"
