@@ -122,7 +122,10 @@ public abstract class Correlate extends BiRel {
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
+    ImmutableBitSet leftColumns = ImmutableBitSet.range(left.getRowType().getFieldCount());
     return super.isValid(litmus, context)
+        && litmus.check(leftColumns.contains(requiredColumns),
+        "Required columns {} not subset of left columns {}", requiredColumns, leftColumns)
         && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
   }
 
