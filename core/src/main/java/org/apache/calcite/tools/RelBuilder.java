@@ -736,6 +736,21 @@ public class RelBuilder {
     return call(SqlStdOperatorTable.GREATER_THAN, operand0, operand1);
   }
 
+  /** Creates a {@code >=}. */
+  public RexNode greaterThanOrEqual(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, operand0, operand1);
+  }
+
+  /** Creates a {@code <}. */
+  public RexNode lessThan(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.LESS_THAN, operand0, operand1);
+  }
+
+  /** Creates a {@code <=}. */
+  public RexNode lessThanOrEqual(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, operand0, operand1);
+  }
+
   /** Creates a {@code <>}. */
   public RexNode notEquals(RexNode operand0, RexNode operand1) {
     return call(SqlStdOperatorTable.NOT_EQUALS, operand0, operand1);
@@ -760,12 +775,12 @@ public class RelBuilder {
     return getRexBuilder().makeBetween(arg, lower, upper);
   }
 
-  /** Creates a IS NULL. */
+  /** Creates ab {@code IS NULL}. */
   public RexNode isNull(RexNode operand) {
     return call(SqlStdOperatorTable.IS_NULL, operand);
   }
 
-  /** Creates a IS NOT NULL. */
+  /** Creates an {@code IS NOT NULL}. */
   public RexNode isNotNull(RexNode operand) {
     return call(SqlStdOperatorTable.IS_NOT_NULL, operand);
   }
@@ -2546,8 +2561,7 @@ public class RelBuilder {
     final List<RexNode> conditions = new ArrayList<>();
     for (String fieldName : fieldNames) {
       conditions.add(
-          call(SqlStdOperatorTable.EQUALS,
-              field(2, 0, fieldName),
+          equals(field(2, 0, fieldName),
               field(2, 1, fieldName)));
     }
     return join(joinType, conditions);
@@ -3263,8 +3277,7 @@ public class RelBuilder {
       Pair.forEach(map, (literals, nodes) -> {
         Ord.forEach(literals, (literal, d) ->
             conditions.add(
-                call(SqlStdOperatorTable.EQUALS,
-                    field(leftRowType.getFieldCount() + d), literal)));
+                equals(field(leftRowType.getFieldCount() + d), literal)));
         caseOperands.add(and(conditions));
         conditions.clear();
         caseOperands.add(nodes.get(m));

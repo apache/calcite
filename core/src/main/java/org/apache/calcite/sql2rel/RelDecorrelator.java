@@ -1226,8 +1226,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final int newLeftPos = leftFrame.oldToNewOutputs.get(corDef.field);
       final int newRightPos = rightOutput.getValue();
       conditions.add(
-          relBuilder.call(SqlStdOperatorTable.EQUALS,
-              RexInputRef.of(newLeftPos, newLeftOutput),
+          relBuilder.equals(RexInputRef.of(newLeftPos, newLeftOutput),
               new RexInputRef(newLeftFieldCount + newRightPos,
                   newRightOutput.get(newRightPos).getType())));
 

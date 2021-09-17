@@ -442,8 +442,7 @@ class RelOptRulesTest extends RelOptTestBase {
               b.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
                   b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")),
-              b.call(SqlStdOperatorTable.GREATER_THAN,
-                  RexInputRef.of(0, left.getRowType()),
+              b.greaterThan(RexInputRef.of(0, left.getRowType()),
                   b.literal(20)))
           .project(b.field(0))
           .build();
@@ -494,22 +493,16 @@ class RelOptRulesTest extends RelOptTestBase {
       RexInputRef ref4 = b.field(2, 1, "DNAME");
 
       // ref1 IS NOT DISTINCT FROM ref2
-      RexCall cond1 = (RexCall) b.call(
-          SqlStdOperatorTable.OR,
-          b.call(SqlStdOperatorTable.EQUALS, ref1, ref2),
-          b.call(SqlStdOperatorTable.AND,
-              b.call(SqlStdOperatorTable.IS_NULL, ref1),
-              b.call(SqlStdOperatorTable.IS_NULL, ref2)));
+      RexCall cond1 = (RexCall) b.call(SqlStdOperatorTable.OR,
+          b.equals(ref1, ref2),
+          b.call(SqlStdOperatorTable.AND, b.isNull(ref1), b.isNull(ref2)));
 
       // ref3 IS NOT DISTINCT FROM ref4
-      RexCall cond2 = (RexCall) b.call(
-          SqlStdOperatorTable.OR,
-          b.call(SqlStdOperatorTable.EQUALS, ref3, ref4),
-          b.call(SqlStdOperatorTable.AND,
-              b.call(SqlStdOperatorTable.IS_NULL, ref3),
-              b.call(SqlStdOperatorTable.IS_NULL, ref4)));
+      RexCall cond2 = (RexCall) b.call(SqlStdOperatorTable.OR,
+          b.equals(ref3, ref4),
+          b.call(SqlStdOperatorTable.AND, b.isNull(ref3), b.isNull(ref4)));
 
-      RexNode cond = b.call(SqlStdOperatorTable.AND, cond1, cond2);
+      RexNode cond = b.and(cond1, cond2);
       return b.semiJoin(cond)
           .project(b.field(0))
           .build();
@@ -597,13 +590,11 @@ class RelOptRulesTest extends RelOptTestBase {
       return b.push(left)
           .push(right)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .push(semiRight)
           .join(type,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "JOB"),
+              b.equals(b.field(2, 0, "JOB"),
                   b.field(2, 1, "JOB")))
           .build();
     };
@@ -727,11 +718,9 @@ class RelOptRulesTest extends RelOptTestBase {
           .push(right)
           .semiJoin(
               b.and(
-                  b.call(SqlStdOperatorTable.EQUALS,
-                      b.field(2, 0, 0),
+                  b.equals(b.field(2, 0, 0),
                       b.field(2, 1, 7)),
-                  b.call(SqlStdOperatorTable.EQUALS,
-                      b.field(2, 1, 5),
+                  b.equals(b.field(2, 1, 5),
                       b.literal(100))))
           .project(b.field(1))
           .build();
@@ -766,8 +755,7 @@ class RelOptRulesTest extends RelOptTestBase {
       return b.push(left)
           .push(right)
           .join(type,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, 0),
+              b.equals(b.field(2, 0, 0),
                   b.field(2, 1, 0)))
           .project(b.field(1))
           .build();
@@ -1981,23 +1969,16 @@ class RelOptRulesTest extends RelOptTestBase {
       RelNode left = b.scan("EMP").build();
       RelNode right = b
           .scan("DEPT")
-          .filter(
-              b.call(SqlStdOperatorTable.LESS_THAN,
-                  b.field("DEPTNO"),
-                  b.literal(10)))
+          .filter(b.lessThan(b.field("DEPTNO"), b.literal(10)))
           .project(b.field("DEPTNO"))
           .scan("DEPT")
-          .filter(
-              b.call(SqlStdOperatorTable.GREATER_THAN,
-                  b.field("DEPTNO"),
-                  b.literal(20)))
+          .filter(b.greaterThan(b.field("DEPTNO"), b.literal(20)))
           .project(b.field("DEPTNO"))
           .union(true)
           .build();
       return b.push(left).push(right)
           .join(type,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .project(b.field("SAL"))
           .build();
@@ -2906,9 +2887,7 @@ class RelOptRulesTest extends RelOptTestBase {
         b.scan("EMP")
             .project(b.field("SAL"),
                 b.alias(b.call(nonDeterministicOp), "N"))
-            .filter(
-                b.call(SqlStdOperatorTable.GREATER_THAN,
-                    b.field("N"), b.literal(10)))
+            .filter(b.greaterThan(b.field("N"), b.literal(10)))
             .build();
 
     relFn(relFn)
@@ -6804,13 +6783,11 @@ class RelOptRulesTest extends RelOptTestBase {
       return b.push(bottomLeft)
           .push(bottomRight)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .push(top)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "JOB"),
+              b.equals(b.field(2, 0, "JOB"),
                   b.field(2, 1, "JOB")))
           .build();
     };
@@ -6855,8 +6832,7 @@ class RelOptRulesTest extends RelOptTestBase {
               b.literal(true))
           .push(top)
           .join(JoinRelType.INNER,
-              b.call(SqlStdOperatorTable.EQUALS,
-                  b.field(2, 0, "DEPTNO"),
+              b.equals(b.field(2, 0, "DEPTNO"),
                   b.field(2, 1, "DEPTNO")))
           .build();
     };

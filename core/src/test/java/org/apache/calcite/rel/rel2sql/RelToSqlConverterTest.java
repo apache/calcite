@@ -518,11 +518,9 @@ class RelToSqlConverterTest {
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
-            b.call(SqlStdOperatorTable.OR,
-                b.call(SqlStdOperatorTable.GREATER_THAN, b.field("C"),
-                    b.literal(10)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("S"),
-                    b.literal(3000))))
+            b.or(
+                b.greaterThan(b.field("C"), b.literal(10)),
+                b.lessThan(b.field("S"), b.literal(3000))))
         .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
         .project(b.field("JOB"))
         .build();
@@ -598,8 +596,9 @@ class RelToSqlConverterTest {
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
-            b.call(SqlStdOperatorTable.LESS_THAN,
-                b.call(SqlStdOperatorTable.GROUP_ID, b.field("EMPNO")), b.literal(1)))
+            b.lessThan(
+                b.call(SqlStdOperatorTable.GROUP_ID, b.field("EMPNO")),
+                b.literal(1)))
         .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
         .project(b.field("JOB"))
         .build();
@@ -1202,12 +1201,10 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .filter(
             b.or(
-              b.and(
-                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(10)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(12))),
-              b.and(
-                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(6)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(8)))))
+              b.and(b.greaterThanOrEqual(b.field("EMPNO"), b.literal(10)),
+                b.lessThan(b.field("EMPNO"), b.literal(12))),
+              b.and(b.greaterThanOrEqual(b.field("EMPNO"), b.literal(6)),
+                b.lessThan(b.field("EMPNO"), b.literal(8)))))
         .build();
     final RuleSet rules = RuleSets.ofList(CoreRules.FILTER_TO_CALC);
     final String expected = "SELECT *\n"
@@ -1309,8 +1306,7 @@ class RelToSqlConverterTest {
         .scan("DEPT")
         .join(JoinRelType.LEFT,
             b.and(
-                b.call(SqlStdOperatorTable.EQUALS,
-                    b.field(2, 0, "DEPTNO"),
+                b.equals(b.field(2, 0, "DEPTNO"),
                     b.field(2, 1, "DEPTNO")),
                 b.call(SqlStdOperatorTable.LIKE,
                     b.field(2, 1, "DNAME"),
@@ -1400,8 +1396,7 @@ class RelToSqlConverterTest {
         .aggregate(builder.groupKey(builder.field("D")),
             builder.countStar("emps.count"))
         .filter(
-            builder.call(SqlStdOperatorTable.LESS_THAN,
-                builder.field("emps.count"), builder.literal(2)));
+            builder.lessThan(builder.field("emps.count"), builder.literal(2)));
 
     final LogicalFilter filter = (LogicalFilter) builder.build();
     assertThat(filter.getRowType().getFieldNames().toString(),

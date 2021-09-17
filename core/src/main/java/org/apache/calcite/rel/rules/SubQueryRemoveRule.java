@@ -198,15 +198,14 @@ public class SubQueryRemoveRule
           .as("q")
           .join(JoinRelType.INNER);
       caseRexNode = builder.call(SqlStdOperatorTable.CASE,
-          builder.call(SqlStdOperatorTable.EQUALS, builder.field("q", "c"),
-              builder.literal(0)),
+          builder.equals(builder.field("q", "c"), builder.literal(0)),
           literalFalse,
           builder.call(SqlStdOperatorTable.IS_TRUE,
               builder.call(RexUtil.op(op.comparisonKind),
                   e.operands.get(0), builder.field("q", "m"))),
           literalTrue,
-          builder.call(SqlStdOperatorTable.GREATER_THAN,
-              builder.field("q", "c"), builder.field("q", "d")),
+          builder.greaterThan(builder.field("q", "c"),
+              builder.field("q", "d")),
           literalUnknown,
           builder.call(RexUtil.op(op.comparisonKind),
               e.operands.get(0), builder.field("q", "m")));
@@ -244,18 +243,16 @@ public class SubQueryRemoveRule
       builder.project(parentQueryFields).as("q");
       builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
       caseRexNode = builder.call(SqlStdOperatorTable.CASE,
-          builder.call(SqlStdOperatorTable.IS_NULL,
-              builder.field("q", indicator)),
+          builder.isNull(builder.field("q", indicator)),
           literalFalse,
-          builder.call(SqlStdOperatorTable.EQUALS, builder.field("q", "c"),
-              builder.literal(0)),
+          builder.equals(builder.field("q", "c"), builder.literal(0)),
           literalFalse,
           builder.call(SqlStdOperatorTable.IS_TRUE,
               builder.call(RexUtil.op(op.comparisonKind),
                   e.operands.get(0), builder.field("q", "m"))),
           literalTrue,
-          builder.call(SqlStdOperatorTable.GREATER_THAN,
-              builder.field("q", "c"), builder.field("q", "d")),
+          builder.greaterThan(builder.field("q", "c"),
+              builder.field("q", "d")),
           literalUnknown,
           builder.call(RexUtil.op(op.comparisonKind),
               e.operands.get(0), builder.field("q", "m")));
@@ -452,9 +449,7 @@ public class SubQueryRemoveRule
           // When true value is absent then we are interested
           // only in false value.
           builder.sortLimit(0, 1,
-              ImmutableList.of(
-                  builder.call(SqlStdOperatorTable.DESC,
-                      builder.field("cs"))));
+              ImmutableList.of(builder.desc(builder.field("cs"))));
         } else {
           builder.distinct();
         }
@@ -551,8 +546,8 @@ public class SubQueryRemoveRule
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
         operands.add(
-            builder.call(SqlStdOperatorTable.LESS_THAN,
-                builder.field("ct", "ck"), builder.field("ct", "c")),
+            builder.lessThan(builder.field("ct", "ck"),
+                builder.field("ct", "c")),
             b);
         break;
       default:

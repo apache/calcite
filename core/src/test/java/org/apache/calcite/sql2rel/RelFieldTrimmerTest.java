@@ -33,7 +33,6 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
@@ -344,11 +343,12 @@ class RelFieldTrimmerTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelNode root =
         builder.scan("EMP")
-            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
+            .project(builder.field("EMPNO"), builder.field("ENAME"),
+                builder.field("DEPTNO"))
             .exchange(RelDistributions.SINGLETON)
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("EMPNO"), builder.literal(100)))
+                builder.greaterThan(builder.field("EMPNO"),
+                    builder.literal(100)))
             .build();
 
     final HepProgram hepProgram = new HepProgramBuilder()
@@ -379,8 +379,8 @@ class RelFieldTrimmerTest {
             .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
             .exchange(RelDistributions.SINGLETON)
             .filter(
-                builder.call(SqlStdOperatorTable.GREATER_THAN,
-                    builder.field("EMPNO"), builder.literal(100)))
+                builder.greaterThan(builder.field("EMPNO"),
+                    builder.literal(100)))
             .project(builder.field("EMPNO"), builder.field("ENAME"))
             .build();
 
