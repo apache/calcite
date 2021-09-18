@@ -231,6 +231,26 @@ public abstract class SqlCall extends SqlNode {
     return false;
   }
 
+  /**
+   * Returns whether it is the function {@code EXISTS_AGG(*)}.
+   *
+   * @return true if function call to EXISTS_AGG(*)
+   */
+  public boolean isExistsAggStar() {
+    SqlOperator sqlOperator = getOperator();
+    if (sqlOperator.getName().equals("EXISTS_AGG")
+        && operandCount() == 1) {
+      final SqlNode parm = operand(0);
+      if (parm instanceof SqlIdentifier) {
+        SqlIdentifier id = (SqlIdentifier) parm;
+        if (id.isStar() && id.names.size() == 1) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   @Pure
   public @Nullable SqlLiteral getFunctionQuantifier() {
     return null;

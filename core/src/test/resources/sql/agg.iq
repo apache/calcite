@@ -3349,4 +3349,108 @@ order by ename, deptno;
 
 !ok
 
+!use scott
+
+# [CALCITE-4763] Add EXISTS_AGG aggregate function
+# EXISTS_AGG that returns whether count is greater than zero
+
+# EXISTS_AGG includes partially null rows
+select EXISTS_AGG(comm) as e
+from "scott".emp;
++------+
+| E    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# EXISTS_AGG includes fully null rows
+select EXISTS_AGG(comm) as e
+from "scott".emp where deptno <> 30;
++-------+
+| E     |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# EXISTS_AGG aggregation star includes fully null rows
+select EXISTS_AGG(*) as e
+from "scott".emp where deptno <> 30;
++------+
+| E    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# EXISTS_AGG with GROUP BY includes partially null rows
+select comm, EXISTS_AGG(comm) as e
+from "scott".emp
+group by comm;
++---------+-------+
+| COMM    | E     |
++---------+-------+
+|    0.00 | true  |
+| 1400.00 | true  |
+|  300.00 | true  |
+|  500.00 | true  |
+|         | false |
++---------+-------+
+(5 rows)
+
+!ok
+
+# composite EXISTS_AGG
+select exists_agg(deptno, ename, deptno) as e from "scott".emp;
++------+
+| E    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# composite EXISTS_AGG includes all null columns
+select exists_agg(mgr, comm) as e from "scott".emp where sal = 5000;
++-------+
+| E     |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+# EXISTS_AGG with DISTINCT and GROUP BY
+select distinct deptno, exists_agg(*) as e from "scott".emp group by deptno;
++--------+------+
+| DEPTNO | E    |
++--------+------+
+|     10 | true |
+|     20 | true |
+|     30 | true |
++--------+------+
+(3 rows)
+
+!ok
+
+# EXISTS_AGG with DISTINCT and GROUP BY
+select distinct exists_agg(*) as e from "scott".emp group by deptno;
++------+
+| E    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
 # End agg.iq
