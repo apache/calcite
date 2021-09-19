@@ -1691,6 +1691,33 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4779">[CALCITE-4779]
+   * GroupByList contains constant literal, materialized view recognition failed</a>. */
+  @Test void testGroupByListContainsConstantLiteral() {
+    // Aggregate operator grouping set contains a literal and count(distinct col) function.
+    final String mv1 = ""
+        + "select \"deptno\", \"empid\"\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\", \"empid\"";
+    final String query1 = ""
+        + "select 'a', \"deptno\", count(distinct \"empid\")\n"
+        + "from \"emps\"\n"
+        + "group by 'a', \"deptno\"";
+    sql(mv1, query1).ok();
+
+    // Aggregate operator grouping set contains a literal and sum(col) function.
+    final String mv2 = ""
+        + "select \"deptno\", \"empid\", sum(\"empid\")\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\", \"empid\"";
+    final String query2 = ""
+        + "select 'a', \"deptno\", sum(\"empid\")\n"
+        + "from \"emps\"\n"
+        + "group by 'a', \"deptno\"";
+    sql(mv2, query2).ok();
+  }
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
@@ -1719,6 +1746,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             .addRuleInstance(CoreRules.PROJECT_REMOVE)
             .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
             .addRuleInstance(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS)
             .addRuleInstance(CoreRules.FILTER_TO_CALC)
             .addRuleInstance(CoreRules.PROJECT_TO_CALC)
             .addRuleInstance(CoreRules.FILTER_CALC_MERGE)
