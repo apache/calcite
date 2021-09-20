@@ -124,6 +124,11 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    * For a simple {@code GROUP BY}, {@code groupSets} is a singleton list
    * containing {@code groupSet}.
    *
+   * <p>It is allowed for {@code groupSet} to contain bits that are not in any
+   * of the {@code groupSets}, even this does not correspond to valid SQL. See
+   * discussion in
+   * {@link org.apache.calcite.tools.RelBuilder#groupKey(ImmutableBitSet, Iterable)}.
+   *
    * <p>If {@code GROUP BY} is not specified,
    * or equivalently if {@code GROUP BY ()} is specified,
    * {@code groupSet} will be the empty set,

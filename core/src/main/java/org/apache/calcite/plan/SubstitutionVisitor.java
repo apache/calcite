@@ -285,6 +285,8 @@ public class SubstitutionVisitor {
   public static @Nullable RexNode splitFilter(final RexSimplify simplify,
       RexNode condition, RexNode target) {
     final RexBuilder rexBuilder = simplify.rexBuilder;
+    condition = simplify.simplify(condition);
+    target = simplify.simplify(target);
     RexNode condition2 = canonizeNode(rexBuilder, condition);
     RexNode target2 = canonizeNode(rexBuilder, target);
 
@@ -1210,15 +1212,13 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
       }
-      if (joinRelType != JoinRelType.INNER
-          && !(joinRelType.isOuterJoin() && qInput0Cond.isAlwaysTrue())) {
+      // Check if filter under join can be pulled up.
+      if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, null)) {
         return null;
       }
       // Try pulling up MutableCalc only when Join condition references mapping.
@@ -1296,15 +1296,13 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
       }
-      if (joinRelType != JoinRelType.INNER
-          && !(joinRelType.isOuterJoin() && qInput1Cond.isAlwaysTrue())) {
+      // Check if filter under join can be pulled up.
+      if (!canPullUpFilterUnderJoin(joinRelType, null, qInput1Cond)) {
         return null;
       }
       // Try pulling up MutableCalc only when Join condition references mapping.
@@ -1387,17 +1385,13 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
       }
-      if (joinRelType != JoinRelType.INNER
-          && !(joinRelType.isOuterJoin()
-              && qInput0Cond.isAlwaysTrue()
-              && qInput1Cond.isAlwaysTrue())) {
+      // Check if filter under join can be pulled up.
+      if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, qInput1Cond)) {
         return null;
       }
       if (!referenceByMapping(query.condition, qInput0Projs, qInput1Projs)) {
@@ -2017,8 +2011,12 @@ public class SubstitutionVisitor {
    * expressions to references to them. */
   private static RexShuttle getRexShuttle(List<RexNode> rexNodes) {
     final Map<RexNode, Integer> map = new HashMap<>();
-    for (RexNode e : rexNodes) {
-      map.put(e, map.size());
+    for (int i = 0; i < rexNodes.size(); i++) {
+      final RexNode rexNode = rexNodes.get(i);
+      if (map.containsKey(rexNode)) {
+        continue;
+      }
+      map.put(rexNode, i);
     }
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
@@ -2077,6 +2075,34 @@ public class SubstitutionVisitor {
   public static boolean equalType(String desc0, MutableRel rel0, String desc1,
       MutableRel rel1, Litmus litmus) {
     return RelOptUtil.equal(desc0, rel0.rowType, desc1, rel1.rowType, litmus);
+  }
+
+  /**
+   * Check if filter under join can be pulled up,
+   * when meeting JoinOnCalc of query unify to Join of target.
+   * Working in rules: {@link JoinOnLeftCalcToJoinUnifyRule} <br/>
+   * {@link JoinOnRightCalcToJoinUnifyRule} <br/>
+   * {@link JoinOnCalcsToJoinUnifyRule} <br/>
+   */
+  private static boolean canPullUpFilterUnderJoin(JoinRelType joinType,
+      @Nullable RexNode leftFilterRexNode, @Nullable RexNode rightFilterRexNode) {
+    if (joinType == JoinRelType.INNER) {
+      return true;
+    }
+    if (joinType == JoinRelType.LEFT
+        && (rightFilterRexNode == null || rightFilterRexNode.isAlwaysTrue())) {
+      return true;
+    }
+    if (joinType == JoinRelType.RIGHT
+        && (leftFilterRexNode == null || leftFilterRexNode.isAlwaysTrue())) {
+      return true;
+    }
+    if (joinType == JoinRelType.FULL
+        && ((rightFilterRexNode == null || rightFilterRexNode.isAlwaysTrue())
+        && (leftFilterRexNode == null || leftFilterRexNode.isAlwaysTrue()))) {
+      return true;
+    }
+    return false;
   }
 
   /** Operand to a {@link UnifyRule}. */

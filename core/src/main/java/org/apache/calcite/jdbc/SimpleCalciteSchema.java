@@ -76,7 +76,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return calciteSchema;
   }
 
-  private @Nullable String caseInsensitiveLookup(Set<String> candidates, String name) {
+  private static @Nullable String caseInsensitiveLookup(Set<String> candidates, String name) {
     // Exact string lookup
     if (candidates.contains(name)) {
       return name;

@@ -731,6 +731,26 @@ public class RelBuilder {
     return call(SqlStdOperatorTable.EQUALS, operand0, operand1);
   }
 
+  /** Creates a {@code >}. */
+  public RexNode greaterThan(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.GREATER_THAN, operand0, operand1);
+  }
+
+  /** Creates a {@code >=}. */
+  public RexNode greaterThanOrEqual(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, operand0, operand1);
+  }
+
+  /** Creates a {@code <}. */
+  public RexNode lessThan(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.LESS_THAN, operand0, operand1);
+  }
+
+  /** Creates a {@code <=}. */
+  public RexNode lessThanOrEqual(RexNode operand0, RexNode operand1) {
+    return call(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, operand0, operand1);
+  }
+
   /** Creates a {@code <>}. */
   public RexNode notEquals(RexNode operand0, RexNode operand1) {
     return call(SqlStdOperatorTable.NOT_EQUALS, operand0, operand1);
@@ -755,12 +775,12 @@ public class RelBuilder {
     return getRexBuilder().makeBetween(arg, lower, upper);
   }
 
-  /** Creates a IS NULL. */
+  /** Creates ab {@code IS NULL}. */
   public RexNode isNull(RexNode operand) {
     return call(SqlStdOperatorTable.IS_NULL, operand);
   }
 
-  /** Creates a IS NOT NULL. */
+  /** Creates an {@code IS NOT NULL}. */
   public RexNode isNotNull(RexNode operand) {
     return call(SqlStdOperatorTable.IS_NOT_NULL, operand);
   }
@@ -934,7 +954,25 @@ public class RelBuilder {
    *
    * <p>This method of creating a group key does not allow you to group on new
    * expressions, only column projections, but is efficient, especially when you
-   * are coming from an existing {@link Aggregate}. */
+   * are coming from an existing {@link Aggregate}.
+   *
+   * <p>It is possible for {@code groupSet} to be strict superset of all
+   * {@code groupSets}. For example, in the pseudo SQL
+   *
+   * <pre>{@code
+   * GROUP BY 0, 1, 2
+   * GROUPING SETS ((0, 1), 0)
+   * }</pre>
+   *
+   * <p>column 2 does not appear in either grouping set. This is not valid SQL.
+   * We can approximate in actual SQL by adding an extra grouping set and
+   * filtering out using {@code HAVING}, as follows:
+   *
+   * <pre>{@code
+   * GROUP BY GROUPING SETS ((0, 1, 2), (0, 1), 0)
+   * HAVING GROUPING_ID(0, 1, 2) <> 0
+   * }</pre>
+   */
   public GroupKey groupKey(ImmutableBitSet groupSet,
       Iterable<? extends ImmutableBitSet> groupSets) {
     return groupKey_(groupSet, ImmutableList.copyOf(groupSets));
@@ -1916,8 +1954,9 @@ public class RelBuilder {
       final ImmutableSortedMultiset<ImmutableBitSet> groupSetMultiset =
           ImmutableSortedMultiset.copyOf(ImmutableBitSet.COMPARATOR,
               groupSetList);
-      if (Iterables.any(aggCalls, RelBuilder::isGroupId)) {
-        return rewriteAggregateWithGroupId(groupSet, groupSetMultiset,
+      if (Iterables.any(aggCalls, RelBuilder::isGroupId)
+          || !ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetMultiset)) {
+        return rewriteAggregateWithDuplicateGroupSets(groupSet, groupSetMultiset,
             ImmutableList.copyOf(aggCalls));
       }
       groupSets = ImmutableList.copyOf(groupSetMultiset.elementSet());
@@ -2075,14 +2114,26 @@ public class RelBuilder {
    * flatten, sorting, redundancy removal), this information is lost in RelNode.
    * Therefore, it is impossible to implement the function in runtime.
    *
-   * <p>To fill this gap, an aggregation query that contains {@code GROUP_ID()}
-   * function will generally be rewritten into UNION when converting to RelNode.
+   * <p>To fill this gap, an aggregation query that contains duplicate group
+   * sets is rewritten into a Union of Aggregate operators whose group sets are
+   * distinct. The number of inputs to the Union is equal to the maximum number
+   * of duplicates. In the {@code N}th input to the Union, calls to the
+   * {@code GROUP_ID} aggregate function are replaced by the integer literal
+   * {@code N}.
+   *
+   * <p>This method also handles the case where group sets are distinct but
+   * there is a call to {@code GROUP_ID}. That call is replaced by the integer
+   * literal {@code 0}.
    *
    * <p>Also see the discussion in
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1824">[CALCITE-1824]
-   * GROUP_ID returns wrong result</a>.
+   * GROUP_ID returns wrong result</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4748">[CALCITE-4748]
+   * If there are duplicate GROUPING SETS, Calcite should return duplicate
+   * rows</a>.
    */
-  private RelBuilder rewriteAggregateWithGroupId(ImmutableBitSet groupSet,
+  private RelBuilder rewriteAggregateWithDuplicateGroupSets(
+      ImmutableBitSet groupSet,
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggCall> aggregateCalls) {
     final List<String> fieldNamesIfNoRewrite =
@@ -2510,8 +2561,7 @@ public class RelBuilder {
     final List<RexNode> conditions = new ArrayList<>();
     for (String fieldName : fieldNames) {
       conditions.add(
-          call(SqlStdOperatorTable.EQUALS,
-              field(2, 0, fieldName),
+          equals(field(2, 0, fieldName),
               field(2, 1, fieldName)));
     }
     return join(joinType, conditions);
@@ -3227,8 +3277,7 @@ public class RelBuilder {
       Pair.forEach(map, (literals, nodes) -> {
         Ord.forEach(literals, (literal, d) ->
             conditions.add(
-                call(SqlStdOperatorTable.EQUALS,
-                    field(leftRowType.getFieldCount() + d), literal)));
+                equals(field(leftRowType.getFieldCount() + d), literal)));
         caseOperands.add(and(conditions));
         conditions.clear();
         caseOperands.add(nodes.get(m));
@@ -3512,13 +3561,12 @@ public class RelBuilder {
       if (distinct) {
         b.append("DISTINCT ");
       }
-      final int iMax = operands.size() - 1;
-      for (int i = 0; ; i++) {
-        b.append(operands.get(i));
-        if (i == iMax) {
-          break;
+      if (operands.size() > 0) {
+        b.append(operands.get(0));
+        for (int i = 1; i < operands.size(); i++) {
+          b.append(", ");
+          b.append(operands.get(i));
         }
-        b.append(", ");
       }
       b.append(')');
       if (filter != null) {

@@ -1041,6 +1041,99 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "where \"name\" = 'hello'";
     sql(mv, query).ok();
   }
+  /** Unit test for FilterBottomJoin can be pulled up. */
+  @Test void testLeftFilterOnLeftJoinToJoinOk1() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\" where \"empid\" > 10) \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testLeftFilterOnLeftJoinToJoinOk2() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\" where \"empid\" > 10) \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\" where \"empid\" > 30) \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testRightFilterOnLeftJoinToJoinFail() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\" where \"name\" is not null) \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test void testRightFilterOnRightJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\" where \"name\" is not null) \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testLeftFilterOnRightJoinToJoinFail() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\" where \"empid\" > 30) \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test void testLeftFilterOnFullJoinToJoinFail() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\" where \"empid\" > 30) \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test void testRightFilterOnFullJoinToJoinFail() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\" where \"name\" is not null) \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test void testMoreSameExprInMv() {
+    final String mv = ""
+        + "select \"empid\", \"deptno\", sum(\"empid\") as s1, sum(\"empid\") as s2, count(*) as c\n"
+        + "from \"emps\" group by \"empid\", \"deptno\"";
+    final String query = ""
+        +  "select sum(\"empid\"), count(*) from \"emps\" group by \"empid\", \"deptno\"";
+    sql(mv, query).ok();
+  }
 
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
@@ -1564,6 +1657,38 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "select \"name\", count(distinct \"deptno\")\n"
         + "from \"emps\" group by \"name\"";
     sql(mv, query).ok();
+  }
+
+  @Test void testRexPredicate() {
+    final String mv = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100 and \"deptno\" > 50\n"
+        + "group by \"name\"";
+    final String query = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100"
+        + "group by \"name\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testRexPredicate1() {
+    final String query = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100 and \"deptno\" > 50\n"
+        + "group by \"name\"";
+    final String mv = ""
+        + "select \"name\"\n"
+        + "from \"emps\"\n"
+        + "where \"deptno\" > 100"
+        + "group by \"name\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
   }
 
   final JavaTypeFactoryImpl typeFactory =

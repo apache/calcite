@@ -78,6 +78,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -442,6 +443,176 @@ class RelToSqlConverterTest {
         + "ORDER BY \"brand_name\", \"product_class_id\"";
     sql(query)
         .withPostgresql().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4665">[CALCITE-4665]
+   * Allow Aggregate.groupSet to contain columns not in any of the
+   * groupSets</a>. Generate a redundant grouping set and a HAVING clause to
+   * filter it out. */
+  @Test void testGroupSuperset() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB"))
+        .build();
+    final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\","
+        + " SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
+        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0"
+        + " AND \"JOB\" = 'DEVELOP') AS \"t\"";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testGroupSuperset()},
+   * but HAVING has one standalone condition. */
+  @Test void testGroupSuperset2() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(
+            b.call(SqlStdOperatorTable.GREATER_THAN, b.field("C"),
+                b.literal(10)))
+        .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB"))
+        .build();
+    final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\","
+        + " SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
+        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0"
+        + " AND \"C\" > 10) AS \"t\") "
+        + "AS \"t0\"\n"
+        + "WHERE \"JOB\" = 'DEVELOP'";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testGroupSuperset()},
+   * but HAVING has one OR condition and the result can add appropriate
+   * parentheses. Also there is an empty grouping set. */
+  @Test void testGroupSuperset3() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1),
+                        ImmutableBitSet.of(0), ImmutableBitSet.of())),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(
+            b.or(
+                b.greaterThan(b.field("C"), b.literal(10)),
+                b.lessThan(b.field("S"), b.literal(3000))))
+        .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB"))
+        .build();
+    final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\","
+        + " SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
+        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\", ())\n"
+        + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0"
+        + " AND (\"C\" > 10 OR \"S\" < 3000)) AS \"t\") "
+        + "AS \"t0\"\n"
+        + "WHERE \"JOB\" = 'DEVELOP'";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testGroupSuperset()}, but with no Filter between the Aggregate
+   * and the Project. */
+  @Test void testGroupSuperset4() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1),
+                        ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .project(b.field("JOB"))
+        .build();
+    final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
+        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testGroupSuperset()}, but with no Filter between the Aggregate
+   * and the Sort. */
+  @Test void testGroupSuperset5() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1),
+                        ImmutableBitSet.of(0))),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .sort(b.field("C"))
+        .build();
+    final String expectedSql = "SELECT \"EMPNO\", \"ENAME\", \"JOB\","
+        + " COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
+        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
+        + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0\n"
+        + "ORDER BY COUNT(*)";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** As {@link #testGroupSuperset()}, but with Filter condition and Where condition. */
+  @Test void testGroupSuperset6() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .aggregate(
+            b.groupKey(ImmutableBitSet.of(0, 1, 2),
+                (Iterable<ImmutableBitSet>)
+                    ImmutableList.of(ImmutableBitSet.of(0, 1),
+                        ImmutableBitSet.of(0), ImmutableBitSet.of())),
+            b.count(false, "C"),
+            b.sum(false, "S", b.field("SAL")))
+        .filter(
+            b.lessThan(
+                b.call(SqlStdOperatorTable.GROUP_ID, b.field("EMPNO")),
+                b.literal(1)))
+        .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
+        .project(b.field("JOB"))
+        .build();
+    final String expectedSql = "SELECT \"JOB\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", COUNT(*) AS \"C\", SUM(\"SAL\") AS \"S\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
+        + " (\"EMPNO\", \"ENAME\"), \"EMPNO\", ())\n"
+        + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0"
+        + " AND GROUP_ID(\"EMPNO\") < 1) AS \"t\") "
+        + "AS \"t0\"\n"
+        + "WHERE \"JOB\" = 'DEVELOP'";
+    relFn(relFn).ok(expectedSql);
   }
 
   /** Tests GROUP BY ROLLUP of two columns. The SQL for MySQL has
@@ -1030,12 +1201,10 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .filter(
             b.or(
-              b.and(
-                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(10)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(12))),
-              b.and(
-                b.call(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, b.field("EMPNO"), b.literal(6)),
-                b.call(SqlStdOperatorTable.LESS_THAN, b.field("EMPNO"), b.literal(8)))))
+              b.and(b.greaterThanOrEqual(b.field("EMPNO"), b.literal(10)),
+                b.lessThan(b.field("EMPNO"), b.literal(12))),
+              b.and(b.greaterThanOrEqual(b.field("EMPNO"), b.literal(6)),
+                b.lessThan(b.field("EMPNO"), b.literal(8)))))
         .build();
     final RuleSet rules = RuleSets.ofList(CoreRules.FILTER_TO_CALC);
     final String expected = "SELECT *\n"
@@ -1137,8 +1306,7 @@ class RelToSqlConverterTest {
         .scan("DEPT")
         .join(JoinRelType.LEFT,
             b.and(
-                b.call(SqlStdOperatorTable.EQUALS,
-                    b.field(2, 0, "DEPTNO"),
+                b.equals(b.field(2, 0, "DEPTNO"),
                     b.field(2, 1, "DEPTNO")),
                 b.call(SqlStdOperatorTable.LIKE,
                     b.field(2, 1, "DNAME"),
@@ -1228,8 +1396,7 @@ class RelToSqlConverterTest {
         .aggregate(builder.groupKey(builder.field("D")),
             builder.countStar("emps.count"))
         .filter(
-            builder.call(SqlStdOperatorTable.LESS_THAN,
-                builder.field("emps.count"), builder.literal(2)));
+            builder.lessThan(builder.field("emps.count"), builder.literal(2)));
 
     final LogicalFilter filter = (LogicalFilter) builder.build();
     assertThat(filter.getRowType().getFieldNames().toString(),
@@ -1755,28 +1922,28 @@ class RelToSqlConverterTest {
     final String query = "select *\n"
         + "from (\n"
         + "  select 1 as \"one\", 2 as \"tWo\", 3 as \"THREE\",\n"
-        + "    4 as \"fo$ur\", 5 as \"ignore\"\n"
+        + "    4 as \"fo$ur\", 5 as \"ignore\", 6 as \"si`x\"\n"
         + "  from \"foodmart\".\"days\") as \"my$table\"\n"
         + "where \"one\" < \"tWo\" and \"THREE\" < \"fo$ur\"";
     final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
-        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si\\`x`\n"
         + "FROM foodmart.days) AS t\n"
         + "WHERE one < tWo AND THREE < `fo$ur`";
     final String expectedMysql =  "SELECT *\n"
         + "FROM (SELECT 1 AS `one`, 2 AS `tWo`, 3 AS `THREE`,"
-        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
+        + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si``x`\n"
         + "FROM `foodmart`.`days`) AS `t`\n"
         + "WHERE `one` < `tWo` AND `THREE` < `fo$ur`";
     final String expectedPostgresql = "SELECT *\n"
         + "FROM (SELECT 1 AS \"one\", 2 AS \"tWo\", 3 AS \"THREE\","
-        + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
+        + " 4 AS \"fo$ur\", 5 AS \"ignore\", 6 AS \"si`x\"\n"
         + "FROM \"foodmart\".\"days\") AS \"t\"\n"
         + "WHERE \"one\" < \"tWo\" AND \"THREE\" < \"fo$ur\"";
     final String expectedOracle = expectedPostgresql.replace(" AS ", " ");
     final String expectedExasol = "SELECT *\n"
         + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
-        + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
+        + " 4 AS \"fo$ur\", 5 AS \"ignore\", 6 AS \"si`x\"\n"
         + "FROM foodmart.days) AS t\n"
         + "WHERE one < tWo AND THREE < \"fo$ur\"";
     sql(query)
