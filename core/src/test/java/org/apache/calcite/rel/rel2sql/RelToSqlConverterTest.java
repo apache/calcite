@@ -9094,9 +9094,9 @@ class RelToSqlConverterTest {
   }
 
   @Test public void testConcatFunction() {
-    String query = "select '\\\\PWAPIKB01E\\Labelfiles\\' || 'abc'";
-    final String expectedBQSql = "SELECT CONCAT('\\\\\\\\PWAPIKB01E\\\\Labelfiles"
-        + "\\\\', 'abc')";
+    String query = "select '%''.' || '\\\\PWAPIKB01E\\Labelfiles\\'";
+    final String expectedBQSql = "SELECT CONCAT('%\\'.', '\\\\\\\\PWAPIKB01E\\\\Labelfiles"
+        + "\\\\')";
 
     sql(query)
         .withBigQuery()
