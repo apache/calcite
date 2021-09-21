@@ -2835,9 +2835,6 @@ public abstract class RelOptUtil {
       // REVIEW - are there any expressions that need special handling
       // and therefore cannot be pushed?
 
-      // filters can be pushed to the left child if the left child
-      // does not generate NULLs and the only columns referenced in
-      // the filter originate from the left child
       if (pushLeft && leftBitmap.contains(inputBits)) {
         // ignore filters that always evaluate to true
         if (!filter.isAlwaysTrue()) {
@@ -2858,18 +2855,10 @@ public abstract class RelOptUtil {
           leftFilters.add(shiftedFilter);
         }
         filtersToRemove.add(filter);
-
-        // filters can be pushed to the right child if the right child
-        // does not generate NULLs and the only columns referenced in
-        // the filter originate from the right child
       } else if (pushRight && rightBitmap.contains(inputBits)) {
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
-          // that fields in the right now shift over to the left;
-          // since we never push filters to a NULL generating
-          // child, the types of the source should match the dest
-          // so we don't need to explicitly pass the destination
-          // fields to RexInputConverter
+          // that fields in the right now shift over to the left
           final RexNode shiftedFilter =
               shiftFilter(
                   nSysFields + nFieldsLeft,
