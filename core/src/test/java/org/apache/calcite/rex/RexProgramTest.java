@@ -2859,20 +2859,26 @@ class RexProgramTest extends RexProgramTestBase {
         is(2), is("Sarg[(-\u221E..1), (1..+\u221E); NULL AS TRUE]"));
     checkSarg("complexity of 'x < 10 or x >= 20'",
         Sarg.of(RexUnknownAs.UNKNOWN,
-            ImmutableRangeSet.copyOf(
-                ImmutableList.of(Range.lessThan(10), Range.atLeast(20)))),
+            ImmutableRangeSet.<Integer>builder()
+                .add(Range.lessThan(10))
+                .add(Range.atLeast(20))
+                .build()),
         is(2), is("Sarg[(-\u221E..10), [20..+\u221E)]"));
     checkSarg("complexity of 'x in (2, 4, 6) or x > 20'",
         Sarg.of(RexUnknownAs.UNKNOWN,
-            ImmutableRangeSet.copyOf(
-                Arrays.asList(Range.singleton(2), Range.singleton(4),
-                    Range.singleton(6), Range.greaterThan(20)))),
+            ImmutableRangeSet.<Integer>builder()
+                .add(Range.singleton(2))
+                .add(Range.singleton(4))
+                .add(Range.singleton(6))
+                .add(Range.greaterThan(20))
+                .build()),
         is(4), is("Sarg[2, 4, 6, (20..+\u221E)]"));
     checkSarg("complexity of 'x between 3 and 8 or x between 10 and 20'",
         Sarg.of(RexUnknownAs.UNKNOWN,
-            ImmutableRangeSet.copyOf(
-                Arrays.asList(Range.closed(3, 8),
-                    Range.closed(10, 20)))),
+            ImmutableRangeSet.<Integer>builder()
+                .add(Range.closed(3, 8))
+                .add(Range.closed(10, 20))
+                .build()),
         is(2), is("Sarg[[3..8], [10..20]]"));
   }
 

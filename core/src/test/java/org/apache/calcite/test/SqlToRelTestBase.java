@@ -102,8 +102,10 @@ public abstract class SqlToRelTestBase {
   //~ Static fields/initializers ---------------------------------------------
 
   protected static final String NL = System.getProperty("line.separator");
+
   protected static final Supplier<RelDataTypeFactory> DEFAULT_TYPE_FACTORY_SUPPLIER =
-      Suppliers.memoize(() -> new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
+      Suppliers.memoize(() ->
+          new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT))::get;
 
   //~ Instance fields --------------------------------------------------------
 

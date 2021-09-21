@@ -62,7 +62,7 @@ public class Frameworks {
 
   /** Caches an instance of the JDBC driver. */
   private static final Supplier<Driver> DRIVER_SUPPLIER =
-      Suppliers.memoize(Driver::new);
+      Suppliers.memoize(Driver::new)::get;
 
   private Frameworks() {
   }

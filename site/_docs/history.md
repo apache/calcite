@@ -27,11 +27,21 @@ For a full list of releases, see
 <a href="https://github.com/apache/calcite/releases">github</a>.
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
+
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.28.0">1.28.0</a> / under development
+{: #v1-28-0}
+
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 15;
+Guava versions 19.0 to 30.1.1-jre;
+other software versions as specified in gradle.properties.
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.27.0">1.27.0</a> / 2021-06-03
 {: #v1-27-0}
+
 This release comes eight months after [1.26.0](#v1-26-0). It includes more than 150 resolved
 issues, comprising a few new features, three minor breaking changes, many bug-fixes and small
-improvements, as well as code quality enhancements and better test coverage. 
+improvements, as well as code quality enhancements and better test coverage.
 
 Among others, it is worth highlighting the following:
 
@@ -54,7 +64,7 @@ other software versions as specified in gradle.properties.
   assertions are enabled
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4427">CALCITE-4427</a>]
   Make `SUBSTRING` operator comply with ISO standard SQL
-  
+
 #### New features
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4564">CALCITE-4564</a>]
   Initialization context for non-static user-defined functions (UDFs)
@@ -100,11 +110,11 @@ other software versions as specified in gradle.properties.
   Allow BigQuery to parse and validate niladic functions (Mr. Swett)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4034">CALCITE-4034</a>]
   `InnoDB` adapter (neoremind)
-  
+
 #### Bug fixes, API changes and minor enhancements
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4497">CALCITE-4497</a>]
   In `RelBuilder`, support windowed aggregate functions (OVER)
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-4620">CALCITE-4620</a>] 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4620">CALCITE-4620</a>]
   Join on `CASE` causes `AssertionError` in `RelToSqlConverter`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4446">CALCITE-4446</a>]
   Implement three-valued logic for SEARCH operator

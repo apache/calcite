@@ -24,22 +24,26 @@ matrix:
     - jdk: openjdk8
       env:
         - TZ=America/New_York # flips between −05:00 and −04:00
+        - GUAVA=19.0 # oldest supported Guava version
     - jdk: openjdk11
       env:
         - CHECKERFRAMEWORK=Y
       script:
         - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
-        - ./gradlew --no-parallel --no-daemon --scan -PenableCheckerframework :linq4j:classes :core:classes
+        - ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableCheckerframework :linq4j:classes :core:classes
     - jdk: openjdk11
       env:
         - ERRORPRONE=Y
+        - GUAVA=30.1.1-jre # ErrorProne checks for Beta APIs, so use newest supported Guava version
       script:
         - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
-        - ./gradlew --no-parallel --no-daemon --scan -PenableErrorprone classes
+        - ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableErrorprone classes
     - jdk: openjdk11
       env:
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
     - jdk: openjdk15
+      env:
+        - GUAVA=30.1.1-jre # newest supported Guava version
 branches:
   only:
     - master
@@ -52,7 +56,7 @@ script:
   # Throw OutOfMemoryError in case less than 35% is free after full GC
   # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
   - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
-  - ./gradlew --no-daemon build
+  - ./gradlew --no-daemon -Pguava.version=${GUAVA:-29.0-jre} build
 git:
   depth: 100
 cache:
