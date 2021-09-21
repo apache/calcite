@@ -366,7 +366,6 @@ public class PlannerImpl implements Planner, ViewExpander {
   @Override public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) {
     ensure(State.STATE_5_CONVERTED);
-    //Remove this when CachingRelMetadataProvider is removed.
     rel.getCluster().setMetadataProvider(
         new CachingRelMetadataProvider(
             requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider"),

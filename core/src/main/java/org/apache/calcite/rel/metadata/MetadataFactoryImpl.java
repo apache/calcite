@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutionException;
  *
  * @deprecated Use {@link RelMetadataQuery}.
  */
-@Deprecated
+@Deprecated // to be removed before 2.0
 public class MetadataFactoryImpl implements MetadataFactory {
   @SuppressWarnings("unchecked")
   public static final UnboundMetadata<@Nullable Metadata> DUMMY = (rel, mq) -> null;
