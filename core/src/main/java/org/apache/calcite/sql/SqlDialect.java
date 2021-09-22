@@ -1083,6 +1083,13 @@ public class SqlDialect {
     return SqlTypeUtil.isCharacter(operand0.getType());
   }
 
+  /**
+   * Returns whether the dialect supports having IS TRUE operations inside the CASE WHEN operators.
+   */
+  public boolean supportsIsTrueInsideCaseWhen() {
+    return true;
+  }
+
   /** Returns the name of the system table that has precisely one row.
    * If there is no such table, returns null, and we will generate SELECT with
    * no FROM clause.

@@ -259,7 +259,7 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"product\"\n"
         + "where \"product_id\" > 0\n"
         + "group by \"product_id\"";
-    final String expected = "SELECT SUM(CASE WHEN \"net_weight\" > 0 IS TRUE"
+    final String expected = "SELECT SUM(CASE WHEN \"net_weight\" > 0"
         + " THEN \"shelf_width\" ELSE NULL END), "
         + "SUM(\"shelf_width\")\n"
         + "FROM \"foodmart\".\"product\"\n"
@@ -294,6 +294,33 @@ class RelToSqlConverterTest {
         + "GROUP BY net_weight";
     sql(query).ok(expected)
         .withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test void testPivotToSqlIsTrueNotSupported() {
+    String query = "select * from (\n"
+        + "  select \"brand_name\", \"net_weight\", \"product_id\"\n"
+        + "  from \"foodmart\".\"product\")\n"
+        + "  pivot (sum(\"net_weight\") as w, count(*) as c\n"
+        + "    for (\"brand_name\") in ('a', 'b'))";
+    final String expected = "SELECT \"product_id\","
+        + " SUM(\"net_weight\") FILTER (WHERE \"brand_name\" = 'a' IS TRUE) AS \"'a'_W\","
+        + " COUNT(*) FILTER (WHERE \"brand_name\" = 'a' IS TRUE) AS \"'a'_C\","
+        + " SUM(\"net_weight\") FILTER (WHERE \"brand_name\" = 'b' IS TRUE) AS \"'b'_W\","
+        + " COUNT(*) FILTER (WHERE \"brand_name\" = 'b' IS TRUE) AS \"'b'_C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"";
+    // Redshift does not support FILTER nor IS TRUE in WHEN operator
+    final String expectedRedshiftSql = "SELECT \"product_id\","
+        + " SUM(CASE WHEN \"brand_name\" = 'a' "
+        + "THEN \"net_weight\" ELSE NULL END) AS \"'a'_W\","
+        + " COUNT(CASE WHEN \"brand_name\" = 'a' THEN 1 ELSE NULL END) AS \"'a'_C\","
+        + " SUM(CASE WHEN \"brand_name\" = 'b' "
+        + "THEN \"net_weight\" ELSE NULL END) AS \"'b'_W\","
+        + " COUNT(CASE WHEN \"brand_name\" = 'b' THEN 1 ELSE NULL END) AS \"'b'_C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"";
+    sql(query).ok(expected)
+        .withRedshift().ok(expectedRedshiftSql);
   }
 
   @Test void testSimpleSelectQueryFromProductTable() {
