@@ -1691,6 +1691,98 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
   }
 
+  @Test public void testSort1() {
+    final String mv = "select \"deptno\", \"commission\" "
+        + "from \"emps\" order by \"deptno\"";
+    final String query = "select \"commission\", \"deptno\"  "
+        + "from \"emps\" order by \"commission\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test public void testSort2() {
+    final String mv = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"empid\"";
+    final String query = "select \"deptno\" "
+        + "from \"emps\" order by \"empid\"";
+    sql(mv, query).ok();
+  }
+
+  @Test public void testSort3() {
+    final String mv = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"empid\", \"deptno\"";
+    final String query = "select \"deptno\" "
+        + "from \"emps\" order by \"empid\"";
+    sql(mv, query).ok();
+  }
+
+  @Test public void testSort4() {
+    final String mv  = "select \"deptno\", \"empid\", "
+        + "\"salary\" from \"emps\" order by \"empid\"";
+    final String query = "select \"empid\", \"salary\", "
+        + "\"deptno\" from \"emps\" order by \"empid\"";
+    sql(mv, query).ok();
+  }
+
+  @Test public void testSort5() {
+    final String mv = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"empid\", \"deptno\"";
+    final String query0 = "select \"empid\" "
+        + "from \"emps\" order by \"deptno\"";
+    final String query1 = "select \"deptno\" "
+        + "from \"emps\" order by \"deptno\" desc";
+    sql(mv, query0).noMat();
+    sql(mv, query1).noMat();
+  }
+
+  @Test public void testSort6() {
+    final String mv0 = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"deptno\"";
+    final String query0 = "select \"empid\", \"deptno\", \"salary\" "
+        + "from \"emps\" order by \"deptno\"";
+    sql(mv0, query0).noMat();
+  }
+
+  @Test public void testSort7() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5 offset 1";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5 offset 1";
+    sql(mv, query).ok();
+  }
+
+  @Test public void testSort8() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "offset 5";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "offset 5";
+    sql(mv, query).ok();
+  }
+
+  @Test public void testSort9() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 3 offset 1";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 4 offset 1";
+    sql(mv, query).noMat();
+  }
+
+  @Test public void testSort10() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5 offset 1";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5";
+    sql(mv, query).noMat();
+  }
+
+
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
