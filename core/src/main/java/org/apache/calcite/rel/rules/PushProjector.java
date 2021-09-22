@@ -562,11 +562,15 @@ public class PushProjector {
           new RexUtil.FixNullabilityShuttle(
               projChild.getCluster().getRexBuilder(), typeList);
       newExpr = newExpr.accept(fixer);
-
-      newProjects.add(
-          Pair.of(
-              newExpr,
-              SqlUtil.deriveAliasFromOrdinal(preserveExpOrdinal++)));
+      final String originalFieldName = findOriginalFieldName(projExpr);
+      final String newAlias;
+      if (originalFieldName != null) {
+        newAlias = originalFieldName;
+      } else {
+        newAlias = SqlUtil.deriveAliasFromOrdinal(preserveExpOrdinal);
+      }
+      newProjects.add(Pair.of(newExpr, newAlias));
+      preserveExpOrdinal++;
     }
 
     return (Project) relBuilder.push(projChild)
@@ -574,6 +578,16 @@ public class PushProjector {
         .build();
   }
 
+  private @Nullable String findOriginalFieldName(RexNode originRexNode) {
+    if (origProj == null) {
+      return null;
+    }
+    int idx = origProj.getProjects().indexOf(originRexNode);
+    if (idx < 0) {
+      return null;
+    }
+    return origProj.getRowType().getFieldList().get(idx).getName();
+  }
   /**
    * Determines how much each input reference needs to be adjusted as a result
    * of projection.
