@@ -707,8 +707,11 @@ public class RelToSqlConverter extends SqlImplementor
       } else if (list.size() == 1) {
         query = list.get(0);
       } else {
-        query = SqlStdOperatorTable.UNION_ALL.createCall(
-            new SqlNodeList(list, POS));
+        SqlNode sqlNode = SqlStdOperatorTable.UNION_ALL.createCall(POS, list.get(0), list.get(1));
+        for (int i = 2; i < list.size(); i++) {
+          sqlNode = SqlStdOperatorTable.UNION_ALL.createCall(POS, sqlNode, list.get(i));
+        }
+        query = sqlNode;
       }
     } else {
       // Generate ANSI syntax

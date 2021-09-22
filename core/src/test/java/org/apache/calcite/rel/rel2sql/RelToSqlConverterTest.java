@@ -34,8 +34,11 @@ import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.runtime.FlatLists;
@@ -85,6 +88,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -9093,4 +9097,51 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+
+  RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
+    final RelBuilder builder = relBuilder();
+    RelDataTypeField field = new RelDataTypeFieldImpl("ZERO", 0,
+        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
+    List<RelDataTypeField> fieldList = new ArrayList<>();
+    fieldList.add(field);
+    RelRecordType type = new RelRecordType(fieldList);
+    builder.values(
+        ImmutableList.of(
+            ImmutableList.of(
+                builder.getRexBuilder().makeZeroLiteral(
+                    builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER))
+            )), type);
+    builder.project(col1, col2);
+    return builder.build();
+  }
+
+  @Test public void testMultipleUnionWithLogicalValue() {
+    final RelBuilder builder = relBuilder();
+    builder.push(
+        createLogicalValueRel(builder.alias(builder.literal("ALA"), "col1"),
+            builder.alias(builder.literal("AmericaAnchorage"), "col2")));
+    builder.push(
+        createLogicalValueRel(builder.alias(builder.literal("ALAW"), "col1"),
+            builder.alias(builder.literal("USAleutian"), "col2")));
+    builder.union(true);
+    builder.push(
+        createLogicalValueRel(builder.alias(builder.literal("AST"), "col1"),
+            builder.alias(builder.literal("AmericaHalifax"), "col2")));
+    builder.union(true);
+
+    final RelNode root = builder.build();
+    final String expectedHive = "SELECT 'ALA' col1, 'AmericaAnchorage' col2\n"
+        + "UNION ALL\n"
+        + "SELECT 'ALAW' col1, 'USAleutian' col2\n"
+        + "UNION ALL\n"
+        + "SELECT 'AST' col1, 'AmericaHalifax' col2";
+    final String expectedBigQuery = "SELECT 'ALA' AS col1, 'AmericaAnchorage' AS col2\n"
+        + "UNION ALL\n"
+        + "SELECT 'ALAW' AS col1, 'USAleutian' AS col2\n"
+        + "UNION ALL\n"
+        + "SELECT 'AST' AS col1, 'AmericaHalifax' AS col2";
+    relFn(b -> root)
+        .withHive2().ok(expectedHive)
+        .withBigQuery().ok(expectedBigQuery);
+  }
 }
