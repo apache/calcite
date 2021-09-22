@@ -21,7 +21,7 @@ excerpt_separator: ""
 repository: https://github.com/apache/calcite
 destination: target
 exclude: [README.md,Gemfile*]
-include: [".asf.yaml"]
+include: [".htaccess", ".asf.yaml"]
 keep_files: [".git", ".svn", "javadocAggregate", "avatica", "docs/cassandra.html"]
 
 collections:
