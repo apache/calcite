@@ -1822,7 +1822,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           // call to this function, so we can use the regular
           // operator validation.
           return new SqlBasicCall(operator, SqlNode.EMPTY_ARRAY,
-              id.getParserPosition(), true, null);
+              id.getParserPosition(), null).withExpanded(true);
         }
       }
     }

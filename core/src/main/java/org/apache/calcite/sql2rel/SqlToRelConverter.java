@@ -1685,7 +1685,7 @@ public class SqlToRelConverter {
       if (isRowConstructor(node)) {
         call = (SqlBasicCall) node;
         ImmutableList.Builder<RexLiteral> tuple = ImmutableList.builder();
-        for (Ord<@Nullable SqlNode> operand : Ord.zip(call.operands)) {
+        for (Ord<SqlNode> operand : Ord.zip(call.getOperandList())) {
           RexLiteral rexLiteral =
               convertLiteralInValuesList(
                   operand.e,
@@ -2117,7 +2117,6 @@ public class SqlToRelConverter {
     }
 
     final SqlCall call;
-    final @Nullable SqlNode[] operands;
     switch (from.getKind()) {
     case AS:
       call = (SqlCall) from;
@@ -2149,20 +2148,20 @@ public class SqlToRelConverter {
       return;
 
     case TABLESAMPLE:
-      operands = ((SqlBasicCall) from).getOperands();
+      final List<SqlNode> operands = ((SqlCall) from).getOperandList();
       SqlSampleSpec sampleSpec = SqlLiteral.sampleValue(
-          requireNonNull(operands[1], () -> "operand[1] of " + from));
+          requireNonNull(operands.get(1), () -> "operand[1] of " + from));
       if (sampleSpec instanceof SqlSampleSpec.SqlSubstitutionSampleSpec) {
         String sampleName =
             ((SqlSampleSpec.SqlSubstitutionSampleSpec) sampleSpec)
                 .getName();
         datasetStack.push(sampleName);
-        convertFrom(bb, operands[0]);
+        convertFrom(bb, operands.get(0));
         datasetStack.pop();
       } else if (sampleSpec instanceof SqlSampleSpec.SqlTableSampleSpec) {
         SqlSampleSpec.SqlTableSampleSpec tableSampleSpec =
             (SqlSampleSpec.SqlTableSampleSpec) sampleSpec;
-        convertFrom(bb, operands[0]);
+        convertFrom(bb, operands.get(0));
         RelOptSamplingParameters params =
             new RelOptSamplingParameters(
                 tableSampleSpec.isBernoulli(),

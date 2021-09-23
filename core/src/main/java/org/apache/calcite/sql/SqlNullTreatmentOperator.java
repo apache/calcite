@@ -47,7 +47,7 @@ public class SqlNullTreatmentOperator extends SqlSpecialOperator {
   @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
       SqlParserPos pos, @Nullable SqlNode... operands) {
     // As super.createCall, but don't union the positions
-    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
+    return new SqlBasicCall(this, operands, pos, functionQualifier);
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
