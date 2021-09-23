@@ -2622,8 +2622,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** Creates a copy of a call with a new operator. */
   private static SqlCall copy(SqlCall call, SqlOperator operator) {
-    final List<SqlNode> list = call.getOperandList();
-    return new SqlBasicCall(operator, list.toArray(new SqlNode[0]),
+    return new SqlBasicCall(operator, call.getOperandList(),
         call.getParserPosition());
   }
 

@@ -1139,13 +1139,13 @@ public class RelToSqlConverter extends SqlImplementor
     final Context context = tableFunctionScanContext(inputSqlNodes);
     SqlNode callNode = context.toSql(null, e.getCall());
     // Convert to table function call, "TABLE($function_name(xxx))"
-    SqlNode tableCall = new SqlBasicCall(
-        SqlStdOperatorTable.COLLECTION_TABLE,
-        new SqlNode[] {callNode},
-        SqlParserPos.ZERO);
-    SqlNode select = new SqlSelect(
-        SqlParserPos.ZERO, null, SqlNodeList.SINGLETON_STAR, tableCall,
-        null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+    SqlNode tableCall =
+        new SqlBasicCall(SqlStdOperatorTable.COLLECTION_TABLE,
+            ImmutableList.of(callNode), SqlParserPos.ZERO);
+    SqlNode select =
+        new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.SINGLETON_STAR,
+            tableCall, null, null, null, null, null, null, null,
+            SqlNodeList.EMPTY);
     return result(select, ImmutableList.of(Clause.SELECT), e, null);
   }
 

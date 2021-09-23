@@ -1152,8 +1152,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
   private RexNode toRex(SqlRexContext cx, SqlBasicCall call, SqlFunction f) {
     final SqlCall call2 =
-        new SqlBasicCall(f, call.getOperandList().toArray(new SqlNode[0]),
-            call.getParserPosition());
+        new SqlBasicCall(f, call.getOperandList(), call.getParserPosition());
     final SqlRexConvertlet convertlet = requireNonNull(get(call2));
     return convertlet.convertCall(cx, call2);
   }
