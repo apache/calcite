@@ -274,7 +274,7 @@ public abstract class SqlOperator {
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
     pos = pos.plusAll(operands);
-    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
+    return new SqlBasicCall(this, operands, pos, functionQualifier);
   }
 
   /** Not supported. Choose between

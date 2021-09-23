@@ -49,15 +49,41 @@ public class SqlBasicCall extends SqlCall {
       SqlOperator operator,
       @Nullable SqlNode[] operands,
       SqlParserPos pos) {
-    this(operator, operands, pos, false, null);
+    this(operator, operands, pos, null, false);
   }
 
+  /** Creates a SqlBasicCall.
+   *
+   * @deprecated Use
+   * {@link #SqlBasicCall(SqlOperator, SqlNode[], SqlParserPos, SqlLiteral)}
+   * followed by {@link #withExpanded(boolean)}. To be removed before 1.29.
+   */
+  @Deprecated // to be removed before 1.29
   public SqlBasicCall(
       SqlOperator operator,
       @Nullable SqlNode[] operands,
       SqlParserPos pos,
       boolean expanded,
       @Nullable SqlLiteral functionQualifier) {
+    this(operator, operands, pos, functionQualifier, expanded);
+  }
+
+  /** Creates an unexpanded SqlBasicCall. */
+  public SqlBasicCall(
+      SqlOperator operator,
+      @Nullable SqlNode[] operands,
+      SqlParserPos pos,
+      @Nullable SqlLiteral functionQualifier) {
+    this(operator, operands, pos, functionQualifier, false);
+  }
+
+  /** Private constructor. */
+  private SqlBasicCall(
+      SqlOperator operator,
+      @Nullable SqlNode[] operands,
+      SqlParserPos pos,
+      @Nullable SqlLiteral functionQualifier,
+      boolean expanded) {
     super(pos);
     this.operator = Objects.requireNonNull(operator, "operator");
     this.operands = operands;
@@ -72,6 +98,12 @@ public class SqlBasicCall extends SqlCall {
 
   @Override public boolean isExpanded() {
     return expanded;
+  }
+
+  public SqlCall withExpanded(boolean expanded) {
+    return expanded == this.expanded ? this
+        : new SqlBasicCall(operator, operandList.toArray(new SqlNode[0]), pos,
+            functionQuantifier, expanded);
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
