@@ -5449,10 +5449,16 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   private Sql checkSubQuery(String sql) {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .addRuleCollection(
+              ImmutableList.of(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+                  CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                  CoreRules.FILTER_SUB_QUERY_TO_CORRELATE))
+        .addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .build();
     return sql(sql)
-        .withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
-            CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
-            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .with(program)
         .expand(false);
   }
 
@@ -5665,9 +5671,9 @@ class RelOptRulesTest extends RelOptTestBase {
   /** An EXISTS filter that can be converted into a semi-join. */
   @Test void testExpandFilterExistsSimpleAnd() {
     final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where exists (select deptno from sales.emp where empno < 20)\n"
-        + "and emp.sal < 100";
+        + "from sales.emp out_emp\n"
+        + "where exists (select deptno from sales.emp where out_emp.empno < 20)\n"
+        + "and out_emp.sal < 100";
     checkSubQuery(sql).check();
   }
 
@@ -5802,7 +5808,12 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp left join sales.dept\n"
         + "on (emp.empno, dept.deptno) in (\n"
         + "  select empno, deptno from sales.emp where empno < 20)";
-    checkSubQuery(sql).check();
+    checkSubQuery(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+            CoreRules.JOIN_EXTRACT_FILTER,
+            CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelation(true)
+        .check();
   }
 
   @Test void testExpandJoinExists() {
@@ -5810,6 +5821,18 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp left join sales.dept\n"
         + "on exists (select deptno from sales.emp where empno < 20)";
     checkSubQuery(sql).check();
+  }
+
+  /** An EXISTS filter that can be converted into true/false. */
+  @Test void testJoinOnCorrelatedSubQuery() {
+    final String sql = ""
+        + "SELECT empno\n"
+        + "FROM emp AS e\n"
+        + "LEFT JOIN dept AS d\n"
+        + "  ON EXISTS (SELECT 1 FROM emp AS e2 WHERE e2.deptno = d.deptno)\n";
+    checkSubQuery(sql)
+        .withLateDecorrelation(true)
+        .check();
   }
 
   @Test void testJoinOnMultipleCorrelatedSubQueries() {

@@ -2763,7 +2763,7 @@ public class SqlToRelConverter {
     final RelNode node =
         relBuilder.push(leftRel)
             .push(rightRel)
-            .join(joinType, joinCond)
+            .join(joinType, joinCond, RelOptUtil.getVariablesUsed(joinCond))
             .build();
 
     // If join conditions are pushed down, update the leaves.
@@ -2852,8 +2852,8 @@ public class SqlToRelConverter {
           .get(topLevelFieldAccess.getField().getIndex() - namespaceOffset);
       int pos = namespaceOffset + field.getIndex();
 
-      assert field.getType()
-          == topLevelFieldAccess.getField().getType();
+      assert SqlTypeUtil.equalSansNullability(field.getType(),
+          topLevelFieldAccess.getField().getType());
 
       assert pos != -1;
 

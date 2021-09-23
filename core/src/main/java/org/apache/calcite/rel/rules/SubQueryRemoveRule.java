@@ -769,11 +769,14 @@ public class SubQueryRemoveRule
         .push(join.getLeft())
         .push(join.getRight());
     final CorrelationId id = join.getCluster().createCorrel();
-    RexNode condition = RelOptUtil.transformJoinConditionToCorrelate(join.getCondition(), id,
-        join.getLeft(), join.getRight());
+    Pair<RexNode, CorrelationId> conditionAndRightId = RelOptUtil.transformJoinConditionToCorrelate(
+        join.getCondition(), id, join.getLeft(), join.getRight());
+    RexNode condition = conditionAndRightId.left;
+
     for (RexSubQuery subQuery = RexUtil.SubQueryFinder.find(condition); subQuery != null;
         subQuery = RexUtil.SubQueryFinder.find(condition)) {
       final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(subQuery.rel);
+      variablesSet.remove(id);
       final RelOptUtil.Logic logic =
           LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition), subQuery);
       final int offset = builder.peek().getRowType().getFieldCount();

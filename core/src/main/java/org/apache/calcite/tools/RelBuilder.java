@@ -458,6 +458,18 @@ public class RelBuilder {
     return this;
   }
 
+  public RelBuilder joinVariable(Holder<RexCorrelVariable> v) {
+    RelDataType leftType = peek(1).getRowType();
+    RelDataType rightType = peek().getRowType();
+    //inner join is used because the nullabiltiy of the join type should not be considered
+    v.set((RexCorrelVariable)
+        getRexBuilder().makeCorrel(
+            SqlValidatorUtil.deriveJoinRowType(leftType, rightType, JoinRelType.INNER,
+                getTypeFactory(), null, ImmutableList.of()),
+            cluster.createCorrel()));
+    return this;
+  }
+
   /** Creates a reference to a field by name.
    *
    * <p>Equivalent to {@code field(1, 0, fieldName)}.
@@ -2460,7 +2472,7 @@ public class RelBuilder {
     Frame right = stack.pop();
     final Frame left = stack.pop();
     final RelNode join;
-    final boolean correlate = checkIfCorrelated(variablesSet, joinType, left.rel, right.rel);
+    final boolean correlate = checkIfCorrelated(joinType, condition, left.rel, right.rel, variablesSet);
     RexNode postCondition = literal(true);
     if (config.simplify()) {
       // Normalize expanded versions IS NOT DISTINCT FROM so that simplifier does not
@@ -2475,17 +2487,22 @@ public class RelBuilder {
       final CorrelationId id = Iterables.getOnlyElement(variablesSet);
       // Correlate does not have an ON clause.
       switch (joinType) {
+      case INNER:
+        // For INNER, we can defer.
+        if (RelOptUtil.correlationColumns(id, condition).isEmpty()) {
+          postCondition = condition;
+          break;
+        }
       case LEFT:
       case SEMI:
       case ANTI:
         // For a LEFT/SEMI/ANTI, predicate must be evaluated first.
         stack.push(right);
-        filter(RelOptUtil.transformJoinConditionToCorrelate(condition, id, left.rel, right.rel));
+        Pair<RexNode, CorrelationId> conditionAndRightCorrelateId =
+            RelOptUtil.transformJoinConditionToCorrelate(condition, id, left.rel, right.rel);
+        filter(ImmutableSet.of(conditionAndRightCorrelateId.right),
+            conditionAndRightCorrelateId.left);
         right = stack.pop();
-        break;
-      case INNER:
-        // For INNER, we can defer.
-        postCondition = condition;
         break;
       default:
         throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
@@ -3493,10 +3510,13 @@ public class RelBuilder {
    * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side or if the a
    *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
    */
-  private static boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
-      JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
-    if (variablesSet.size() != 1) {
+  private static boolean checkIfCorrelated(JoinRelType joinType,
+      RexNode condition,
+      RelNode leftNode, RelNode rightRel, Set<CorrelationId> variablesSet) {
+    if (variablesSet.isEmpty()) {
       return false;
+    } else if (variablesSet.size() != 1) {
+      throw new IllegalArgumentException("multiple variables not supported " + variablesSet);
     }
     CorrelationId id = Iterables.getOnlyElement(variablesSet);
     if (!RelOptUtil.notContainsCorrelation(leftNode, id, Litmus.IGNORE)) {
@@ -3508,9 +3528,8 @@ public class RelBuilder {
     case FULL:
       throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
     default:
-      return !RelOptUtil.correlationColumns(
-          Iterables.getOnlyElement(variablesSet),
-          rightRel).isEmpty();
+      return !RelOptUtil.correlationColumns(id, rightRel).isEmpty()
+          || !RelOptUtil.correlationColumns(id, condition).isEmpty();
     }
   }
 

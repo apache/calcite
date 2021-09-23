@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
@@ -84,6 +85,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
@@ -107,6 +109,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.test.Matchers.hasHints;
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -4022,6 +4025,19 @@ public class RelBuilderTest {
         root, hasTree(expected));
   }
 
+  @Test void testInnerCorrelateWithCorrelateJoin() {
+    RelNode root = buildCorrelateWithCorrelateInJoinCondition(JoinRelType.INNER);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $5)], variablesSet=[[$cor1]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(
+        "Correlated inner joins should emmit a correlate with a filter on top.",
+        root, hasTree(expected));
+  }
+
   @Test void testSimpleRightCorrelateViaJoinThrowsException() {
     assertThrows(IllegalArgumentException.class,
         () -> buildSimpleCorrelateWithJoin(JoinRelType.RIGHT),
@@ -4051,8 +4067,8 @@ public class RelBuilderTest {
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     return builder
         .scan("EMP")
-        .variable(v)
         .scan("DEPT")
+        .joinVariable(v)
         .join(type,
             builder.equals(
                 builder.field(2, 0, "DEPTNO"),
@@ -4066,8 +4082,8 @@ public class RelBuilderTest {
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     return builder
         .scan("EMP")
-        .variable(v)
         .scan("DEPT")
+        .joinVariable(v)
         .filter(
             builder.equals(
                 rexBuilder.makeFieldAccess(v.get(), 0),
@@ -4076,6 +4092,40 @@ public class RelBuilderTest {
             builder.equals(
                 builder.field(2, 0, "DEPTNO"),
                 builder.field(2, 1, "DEPTNO")), ImmutableSet.of(v.get().id))
+        .build();
+  }
+
+  private static RelNode buildCorrelateWithCorrelateInJoinCondition(JoinRelType type) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    return builder
+        .scan("DEPT")
+        .scan("EMP")
+        .joinVariable(v)
+        .join(type,
+            builder.equals(
+                rexBuilder.makeFieldAccess(v.get(), 0),
+                rexBuilder.makeFieldAccess(v.get(), 8)),
+            ImmutableSet.of(v.get().id))
+        .build();
+  }
+
+  private static RelNode buildCorrelateWithSubQueryJoinCondition(JoinRelType type) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    return builder
+        .scan("DEPT")
+        .scan("EMP")
+        .joinVariable(v)
+        .join(type,
+            RexSubQuery.exists(
+                builder.scan(""))
+            builder.equals(
+                rexBuilder.makeFieldAccess(v.get(), 0),
+                rexBuilder.makeFieldAccess(v.get(), 8)),
+            ImmutableSet.of(v.get().id))
         .build();
   }
 

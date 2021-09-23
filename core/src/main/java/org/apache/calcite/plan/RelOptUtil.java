@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
@@ -72,6 +73,7 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSqlStandardConvertletTable;
 import org.apache.calcite.rex.RexSubQuery;
@@ -279,12 +281,43 @@ public abstract class RelOptUtil {
     return visitor.vuv.variables;
   }
 
+  /**
+   * Returns a set of variables used by a relational expression or its
+   * descendants.
+   *
+   * <p>The set may contain "duplicates" (variables with different ids that,
+   * when resolved, will reference the same source relational expression).
+   *
+   * <p>The item type is the same as
+   * {@link org.apache.calcite.rex.RexCorrelVariable#id}.
+   */
+  public static Set<CorrelationId> getVariablesUsed(RexNode rex) {
+    CorrelationCollector visitor = new CorrelationCollector();
+    visitor.vuv.apply(rex);
+    return visitor.vuv.variables;
+  }
+
   /** Finds which columns of a correlation variable are used within a
    * relational expression. */
   public static ImmutableBitSet correlationColumns(CorrelationId id,
       RelNode rel) {
     final CorrelationCollector collector = new CorrelationCollector();
     rel.accept(collector);
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (int field : collector.vuv.variableFields.get(id)) {
+      if (field >= 0) {
+        builder.set(field);
+      }
+    }
+    return builder.build();
+  }
+
+  /** Finds which columns of a correlation variable are used within a
+   * relational expression. */
+  public static ImmutableBitSet correlationColumns(CorrelationId id,
+      RexNode rex) {
+    final CorrelationCollector collector = new CorrelationCollector();
+    rex.accept(collector.vuv);
     final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     for (int field : collector.vuv.variableFields.get(id)) {
       if (field >= 0) {
@@ -336,25 +369,131 @@ public abstract class RelOptUtil {
    * @return a new condition with input references replaced by other expressions when necessary
    */
   @API(since = "1.28", status = API.Status.EXPERIMENTAL)
-  public static RexNode transformJoinConditionToCorrelate(RexNode condition, CorrelationId id,
-      RelNode left, RelNode right) {
+  public static Pair<RexNode, CorrelationId> transformJoinConditionToCorrelate(RexNode condition,
+      CorrelationId leftId, RelNode left, RelNode right) {
     // Obtain the RexBuilder from left/right relation.
     // It is unlikely that another (custom) RexBuilder is necessary here but if it happens to be
     // the case we can consider adding a new parameter to this method then.
-    RexBuilder builder = left.getCluster().getRexBuilder();
+    RexBuilder rexBuilder = left.getCluster().getRexBuilder();
+    CorrelationId rightId = left.getCluster().createCorrel();
     final RelDataType leftRowType = left.getRowType();
     final int leftCount = leftRowType.getFieldCount();
+    final RexNode leftCorrel = rexBuilder.makeCorrel(leftRowType, leftId);
     RexShuttle shuttle = new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef inputRef) {
         if (inputRef.getIndex() < leftCount) {
-          final RexNode v = builder.makeCorrel(leftRowType, id);
-          return builder.makeFieldAccess(v, inputRef.getIndex());
+          return rexBuilder.makeFieldAccess(leftCorrel, inputRef.getIndex());
         } else {
-          return builder.makeInputRef(right, inputRef.getIndex() - leftCount);
+          return rexBuilder.makeInputRef(right, inputRef.getIndex() - leftCount);
+        }
+      }
+
+      @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable
+            && ((RexCorrelVariable)fieldAccess.getReferenceExpr()).id == leftId) {
+          int index = fieldAccess.getField().getIndex();
+          if (index < leftCount) {
+            return rexBuilder.makeFieldAccess(leftCorrel, index);
+          } else {
+            return rexBuilder.makeInputRef(right, index - leftCount);
+          }
+        }
+        return super.visitFieldAccess(fieldAccess);
+      }
+
+      @Override
+      public RexNode visitSubQuery(RexSubQuery subQuery) {
+        return transformSubQuerySplittingCorrelate(subQuery, leftId, left, rightId, right);
+      }
+    };
+    return Pair.of(condition.accept(shuttle), rightId);
+  }
+
+  private static RexNode transformSubQuerySplittingCorrelate(RexNode nodeToRewrite,
+      CorrelationId leftId, RelNode left,
+      CorrelationId rightId, RelNode right) {
+    final RexBuilder rexBuilder = left.getCluster().getRexBuilder();
+    final RelDataType leftRowType = left.getRowType();
+    final int leftCount = leftRowType.getFieldCount();
+
+    RexShuttle shuttle = new RexShuttle() {
+      private final RexShuttle rexShuttle = this;
+      private final RelShuttle relShuttle = new RelHomogeneousShuttle() {
+        @Override public RelNode visit(RelNode relNode) {
+          return super.visit(relNode).accept(rexShuttle);
+        }
+      };
+
+      @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+        RelNode relNode = subQuery.rel.accept(relShuttle);
+        if (subQuery.rel == relNode) {
+          return subQuery;
+        } else {
+          return subQuery.clone(relNode);
+        }
+      }
+
+      @Override
+      public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable
+            && ((RexCorrelVariable)fieldAccess.getReferenceExpr()).id == leftId) {
+          int index = fieldAccess.getField().getIndex();
+          if (index < leftCount) {
+            final RexNode leftCorrel = rexBuilder.makeCorrel(leftRowType, leftId);
+            return rexBuilder.makeFieldAccess(leftCorrel, index);
+          } else {
+            final RexNode rightCorrel = rexBuilder.makeCorrel(right.getRowType(), rightId);
+            return rexBuilder.makeFieldAccess(rightCorrel, index - leftCount);
+          }
+        } else {
+          return super.visitFieldAccess(fieldAccess);
         }
       }
     };
-    return shuttle.apply(condition);
+    return nodeToRewrite.accept(shuttle);
+  }
+
+  private static RelNode rewriteCorrelateIds(RexBuilder rexBuilder,
+      RelNode relNode, RexCorrelVariable leftCorrelate, RexCorrelVariable rightCorrelate) {
+    int leftSize = leftCorrelate.getType().getFieldList().size();
+    RexShuttle rexShuttle = new RexShuttle() {
+      @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+          int index = fieldAccess.getField().getIndex();
+          if (leftSize > index) {
+            return rexBuilder.makeFieldAccess(leftCorrelate, index);
+          } else {
+            return rexBuilder.makeFieldAccess(rightCorrelate, index - leftSize);
+          }
+        }
+        return super.visitFieldAccess(fieldAccess);
+      }
+    };
+
+    return relNode.accept(new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalFilter filter) {
+        RexNode condition = filter.getCondition();
+        RexNode rewrittenCondition = condition.accept(rexShuttle);
+        if (condition == rewrittenCondition) {
+          return super.visit(filter);
+        } else {
+          return filter.copy(filter.getTraitSet(),
+              visit(filter.getInput()), rewrittenCondition);
+        }
+      }
+
+      @Override public RelNode visit(LogicalProject project) {
+        List<RexNode> projects = project.getProjects().stream()
+            .map(rexNode -> rexNode.accept(rexShuttle))
+            .collect(Collectors.toList());
+        if (projects.equals(project.getProjects())) {
+          return super.visit(project);
+        } else {
+          return project.copy(project.getTraitSet(),
+              visit(project.getInput()), projects, project.getRowType());
+        }
+      }
+    });
   }
 
   /**
@@ -4767,7 +4906,6 @@ public abstract class RelOptUtil {
       RelNode result = super.visit(other);
       // Important! Remove stopped variables AFTER we visit
       // children. (which what super.visit() does)
-      vuv.variables.removeAll(other.getVariablesSet());
       return result;
     }
   }
