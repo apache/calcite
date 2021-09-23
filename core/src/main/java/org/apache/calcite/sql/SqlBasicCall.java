@@ -17,10 +17,12 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,7 +33,16 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  */
 public class SqlBasicCall extends SqlCall {
   private SqlOperator operator;
+
+  /** Array of operands.
+   *
+   * @deprecated Use the methods {@link #getOperandList()} and
+   * {@link #setOperand(int, SqlNode)}. To be removed before 1.29.
+   */
+  @Deprecated // to be removed before 1.29
   public final @Nullable SqlNode[] operands;
+
+  private final List<SqlNode> operandList;
   private final @Nullable SqlLiteral functionQuantifier;
   private final boolean expanded;
 
@@ -51,6 +62,7 @@ public class SqlBasicCall extends SqlCall {
     super(pos);
     this.operator = Objects.requireNonNull(operator, "operator");
     this.operands = operands;
+    this.operandList = Arrays.asList(operands);
     this.expanded = expanded;
     this.functionQuantifier = functionQualifier;
   }
@@ -64,7 +76,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
-    operands[i] = operand;
+    operandList.set(i, operand);
   }
 
   public void setOperator(SqlOperator operator) {
@@ -75,22 +87,28 @@ public class SqlBasicCall extends SqlCall {
     return operator;
   }
 
+  /** Returns the array of operands.
+   *
+   * @deprecated Use the methods {@link #getOperandList()} and
+   * {@link #setOperand(int, SqlNode)}. To be removed before 1.29.
+   */
+  @Deprecated // to be removed before 1.29
   public @Nullable SqlNode[] getOperands() {
     return operands;
   }
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return UnmodifiableArrayList.of(operands); // not immutable, but quick
+    return ImmutableNullableList.copyOf(operandList);
   }
 
   @SuppressWarnings("unchecked")
   @Override public <S extends SqlNode> S operand(int i) {
-    return (S) castNonNull(operands[i]);
+    return (S) castNonNull(operandList.get(i));
   }
 
   @Override public int operandCount() {
-    return operands.length;
+    return operandList.size();
   }
 
   @Override public @Nullable SqlLiteral getFunctionQuantifier() {
@@ -98,7 +116,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   @Override public SqlNode clone(SqlParserPos pos) {
-    return getOperator().createCall(getFunctionQuantifier(), pos, operands);
+    return getOperator().createCall(getFunctionQuantifier(), pos, operandList);
   }
 
 }
