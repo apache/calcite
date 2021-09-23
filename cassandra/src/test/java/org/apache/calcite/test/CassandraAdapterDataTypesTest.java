@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TypeCodec;
 import com.google.common.collect.ImmutableMap;
 
 import org.cassandraunit.CQLDataLoader;
@@ -26,6 +29,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package related to data types.
@@ -187,6 +194,12 @@ class CassandraAdapterDataTypesTest {
   }
 
   @Test void testCollectionsInnerValues() {
+    // timestamp retrieval depends on the user timezone, we must compute the expected result
+    long v = TypeCodec.timestamp().parse("2015-05-03 13:30:54.234").getTime();
+    // UTC timestamp is adjusted using the offset from the user timezone
+    v -= Calendar.getInstance(TimeZone.getDefault(), Locale.ROOT).getTimeZone().getOffset(v);
+    String expectedTimestamp = DateTimeUtils.unixTimestampToString(v);
+
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select \"f_list\"[1], "
@@ -199,7 +212,7 @@ class CassandraAdapterDataTypesTest {
             + "; EXPR$1=v1"
             + "; 1=3000000000"
             + "; 2=30ff87"
-            + "; 3=2015-05-03 11:30:54\n");
+            + "; 3=" + expectedTimestamp + "\n");
   }
 
   // frozen collections should not affect the row type
