@@ -31,7 +31,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -153,7 +152,8 @@ public class RexSqlStandardConvertletTable
     final SqlOperator op = call.getOperator();
     final List<RexNode> operands = call.getOperands();
 
-    final SqlNode[] exprs = convertExpressionList(converter, operands);
+    final @Nullable List<@Nullable SqlNode> exprs =
+        convertExpressionList(converter, operands);
     if (exprs == null) {
       return null;
     }
@@ -163,17 +163,16 @@ public class RexSqlStandardConvertletTable
         SqlParserPos.ZERO);
   }
 
-  private static SqlNode @Nullable [] convertExpressionList(
+  private static @Nullable List<@Nullable SqlNode> convertExpressionList(
       RexToSqlNodeConverter converter,
       List<RexNode> nodes) {
-    final SqlNode[] exprs = new SqlNode[nodes.size()];
-    for (int i = 0; i < nodes.size(); i++) {
-      RexNode node = nodes.get(i);
-      SqlNode converted = converter.convertNode(node);
+    final List<@Nullable SqlNode> exprs = new ArrayList<>();
+    for (RexNode node : nodes) {
+      @Nullable SqlNode converted = converter.convertNode(node);
       if (converted == null) {
         return null;
       }
-      exprs[i] = converted;
+      exprs.add(converted);
     }
     return exprs;
   }
@@ -198,20 +197,15 @@ public class RexSqlStandardConvertletTable
   private void registerTypeAppendOp(final SqlOperator op) {
     registerOp(
         op, (converter, call) -> {
-          SqlNode[] operands =
+          @Nullable List<@Nullable SqlNode> operandList =
               convertExpressionList(converter, call.operands);
-          if (operands == null) {
+          if (operandList == null) {
             return null;
           }
-          List<SqlNode> operandList =
-              new ArrayList<>(Arrays.asList(operands));
           SqlDataTypeSpec typeSpec =
               SqlTypeUtil.convertTypeToSpec(call.getType());
           operandList.add(typeSpec);
-          return new SqlBasicCall(
-              op,
-              operandList.toArray(new SqlNode[0]),
-              SqlParserPos.ZERO);
+          return new SqlBasicCall(op, operandList, SqlParserPos.ZERO);
         });
   }
 
@@ -225,7 +219,7 @@ public class RexSqlStandardConvertletTable
     registerOp(
         op, (converter, call) -> {
           assert op instanceof SqlCaseOperator;
-          SqlNode[] operands =
+          @Nullable List<@Nullable SqlNode> operands =
               convertExpressionList(converter, call.operands);
           if (operands == null) {
             return null;
@@ -233,13 +227,13 @@ public class RexSqlStandardConvertletTable
           SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
           SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
           int i = 0;
-          while (i < operands.length - 1) {
-            whenList.add(operands[i]);
+          while (i < operands.size() - 1) {
+            whenList.add(operands.get(i));
             ++i;
-            thenList.add(operands[i]);
+            thenList.add(operands.get(i));
             ++i;
           }
-          SqlNode elseExpr = operands[i];
+          SqlNode elseExpr = operands.get(i);
           return op.createCall(null, SqlParserPos.ZERO, null, whenList, thenList, elseExpr);
         });
   }
@@ -254,7 +248,8 @@ public class RexSqlStandardConvertletTable
     }
 
     @Override public @Nullable SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
-      SqlNode[] operands = convertExpressionList(converter, call.operands);
+      @Nullable List<@Nullable SqlNode> operands =
+          convertExpressionList(converter, call.operands);
       if (operands == null) {
         return null;
       }

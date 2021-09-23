@@ -1821,7 +1821,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           // actually a call to a function. Construct a fake
           // call to this function, so we can use the regular
           // operator validation.
-          return new SqlBasicCall(operator, SqlNode.EMPTY_ARRAY,
+          return new SqlBasicCall(operator, ImmutableList.of(),
               id.getParserPosition(), null).withExpanded(true);
         }
       }
@@ -6443,14 +6443,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           && !DynamicRecordType.isDynamicStarColName(Util.last(id.names))) {
         // Convert a column ref into ITEM(*, 'col_name')
         // for a dynamic star field in dynTable's rowType.
-        SqlNode[] inputs = new SqlNode[2];
-        inputs[0] = fqId;
-        inputs[1] = SqlLiteral.createCharString(
-            Util.last(id.names),
-            id.getParserPosition());
         return new SqlBasicCall(
             SqlStdOperatorTable.ITEM,
-            inputs,
+            ImmutableList.of(fqId,
+                SqlLiteral.createCharString(Util.last(id.names),
+                    id.getParserPosition())),
             id.getParserPosition());
       }
       return fqId;

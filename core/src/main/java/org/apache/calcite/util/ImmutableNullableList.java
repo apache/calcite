@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -120,7 +122,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
   }
 
   /** Creates an immutable list of 1 element. */
-  public static <E> List<E> of(E e1) {
+  public static <E> List<E> of(@Nullable E e1) {
     //noinspection unchecked
     return e1 == null ? (List<E>) SINGLETON_NULL : ImmutableList.of(e1);
   }
