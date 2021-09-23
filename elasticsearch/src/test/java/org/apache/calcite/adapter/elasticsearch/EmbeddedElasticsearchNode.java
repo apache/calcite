@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.elasticsearch;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.Files;
 
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
@@ -34,6 +33,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -75,10 +76,16 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
    * @return instance which needs to be explicitly started (using {@link #start()})
    */
   public static synchronized EmbeddedElasticsearchNode create() {
-    File data = Files.createTempDir();
-    data.deleteOnExit();
-    File home = Files.createTempDir();
-    home.deleteOnExit();
+    File data;
+    File home;
+    try {
+      data = Files.createTempDirectory("es-data").toFile();
+      data.deleteOnExit();
+      home = Files.createTempDirectory("es-home").toFile();
+      home.deleteOnExit();
+    } catch (IOException e) {
+      throw TestUtil.rethrow(e);
+    }
 
     Settings settings = Settings.builder()
         .put("node.name", "fake-elastic")
