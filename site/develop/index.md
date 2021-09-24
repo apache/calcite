@@ -180,7 +180,7 @@ The pull request may need to be updated (after its submission) for three main
 reasons:
 1. you identified a problem after the submission of the pull request;
 2. the reviewer requested further changes;
-3. the Travis CI build failed and the failure is not caused by your changes.
+3. the CI build failed, and the failure is not caused by your changes.
 
 In order to update the pull request, you need to commit the changes in your
 branch and then push the commit(s) to GitHub. You are encouraged to use regular
@@ -194,7 +194,7 @@ parameter and its alternatives. You may choose to force push your changes under
  * a reviewer has explicitly asked you to perform some modifications that
  require the use of the `--force` option.
 
-In the special case, that the Travis CI build failed and the failure is not
+In the special case, that the CI build failed, and the failure is not
 caused by your changes create an empty commit (`git commit --allow-empty`) and
 push it.
 
@@ -310,9 +310,10 @@ so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullab
 
 ## Continuous Integration Testing
 
-Calcite has a collection of Jenkins jobs on ASF-hosted infrastructure.
-They are all organized in a single view and available at
-[https://builds.apache.org/view/A-D/view/Calcite/](https://builds.apache.org/view/A-D/view/Calcite/).
+Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amaster)
+and [Travis](https://app.travis-ci.com/github/apache/calcite) for continuous integration testing.
+In the past, there were also Jenkins jobs on the [ASF-hosted](https://builds.apache.org/)
+infrastructure, but they are not maintained anymore.
 
 ## Getting started
 
