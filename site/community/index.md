@@ -26,9 +26,9 @@ limitations under the License.
 
 # Upcoming talks
 
-## Building modern SQL query optimizers with Apache Calcite (Vladimir Ozerov)
+## Morel, a functional query language (Julian Hyde)
 
-At [ApacheCon 2021](https://www.apachecon.com/acah2021/tracks/bigdatasql.html), September 22, 2021.
+At [Strange Loop 2021](https://thestrangeloop.com/2021/morel-a-functional-query-language.html), St. Louis, Missouri, September 30, 2021.
 
 # Project Members
 
@@ -88,6 +88,10 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## Building modern SQL query optimizers with Apache Calcite
+
+At [ApacheCon 2021](https://www.apachecon.com/acah2021/tracks/bigdatasql.html), September 22, 2021.
 
 ## Apache Calcite Tutorial
 
