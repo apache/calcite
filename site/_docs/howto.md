@@ -752,7 +752,7 @@ That would perform the same steps, however it would push changes to the mock Nex
 If any of the steps fail, fix the problem, and
 start again from the top.
 
-### To prepare a release candidate directly in your environment:
+#### Starting the release candidate build
 
 Pick a release candidate index and ensure it does not interfere with previous candidates for the version.
 
@@ -764,13 +764,14 @@ export GPG_TTY=$(tty)
 git clean -xn
 
 # Dry run the release candidate (push to asf-like-environment)
-./gradlew prepareVote -Prc=1
+./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
-./gradlew prepareVote -Prc=1 -Pasf
+./gradlew prepareVote -Prc=0 -Pasf
 {% endhighlight %}
 
-prepareVote troubleshooting:
+#### Troubleshooting
+
 * `net.rubygrapefruit.platform.NativeException: Could not start 'svnmucc'`: Make sure you have `svnmucc` command
 installed in your machine.
 * `Execution failed for task ':closeRepository' ... Possible staging rules violation. Check repository status using Nexus UI`:
@@ -820,7 +821,7 @@ Verify the staged artifacts in the Nexus repository:
 If something is not correct, you can fix it, commit it, and prepare the next candidate.
 The release candidate tags might be kept for a while.
 
-## Validate a release
+## Validating a release
 
 {% highlight bash %}
 # Check that the signing key (e.g. DDB6E9812AD3FAE3) is pushed
@@ -854,55 +855,9 @@ checkHash apache-calcite-X.Y.Z-rcN
 
 ## Get approval for a release via Apache voting process
 
-Release vote on dev list
-Note: the draft mail is printed as the final step of `prepareVote` task,
-and you can find the draft in `/build/prepareVote/mail.txt`
-
-{% highlight text %}
-To: dev@calcite.apache.org
-Subject: [VOTE] Release apache-calcite-X.Y.Z (release candidate N)
-
-Hi all,
-
-I have created a build for Apache Calcite X.Y.Z, release candidate N.
-
-Thanks to everyone who has contributed to this release.
-<Further details about release.> You can read the release notes here:
-https://github.com/apache/calcite/blob/XXXX/site/_docs/history.md
-
-The commit to be voted upon:
-https://gitbox.apache.org/repos/asf?p=calcite.git;a=commit;h=NNNNNN
-
-Its hash is XXXX.
-
-The artifacts to be voted on are located here:
-https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-X.Y.Z-rcN/
-
-The hashes of the artifacts are as follows:
-src.tar.gz.sha512 XXXX
-
-A staged Maven repository is available for review at:
-https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
-
-Release artifacts are signed with the following key:
-https://people.apache.org/keys/committer/jhyde.asc
-
-Please vote on releasing this package as Apache Calcite X.Y.Z.
-
-The vote is open for the next 72 hours and passes if a majority of
-at least three +1 PMC votes are cast.
-
-[ ] +1 Release this package as Apache Calcite X.Y.Z
-[ ]  0 I don't feel strongly about it, but I'm okay with the release
-[ ] -1 Do not release this package because...
-
-
-Here is my vote:
-
-+1 (binding)
-
-Julian
-{% endhighlight %}
+Start a vote by sending an email to the dev list. The Gradle `prepareVote` task
+prints a draft mail at the end, if it completes successfully. You can find the
+draft in `/build/prepareVote/mail.txt`.
 
 After vote finishes, send out the result:
 
@@ -923,14 +878,13 @@ N non-binding +1s:
 
 No 0s or -1s.
 
-Therefore I am delighted to announce that the proposal to release
+Therefore, I am delighted to announce that the proposal to release
 Apache Calcite X.Y.Z has passed.
 
 Thanks everyone. We’ll now roll the release out to the mirrors.
 
 There was some feedback during voting. I shall open a separate
 thread to discuss.
-
 
 Julian
 {% endhighlight %}
@@ -951,15 +905,12 @@ This is based on the time when you expect to announce the release.
 This is usually a day after the vote closes.
 Remember that UTC date changes at 4 pm Pacific time.
 
-
-### Publishing directly in your environment:
-
 {% highlight bash %}
 # Dry run publishing the release (push to asf-like-environment)
-./gradlew publishDist -Prc=1
+./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
-./gradlew publishDist -Prc=1 -Pasf
+./gradlew publishDist -Prc=0 -Pasf
 {% endhighlight %}
 
 Svnpubsub will publish to the
@@ -981,17 +932,12 @@ You should receive an email from the [Apache Reporter Service](https://reporter.
 Make sure to add the version number and date of the latest release at the site linked to in the email.
 
 Update the site with the release note, the release announcement, and the javadoc of the new version.
-The javadoc can be generated only from a final version (not a SNAPSHOT) so checkout the most recent
-tag and start working there (`git checkout calcite-X.Y.Z`). Add a release announcement by copying
+Add a release announcement by copying
 [site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md).
 Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
-instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Check that the announcement,
+instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Ensure the announcement,
 javadoc, and release note appear correctly and then publish the site following the instructions
-in the same file. Now checkout again the release branch (`git checkout branch-X.Y`) and commit
-the release announcement.
-
-Merge the release branch back into `master` (e.g., `git merge --ff-only branch-X.Y`) and align
-the `master` with the `site` branch (e.g., `git merge --ff-only site`).
+in the same file.
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
@@ -1009,7 +955,7 @@ address. You can use
 [the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
 
-Increase the `calcite.version` value in `/gradle.properties` and commit & push
+Increase the `calcite.version` value in `/gradle.properties`, commit and push
 the change with the message "Prepare for next development iteration"
 (see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
 
