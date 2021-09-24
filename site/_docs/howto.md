@@ -596,9 +596,6 @@ If there are conflicts it is better to ask the contributor to take this step,
 otherwise it is preferred to do this manually since it saves time and also
 avoids unnecessary notification messages to many people on GitHub.
 
-If the contributor is not a committer, add their name in parentheses at the end
-of the first line of the commit message.
-
 If the merge is performed via command line (not through the GitHub web
 interface), make sure the message contains a line "Close apache/calcite#YYY",
 where YYY is the GitHub pull request identifier.

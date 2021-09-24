@@ -143,7 +143,7 @@ Commit your change to your branch, and use a comment that starts with
 the JIRA case number, like this:
 
 {% highlight text %}
-[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal (FirstName LastName)
+[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
 {% endhighlight %}
 
 If your change had multiple commits, use `git rebase -i master` to
@@ -158,6 +158,7 @@ description of the change.
  * The message is often, but not always, the same as the JIRA subject.
 If the JIRA subject is not clear, change it (perhaps move the original
 subject to the description of the JIRA case, if it clarifies).
+ * Leave a single space character after the JIRA id.
  * Start with a capital letter.
  * Do not finish with a period.
  * Use imperative mood ("Add a handler ...") rather than past tense
@@ -168,8 +169,6 @@ the implementation ("Add handler for FileNotFound").
  * If you are fixing a bug, it is sufficient to describe the bug
  ("NullPointerException if user is unknown") and people will correctly
  surmise that the purpose of your change is to fix the bug.
- * If you are not a committer, add your name in parentheses at the end
- of the message.
 
 Then push your commit(s) to GitHub, and create a pull request from
 your branch to the calcite master branch. Update the JIRA case
