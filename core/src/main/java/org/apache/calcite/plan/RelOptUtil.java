@@ -279,6 +279,22 @@ public abstract class RelOptUtil {
     return visitor.vuv.variables;
   }
 
+  /**
+   * Returns a set of variables used by a relational expression or its
+   * descendants.
+   *
+   * <p>The set may contain "duplicates" (variables with different ids that,
+   * when resolved, will reference the same source relational expression).
+   *
+   * <p>The item type is the same as
+   * {@link org.apache.calcite.rex.RexCorrelVariable#id}.
+   */
+  public static Set<CorrelationId> getVariablesUsed(RexNode rex) {
+    CorrelationCollector visitor = new CorrelationCollector();
+    rex.accept(visitor.vuv);
+    return visitor.vuv.variables;
+  }
+
   /** Finds which columns of a correlation variable are used within a
    * relational expression. */
   public static ImmutableBitSet correlationColumns(CorrelationId id,

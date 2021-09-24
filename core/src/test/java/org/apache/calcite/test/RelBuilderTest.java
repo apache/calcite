@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
@@ -2298,6 +2299,25 @@ public class RelBuilderTest {
         hasTree(expectedWithoutSimplify));
   }
 
+  @Test void testJoinMultipleCorrelateId() {
+    for(JoinRelType joinType : JoinRelType.values()) {
+      final RelBuilder builder = RelBuilder.create(config().build());
+      CorrelationId cId1 = builder.getCluster().createCorrel();
+      CorrelationId cId2 = builder.getCluster().createCorrel();
+      try {
+        builder
+            .scan("EMP")
+            .scan("DEPT")
+            .join(joinType, builder.literal(true), ImmutableSet.of(cId1, cId2))
+            .build();
+        fail("expected error");
+      } catch (IllegalArgumentException e) {
+        assertThat(e.getMessage(),
+            containsString("Only one correlate id is supported for joins"));
+      }
+    }
+  }
+
   @Test void testJoinPushCondition() {
     final Function<RelBuilder, RelNode> f = b ->
         b.scan("EMP")
@@ -4042,6 +4062,125 @@ public class RelBuilderTest {
         root, hasTree(expected));
   }
 
+  @Test void testInnerJoinOnCorrelatedSubQueryBothSides() {
+    RelNode root = buildJoinOnCorrelatedSubQuery(JoinRelType.INNER);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($2, $cor1.JOB))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n})], variablesSet=[[$cor1]])\n"
+        + "    LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(
+        "Correlated inner joins should emmit a correlate with a filter on top.",
+        root, hasTree(expected));
+  }
+
+  @Test void testLeftJoinOnCorrelatedSubQueryBothSides() {
+    RelNode root = buildJoinOnCorrelatedSubQuery(JoinRelType.LEFT);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($2, $cor1.JOB))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n})], variablesSet=[[$cor1]])\n"
+        + "    LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(
+        "Correlated inner joins should emmit a correlate with a filter on top.",
+        root, hasTree(expected));
+  }
+
+  @Test void testLeftJoinOnCorrelatedSubQueryRightSide() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder
+        .scan("DEPT")
+        .scan("BONUS")
+        .joinVariable(v)
+        .join(JoinRelType.LEFT,
+            RexSubQuery.in(builder
+                    .scan("EMP")
+                    .filter(
+                        builder.equals(
+                            builder.field(1, 0, "JOB"),
+                            rexBuilder.makeFieldAccess(v.get(),4)))
+                    .project(builder.field(1, 0, "DEPTNO"))
+                    .build(),
+                ImmutableList.of(builder.field(2, 0, "DEPTNO"))),
+            ImmutableSet.of(v.get().id))
+        .build();
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[IN($cor0.DEPTNO, {\n"
+        + "LogicalProject(DEPTNO=[$7])\n"
+        + "  LogicalFilter(condition=[=($2, $cor1.JOB)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})], variablesSet=[[$cor1]])\n"
+        + "    LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(
+        "Correlated inner joins should emmit a correlate with a filter on top.",
+        root, hasTree(expected));
+  }
+
+  @Test void testLeftJoinOnCorrelatedSubQueryLeftSide() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder
+        .scan("DEPT")
+        .scan("BONUS")
+        .joinVariable(v)
+        .join(JoinRelType.LEFT,
+            RexSubQuery.in(builder
+                    .scan("EMP")
+                    .filter(
+                        builder.equals(
+                            builder.field(1, 0, "DEPTNO"),
+                            rexBuilder.makeFieldAccess(v.get(),0)))
+                    .project(builder.field(1, 0, "JOB"))
+                    .build(),
+                ImmutableList.of(builder.field(2, 1, "JOB"))),
+            ImmutableSet.of(v.get().id))
+        .build();
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[IN($1, {\n"
+        + "LogicalProject(JOB=[$2])\n"
+        + "  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "    LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(
+        "Correlated inner joins should emmit a correlate with a filter on top.",
+        root, hasTree(expected));
+  }
+
+  @Test void testLeftJoinOnCorrelatedCondition() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .joinVariable(v)
+        .join(JoinRelType.LEFT,
+            builder.and(
+                rexBuilder.makeFieldAccess(v.get(),0),
+                rexBuilder.makeFieldAccess(v.get(), 10)), ImmutableSet.of(v.get().id))
+        .build();
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalFilter(condition=[AND($cor0.DEPTNO, $7)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(
+        "Correlated inner joins should emmit a correlate with a filter on top.",
+        root, hasTree(expected));
+  }
+
   @Test void testSimpleRightCorrelateViaJoinThrowsException() {
     assertThrows(IllegalArgumentException.class,
         () -> buildSimpleCorrelateWithJoin(JoinRelType.RIGHT),
@@ -4071,8 +4210,8 @@ public class RelBuilderTest {
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     return builder
         .scan("EMP")
-        .variable(v)
         .scan("DEPT")
+        .joinVariable(v)
         .join(type,
             builder.equals(
                 builder.field(2, 0, "DEPTNO"),
@@ -4086,8 +4225,8 @@ public class RelBuilderTest {
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     return builder
         .scan("EMP")
-        .variable(v)
         .scan("DEPT")
+        .joinVariable(v)
         .filter(
             builder.equals(
                 rexBuilder.makeFieldAccess(v.get(), 0),
@@ -4096,6 +4235,52 @@ public class RelBuilderTest {
             builder.equals(
                 builder.field(2, 0, "DEPTNO"),
                 builder.field(2, 1, "DEPTNO")), ImmutableSet.of(v.get().id))
+        .build();
+  }
+
+  private static RelNode buildJoinOnCorrelatedSubQuery(JoinRelType type) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    return builder
+        .scan("DEPT")
+        .scan("BONUS")
+        .joinVariable(v)
+        .join(type,
+            RexSubQuery.exists(builder
+                .scan("EMP")
+                .filter(
+                    builder.and(
+                        builder.equals(
+                            builder.field(1, 0, "DEPTNO"),
+                            rexBuilder.makeFieldAccess(v.get(),0)),
+                        builder.equals(
+                            builder.field(1, 0, "JOB"),
+                            rexBuilder.makeFieldAccess(v.get(),4))
+                ))
+                .build()), ImmutableSet.of(v.get().id))
+        .build();
+  }
+
+  private static RelNode buildJoinOnCorrelatedOnLeft(JoinRelType type) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    return builder
+        .scan("DEPT")
+        .scan("BONUS")
+        .joinVariable(v)
+        .join(type,
+            RexSubQuery.in(builder
+                    .scan("EMP")
+                    .filter(
+                        builder.equals(
+                            builder.field(1, 0, "JOB"),
+                            rexBuilder.makeFieldAccess(v.get(),4)))
+                    .project(builder.field(1, 0, "DEPTNO"))
+                    .build(),
+                ImmutableList.of(builder.field(2, 0, "DEPTNO"))),
+            ImmutableSet.of(v.get().id))
         .build();
   }
 
