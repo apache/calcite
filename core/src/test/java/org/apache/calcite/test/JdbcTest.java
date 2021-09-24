@@ -7762,6 +7762,12 @@ public class JdbcTest {
     assertThat.query(query).returns("id=2008-03-31 12:23:34\nid=2018-02-03 00:00:00\n");
   }
 
+  @Test public void testNestedCastBigInt() {
+    CalciteAssert.AssertThat assertThat = CalciteAssert.that();
+    String query = "SELECT CAST(CAST(4200000000 AS BIGINT) AS ANY) FROM (VALUES(1))";
+    assertThat.query(query).returns("EXPR$0=4200000000\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
