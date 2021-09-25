@@ -179,5 +179,12 @@ SELECT EXISTSNODE(
 
 !ok
 
+SELECT XMLTRANSFORM(
+               '<',
+               '<?xml version="1.0"?><xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                </xsl:stylesheet>'
+           );
+Invalid input for XMLTRANSFORM xml: '<'
+!error
 
 # End functions.iq
