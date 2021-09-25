@@ -1462,7 +1462,7 @@ public class SubstitutionVisitor {
           operand(MutableSort.class, target(0)), 1);
     }
 
-    @Override protected UnifyResult apply(UnifyRuleCall call) {
+    @Override protected @Nullable UnifyResult apply(UnifyRuleCall call) {
       final MutableSort query = (MutableSort) call.query;
       final MutableCalc qInput = (MutableCalc) query.getInput();
       final Pair<RexNode, List<RexNode>> qInputExplained = explainCalc(qInput);
