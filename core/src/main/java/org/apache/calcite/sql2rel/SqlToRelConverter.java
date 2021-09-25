@@ -1139,8 +1139,7 @@ public class SqlToRelConverter {
 
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
-        if (!containsNullLiteral(valueList)
-            && valueList.size() < config.getInSubQueryThreshold()) {
+        if (valueList.size() < config.getInSubQueryThreshold()) {
           // We're under the threshold, so convert to OR.
           subQuery.expr =
               convertInToOr(
@@ -1412,18 +1411,6 @@ public class SqlToRelConverter {
     default:
       throw new AssertionError(logic);
     }
-  }
-
-  private static boolean containsNullLiteral(SqlNodeList valueList) {
-    for (SqlNode node : valueList) {
-      if (node instanceof SqlLiteral) {
-        SqlLiteral lit = (SqlLiteral) node;
-        if (lit.getValue() == null) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
