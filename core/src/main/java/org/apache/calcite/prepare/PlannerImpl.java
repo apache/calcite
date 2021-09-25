@@ -36,6 +36,7 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
@@ -366,7 +367,7 @@ public class PlannerImpl implements Planner, ViewExpander {
       RelNode rel) {
     ensure(State.STATE_5_CONVERTED);
     rel.getCluster().setMetadataProvider(
-        new org.apache.calcite.rel.metadata.CachingRelMetadataProvider(
+        new CachingRelMetadataProvider(
             requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider"),
             rel.getCluster().getPlanner()));
     Program program = programs.get(ruleSetIndex);

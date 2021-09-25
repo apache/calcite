@@ -77,7 +77,6 @@ val skipAutostyle by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
-val werror by props(true) // treat javac warnings as errors
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
 
@@ -686,9 +685,7 @@ allprojects {
                 inputs.property("java.vm.version", System.getProperty("java.vm.version"))
                 options.encoding = "UTF-8"
                 options.compilerArgs.add("-Xlint:deprecation")
-                if (werror) {
-                    options.compilerArgs.add("-Werror")
-                }
+                options.compilerArgs.add("-Werror")
                 if (enableCheckerframework) {
                     options.forkOptions.memoryMaximumSize = "2g"
                 }
