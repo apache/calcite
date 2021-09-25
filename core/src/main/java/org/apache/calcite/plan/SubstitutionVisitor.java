@@ -1869,20 +1869,21 @@ public class SubstitutionVisitor {
       @Nullable RexNode targetCond, MutableAggregate target) {
     MutableRel result;
     RexBuilder rexBuilder = query.cluster.getRexBuilder();
-    Map<RexNode, RexNode> targetCondConstantMap =
-        RexUtil.predicateConstants(RexNode.class, rexBuilder, RelOptUtil.conjunctions(targetCond));
     // Collect rexInputRef in constant filter condition.
-    Set<Integer> constantCondInputRefs = new HashSet<>();
+    Set<Integer> condInputRefs = new HashSet<>();
     List<Integer> targetGroupByIndexList = target.groupSet.asList();
     RexShuttle rexShuttle = new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef inputRef) {
-        constantCondInputRefs.add(targetGroupByIndexList.get(inputRef.getIndex()));
+        condInputRefs.add(targetGroupByIndexList.get(inputRef.getIndex()));
         return super.visitInputRef(inputRef);
       }
     };
-    for (RexNode rexNode : targetCondConstantMap.keySet()) {
-      rexNode.accept(rexShuttle);
+
+    // visit condition, and record ref mapping.
+    if (targetCond != null) {
+      targetCond.accept(rexShuttle);
     }
+
     Set<Integer> compenGroupSet = null;
     // Calc the missing group list of query, do not cover grouping sets cases.
     if (query.groupSets.size() == 1 && target.groupSets.size() == 1) {
@@ -1893,7 +1894,7 @@ public class SubstitutionVisitor {
     // If query and target have the same group list,
     // or query has constant filter for missing columns in group by list.
     if (query.groupSets.equals(target.groupSets)
-        || (compenGroupSet != null && constantCondInputRefs.containsAll(compenGroupSet))) {
+        || (compenGroupSet != null && condInputRefs.containsAll(compenGroupSet))) {
       int projOffset = 0;
       if (!query.groupSets.equals(target.groupSets)) {
         projOffset = requireNonNull(compenGroupSet, "compenGroupSet").size();

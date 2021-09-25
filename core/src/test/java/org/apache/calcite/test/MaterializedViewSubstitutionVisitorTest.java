@@ -1041,6 +1041,77 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "where \"name\" = 'hello'";
     sql(mv, query).ok();
   }
+
+  @Test void testNoEqualFilterInAgg1() {
+    final String mv = ""
+        + "select \"name\", count(distinct \"deptno\") as cnt\n"
+        + "from \"emps\" group by \"name\"";
+    final String query = ""
+        + "select count(distinct \"deptno\") as cnt\n"
+        + "from \"emps\" where \"name\" <> 'hello'";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "LogicalCalc(expr#0..1=[{inputs}], expr#2=['hello':VARCHAR], expr#3=[CAST($t0):VARCHAR], "
+            + "expr#4=[<>($t2, $t3)], CNT=[$t1], $condition=[$t4])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testNoEqualFilterInAgg2() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\"\n"
+        + " group by \"name\", \"deptno\"";
+    final String query = ""
+        + "select \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\" where \"name\" >= 'hello'\n"
+        + "group by \"deptno\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=['hello'], expr#4=[>=($t0, $t3)], "
+            + "deptno=[$t1], CNT=[$t2], $condition=[$t4])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testNoEqualFilterInAgg3() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\"\n"
+        + " group by \"name\", \"deptno\"";
+    final String query = ""
+        + "select \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\" where \"name\" >= 'hello' and \"deptno\" <= 10\n"
+        + "group by \"deptno\"";
+    sql(mv, query).withChecker(
+        resultContains(""
+            + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[<=($t1, $t3)], expr#5=['hello'], "
+            + "expr#6=[>=($t0, $t5)], expr#7=[AND($t4, $t6)], deptno=[$t1], CNT=[$t2], $condition=[$t7])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+  }
+
+  @Test void testNoEqualFilterInAgg4() {
+    final String mv = ""
+        + "select \"name\", \"deptno\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\"\n"
+        + " group by \"name\", \"deptno\"";
+    final String query = ""
+        + "select \"deptno\", \"commission\", count(distinct \"commission\") as cnt\n"
+        + "from \"emps\" where \"name\" <= 'hello' and \"deptno\" >= 1\n"
+        + "group by \"deptno\", \"commission\"";
+    sql(mv, query).noMat();
+  }
+
+  @Test void testNoEqualFilterInAgg5() {
+    final String mv = ""
+        + "select \"name\", count(distinct \"deptno\") as cnt "
+        + "from \"emps\" group by \"name\"";
+    final String query = ""
+        + "select cnt from(\n"
+        + " select \"name\", count(distinct \"deptno\") as cnt "
+        + " from \"emps\" group by \"name\") t\n"
+        + "where \"name\" <> 'hello'";
+    sql(mv, query).ok();
+  }
+
   /** Unit test for FilterBottomJoin can be pulled up. */
   @Test void testLeftFilterOnLeftJoinToJoinOk1() {
     String mv = "select * from \n"
