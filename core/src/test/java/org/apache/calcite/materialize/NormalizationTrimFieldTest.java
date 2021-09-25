@@ -97,7 +97,7 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
             target, null, Lists.newArrayList("mv0"));
     final List<Pair<RelNode, List<RelOptMaterialization>>> relOptimized =
         RelOptMaterializations.useMaterializedViews(query,
-            ImmutableList.of(relOptMaterialization), ImmutableList.of());
+            ImmutableList.of(relOptMaterialization));
 
     final String optimized = ""
         + "LogicalProject(deptno=[CAST($0):TINYINT], count_sal=[$1])\n"

@@ -108,12 +108,13 @@ public class CustomNormalizationRules extends SqlToRelTestBase {
     final RelOptMaterialization relOptMaterialization =
         new RelOptMaterialization(replacement,
             target, null, Lists.newArrayList("mv0"));
+
     final List<RelOptRule> optRules = new ArrayList<>();
     optRules.addAll(SubstitutionVisitor.NORMALIZATION_RULES);
     optRules.add(CustomizedNormalizationRule.Config.DEFAULT.toRule());
     final List<Pair<RelNode, List<RelOptMaterialization>>> relOptimized =
         RelOptMaterializations.useMaterializedViews(query,
-            ImmutableList.of(relOptMaterialization), ImmutableList.of());
+            ImmutableList.of(relOptMaterialization), SubstitutionVisitor.DEFAULT_RULES, optRules);
 
     final String optimized = ""
         + "LogicalProject(deptno=[CAST($0):TINYINT], count_sal=[$1])\n"
@@ -123,7 +124,7 @@ public class CustomNormalizationRules extends SqlToRelTestBase {
   }
 
   /**
-   * A customized normalization rule, which compensate project on Agggreate.
+   * A customized normalization rule, which compensate Calc on Agggreate.
    */
   public static class CustomizedNormalizationRule extends
       RelRule<Config> implements TransformationRule {
@@ -145,10 +146,10 @@ public class CustomNormalizationRules extends SqlToRelTestBase {
       for (int i = 0; i < projs.size(); i++) {
         rexProgram.addProject(projs.get(i), fieldNames.get(i));
       }
-      LogicalCalc project = LogicalCalc
+      LogicalCalc calc = LogicalCalc
           .create(aggregate, rexProgram.getProgram());
       visited = true;
-      call.transformTo(project);
+      call.transformTo(calc);
     }
 
     /** Rule configuration. */
