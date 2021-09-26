@@ -127,14 +127,17 @@ public class AggregateProjectMergeRule
             newGroupSet, newGroupingSets, aggCalls.build());
 
     // Add a project if the group set is not in the same order or
-    // contains duplicates.
+    // contains duplicates or contains alias.
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newAggregate);
     final List<Integer> newKeys =
         Util.transform(aggregate.getGroupSet().asList(),
             key -> requireNonNull(map.get(key),
                 () -> "no value found for key " + key + " in " + map));
-    if (!newKeys.equals(newGroupSet.asList())) {
+    final List<String> newAggFieldNames = newAggregate.getRowType().getFieldNames();
+    final List<String> aggFieldNames = aggregate.getRowType().getFieldNames();
+    if (!newKeys.equals(newGroupSet.asList())
+        || !aggFieldNames.equals(newAggFieldNames)) {
       final List<Integer> posList = new ArrayList<>();
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
@@ -143,7 +146,7 @@ public class AggregateProjectMergeRule
            i < newAggregate.getRowType().getFieldCount(); i++) {
         posList.add(i);
       }
-      relBuilder.project(relBuilder.fields(posList));
+      relBuilder.projectNamed(relBuilder.fields(posList), aggFieldNames, true);
     }
 
     return relBuilder.build();
