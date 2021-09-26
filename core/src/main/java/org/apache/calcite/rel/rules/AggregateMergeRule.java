@@ -30,6 +30,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +49,7 @@ import java.util.Map;
  *
  * @see CoreRules#AGGREGATE_MERGE
  */
+@Value.Enclosing
 public class AggregateMergeRule
     extends RelRule<AggregateMergeRule.Config>
     implements TransformationRule {
@@ -149,8 +152,9 @@ public class AggregateMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateMergeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Aggregate.class)
                 .oneInput(b1 ->

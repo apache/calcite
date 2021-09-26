@@ -24,6 +24,8 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that pushes
  * {@link org.apache.calcite.rel.core.Project}
@@ -33,6 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  * @see CoreRules#PROJECT_MULTI_JOIN_MERGE
  */
+@Value.Enclosing
 public class ProjectMultiJoinMergeRule
     extends RelRule<ProjectMultiJoinMergeRule.Config>
     implements TransformationRule {
@@ -87,8 +90,9 @@ public class ProjectMultiJoinMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectMultiJoinMergeRule.Config.of()
         .withOperandFor(LogicalProject.class, MultiJoin.class);
 
     @Override default ProjectMultiJoinMergeRule toRule() {

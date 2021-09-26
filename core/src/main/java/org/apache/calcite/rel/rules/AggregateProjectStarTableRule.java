@@ -22,9 +22,12 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.schema.impl.StarTable;
 
+import org.immutables.value.Value;
+
 /** Variant of {@link AggregateStarTableRule} that accepts a {@link Project}
  * between the {@link Aggregate} and its {@link StarTable.StarTableScan}
  * input. */
+@Value.Enclosing
 public class AggregateProjectStarTableRule extends AggregateStarTableRule {
   /** Creates an AggregateProjectStarTableRule. */
   protected AggregateProjectStarTableRule(Config config) {
@@ -52,8 +55,10 @@ public class AggregateProjectStarTableRule extends AggregateStarTableRule {
   }
 
   /** Rule configuration. */
+  @Value.Immutable
+  @SuppressWarnings("immutables:subtype")
   public interface Config extends AggregateStarTableRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateProjectStarTableRule.Config.of()
         .withOperandFor(Aggregate.class, Project.class,
             StarTable.StarTableScan.class);
 

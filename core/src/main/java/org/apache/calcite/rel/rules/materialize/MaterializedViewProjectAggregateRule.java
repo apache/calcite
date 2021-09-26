@@ -24,9 +24,12 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /** Rule that matches Project on Aggregate.
  *
  * @see MaterializedViewRules#PROJECT_AGGREGATE */
+@Value.Enclosing
 public class MaterializedViewProjectAggregateRule
     extends MaterializedViewAggregateRule<MaterializedViewProjectAggregateRule.Config> {
 
@@ -69,18 +72,21 @@ public class MaterializedViewProjectAggregateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends MaterializedViewAggregateRule.Config {
     Config DEFAULT = create(RelFactories.LOGICAL_BUILDER);
 
     static Config create(RelBuilderFactory relBuilderFactory) {
-      return MaterializedViewAggregateRule.Config.create(relBuilderFactory)
+      return ImmutableMaterializedViewProjectAggregateRule.Config.builder()
+          .withRelBuilderFactory(relBuilderFactory)
           .withGenerateUnionRewriting(true)
           .withUnionRewritingPullProgram(null)
+          .withFastBailOut(false)
           .withOperandSupplier(b0 ->
               b0.operand(Project.class).oneInput(b1 ->
                   b1.operand(Aggregate.class).anyInputs()))
           .withDescription("MaterializedViewAggregateRule(Project-Aggregate)")
-          .as(Config.class);
+          .build();
     }
 
     @Override default MaterializedViewProjectAggregateRule toRule() {

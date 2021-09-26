@@ -16,6 +16,8 @@
  */
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
+import com.github.vlsi.gradle.ide.dsl.settings
+import com.github.vlsi.gradle.ide.dsl.taskTriggers
 
 plugins {
     kotlin("jvm")
@@ -61,6 +63,8 @@ dependencies {
     implementation("commons-io:commons-io")
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")
+    annotationProcessor("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
 
     testH2("com.h2database:h2")
     testMysql("mysql:mysql-connector-java")
@@ -185,6 +189,40 @@ ide {
 
     generatedSource(javaCCMain, "main")
     generatedSource(javaCCTest, "test")
+}
+
+fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
+    source = sourceSet.java
+    classpath = sourceSet.compileClasspath
+    options.compilerArgs.add("-proc:only")
+    org.gradle.api.plugins.internal.JvmPluginsHelper.configureAnnotationProcessorPath(sourceSet, sourceSet.java, options, project)
+    destinationDirectory.set(temporaryDir)
+
+    // only if we aren't running compileJava, since doing twice fails (in some places)
+    onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
+}
+
+val annotationProcessorMain by tasks.registering(JavaCompile::class) {
+    dependsOn(javaCCMain)
+    configureAnnotationSet(sourceSets.main.get())
+}
+
+ide {
+    // generate annotation processed files on project import/sync.
+    // adds to idea path but skip don't add to SourceSet since that triggers checkstyle
+    fun generatedSource(compile: TaskProvider<JavaCompile>, sourceSetName: String) {
+        project.rootProject.configure<org.gradle.plugins.ide.idea.model.IdeaModel> {
+            project {
+                settings {
+                    taskTriggers {
+                        afterSync(compile.get())
+                    }
+                }
+            }
+        }
+    }
+
+    generatedSource(annotationProcessorMain, "main")
 }
 
 val integTestAll by tasks.registering() {

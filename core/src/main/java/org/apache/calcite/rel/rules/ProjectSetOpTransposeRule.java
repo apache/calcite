@@ -27,6 +27,8 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +43,7 @@ import java.util.List;
  *
  * @see CoreRules#PROJECT_SET_OP_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectSetOpTransposeRule
     extends RelRule<ProjectSetOpTransposeRule.Config>
     implements TransformationRule {
@@ -111,13 +114,14 @@ public class ProjectSetOpTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableProjectSetOpTransposeRule.Config.builder()
+        .withPreserveExprCondition(expr -> !(expr instanceof RexOver))
+        .build()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
-                b1.operand(SetOp.class).anyInputs()))
-        .as(Config.class)
-        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
+                b1.operand(SetOp.class).anyInputs()));
 
     @Override default ProjectSetOpTransposeRule toRule() {
       return new ProjectSetOpTransposeRule(this);

@@ -36,6 +36,8 @@ import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,6 +50,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#PROJECT_CORRELATE_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectCorrelateTransposeRule
     extends RelRule<ProjectCorrelateTransposeRule.Config>
     implements TransformationRule {
@@ -204,10 +207,12 @@ public class ProjectCorrelateTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(Project.class, Correlate.class)
-        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
+    Config DEFAULT = ImmutableProjectCorrelateTransposeRule.Config.builder()
+        .withPreserveExprCondition(expr -> !(expr instanceof RexOver))
+        .build()
+        .withOperandFor(Project.class, Correlate.class);
 
     @Override default ProjectCorrelateTransposeRule toRule() {
       return new ProjectCorrelateTransposeRule(this);

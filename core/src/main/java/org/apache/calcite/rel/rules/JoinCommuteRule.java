@@ -37,6 +37,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.List;
 
@@ -53,6 +54,7 @@ import java.util.List;
  * @see CoreRules#JOIN_COMMUTE
  * @see CoreRules#JOIN_COMMUTE_OUTER
  */
+@Value.Enclosing
 public class JoinCommuteRule
     extends RelRule<JoinCommuteRule.Config>
     implements TransformationRule {
@@ -226,8 +228,9 @@ public class JoinCommuteRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinCommuteRule.Config.of()
         .withOperandFor(LogicalJoin.class)
         .withSwapOuter(false);
 
@@ -250,7 +253,9 @@ public class JoinCommuteRule
     /** Whether to swap outer joins; default false. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
-    boolean isSwapOuter();
+    @Value.Default default boolean isSwapOuter() {
+      return false;
+    }
 
     /** Sets {@link #isSwapOuter()}. */
     Config withSwapOuter(boolean swapOuter);
@@ -259,7 +264,9 @@ public class JoinCommuteRule
      * (that is, cartesian joins); default true. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
-    boolean isAllowAlwaysTrueCondition();
+    @Value.Default default boolean isAllowAlwaysTrueCondition() {
+      return true;
+    }
 
     /** Sets {@link #isAllowAlwaysTrueCondition()}. */
     Config withAllowAlwaysTrueCondition(boolean allowAlwaysTrueCondition);

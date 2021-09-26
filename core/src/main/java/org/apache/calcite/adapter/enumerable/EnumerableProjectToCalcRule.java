@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rex.RexProgram;
@@ -53,7 +54,7 @@ public class EnumerableProjectToCalcRule extends ProjectToCalcRule {
 
   /** Rule configuration. */
   public interface Config extends ProjectToCalcRule.Config {
-    Config DEFAULT = ProjectToCalcRule.Config.DEFAULT
+    Config DEFAULT = RelRule.Config.EMPTY
         .withOperandSupplier(b ->
             b.operand(EnumerableProject.class).anyInputs())
         .as(Config.class);

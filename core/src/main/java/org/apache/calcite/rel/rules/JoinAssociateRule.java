@@ -31,6 +31,8 @@ import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +48,7 @@ import java.util.List;
  * @see JoinCommuteRule
  * @see CoreRules#JOIN_ASSOCIATE
  */
+@Value.Enclosing
 public class JoinAssociateRule
     extends RelRule<JoinAssociateRule.Config>
     implements TransformationRule {
@@ -163,8 +166,9 @@ public class JoinAssociateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinAssociateRule.Config.of()
         .withOperandFor(Join.class);
 
     @Override default JoinAssociateRule toRule() {
@@ -177,7 +181,9 @@ public class JoinAssociateRule
      */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
-    boolean isAllowAlwaysTrueCondition();
+    @Value.Default default boolean isAllowAlwaysTrueCondition() {
+      return true;
+    }
 
     /** Sets {@link #isAllowAlwaysTrueCondition()}. */
     Config withAllowAlwaysTrueCondition(boolean allowAlwaysTrueCondition);

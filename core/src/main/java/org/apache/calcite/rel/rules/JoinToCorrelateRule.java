@@ -34,6 +34,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 /**
  * Rule that converts a {@link org.apache.calcite.rel.core.Join}
  * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}, which can
@@ -58,6 +60,7 @@ import org.apache.calcite.util.ImmutableBitSet;
  *
  * @see CoreRules#JOIN_TO_CORRELATE
  */
+@Value.Enclosing
 public class JoinToCorrelateRule
     extends RelRule<JoinToCorrelateRule.Config>
     implements TransformationRule {
@@ -128,8 +131,9 @@ public class JoinToCorrelateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinToCorrelateRule.Config.of()
         .withOperandFor(LogicalJoin.class);
 
     @Override default JoinToCorrelateRule toRule() {

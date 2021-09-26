@@ -25,6 +25,8 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +38,7 @@ import java.util.List;
  * @see CoreRules#JOIN_LEFT_UNION_TRANSPOSE
  * @see CoreRules#JOIN_RIGHT_UNION_TRANSPOSE
  */
+@Value.Enclosing
 public class JoinUnionTransposeRule
     extends RelRule<JoinUnionTransposeRule.Config>
     implements TransformationRule {
@@ -114,13 +117,14 @@ public class JoinUnionTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config LEFT = EMPTY.withDescription("JoinUnionTransposeRule(Union-Other)")
-        .as(Config.class)
+    Config LEFT = ImmutableJoinUnionTransposeRule.Config.of()
+        .withDescription("JoinUnionTransposeRule(Union-Other)")
         .withOperandFor(Join.class, Union.class, true);
 
-    Config RIGHT = EMPTY.withDescription("JoinUnionTransposeRule(Other-Union)")
-        .as(Config.class)
+    Config RIGHT = ImmutableJoinUnionTransposeRule.Config.of()
+        .withDescription("JoinUnionTransposeRule(Other-Union)")
         .withOperandFor(Join.class, Union.class, false);
 
     @Override default JoinUnionTransposeRule toRule() {

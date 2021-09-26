@@ -22,7 +22,10 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /** Rule that matches Join. */
+@Value.Enclosing
 public class MaterializedViewOnlyJoinRule
     extends MaterializedViewJoinRule<MaterializedViewRule.Config> {
 
@@ -48,16 +51,17 @@ public class MaterializedViewOnlyJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends MaterializedViewRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableMaterializedViewOnlyJoinRule.Config.builder()
         .withOperandSupplier(b -> b.operand(Join.class).anyInputs())
         .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
         .withDescription("MaterializedViewJoinRule(Join)")
-        .as(MaterializedViewRule.Config.class)
         .withGenerateUnionRewriting(true)
         .withUnionRewritingPullProgram(null)
         .withFastBailOut(true)
-        .as(MaterializedViewOnlyJoinRule.Config.class);
+        .build();
+
 
     @Override default MaterializedViewOnlyJoinRule toRule() {
       return new MaterializedViewOnlyJoinRule(this);

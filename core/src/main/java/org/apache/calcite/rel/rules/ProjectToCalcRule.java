@@ -24,6 +24,8 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Rule to convert a
  * {@link org.apache.calcite.rel.logical.LogicalProject} to a
@@ -39,6 +41,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * @see FilterToCalcRule
  * @see CoreRules#PROJECT_TO_CALC
  */
+@Value.Enclosing
 public class ProjectToCalcRule extends RelRule<ProjectToCalcRule.Config>
     implements TransformationRule {
 
@@ -70,11 +73,11 @@ public class ProjectToCalcRule extends RelRule<ProjectToCalcRule.Config>
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableProjectToCalcRule.Config.of()
         .withOperandSupplier(b ->
-            b.operand(LogicalProject.class).anyInputs())
-        .as(Config.class);
+            b.operand(LogicalProject.class).anyInputs());
 
     @Override default ProjectToCalcRule toRule() {
       return new ProjectToCalcRule(this);

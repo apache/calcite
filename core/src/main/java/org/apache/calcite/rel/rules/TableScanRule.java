@@ -24,6 +24,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableScan} to the result
@@ -49,8 +51,7 @@ public class TableScanRule extends RelRule<RelRule.Config>
 
   @Deprecated // to be removed before 2.0
   public TableScanRule(RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -64,10 +65,13 @@ public class TableScanRule extends RelRule<RelRule.Config>
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = true)
+  @Value.Style(typeImmutable = "ImmutableTableScanRuleConfig",
+      passAnnotations = SuppressWarnings.class)
+  @SuppressWarnings("deprecation")
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(LogicalTableScan.class).noInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableTableScanRuleConfig.of()
+        .withOperandSupplier(b -> b.operand(LogicalTableScan.class).noInputs());
 
     @Override default TableScanRule toRule() {
       return new TableScanRule(this);

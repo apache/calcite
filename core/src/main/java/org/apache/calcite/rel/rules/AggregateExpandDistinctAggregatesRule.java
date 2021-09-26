@@ -50,6 +50,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -86,6 +87,7 @@ import static java.util.Objects.requireNonNull;
  * @see CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES
  * @see CoreRules#AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN
  */
+@Value.Enclosing
 public final class AggregateExpandDistinctAggregatesRule
     extends RelRule<AggregateExpandDistinctAggregatesRule.Config>
     implements TransformationRule {
@@ -927,12 +929,12 @@ public final class AggregateExpandDistinctAggregatesRule
     return relBuilder;
   }
 
-       /** Rule configuration. */
+  /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateExpandDistinctAggregatesRule.Config.of()
         .withOperandSupplier(b ->
-            b.operand(LogicalAggregate.class).anyInputs())
-        .as(Config.class);
+            b.operand(LogicalAggregate.class).anyInputs());
 
     Config JOIN = DEFAULT.withUsingGroupingSets(false);
 
@@ -943,7 +945,9 @@ public final class AggregateExpandDistinctAggregatesRule
     /** Whether to use GROUPING SETS, default true. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
-    boolean isUsingGroupingSets();
+    @Value.Default default boolean isUsingGroupingSets() {
+      return true;
+    }
 
     /** Sets {@link #isUsingGroupingSets()}. */
     Config withUsingGroupingSets(boolean usingGroupingSets);

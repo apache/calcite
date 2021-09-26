@@ -180,8 +180,7 @@ public class ImmutableBeans {
     final ImmutableMap<String, Class> propertyNames =
         propertyNameBuilder.build();
     for (Method method : beanClass.getMethods()) {
-      if (!Modifier.isPublic(method.getModifiers())
-          || method.isDefault()) {
+      if (!Modifier.isPublic(method.getModifiers()) || isNonPropertyDefault(method)) {
         continue;
       }
       final Property property = method.getAnnotation(Property.class);
@@ -284,7 +283,7 @@ public class ImmutableBeans {
 
     // Third pass, add default methods.
     for (Method method : beanClass.getMethods()) {
-      if (method.isDefault()) {
+      if (isNonPropertyDefault(method)) {
         final MethodHandle methodHandle;
         try {
           methodHandle = Compatible.INSTANCE.lookupPrivate(beanClass)
@@ -321,6 +320,14 @@ public class ImmutableBeans {
             || args[0] instanceof Map
             && bean.map.equals(args[0]));
     return new Def<>(beanClass, handlers.build());
+  }
+
+  private static boolean isNonPropertyDefault(Method method) {
+    return method.isDefault() && !isImmutableProperty(method);
+  }
+
+  private static boolean isImmutableProperty(Method method) {
+    return method.getAnnotation(ImmutableBeans.Property.class) != null;
   }
 
   /** Returns the value to be stored, optionally copying. */
