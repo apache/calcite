@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,6 +101,7 @@ import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule
  * (e.g. {@code SUM(a) WITHIN DISTINCT (x), SUM(a) WITHIN DISTINCT (y)})
  * the rule creates separate {@code GROUPING SET}s.
  */
+@Value.Enclosing
 public class AggregateExpandWithinDistinctRule
     extends RelRule<AggregateExpandWithinDistinctRule.Config> {
 
@@ -507,12 +509,12 @@ public class AggregateExpandWithinDistinctRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateExpandWithinDistinctRule.Config.of()
         .withOperandSupplier(b -> b.operand(LogicalAggregate.class)
             .predicate(AggregateExpandWithinDistinctRule::hasWithinDistinct)
-            .anyInputs())
-        .as(AggregateExpandWithinDistinctRule.Config.class);
+            .anyInputs());
 
     @Override default AggregateExpandWithinDistinctRule toRule() {
       return new AggregateExpandWithinDistinctRule(this);
@@ -530,7 +532,9 @@ public class AggregateExpandWithinDistinctRule
      * [100, 120, 150]. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
-    boolean throwIfNotUnique();
+    @Value.Default default boolean throwIfNotUnique() {
+      return true;
+    }
 
     /** Sets {@link #throwIfNotUnique()}. */
     Config withThrowIfNotUnique(boolean throwIfNotUnique);

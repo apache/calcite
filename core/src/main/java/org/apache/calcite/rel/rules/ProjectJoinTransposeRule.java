@@ -32,6 +32,8 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,6 +47,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#PROJECT_JOIN_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectJoinTransposeRule
     extends RelRule<ProjectJoinTransposeRule.Config>
     implements TransformationRule {
@@ -152,10 +155,12 @@ public class ProjectJoinTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalProject.class, LogicalJoin.class)
-        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
+    Config DEFAULT = ImmutableProjectJoinTransposeRule.Config.builder()
+        .withPreserveExprCondition(expr -> !(expr instanceof RexOver))
+        .build()
+        .withOperandFor(LogicalProject.class, LogicalJoin.class);
 
     @Override default ProjectJoinTransposeRule toRule() {
       return new ProjectJoinTransposeRule(this);

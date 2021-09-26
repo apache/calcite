@@ -24,6 +24,8 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that merges a
  * {@link org.apache.calcite.rel.logical.LogicalCalc} onto a
@@ -36,6 +38,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#CALC_MERGE
  */
+@Value.Enclosing
 public class CalcMergeRule extends RelRule<CalcMergeRule.Config>
     implements TransformationRule {
 
@@ -90,8 +93,9 @@ public class CalcMergeRule extends RelRule<CalcMergeRule.Config>
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = Config.EMPTY
+    Config DEFAULT = ImmutableCalcMergeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Calc.class).oneInput(b1 ->
                 b1.operand(Calc.class).anyInputs()))

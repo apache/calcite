@@ -301,7 +301,9 @@ allprojects {
 
     plugins.withId("java-library") {
         dependencies {
+            "annotationProcessor"(platform(project(":bom")))
             "implementation"(platform(project(":bom")))
+            "testAnnotationProcessor"(platform(project(":bom")))
         }
     }
 
@@ -575,6 +577,7 @@ allprojects {
         configure<CheckForbiddenApisExtension> {
             failOnUnsupportedJava = false
             ignoreSignaturesOfMissingClasses = true
+            suppressAnnotations.add("org.immutables.value.Generated")
             bundledSignatures.addAll(
                 listOf(
                     "jdk-unsafe",

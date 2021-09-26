@@ -26,6 +26,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that pushes down expressions in "equal" join condition.
  *
@@ -37,6 +39,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#JOIN_PUSH_EXPRESSIONS
  */
+@Value.Enclosing
 public class JoinPushExpressionsRule
     extends RelRule<JoinPushExpressionsRule.Config>
     implements TransformationRule {
@@ -80,10 +83,10 @@ public class JoinPushExpressionsRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(Join.class)
-        .as(Config.class);
+    Config DEFAULT = ImmutableJoinPushExpressionsRule.Config.of()
+        .withOperandFor(Join.class);
 
     @Override default JoinPushExpressionsRule toRule() {
       return new JoinPushExpressionsRule(this);

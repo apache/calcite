@@ -96,7 +96,6 @@ import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Holder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
@@ -120,6 +119,7 @@ import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -166,6 +166,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>It is not thread-safe.
  */
+@Value.Enclosing
 public class RelBuilder {
   protected final RelOptCluster cluster;
   protected final @Nullable RelOptSchema relOptSchema;
@@ -4183,19 +4184,10 @@ public class RelBuilder {
    *
    * <p>Start with the {@link #DEFAULT} instance,
    * and call {@code withXxx} methods to set its properties. */
+  @Value.Immutable
   public interface Config {
     /** Default configuration. */
-    Config DEFAULT = ImmutableBeans.create(Config.class);
-
-    @Deprecated // to be removed before 2.0
-    static ConfigBuilder builder() {
-      return DEFAULT.toBuilder();
-    }
-
-    @Deprecated // to be removed before 2.0
-    default ConfigBuilder toBuilder() {
-      return new ConfigBuilder(this);
-    }
+    Config DEFAULT = ImmutableRelBuilder.Config.of();
 
     /** Controls whether to merge two {@link Project} operators when inlining
      * expressions causes complexity to increase.
@@ -4234,104 +4226,73 @@ public class RelBuilder {
      * {@link org.apache.calcite.adapter.enumerable.EnumerableCalc}, will often
      * gather common sub-expressions and compute them only once.
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(100)
-    int bloat();
+    @Value.Default default int bloat() {
+      return 100;
+    }
 
     /** Sets {@link #bloat}. */
     Config withBloat(int bloat);
 
     /** Whether {@link RelBuilder#aggregate} should eliminate duplicate
      * aggregate calls; default true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean dedupAggregateCalls();
+    @Value.Default default boolean dedupAggregateCalls() {
+      return true;
+    }
 
     /** Sets {@link #dedupAggregateCalls}. */
     Config withDedupAggregateCalls(boolean dedupAggregateCalls);
 
     /** Whether {@link RelBuilder#aggregate} should prune unused
      * input columns; default true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean pruneInputOfAggregate();
+    @Value.Default default boolean pruneInputOfAggregate() {
+      return true;
+    }
 
     /** Sets {@link #pruneInputOfAggregate}. */
     Config withPruneInputOfAggregate(boolean pruneInputOfAggregate);
 
     /** Whether to push down join conditions; default false (but
      * {@link SqlToRelConverter#config()} by default sets this to true). */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean pushJoinCondition();
+    @Value.Default default boolean pushJoinCondition() {
+      return false;
+    }
 
     /** Sets {@link #pushJoinCondition()}. */
     Config withPushJoinCondition(boolean pushJoinCondition);
 
     /** Whether to simplify expressions; default true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean simplify();
+    @Value.Default default boolean simplify() {
+      return true;
+    }
 
     /** Sets {@link #simplify}. */
     Config withSimplify(boolean simplify);
 
     /** Whether to simplify LIMIT 0 to an empty relation; default true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean simplifyLimit();
+    @Value.Default default boolean simplifyLimit() {
+      return true;
+    }
 
     /** Sets {@link #simplifyLimit()}. */
     Config withSimplifyLimit(boolean simplifyLimit);
 
     /** Whether to simplify {@code Union(Values, Values)} or
      * {@code Union(Project(Values))} to {@code Values}; default true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean simplifyValues();
+    @Value.Default default boolean simplifyValues() {
+      return true;
+    }
 
     /** Sets {@link #simplifyValues()}. */
     Config withSimplifyValues(boolean simplifyValues);
 
     /** Whether to create an Aggregate even if we know that the input is
      * already unique; default false. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean aggregateUnique();
+    @Value.Default default boolean aggregateUnique() {
+      return false;
+    }
 
     /** Sets {@link #aggregateUnique()}. */
     Config withAggregateUnique(boolean aggregateUnique);
   }
 
-  /** Creates a {@link RelBuilder.Config}.
-   *
-   * @deprecated Use the {@code withXxx} methods in
-   * {@link RelBuilder.Config}. */
-  @Deprecated // to be removed before 2.0
-  public static class ConfigBuilder {
-    private Config config;
-
-    private ConfigBuilder(Config config) {
-      this.config = config;
-    }
-
-    /** Creates a {@link RelBuilder.Config}. */
-    public Config build() {
-      return config;
-    }
-
-    /** Sets the value that will become
-     * {@link org.apache.calcite.tools.RelBuilder.Config#dedupAggregateCalls}. */
-    public ConfigBuilder withDedupAggregateCalls(boolean dedupAggregateCalls) {
-      config = config.withDedupAggregateCalls(dedupAggregateCalls);
-      return this;
-    }
-
-    /** Sets the value that will become
-     * {@link org.apache.calcite.tools.RelBuilder.Config#simplify}. */
-    public ConfigBuilder withSimplify(boolean simplify) {
-      config = config.withSimplify(simplify);
-      return this;
-    }
-  }
 }

@@ -124,6 +124,8 @@ dependencies {
         apiv("org.elasticsearch.client:elasticsearch-rest-client", "elasticsearch")
         apiv("org.elasticsearch.plugin:transport-netty4-client", "elasticsearch")
         apiv("org.elasticsearch:elasticsearch")
+        apiv("org.immutables:value-annotations", "immutables")
+        apiv("org.immutables:value", "immutables")
         apiv("org.exparity:hamcrest-date")
         apiv("org.hamcrest:hamcrest")
         apiv("org.hamcrest:hamcrest-core", "hamcrest")

@@ -26,6 +26,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +38,7 @@ import java.util.List;
  * @see CoreRules#SORT_UNION_TRANSPOSE
  * @see CoreRules#SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH
  */
+@Value.Enclosing
 public class SortUnionTransposeRule
     extends RelRule<SortUnionTransposeRule.Config>
     implements TransformationRule {
@@ -104,8 +107,9 @@ public class SortUnionTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSortUnionTransposeRule.Config.of()
         .withOperandFor(Sort.class, Union.class)
         .withMatchNullFetch(false);
 
@@ -117,7 +121,9 @@ public class SortUnionTransposeRule
      * this only makes sense if the Union preserves order (and merges). */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
-    boolean matchNullFetch();
+    @Value.Default default boolean matchNullFetch() {
+      return false;
+    }
 
     /** Sets {@link #matchNullFetch()}. */
     Config withMatchNullFetch(boolean matchNullFetch);

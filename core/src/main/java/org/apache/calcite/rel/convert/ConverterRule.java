@@ -27,6 +27,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -39,6 +40,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
  */
+@Value.Enclosing
 public abstract class ConverterRule
     extends RelRule<ConverterRule.Config> {
   //~ Instance fields --------------------------------------------------------
@@ -178,8 +180,16 @@ public abstract class ConverterRule
   //~ Inner Classes ----------------------------------------------------------
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config INSTANCE = EMPTY.as(Config.class);
+    Config INSTANCE = ImmutableConverterRule.Config.builder()
+        .withInTrait(Convention.NONE)
+        .withOutTrait(Convention.NONE)
+        .withRuleFactory(new Function<Config, ConverterRule>() {
+          @Override public ConverterRule apply(final Config config) {
+            throw new UnsupportedOperationException("A rule factory must be provided");
+          }
+        }).build();
 
     @ImmutableBeans.Property
     RelTrait inTrait();

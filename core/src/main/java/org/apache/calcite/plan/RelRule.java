@@ -24,9 +24,12 @@ import org.apache.calcite.util.ImmutableBeans;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -131,13 +134,25 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
 
     /** Casts this configuration to another type, usually a sub-class. */
     default <T extends Object> T as(Class<T> class_) {
-      return ImmutableBeans.copy(class_, this);
+      if (Proxy.isProxyClass(this.getClass())) {
+        return ImmutableBeans.copy(class_, this);
+      } else if (class_.isAssignableFrom(this.getClass())) {
+        return class_.cast(this);
+      } else {
+        throw new UnsupportedOperationException(
+            String.format(Locale.ROOT,
+                "The current config of type %s is not an instance of %s.",
+                this.getClass(),
+                class_));
+      }
     }
 
     /** The factory that is used to create a
      * {@link org.apache.calcite.tools.RelBuilder} during rule invocations. */
     @ImmutableBeans.Property
-    RelBuilderFactory relBuilderFactory();
+    @Value.Default default RelBuilderFactory relBuilderFactory() {
+      return RelFactories.LOGICAL_BUILDER;
+    }
 
     /** Sets {@link #relBuilderFactory()}. */
     Config withRelBuilderFactory(RelBuilderFactory factory);
@@ -151,7 +166,13 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
 
     /** Creates the operands for the rule instance. */
     @ImmutableBeans.Property
-    OperandTransform operandSupplier();
+    @Value.Default default OperandTransform operandSupplier() {
+      return s -> {
+        throw new IllegalArgumentException("Rules must have at least one "
+            + "operand. Call Config.withOperandSupplier to specify them.");
+      };
+
+    }
 
     /** Sets {@link #operandSupplier()}. */
     Config withOperandSupplier(OperandTransform transform);

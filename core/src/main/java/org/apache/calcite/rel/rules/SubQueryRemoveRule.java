@@ -47,6 +47,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -69,6 +71,7 @@ import static org.apache.calcite.util.Util.last;
  * @see CoreRules#PROJECT_SUB_QUERY_TO_CORRELATE
  * @see CoreRules#JOIN_SUB_QUERY_TO_CORRELATE
  */
+@Value.Enclosing
 public class SubQueryRemoveRule
     extends RelRule<SubQueryRemoveRule.Config>
     implements TransformationRule {
@@ -855,31 +858,32 @@ public class SubQueryRemoveRule
     }
   }
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config PROJECT = EMPTY
+    Config PROJECT = ImmutableSubQueryRemoveRule.Config.builder()
+        .withMatchHandler(SubQueryRemoveRule::matchProject)
+        .build()
         .withOperandSupplier(b ->
             b.operand(Project.class)
                 .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
-        .withDescription("SubQueryRemoveRule:Project")
-        .as(Config.class)
-        .withMatchHandler(SubQueryRemoveRule::matchProject);
+        .withDescription("SubQueryRemoveRule:Project");
 
-    Config FILTER = EMPTY
+    Config FILTER = ImmutableSubQueryRemoveRule.Config.builder()
+        .withMatchHandler(SubQueryRemoveRule::matchFilter)
+        .build()
         .withOperandSupplier(b ->
             b.operand(Filter.class)
                 .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
-        .withDescription("SubQueryRemoveRule:Filter")
-        .as(Config.class)
-        .withMatchHandler(SubQueryRemoveRule::matchFilter);
+        .withDescription("SubQueryRemoveRule:Filter");
 
-    Config JOIN = EMPTY
+    Config JOIN = ImmutableSubQueryRemoveRule.Config.builder()
+        .withMatchHandler(SubQueryRemoveRule::matchJoin)
+        .build()
         .withOperandSupplier(b ->
             b.operand(Join.class)
                 .predicate(RexUtil.SubQueryFinder::containsSubQuery)
                 .anyInputs())
-        .withDescription("SubQueryRemoveRule:Join")
-        .as(Config.class)
-        .withMatchHandler(SubQueryRemoveRule::matchJoin);
+        .withDescription("SubQueryRemoveRule:Join");
 
     @Override default SubQueryRemoveRule toRule() {
       return new SubQueryRemoveRule(this);

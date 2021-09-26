@@ -30,6 +30,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +41,7 @@ import java.util.List;
  *
  * @see CoreRules#FILTER_SET_OP_TRANSPOSE
  */
+@Value.Enclosing
 public class FilterSetOpTransposeRule
     extends RelRule<FilterSetOpTransposeRule.Config>
     implements TransformationRule {
@@ -96,12 +99,12 @@ public class FilterSetOpTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableFilterSetOpTransposeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Filter.class).oneInput(b1 ->
-                b1.operand(SetOp.class).anyInputs()))
-        .as(Config.class);
+                b1.operand(SetOp.class).anyInputs()));
 
     @Override default FilterSetOpTransposeRule toRule() {
       return new FilterSetOpTransposeRule(this);

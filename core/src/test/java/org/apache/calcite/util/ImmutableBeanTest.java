@@ -70,6 +70,10 @@ class ImmutableBeanTest {
     assertThat(b4.equals(b), is(false));
     assertThat(b4.equals(b2), is(false));
     assertThat(b4.equals(b3), is(false));
+
+    // assert that we can still set something that happens to have a default method.
+    final MyBean b6 = b.withDef(true);
+    assertThat(b6.getDef(), is(true));
   }
 
   @Test void testDefault() {
@@ -543,6 +547,13 @@ class ImmutableBeanTest {
     @ImmutableBeans.Property
     String getBaz();
     MyBean withBaz(String s);
+
+    @ImmutableBeans.Property
+    default boolean getDef() {
+      return true;
+    }
+    MyBean withDef(boolean def);
+
   }
 
   /** A bean class with just about every combination of default values

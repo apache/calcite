@@ -27,6 +27,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 /**
  * TraitMatchingRule adapts a converter rule, restricting it to fire only when
@@ -34,6 +35,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link org.apache.calcite.plan.hep.HepPlanner} in cases where alternate
  * implementations are available and it is desirable to minimize converters.
  */
+@Value.Enclosing
 public class TraitMatchingRule extends RelRule<TraitMatchingRule.Config> {
   /**
    * Creates a configuration for a TraitMatchingRule.
@@ -46,13 +48,13 @@ public class TraitMatchingRule extends RelRule<TraitMatchingRule.Config> {
       RelBuilderFactory relBuilderFactory) {
     final RelOptRuleOperand operand = converterRule.getOperand();
     assert operand.childPolicy == RelOptRuleOperandChildPolicy.ANY;
-    return Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+    return ImmutableTraitMatchingRule.Config.builder().withRelBuilderFactory(relBuilderFactory)
         .withDescription("TraitMatchingRule: " + converterRule)
         .withOperandSupplier(b0 ->
             b0.operand(operand.getMatchedClass()).oneInput(b1 ->
                 b1.operand(RelNode.class).anyInputs()))
-        .as(Config.class)
-        .withConverterRule(converterRule);
+        .withConverterRule(converterRule)
+        .build();
   }
 
   //~ Constructors -----------------------------------------------------------
@@ -88,6 +90,7 @@ public class TraitMatchingRule extends RelRule<TraitMatchingRule.Config> {
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
     @Override default TraitMatchingRule toRule() {
       return new TraitMatchingRule(this);

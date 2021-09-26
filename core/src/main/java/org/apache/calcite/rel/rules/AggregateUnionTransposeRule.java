@@ -44,6 +44,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -56,6 +57,7 @@ import java.util.List;
  *
  * @see CoreRules#AGGREGATE_UNION_TRANSPOSE
  */
+@Value.Enclosing
 public class AggregateUnionTransposeRule
     extends RelRule<AggregateUnionTransposeRule.Config>
     implements TransformationRule {
@@ -193,8 +195,9 @@ public class AggregateUnionTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateUnionTransposeRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalUnion.class);
 
     @Override default AggregateUnionTransposeRule toRule() {

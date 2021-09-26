@@ -34,6 +34,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -156,9 +157,11 @@ public abstract class SemiJoinRule
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableProjectToSemiJoinRuleConfig")
     public interface Config extends SemiJoinRule.Config {
-      Config DEFAULT = EMPTY.withDescription("SemiJoinRule:project")
-          .as(Config.class)
+      Config DEFAULT = ImmutableProjectToSemiJoinRuleConfig.of()
+          .withDescription("SemiJoinRule:project")
           .withOperandFor(Project.class, Join.class, Aggregate.class);
 
       @Override default ProjectToSemiJoinRule toRule() {
@@ -208,9 +211,11 @@ public abstract class SemiJoinRule
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableJoinToSemiJoinRuleConfig")
     public interface Config extends SemiJoinRule.Config {
-      Config DEFAULT = EMPTY.withDescription("SemiJoinRule:join")
-          .as(Config.class)
+      Config DEFAULT = ImmutableJoinToSemiJoinRuleConfig.of()
+          .withDescription("SemiJoinRule:join")
           .withOperandFor(Join.class, Aggregate.class);
 
       @Override default JoinToSemiJoinRule toRule() {
@@ -229,7 +234,9 @@ public abstract class SemiJoinRule
     }
   }
 
-  /** Rule configuration. */
+  /**
+   * Rule configuration.
+   */
   public interface Config extends RelRule.Config {
     @Override SemiJoinRule toRule();
   }

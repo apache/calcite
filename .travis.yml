@@ -30,7 +30,7 @@ matrix:
         - CHECKERFRAMEWORK=Y
       script:
         - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
-        - ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableCheckerframework :linq4j:classes :core:classes
+        - travis_wait ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableCheckerframework :linq4j:classes :core:classes
     - jdk: openjdk11
       env:
         - ERRORPRONE=Y

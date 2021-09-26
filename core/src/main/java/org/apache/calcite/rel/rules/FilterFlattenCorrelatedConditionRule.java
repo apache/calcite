@@ -27,6 +27,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.apiguardian.api.API;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +62,7 @@ import java.util.List;
  * choose to use this rule or not.</p>
  */
 @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+@Value.Enclosing
 public final class FilterFlattenCorrelatedConditionRule
     extends RelRule<FilterFlattenCorrelatedConditionRule.Config> {
 
@@ -135,9 +137,10 @@ public final class FilterFlattenCorrelatedConditionRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT =
-        EMPTY.withOperandSupplier(op -> op.operand(Filter.class).anyInputs()).as(Config.class);
+    Config DEFAULT = ImmutableFilterFlattenCorrelatedConditionRule.Config.of()
+        .withOperandSupplier(op -> op.operand(Filter.class).anyInputs());
 
     @Override default FilterFlattenCorrelatedConditionRule toRule() {
       return new FilterFlattenCorrelatedConditionRule(this);

@@ -72,6 +72,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -255,8 +256,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableFilterReduceExpressionsRuleConfig")
     public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = EMPTY.as(Config.class)
+      Config DEFAULT = ImmutableFilterReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalFilter.class)
           .withDescription("ReduceExpressionsRule(Filter)")
@@ -321,8 +324,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableProjectReduceExpressionsRuleConfig")
     public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = EMPTY.as(Config.class)
+      Config DEFAULT = ImmutableProjectReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalProject.class)
           .withDescription("ReduceExpressionsRule(Project)")
@@ -395,8 +400,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableJoinReduceExpressionsRuleConfig")
     public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = EMPTY.as(Config.class)
+      Config DEFAULT = ImmutableJoinReduceExpressionsRuleConfig.of()
           .withMatchNullability(false)
           .withOperandFor(Join.class)
           .withDescription("ReduceExpressionsRule(Join)")
@@ -509,7 +516,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
      *
      * <p>The default implementation of this method is to call
      * {@link RelBuilder#empty}, which for the static schema will be optimized
-     * to an empty
+     * to an Immutable.Config.of()
      * {@link org.apache.calcite.rel.core.Values}.
      *
      * @param input rel to replace, assumes caller has already determined
@@ -522,8 +529,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableCalcReduceExpressionsRuleConfig")
     public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = EMPTY.as(Config.class)
+      Config DEFAULT = ImmutableCalcReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalCalc.class)
           .withDescription("ReduceExpressionsRule(Calc)")
@@ -614,8 +623,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableWindowReduceExpressionsRuleConfig")
     public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = EMPTY.as(Config.class)
+      Config DEFAULT = ImmutableWindowReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalWindow.class)
           .withDescription("ReduceExpressionsRule(Window)")
@@ -1168,7 +1179,9 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
      * reduces to a NOT NULL literal. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
-    boolean matchNullability();
+    @Value.Default default boolean matchNullability() {
+      return false;
+    }
 
     /** Sets {@link #matchNullability()}. */
     Config withMatchNullability(boolean matchNullability);

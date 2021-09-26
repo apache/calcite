@@ -41,6 +41,7 @@ import com.esri.core.geometry.Point;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -315,8 +316,10 @@ public abstract class SpatialRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableFilterHilbertRuleConfig")
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableFilterHilbertRuleConfig.of()
           .withOperandSupplier(b ->
               b.operand(Filter.class)
                   .predicate(f -> DWITHIN_FINDER.inFilter(f)

@@ -52,6 +52,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -215,13 +216,14 @@ public abstract class DateRangeRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = true)
+    @Value.Style(typeImmutable = "ImmutableFilterDateRangeRuleConfig")
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableFilterDateRangeRuleConfig.of()
           .withOperandSupplier(b ->
               b.operand(Filter.class)
                   .predicate(FilterDateRangeRule::containsRoundingExpression)
-                  .anyInputs())
-          .as(Config.class);
+                  .anyInputs());
 
       @Override default FilterDateRangeRule toRule() {
         return new FilterDateRangeRule(this);

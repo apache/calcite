@@ -165,7 +165,6 @@ import org.apache.calcite.sql.validate.SqlValidatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
@@ -182,6 +181,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
@@ -220,15 +220,17 @@ import static java.util.Objects.requireNonNull;
  * {@link #convertExpression(SqlNode)}.
  */
 @SuppressWarnings("UnstableApiUsage")
+@Value.Enclosing
 public class SqlToRelConverter {
   //~ Static fields/initializers ---------------------------------------------
 
   /** Default configuration. */
   private static final Config CONFIG =
-      ImmutableBeans.create(Config.class)
+      ImmutableSqlToRelConverter.Config.builder()
           .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
           .withRelBuilderConfigTransform(c -> c.withPushJoinCondition(true))
-          .withHintStrategyTable(HintStrategyTable.EMPTY);
+          .withHintStrategyTable(HintStrategyTable.EMPTY)
+          .build();
 
   protected static final Logger SQL2REL_LOGGER =
       CalciteTrace.getSqlToRelTracer();
@@ -6186,12 +6188,6 @@ public class SqlToRelConverter {
     }
   }
 
-  /** Creates a builder for a {@link Config}. */
-  @Deprecated // to be removed before 2.0
-  public static ConfigBuilder configBuilder() {
-    return new ConfigBuilder();
-  }
-
   /** Returns a default {@link Config}. */
   public static Config config() {
     return CONFIG;
@@ -6203,22 +6199,23 @@ public class SqlToRelConverter {
    *
    * @see SqlToRelConverter#CONFIG
    */
+  @Value.Immutable(singleton = false)
   public interface Config {
     /** Returns the {@code decorrelationEnabled} option. Controls whether to
      * disable sub-query decorrelation when needed. e.g. if outer joins are not
      * supported. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isDecorrelationEnabled();
+    @Value.Default default boolean isDecorrelationEnabled() {
+      return true;
+    }
 
     /** Sets {@link #isDecorrelationEnabled()}. */
     Config withDecorrelationEnabled(boolean decorrelationEnabled);
 
     /** Returns the {@code trimUnusedFields} option. Controls whether to trim
      * unused fields as part of the conversion process. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isTrimUnusedFields();
+    @Value.Default default boolean isTrimUnusedFields() {
+      return false;
+    }
 
     /** Sets {@link #isTrimUnusedFields()}. */
     Config withTrimUnusedFields(boolean trimUnusedFields);
@@ -6226,18 +6223,18 @@ public class SqlToRelConverter {
     /** Returns the {@code createValuesRel} option. Controls whether instances
      * of {@link org.apache.calcite.rel.logical.LogicalValues} are generated.
      * These may not be supported by all physical implementations. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isCreateValuesRel();
+    @Value.Default default boolean isCreateValuesRel() {
+      return true;
+    }
 
     /** Sets {@link #isCreateValuesRel()}. */
     Config withCreateValuesRel(boolean createValuesRel);
 
     /** Returns the {@code explain} option. Describes whether the current
      * statement is part of an EXPLAIN PLAN statement. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isExplain();
+    @Value.Default default boolean isExplain() {
+      return false;
+    }
 
     /** Sets {@link #isExplain()}. */
     Config withExplain(boolean explain);
@@ -6245,9 +6242,9 @@ public class SqlToRelConverter {
     /** Returns the {@code expand} option. Controls whether to expand
      * sub-queries. If false, each sub-query becomes a
      * {@link org.apache.calcite.rex.RexSubQuery}. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isExpand();
+    @Value.Default default boolean isExpand() {
+      return true;
+    }
 
     /** Sets {@link #isExpand()}. */
     Config withExpand(boolean expand);
@@ -6260,9 +6257,9 @@ public class SqlToRelConverter {
      * a predicate. A threshold of 0 forces usage of an inline table in all
      * cases; a threshold of {@link Integer#MAX_VALUE} forces usage of OR in all
      * cases. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(DEFAULT_IN_SUB_QUERY_THRESHOLD)
-    int getInSubQueryThreshold();
+    @Value.Default default int getInSubQueryThreshold() {
+      return DEFAULT_IN_SUB_QUERY_THRESHOLD;
+    }
 
     /** Sets {@link #getInSubQueryThreshold()}. */
     Config withInSubQueryThreshold(int threshold);
@@ -6272,16 +6269,15 @@ public class SqlToRelConverter {
      * Because the remove does not change the semantics,
      * in many cases this is a promotion.
      * Default is true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isRemoveSortInSubQuery();
+    @Value.Default default boolean isRemoveSortInSubQuery() {
+      return true;
+    }
 
     /** Sets {@link #isRemoveSortInSubQuery()}. */
     Config withRemoveSortInSubQuery(boolean removeSortInSubQuery);
 
     /** Returns the factory to create {@link RelBuilder}, never null. Default is
      * {@link RelFactories#LOGICAL_BUILDER}. */
-    @ImmutableBeans.Property
     RelBuilderFactory getRelBuilderFactory();
 
     /** Sets {@link #getRelBuilderFactory()}. */
@@ -6289,7 +6285,6 @@ public class SqlToRelConverter {
 
     /** Returns a function that takes a {@link RelBuilder.Config} and returns
      * another. Default is the identity function. */
-    @ImmutableBeans.Property
     UnaryOperator<RelBuilder.Config> getRelBuilderConfigTransform();
 
     /** Sets {@link #getRelBuilderConfigTransform()}.
@@ -6308,84 +6303,10 @@ public class SqlToRelConverter {
     /** Returns the hint strategies used to decide how the hints are propagated to
      * the relational expressions. Default is
      * {@link HintStrategyTable#EMPTY}. */
-    @ImmutableBeans.Property
     HintStrategyTable getHintStrategyTable();
 
     /** Sets {@link #getHintStrategyTable()}. */
     Config withHintStrategyTable(HintStrategyTable hintStrategyTable);
   }
 
-  /** Builder for a {@link Config}. */
-  @Deprecated // to be removed before 2.0
-  public static class ConfigBuilder {
-    private Config config;
-
-    private ConfigBuilder() {
-      config = CONFIG;
-    }
-
-    /** Sets configuration identical to a given {@link Config}. */
-    public ConfigBuilder withConfig(Config config) {
-      this.config = config;
-      return this;
-    }
-
-    public ConfigBuilder withDecorrelationEnabled(boolean enabled) {
-      return withConfig(config.withDecorrelationEnabled(enabled));
-    }
-
-    public ConfigBuilder withTrimUnusedFields(boolean trimUnusedFields) {
-      return withConfig(config.withTrimUnusedFields(trimUnusedFields));
-    }
-
-    public ConfigBuilder withCreateValuesRel(boolean createValuesRel) {
-      return withConfig(config.withCreateValuesRel(createValuesRel));
-    }
-
-    public ConfigBuilder withExplain(boolean explain) {
-      return withConfig(config.withExplain(explain));
-    }
-
-    public ConfigBuilder withExpand(boolean expand) {
-      return withConfig(config.withExpand(expand));
-    }
-
-    public ConfigBuilder withRemoveSortInSubQuery(boolean removeSortInSubQuery) {
-      return withConfig(config.withRemoveSortInSubQuery(removeSortInSubQuery));
-    }
-
-    /** Whether to push down join conditions; default true. */
-    public ConfigBuilder withPushJoinCondition(boolean pushJoinCondition) {
-      return withRelBuilderConfigTransform(c ->
-          c.withPushJoinCondition(pushJoinCondition));
-    }
-
-    public ConfigBuilder withInSubqueryThreshold(int inSubQueryThreshold) {
-      return withInSubQueryThreshold(inSubQueryThreshold);
-    }
-
-    public ConfigBuilder withInSubQueryThreshold(int inSubQueryThreshold) {
-      return withConfig(config.withInSubQueryThreshold(inSubQueryThreshold));
-    }
-
-    public ConfigBuilder withRelBuilderConfigTransform(
-        UnaryOperator<RelBuilder.Config> configTransform) {
-      return withConfig(config.addRelBuilderConfigTransform(configTransform));
-    }
-
-    public ConfigBuilder withRelBuilderFactory(
-        RelBuilderFactory relBuilderFactory) {
-      return withConfig(config.withRelBuilderFactory(relBuilderFactory));
-    }
-
-    public ConfigBuilder withHintStrategyTable(
-        HintStrategyTable hintStrategyTable) {
-      return withConfig(config.withHintStrategyTable(hintStrategyTable));
-    }
-
-    /** Builds a {@link Config}. */
-    public Config build() {
-      return config;
-    }
-  }
 }

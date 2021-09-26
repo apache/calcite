@@ -14,9 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite;
+
+import org.immutables.value.Value;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
 
 /**
- * Main package for Calcite, the dynamic data management platform.
+ * Annotation to be used to convert interfaces/abstract classes into
+ * Immutable POJO using Immutables package.
  */
-@CalciteImmutable
-package org.apache.calcite;
+@Target({ElementType.PACKAGE, ElementType.TYPE})
+@Value.Style(
+    visibility = Value.Style.ImplementationVisibility.PACKAGE,
+    defaults = @Value.Immutable(builder = true, singleton = true),
+    get = {"is*", "get*"},
+    init = "with*"
+)
+public @interface CalciteImmutable { }
