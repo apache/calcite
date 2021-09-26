@@ -1413,18 +1413,6 @@ public class SqlToRelConverter {
     }
   }
 
-  private static boolean containsNullLiteral(SqlNodeList valueList) {
-    for (SqlNode node : valueList) {
-      if (node instanceof SqlLiteral) {
-        SqlLiteral lit = (SqlLiteral) node;
-        if (lit.getValue() == null) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   /**
    * Determines if a sub-query is non-correlated and if so, converts it to a
    * constant.
