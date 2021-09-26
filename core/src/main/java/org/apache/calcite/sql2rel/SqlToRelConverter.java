@@ -1139,8 +1139,7 @@ public class SqlToRelConverter {
 
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
-        if (!containsNullLiteral(valueList)
-            && valueList.size() < config.getInSubQueryThreshold()) {
+        if (valueList.size() < config.getInSubQueryThreshold()) {
           // We're under the threshold, so convert to OR.
           subQuery.expr =
               convertInToOr(
