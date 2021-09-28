@@ -719,7 +719,7 @@ class RelOptUtilTest {
                   relBuilder.field(1, 0, "DEPTNO")))
           .build();
       RelOptUtil.getVariablesUsed(relNode);
-    }, "Correlate Id used out of scope");
+    }, "correlate id used out of scope");
   }
 
   @Test void testGetVariablesUsedVaribleUsedBefore() {
@@ -743,7 +743,7 @@ class RelOptUtilTest {
           .join(JoinRelType.INNER)
           .build();
       RelOptUtil.getVariablesUsed(relNode);
-    }, "Correlate Id used out of scope");
+    }, "correlate id used out of scope");
   }
 
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions
