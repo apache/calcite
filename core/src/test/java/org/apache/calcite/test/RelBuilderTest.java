@@ -3926,6 +3926,28 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testMultipleIdCorrelateJoin() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v1 = Holder.empty();
+    final Holder<@Nullable RexCorrelVariable> v2 = Holder.empty();
+
+
+    assertThrows(IllegalArgumentException.class, () ->
+        builder
+            .scan("EMP")
+            .variable(v1)
+            .variable(v2)
+            .scan("DEPT")
+            .filter(
+                builder.equals(
+                    builder.field(v1.get(), "DEPTNO"),
+                    builder.field(v2.get(), "DEPTNO")))
+            .join(JoinRelType.INNER, builder.literal(true),
+                ImmutableSet.of(v1.get().id, v2.get().id))
+            .build(),
+          "multiple correlate ids not supported: $cor0, $cor1");
+  }
+
   @Test void testSimpleSemiCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.SEMI);
     final String expected = ""
