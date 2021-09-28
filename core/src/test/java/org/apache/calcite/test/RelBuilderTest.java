@@ -3954,7 +3954,7 @@ public class RelBuilderTest {
     RelNode root = builder.scan("EMP")
         .variable(v)
         .scan("DEPT")
-        .filter(Collections.singletonList(v.get().id),
+        .filter(
             builder.or(
                 builder.and(
                     builder.lessThan(builder.field(v.get(), "DEPTNO"),
@@ -3973,9 +3973,7 @@ public class RelBuilderTest {
         + "requiredColumns=[{5, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
-        + "    LogicalFilter(condition=[OR("
-        + "SEARCH($cor0.DEPTNO, Sarg[(20..30)]), "
-        + "IS NULL($2))], variablesSet=[[$cor0]])\n"
+        + "    LogicalFilter(condition=[OR(SEARCH($cor0.DEPTNO, Sarg[(20..30)]), IS NULL($2))])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
 
     assertThat(root, hasTree(expected));
@@ -4167,6 +4165,28 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test void testMultipleIdCorrelateJoin() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v1 = Holder.empty();
+    final Holder<@Nullable RexCorrelVariable> v2 = Holder.empty();
+
+
+    assertThrows(IllegalArgumentException.class, () -> {
+      builder
+          .scan("EMP")
+          .variable(v1)
+          .variable(v2)
+          .scan("DEPT")
+          .filter(
+              builder.equals(
+                  builder.field(v1.get(), "DEPTNO"),
+                  builder.field(v2.get(), "DEPTNO")))
+          .join(JoinRelType.INNER, builder.literal(true),
+              ImmutableSet.of(v1.get().id, v2.get().id))
+          .build();
+    }, "multiple correlate ids not supported: $cor0, $cor1");
   }
 
   @Test void testSimpleSemiCorrelateViaJoin() {

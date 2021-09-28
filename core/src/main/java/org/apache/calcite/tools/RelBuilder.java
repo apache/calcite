@@ -3798,12 +3798,17 @@ public class RelBuilder {
    *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
    */
   private static boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
-      JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
-    if (variablesSet.size() != 1) {
+      JoinRelType joinType, RelNode leftRel, RelNode rightRel) {
+    if (variablesSet.isEmpty()) {
       return false;
+    } else if (variablesSet.size() != 1) {
+      String idsString = variablesSet.stream()
+          .map(Object::toString)
+          .collect(Collectors.joining(", "));
+      throw new IllegalArgumentException("multiple correlate ids not supported: " + idsString);
     }
     CorrelationId id = Iterables.getOnlyElement(variablesSet);
-    if (!RelOptUtil.notContainsCorrelation(leftNode, id, Litmus.IGNORE)) {
+    if (!RelOptUtil.notContainsCorrelation(leftRel, id, Litmus.IGNORE)) {
       throw new IllegalArgumentException("variable " + id
           + " must not be used by left input to correlation");
     }
@@ -3812,9 +3817,8 @@ public class RelBuilder {
     case FULL:
       throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
     default:
-      return !RelOptUtil.correlationColumns(
-          Iterables.getOnlyElement(variablesSet),
-          rightRel).isEmpty();
+      Set<CorrelationId> rightIds = RelOptUtil.getVariablesUsed(rightRel);
+      return 0 != Sets.intersection(rightIds, variablesSet).size();
     }
   }
 
