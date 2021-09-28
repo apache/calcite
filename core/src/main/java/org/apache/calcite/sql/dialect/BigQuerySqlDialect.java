@@ -933,9 +933,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
 
     case "HASHROW":
-      final SqlWriter.Frame hashrow = writer.startFunCall("FARM_FINGERPRINT");
+      final SqlWriter.Frame farm_fingerprint = writer.startFunCall("FARM_FINGERPRINT");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(hashrow);
+      writer.endFunCall(farm_fingerprint);
       break;
 
     case "HASHBUCKET":
