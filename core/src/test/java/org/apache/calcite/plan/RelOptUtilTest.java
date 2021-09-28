@@ -34,6 +34,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
@@ -44,14 +45,17 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,6 +68,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -696,6 +701,49 @@ class RelOptUtilTest {
                 fieldEname.getName(),
                 "JOB_CNT2"));
     assertThat(castNode2.explain(), is(expectNode2.explain()));
+  }
+
+  @Test void testGetVariablesUsedVaribleUsedAfter() {
+    assertThrows(AssertionError.class, () -> {
+      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      RelNode relNode = relBuilder
+          .scan("DEPT")
+          .variable(v)
+          .filter(ImmutableSet.of(v.get().id),
+              relBuilder.equals(
+                  relBuilder.field(v.get(), "DEPTNO"),
+                  relBuilder.field(1, 0, "DEPTNO")))
+          .filter(
+              relBuilder.equals(
+                  relBuilder.field(v.get(), "DEPTNO"),
+                  relBuilder.field(1, 0, "DEPTNO")))
+          .build();
+      RelOptUtil.getVariablesUsed(relNode);
+    }, "Correlate Id used out of scope");
+  }
+
+  @Test void testGetVariablesUsedVaribleUsedBefore() {
+    assertThrows(AssertionError.class, () -> {
+      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      RelNode right = relBuilder
+          .scan("DEPT")
+          .variable(v)
+          .filter(ImmutableSet.of(v.get().id),
+              relBuilder.equals(
+                  relBuilder.field(v.get(), "DEPTNO"),
+                  relBuilder.field(1, 0, "DEPTNO")))
+          .build();
+      RelNode relNode = relBuilder
+          .scan("EMP")
+          .filter(
+              relBuilder.equals(
+                  relBuilder.field(v.get(), "DEPTNO"),
+                  relBuilder.field(1, 0, "DEPTNO")))
+          .push(right)
+          .join(JoinRelType.INNER)
+          .build();
+      RelOptUtil.getVariablesUsed(relNode);
+    }, "Correlate Id used out of scope");
   }
 
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions

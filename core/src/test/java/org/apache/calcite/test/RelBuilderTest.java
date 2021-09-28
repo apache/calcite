@@ -3713,7 +3713,7 @@ public class RelBuilderTest {
     RelNode root = builder.scan("EMP")
         .variable(v)
         .scan("DEPT")
-        .filter(Collections.singletonList(v.get().id),
+        .filter(
             builder.or(
                 builder.and(
                     builder.lessThan(builder.field(v.get(), "DEPTNO"),
@@ -3732,9 +3732,7 @@ public class RelBuilderTest {
         + "requiredColumns=[{5, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
-        + "    LogicalFilter(condition=[OR("
-        + "SEARCH($cor0.DEPTNO, Sarg[(20..30)]), "
-        + "IS NULL($2))], variablesSet=[[$cor0]])\n"
+        + "    LogicalFilter(condition=[OR(SEARCH($cor0.DEPTNO, Sarg[(20..30)]), IS NULL($2))])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
 
     assertThat(root, hasTree(expected));

@@ -107,6 +107,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -4383,6 +4384,8 @@ public abstract class RelOptUtil {
       if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
         final RexCorrelVariable v =
             (RexCorrelVariable) fieldAccess.getReferenceExpr();
+        assert variables.contains(v.id) || !variableFields.containsKey(v.id)
+            : "Correlate Id used out of scope";
         variableFields.put(v.id, fieldAccess.getField().getIndex());
       }
       return super.visitFieldAccess(fieldAccess);
@@ -4699,6 +4702,8 @@ public abstract class RelOptUtil {
     private final VariableUsedVisitor vuv = new VariableUsedVisitor(this);
 
     @Override public RelNode visit(RelNode other) {
+      assert Sets.intersection(other.getVariablesSet(), vuv.variables).isEmpty()
+          : "Correlate Id used out of scope";
       other.collectVariablesUsed(vuv.variables);
       other.accept(vuv);
       RelNode result = super.visit(other);
