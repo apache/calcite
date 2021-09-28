@@ -7768,6 +7768,15 @@ public class JdbcTest {
     assertThat.query(query).returns("EXPR$0=4200000000\n");
   }
 
+  @Test public void testIntAndBigDecimalInArray() {
+    if (!Bug.CALCITE_4602_FIXED) {
+      return;
+    }
+    CalciteAssert.that()
+        .query("select array[1, 1.1]")
+        .returns("EXPR$0=[1, 1.1]\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
