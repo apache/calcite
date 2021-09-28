@@ -7742,6 +7742,17 @@ public class JdbcTest {
     assertThat.query(query).returns("EXPR$0=4200000000\n");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4811">[CALCITE-4811]
+   * Coalesce(null, row) fails with NPE</a>.
+   */
+  @Test public void testCoalesceNullAndRow() {
+    CalciteAssert.that()
+        .query("SELECT COALESCE(NULL, ROW(1))")
+        .returns("EXPR$0={1}\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {

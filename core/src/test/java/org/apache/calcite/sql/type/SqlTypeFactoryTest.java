@@ -84,6 +84,14 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.isNullable(), is(true));
   }
 
+  @Test void testLeastRestrictiveStructWithNull() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlNull, f.structOfInt));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ROW));
+    assertThat(leastRestrictive.isNullable(), is(true));
+  }
+
   @Test void testLeastRestrictiveForImpossibleWithArray() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
