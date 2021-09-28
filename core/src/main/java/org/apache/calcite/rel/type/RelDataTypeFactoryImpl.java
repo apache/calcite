@@ -225,6 +225,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   protected @Nullable RelDataType leastRestrictiveStructuredType(
       final List<RelDataType> types) {
     final RelDataType type0 = types.get(0);
+    // precheck that fieldCount is present
+    if (!type0.isStruct()) {
+      return null;
+    }
     final int fieldCount = type0.getFieldCount();
 
     // precheck that all types are structs with same number of fields

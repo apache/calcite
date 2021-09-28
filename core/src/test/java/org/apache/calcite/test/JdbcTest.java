@@ -7742,6 +7742,19 @@ public class JdbcTest {
     assertThat.query(query).returns("EXPR$0=4200000000\n");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4811">[CALCITE-4811]
+   * Check for internal content in case of ROW in
+   * RelDataTypeFactoryImpl#leastRestrictiveStructuredType should be after isStruct check</a>.
+   */
+  @Test public void testCoalesceNullAndRow() {
+    CalciteAssert.that()
+        .query("SELECT COALESCE(NULL, ROW(1)) AS F")
+        .typeIs("[F STRUCT]")
+        .returns("F={1}\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
