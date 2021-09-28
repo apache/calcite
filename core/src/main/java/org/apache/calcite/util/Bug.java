@@ -200,6 +200,10 @@ public abstract class Bug {
    * Druid plans with small intervals should be chosen over full interval scan plus filter</a> is
    * fixed. */
   public static final boolean CALCITE_4213_FIXED = false;
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4600">[CALCITE-4600]
+   * ClassCastException for arrays with date/time/timestamp elements</a> is fixed. */
+  public static final boolean CALCITE_4600_FIXED = false;
 
   /**
    * Use this to flag temporary code.
