@@ -7755,6 +7755,15 @@ public class JdbcTest {
         .returns("F={1}\n");
   }
 
+  @Test public void testArrayOfDates() {
+    if (!Bug.CALCITE_4600_FIXED) {
+      return;
+    }
+    CalciteAssert.that()
+        .query("select array[cast('1900-1-1' as date)]")
+        .returns("EXPR$0=[1900-01-01]\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
