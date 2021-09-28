@@ -7765,6 +7765,17 @@ public class JdbcTest {
         .returns("EXPR$0=[1900-01-01]\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4602">[CALCITE-4602]
+   * ClassCastException retrieving from ARRAY that has mixed INTEGER and DECIMAL
+   * elements</a>. */
+  @Test public void testIntAndBigDecimalInArray() {
+    // Result should be "EXPR$0=[1, 1.1]\n"; [CALCITE-4850] logged.
+    CalciteAssert.that()
+        .query("select array[1, 1.1]")
+        .returns("EXPR$0=[0E+1, 1.1]\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
