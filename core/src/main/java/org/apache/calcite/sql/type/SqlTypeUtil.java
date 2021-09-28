@@ -837,7 +837,7 @@ public abstract class SqlTypeUtil {
             toType, fromType.getFieldList().get(0).getType(), coerce);
       } else if (toTypeName == SqlTypeName.ROW) {
         if (fromTypeName != SqlTypeName.ROW) {
-          return false;
+          return fromTypeName == SqlTypeName.NULL;
         }
         int n = toType.getFieldCount();
         if (fromType.getFieldCount() != n) {
