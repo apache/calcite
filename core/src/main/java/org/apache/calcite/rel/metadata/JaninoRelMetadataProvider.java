@@ -75,9 +75,6 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
               CacheLoader.from(key ->
                   load3(key.def, key.provider.handlers(key.def))));
 
-  // Pre-register the most common relational operators, to reduce the number of
-  // times we re-generate.
-
   /** Private constructor; use {@link #of}. */
   private JaninoRelMetadataProvider(RelMetadataProvider provider) {
     this.provider = provider;
@@ -172,7 +169,6 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       generateCachedMethod(buff, method.e, method.i);
       dispatchGenerator.dispatchMethod(buff, method.e, map.get(method.e));
     }
-    //buff.append("}");
     final List<Object> argList = new ArrayList<>();
     argList.add(def);
     argList.addAll(handlerToName.keySet());
@@ -200,7 +196,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     paramList(buff, method)
         .append(") {\n")
         .append("    while (r instanceof ").append(delRelClass).append(") {\n")
-        .append("      r = ((").append(delRelClass).append(") r).getCurrentRel();\n")
+        .append("      r = ((").append(delRelClass).append(") r).getMetadataDelegateRel();\n")
         .append("    }\n")
         .append("    final java.util.List key = ")
         .append(

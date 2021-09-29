@@ -22,5 +22,5 @@ import org.apache.calcite.rel.RelNode;
  * Interface for {@link RelNode} where the metadata is derived from another node.
  */
 public interface DelegatingMetadataRel {
-  RelNode getCurrentRel();
+  RelNode getMetadataDelegateRel();
 }
