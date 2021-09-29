@@ -1207,7 +1207,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER NOT NULL MULTISET NOT NULL");
     expr("cast(1 as boolean)")
         .columnType("BOOLEAN NOT NULL");
-    expr("cast(1.0e1 as boolean)")
+    expr("cast(cast(1 as bigint) as boolean)")
+        .columnType("BOOLEAN NOT NULL");
+    expr("cast(cast(1 as smallint) as boolean)")
+        .columnType("BOOLEAN NOT NULL");
+    expr("cast(cast(1 as tinyint) as boolean)")
         .columnType("BOOLEAN NOT NULL");
     expr("cast(true as numeric)")
         .columnType("DECIMAL(19, 0) NOT NULL");
@@ -1267,6 +1271,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     wholeExpr("cast(TIME '12:34:01' as DATE)")
         .fails("(?s).*Cast function cannot convert value of type "
             + "TIME\\(0\\) to type DATE.*");
+    wholeExpr("cast(1.0e1 as boolean)")
+        .fails("(?s).*Cast function cannot convert value of type "
+            + "DOUBLE to type BOOLEAN");
+    wholeExpr("cast(cast(1.0 as float) as boolean)")
+        .fails("(?s).*Cast function cannot convert value of type "
+            + "FLOAT to type BOOLEAN");
+    wholeExpr("cast(cast(1.0 as real) as boolean)")
+        .fails("(?s).*Cast function cannot convert value of type "
+            + "REAL to type BOOLEAN");
+    wholeExpr("cast(cast(1.0 as decimal(2,1)) as boolean)")
+        .fails("(?s).*Cast function cannot convert value of type "
+            + "DECIMAL\\(2, 1\\) to type BOOLEAN");
   }
 
   @Test void testCastBinaryLiteral() {

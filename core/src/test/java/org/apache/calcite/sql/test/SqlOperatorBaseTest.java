@@ -202,6 +202,9 @@ public abstract class SqlOperatorBaseTest {
   public static final String INVALID_ARGUMENTS_NUMBER =
       "Invalid number of arguments to function .* Was expecting .* arguments";
 
+  public static final String INVALID_CAST_CONVERSION_ERROR =
+      "Cast function cannot convert value of type .* to type .*";
+
   public static final boolean TODO = false;
 
   /**
@@ -1595,6 +1598,29 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails(
         "cast(cast('blah' as varchar(10)) as boolean)", INVALID_CHAR_MESSAGE,
         true);
+
+    tester.checkBoolean("cast(0 as boolean)", Boolean.FALSE);
+    tester.checkBoolean("cast(cast(0 as tinyint) as boolean)", Boolean.FALSE);
+    tester.checkBoolean("cast(cast(0 as smallint) as boolean)", Boolean.FALSE);
+    tester.checkBoolean("cast(cast(0 as bigint) as boolean)", Boolean.FALSE);
+
+    //invalid cast conversion
+    //convert from decimal, double, float, real to boolean
+    tester.checkFails(
+        "^cast(0.10915913549909961 as boolean)^", INVALID_CAST_CONVERSION_ERROR,
+        false);
+    tester.checkFails(
+        "^cast(0.2 as boolean)^", INVALID_CAST_CONVERSION_ERROR,
+        false);
+    tester.checkFails(
+        "^cast(cast(0.0 as double) as boolean)^", INVALID_CAST_CONVERSION_ERROR,
+        false);
+    tester.checkFails(
+        "^cast(cast(0.0 as float) as boolean)^", INVALID_CAST_CONVERSION_ERROR,
+        false);
+    tester.checkFails(
+        "^cast(cast(0.0 as real) as boolean)^", INVALID_CAST_CONVERSION_ERROR,
+        false);
   }
 
   @Test void testCase() {
