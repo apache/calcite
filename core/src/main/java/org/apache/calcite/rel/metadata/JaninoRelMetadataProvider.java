@@ -127,8 +127,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     final Map<MetadataHandler<?>, String> handlerToName = new LinkedHashMap<>();
     for (MetadataHandler<?> provider : map.values()) {
       if (!handlerToName.containsKey(provider)) {
-        handlerToName.put(provider,
-            "provider" + (handlerToName.size()));
+        handlerToName.put(provider, "provider" + handlerToName.size());
       }
     }
 
