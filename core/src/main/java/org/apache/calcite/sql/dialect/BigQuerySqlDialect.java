@@ -197,6 +197,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
+  private static final String TEMP_REGEX = "\\s?°([CcFf])";
   /**
    * Creates a BigQuerySqlDialect.
    */
@@ -502,7 +503,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
       for (SqlNode operand : call.getOperandList()) {
         writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
+        if (operand instanceof SqlCharStringLiteral) {
+          SqlNode literalValue = handleBackSlashes(operand);
+          literalValue.unparse(writer, leftPrec, rightPrec);
+        } else {
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
       }
       writer.endFunCall(concatFrame);
       break;
@@ -581,6 +587,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private SqlNode handleBackSlashes(SqlNode operand) {
+    if (requireNonNull(((SqlCharStringLiteral) operand).toValue()).matches(TEMP_REGEX)) {
+      return operand;
+    }
+    String modifiedString = operand.toString().replaceAll("\\\\", "\\\\\\\\");
+    return modifiedString.equals(operand.toString()) ? operand : SqlLiteral.createCharString(
+            requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
   }
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {

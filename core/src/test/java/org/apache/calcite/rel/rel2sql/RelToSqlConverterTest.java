@@ -9097,6 +9097,15 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testConcatFunction() {
+    String query = "select '%''.' || '\\\\PWAPIKB01E\\Labelfiles\\'";
+    final String expectedBQSql = "SELECT CONCAT('%\\'.', '\\\\\\\\PWAPIKB01E\\\\Labelfiles"
+        + "\\\\')";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();
