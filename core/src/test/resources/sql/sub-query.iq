@@ -3083,9 +3083,9 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t3)], proj#0..2=[{expr
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
-# [CALCITE-4805] The IN sub-query can't be converted to OR when value list contains Null.
+# [CALCITE-4805] Calcite should convert a small IN-list as if the user had written OR, even if the IN-list contains NULL.
 
-# The IN sub-query contains partial null value.
+# The IN-list contains partial null value.
 select * from "scott".emp where comm in (300, 500, null);
 
 +-------+-------+----------+------+------------+---------+--------+--------+
@@ -3176,7 +3176,7 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[Sarg[(-∞..300:DECIMAL(7, 2)), (30
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
-# The IN sub-query only contains null value.
+# The IN-list only contains null value.
 select * from "scott".emp where empno in (null);
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
