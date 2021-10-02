@@ -638,7 +638,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       if (Join.class.isAssignableFrom(c)) {
         for (RelNode n : e.getValue()) {
           final Join join = (Join) n;
-          if (join.getJoinType() != JoinRelType.INNER && !join.isSemiJoin()) {
+          if (join.getJoinType() != JoinRelType.INNER) {
             // Skip it
             return false;
           }
