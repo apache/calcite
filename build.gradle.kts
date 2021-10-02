@@ -313,10 +313,9 @@ allprojects {
         dependencies {
             val testImplementation by configurations
             val testRuntimeOnly by configurations
-            testImplementation("org.junit.jupiter:junit-jupiter-api")
-            testImplementation("org.junit.jupiter:junit-jupiter-params")
+            testImplementation(platform("org.junit:junit-bom"))
+            testImplementation("org.junit.jupiter:junit-jupiter")
             testImplementation("org.hamcrest:hamcrest")
-            testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
             if (project.props.bool("junit4", default = false)) {
                 // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
                 testImplementation("junit:junit")
