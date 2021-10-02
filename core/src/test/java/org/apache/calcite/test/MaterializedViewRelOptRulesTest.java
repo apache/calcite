@@ -931,7 +931,7 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "join \"depts\" using (\"deptno\")",
         "select \"empid\" from \"emps\"\n"
             + "where \"deptno\" in (select \"deptno\" from \"depts\")")
-        .ok();
+        .noMat();
   }
 
   @Test void testJoinMaterialization12() {
