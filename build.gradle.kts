@@ -603,6 +603,7 @@ allprojects {
                     disable(
                         "ComplexBooleanConstant",
                         "EqualsGetClass",
+                        "EqualsHashCode", // verified in Checkstyle
                         "OperatorPrecedence",
                         "MutableConstantField",
                         "ReferenceEquality",
