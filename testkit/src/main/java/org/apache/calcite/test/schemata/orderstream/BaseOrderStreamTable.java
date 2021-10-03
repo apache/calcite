@@ -45,16 +45,16 @@ public abstract class BaseOrderStreamTable implements ScannableTable {
       .add("UNITS", SqlTypeName.INTEGER)
       .build();
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return protoRowType.apply(typeFactory);
   }
 
-  public Statistic getStatistic() {
+  @Override public Statistic getStatistic() {
     return Statistics.of(100d, ImmutableList.of(),
         RelCollations.createSingleton(0));
   }
 
-  public Schema.TableType getJdbcTableType() {
+  @Override public Schema.TableType getJdbcTableType() {
     return Schema.TableType.TABLE;
   }
 

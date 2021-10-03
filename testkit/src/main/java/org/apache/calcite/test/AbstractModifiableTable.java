@@ -36,7 +36,7 @@ public abstract class AbstractModifiableTable
   protected AbstractModifiableTable(String tableName) {
   }
 
-  public TableModify toModificationRel(
+  @Override public TableModify toModificationRel(
       RelOptCluster cluster,
       RelOptTable table,
       Prepare.CatalogReader catalogReader,

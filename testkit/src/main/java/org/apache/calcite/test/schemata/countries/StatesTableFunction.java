@@ -90,31 +90,31 @@ public class StatesTableFunction {
 
   private static ScannableTable eval(final Object[][] rows) {
     return new ScannableTable() {
-      public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return Linq4j.asEnumerable(rows);
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("name", SqlTypeName.VARCHAR)
             .add("geom", SqlTypeName.VARCHAR)
             .build();
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(rows.length,
             ImmutableList.of(ImmutableBitSet.of(0)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return false;
       }

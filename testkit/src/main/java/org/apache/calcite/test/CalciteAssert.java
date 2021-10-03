@@ -375,7 +375,7 @@ public class CalciteAssert {
       int executeCount = 0;
       Collection expected;
 
-      public void accept(ResultSet resultSet) {
+      @Override public void accept(ResultSet resultSet) {
         ++executeCount;
         try {
           final Collection result =
@@ -961,14 +961,14 @@ public class CalciteAssert {
       SchemaPlus fake =
           rootSchema.add(schema.schemaName, new AbstractSchema());
       fake.add("time_by_day", new AbstractTable() {
-        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
           return typeFactory.builder()
               .add("time_id", SqlTypeName.INTEGER)
               .add("the_year", SqlTypeName.INTEGER)
               .build();
         }
 
-        public <C> C unwrap(Class<C> aClass) {
+        @Override public <C> C unwrap(Class<C> aClass) {
           if (aClass.isAssignableFrom(SqlDialect.class)
               || aClass.isAssignableFrom(DataSource.class)) {
             return salesTable.unwrap(aClass);
@@ -977,14 +977,14 @@ public class CalciteAssert {
         }
       });
       fake.add("sales_fact_1997", new AbstractTable() {
-        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
           return typeFactory.builder()
               .add("time_id", SqlTypeName.INTEGER)
               .add("customer_id", SqlTypeName.INTEGER)
               .build();
         }
 
-        public <C> C unwrap(Class<C> aClass) {
+        @Override public <C> C unwrap(Class<C> aClass) {
           if (aClass.isAssignableFrom(SqlDialect.class)
               || aClass.isAssignableFrom(DataSource.class)) {
             return salesTable.unwrap(aClass);
@@ -1354,7 +1354,7 @@ public class CalciteAssert {
       this.schema = Objects.requireNonNull(schema, "schema");
     }
 
-    public Connection apply(Connection connection) throws SQLException {
+    @Override public Connection apply(Connection connection) throws SQLException {
       if (schema != null) {
         CalciteConnection con = connection.unwrap(CalciteConnection.class);
         SchemaPlus rootSchema = con.getRootSchema();
@@ -1374,7 +1374,7 @@ public class CalciteAssert {
       this.name = name;
     }
 
-    public Connection apply(Connection connection) throws SQLException {
+    @Override public Connection apply(Connection connection) throws SQLException {
       connection.setSchema(name);
       return connection;
     }
@@ -1389,7 +1389,7 @@ public class CalciteAssert {
       this.schemaSpec = schemaSpec;
     }
 
-    public Connection apply(Connection connection) throws SQLException {
+    @Override public Connection apply(Connection connection) throws SQLException {
       CalciteConnection con = connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = con.getRootSchema();
       switch (schemaSpec) {
@@ -1418,7 +1418,7 @@ public class CalciteAssert {
           new GenericObjectPool<>(connectionFactory));
     }
 
-    public Connection createConnection() throws SQLException {
+    @Override public Connection createConnection() throws SQLException {
       return dataSource.getConnection();
     }
   }
@@ -1446,7 +1446,7 @@ public class CalciteAssert {
       return Objects.hash(map, postProcessors);
     }
 
-    public Connection createConnection() throws SQLException {
+    @Override public Connection createConnection() throws SQLException {
       final Properties info = new Properties();
       for (Map.Entry<String, String> entry : map.entrySet()) {
         info.setProperty(entry.getKey(), entry.getValue());
@@ -1459,20 +1459,20 @@ public class CalciteAssert {
       return connection;
     }
 
-    public ConnectionFactory with(String property, Object value) {
+    @Override public ConnectionFactory with(String property, Object value) {
       return new MapConnectionFactory(
           FlatLists.append(this.map, property, value.toString()),
           postProcessors);
     }
 
-    public ConnectionFactory with(ConnectionProperty property, Object value) {
+    @Override public ConnectionFactory with(ConnectionProperty property, Object value) {
       if (!property.type().valid(value, property.valueClass())) {
         throw new IllegalArgumentException();
       }
       return with(property.camelName(), value.toString());
     }
 
-    public ConnectionFactory with(
+    @Override public ConnectionFactory with(
         ConnectionPostProcessor postProcessor) {
       ImmutableList.Builder<ConnectionPostProcessor> builder =
           ImmutableList.builder();

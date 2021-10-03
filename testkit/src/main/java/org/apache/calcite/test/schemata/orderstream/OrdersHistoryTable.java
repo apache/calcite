@@ -32,7 +32,7 @@ public class OrdersHistoryTable extends BaseOrderStreamTable {
     this.rows = rows;
   }
 
-  public Enumerable<@Nullable Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     return Linq4j.asEnumerable(rows);
   }
 }

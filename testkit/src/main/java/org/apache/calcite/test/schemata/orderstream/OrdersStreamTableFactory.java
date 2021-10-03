@@ -35,7 +35,7 @@ public class OrdersStreamTableFactory implements TableFactory<Table> {
   public OrdersStreamTableFactory() {
   }
 
-  public Table create(SchemaPlus schema, String name,
+  @Override public Table create(SchemaPlus schema, String name,
       Map<String, Object> operand, @Nullable RelDataType rowType) {
     return new OrdersTable(getRowList());
   }

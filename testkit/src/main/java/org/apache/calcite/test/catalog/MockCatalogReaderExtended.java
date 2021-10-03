@@ -207,7 +207,7 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
     restaurantTable.addMonotonic("HILBERT");
     restaurantTable.addWrap(
         new BuiltInMetadata.AllPredicates.Handler() {
-          public RelOptPredicateList getAllPredicates(RelNode r,
+          @Override public RelOptPredicateList getAllPredicates(RelNode r,
               RelMetadataQuery mq) {
             // Return the predicate:
             //  r.hilbert = hilbert(r.longitude, r.latitude)
@@ -236,7 +236,7 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
             throw new AssertionError();
           }
 
-          public MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
+          @Override public MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
             return BuiltInMetadata.AllPredicates.DEF;
           }
         });

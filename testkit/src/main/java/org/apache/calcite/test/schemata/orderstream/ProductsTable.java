@@ -50,19 +50,19 @@ public class ProductsTable implements ScannableTable {
       .add("SUPPLIER", SqlTypeName.INTEGER)
       .build();
 
-  public Enumerable<@Nullable Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     return Linq4j.asEnumerable(rows);
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return protoRowType.apply(typeFactory);
   }
 
-  public Statistic getStatistic() {
+  @Override public Statistic getStatistic() {
     return Statistics.of(200d, ImmutableList.of());
   }
 
-  public Schema.TableType getJdbcTableType() {
+  @Override public Schema.TableType getJdbcTableType() {
     return Schema.TableType.TABLE;
   }
 

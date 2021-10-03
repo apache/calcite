@@ -184,7 +184,7 @@ public class SqlTestFactory {
     RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
     if (conformance.shouldConvertRaggedUnionTypesToVarying()) {
       typeSystem = new DelegatingTypeSystem(typeSystem) {
-        public boolean shouldConvertRaggedUnionTypesToVarying() {
+        @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
           return true;
         }
       };

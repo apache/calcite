@@ -284,7 +284,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
         new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.getName(),
             "EMP_20", false, 600, empTable, m0, null,
             NullInitializerExpressionFactory.INSTANCE) {
-          public RexNode getConstraint(RexBuilder rexBuilder,
+          @Override public RexNode getConstraint(RexBuilder rexBuilder,
               RelDataType tableRowType) {
             final RelDataTypeField deptnoField =
                 tableRowType.getFieldList().get(7);
@@ -319,7 +319,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
         new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.getName(),
             "EMPNULLABLES_20", false, 600, empNullablesTable, m0, null,
             NullInitializerExpressionFactory.INSTANCE) {
-          public RexNode getConstraint(RexBuilder rexBuilder,
+          @Override public RexNode getConstraint(RexBuilder rexBuilder,
               RelDataType tableRowType) {
             final RelDataTypeField deptnoField =
                 tableRowType.getFieldList().get(7);

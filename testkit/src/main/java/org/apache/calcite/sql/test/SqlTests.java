@@ -533,7 +533,7 @@ public abstract class SqlTests {
       this.typeName = typeName;
     }
 
-    public void checkType(RelDataType type) {
+    @Override public void checkType(RelDataType type) {
       assertThat(type.toString(), is(typeName.toString()));
     }
   }
@@ -559,7 +559,7 @@ public abstract class SqlTests {
       this.expected = expected;
     }
 
-    public void checkType(RelDataType type) {
+    @Override public void checkType(RelDataType type) {
       String actual = getTypeString(type);
       assertThat(actual, is(expected));
     }
@@ -596,7 +596,7 @@ public abstract class SqlTests {
       this.pattern = pattern;
     }
 
-    public void checkResult(ResultSet resultSet) throws Exception {
+    @Override public void checkResult(ResultSet resultSet) throws Exception {
       compareResultSetWithPattern(resultSet, pattern);
     }
   }
@@ -614,7 +614,7 @@ public abstract class SqlTests {
       this.delta = delta;
     }
 
-    public void checkResult(ResultSet resultSet) throws Exception {
+    @Override public void checkResult(ResultSet resultSet) throws Exception {
       compareResultSetWithDelta(
           resultSet,
           expected.doubleValue(),
@@ -632,7 +632,7 @@ public abstract class SqlTests {
       this.expected = expected;
     }
 
-    public void checkResult(ResultSet resultSet) throws Exception {
+    @Override public void checkResult(ResultSet resultSet) throws Exception {
       compareResultSet(resultSet, expected);
     }
   }

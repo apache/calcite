@@ -34,7 +34,7 @@ public class InfiniteOrdersStreamTableFactory implements TableFactory<Table> {
   public InfiniteOrdersStreamTableFactory() {
   }
 
-  public Table create(SchemaPlus schema, String name,
+  @Override public Table create(SchemaPlus schema, String name,
       Map<String, Object> operand, @Nullable RelDataType rowType) {
     return new InfiniteOrdersTable();
   }

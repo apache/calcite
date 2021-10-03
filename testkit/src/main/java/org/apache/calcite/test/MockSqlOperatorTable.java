@@ -137,7 +137,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     }
 
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
       // This is wrong. A table function should return CURSOR.
       return opBinding.getTypeFactory().builder()
           .add("I", SqlTypeName.INTEGER)
@@ -180,7 +180,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
       final RelDataTypeFactory typeFactory =
           opBinding.getTypeFactory();
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
@@ -292,7 +292,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
       final RelDataTypeFactory typeFactory =
           opBinding.getTypeFactory();
       return typeFactory.createSqlType(SqlTypeName.BIGINT);

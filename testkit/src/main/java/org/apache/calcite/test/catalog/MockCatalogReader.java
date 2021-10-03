@@ -130,7 +130,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     return nameMatcher.isCaseSensitive();
   }
 
-  public SqlNameMatcher nameMatcher() {
+  @Override public SqlNameMatcher nameMatcher() {
     return nameMatcher;
   }
 
@@ -189,7 +189,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     if (table.stream) {
       registerTable(table.names,
           new StreamableWrapperTable(table) {
-            public Table stream() {
+            @Override public Table stream() {
               return wrapperTable;
             }
           });
@@ -478,7 +478,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return table;
     }
 
-    public <T> T unwrap(Class<T> clazz) {
+    @Override public <T> T unwrap(Class<T> clazz) {
       if (clazz.isInstance(this)) {
         return clazz.cast(this);
       }
@@ -499,47 +499,47 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return null;
     }
 
-    public double getRowCount() {
+    @Override public double getRowCount() {
       return rowCount;
     }
 
-    public RelOptSchema getRelOptSchema() {
+    @Override public RelOptSchema getRelOptSchema() {
       return catalogReader;
     }
 
-    public RelNode toRel(ToRelContext context) {
+    @Override public RelNode toRel(ToRelContext context) {
       return LogicalTableScan.create(context.getCluster(), this, context.getTableHints());
     }
 
-    public List<RelCollation> getCollationList() {
+    @Override public List<RelCollation> getCollationList() {
       return collationList;
     }
 
-    public RelDistribution getDistribution() {
+    @Override public RelDistribution getDistribution() {
       return RelDistributions.BROADCAST_DISTRIBUTED;
     }
 
-    public boolean isKey(ImmutableBitSet columns) {
+    @Override public boolean isKey(ImmutableBitSet columns) {
       return !keyList.isEmpty()
           && columns.contains(ImmutableBitSet.of(keyList));
     }
 
-    public List<ImmutableBitSet> getKeys() {
+    @Override public List<ImmutableBitSet> getKeys() {
       if (keyList.isEmpty()) {
         return ImmutableList.of();
       }
       return ImmutableList.of(ImmutableBitSet.of(keyList));
     }
 
-    public List<RelReferentialConstraint> getReferentialConstraints() {
+    @Override public List<RelReferentialConstraint> getReferentialConstraints() {
       return referentialConstraints;
     }
 
-    public RelDataType getRowType() {
+    @Override public RelDataType getRowType() {
       return rowType;
     }
 
-    public boolean supportsModality(SqlModality modality) {
+    @Override public boolean supportsModality(SqlModality modality) {
       return modality == (stream ? SqlModality.STREAM : SqlModality.RELATION);
     }
 
@@ -553,21 +553,21 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       collationList = deduceMonotonicity(this);
     }
 
-    public List<String> getQualifiedName() {
+    @Override public List<String> getQualifiedName() {
       return names;
     }
 
-    public SqlMonotonicity getMonotonicity(String columnName) {
+    @Override public SqlMonotonicity getMonotonicity(String columnName) {
       return monotonicColumnSet.contains(columnName)
           ? SqlMonotonicity.INCREASING
           : SqlMonotonicity.NOT_MONOTONIC;
     }
 
-    public SqlAccessType getAllowedAccess() {
+    @Override public SqlAccessType getAllowedAccess() {
       return SqlAccessType.ALL;
     }
 
-    public Expression getExpression(Class clazz) {
+    @Override public Expression getExpression(Class clazz) {
       // Return a true constant just to pass the tests in EnumerableTableScanRule.
       return Expressions.constant(true);
     }
@@ -952,39 +952,39 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.table = table;
     }
 
-    public <C> C unwrap(Class<C> aClass) {
+    @Override public <C> C unwrap(Class<C> aClass) {
       return aClass.isInstance(this) ? aClass.cast(this)
           : aClass.isInstance(table) ? aClass.cast(table)
           : null;
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return table.getRowType();
     }
 
-    public Statistic getStatistic() {
+    @Override public Statistic getStatistic() {
       return new Statistic() {
-        public Double getRowCount() {
+        @Override public Double getRowCount() {
           return table.rowCount;
         }
 
-        public boolean isKey(ImmutableBitSet columns) {
+        @Override public boolean isKey(ImmutableBitSet columns) {
           return table.isKey(columns);
         }
 
-        public List<ImmutableBitSet> getKeys() {
+        @Override public List<ImmutableBitSet> getKeys() {
           return table.getKeys();
         }
 
-        public List<RelReferentialConstraint> getReferentialConstraints() {
+        @Override public List<RelReferentialConstraint> getReferentialConstraints() {
           return table.getReferentialConstraints();
         }
 
-        public List<RelCollation> getCollations() {
+        @Override public List<RelCollation> getCollations() {
           return table.collationList;
         }
 
-        public RelDistribution getDistribution() {
+        @Override public RelDistribution getDistribution() {
           return table.getDistribution();
         }
       };
@@ -1001,7 +1001,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
               && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);
     }
 
-    public Schema.TableType getJdbcTableType() {
+    @Override public Schema.TableType getJdbcTableType() {
       return table.stream ? Schema.TableType.STREAM : Schema.TableType.TABLE;
     }
   }
@@ -1014,7 +1014,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       super(table);
     }
 
-    public Table stream() {
+    @Override public Table stream() {
       return this;
     }
   }

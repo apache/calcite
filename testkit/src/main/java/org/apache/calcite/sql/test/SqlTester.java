@@ -248,7 +248,7 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    * @param sql  Query expression
    * @param type Type string
    */
-  void checkColumnType(
+  @Override void checkColumnType(
       String sql,
       String type);
 

@@ -31,28 +31,28 @@ import java.util.Iterator;
  */
 public class InfiniteOrdersTable extends BaseOrderStreamTable
     implements StreamableTable {
-  public Enumerable<@Nullable Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
       private final String[] items = {"paint", "paper", "brush"};
       private int counter = 0;
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return true;
       }
 
-      public Object[] next() {
+      @Override public Object[] next() {
         final int index = counter++;
         return new Object[]{
             System.currentTimeMillis(), index, items[index % items.length], 10};
       }
 
-      public void remove() {
+      @Override public void remove() {
         throw new UnsupportedOperationException();
       }
     });
   }
 
-  public Table stream() {
+  @Override public Table stream() {
     return this;
   }
 }

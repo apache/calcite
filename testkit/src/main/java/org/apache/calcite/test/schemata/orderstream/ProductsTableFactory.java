@@ -31,7 +31,7 @@ import java.util.Map;
  * Mocks a simple relation to use for stream joining test.
  */
 public class ProductsTableFactory implements TableFactory<Table> {
-  public Table create(SchemaPlus schema, String name,
+  @Override public Table create(SchemaPlus schema, String name,
       Map<String, Object> operand, @Nullable RelDataType rowType) {
     final Object[][] rows = {
         {"paint", 1},

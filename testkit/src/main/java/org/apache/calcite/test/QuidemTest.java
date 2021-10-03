@@ -214,7 +214,7 @@ public abstract class QuidemTest {
       return connect(name, false);
     }
 
-    public Connection connect(String name, boolean reference)
+    @Override public Connection connect(String name, boolean reference)
         throws Exception {
       if (reference) {
         if (name.equals("foodmart")) {
@@ -287,7 +287,7 @@ public abstract class QuidemTest {
             .getSubSchema("s")
             .add("my_seq",
                 new AbstractTable() {
-                  public RelDataType getRowType(
+                  @Override public RelDataType getRowType(
                       RelDataTypeFactory typeFactory) {
                     return typeFactory.builder()
                         .add("$seq", SqlTypeName.BIGINT).build();

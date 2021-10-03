@@ -38,7 +38,7 @@ public class SqlValidatorTester extends AbstractSqlTester {
     return new SqlValidatorTester(factory, validatorTransform);
   }
 
-  public SqlTester withValidatorTransform(
+  @Override public SqlTester withValidatorTransform(
       UnaryOperator<UnaryOperator<SqlValidator>> transform) {
     return new SqlValidatorTester(factory,
         transform.apply(validatorTransform));

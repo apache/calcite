@@ -656,12 +656,12 @@ public class SqlParserTest {
    * DDL statement. */
   public static Matcher<SqlNode> isDdl() {
     return new BaseMatcher<SqlNode>() {
-      public boolean matches(Object item) {
+      @Override public boolean matches(Object item) {
         return item instanceof SqlNode
             && SqlKind.DDL.contains(((SqlNode) item).getKind());
       }
 
-      public void describeTo(Description description) {
+      @Override public void describeTo(Description description) {
         description.appendText("isDdl");
       }
     };
@@ -673,7 +673,7 @@ public class SqlParserTest {
   private static Matcher<SqlNode> isQuoted(final int i,
       final boolean quoted) {
     return new CustomTypeSafeMatcher<SqlNode>("quoting") {
-      protected boolean matchesSafely(SqlNode item) {
+      @Override protected boolean matchesSafely(SqlNode item) {
         final SqlCall valuesCall = (SqlCall) item;
         final SqlCall rowCall = valuesCall.operand(0);
         final SqlIdentifier id = rowCall.operand(0);
@@ -7409,7 +7409,7 @@ public class SqlParserTest {
         .ok("INTERVAL '1:1' MINUTE TO SECOND");
   }
 
-  private Consumer<List<? extends Throwable>> checkWarnings(
+  private static Consumer<List<? extends Throwable>> checkWarnings(
       String... tokens) {
     final List<String> messages = new ArrayList<>();
     for (String token : tokens) {
@@ -9660,7 +9660,7 @@ public class SqlParserTest {
       }
     }
 
-    public void check(StringAndPos sap, SqlDialect dialect, String expected,
+    @Override public void check(StringAndPos sap, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker) {
       final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
       final SqlNode sqlNode =
@@ -9694,7 +9694,7 @@ public class SqlParserTest {
       return sqlNodeList;
     }
 
-    public void checkExp(StringAndPos sap, SqlDialect dialect, String expected,
+    @Override public void checkExp(StringAndPos sap, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker) {
       final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
       final SqlNode sqlNode =

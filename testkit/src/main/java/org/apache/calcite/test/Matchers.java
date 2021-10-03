@@ -83,7 +83,7 @@ public class Matchers {
         description.appendText("was ").appendValue(value);
       }
 
-      protected boolean matchesSafely(ResultSet resultSet) {
+      @Override protected boolean matchesSafely(ResultSet resultSet) {
         final List<String> actualList = new ArrayList<>();
         try {
           CalciteAssert.toStringList(resultSet, actualList);
@@ -119,7 +119,7 @@ public class Matchers {
             .appendValue(Util.lines(actualList));
       }
 
-      protected boolean matchesSafely(Iterable<E> actuals) {
+      @Override protected boolean matchesSafely(Iterable<E> actuals) {
         final List<String> actualList =
             Lists.newArrayList(toStringList(actuals));
         Collections.sort(actualList);
@@ -152,7 +152,7 @@ public class Matchers {
    */
   public static <T extends Comparable<T>> Matcher<T> between(T min, T max) {
     return new CustomTypeSafeMatcher<T>("between " + min + " and " + max) {
-      protected boolean matchesSafely(T item) {
+      @Override protected boolean matchesSafely(T item) {
         return min.compareTo(item) <= 0
             && item.compareTo(max) <= 0;
       }
@@ -323,11 +323,11 @@ public class Matchers {
       this.epsilon = epsilon;
     }
 
-    public boolean matches(Object actualValue) {
+    @Override public boolean matches(Object actualValue) {
       return isWithin(actualValue, expectedValue, epsilon);
     }
 
-    public void describeTo(Description description) {
+    @Override public void describeTo(Description description) {
       description.appendValue(expectedValue + " +/-" + epsilon);
     }
 
@@ -361,11 +361,11 @@ public class Matchers {
       this.f = f;
     }
 
-    protected boolean matchesSafely(F item) {
+    @Override protected boolean matchesSafely(F item) {
       return Unsafe.matches(matcher, f.apply(item));
     }
 
-    public void describeTo(Description description) {
+    @Override public void describeTo(Description description) {
       matcher.describeTo(description);
     }
 

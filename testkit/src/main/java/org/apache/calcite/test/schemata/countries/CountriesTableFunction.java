@@ -292,11 +292,11 @@ public class CountriesTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return Linq4j.asEnumerable(ROWS);
       };
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("country", SqlTypeName.VARCHAR)
             .add("latitude", SqlTypeName.DECIMAL).nullable(true)
@@ -305,20 +305,20 @@ public class CountriesTableFunction {
             .build();
       }
 
-      public Statistic getStatistic() {
+      @Override public Statistic getStatistic() {
         return Statistics.of(246D,
             ImmutableList.of(ImmutableBitSet.of(0), ImmutableBitSet.of(3)));
       }
 
-      public Schema.TableType getJdbcTableType() {
+      @Override public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      public boolean isRolledUp(String column) {
+      @Override public boolean isRolledUp(String column) {
         return false;
       }
 
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return false;
       }
