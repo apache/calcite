@@ -675,7 +675,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
               sql,
               pos.getEndLineNum(),
               pos.getEndColumnNum()) + 1;
-      String param = "p" + (p++);
+      String param = "p" + p++;
       values.add(Pair.of(sql2.substring(start, end), param));
       sql2 = sql2.substring(0, start)
           + param

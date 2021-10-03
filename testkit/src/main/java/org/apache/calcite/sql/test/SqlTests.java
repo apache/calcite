@@ -213,12 +213,17 @@ public abstract class SqlTests {
       actualSet.add(s);
       switch (rep) {
       case BOOLEAN:
+      case PRIMITIVE_BOOLEAN:
         assertThat(resultSet.getBoolean(1), equalTo(Boolean.valueOf(s)));
         break;
       case BYTE:
+      case PRIMITIVE_BYTE:
       case SHORT:
+      case PRIMITIVE_SHORT:
       case INTEGER:
+      case PRIMITIVE_INT:
       case LONG:
+      case PRIMITIVE_LONG:
         long l;
         try {
           l = Long.parseLong(s0);
@@ -232,11 +237,15 @@ public abstract class SqlTests {
         assertThat(resultSet.getLong(1), equalTo(l));
         break;
       case FLOAT:
+      case PRIMITIVE_FLOAT:
       case DOUBLE:
+      case PRIMITIVE_DOUBLE:
         final double d = Double.parseDouble(s0);
         assertThat(resultSet.getFloat(1), equalTo((float) d));
         assertThat(resultSet.getDouble(1), equalTo(d));
         break;
+      default:
+        // TODO: verify value
       }
       final boolean wasNull1 = resultSet.wasNull();
       final Object object = resultSet.getObject(1);

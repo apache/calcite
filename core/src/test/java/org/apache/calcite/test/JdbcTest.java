@@ -5033,7 +5033,6 @@ public class JdbcTest {
         .convertMatches(relNode -> {
           String s = RelOptUtil.toString(relNode);
           assertThat(s, not(containsString("Correlate")));
-          return null;
         });
   }
 

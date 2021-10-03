@@ -100,6 +100,7 @@ public abstract class QuidemTest {
     return m;
   }
 
+  @SuppressWarnings("BetaApi")
   protected static Collection<Object[]> data(String first) {
     // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/agg.iq"
     final URL inUrl = QuidemTest.class.getResource("/" + n2u(first));

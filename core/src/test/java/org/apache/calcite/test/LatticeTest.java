@@ -381,7 +381,6 @@ class LatticeTest {
                   containsStringLinux(
                       "LogicalAggregate(group=[{2, 10}])\n"
                           + "  StarTableScan(table=[[adhoc, star]])\n")));
-          return null;
         });
     assertThat(counter.intValue(), equalTo(2));
     that.explainContains(""

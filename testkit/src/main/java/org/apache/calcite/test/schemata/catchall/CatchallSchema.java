@@ -35,6 +35,7 @@ import java.util.List;
  * Object whose fields are relations. Called "catch-all" because it's OK
  * if tests add new fields.
  */
+@SuppressWarnings("UnusedVariable")
 public class CatchallSchema {
   public final Enumerable<Employee> enumerable =
       Linq4j.asEnumerable(
@@ -45,6 +46,7 @@ public class CatchallSchema {
 
   public final BitSet bitSet = new BitSet(1);
 
+  @SuppressWarnings("JavaUtilDate")
   public final EveryType[] everyTypes = {
       new EveryType(
           false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,

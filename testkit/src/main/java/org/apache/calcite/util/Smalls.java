@@ -763,7 +763,7 @@ public class Smalls {
     /** For overloaded user-defined functions that have {@code double} and
      * {@code BigDecimal} arguments will go wrong. */
     public static double toDouble(BigDecimal var) {
-      return var == null ? null : var.doubleValue();
+      return var == null ? 0.0d : var.doubleValue();
     }
     public static double toDouble(Double var) {
       return var == null ? 0.0d : var;
@@ -960,7 +960,7 @@ public class Smalls {
       return 0L;
     }
     public long add(short accumulator, int v) {
-      return accumulator + v;
+      return Math.addExact(accumulator, v);
     }
   }
 
@@ -991,7 +991,7 @@ public class Smalls {
       return view(sb.toString());
     }
 
-    private void abc(StringBuilder sb, Object s) {
+    private static void abc(StringBuilder sb, Object s) {
       if (s != null) {
         if (sb.length() > 0) {
           sb.append(", ");
@@ -1015,7 +1015,7 @@ public class Smalls {
       return view(sb.toString());
     }
 
-    private void abc(StringBuilder sb, Object s) {
+    private static void abc(StringBuilder sb, Object s) {
       if (s != null) {
         if (sb.length() > 0) {
           sb.append(", ");

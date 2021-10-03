@@ -281,10 +281,6 @@ public class SqlValidatorTestCase {
     }
 
     public StringAndPos toSql(boolean withCaret) {
-      final String sql2 = withCaret && sap.cursor >= 0
-          ? sap.sql.substring(0, sap.cursor)
-          + "^" + sap.sql.substring(sap.cursor)
-          : sap.sql;
       return query ? sap
           : StringAndPos.of(AbstractSqlTester.buildQuery(sap.addCarets()));
     }
@@ -417,8 +413,8 @@ public class SqlValidatorTestCase {
       return withTester(tester -> tester.withUnquotedCasing(casing));
     }
 
-    private SqlTester addTransform(SqlTester tester, UnaryOperator<SqlValidator> after) {
-      return this.tester.withValidatorTransform(transform ->
+    private static SqlTester addTransform(SqlTester tester, UnaryOperator<SqlValidator> after) {
+      return tester.withValidatorTransform(transform ->
           validator -> after.apply(transform.apply(validator)));
     }
 

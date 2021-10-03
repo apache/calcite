@@ -9796,20 +9796,20 @@ public class SqlParserTest {
           .withFromFolding(SqlWriterConfig.LineFolding.TALL);
     }
 
-    private UnaryOperator<SqlWriterConfig> simpleWithParens() {
-      return simple().andThen(withParens())::apply;
+    private SqlWriterConfig simpleWithParens(SqlWriterConfig c) {
+      return simple().andThen(this::withParens).apply(c);
     }
 
-    private UnaryOperator<SqlWriterConfig> simpleWithParensAnsi() {
-      return simpleWithParens().andThen(withAnsi())::apply;
+    private SqlWriterConfig simpleWithParensAnsi(SqlWriterConfig c) {
+      return withAnsi(simpleWithParens(c));
     }
 
-    private UnaryOperator<SqlWriterConfig> withParens() {
-      return c -> c.withAlwaysUseParentheses(true);
+    private SqlWriterConfig withParens(SqlWriterConfig c) {
+      return c.withAlwaysUseParentheses(true);
     }
 
-    private UnaryOperator<SqlWriterConfig> withAnsi() {
-      return c -> c.withDialect(AnsiSqlDialect.DEFAULT);
+    private SqlWriterConfig withAnsi(SqlWriterConfig c) {
+      return c.withDialect(AnsiSqlDialect.DEFAULT);
     }
 
     private UnaryOperator<SqlWriterConfig> randomize(Random random) {
@@ -9846,7 +9846,7 @@ public class SqlParserTest {
         SqlNode sqlNode = sqlNodeList.get(i);
         // Unparse with no dialect, always parenthesize.
         final String actual =
-            sqlNode.toSqlString(simpleWithParensAnsi()).getSql();
+            sqlNode.toSqlString(this::simpleWithParensAnsi).getSql();
         assertEquals(expected.get(i), linux(actual));
       }
     }
@@ -9892,7 +9892,8 @@ public class SqlParserTest {
       // Unparse with the given dialect, always parenthesize.
       final SqlDialect dialect2 = Util.first(dialect, AnsiSqlDialect.DEFAULT);
       final UnaryOperator<SqlWriterConfig> transform2 =
-          simpleWithParens().andThen(c -> c.withDialect(dialect2))::apply;
+          c -> simpleWithParens(c)
+              .withDialect(dialect2);
       final String actual = sqlNode.toSqlString(transform2).getSql();
       assertEquals(expected, linux(actual));
 
@@ -9944,7 +9945,7 @@ public class SqlParserTest {
 
       // Unparse with no dialect, always parenthesize.
       final UnaryOperator<SqlWriterConfig> transform2 = c ->
-          simpleWithParens().apply(c).withDialect(AnsiSqlDialect.DEFAULT);
+          simpleWithParens(c).withDialect(AnsiSqlDialect.DEFAULT);
       final String actual = sqlNode.toSqlString(transform2).getSql();
       assertEquals(expected, linux(actual));
 
@@ -9989,7 +9990,7 @@ public class SqlParserTest {
 
   /** Converts a string to linux format (LF line endings rather than CR-LF),
    * except if disabled in {@link #LINUXIFY}. */
-  private String linux(String s) {
+  private static String linux(String s) {
     if (LINUXIFY.get()[0]) {
       s = Util.toLinux(s);
     }

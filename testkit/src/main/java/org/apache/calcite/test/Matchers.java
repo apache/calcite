@@ -242,6 +242,7 @@ public class Matchers {
    * <p>This method is necessary because {@link RangeSet#toString()} changed
    * behavior. Guava 19 - 28 used a unicode symbol;Guava 29 onwards uses "..".
    */
+  @SuppressWarnings("BetaApi")
   public static Matcher<RangeSet> isRangeSet(final String value) {
     return compose(Is.is(value), input -> {
       // Change all '\u2025' (a unicode symbol denoting a range) to '..',

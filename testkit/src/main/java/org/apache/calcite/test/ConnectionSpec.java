@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.test;
 
+import com.google.errorprone.annotations.Immutable;
+
 /** Information necessary to create a JDBC connection.
  *
  * <p>Specify one to run tests against a different database. */
+@Immutable
 public class ConnectionSpec {
   public final String url;
   public final String username;

@@ -204,7 +204,6 @@ public abstract class DiffTestCase {
    * @param refFile Reference log
    */
   protected void diffFile(File logFile, File refFile) throws IOException {
-    int n = 0;
     BufferedReader logReader = null;
     BufferedReader refReader = null;
     try {

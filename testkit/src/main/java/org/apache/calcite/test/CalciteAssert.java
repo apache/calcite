@@ -115,7 +115,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -137,8 +136,6 @@ import javax.sql.DataSource;
 import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
-import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FORMAT;
-import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 import static org.apache.commons.lang3.StringUtils.countMatches;
 
@@ -165,15 +162,6 @@ public class CalciteAssert {
    **/
   public static final DatabaseInstance DB =
       DatabaseInstance.valueOf(CalciteSystemProperty.TEST_DB.value());
-
-  private static final DateFormat UTC_DATE_FORMAT;
-  private static final DateFormat UTC_TIME_FORMAT;
-  private static final DateFormat UTC_TIMESTAMP_FORMAT;
-  static {
-    UTC_DATE_FORMAT = getDateFormatter(DateTimeUtils.DATE_FORMAT_STRING);
-    UTC_TIME_FORMAT = getDateFormatter(DateTimeUtils.TIME_FORMAT_STRING);
-    UTC_TIMESTAMP_FORMAT = getDateFormatter(ISO_DATETIME_FORMAT);
-  }
 
   public static final ConnectionFactory EMPTY_CONNECTION_FACTORY =
       new MapConnectionFactory(ImmutableMap.of(), ImmutableList.of());
@@ -261,7 +249,7 @@ public class CalciteAssert {
     return that(Config.REGULAR);
   }
 
-  static Function<RelNode, Void> checkRel(final String expected,
+  static Consumer<RelNode> checkRel(final String expected,
       final AtomicInteger counter) {
     return relNode -> {
       if (counter != null) {
@@ -269,7 +257,6 @@ public class CalciteAssert {
       }
       String s = RelOptUtil.toString(relNode);
       assertThat(s, containsStringLinux(expected));
-      return null;
     };
   }
 
@@ -384,7 +371,9 @@ public class CalciteAssert {
           if (executeCount == 1) {
             expected = result;
           } else {
-            if (!expected.equals(result)) {
+            @SuppressWarnings("UndefinedEquals")
+            boolean matches = expected.equals(result);
+            if (!matches) {
               // compare strings to get better error message
               assertThat(newlineList(result), equalTo(newlineList(expected)));
               fail("oops");
@@ -666,17 +655,16 @@ public class CalciteAssert {
       Connection connection,
       String sql,
       boolean materializationsEnabled,
-      final Function<RelNode, Void> convertChecker,
-      final Function<RelNode, Void> substitutionChecker) {
+      final Consumer<RelNode> convertChecker,
+      final Consumer<RelNode> substitutionChecker) {
     try (Closer closer = new Closer()) {
       if (convertChecker != null) {
         closer.add(
-            Hook.TRIMMED.addThread((Consumer<RelNode>) convertChecker::apply));
+            Hook.TRIMMED.addThread(convertChecker));
       }
       if (substitutionChecker != null) {
         closer.add(
-            Hook.SUB.addThread(
-                (Consumer<RelNode>) substitutionChecker::apply));
+            Hook.SUB.addThread(substitutionChecker));
       }
       ((CalciteConnection) connection).getProperties().setProperty(
           CalciteConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
@@ -1646,14 +1634,14 @@ public class CalciteAssert {
       return this;
     }
 
-    public AssertQuery convertMatches(final Function<RelNode, Void> checker) {
+    public AssertQuery convertMatches(final Consumer<RelNode> checker) {
       return withConnection(connection ->
         assertPrepare(connection, sql, this.materializationsEnabled,
             checker, null));
     }
 
     public AssertQuery substitutionMatches(
-        final Function<RelNode, Void> checker) {
+        final Consumer<RelNode> checker) {
       return withConnection(connection ->
         assertPrepare(connection, sql, materializationsEnabled, null, checker));
     }
@@ -2021,12 +2009,12 @@ public class CalciteAssert {
     }
 
     @Override public AssertQuery convertMatches(
-        Function<RelNode, Void> checker) {
+        Consumer<RelNode> checker) {
       return this;
     }
 
     @Override public AssertQuery substitutionMatches(
-        Function<RelNode, Void> checker) {
+        Consumer<RelNode> checker) {
       return this;
     }
 
