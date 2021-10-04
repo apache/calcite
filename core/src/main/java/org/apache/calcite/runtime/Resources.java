@@ -35,7 +35,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.security.PrivilegedAction;
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.MessageFormat;
@@ -985,11 +984,12 @@ public class Resources {
      * Opens the properties file corresponding to a given class. The code is
      * copied from {@link ResourceBundle}.
      */
+    @SuppressWarnings("removal")
     private static @Nullable InputStream openPropertiesFile(Class clazz) {
       final ClassLoader loader = clazz.getClassLoader();
       final String resName = clazz.getName().replace('.', '/') + ".properties";
       return java.security.AccessController.doPrivileged(
-          (PrivilegedAction<@Nullable InputStream>) () -> {
+          (java.security.PrivilegedAction<@Nullable InputStream>) () -> {
             if (loader != null) {
               return loader.getResourceAsStream(resName);
             } else {
