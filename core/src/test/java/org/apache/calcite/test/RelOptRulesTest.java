@@ -5442,6 +5442,71 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4634">[CALCITE-4634]
+   * Improve AggregateProjectPullUpConstantsRule to remove all constant keys</a>
+   * Tests with {@code config.withRemoveAllConstants(true)}
+   * constant key is removed even if "deptno" is the only key. */
+  @Test void testAggregateConstantKeyRuleWithRemoveAll() {
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno";
+    sql(sql).withRule(AggregateProjectPullUpConstantsRule.Config.DEFAULT
+        .withRemoveAllConstants(true)
+        .toRule())
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4634">[CALCITE-4634]
+   * Improve AggregateProjectPullUpConstantsRule to remove all constant keys</a>
+   * Tests with {@code config.withRemoveAllConstants(true)}
+   * both keys are constant and both can be removed. */
+  @Test void testAggregateConstantKeyRuleWithRemoveAll1() {
+    final String sql = "select job\n"
+        + "from sales.emp\n"
+        + "where deptno = 10 and job = 'Clerk'\n"
+        + "group by deptno, job\n"
+        + "having count(*) > 3";
+    sql(sql).withRule(AggregateProjectPullUpConstantsRule.Config.DEFAULT
+        .withRemoveAllConstants(true)
+        .toRule())
+        .check();
+  }
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4634">[CALCITE-4634]
+   * Improve AggregateProjectPullUpConstantsRule to remove all constant keys</a>
+   * Tests with {@code config.withRemoveAllConstants(true)} and no aggregate function
+   * both constant keys are removed. */
+  @Test void testAggregateConstantKeyRuleWithRemoveAll2() {
+    final String sql = "select job\n"
+        + "from sales.emp\n"
+        + "where deptno = 10 and job = 'Clerk'\n"
+        + "group by deptno, job";
+    sql(sql).withRule(AggregateProjectPullUpConstantsRule.Config.DEFAULT
+        .withRemoveAllConstants(true)
+        .toRule())
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4634">[CALCITE-4634]
+   * Improve AggregateProjectPullUpConstantsRule to remove all constant keys</a>
+   * Tests with {@code config.withRemoveAllConstants(true)} and MAX aggregate function:
+   * - both constant keys are removed.
+   * - IS NULL attribute is preserved. */
+  @Test void testAggregateConstantKeyRuleWithRemoveAll3() {
+    final String sql = "select max(job)\n"
+        + "from sales.emp\n"
+        + "where deptno = 10 and job = 'Clerk'\n"
+        + "group by deptno, job";
+    sql(sql).withRule(AggregateProjectPullUpConstantsRule.Config.DEFAULT
+        .withRemoveAllConstants(true)
+        .toRule())
+        .check();
+  }
+
   @Test void testReduceExpressionsNot() {
     final String sql = "select * from (values (false),(true)) as q (col1) where not(col1)";
     sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
