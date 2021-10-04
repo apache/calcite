@@ -41,6 +41,8 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import com.alibaba.innodb.java.reader.schema.TableDef;
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.List;
 
 /**
@@ -202,13 +204,15 @@ public class InnodbRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = false)
+    @Value.Style(init = "with*", typeImmutable = "ImmutableInnodbFilterRuleConfig")
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableInnodbFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class)
                   .oneInput(b1 -> b1.operand(InnodbTableScan.class)
                       .noInputs()))
-          .as(Config.class);
+          .build();
 
       @Override default InnodbFilterRule toRule() {
         return new InnodbFilterRule(this);
@@ -311,8 +315,10 @@ public class InnodbRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = false)
+    @Value.Style(init = "with*", typeImmutable = "ImmutableInnodbSortFilterRuleConfig")
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableInnodbSortFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class)
                   .predicate(sort -> true)
@@ -322,7 +328,7 @@ public class InnodbRules {
                               b2.operand(InnodbFilter.class)
                                   .predicate(innodbFilter -> true)
                                   .anyInputs())))
-          .as(Config.class);
+          .build();
 
       @Override default InnodbSortFilterRule toRule() {
         return new InnodbSortFilterRule(this);
@@ -350,8 +356,10 @@ public class InnodbRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = false)
+    @Value.Style(init = "with*", typeImmutable = "ImmutableInnodbSortTableScanRuleConfig")
     public interface Config extends RelRule.Config {
-      InnodbSortTableScanRule.Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableInnodbSortTableScanRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class)
                   .predicate(sort -> true)
@@ -361,7 +369,7 @@ public class InnodbRules {
                               b2.operand(InnodbTableScan.class)
                                   .predicate(tableScan -> true)
                                   .anyInputs())))
-          .as(InnodbSortTableScanRule.Config.class);
+          .build();
 
       @Override default InnodbSortTableScanRule toRule() {
         return new InnodbSortTableScanRule(this);

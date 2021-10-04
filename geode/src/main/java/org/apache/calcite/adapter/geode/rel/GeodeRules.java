@@ -40,6 +40,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -197,13 +199,13 @@ public class GeodeRules {
       extends RelRule<GeodeSortLimitRule.Config> {
 
     private static final GeodeSortLimitRule INSTANCE =
-        Config.EMPTY
+        ImmutableGeodeSortLimitRuleConfig.builder()
             .withOperandSupplier(b ->
                 b.operand(Sort.class)
                     // OQL doesn't support offsets (e.g. LIMIT 10 OFFSET 500)
                     .predicate(sort -> sort.offset == null)
                     .anyInputs())
-            .as(Config.class)
+            .build()
             .toRule();
 
     /** Creates a GeodeSortLimitRule. */
@@ -226,6 +228,8 @@ public class GeodeRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = false)
+    @Value.Style(init = "with*", typeImmutable = "ImmutableGeodeSortLimitRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default GeodeSortLimitRule toRule() {
         return new GeodeSortLimitRule(this);
@@ -241,11 +245,11 @@ public class GeodeRules {
       extends RelRule<GeodeFilterRule.Config> {
 
     private static final GeodeFilterRule INSTANCE =
-        Config.EMPTY
+        ImmutableGeodeFilterRuleConfig.builder()
             .withOperandSupplier(b0 ->
                 b0.operand(LogicalFilter.class).oneInput(b1 ->
                     b1.operand(GeodeTableScan.class).noInputs()))
-            .as(Config.class)
+            .build()
             .toRule();
 
     /** Creates a GeodeFilterRule. */
@@ -380,6 +384,8 @@ public class GeodeRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable(singleton = false)
+    @Value.Style(init = "with*", typeImmutable = "ImmutableGeodeFilterRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default GeodeFilterRule toRule() {
         return new GeodeFilterRule(this);

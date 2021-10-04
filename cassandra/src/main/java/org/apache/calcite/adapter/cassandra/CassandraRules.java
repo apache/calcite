@@ -41,6 +41,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 
+import org.immutables.value.Value;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -223,13 +225,15 @@ public class CassandraRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableCassandraFilterRuleConfig")
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableCassandraFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class)
                   .oneInput(b1 -> b1.operand(CassandraTableScan.class)
                       .noInputs()))
-          .as(Config.class);
+          .build();
 
       @Override default CassandraFilterRule toRule() {
         return new CassandraFilterRule(this);
@@ -355,8 +359,10 @@ public class CassandraRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableCassandraSortRuleConfig")
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableCassandraSortRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class)
                   // Limits are handled by CassandraLimit
@@ -370,8 +376,7 @@ public class CassandraRules {
                                   // single partition
                                   .predicate(
                                       CassandraFilter::isSinglePartition)
-                                  .anyInputs())))
-          .as(Config.class);
+                                  .anyInputs()))).build();
 
       @Override default CassandraSortRule toRule() {
         return new CassandraSortRule(this);
@@ -409,14 +414,15 @@ public class CassandraRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableCassandraLimitRuleConfig")
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableCassandraLimitRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(EnumerableLimit.class)
                   .oneInput(b1 ->
                       b1.operand(CassandraToEnumerableConverter.class)
-                          .anyInputs()))
-          .as(Config.class);
+                          .anyInputs())).build();
 
       @Override default CassandraLimitRule toRule() {
         return new CassandraLimitRule(this);

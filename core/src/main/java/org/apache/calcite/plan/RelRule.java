@@ -158,8 +158,9 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
     Config withRelBuilderFactory(RelBuilderFactory factory);
 
     /** Description of the rule instance. */
+    // CALCITE-4831: remove the second nullable annotation once immutables/#1261 is fixed
     @ImmutableBeans.Property
-    @Nullable String description();
+    @javax.annotation.Nullable @Nullable String description();
 
     /** Sets {@link #description()}. */
     Config withDescription(@Nullable String description);

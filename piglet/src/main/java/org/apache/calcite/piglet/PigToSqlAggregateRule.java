@@ -36,6 +36,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,12 +61,13 @@ public class PigToSqlAggregateRule
   private static final String MULTISET_PROJECTION = "MULTISET_PROJECTION";
 
   public static final PigToSqlAggregateRule INSTANCE =
-      Config.EMPTY.withOperandSupplier(b0 ->
-          b0.operand(Project.class).oneInput(b1 ->
-              b1.operand(Project.class).oneInput(b2 ->
-                  b2.operand(Aggregate.class).oneInput(b3 ->
-                      b3.operand(Project.class).anyInputs()))))
-          .as(Config.class)
+      ImmutablePigToSqlAggregateRuleConfig.builder()
+          .withOperandSupplier(b0 ->
+              b0.operand(Project.class).oneInput(b1 ->
+                  b1.operand(Project.class).oneInput(b2 ->
+                      b2.operand(Aggregate.class).oneInput(b3 ->
+                          b3.operand(Project.class).anyInputs()))))
+          .build()
           .toRule();
 
   /** Creates a PigToSqlAggregateRule. */
@@ -409,6 +412,8 @@ public class PigToSqlAggregateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
+  @Value.Style(init = "with*", typeImmutable = "ImmutablePigToSqlAggregateRuleConfig")
   public interface Config extends RelRule.Config {
     @Override default PigToSqlAggregateRule toRule() {
       return new PigToSqlAggregateRule(this);
