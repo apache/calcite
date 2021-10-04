@@ -196,6 +196,7 @@ fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
     classpath = sourceSet.compileClasspath
     options.compilerArgs.add("-proc:only")
     org.gradle.api.plugins.internal.JvmPluginsHelper.configureAnnotationProcessorPath(sourceSet, sourceSet.java, options, project)
+    destinationDirectory.set(temporaryDir)
 
     // only if we aren't running compileJava, since doing twice fails (in some places)
     onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
