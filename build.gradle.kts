@@ -20,6 +20,8 @@ import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.git.dsl.gitignore
+import com.github.vlsi.gradle.ide.dsl.settings
+import com.github.vlsi.gradle.ide.dsl.taskTriggers
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
@@ -694,6 +696,25 @@ allprojects {
                 }
                 if (enableCheckerframework) {
                     options.forkOptions.memoryMaximumSize = "2g"
+                }
+
+                if (name == "annotationProcessorMain" || name == "annotationProcessorTest") {
+                    val sourceName = if (name == "annotationProcessorMain") "main" else "test"
+                    val sourceSet = sourceSets.getByName(sourceName)
+                    source = sourceSet.java
+                    classpath = sourceSet.compileClasspath
+                    options.compilerArgs.add("-proc:only")
+                    org.gradle.api.plugins.internal.JvmPluginsHelper.configureAnnotationProcessorPath(
+                        sourceSet,
+                        sourceSet.java,
+                        options,
+                        project
+                    )
+                    destinationDirectory.set(temporaryDir)
+
+                    // only if we aren't running compileJava, since doing twice fails (in some places)
+                    onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
+
                 }
             }
             configureEach<Test> {
