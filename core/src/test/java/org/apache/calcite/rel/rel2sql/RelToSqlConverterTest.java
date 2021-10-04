@@ -9090,11 +9090,37 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT HASHBUCKET(HASHROW(\"EMPNO\")) AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT HASHROW(EMPNO) AS FD\n"
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(EMPNO) AS FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testhashrow() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashrow, "FD"))
+        .build();
+    final String expectedSql = "SELECT HASHROW(\"ENAME\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(ENAME) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testConcatFunction() {
+    String query = "select '%''.' || '\\\\PWAPIKB01E\\Labelfiles\\'";
+    final String expectedBQSql = "SELECT CONCAT('%\\'.', '\\\\\\\\PWAPIKB01E\\\\Labelfiles"
+        + "\\\\')";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
   }
 
 
