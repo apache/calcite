@@ -953,6 +953,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(farm_fingerprint);
       break;
 
+    case "TRUNC":
+      final SqlWriter.Frame trunc = writer.startFunCall("DATE_TRUNC");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(trunc);
+      break;
+
     case "HASHBUCKET":
       if (!call.getOperandList().isEmpty()) {
         unparseCall(writer, call.operand(0), leftPrec, rightPrec);
