@@ -12445,6 +12445,27 @@ EnumerableProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSumAndDistinctSumWithExpandSumType">
+    <Resource name="sql">
+      <![CDATA[SELECT SUM(comm), SUM(DISTINCT comm) FROM emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[SUM(DISTINCT $0)])
+  LogicalProject(COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST($0):BIGINT], EXPR$1=[$1])
+  LogicalAggregate(group=[{}], EXPR$0=[SUM($1)], EXPR$1=[SUM($0)])
+    LogicalAggregate(group=[{0}], EXPR$0=[SUM($0)])
+      LogicalProject(COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSwapAntiJoin">
     <Resource name="planBefore">
       <![CDATA[
