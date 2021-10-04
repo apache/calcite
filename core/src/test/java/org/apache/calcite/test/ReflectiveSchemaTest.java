@@ -41,6 +41,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -53,11 +56,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.test.JdbcTest.Employee;
 
@@ -870,6 +877,55 @@ public class ReflectiveSchemaTest {
           + "empid=150; name=Sebastian\n";
       assertThat(CalciteAssert.toString(resultSet), is(expected));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4708">[CALCITE-4708]
+   * Infer list generic type while Table instance is created at ReflectiveSchema class</a>. */
+  @ParameterizedTest
+  @MethodSource("provideTestTableArrayAnnotation")
+  void testTableArrayAnnotation(Iterable<JdbcTest.SalesFact> dataList) throws SQLException {
+    Properties properties = new Properties();
+    properties.put("lex", "JAVA");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", properties)) {
+      JdbcTest.FoodmartSchemaIterable schemaJava = new JdbcTest.FoodmartSchemaIterable(dataList);
+      ReflectiveSchema schema = new ReflectiveSchema(schemaJava);
+
+      connection
+          .unwrap(CalciteConnection.class)
+          .getRootSchema()
+          .add("test", schema);
+
+      ResultSet resultSet = connection
+          .createStatement()
+          .executeQuery("select t.* from test.sales_fact_1997 t order by cust_id");
+
+      List<JdbcTest.SalesFact> resultList = new ArrayList<>();
+      while (resultSet.next()) {
+        int cust_id = resultSet.getInt("cust_id");
+        int prod_id = resultSet.getInt("prod_id");
+        resultList.add(new JdbcTest.SalesFact(cust_id, prod_id));
+      }
+
+      assertEquals(resultList.size(), 2);
+      assertEquals(resultList.get(0).cust_id, 100);
+      assertEquals(resultList.get(0).prod_id, 10);
+      assertEquals(resultList.get(1).cust_id, 150);
+      assertEquals(resultList.get(1).prod_id, 20);
+    }
+  }
+
+  /** Test data for test {@link ReflectiveSchemaTest#testTableArrayAnnotation(Iterable)}. */
+  private static Stream<Arguments> provideTestTableArrayAnnotation() {
+    List<JdbcTest.SalesFact> dataList = Arrays.asList(
+        new JdbcTest.SalesFact(100, 10),
+        new JdbcTest.SalesFact(150, 20)
+    );
+    return Stream.of(
+        Arguments.of(dataList),
+        Arguments.of(new HashSet<>(dataList)),
+        Arguments.of(new ArrayBlockingQueue<>(2, false, dataList))
+    );
   }
 
   /** Extension to {@link Employee} with a {@code hireDate} column. */
