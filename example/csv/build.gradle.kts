@@ -33,6 +33,7 @@ dependencies {
     testImplementation("sqlline:sqlline")
     testImplementation(project(":testkit"))
 
+    sqllineClasspath(project)
     sqllineClasspath(files(sourceSets.test.map { it.output }))
 }
 

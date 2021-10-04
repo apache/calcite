@@ -19,9 +19,7 @@ plugins {
 }
 
 dependencies {
-    // Make jmhCompileClasspath resolvable
-    @Suppress("DEPRECATION")
-    jmhCompileClasspath(platform(project(":bom")))
+    jmhImplementation(platform(project(":bom")))
     jmhImplementation(project(":core"))
     jmhImplementation(project(":linq4j"))
     jmhImplementation("com.google.guava:guava")
