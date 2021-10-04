@@ -74,6 +74,7 @@ import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -623,8 +624,16 @@ public abstract class SqlImplementor {
           final Context correlAliasContext = getAliasContext(variable);
           final RexFieldAccess lastAccess = accesses.pollLast();
           assert lastAccess != null;
-          sqlIdentifier = (SqlIdentifier) correlAliasContext
-              .field(lastAccess.getField().getIndex());
+          if (correlAliasContext == null) {
+            return new SqlDynamicParam(-1, POS) {
+              @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+                writer.dynamicParam((RexFieldAccess) rex);
+              }
+            };
+          } else {
+            sqlIdentifier = (SqlIdentifier) correlAliasContext
+                .field(lastAccess.getField().getIndex());
+          }
           break;
         case ROW:
           final SqlNode expr = toSql(program, referencedExpr);
@@ -1421,9 +1430,7 @@ public abstract class SqlImplementor {
     }
 
     @Override protected Context getAliasContext(RexCorrelVariable variable) {
-      return requireNonNull(
-          correlTableMap.get(variable.id),
-          () -> "variable " + variable.id + " is not found");
+      return correlTableMap.get(variable.id);
     }
 
     @Override public SqlImplementor implementor() {

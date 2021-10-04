@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
@@ -40,6 +41,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.Schemas;
@@ -47,6 +51,9 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -56,7 +63,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
@@ -172,14 +181,19 @@ public class JdbcToEnumerableConverter
     final Expression enumerable;
 
     if (sqlString.getDynamicParameters() != null
-        && !sqlString.getDynamicParameters().isEmpty()) {
+          && !sqlString.getDynamicParameters().isEmpty()) {
+      Expression indexCorrelateMap =
+          builder0.append(
+              "indexCorrelateMap", Expressions.new_(HashMap.class), false);
+      generateCorrelate(implementor, sqlString,
+          builder0, indexCorrelateMap);
       final Expression preparedStatementConsumer_ =
           builder0.append("preparedStatementConsumer",
               Expressions.call(BuiltInMethod.CREATE_ENRICHER.method,
-                  Expressions.newArrayInit(Integer.class, 1,
+                  Expressions.newArrayInit(Pair.class, 1,
                       toIndexesTableExpression(sqlString)),
+                  indexCorrelateMap,
                   DataContext.ROOT));
-
       enumerable = builder0.append("enumerable",
           Expressions.call(
               BuiltInMethod.RESULT_SET_ENUMERABLE_OF_PREPARED.method,
@@ -320,6 +334,27 @@ public class JdbcToEnumerableConverter
               : BuiltInMethod.TIMESTAMP_TO_LONG)).method;
     default:
       throw new AssertionError(sqlTypeName + ":" + nullable);
+    }
+  }
+
+  private static void generateCorrelate(EnumerableRelImplementor implementor,
+      SqlString sqlString, BlockBuilder blockBuilder, Expression indexCorrelateMap) {
+    ImmutableMap<RexFieldAccess, Integer> rexFieldAccessIndexMap =
+        requireNonNull(sqlString.getRexFieldAccessIndexMap(),
+            () -> "sqlString.getRexFieldAccessIndexMap() is null for " + sqlString);
+    for (Map.Entry<RexFieldAccess, Integer> entry : rexFieldAccessIndexMap.entrySet()) {
+      RexFieldAccess fieldAccess = entry.getKey();
+      Integer index = entry.getValue();
+      final RexNode target = fieldAccess.getReferenceExpr();
+      int fieldIndex = fieldAccess.getField().getIndex();
+      final RexToLixTranslator.InputGetter getter =
+          implementor.getCorrelVariableGetter(((RexCorrelVariable) target).getName());
+      final Expression input = getter.field(blockBuilder, fieldIndex, null);
+      blockBuilder.add(
+          Expressions.statement(
+              Expressions.call(indexCorrelateMap, BuiltInMethod.MAP_PUT.method,
+                  Expressions.constant(index, Integer.class), input
+              )));
     }
   }
 

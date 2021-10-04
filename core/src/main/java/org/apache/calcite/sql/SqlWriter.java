@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 
@@ -293,6 +294,22 @@ public interface SqlWriter {
     }
   }
 
+  /**
+   * Type of dynamic parameters.
+   */
+  enum DynamicParamType {
+    /**
+     * explicit dynamic parameters coming from the user.
+     */
+    EXPLICIT,
+
+    /**
+     * implicit dynamic parameters coming from the correlation
+     * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}.
+     */
+    IMPLICIT
+  }
+
   /** Comma operator.
    *
    * <p>Defined in {@code SqlWriter} because it is only used while converting
@@ -376,6 +393,11 @@ public interface SqlWriter {
    * Prints a dynamic parameter (e.g. {@code ?} for default JDBC)
    */
   void dynamicParam(int index);
+
+  /**
+   * Prints a dynamic parameter (e.g. {@code ?} for default JDBC)
+   */
+  void dynamicParam(RexFieldAccess fieldAccess);
 
   /**
    * Prints the OFFSET/FETCH clause.
