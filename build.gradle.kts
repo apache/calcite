@@ -20,8 +20,6 @@ import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.git.dsl.gitignore
-import com.github.vlsi.gradle.ide.dsl.settings
-import com.github.vlsi.gradle.ide.dsl.taskTriggers
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
@@ -714,7 +712,6 @@ allprojects {
 
                     // only if we aren't running compileJava, since doing twice fails (in some places)
                     onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
-
                 }
             }
             configureEach<Test> {
