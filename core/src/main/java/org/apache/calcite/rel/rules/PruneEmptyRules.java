@@ -306,7 +306,7 @@ public abstract class PruneEmptyRules {
     @Deprecated // to be removed before 2.0
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         String description) {
-      this(Config.EMPTY.withDescription(description)
+      this(ImmutablePruneEmptyRuleConfig.of().withDescription(description)
           .as(Config.class)
           .withOperandFor(clazz, singleRel -> true));
     }
@@ -315,7 +315,7 @@ public abstract class PruneEmptyRules {
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
         String description) {
-      this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+      this(ImmutablePruneEmptyRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
           .withDescription(description)
           .as(Config.class)
           .withOperandFor(clazz, predicate));
@@ -326,7 +326,7 @@ public abstract class PruneEmptyRules {
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         com.google.common.base.Predicate<R> predicate,
         RelBuilderFactory relBuilderFactory, String description) {
-      this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+      this(ImmutablePruneEmptyRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
           .withDescription(description)
           .as(Config.class)
           .withOperandFor(clazz, predicate::apply));

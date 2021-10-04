@@ -87,10 +87,13 @@ public class ValuesReduceRule
   @Deprecated // to be removed before 2.0
   public ValuesReduceRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String desc) {
-    this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+    this(ImmutableValuesReduceRule.Config.builder().withRelBuilderFactory(relBuilderFactory)
         .withDescription(desc)
         .withOperandSupplier(b -> b.exactly(operand))
-        .as(Config.class));
+        .withMatchHandler((u, v) -> {
+          throw new IllegalArgumentException("Match handler not set.");
+        })
+        .build());
     throw new IllegalArgumentException("cannot guess matchHandler");
   }
 

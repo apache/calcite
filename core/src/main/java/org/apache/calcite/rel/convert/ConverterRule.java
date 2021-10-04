@@ -109,9 +109,9 @@ public abstract class ConverterRule
   protected <R extends RelNode> ConverterRule(Class<R> clazz,
       Predicate<? super R> predicate, RelTrait in, RelTrait out,
       RelBuilderFactory relBuilderFactory, String descriptionPrefix) {
-    this(Config.EMPTY
+    this(ImmutableConverterRule.Config.builder()
         .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
+        .build()
         .withConversion(clazz, predicate, in, out, descriptionPrefix));
   }
 

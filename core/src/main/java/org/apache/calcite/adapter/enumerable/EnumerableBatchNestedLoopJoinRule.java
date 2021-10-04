@@ -34,6 +34,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +46,7 @@ import java.util.Set;
  *
  * @see EnumerableRules#ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE
  */
+@Value.Enclosing
 public class EnumerableBatchNestedLoopJoinRule
     extends RelRule<EnumerableBatchNestedLoopJoinRule.Config> {
   /** Creates an EnumerableBatchNestedLoopJoinRule. */
@@ -149,11 +152,11 @@ public class EnumerableBatchNestedLoopJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableEnumerableBatchNestedLoopJoinRule.Config.of()
         .withOperandSupplier(b -> b.operand(LogicalJoin.class).anyInputs())
-        .withDescription("EnumerableBatchNestedLoopJoinRule")
-        .as(Config.class);
+        .withDescription("EnumerableBatchNestedLoopJoinRule");
 
     @Override default EnumerableBatchNestedLoopJoinRule toRule() {
       return new EnumerableBatchNestedLoopJoinRule(this);
@@ -165,7 +168,9 @@ public class EnumerableBatchNestedLoopJoinRule
      * can be an error because the generated code exceeds the size limit. */
     @ImmutableBeans.Property
     @ImmutableBeans.IntDefault(100)
-    int batchSize();
+    @Value.Default default int batchSize() {
+      return 100;
+    }
 
     /** Sets {@link #batchSize()}. */
     Config withBatchSize(int batchSize);

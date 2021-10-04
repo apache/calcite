@@ -27,6 +27,8 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,13 +38,16 @@ import java.util.List;
  *
  * @see EnumerableRules#ENUMERABLE_MERGE_UNION_RULE
  */
+@Value.Enclosing
 public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.Config> {
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT_CONFIG = EMPTY.withDescription("EnumerableMergeUnionRule").withOperandSupplier(
-        b0 -> b0.operand(LogicalSort.class).oneInput(
-            b1 -> b1.operand(LogicalUnion.class).anyInputs())).as(Config.class);
+    Config DEFAULT_CONFIG = ImmutableEnumerableMergeUnionRule.Config.of()
+        .withDescription("EnumerableMergeUnionRule").withOperandSupplier(
+            b0 -> b0.operand(LogicalSort.class).oneInput(
+                b1 -> b1.operand(LogicalUnion.class).anyInputs()));
 
     @Override default EnumerableMergeUnionRule toRule() {
       return new EnumerableMergeUnionRule(this);
