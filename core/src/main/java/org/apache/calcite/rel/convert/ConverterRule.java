@@ -191,19 +191,19 @@ public abstract class ConverterRule
           }
         }).build();
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     RelTrait inTrait();
 
     /** Sets {@link #inTrait}. */
     Config withInTrait(RelTrait trait);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     RelTrait outTrait();
 
     /** Sets {@link #outTrait}. */
     Config withOutTrait(RelTrait trait);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     Function<Config, ConverterRule> ruleFactory();
 
     /** Sets {@link #outTrait}. */

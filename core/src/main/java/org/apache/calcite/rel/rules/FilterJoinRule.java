@@ -280,9 +280,9 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
 
   /** Rule that pushes parts of the join condition to its inputs. */
   public static class JoinConditionPushRule
-      extends FilterJoinRule<JoinConditionPushRule.Config> {
+      extends FilterJoinRule<JoinConditionPushRule.JoinConditionPushRuleConfig> {
     /** Creates a JoinConditionPushRule. */
-    protected JoinConditionPushRule(Config config) {
+    protected JoinConditionPushRule(JoinConditionPushRuleConfig config) {
       super(config);
     }
 
@@ -308,11 +308,15 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       perform(call, null, join);
     }
 
+    /** Deprecated, use {@link JoinConditionPushRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends JoinConditionPushRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable
-    @Value.Style(typeImmutable = "ImmutableJoinConditionPushRuleConfig", get = {"is*", "get*"})
-    public interface Config extends FilterJoinRule.Config {
-      Config DEFAULT = ImmutableJoinConditionPushRuleConfig.of((join, joinType, exp) -> true)
+    @Value.Immutable(singleton = false)
+    public interface JoinConditionPushRuleConfig extends FilterJoinRule.Config {
+      JoinConditionPushRuleConfig DEFAULT = ImmutableJoinConditionPushRuleConfig
+          .of((join, joinType, exp) -> true)
           .withOperandSupplier(b ->
               b.operand(Join.class).anyInputs())
           .withSmart(true);
@@ -328,16 +332,16 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    *
    * @see CoreRules#FILTER_INTO_JOIN */
   public static class FilterIntoJoinRule
-      extends FilterJoinRule<FilterIntoJoinRule.Config> {
+      extends FilterJoinRule<FilterIntoJoinRule.FilterIntoJoinRuleConfig> {
     /** Creates a FilterIntoJoinRule. */
-    protected FilterIntoJoinRule(Config config) {
+    protected FilterIntoJoinRule(FilterIntoJoinRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public FilterIntoJoinRule(boolean smart,
         RelBuilderFactory relBuilderFactory, Predicate predicate) {
-      this(ImmutableFilterJoinRuleConfig.of(predicate)
+      this(ImmutableFilterIntoJoinRuleConfig.of(predicate)
           .withRelBuilderFactory(relBuilderFactory)
           .withOperandSupplier(b0 ->
               b0.operand(Filter.class).oneInput(b1 ->
@@ -351,7 +355,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
         RelFactories.FilterFactory filterFactory,
         RelFactories.ProjectFactory projectFactory,
         Predicate predicate) {
-      this(ImmutableFilterJoinRuleConfig.of(predicate)
+      this(ImmutableFilterIntoJoinRuleConfig.of(predicate)
           .withRelBuilderFactory(
               RelBuilder.proto(filterFactory, projectFactory))
           .withOperandSupplier(b0 ->
@@ -367,15 +371,19 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       perform(call, filter, join);
     }
 
+    /** Deprecated, use {@link FilterIntoJoinRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends FilterIntoJoinRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable
-    @Value.Style(typeImmutable = "ImmutableFilterJoinRuleConfig", get = {"is*", "get*"})
-    public interface Config extends FilterJoinRule.Config {
-      Config DEFAULT = ImmutableFilterJoinRuleConfig.of((join, joinType, exp) -> true)
-          .withOperandSupplier(b0 ->
-              b0.operand(Filter.class).oneInput(b1 ->
-                  b1.operand(Join.class).anyInputs()))
-          .withSmart(true);
+    @Value.Immutable(singleton = false)
+    public interface FilterIntoJoinRuleConfig extends FilterJoinRule.Config {
+      FilterIntoJoinRuleConfig DEFAULT =
+          ImmutableFilterIntoJoinRuleConfig.of((join, joinType, exp) -> true)
+              .withOperandSupplier(b0 ->
+                  b0.operand(Filter.class).oneInput(b1 ->
+                      b1.operand(Join.class).anyInputs()))
+              .withSmart(true);
 
       @Override default FilterIntoJoinRule toRule() {
         return new FilterIntoJoinRule(this);
@@ -396,7 +404,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    */
   public interface Config extends RelRule.Config {
     /** Whether to try to strengthen join-type, default false. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isSmart() {
       return false;
@@ -408,7 +416,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     /** Predicate that returns whether a filter is valid in the ON clause of a
      * join for this particular kind of join. If not, Calcite will push it back to
      * above the join. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Parameter
     Predicate getPredicate();
 

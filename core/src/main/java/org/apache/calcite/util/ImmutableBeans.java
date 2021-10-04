@@ -71,7 +71,13 @@ public class ImmutableBeans {
 
   private ImmutableBeans() {}
 
-  /** Creates an immutable bean that implements a given interface. */
+  /** Creates an immutable bean that implements a given interface.
+   *
+   * This method for the creation of value classes is now deprecated. Please use
+   * the <a href="https://immutables.github.io/">Immutables</a> annotation processor
+   * moving forward.
+   * */
+  @Deprecated
   public static <T extends Object> T create(Class<T> beanClass) {
     return create_(beanClass, ImmutableMap.of());
   }
@@ -79,6 +85,7 @@ public class ImmutableBeans {
   /** Creates a bean of a given class whose contents are the same as this bean.
    *
    * <p>You typically use this to downcast a bean to a sub-class. */
+  @Deprecated
   public static <T extends Object> T copy(Class<T> beanClass, Object o) {
     final BeanImpl<?> bean = (BeanImpl) Proxy.getInvocationHandler(o);
     return create_(beanClass, bean.map);
@@ -424,6 +431,7 @@ public class ImmutableBeans {
   }
 
   /** Property of a bean. Apply this annotation to the "get" method. */
+  @Deprecated
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
   public @interface Property {
@@ -432,6 +440,7 @@ public class ImmutableBeans {
   }
 
   /** Default value of an int property. */
+  @Deprecated
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
   public @interface IntDefault {
@@ -439,6 +448,7 @@ public class ImmutableBeans {
   }
 
   /** Default value of a boolean property of a bean. */
+  @Deprecated
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
   public @interface BooleanDefault {
@@ -446,6 +456,7 @@ public class ImmutableBeans {
   }
 
   /** Default value of a String property of a bean. */
+  @Deprecated
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
   public @interface StringDefault {
@@ -453,6 +464,7 @@ public class ImmutableBeans {
   }
 
   /** Default value of an enum property of a bean. */
+  @Deprecated
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
   public @interface EnumDefault {
@@ -460,6 +472,7 @@ public class ImmutableBeans {
   }
 
   /** Default value of a String or enum property of a bean that is null. */
+  @Deprecated
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.METHOD)
   public @interface NullDefault {

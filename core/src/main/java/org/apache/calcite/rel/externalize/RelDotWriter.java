@@ -263,7 +263,7 @@ public class RelDotWriter extends RelWriterImpl {
   /**
    * Options for displaying the rel node plan in dot format.
    */
-  @Value.Immutable(singleton = true)
+  @Value.Immutable
   public interface WriteOption {
 
     /** Default configuration. */

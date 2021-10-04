@@ -470,7 +470,7 @@ public class AggregateJoinTransposeRule
     }
 
     /** Whether to push down aggregate functions, default false. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default
     default boolean isAllowFunctions() {

@@ -45,6 +45,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -538,7 +539,7 @@ class VolcanoPlannerTraitTest {
 
   /** Relational expression with zero inputs, of the PHYS convention. */
   public static class PhysLeafRule extends RelRule<PhysLeafRule.Config> {
-    static final PhysLeafRule INSTANCE = Config.EMPTY
+    static final PhysLeafRule INSTANCE = ImmutablePhysLeafRuleConfig.builder().build()
         .withOperandSupplier(b ->
             b.operand(NoneLeafRel.class).anyInputs())
         .as(Config.class)
@@ -561,6 +562,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutablePhysLeafRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysLeafRule toRule() {
         return new PhysLeafRule(this);
@@ -593,7 +596,8 @@ class VolcanoPlannerTraitTest {
    * convention. */
   public static class IterSingleRule
       extends RelRule<IterSingleRule.Config> {
-    static final IterSingleRule INSTANCE = Config.EMPTY
+    static final IterSingleRule INSTANCE = ImmutableIterSingleRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(NoneSingleRel.class).anyInputs())
         .as(Config.class)
@@ -626,6 +630,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableIterSingleRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default IterSingleRule toRule() {
         return new IterSingleRule(this);
@@ -637,7 +643,7 @@ class VolcanoPlannerTraitTest {
    * convention. */
   public static class IterSingleRule2
       extends RelRule<IterSingleRule2.Config> {
-    static final IterSingleRule2 INSTANCE = Config.EMPTY
+    static final IterSingleRule2 INSTANCE = ImmutableIterSingleRule2Config.builder().build()
         .withOperandSupplier(b ->
             b.operand(NoneSingleRel.class).anyInputs())
         .as(Config.class)
@@ -675,6 +681,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableIterSingleRule2Config")
     public interface Config extends RelRule.Config {
       @Override default IterSingleRule2 toRule() {
         return new IterSingleRule2(this);
@@ -779,7 +787,7 @@ class VolcanoPlannerTraitTest {
   public static class IterSinglePhysMergeRule
       extends RelRule<IterSinglePhysMergeRule.Config> {
     static final IterSinglePhysMergeRule INSTANCE =
-        Config.EMPTY
+        ImmutableIterSinglePhysMergeRuleConfig.builder().build()
             .withOperandSupplier(b0 ->
                 b0.operand(IterSingleRel.class).oneInput(b1 ->
                     b1.operand(PhysToIteratorConverter.class).anyInputs()))
@@ -797,6 +805,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableIterSinglePhysMergeRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default IterSinglePhysMergeRule toRule() {
         return new IterSinglePhysMergeRule(this);

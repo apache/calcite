@@ -179,7 +179,7 @@ public class JoinAssociateRule
      * Whether to emit the new join tree if the new top or bottom join has a condition which
      * is always {@code TRUE}.
      */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isAllowAlwaysTrueCondition() {
       return true;

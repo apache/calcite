@@ -65,6 +65,10 @@ dependencies {
     implementation("org.codehaus.janino:janino")
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
+    compileOnly("com.google.code.findbugs:jsr305")
+    testAnnotationProcessor("org.immutables:value")
+    testCompileOnly("org.immutables:value-annotations")
+    testCompileOnly("com.google.code.findbugs:jsr305")
 
     testH2("com.h2database:h2")
     testMysql("mysql:mysql-connector-java")
@@ -194,19 +198,30 @@ fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
     org.gradle.api.plugins.internal.JvmPluginsHelper.configureAnnotationProcessorPath(sourceSet, sourceSet.java, options, project)
     destinationDirectory.set(temporaryDir)
 
-    // only if we aren't running compileJava, since doing twice fails (in some places)
+    // only if we aren't running java compilation, since doing twice fails (in some places)
     onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
 }
 
 val annotationProcessorMain by tasks.registering(JavaCompile::class) {
-    dependsOn(javaCCMain)
     configureAnnotationSet(sourceSets.main.get())
+}
+
+val annotationProcessorTest by tasks.registering(JavaCompile::class) {
+    val kotlinTestCompile = tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>()
+        .getByName("compileTestKotlin")
+
+    dependsOn(javaCCTest, kotlinTestCompile)
+
+    configureAnnotationSet(sourceSets.test.get())
+    classpath += files(kotlinTestCompile.destinationDirectory.get())
+
+    // only if we aren't running compileJavaTest, since doing twice fails.
+    onlyIf { tasks.findByPath("compileTestJava")?.enabled != true }
 }
 
 ide {
     // generate annotation processed files on project import/sync.
-    // adds to idea path but skip don't add to SourceSet since that triggers checkstyle
-    fun generatedSource(compile: TaskProvider<JavaCompile>, sourceSetName: String) {
+    fun addSync(compile: TaskProvider<JavaCompile>) {
         project.rootProject.configure<org.gradle.plugins.ide.idea.model.IdeaModel> {
             project {
                 settings {
@@ -218,7 +233,8 @@ ide {
         }
     }
 
-    generatedSource(annotationProcessorMain, "main")
+    addSync(annotationProcessorMain)
+    addSync(annotationProcessorTest)
 }
 
 val integTestAll by tasks.registering() {

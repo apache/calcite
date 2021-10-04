@@ -166,7 +166,7 @@ public class EnumerableBatchNestedLoopJoinRule
      *
      * <p>Warning: if the batch size is around or bigger than 1000 there
      * can be an error because the generated code exceeds the size limit. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.IntDefault(100)
     @Value.Default default int batchSize() {
       return 100;

@@ -428,7 +428,7 @@ public class JoinProjectTransposeRule
     }
 
     /** Whether to include outer joins, default false. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isIncludeOuter() {
       return false;

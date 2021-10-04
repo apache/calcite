@@ -850,7 +850,7 @@ public class AggregateReduceFunctionsRule
       return new AggregateReduceFunctionsRule(this);
     }
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Nullable Set<SqlKind> functionsToReduce();
 
     /** Sets {@link #functionsToReduce}. */

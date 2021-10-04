@@ -221,7 +221,7 @@ public class FilterProjectTransposeRule
 
     /** Whether to create a {@link Filter} of the same convention as the
      * matched Filter. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isCopyFilter() {
       return true;
@@ -232,7 +232,7 @@ public class FilterProjectTransposeRule
 
     /** Whether to create a {@link Project} of the same convention as the
      * matched Project. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isCopyProject() {
       return true;

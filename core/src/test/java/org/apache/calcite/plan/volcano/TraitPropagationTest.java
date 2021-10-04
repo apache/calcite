@@ -75,6 +75,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -190,7 +191,8 @@ class TraitPropagationTest {
 
   /** Rule for PhysAgg. */
   public static class PhysAggRule extends RelRule<PhysAggRule.Config> {
-    static final PhysAggRule INSTANCE = Config.EMPTY
+    static final PhysAggRule INSTANCE = ImmutablePhysAggRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(LogicalAggregate.class).anyInputs())
         .withDescription("PhysAgg")
@@ -219,6 +221,8 @@ class TraitPropagationTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutablePhysAggRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysAggRule toRule() {
         return new PhysAggRule(this);
@@ -229,13 +233,14 @@ class TraitPropagationTest {
   /** Rule for PhysProj. */
   public static class PhysProjRule extends RelRule<PhysProjRule.Config> {
     static final PhysProjRule INSTANCE =
-        Config.EMPTY
+        ImmutablePhysProjRuleConfig.builder()
+            .withSubsetHack(false)
+            .build()
             .withOperandSupplier(b0 ->
                 b0.operand(LogicalProject.class).oneInput(b1 ->
                     b1.operand(RelNode.class).anyInputs()))
             .withDescription("PhysProj")
             .as(Config.class)
-            .withSubsetHack(false)
             .toRule();
 
     protected PhysProjRule(Config config) {
@@ -268,12 +273,14 @@ class TraitPropagationTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutablePhysProjRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysProjRule toRule() {
         return new PhysProjRule(this);
       }
 
-      @ImmutableBeans.Property
+      @SuppressWarnings("deprecation") @ImmutableBeans.Property
       @ImmutableBeans.BooleanDefault(false)
       boolean subsetHack();
 
@@ -311,7 +318,7 @@ class TraitPropagationTest {
   /** Rule for PhysTable. */
   public static class PhysTableRule
       extends RelRule<PhysTableRule.Config> {
-    static final PhysTableRule INSTANCE = Config.EMPTY
+    static final PhysTableRule INSTANCE = ImmutablePhysTableRuleConfig.builder().build()
         .withOperandSupplier(b ->
             b.operand(LogicalTableScan.class).noInputs())
         .withDescription("PhysScan")
@@ -328,6 +335,8 @@ class TraitPropagationTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutablePhysTableRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysTableRule toRule() {
         return new PhysTableRule(this);

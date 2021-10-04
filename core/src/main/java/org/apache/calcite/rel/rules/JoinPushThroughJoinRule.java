@@ -348,7 +348,7 @@ public class JoinPushThroughJoinRule
     }
 
     /** Whether to push on the right. If false, push to the left. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isRight() {
       return false;

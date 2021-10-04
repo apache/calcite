@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.List;
 
@@ -221,9 +222,9 @@ class PlannerTests {
   /** Planner rule that converts {@link NoneLeafRel} to PHYS convention. */
   public static class PhysLeafRule extends RelRule<PhysLeafRule.Config> {
     static final PhysLeafRule INSTANCE =
-        Config.EMPTY
+        ImmutableTraitPhysLeafRuleConfig.builder()
             .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
-            .as(Config.class)
+            .build()
             .toRule();
 
     protected PhysLeafRule(Config config) {
@@ -241,6 +242,8 @@ class PlannerTests {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableTraitPhysLeafRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysLeafRule toRule() {
         return new PhysLeafRule(this);
@@ -251,9 +254,9 @@ class PlannerTests {
   /** Planner rule that converts {@link NoneLeafRel} to PHYS convention with different type. */
   public static class MockPhysLeafRule extends RelRule<MockPhysLeafRule.Config> {
     static final MockPhysLeafRule INSTANCE =
-        Config.EMPTY
+        ImmutableMockPhysLeafRuleConfig.builder()
             .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
-            .as(Config.class)
+            .build()
             .toRule();
 
     /** Relational expression with zero inputs and convention PHYS. */
@@ -287,6 +290,8 @@ class PlannerTests {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableMockPhysLeafRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MockPhysLeafRule toRule() {
         return new MockPhysLeafRule(this);
@@ -298,10 +303,10 @@ class PlannerTests {
   public static class GoodSingleRule
       extends RelRule<GoodSingleRule.Config> {
     static final GoodSingleRule INSTANCE =
-        Config.EMPTY
+        ImmutableGoodSingleRuleConfig.builder()
             .withOperandSupplier(b ->
                 b.operand(NoneSingleRel.class).anyInputs())
-            .as(Config.class)
+            .build()
             .toRule();
 
     protected GoodSingleRule(Config config) {
@@ -323,6 +328,8 @@ class PlannerTests {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableGoodSingleRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default GoodSingleRule toRule() {
         return new GoodSingleRule(this);
@@ -337,11 +344,10 @@ class PlannerTests {
   public static class AssertOperandsDifferentRule
       extends RelRule<AssertOperandsDifferentRule.Config> {
     public static final AssertOperandsDifferentRule INSTANCE =
-        Config.EMPTY.withOperandSupplier(b0 ->
+        ImmutableAssertOperandsDifferentRuleConfig.builder().build().withOperandSupplier(b0 ->
                 b0.operand(PhysBiRel.class).inputs(
                     b1 -> b1.operand(PhysLeafRel.class).anyInputs(),
                     b2 -> b2.operand(PhysLeafRel.class).anyInputs()))
-            .as(Config.class)
             .toRule();
 
     protected AssertOperandsDifferentRule(Config config) {
@@ -356,6 +362,8 @@ class PlannerTests {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableAssertOperandsDifferentRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default AssertOperandsDifferentRule toRule() {
         return new AssertOperandsDifferentRule(this);

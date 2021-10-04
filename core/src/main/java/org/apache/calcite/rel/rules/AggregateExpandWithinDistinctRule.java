@@ -530,7 +530,7 @@ public class AggregateExpandWithinDistinctRule
      * {@code throwIfNotUnique} is true, the query would throw because of the
      * values [100, 120]; if false, the query would sum the distinct values
      * [100, 120, 150]. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean throwIfNotUnique() {
       return true;

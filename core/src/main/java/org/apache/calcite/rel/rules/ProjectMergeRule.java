@@ -157,7 +157,7 @@ public class ProjectMergeRule
 
     /** Limit how much complexity can increase during merging.
      * Default is {@link #DEFAULT_BLOAT} (100). */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.IntDefault(ProjectMergeRule.DEFAULT_BLOAT)
     @Value.Default default int bloat() {
       return ProjectMergeRule.DEFAULT_BLOAT;
@@ -167,7 +167,7 @@ public class ProjectMergeRule
     Config withBloat(int bloat);
 
     /** Whether to always merge projects, default true. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean force() {
       return true;

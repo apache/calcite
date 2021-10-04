@@ -35,6 +35,8 @@ import org.immutables.value.Value;
  * has called {@link RelOptTable#toRel(RelOptTable.ToRelContext)}.
  */
 @Deprecated // to be removed before 2.0
+@Value.Enclosing
+@SuppressWarnings("deprecation")
 public class TableScanRule extends RelRule<RelRule.Config>
     implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -65,16 +67,15 @@ public class TableScanRule extends RelRule<RelRule.Config>
   }
 
   /** Rule configuration. */
-  @Value.Immutable(singleton = true)
-  @Value.Style(typeImmutable = "ImmutableTableScanRuleConfig",
-      passAnnotations = SuppressWarnings.class)
+  @Value.Immutable
   @SuppressWarnings("deprecation")
   public interface Config extends RelRule.Config {
-    Config DEFAULT = ImmutableTableScanRuleConfig.of()
+    Config DEFAULT = ImmutableTableScanRule.Config.of()
         .withOperandSupplier(b -> b.operand(LogicalTableScan.class).noInputs());
 
     @Override default TableScanRule toRule() {
       return new TableScanRule(this);
     }
   }
+
 }

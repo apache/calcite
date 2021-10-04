@@ -98,7 +98,7 @@ public class TraitMatchingRule extends RelRule<TraitMatchingRule.Config> {
 
     /** Returns the rule to be restricted; rule must take a single
      * operand expecting a single input. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     ConverterRule converterRule();
 
     /** Sets {@link #converterRule()}. */

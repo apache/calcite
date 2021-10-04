@@ -128,7 +128,7 @@ public class ProjectSetOpTransposeRule
     }
 
     /** Defines when an expression should not be pushed. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     PushProjector.ExprCondition preserveExprCondition();
 
     /** Sets {@link #preserveExprCondition()}. */

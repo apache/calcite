@@ -117,30 +117,30 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
    * @see CoreRules#FILTER_REDUCE_EXPRESSIONS
    */
   public static class FilterReduceExpressionsRule
-      extends ReduceExpressionsRule<FilterReduceExpressionsRule.Config> {
+      extends ReduceExpressionsRule<FilterReduceExpressionsRule.FilterReduceExpressionsRuleConfig> {
     /** Creates a FilterReduceExpressionsRule. */
-    protected FilterReduceExpressionsRule(Config config) {
+    protected FilterReduceExpressionsRule(FilterReduceExpressionsRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public FilterReduceExpressionsRule(Class<? extends Filter> filterClass,
         RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(FilterReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(FilterReduceExpressionsRuleConfig.class)
           .withOperandFor(filterClass)
           .withMatchNullability(true)
-          .as(Config.class));
+          .as(FilterReduceExpressionsRuleConfig.class));
     }
 
     @Deprecated // to be removed before 2.0
     public FilterReduceExpressionsRule(Class<? extends Filter> filterClass,
         boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(FilterReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(FilterReduceExpressionsRuleConfig.class)
           .withOperandFor(filterClass)
           .withMatchNullability(matchNullability)
-          .as(Config.class));
+          .as(FilterReduceExpressionsRuleConfig.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -255,15 +255,18 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       }
     }
 
+    /** Deprecated, use {@link FilterReduceExpressionsRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends FilterReduceExpressionsRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableFilterReduceExpressionsRuleConfig")
-    public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = ImmutableFilterReduceExpressionsRuleConfig.of()
+    @Value.Immutable
+    public interface FilterReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
+      FilterReduceExpressionsRuleConfig DEFAULT = ImmutableFilterReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalFilter.class)
           .withDescription("ReduceExpressionsRule(Filter)")
-          .as(Config.class);
+          .as(FilterReduceExpressionsRuleConfig.class);
 
       @Override default FilterReduceExpressionsRule toRule() {
         return new FilterReduceExpressionsRule(this);
@@ -276,29 +279,30 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
    *
    * @see CoreRules#PROJECT_REDUCE_EXPRESSIONS */
   public static class ProjectReduceExpressionsRule
-      extends ReduceExpressionsRule<ProjectReduceExpressionsRule.Config> {
+      extends ReduceExpressionsRule<
+      ProjectReduceExpressionsRule.ProjectReduceExpressionsRuleConfig> {
     /** Creates a ProjectReduceExpressionsRule. */
-    protected ProjectReduceExpressionsRule(Config config) {
+    protected ProjectReduceExpressionsRule(ProjectReduceExpressionsRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public ProjectReduceExpressionsRule(Class<? extends Project> projectClass,
         RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(ProjectReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(ProjectReduceExpressionsRuleConfig.class)
           .withOperandFor(projectClass)
-          .as(Config.class));
+          .as(ProjectReduceExpressionsRuleConfig.class));
     }
 
     @Deprecated // to be removed before 2.0
     public ProjectReduceExpressionsRule(Class<? extends Project> projectClass,
         boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(ProjectReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(ProjectReduceExpressionsRuleConfig.class)
           .withOperandFor(projectClass)
           .withMatchNullability(matchNullability)
-          .as(Config.class));
+          .as(ProjectReduceExpressionsRuleConfig.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -324,14 +328,13 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableProjectReduceExpressionsRuleConfig")
-    public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = ImmutableProjectReduceExpressionsRuleConfig.of()
+    @Value.Immutable
+    public interface ProjectReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
+      ProjectReduceExpressionsRuleConfig DEFAULT = ImmutableProjectReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalProject.class)
           .withDescription("ReduceExpressionsRule(Project)")
-          .as(Config.class);
+          .as(ProjectReduceExpressionsRuleConfig.class);
 
       @Override default ProjectReduceExpressionsRule toRule() {
         return new ProjectReduceExpressionsRule(this);
@@ -343,30 +346,30 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
    *
    * @see CoreRules#JOIN_REDUCE_EXPRESSIONS */
   public static class JoinReduceExpressionsRule
-      extends ReduceExpressionsRule<JoinReduceExpressionsRule.Config> {
+      extends ReduceExpressionsRule<JoinReduceExpressionsRule.JoinReduceExpressionsRuleConfig> {
     /** Creates a JoinReduceExpressionsRule. */
-    protected JoinReduceExpressionsRule(Config config) {
+    protected JoinReduceExpressionsRule(JoinReduceExpressionsRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public JoinReduceExpressionsRule(Class<? extends Join> joinClass,
         RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(JoinReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(JoinReduceExpressionsRuleConfig.class)
           .withOperandFor(joinClass)
           .withMatchNullability(true)
-          .as(Config.class));
+          .as(JoinReduceExpressionsRuleConfig.class));
     }
 
     @Deprecated // to be removed before 2.0
     public JoinReduceExpressionsRule(Class<? extends Join> joinClass,
         boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(JoinReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(JoinReduceExpressionsRuleConfig.class)
           .withOperandFor(joinClass)
           .withMatchNullability(matchNullability)
-          .as(Config.class));
+          .as(JoinReduceExpressionsRuleConfig.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -399,15 +402,18 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       call.getPlanner().prune(join);
     }
 
+    /** Deprecated, use {@link JoinReduceExpressionsRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends JoinReduceExpressionsRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableJoinReduceExpressionsRuleConfig")
-    public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = ImmutableJoinReduceExpressionsRuleConfig.of()
+    @Value.Immutable
+    public interface JoinReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
+      JoinReduceExpressionsRuleConfig DEFAULT = ImmutableJoinReduceExpressionsRuleConfig.of()
           .withMatchNullability(false)
           .withOperandFor(Join.class)
           .withDescription("ReduceExpressionsRule(Join)")
-          .as(Config.class);
+          .as(JoinReduceExpressionsRuleConfig.class);
 
       @Override default JoinReduceExpressionsRule toRule() {
         return new JoinReduceExpressionsRule(this);
@@ -421,30 +427,30 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
    * @see CoreRules#CALC_REDUCE_EXPRESSIONS
    */
   public static class CalcReduceExpressionsRule
-      extends ReduceExpressionsRule<CalcReduceExpressionsRule.Config> {
+      extends ReduceExpressionsRule<CalcReduceExpressionsRule.CalcReduceExpressionsRuleConfig> {
     /** Creates a CalcReduceExpressionsRule. */
-    protected CalcReduceExpressionsRule(Config config) {
+    protected CalcReduceExpressionsRule(CalcReduceExpressionsRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public CalcReduceExpressionsRule(Class<? extends Calc> calcClass,
         RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(CalcReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(CalcReduceExpressionsRuleConfig.class)
           .withOperandFor(calcClass)
           .withMatchNullability(true)
-          .as(Config.class));
+          .as(CalcReduceExpressionsRuleConfig.class));
     }
 
     @Deprecated // to be removed before 2.0
     public CalcReduceExpressionsRule(Class<? extends Calc> calcClass,
         boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(CalcReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(CalcReduceExpressionsRuleConfig.class)
           .withOperandFor(calcClass)
           .withMatchNullability(matchNullability)
-          .as(Config.class));
+          .as(CalcReduceExpressionsRuleConfig.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -528,15 +534,18 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       return call.builder().push(input).empty().build();
     }
 
+    /** Deprecated, use {@link CalcReduceExpressionsRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends CalcReduceExpressionsRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableCalcReduceExpressionsRuleConfig")
-    public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = ImmutableCalcReduceExpressionsRuleConfig.of()
+    @Value.Immutable
+    public interface CalcReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
+      CalcReduceExpressionsRuleConfig DEFAULT = ImmutableCalcReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalCalc.class)
           .withDescription("ReduceExpressionsRule(Calc)")
-          .as(Config.class);
+          .as(CalcReduceExpressionsRuleConfig.class);
 
       @Override default CalcReduceExpressionsRule toRule() {
         return new CalcReduceExpressionsRule(this);
@@ -548,20 +557,20 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
    *
    * @see CoreRules#WINDOW_REDUCE_EXPRESSIONS */
   public static class WindowReduceExpressionsRule
-      extends ReduceExpressionsRule<WindowReduceExpressionsRule.Config> {
+      extends ReduceExpressionsRule<WindowReduceExpressionsRule.WindowReduceExpressionsRuleConfig> {
     /** Creates a WindowReduceExpressionsRule. */
-    protected WindowReduceExpressionsRule(Config config) {
+    protected WindowReduceExpressionsRule(WindowReduceExpressionsRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public WindowReduceExpressionsRule(Class<? extends Window> windowClass,
         boolean matchNullability, RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class)
+      this(WindowReduceExpressionsRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(WindowReduceExpressionsRuleConfig.class)
           .withOperandFor(windowClass)
           .withMatchNullability(matchNullability)
-          .as(Config.class));
+          .as(WindowReduceExpressionsRuleConfig.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -622,15 +631,18 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       }
     }
 
+    /** Deprecated, use {@link WindowReduceExpressionsRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends WindowReduceExpressionsRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableWindowReduceExpressionsRuleConfig")
-    public interface Config extends ReduceExpressionsRule.Config {
-      Config DEFAULT = ImmutableWindowReduceExpressionsRuleConfig.of()
+    @Value.Immutable
+    public interface WindowReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
+      WindowReduceExpressionsRuleConfig DEFAULT = ImmutableWindowReduceExpressionsRuleConfig.of()
           .withMatchNullability(true)
           .withOperandFor(LogicalWindow.class)
           .withDescription("ReduceExpressionsRule(Window)")
-          .as(Config.class);
+          .as(WindowReduceExpressionsRuleConfig.class);
 
       @Override default WindowReduceExpressionsRule toRule() {
         return new WindowReduceExpressionsRule(this);
@@ -1177,7 +1189,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
 
     /** Whether to add a CAST when a nullable expression
      * reduces to a NOT NULL literal. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean matchNullability() {
       return false;

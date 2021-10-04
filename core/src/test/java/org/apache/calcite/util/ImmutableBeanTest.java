@@ -43,6 +43,7 @@ import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /** Unit test for {@link ImmutableBeans}. */
+@SuppressWarnings("deprecation")
 class ImmutableBeanTest {
 
   @Test void testSimple() {
@@ -431,7 +432,7 @@ class ImmutableBeanTest {
   /** Bean whose default value is not a valid value for the enum;
    * used in {@link #testValidate()}. */
   interface BeanWhoseDefaultIsBadEnumValue {
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.EnumDefault("YELLOW")
     Color getColor();
     BeanWhoseDefaultIsBadEnumValue withColor(Color color);
@@ -440,7 +441,7 @@ class ImmutableBeanTest {
   /** Bean that has a 'with' method that has a bad return type;
    * used in {@link #testValidate()}. */
   interface BeanWhoseWithMethodHasBadReturnType {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     MyBean withFoo(int x);
   }
 
@@ -449,7 +450,7 @@ class ImmutableBeanTest {
    * 'get' method;
    * used in {@link #testValidate()}. */
   interface BeanWhoseWithMethodDoesNotMatchProperty {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     MyBean withFoo(int x);
   }
 
@@ -457,7 +458,7 @@ class ImmutableBeanTest {
    * type of the property (the return type of a 'get{PropertyName}' method);
    * used in {@link #testValidate()}. */
   interface BeanWhoseWithMethodHasArgOfWrongType {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     BeanWhoseWithMethodHasTooManyArgs withFoo(float x);
   }
 
@@ -465,7 +466,7 @@ class ImmutableBeanTest {
    * it should have just one;
    * used in {@link #testValidate()}. */
   interface BeanWhoseWithMethodHasTooManyArgs {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     BeanWhoseWithMethodHasTooManyArgs withFoo(int x, int y);
   }
 
@@ -473,14 +474,14 @@ class ImmutableBeanTest {
    * it should have just one;
    * used in {@link #testValidate()}. */
   interface BeanWhoseWithMethodHasTooFewArgs {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     BeanWhoseWithMethodHasTooFewArgs withFoo();
   }
 
   /** Bean that has a 'set' method that has a bad return type;
    * used in {@link #testValidate()}. */
   interface BeanWhoseSetMethodHasBadReturnType {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     MyBean setFoo(int x);
   }
 
@@ -488,7 +489,7 @@ class ImmutableBeanTest {
    * args;
    * used in {@link #testValidate()}. */
   interface BeanWhoseGetMethodHasTooManyArgs {
-    @ImmutableBeans.Property int getFoo(int x);
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo(int x);
     void setFoo(int x);
   }
 
@@ -497,7 +498,7 @@ class ImmutableBeanTest {
    * 'get' method;
    * used in {@link #testValidate()}. */
   interface BeanWhoseSetMethodDoesNotMatchProperty {
-    @ImmutableBeans.Property int getBar();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getBar();
     void setFoo(int x);
   }
 
@@ -505,7 +506,7 @@ class ImmutableBeanTest {
    * type of the property (the return type of a 'get{PropertyName}' method);
    * used in {@link #testValidate()}. */
   interface BeanWhoseSetMethodHasArgOfWrongType {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     void setFoo(float x);
   }
 
@@ -513,7 +514,7 @@ class ImmutableBeanTest {
    * it should have just one;
    * used in {@link #testValidate()}. */
   interface BeanWhoseSetMethodHasTooManyArgs {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     void setFoo(int x, int y);
   }
 
@@ -521,7 +522,7 @@ class ImmutableBeanTest {
    * it should have just one;
    * used in {@link #testValidate()}. */
   interface BeanWhoseSetMethodHasTooFewArgs {
-    @ImmutableBeans.Property int getFoo();
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property int getFoo();
     void setFoo();
   }
 
@@ -536,19 +537,19 @@ class ImmutableBeanTest {
       return ImmutableBeans.copy(class_, this);
     }
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     int getFoo();
     MyBean withFoo(int x);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     boolean isBar();
     MyBean withBar(boolean x);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     String getBaz();
     MyBean withBaz(String s);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     default boolean getDef() {
       return true;
     }
@@ -559,58 +560,58 @@ class ImmutableBeanTest {
   /** A bean class with just about every combination of default values
    * missing and present, and required or not. */
   interface Bean2 {
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.IntDefault(1)
     int getIntWithDefault();
     Bean2 withIntWithDefault(int x);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     int getIntSansDefault();
     Bean2 withIntSansDefault(int x);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     boolean isBooleanWithDefault();
     Bean2 withBooleanWithDefault(boolean x);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     boolean isBooleanSansDefault();
     Bean2 withBooleanSansDefault(boolean x);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     String getStringSansDefault();
     Bean2 withStringSansDefault(String x);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Nullable String getOptionalString();
     Bean2 withOptionalString(@Nullable String s);
 
     /** Property is required because its return type does not have Nullable annotation. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     String getNonnullString();
     Bean2 withNonnullString(String s);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.StringDefault("abc")
     String getStringWithDefault();
     Bean2 withStringWithDefault(@Nullable String s);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.NullDefault
     @Nullable String getStringWithNullDefault();
     Bean2 withStringWithNullDefault(@Nullable String s);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.EnumDefault("RED")
     Color getColorWithDefault();
     Bean2 withColorWithDefault(@Nullable Color color);
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.NullDefault
     @Nullable Color getColorWithNullDefault();
     Bean2 withColorWithNullDefault(@Nullable Color color);
 
-    @ImmutableBeans.Property()
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property()
     @Nullable Color getColorOptional();
     Bean2 withColorOptional(@Nullable Color color);
   }
@@ -632,7 +633,7 @@ class ImmutableBeanTest {
       return c + nTimes(x - 1);
     }
 
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     char getChar();
     BeanWithDefault withChar(char c);
   }
@@ -643,39 +644,39 @@ class ImmutableBeanTest {
    * or the derived interface.
    */
   public interface SubBean extends MyBean {
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     int getBuzz();
     SubBean withBuzz(int i);
   }
 
   /** A bean that has collection-valued properties. */
   public interface CollectionBean {
-    @ImmutableBeans.Property(makeImmutable = false)
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = false)
     @Nullable List<String> list();
 
     CollectionBean withList(@Nullable List<String> list);
 
-    @ImmutableBeans.Property(makeImmutable = true)
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = true)
     @Nullable List<String> immutableList();
 
     CollectionBean withImmutableList(@Nullable List<String> list);
 
-    @ImmutableBeans.Property(makeImmutable = false)
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = false)
     @Nullable Set<String> set();
 
     CollectionBean withSet(@Nullable Set<String> set);
 
-    @ImmutableBeans.Property(makeImmutable = true)
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = true)
     @Nullable Set<String> immutableSet();
 
     CollectionBean withImmutableSet(@Nullable Set<String> set);
 
-    @ImmutableBeans.Property(makeImmutable = false)
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = false)
     @Nullable Map<String, Integer> map();
 
     CollectionBean withMap(@Nullable Map<String, Integer> map);
 
-    @ImmutableBeans.Property(makeImmutable = true)
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = true)
     @Nullable Map<String, Integer> immutableMap();
 
     CollectionBean withImmutableMap(@Nullable Map<String, Integer> map);

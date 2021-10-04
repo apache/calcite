@@ -917,7 +917,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
   public interface Config extends MaterializedViewRule.Config {
 
     /** Instance of rule to push filter through project. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule filterProjectTransposeRule() {
       return CoreRules.FILTER_PROJECT_TRANSPOSE.config
           .withRelBuilderFactory(relBuilderFactory())
@@ -934,7 +934,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     Config withFilterProjectTransposeRule(RelOptRule rule);
 
     /** Instance of rule to push filter through aggregate. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule filterAggregateTransposeRule() {
       return CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
           .withRelBuilderFactory(relBuilderFactory())
@@ -947,7 +947,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     Config withFilterAggregateTransposeRule(RelOptRule rule);
 
     /** Instance of rule to pull up constants into aggregate. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule aggregateProjectPullUpConstantsRule() {
       return AggregateProjectPullUpConstantsRule.Config.DEFAULT
           .withRelBuilderFactory(relBuilderFactory())
@@ -961,7 +961,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     Config withAggregateProjectPullUpConstantsRule(RelOptRule rule);
 
     /** Instance of rule to merge project operators. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule projectMergeRule() {
       return CoreRules.PROJECT_MERGE.config
           .withRelBuilderFactory(relBuilderFactory())

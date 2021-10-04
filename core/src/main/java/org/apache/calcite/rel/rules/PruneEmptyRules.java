@@ -174,7 +174,7 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule PROJECT_INSTANCE =
-      ImmutablePruneEmptyRuleConfig.of()
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyProject")
           .withOperandFor(Project.class, project -> true)
           .toRule();
@@ -190,7 +190,7 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule FILTER_INSTANCE =
-      ImmutablePruneEmptyRuleConfig.of()
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyFilter")
           .withOperandFor(Filter.class, singleRel -> true)
           .toRule();
@@ -206,7 +206,7 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule SORT_INSTANCE =
-      ImmutablePruneEmptyRuleConfig.of()
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptySort")
           .withOperandFor(Sort.class, singleRel -> true)
           .toRule();
@@ -244,7 +244,7 @@ public abstract class PruneEmptyRules {
    * @see AggregateValuesRule
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
-      ImmutablePruneEmptyRuleConfig.of()
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyAggregate")
           .withOperandFor(Aggregate.class, Aggregate::isNotGrandTotal)
           .toRule();
@@ -299,15 +299,15 @@ public abstract class PruneEmptyRules {
    * filter) on top of the empty relational expression into empty. */
   public static class RemoveEmptySingleRule extends PruneEmptyRule {
     /** Creates a RemoveEmptySingleRule. */
-    RemoveEmptySingleRule(Config config) {
+    RemoveEmptySingleRule(RemoveEmptySingleRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         String description) {
-      this(ImmutablePruneEmptyRuleConfig.of().withDescription(description)
-          .as(Config.class)
+      this(ImmutableRemoveEmptySingleRuleConfig.of().withDescription(description)
+          .as(ImmutableRemoveEmptySingleRuleConfig.class)
           .withOperandFor(clazz, singleRel -> true));
     }
 
@@ -315,9 +315,9 @@ public abstract class PruneEmptyRules {
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
         String description) {
-      this(ImmutablePruneEmptyRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
+      this(ImmutableRemoveEmptySingleRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
           .withDescription(description)
-          .as(Config.class)
+          .as(ImmutableRemoveEmptySingleRuleConfig.class)
           .withOperandFor(clazz, predicate));
     }
 
@@ -326,9 +326,9 @@ public abstract class PruneEmptyRules {
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         com.google.common.base.Predicate<R> predicate,
         RelBuilderFactory relBuilderFactory, String description) {
-      this(ImmutablePruneEmptyRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
+      this(ImmutableRemoveEmptySingleRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
           .withDescription(description)
-          .as(Config.class)
+          .as(ImmutableRemoveEmptySingleRuleConfig.class)
           .withOperandFor(clazz, predicate::apply));
     }
 
@@ -344,21 +344,24 @@ public abstract class PruneEmptyRules {
       call.transformTo(emptyValues);
     }
 
+    /** Deprecated, use {@link RemoveEmptySingleRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends RemoveEmptySingleRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutablePruneEmptyRuleConfig")
-    public interface Config extends PruneEmptyRule.Config {
+    @Value.Immutable
+    public interface RemoveEmptySingleRuleConfig extends PruneEmptyRule.Config {
       @Override default RemoveEmptySingleRule toRule() {
         return new RemoveEmptySingleRule(this);
       }
 
       /** Defines an operand tree for the given classes. */
-      default <R extends RelNode> Config withOperandFor(Class<R> relClass,
+      default <R extends RelNode> RemoveEmptySingleRuleConfig withOperandFor(Class<R> relClass,
           Predicate<R> predicate) {
         return withOperandSupplier(b0 ->
             b0.operand(relClass).predicate(predicate).oneInput(b1 ->
                 b1.operand(Values.class).predicate(Values::isEmpty).noInputs()))
-            .as(Config.class);
+            .as(RemoveEmptySingleRuleConfig.class);
       }
     }
   }

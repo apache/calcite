@@ -22,7 +22,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 /** Configuration for {@link SqlWriter} and {@link SqlPrettyWriter}. */
-@Value.Immutable(singleton = true)
+@Value.Immutable
 public interface SqlWriterConfig {
   /** Returns the dialect. */
   @Nullable SqlDialect dialect();

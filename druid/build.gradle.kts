@@ -14,6 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.vlsi.gradle.ide.dsl.settings
+import com.github.vlsi.gradle.ide.dsl.taskTriggers
+
+plugins {
+    id("com.github.vlsi.ide")
+}
+
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
@@ -30,4 +37,40 @@ dependencies {
     testImplementation(project(":testkit"))
     testImplementation("org.mockito:mockito-core")
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    annotationProcessor("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
+    compileOnly("com.google.code.findbugs:jsr305")
+}
+
+fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
+    source = sourceSet.java
+    classpath = sourceSet.compileClasspath
+    options.compilerArgs.add("-proc:only")
+    org.gradle.api.plugins.internal.JvmPluginsHelper.configureAnnotationProcessorPath(sourceSet, sourceSet.java, options, project)
+    destinationDirectory.set(temporaryDir)
+
+    // only if we aren't running compileJava, since doing twice fails (in some places)
+    onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
+}
+
+val annotationProcessorMain by tasks.registering(JavaCompile::class) {
+    configureAnnotationSet(sourceSets.main.get())
+}
+
+ide {
+    // generate annotation processed files on project import/sync.
+    // adds to idea path but skip don't add to SourceSet since that triggers checkstyle
+    fun generatedSource(compile: TaskProvider<JavaCompile>) {
+        project.rootProject.configure<org.gradle.plugins.ide.idea.model.IdeaModel> {
+            project {
+                settings {
+                    taskTriggers {
+                        afterSync(compile.get())
+                    }
+                }
+            }
+        }
+    }
+
+    generatedSource(annotationProcessorMain)
 }

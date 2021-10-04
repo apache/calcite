@@ -943,7 +943,7 @@ public final class AggregateExpandDistinctAggregatesRule
     }
 
     /** Whether to use GROUPING SETS, default true. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isUsingGroupingSets() {
       return true;

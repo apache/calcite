@@ -124,7 +124,7 @@ public class CoerceInputsRule
     }
 
     /** Whether to coerce names. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isCoerceNames() {
       return false;
@@ -134,7 +134,7 @@ public class CoerceInputsRule
     Config withCoerceNames(boolean coerceNames);
 
     /** Class of {@link RelNode} to coerce to. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     Class<? extends RelNode> consumerRelClass();
 
     /** Sets {@link #consumerRelClass()}. */

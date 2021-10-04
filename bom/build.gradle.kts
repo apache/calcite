@@ -155,5 +155,6 @@ dependencies {
         apiv("org.openjdk.jmh:jmh-generator-annprocess", "jmh")
         runtimev("xalan:xalan")
         runtimev("xerces:xercesImpl")
+        apiv("com.google.code.findbugs:jsr305")
     }
 }

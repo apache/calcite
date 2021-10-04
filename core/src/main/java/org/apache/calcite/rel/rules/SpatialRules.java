@@ -86,6 +86,7 @@ import static java.util.Objects.requireNonNull;
  * is still present, but is evaluated after the approximate predicate has
  * eliminated many potential matches.
  */
+@Value.Enclosing
 public abstract class SpatialRules {
 
   private SpatialRules() {}
@@ -316,10 +317,9 @@ public abstract class SpatialRules {
     }
 
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableFilterHilbertRuleConfig")
+    @Value.Immutable
     public interface Config extends RelRule.Config {
-      Config DEFAULT = ImmutableFilterHilbertRuleConfig.of()
+      Config DEFAULT = ImmutableSpatialRules.Config.of()
           .withOperandSupplier(b ->
               b.operand(Filter.class)
                   .predicate(f -> DWITHIN_FINDER.inFilter(f)

@@ -1393,7 +1393,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
   public interface Config extends RelRule.Config {
     /** Whether to generate rewritings containing union if the query results
      * are contained within the view results. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     boolean generateUnionRewriting();
 
     /** Sets {@link #generateUnionRewriting()}. */
@@ -1401,7 +1401,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** If we generate union rewriting, we might want to pull up projections
      * from the query itself to maximize rewriting opportunities. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Nullable HepProgram unionRewritingPullProgram();
 
     /** Sets {@link #unionRewritingPullProgram()}. */
@@ -1409,7 +1409,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** Whether we should create the rewriting in the minimal subtree of plan
      * operators. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     boolean fastBailOut();
 
     /** Sets {@link #fastBailOut()}. */

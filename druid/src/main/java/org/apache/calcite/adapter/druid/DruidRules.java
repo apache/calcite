@@ -60,6 +60,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.immutables.value.Value;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
 
@@ -169,10 +170,10 @@ public class DruidRules {
    * {@link DruidQuery}.
    */
   public static class DruidFilterRule
-      extends RelRule<DruidFilterRule.Config> {
+      extends RelRule<DruidFilterRule.DruidFilterRuleConfig> {
 
     /** Creates a DruidFilterRule. */
-    protected DruidFilterRule(Config config) {
+    protected DruidFilterRule(DruidFilterRuleConfig config) {
       super(config);
     }
 
@@ -279,13 +280,18 @@ public class DruidRules {
       return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
     }
 
+    /** Deprecated, use {@link DruidFilterRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends DruidFilterRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface DruidFilterRuleConfig extends RelRule.Config {
+      DruidFilterRuleConfig DEFAULT = ImmutableDruidFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Filter.class).oneInput(b1 ->
                   b1.operand(DruidQuery.class).noInputs()))
-          .as(DruidFilterRule.Config.class);
+          .build();
 
       @Override default DruidFilterRule toRule() {
         return new DruidFilterRule(this);
@@ -295,10 +301,10 @@ public class DruidRules {
 
   /** Rule to Push a Having {@link Filter} into a {@link DruidQuery}. */
   public static class DruidHavingFilterRule
-      extends RelRule<DruidHavingFilterRule.Config> {
+      extends RelRule<DruidHavingFilterRule.DruidHavingFilterRuleConfig> {
 
     /** Creates a DruidHavingFilterRule. */
-    protected DruidHavingFilterRule(Config config) {
+    protected DruidHavingFilterRule(DruidHavingFilterRuleConfig config) {
       super(config);
     }
 
@@ -324,13 +330,18 @@ public class DruidRules {
       }
     }
 
+    /** Deprecated, use {@link DruidHavingFilterRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends DruidHavingFilterRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface DruidHavingFilterRuleConfig extends RelRule.Config {
+      DruidHavingFilterRuleConfig DEFAULT = ImmutableDruidHavingFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Filter.class).oneInput(b1 ->
                   b1.operand(DruidQuery.class).noInputs()))
-          .as(DruidHavingFilterRule.Config.class);
+          .build();
 
       @Override default DruidHavingFilterRule toRule() {
         return new DruidHavingFilterRule(this);
@@ -343,10 +354,10 @@ public class DruidRules {
    * {@link DruidQuery}.
    */
   public static class DruidProjectRule
-      extends RelRule<DruidProjectRule.Config> {
+      extends RelRule<DruidProjectRule.DruidProjectRuleConfig> {
 
     /** Creates a DruidProjectRule. */
-    protected DruidProjectRule(Config config) {
+    protected DruidProjectRule(DruidProjectRuleConfig config) {
       super(config);
     }
 
@@ -422,13 +433,18 @@ public class DruidRules {
       return Pair.of(aboveNodes, belowNodes);
     }
 
+    /** Deprecated, use {@link DruidProjectRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends DruidProjectRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface DruidProjectRuleConfig extends RelRule.Config {
+      DruidProjectRuleConfig DEFAULT = ImmutableDruidProjectRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Project.class).oneInput(b1 ->
                   b1.operand(DruidQuery.class).noInputs()))
-          .as(DruidProjectRule.Config.class);
+          .build();
 
       @Override default DruidProjectRule toRule() {
         return new DruidProjectRule(this);
@@ -441,10 +457,10 @@ public class DruidRules {
    * {@link DruidQuery} as a Post aggregator.
    */
   public static class DruidPostAggregationProjectRule
-      extends RelRule<DruidPostAggregationProjectRule.Config> {
+      extends RelRule<DruidPostAggregationProjectRule.DruidPostAggregationProjectRuleConfig> {
 
     /** Creates a DruidPostAggregationProjectRule. */
-    protected DruidPostAggregationProjectRule(Config config) {
+    protected DruidPostAggregationProjectRule(DruidPostAggregationProjectRuleConfig config) {
       super(config);
     }
 
@@ -484,13 +500,19 @@ public class DruidRules {
       }
     }
 
+    /** Deprecated, use {@link DruidPostAggregationProjectRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends DruidPostAggregationProjectRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Project.class).oneInput(b1 ->
-                  b1.operand(DruidQuery.class).noInputs()))
-          .as(DruidPostAggregationProjectRule.Config.class);
+    @Value.Immutable(singleton = false)
+    public interface DruidPostAggregationProjectRuleConfig extends RelRule.Config {
+      DruidPostAggregationProjectRuleConfig DEFAULT =
+          ImmutableDruidPostAggregationProjectRuleConfig.builder()
+              .withOperandSupplier(b0 ->
+                  b0.operand(Project.class).oneInput(b1 ->
+                      b1.operand(DruidQuery.class).noInputs()))
+              .build();
 
       @Override default DruidPostAggregationProjectRule toRule() {
         return new DruidPostAggregationProjectRule(this);
@@ -503,10 +525,10 @@ public class DruidRules {
    * into a {@link DruidQuery}.
    */
   public static class DruidAggregateRule
-      extends RelRule<DruidAggregateRule.Config> {
+      extends RelRule<DruidAggregateRule.DruidAggregateRuleConfig> {
 
     /** Creates a DruidAggregateRule. */
-    protected DruidAggregateRule(Config config) {
+    protected DruidAggregateRule(DruidAggregateRuleConfig config) {
       super(config);
     }
 
@@ -538,13 +560,18 @@ public class DruidRules {
       call.transformTo(DruidQuery.extendQuery(query, newAggregate));
     }
 
+    /** Deprecated, use {@link DruidAggregateRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends DruidAggregateRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface DruidAggregateRuleConfig extends RelRule.Config {
+      DruidAggregateRuleConfig DEFAULT = ImmutableDruidAggregateRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Aggregate.class).oneInput(b1 ->
                   b1.operand(DruidQuery.class).noInputs()))
-          .as(DruidAggregateRule.Config.class);
+          .build();
 
       @Override default DruidAggregateRule toRule() {
         return new DruidAggregateRule(this);
@@ -557,10 +584,10 @@ public class DruidRules {
    * {@link org.apache.calcite.rel.core.Project} into a {@link DruidQuery}.
    */
   public static class DruidAggregateProjectRule
-      extends RelRule<DruidAggregateProjectRule.Config> {
+      extends RelRule<DruidAggregateProjectRule.DruidAggregateProjectRuleConfig> {
 
     /** Creates a DruidAggregateProjectRule. */
-    protected DruidAggregateProjectRule(Config config) {
+    protected DruidAggregateProjectRule(DruidAggregateProjectRuleConfig config) {
       super(config);
     }
 
@@ -780,14 +807,19 @@ public class DruidRules {
       return refs;
     }
 
+    /** Deprecated, use {@link DruidAggregateProjectRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends DruidAggregateProjectRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface DruidAggregateProjectRuleConfig extends RelRule.Config {
+      DruidAggregateProjectRuleConfig DEFAULT = ImmutableDruidAggregateProjectRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Aggregate.class).oneInput(b1 ->
                   b1.operand(Project.class).oneInput(b2 ->
                       b2.operand(DruidQuery.class).noInputs())))
-          .as(DruidAggregateProjectRule.Config.class);
+          .build();
 
       @Override default DruidAggregateProjectRule toRule() {
         return new DruidAggregateProjectRule(this);
@@ -800,10 +832,10 @@ public class DruidRules {
    * into a {@link DruidQuery}.
    */
   public static class DruidSortRule
-      extends RelRule<DruidSortRule.Config> {
+      extends RelRule<DruidSortRule.DruidSortRuleConfig> {
 
     /** Creates a DruidSortRule. */
-    protected DruidSortRule(Config config) {
+    protected DruidSortRule(DruidSortRuleConfig config) {
       super(config);
     }
 
@@ -829,13 +861,18 @@ public class DruidRules {
       call.transformTo(DruidQuery.extendQuery(query, newSort));
     }
 
+    /** Deprecated, use {@link DruidSortRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends DruidSortRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface DruidSortRuleConfig extends RelRule.Config {
+      DruidSortRuleConfig DEFAULT = ImmutableDruidSortRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class).oneInput(b1 ->
                   b1.operand(DruidQuery.class).noInputs()))
-          .as(DruidSortRule.Config.class);
+          .build();
 
       @Override default DruidSortRule toRule() {
         return new DruidSortRule(this);

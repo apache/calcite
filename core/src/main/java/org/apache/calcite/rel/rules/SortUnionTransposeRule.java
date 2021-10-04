@@ -119,7 +119,7 @@ public class SortUnionTransposeRule
 
     /** Whether to match a Sort whose {@link Sort#fetch} is null. Generally
      * this only makes sense if the Union preserves order (and merges). */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean matchNullFetch() {
       return false;

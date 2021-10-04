@@ -41,6 +41,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 
+import org.immutables.value.Value;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -113,9 +115,9 @@ public class CassandraRules {
    * @see #FILTER
    */
   public static class CassandraFilterRule
-      extends RelRule<CassandraFilterRule.Config> {
+      extends RelRule<CassandraFilterRule.CassandraFilterRuleConfig> {
     /** Creates a CassandraFilterRule. */
-    protected CassandraFilterRule(Config config) {
+    protected CassandraFilterRule(CassandraFilterRuleConfig config) {
       super(config);
     }
 
@@ -222,19 +224,25 @@ public class CassandraRules {
           scan.cassandraTable.getClusteringOrder());
     }
 
+    /** Deprecated in favor of CassandraFilterRuleConfig. **/
+    @Deprecated
+    public interface Config extends CassandraFilterRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface CassandraFilterRuleConfig extends RelRule.Config {
+      CassandraFilterRuleConfig DEFAULT = ImmutableCassandraFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class)
                   .oneInput(b1 -> b1.operand(CassandraTableScan.class)
                       .noInputs()))
-          .as(Config.class);
+          .build();
 
       @Override default CassandraFilterRule toRule() {
         return new CassandraFilterRule(this);
       }
     }
+
   }
 
   /**
@@ -281,9 +289,9 @@ public class CassandraRules {
    * @see #SORT
    */
   public static class CassandraSortRule
-      extends RelRule<CassandraSortRule.Config> {
+      extends RelRule<CassandraSortRule.CassandraSortRuleConfig> {
     /** Creates a CassandraSortRule. */
-    protected CassandraSortRule(Config config) {
+    protected CassandraSortRule(CassandraSortRuleConfig config) {
       super(config);
     }
 
@@ -354,9 +362,14 @@ public class CassandraRules {
       }
     }
 
+    /** Deprecated in favor of CassandraSortRuleConfig. **/
+    @Deprecated
+    public interface Config extends CassandraSortRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface CassandraSortRuleConfig extends RelRule.Config {
+      CassandraSortRuleConfig DEFAULT = ImmutableCassandraSortRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class)
                   // Limits are handled by CassandraLimit
@@ -370,8 +383,7 @@ public class CassandraRules {
                                   // single partition
                                   .predicate(
                                       CassandraFilter::isSinglePartition)
-                                  .anyInputs())))
-          .as(Config.class);
+                                  .anyInputs()))).build();
 
       @Override default CassandraSortRule toRule() {
         return new CassandraSortRule(this);
@@ -387,9 +399,9 @@ public class CassandraRules {
    * @see #LIMIT
    */
   public static class CassandraLimitRule
-      extends RelRule<CassandraLimitRule.Config> {
+      extends RelRule<CassandraLimitRule.CassandraLimitRuleConfig> {
     /** Creates a CassandraLimitRule. */
-    protected CassandraLimitRule(Config config) {
+    protected CassandraLimitRule(CassandraLimitRuleConfig config) {
       super(config);
     }
 
@@ -408,15 +420,19 @@ public class CassandraRules {
       }
     }
 
+    /** Deprecated in favor of CassandraLimitRuleConfig. **/
+    @Deprecated
+    public interface Config extends CassandraLimitRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface CassandraLimitRuleConfig extends RelRule.Config {
+      CassandraLimitRuleConfig DEFAULT = ImmutableCassandraLimitRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(EnumerableLimit.class)
                   .oneInput(b1 ->
                       b1.operand(CassandraToEnumerableConverter.class)
-                          .anyInputs()))
-          .as(Config.class);
+                          .anyInputs())).build();
 
       @Override default CassandraLimitRule toRule() {
         return new CassandraLimitRule(this);

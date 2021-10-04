@@ -244,7 +244,7 @@ public class ProjectFilterTransposeRule
     }
 
     /** Expressions that should be preserved in the projection. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default PushProjector.ExprCondition preserveExprCondition() {
       return expr -> false;
     }
@@ -254,7 +254,7 @@ public class ProjectFilterTransposeRule
 
     /** Whether to push whole expressions from the project;
      * if false (the default), only pushes references. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isWholeProject() {
       return false;
@@ -265,7 +265,7 @@ public class ProjectFilterTransposeRule
 
     /** Whether to push whole expressions from the filter;
      * if false (the default), only pushes references. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isWholeFilter() {
       return false;

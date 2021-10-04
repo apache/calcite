@@ -287,7 +287,7 @@ public class ValuesReduceRule
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Parameter
     MatchHandler<ValuesReduceRule> matchHandler();
 

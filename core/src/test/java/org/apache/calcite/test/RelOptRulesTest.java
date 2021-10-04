@@ -127,6 +127,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -672,13 +673,13 @@ class RelOptRulesTest extends RelOptTestBase {
         CoreRules.JOIN_CONDITION_PUSH.config
             .withPredicate(predicate)
             .withDescription("FilterJoinRule:no-filter")
-            .as(FilterJoinRule.JoinConditionPushRule.Config.class)
+            .as(FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.class)
             .toRule();
     final FilterJoinRule.FilterIntoJoinRule filterOnJoin =
         CoreRules.FILTER_INTO_JOIN.config
             .withSmart(true)
             .withPredicate(predicate)
-            .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
+            .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
             .toRule();
     final HepProgram program =
         HepProgram.builder()
@@ -708,7 +709,7 @@ class RelOptRulesTest extends RelOptTestBase {
         CoreRules.JOIN_CONDITION_PUSH.config
             .withPredicate(predicate)
             .withDescription("FilterJoinRule:no-filter")
-            .as(FilterJoinRule.JoinConditionPushRule.Config.class)
+            .as(FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.class)
             .toRule();
 
     final Function<RelBuilder, RelNode> relFn = b -> {
@@ -2831,7 +2832,7 @@ class RelOptRulesTest extends RelOptTestBase {
         CoreRules.PROJECT_REDUCE_EXPRESSIONS.config
             .withOperandFor(LogicalProject.class)
             .withMatchNullability(false)
-            .as(ProjectReduceExpressionsRule.Config.class)
+            .as(ProjectReduceExpressionsRule.ProjectReduceExpressionsRuleConfig.class)
             .toRule();
     checkReduceNullableToNotNull(rule);
   }
@@ -6414,7 +6415,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * custom MyFilter.
    */
   public static class MyFilterRule extends RelRule<MyFilterRule.Config> {
-    static final MyFilterRule INSTANCE = Config.EMPTY
+    static final MyFilterRule INSTANCE = ImmutableMyFilterRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(LogicalFilter.class).anyInputs())
         .as(Config.class)
@@ -6433,6 +6435,8 @@ class RelOptRulesTest extends RelOptTestBase {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableMyFilterRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyFilterRule toRule() {
         return new MyFilterRule(this);
@@ -6468,7 +6472,7 @@ class RelOptRulesTest extends RelOptTestBase {
    */
   public static class MyProjectRule
       extends RelRule<MyProjectRule.Config> {
-    static final MyProjectRule INSTANCE = Config.EMPTY
+    static final MyProjectRule INSTANCE = ImmutableMyProjectRuleConfig.builder().build()
         .withOperandSupplier(b -> b.operand(LogicalProject.class).anyInputs())
         .as(Config.class)
         .toRule();
@@ -6486,6 +6490,8 @@ class RelOptRulesTest extends RelOptTestBase {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableMyProjectRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyProjectRule toRule() {
         return new MyProjectRule(this);

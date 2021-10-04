@@ -42,6 +42,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ import java.util.Set;
 /**
  * Planner rule to push filters and projections to Splunk.
  */
+@Value.Enclosing
 public class SplunkPushDownRule
     extends RelRule<SplunkPushDownRule.Config> {
   private static final Logger LOGGER =
@@ -71,41 +73,41 @@ public class SplunkPushDownRule
           SqlKind.NOT);
 
   public static final SplunkPushDownRule PROJECT_ON_FILTER =
-      Config.EMPTY
+      ImmutableSplunkPushDownRule.Config.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalProject.class).oneInput(b1 ->
                   b1.operand(LogicalFilter.class).oneInput(b2 ->
                       b2.operand(LogicalProject.class).oneInput(b3 ->
                           b3.operand(SplunkTableScan.class).noInputs()))))
-          .as(Config.class)
+          .build()
           .withId("proj on filter on proj")
           .toRule();
 
   public static final SplunkPushDownRule FILTER_ON_PROJECT =
-      Config.EMPTY
+      ImmutableSplunkPushDownRule.Config.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class).oneInput(b1 ->
                   b1.operand(LogicalProject.class).oneInput(b2 ->
                       b2.operand(SplunkTableScan.class).noInputs())))
-          .as(Config.class)
+          .build()
           .withId("filter on proj")
           .toRule();
 
   public static final SplunkPushDownRule FILTER =
-      Config.EMPTY
+      ImmutableSplunkPushDownRule.Config.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class).oneInput(b1 ->
                   b1.operand(SplunkTableScan.class).noInputs()))
-          .as(Config.class)
+          .build()
           .withId("filter")
           .toRule();
 
   public static final SplunkPushDownRule PROJECT =
-      Config.EMPTY
+      ImmutableSplunkPushDownRule.Config.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalProject.class).oneInput(b1 ->
                   b1.operand(SplunkTableScan.class).noInputs()))
-          .as(Config.class)
+          .build()
           .withId("proj")
           .toRule();
 
@@ -116,17 +118,19 @@ public class SplunkPushDownRule
 
   @Deprecated // to be removed before 2.0
   protected SplunkPushDownRule(RelOptRuleOperand operand, String id) {
-    this(Config.EMPTY.withOperandSupplier(b -> b.exactly(operand))
-        .as(Config.class)
+    this(ImmutableSplunkPushDownRule.Config.builder()
+        .withOperandSupplier(b -> b.exactly(operand))
+        .build()
         .withId(id));
   }
 
   @Deprecated // to be removed before 2.0
   protected SplunkPushDownRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String id) {
-    this(Config.EMPTY.withOperandSupplier(b -> b.exactly(operand))
+    this(ImmutableSplunkPushDownRule.Config.builder()
+        .withOperandSupplier(b -> b.exactly(operand))
         .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
+        .build()
         .withId(id));
   }
 
@@ -466,6 +470,7 @@ public class SplunkPushDownRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
     @Override default SplunkPushDownRule toRule() {
       return new SplunkPushDownRule(this);

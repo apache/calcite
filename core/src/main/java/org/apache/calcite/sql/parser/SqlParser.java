@@ -41,6 +41,8 @@ import java.util.Set;
 /**
  * A <code>SqlParser</code> parses a SQL statement.
  */
+@Value.Enclosing
+@SuppressWarnings("deprecation")
 public class SqlParser {
   public static final int DEFAULT_IDENTIFIER_MAX_LENGTH = 128;
   @Deprecated // to be removed before 2.0
@@ -245,11 +247,11 @@ public class SqlParser {
   /**
    * Interface to define the configuration for a SQL parser.
    */
-  @Value.Immutable(singleton = true)
-  @Value.Style(typeImmutable = "ImmutableSqlParserConfig")
+  @Value.Immutable
+  @SuppressWarnings("deprecation")
   public interface Config {
     /** Default configuration. */
-    Config DEFAULT = ImmutableSqlParserConfig.of();
+    Config DEFAULT = ImmutableSqlParser.Config.of();
 
     @Value.Default default int identifierMaxLength() {
       return DEFAULT_IDENTIFIER_MAX_LENGTH;

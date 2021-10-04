@@ -90,7 +90,7 @@ public abstract class ProjectToWindowRule
    */
   public static class CalcToWindowRule extends ProjectToWindowRule {
     /** Creates a CalcToWindowRule. */
-    protected CalcToWindowRule(Config config) {
+    protected CalcToWindowRule(CalcToWindowRuleConfig config) {
       super(config);
     }
 
@@ -103,11 +103,14 @@ public abstract class ProjectToWindowRule
       call.transformTo(newRel);
     }
 
+    /** Deprecated, use {@link CalcToWindowRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends CalcToWindowRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableCalcToWindowRuleConfig")
-    public interface Config extends ProjectToWindowRule.Config {
-      Config DEFAULT = ImmutableCalcToWindowRuleConfig.of()
+    @Value.Immutable
+    public interface CalcToWindowRuleConfig extends ProjectToWindowRule.Config {
+      CalcToWindowRuleConfig DEFAULT = ImmutableCalcToWindowRuleConfig.of()
           .withOperandSupplier(b ->
               b.operand(Calc.class)
                   .predicate(Calc::containsOver)
@@ -131,14 +134,17 @@ public abstract class ProjectToWindowRule
   public static class ProjectToLogicalProjectAndWindowRule
         extends ProjectToWindowRule {
     /** Creates a ProjectToLogicalProjectAndWindowRule. */
-    protected ProjectToLogicalProjectAndWindowRule(Config config) {
+    protected ProjectToLogicalProjectAndWindowRule(
+        ProjectToLogicalProjectAndWindowRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public ProjectToLogicalProjectAndWindowRule(
         RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory).as(Config.class));
+      this(ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT
+          .withRelBuilderFactory(relBuilderFactory)
+          .as(ProjectToLogicalProjectAndWindowRuleConfig.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -179,16 +185,20 @@ public abstract class ProjectToWindowRule
       call.transformTo(newRel);
     }
 
+    /** Deprecated, use {@link ProjectToLogicalProjectAndWindowRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends ProjectToLogicalProjectAndWindowRuleConfig { }
+
     /** Rule configuration. */
-    @Value.Immutable(singleton = true)
-    @Value.Style(typeImmutable = "ImmutableProjectToWindowRule")
-    public interface Config extends ProjectToWindowRule.Config {
-      Config DEFAULT = ImmutableProjectToWindowRule.of()
-          .withOperandSupplier(b ->
-              b.operand(Project.class)
-                  .predicate(Project::containsOver)
-                  .anyInputs())
-          .withDescription("ProjectToWindowRule:project");
+    @Value.Immutable
+    public interface ProjectToLogicalProjectAndWindowRuleConfig extends ProjectToWindowRule.Config {
+      ProjectToLogicalProjectAndWindowRuleConfig DEFAULT =
+          ImmutableProjectToLogicalProjectAndWindowRuleConfig.of()
+              .withOperandSupplier(b ->
+                  b.operand(Project.class)
+                      .predicate(Project::containsOver)
+                      .anyInputs())
+              .withDescription("ProjectToWindowRule:project");
 
       @Override default ProjectToLogicalProjectAndWindowRule toRule() {
         return new ProjectToLogicalProjectAndWindowRule(this);

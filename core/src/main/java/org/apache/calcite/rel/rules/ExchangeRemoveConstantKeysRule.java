@@ -195,7 +195,7 @@ public class ExchangeRemoveConstantKeysRule
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Parameter
     MatchHandler<ExchangeRemoveConstantKeysRule> matchHandler();
 

@@ -262,10 +262,9 @@ class PigRelBuilderStyleTest extends AbstractPigTest {
                 b0.operand(Filter.class).oneInput(b1 ->
                     b1.operand(Join.class).anyInputs()))
             .withDescription("FilterJoinRule:filter")
-            .as(FilterIntoJoinRule.Config.class)
+            .as(FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
             .withSmart(true)
             .withPredicate((join, joinType, exp) -> true)
-            .as(FilterIntoJoinRule.Config.class)
             .toRule());
     planner.setRoot(root);
     return planner;

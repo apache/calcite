@@ -890,7 +890,7 @@ public class SubQueryRemoveRule
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     MatchHandler<SubQueryRemoveRule> matchHandler();
 
     /** Sets {@link #matchHandler()}. */

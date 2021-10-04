@@ -67,6 +67,7 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -485,7 +486,8 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
 
   /** A Mock rule to validate the hint. */
   public static class MockJoinRule extends RelRule<MockJoinRule.Config> {
-    public static final MockJoinRule INSTANCE = Config.EMPTY
+    public static final MockJoinRule INSTANCE = ImmutableMockJoinRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(LogicalJoin.class).anyInputs())
         .withDescription("MockJoinRule")
@@ -509,6 +511,8 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableMockJoinRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MockJoinRule toRule() {
         return new MockJoinRule(this);

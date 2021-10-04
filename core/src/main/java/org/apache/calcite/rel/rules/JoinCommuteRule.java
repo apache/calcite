@@ -251,7 +251,7 @@ public class JoinCommuteRule
     }
 
     /** Whether to swap outer joins; default false. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isSwapOuter() {
       return false;
@@ -262,7 +262,7 @@ public class JoinCommuteRule
 
     /** Whether to emit the new join tree if the join condition is {@code TRUE}
      * (that is, cartesian joins); default true. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isAllowAlwaysTrueCondition() {
       return true;

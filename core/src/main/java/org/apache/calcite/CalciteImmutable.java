@@ -30,6 +30,7 @@ import java.lang.annotation.Target;
     visibility = Value.Style.ImplementationVisibility.PACKAGE,
     defaults = @Value.Immutable(builder = true, singleton = true),
     get = {"is*", "get*"},
-    init = "with*"
+    init = "with*",
+    passAnnotations = SuppressWarnings.class
 )
 public @interface CalciteImmutable { }

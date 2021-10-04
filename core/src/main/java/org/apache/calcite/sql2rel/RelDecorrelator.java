@@ -257,16 +257,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .addRuleInstance(
             AdjustProjectForCountAggregateRule.config(true, this, f).toRule())
         .addRuleInstance(
-            FilterJoinRule.FilterIntoJoinRule.Config.DEFAULT
+            FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.DEFAULT
                 .withRelBuilderFactory(f)
                 .withOperandSupplier(b0 ->
                     b0.operand(Filter.class).oneInput(b1 ->
                         b1.operand(Join.class).anyInputs()))
                 .withDescription("FilterJoinRule:filter")
-                .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
+                .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
                 .withSmart(true)
                 .withPredicate((join, joinType, exp) -> true)
-                .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
+                .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
                 .toRule())
         .addRuleInstance(
             CoreRules.FILTER_PROJECT_TRANSPOSE.config
@@ -1885,8 +1885,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *         LogicalTableScan(table=[[TPCH_01, LINEITEM]])
    */
   public static final class RemoveSingleAggregateRule
-      extends RelRule<RemoveSingleAggregateRule.Config> {
-    static Config config(RelBuilderFactory f) {
+      extends RelRule<RemoveSingleAggregateRule.RemoveSingleAggregateRuleConfig> {
+    static RemoveSingleAggregateRuleConfig config(RelBuilderFactory f) {
       return ImmutableRemoveSingleAggregateRuleConfig.builder().withRelBuilderFactory(f)
           .withOperandSupplier(b0 ->
               b0.operand(Aggregate.class).oneInput(b1 ->
@@ -1896,7 +1896,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates a RemoveSingleAggregateRule. */
-    RemoveSingleAggregateRule(Config config) {
+    RemoveSingleAggregateRule(RemoveSingleAggregateRuleConfig config) {
       super(config);
     }
 
@@ -1936,10 +1936,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
       call.transformTo(relBuilder.build());
     }
 
+    /** Deprecated, use {@link RemoveSingleAggregateRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends RemoveSingleAggregateRuleConfig { }
+
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
-    @Value.Style(typeImmutable = "ImmutableRemoveSingleAggregateRuleConfig", init = "with*")
-    public interface Config extends RelRule.Config {
+    public interface RemoveSingleAggregateRuleConfig extends RelRule.Config {
       @Override default RemoveSingleAggregateRule toRule() {
         return new RemoveSingleAggregateRule(this);
       }
@@ -1948,10 +1951,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Planner rule that removes correlations for scalar projects. */
   public static final class RemoveCorrelationForScalarProjectRule
-      extends RelRule<RemoveCorrelationForScalarProjectRule.Config> {
+      extends RelRule<RemoveCorrelationForScalarProjectRule
+      .RemoveCorrelationForScalarProjectRuleConfig> {
     private final RelDecorrelator d;
 
-    static Config config(RelDecorrelator decorrelator,
+    static RemoveCorrelationForScalarProjectRuleConfig config(RelDecorrelator decorrelator,
         RelBuilderFactory relBuilderFactory) {
       return ImmutableRemoveCorrelationForScalarProjectRuleConfig.builder()
           .withRelBuilderFactory(relBuilderFactory)
@@ -1966,7 +1970,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates a RemoveCorrelationForScalarProjectRule. */
-    RemoveCorrelationForScalarProjectRule(Config config) {
+    RemoveCorrelationForScalarProjectRule(RemoveCorrelationForScalarProjectRuleConfig config) {
       super(config);
       this.d = requireNonNull(config.decorrelator());
     }
@@ -2154,14 +2158,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
       d.removeCorVarFromTree(correlate);
     }
 
+    /** Deprecated, use {@link RemoveCorrelationForScalarProjectRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends RemoveCorrelationForScalarProjectRuleConfig { }
+
     /** Rule configuration.
      *
      * <p>Extends {@link RelDecorrelator.Config} because rule needs a
      * decorrelator instance. */
     @Value.Immutable(singleton = false)
-    @Value.Style(typeImmutable = "ImmutableRemoveCorrelationForScalarProjectRuleConfig",
-        init = "with*")
-    public interface Config extends RelDecorrelator.Config {
+    public interface RemoveCorrelationForScalarProjectRuleConfig extends RelDecorrelator.Config {
       @Override default RemoveCorrelationForScalarProjectRule toRule() {
         return new RemoveCorrelationForScalarProjectRule(this);
       }
@@ -2170,10 +2176,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Planner rule that removes correlations for scalar aggregates. */
   public static final class RemoveCorrelationForScalarAggregateRule
-      extends RelRule<RemoveCorrelationForScalarAggregateRule.Config> {
+      extends RelRule<RemoveCorrelationForScalarAggregateRule
+      .RemoveCorrelationForScalarAggregateRuleConfig> {
     private final RelDecorrelator d;
 
-    static Config config(RelDecorrelator d,
+    static RemoveCorrelationForScalarAggregateRuleConfig config(RelDecorrelator d,
         RelBuilderFactory relBuilderFactory) {
       return ImmutableRemoveCorrelationForScalarAggregateRuleConfig.builder()
           .withRelBuilderFactory(relBuilderFactory)
@@ -2190,7 +2197,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates a RemoveCorrelationForScalarAggregateRule. */
-    RemoveCorrelationForScalarAggregateRule(Config config) {
+    RemoveCorrelationForScalarAggregateRule(RemoveCorrelationForScalarAggregateRuleConfig config) {
       super(config);
       d = requireNonNull(config.decorrelator());
     }
@@ -2539,14 +2546,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
       d.removeCorVarFromTree(correlate);
     }
 
+    /** Deprecated, use {@link RemoveCorrelationForScalarAggregateRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends RemoveCorrelationForScalarAggregateRuleConfig { }
+
+
     /** Rule configuration.
      *
      * <p>Extends {@link RelDecorrelator.Config} because rule needs a
      * decorrelator instance. */
     @Value.Immutable(singleton = false)
-    @Value.Style(typeImmutable = "ImmutableRemoveCorrelationForScalarAggregateRuleConfig",
-        init = "with*")
-    public interface Config extends RelDecorrelator.Config {
+    public interface RemoveCorrelationForScalarAggregateRuleConfig extends RelDecorrelator.Config {
       @Override default RemoveCorrelationForScalarAggregateRule toRule() {
         return new RemoveCorrelationForScalarAggregateRule(this);
       }
@@ -2563,11 +2573,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Planner rule that adjusts projects when counts are added. */
   public static final class AdjustProjectForCountAggregateRule
-      extends RelRule<AdjustProjectForCountAggregateRule.Config> {
+      extends RelRule<AdjustProjectForCountAggregateRule.AdjustProjectForCountAggregateRuleConfig> {
     final RelDecorrelator d;
 
-    static Config config(boolean flavor, RelDecorrelator decorrelator,
-        RelBuilderFactory relBuilderFactory) {
+    static AdjustProjectForCountAggregateRuleConfig config(
+        boolean flavor, RelDecorrelator decorrelator, RelBuilderFactory relBuilderFactory) {
       return ImmutableAdjustProjectForCountAggregateRuleConfig.builder()
           .withRelBuilderFactory(relBuilderFactory)
           .withOperandSupplier(b0 ->
@@ -2583,7 +2593,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     /** Creates an AdjustProjectForCountAggregateRule. */
-    AdjustProjectForCountAggregateRule(Config config) {
+    AdjustProjectForCountAggregateRule(AdjustProjectForCountAggregateRuleConfig config) {
       super(config);
       this.d = requireNonNull(config.decorrelator());
     }
@@ -2707,22 +2717,24 @@ public class RelDecorrelator implements ReflectiveVisitor {
       call.transformTo(newOutput);
     }
 
+    /** Deprecated, use {@link AdjustProjectForCountAggregateRuleConfig} instead. **/
+    @Deprecated
+    public interface Config extends AdjustProjectForCountAggregateRuleConfig { }
+
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
-    @Value.Style(typeImmutable = "ImmutableAdjustProjectForCountAggregateRuleConfig",
-        init = "with*")
-    public interface Config extends RelDecorrelator.Config {
+    public interface AdjustProjectForCountAggregateRuleConfig extends RelDecorrelator.Config {
       @Override default AdjustProjectForCountAggregateRule toRule() {
         return new AdjustProjectForCountAggregateRule(this);
       }
 
       /** Returns the flavor of the rule (true for 4 operands, false for 3
        * operands). */
-      @ImmutableBeans.Property
+      @SuppressWarnings("deprecation") @ImmutableBeans.Property
       boolean flavor();
 
       /** Sets {@link #flavor}. */
-      Config withFlavor(boolean flavor);
+      AdjustProjectForCountAggregateRuleConfig withFlavor(boolean flavor);
     }
   }
 
@@ -3024,7 +3036,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   public interface Config extends RelRule.Config {
     /** Returns the RelDecorrelator that will be context for the created
      * rule instance. */
-    @ImmutableBeans.Property
+    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     RelDecorrelator decorrelator();
 
     /** Sets {@link #decorrelator}. */
