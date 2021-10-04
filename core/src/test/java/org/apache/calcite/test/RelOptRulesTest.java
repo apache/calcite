@@ -6902,4 +6902,46 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
         .check();
   }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4818">[CALCITE-4818]
+   * AggregateExpandDistinctAggregatesRule must infer correct data type for top aggregate calls</a>.
+   * <p>
+   * Checks AggregateExpandDistinctAggregatesRule when return type of the SUM aggregate
+   * is changed (expanded) by define custom type factory.
+   */
+  @Test void testSumAndDistinctSumWithExpandSumType() {
+    // Define new type system to expand SUM return type.
+    RelDataTypeSystemImpl typeSystem = new RelDataTypeSystemImpl() {
+      @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
+          RelDataType argumentType) {
+        switch (argumentType.getSqlTypeName()) {
+        case INTEGER:
+          return typeFactory.createSqlType(SqlTypeName.BIGINT);
+        case BIGINT:
+          return typeFactory.createSqlType(SqlTypeName.DECIMAL);
+
+        default:
+          return super.deriveSumType(typeFactory, argumentType);
+        }
+      }
+    };
+
+    Supplier<RelDataTypeFactory> typeFactorySupplier = () -> new SqlTypeFactoryImpl(typeSystem);
+
+    // Expected plan:
+    // LogicalProject(EXPR$0=[CAST($0):BIGINT], EXPR$1=[$1])
+    //  LogicalAggregate(group=[{}], EXPR$0=[SUM($1)], EXPR$1=[SUM($0)]) // RowType[DECIMAL, BIGINT]
+    //    LogicalAggregate(group=[{0}], EXPR$0=[SUM($0)])  // RowType[INTEGER, BIGINT]
+    //      LogicalProject(COMM=[$6])
+    //        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    //
+    // The top 'LogicalProject' must be added in case SUM type is expanded
+    // because type of original expression 'COUNT(DISTINCT comm)' is BIGINT
+    // and type of SUM (of BIGINT) is DECIMAL.
+    sql("SELECT SUM(comm), SUM(DISTINCT comm) FROM emp")
+        .withTester(t -> t.withTypeFactorySupplier(typeFactorySupplier))
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .check();
+  }
 }
