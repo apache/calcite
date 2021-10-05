@@ -33,6 +33,7 @@ import org.apache.calcite.test.schemata.hr.DepartmentPlus;
 import org.apache.calcite.test.schemata.hr.Dependent;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.Event;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.test.schemata.hr.Location;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Smalls;
@@ -220,7 +221,7 @@ public class MaterializationTest {
           + "      name: 'hr',\n"
           + "      factory: 'org.apache.calcite.adapter.java.ReflectiveSchema$Factory',\n"
           + "      operand: {\n"
-          + "        class: 'org.apache.calcite.test.JdbcTest$HrSchema'\n"
+          + "        class: '" + HrSchema.class.getName() + "'\n"
           + "      }\n"
           + "    }\n"
           + "  ]\n"
