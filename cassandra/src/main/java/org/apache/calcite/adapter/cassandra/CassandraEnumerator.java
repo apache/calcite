@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.cassandra;
 
 import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -25,27 +24,32 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 
-import com.datastax.driver.core.LocalDate;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.TupleValue;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.data.TupleValue;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 /** Enumerator that reads from a Cassandra column family. */
 class CassandraEnumerator implements Enumerator<Object> {
-  private Iterator<Row> iterator;
-  private Row current;
-  private List<RelDataTypeField> fieldTypes;
+  private final Iterator<Row> iterator;
+  private final List<RelDataTypeField> fieldTypes;
+  @Nullable private Row current;
 
   /** Creates a CassandraEnumerator.
    *
-   * @param results Cassandra result set ({@link com.datastax.driver.core.ResultSet})
+   * @param results Cassandra result set ({@link com.datastax.oss.driver.api.core.cql.ResultSet})
    * @param protoRowType The type of resulting rows
    */
   CassandraEnumerator(ResultSet results, RelProtoDataType protoRowType) {
@@ -80,10 +84,11 @@ class CassandraEnumerator implements Enumerator<Object> {
    *
    * @param index Index of the field within the Row object
    */
-  private Object currentRowField(int index) {
+  private @Nullable Object currentRowField(int index) {
+    assert current != null;
     final Object o =  current.get(index,
         CassandraSchema.CODEC_REGISTRY.codecFor(
-            current.getColumnDefinitions().getType(index)));
+            current.getColumnDefinitions().get(index).getType()));
 
     return convertToEnumeratorObject(o);
   }
@@ -92,7 +97,7 @@ class CassandraEnumerator implements Enumerator<Object> {
    *
    * @param obj Object to convert, if needed
    */
-  private Object convertToEnumeratorObject(Object obj) {
+  private @Nullable Object convertToEnumeratorObject(@Nullable Object obj) {
     if (obj instanceof ByteBuffer) {
       ByteBuffer buf = (ByteBuffer) obj;
       byte [] bytes = new byte[buf.remaining()];
@@ -100,15 +105,18 @@ class CassandraEnumerator implements Enumerator<Object> {
       return new ByteString(bytes);
     } else if (obj instanceof LocalDate) {
       // converts dates to the expected numeric format
-      return ((LocalDate) obj).getMillisSinceEpoch()
-          / DateTimeUtils.MILLIS_PER_DAY;
+      return ((LocalDate) obj).toEpochDay();
     } else if (obj instanceof Date) {
       @SuppressWarnings("JdkObsolete")
       long milli = ((Date) obj).toInstant().toEpochMilli();
       return milli;
+    } else if (obj instanceof Instant) {
+      return ((Instant) obj).toEpochMilli();
+    } else if (obj instanceof LocalTime) {
+      return ((LocalTime) obj).toNanoOfDay();
     } else if (obj instanceof LinkedHashSet) {
       // MULTISET is handled as an array
-      return ((LinkedHashSet) obj).toArray();
+      return ((LinkedHashSet<?>) obj).toArray();
     } else if (obj instanceof TupleValue) {
       // STRUCT can be handled as an array
       final TupleValue tupleValue = (TupleValue) obj;
@@ -119,6 +127,7 @@ class CassandraEnumerator implements Enumerator<Object> {
                   CassandraSchema.CODEC_REGISTRY.codecFor(
                       tupleValue.getType().getComponentTypes().get(i)))
           ).map(this::convertToEnumeratorObject)
+          .map(Objects::requireNonNull) // "null" cannot appear inside collections
           .toArray();
     }
 

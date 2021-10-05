@@ -39,8 +39,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.HashSet;
@@ -72,7 +72,7 @@ public class CassandraRules {
           .toRule(CassandraToEnumerableConverterRule.class);
 
   @SuppressWarnings("MutablePublicArray")
-  public static final RelOptRule[] RULES = {
+  protected static final RelOptRule[] RULES = {
       FILTER,
       PROJECT,
       SORT,
@@ -128,8 +128,11 @@ public class CassandraRules {
 
       // Get field names from the scan operation
       CassandraTableScan scan = call.rel(1);
-      Pair<List<String>, List<String>> keyFields = scan.cassandraTable.getKeyFields();
-      Set<String> partitionKeys = new HashSet<>(keyFields.left);
+
+      List<String> partitionKeys = scan.cassandraTable.getPartitionKeys();
+      List<String> clusteringKeys = scan.cassandraTable.getClusteringKeys();
+      Set<String> partitionKeysSet = new HashSet<>(scan.cassandraTable.getPartitionKeys());
+
       List<String> fieldNames = CassandraRules.cassandraFieldNames(filter.getInput().getRowType());
 
       List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
@@ -139,14 +142,14 @@ public class CassandraRules {
         // Check that all conjunctions are primary key equalities
         condition = disjunctions.get(0);
         for (RexNode predicate : RelOptUtil.conjunctions(condition)) {
-          if (!isEqualityOnKey(predicate, fieldNames, partitionKeys, keyFields.right)) {
+          if (!isEqualityOnKey(predicate, fieldNames, partitionKeysSet, clusteringKeys)) {
             return false;
           }
         }
       }
 
-      // Either all of the partition keys must be specified or none
-      return partitionKeys.size() == keyFields.left.size() || partitionKeys.size() == 0;
+      // Either all the partition keys must be specified or none
+      return partitionKeysSet.size() == partitionKeys.size() || partitionKeysSet.isEmpty();
     }
 
     /** Check if the node is a supported predicate (primary key equality).
@@ -168,7 +171,7 @@ public class CassandraRules {
       final RexNode right = call.operands.get(1);
       String key = compareFieldWithLiteral(left, right, fieldNames);
       if (key == null) {
-        key = compareFieldWithLiteral(right, left, fieldNames);
+        key = compareFieldWithLiteral(left, right, fieldNames);
       }
       if (key != null) {
         return partitionKeys.remove(key) || clusteringKeys.contains(key);
@@ -184,17 +187,16 @@ public class CassandraRules {
      * @param fieldNames Names of all columns in the table
      * @return The field being compared or null if there is no key equality
      */
-    private static String compareFieldWithLiteral(RexNode left, RexNode right,
-        List<String> fieldNames) {
+    private static @Nullable String compareFieldWithLiteral(
+        RexNode left, RexNode right, List<String> fieldNames) {
       // FIXME Ignore casts for new and assume they aren't really necessary
       if (left.isA(SqlKind.CAST)) {
         left = ((RexCall) left).getOperands().get(0);
       }
 
       if (left.isA(SqlKind.INPUT_REF) && right.isA(SqlKind.LITERAL)) {
-        final RexInputRef left1 = (RexInputRef) left;
-        String name = fieldNames.get(left1.getIndex());
-        return name;
+        RexInputRef left1 = (RexInputRef) left;
+        return fieldNames.get(left1.getIndex());
       } else {
         return null;
       }
@@ -211,20 +213,22 @@ public class CassandraRules {
       }
     }
 
-    RelNode convert(LogicalFilter filter, CassandraTableScan scan) {
+    @Nullable RelNode convert(LogicalFilter filter, CassandraTableScan scan) {
       final RelTraitSet traitSet = filter.getTraitSet().replace(CassandraRel.CONVENTION);
-      final Pair<List<String>, List<String>> keyFields = scan.cassandraTable.getKeyFields();
+      final List<String> partitionKeys = scan.cassandraTable.getPartitionKeys();
+      final List<String> clusteringKeys = scan.cassandraTable.getClusteringKeys();
+
       return new CassandraFilter(
           filter.getCluster(),
           traitSet,
           convert(filter.getInput(), CassandraRel.CONVENTION),
           filter.getCondition(),
-          keyFields.left,
-          keyFields.right,
+          partitionKeys,
+          clusteringKeys,
           scan.cassandraTable.getClusteringOrder());
     }
 
-    /** Deprecated in favor of CassandraFilterRuleConfig. **/
+    /** Deprecated in favor of {@link CassandraFilterRuleConfig}. **/
     @Deprecated
     public interface Config extends CassandraFilterRuleConfig { }
 
@@ -322,7 +326,7 @@ public class CassandraRules {
       if (sortFieldCollations.size() > implicitFieldCollations.size()) {
         return false;
       }
-      if (sortFieldCollations.size() == 0) {
+      if (sortFieldCollations.isEmpty()) {
         return true;
       }
 
@@ -354,12 +358,9 @@ public class CassandraRules {
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
-      final Sort sort = call.rel(0);
+      Sort sort = call.rel(0);
       CassandraFilter filter = call.rel(2);
-      final RelNode converted = convert(sort, filter);
-      if (converted != null) {
-        call.transformTo(converted);
-      }
+      call.transformTo(convert(sort, filter));
     }
 
     /** Deprecated in favor of CassandraSortRuleConfig. **/
@@ -413,11 +414,8 @@ public class CassandraRules {
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
-      final EnumerableLimit limit = call.rel(0);
-      final RelNode converted = convert(limit);
-      if (converted != null) {
-        call.transformTo(converted);
-      }
+      EnumerableLimit limit = call.rel(0);
+      call.transformTo(convert(limit));
     }
 
     /** Deprecated in favor of CassandraLimitRuleConfig. **/

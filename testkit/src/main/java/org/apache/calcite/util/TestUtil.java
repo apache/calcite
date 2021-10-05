@@ -301,6 +301,11 @@ public abstract class TestUtil {
         .bestVersion;
   }
 
+  /** Returns the JVM vendor. */
+  public static String getJavaVirtualMachineVendor() {
+    return System.getProperty("java.vm.vendor");
+  }
+
   /** Given a list, returns the number of elements that are not between an
    * element that is less and an element that is greater. */
   public static <E extends Comparable<E>> SortedSet<E> outOfOrderItems(List<E> list) {
