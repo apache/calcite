@@ -191,8 +191,6 @@ ide {
     generatedSource(javaCCTest, "test")
 }
 
-
-
 val annotationProcessorMain by tasks.registering(JavaCompile::class) {
     dependsOn(javaCCMain)
 }
