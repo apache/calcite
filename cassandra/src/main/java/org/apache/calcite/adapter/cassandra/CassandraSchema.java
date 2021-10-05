@@ -38,29 +38,35 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.datastax.driver.core.AbstractTableMetadata;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ClusteringOrder;
-import com.datastax.driver.core.CodecRegistry;
-import com.datastax.driver.core.ColumnMetadata;
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.MaterializedViewMetadata;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.TupleType;
-import com.google.common.collect.ImmutableList;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
+import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.RelationMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.ViewMetadata;
+import com.datastax.oss.driver.api.core.type.DataType;
+import com.datastax.oss.driver.api.core.type.ListType;
+import com.datastax.oss.driver.api.core.type.MapType;
+import com.datastax.oss.driver.api.core.type.SetType;
+import com.datastax.oss.driver.api.core.type.TupleType;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -68,13 +74,13 @@ import java.util.stream.IntStream;
  * Schema mapped onto a Cassandra column family.
  */
 public class CassandraSchema extends AbstractSchema {
-  final Session session;
+  final CqlSession session;
   final String keyspace;
   private final SchemaPlus parentSchema;
   final String name;
   final Hook.Closeable hook;
 
-  static final CodecRegistry CODEC_REGISTRY = CodecRegistry.DEFAULT_INSTANCE;
+  static final CodecRegistry CODEC_REGISTRY = CodecRegistry.DEFAULT;
   static final CqlToSqlTypeConversionRules CQL_TO_SQL_TYPE =
       CqlToSqlTypeConversionRules.instance();
 
@@ -88,6 +94,7 @@ public class CassandraSchema extends AbstractSchema {
    * @param host Cassandra host, e.g. "localhost"
    * @param keyspace Cassandra keyspace name, e.g. "twissandra"
    */
+  @SuppressWarnings("unused")
   public CassandraSchema(String host, String keyspace, SchemaPlus parentSchema, String name) {
     this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
   }
@@ -99,8 +106,9 @@ public class CassandraSchema extends AbstractSchema {
    * @param port Cassandra port, e.g. 9042
    * @param keyspace Cassandra keyspace name, e.g. "twissandra"
    */
+  @SuppressWarnings("unused")
   public CassandraSchema(String host, int port, String keyspace,
-          SchemaPlus parentSchema, String name) {
+      SchemaPlus parentSchema, String name) {
     this(host, port, keyspace, null, null, parentSchema, name);
   }
 
@@ -112,8 +120,8 @@ public class CassandraSchema extends AbstractSchema {
    * @param username Cassandra username
    * @param password Cassandra password
    */
-  public CassandraSchema(String host, String keyspace, String username, String password,
-        SchemaPlus parentSchema, String name) {
+  public CassandraSchema(String host, String keyspace, @Nullable String username,
+      @Nullable String password, SchemaPlus parentSchema, String name) {
     this(host, DEFAULT_CASSANDRA_PORT, keyspace, username, password, parentSchema, name);
   }
 
@@ -126,29 +134,31 @@ public class CassandraSchema extends AbstractSchema {
    * @param username Cassandra username
    * @param password Cassandra password
    */
-  public CassandraSchema(String host, int port, String keyspace, String username, String password,
-        SchemaPlus parentSchema, String name) {
+  public CassandraSchema(String host, int port, String keyspace, @Nullable String username,
+      @Nullable String password, SchemaPlus parentSchema, String name) {
     super();
 
     this.keyspace = keyspace;
     try {
-      Cluster cluster;
-      List<InetSocketAddress> contactPoints = new ArrayList<>(1);
-      contactPoints.add(new InetSocketAddress(host, port));
       if (username != null && password != null) {
-        cluster = Cluster.builder().addContactPointsWithPorts(contactPoints)
-            .withCredentials(username, password).build();
+        this.session = CqlSession.builder()
+            .addContactPoint(new InetSocketAddress(host, port))
+            .withAuthCredentials(username, password)
+            .withKeyspace(keyspace)
+            .withLocalDatacenter("datacenter1")
+            .build();
       } else {
-        cluster = Cluster.builder().addContactPointsWithPorts(contactPoints).build();
+        this.session = CqlSession.builder()
+            .addContactPoint(new InetSocketAddress(host, port))
+            .withKeyspace(keyspace)
+            .withLocalDatacenter("datacenter1")
+            .build();
       }
-
-      this.session = cluster.connect(keyspace);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
     this.parentSchema = parentSchema;
     this.name = name;
-
     this.hook = prepareHook();
   }
 
@@ -161,11 +171,22 @@ public class CassandraSchema extends AbstractSchema {
   }
 
   RelProtoDataType getRelDataType(String columnFamily, boolean view) {
-    List<ColumnMetadata> columns;
+    Map<CqlIdentifier, ColumnMetadata> columns;
+    CqlIdentifier tableName = CqlIdentifier.fromInternal(columnFamily);
     if (view) {
-      columns = getKeyspace().getMaterializedView("\"" + columnFamily + "\"").getColumns();
+      Optional<ViewMetadata> optionalViewMetadata = getKeyspace().getView(tableName);
+      if (optionalViewMetadata.isPresent()) {
+        columns = optionalViewMetadata.get().getColumns();
+      } else {
+        throw new IllegalStateException("Unknown view " + tableName + " in keyspace " + keyspace);
+      }
     } else {
-      columns = getKeyspace().getTable("\"" + columnFamily + "\"").getColumns();
+      Optional<TableMetadata> optionalTableMetadata = getKeyspace().getTable(tableName);
+      if (optionalTableMetadata.isPresent()) {
+        columns = optionalTableMetadata.get().getColumns();
+      } else {
+        throw new IllegalStateException("Unknown table " + tableName + " in keyspace " + keyspace);
+      }
     }
 
     // Temporary type factory, just for the duration of this method. Allowable
@@ -174,116 +195,90 @@ public class CassandraSchema extends AbstractSchema {
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
-    for (ColumnMetadata column : columns) {
-      final SqlTypeName typeName =
-          CQL_TO_SQL_TYPE.lookup(column.getType().getName());
+    for (ColumnMetadata column : columns.values()) {
+      final DataType dataType = column.getType();
+      final String columnName = column.getName().asInternal();
 
-      switch (typeName) {
-      case ARRAY:
-        final SqlTypeName arrayInnerType = CQL_TO_SQL_TYPE.lookup(
-            column.getType().getTypeArguments().get(0).getName());
+      if (dataType instanceof ListType) {
+        SqlTypeName arrayInnerType = CQL_TO_SQL_TYPE.lookup(
+            ((ListType) dataType).getElementType());
 
-        fieldInfo.add(column.getName(),
-            typeFactory.createArrayType(
-                typeFactory.createSqlType(arrayInnerType), -1))
+        fieldInfo.add(columnName,
+                typeFactory.createArrayType(
+                    typeFactory.createSqlType(arrayInnerType), -1))
             .nullable(true);
+      } else if (dataType instanceof SetType) {
+        SqlTypeName multiSetInnerType = CQL_TO_SQL_TYPE.lookup(
+            ((SetType) dataType).getElementType());
 
-        break;
-      case MULTISET:
-        final SqlTypeName multiSetInnerType = CQL_TO_SQL_TYPE.lookup(
-            column.getType().getTypeArguments().get(0).getName());
-
-        fieldInfo.add(column.getName(),
+        fieldInfo.add(columnName,
             typeFactory.createMultisetType(
                 typeFactory.createSqlType(multiSetInnerType), -1)
         ).nullable(true);
+      } else if (dataType instanceof MapType) {
+        MapType columnType = (MapType) dataType;
+        SqlTypeName keyType = CQL_TO_SQL_TYPE.lookup(columnType.getKeyType());
+        SqlTypeName valueType = CQL_TO_SQL_TYPE.lookup(columnType.getValueType());
 
-        break;
-      case MAP:
-        final List<DataType> types = column.getType().getTypeArguments();
-        final SqlTypeName keyType =
-            CQL_TO_SQL_TYPE.lookup(types.get(0).getName());
-        final SqlTypeName valueType =
-            CQL_TO_SQL_TYPE.lookup(types.get(1).getName());
-
-        fieldInfo.add(column.getName(),
+        fieldInfo.add(columnName,
             typeFactory.createMapType(
                 typeFactory.createSqlType(keyType),
                 typeFactory.createSqlType(valueType))
         ).nullable(true);
-
-        break;
-      case STRUCTURED:
-        assert DataType.Name.TUPLE == column.getType().getName();
-
-        final List<DataType> typeArgs =
-            ((TupleType) column.getType()).getComponentTypes();
-        final List<Map.Entry<String, RelDataType>> typesList =
+      } else if (dataType instanceof TupleType) {
+        List<DataType> typeArgs = ((TupleType) dataType).getComponentTypes();
+        List<Map.Entry<String, RelDataType>> typesList =
             IntStream.range(0, typeArgs.size())
                 .mapToObj(
                     i -> new Pair<>(
                         Integer.toString(i + 1), // 1 indexed (as ARRAY)
                         typeFactory.createSqlType(
-                            CQL_TO_SQL_TYPE.lookup(typeArgs.get(i).getName()))))
+                            CQL_TO_SQL_TYPE.lookup(typeArgs.get(i)))))
                 .collect(Collectors.toList());
 
-        fieldInfo.add(column.getName(),
-            typeFactory.createStructType(typesList))
+        fieldInfo.add(columnName,
+                typeFactory.createStructType(typesList))
             .nullable(true);
-
-        break;
-      default:
-        fieldInfo.add(column.getName(), typeName).nullable(true);
-
-        break;
+      } else {
+        SqlTypeName typeName = CQL_TO_SQL_TYPE.lookup(dataType);
+        fieldInfo.add(columnName, typeName).nullable(true);
       }
     }
 
     return RelDataTypeImpl.proto(fieldInfo.build());
   }
 
-  /**
-   * Returns all primary key columns from the underlying CQL table.
+  /** Returns the partition key columns from the underlying CQL table.
    *
-   * @return A list of field names that are part of the partition and clustering keys
+   * @return A list of field names that are part of the partition keys
    */
-  Pair<List<String>, List<String>> getKeyFields(String columnFamily, boolean view) {
-    AbstractTableMetadata table;
-    if (view) {
-      table = getKeyspace().getMaterializedView("\"" + columnFamily + "\"");
-    } else {
-      table = getKeyspace().getTable("\"" + columnFamily + "\"");
-    }
+  List<String> getPartitionKeys(String columnFamily, boolean isView) {
+    RelationMetadata table = getRelationMetadata(columnFamily, isView);
+    return table.getPartitionKey().stream()
+        .map(ColumnMetadata::getName)
+        .map(CqlIdentifier::asInternal)
+        .collect(Collectors.toList());
+  }
 
-    List<ColumnMetadata> partitionKey = table.getPartitionKey();
-    List<String> pKeyFields = new ArrayList<>();
-    for (ColumnMetadata column : partitionKey) {
-      pKeyFields.add(column.getName());
-    }
-
-    List<ColumnMetadata> clusteringKey = table.getClusteringColumns();
-    List<String> cKeyFields = new ArrayList<>();
-    for (ColumnMetadata column : clusteringKey) {
-      cKeyFields.add(column.getName());
-    }
-
-    return Pair.of(ImmutableList.copyOf(pKeyFields),
-        ImmutableList.copyOf(cKeyFields));
+  /** Returns the clustering keys from the underlying CQL table.
+   *
+   * @return A list of field names that are part of the clustering keys
+   */
+  List<String> getClusteringKeys(String columnFamily, boolean isView) {
+    RelationMetadata table = getRelationMetadata(columnFamily, isView);
+    return table.getClusteringColumns().keySet().stream()
+        .map(ColumnMetadata::getName)
+        .map(CqlIdentifier::asInternal)
+        .collect(Collectors.toList());
   }
 
   /** Get the collation of all clustering key columns.
    *
    * @return A RelCollations representing the collation of all clustering keys
    */
-  public List<RelFieldCollation> getClusteringOrder(String columnFamily, boolean view) {
-    AbstractTableMetadata table;
-    if (view) {
-      table = getKeyspace().getMaterializedView("\"" + columnFamily + "\"");
-    } else {
-      table = getKeyspace().getTable("\"" + columnFamily + "\"");
-    }
-
-    List<ClusteringOrder> clusteringOrder = table.getClusteringOrder();
+  public List<RelFieldCollation> getClusteringOrder(String columnFamily, boolean isView) {
+    RelationMetadata table = getRelationMetadata(columnFamily, isView);
+    Collection<ClusteringOrder> clusteringOrder = table.getClusteringColumns().values();
     List<RelFieldCollation> keyCollations = new ArrayList<>();
 
     int i = 0;
@@ -305,31 +300,48 @@ public class CassandraSchema extends AbstractSchema {
     return keyCollations;
   }
 
+  private RelationMetadata getRelationMetadata(String columnFamily, boolean isView) {
+    String tableName = CqlIdentifier.fromInternal(columnFamily).asCql(false);
+
+    if (isView) {
+      return getKeyspace().getView(tableName)
+          .orElseThrow(
+              () -> new RuntimeException(
+              "Unknown view " + columnFamily + " in keyspace " + keyspace));
+    }
+    return getKeyspace().getTable(tableName)
+        .orElseThrow(
+            () -> new RuntimeException(
+            "Unknown table " + columnFamily + " in keyspace " + keyspace));
+  }
+
   /** Adds all materialized views defined in the schema to this column family. */
   private void addMaterializedViews() {
-    // Close the hook use to get us here
+    // Close the hook used to get us here
     hook.close();
 
-    for (MaterializedViewMetadata view : getKeyspace().getMaterializedViews()) {
-      String tableName = view.getBaseTable().getName();
+    for (ViewMetadata view : getKeyspace().getViews().values()) {
+      String tableName = view.getBaseTable().asInternal();
       StringBuilder queryBuilder = new StringBuilder("SELECT ");
 
       // Add all the selected columns to the query
-      List<String> columnNames = new ArrayList<>();
-      for (ColumnMetadata column : view.getColumns()) {
-        columnNames.add("\"" + column.getName() + "\"");
-      }
-      queryBuilder.append(Util.toString(columnNames, "", ", ", ""));
+      String columnsList = view.getColumns().values().stream()
+          .map(c -> c.getName().asInternal())
+          .collect(Collectors.joining(", "));
+      queryBuilder.append(columnsList);
 
-      queryBuilder.append(" FROM \"")
-          .append(tableName)
-          .append("\"");
+      queryBuilder.append(" FROM ")
+          .append(tableName);
 
       // Get the where clause from the system schema
       String whereQuery = "SELECT where_clause from system_schema.views "
-          + "WHERE keyspace_name='" + keyspace + "' AND view_name='" + view.getName() + "'";
+          + "WHERE keyspace_name='" + keyspace + "' AND view_name='"
+          + view.getName().asInternal() + "'";
+
+      Row whereClauseRow = Objects.requireNonNull(session.execute(whereQuery).one());
+
       queryBuilder.append(" WHERE ")
-          .append(session.execute(whereQuery).one().getString(0));
+          .append(whereClauseRow.getString(0));
 
       // Parse and unparse the view query to get properly quoted field names
       String query = queryBuilder.toString();
@@ -341,7 +353,7 @@ public class CassandraSchema extends AbstractSchema {
         parsedQuery = (SqlSelect) SqlParser.create(query, parserConfig).parseQuery();
       } catch (SqlParseException e) {
         LOGGER.warn("Could not parse query {} for CQL view {}.{}",
-            query, keyspace, view.getName());
+            query, keyspace, view.getName().asInternal());
         continue;
       }
 
@@ -355,24 +367,28 @@ public class CassandraSchema extends AbstractSchema {
       // Add the view for this query
       String viewName = "$" + getTableNames().size();
       SchemaPlus schema = parentSchema.getSubSchema(name);
+      if (schema == null) {
+        throw new IllegalStateException("Cannot find schema " + name
+            + " in parent schema " + parentSchema.getName());
+      }
       CalciteSchema calciteSchema = CalciteSchema.from(schema);
 
       List<String> viewPath = calciteSchema.path(viewName);
 
       schema.add(viewName,
             MaterializedViewTable.create(calciteSchema, query,
-            null, viewPath, view.getName(), true));
+            null, viewPath, view.getName().asInternal(), true));
     }
   }
 
   @Override protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    for (TableMetadata table : getKeyspace().getTables()) {
-      String tableName = table.getName();
+    for (TableMetadata table : getKeyspace().getTables().values()) {
+      String tableName = table.getName().asInternal();
       builder.put(tableName, new CassandraTable(this, tableName));
 
-      for (MaterializedViewMetadata view : table.getViews()) {
-        String viewName = view.getName();
+      for (ViewMetadata view : getKeyspace().getViewsOnTable(table.getName()).values()) {
+        String viewName = view.getName().asInternal();
         builder.put(viewName, new CassandraTable(this, viewName, true));
       }
     }
@@ -380,6 +396,7 @@ public class CassandraSchema extends AbstractSchema {
   }
 
   private KeyspaceMetadata getKeyspace() {
-    return session.getCluster().getMetadata().getKeyspace(keyspace);
+    return session.getMetadata().getKeyspace(keyspace).orElseThrow(
+        () -> new RuntimeException("Keyspace " + keyspace + " not found"));
   }
 }
