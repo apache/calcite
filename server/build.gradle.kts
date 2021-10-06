@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 plugins {
-    calcite.fmpp
-    calcite.javacc
+    id("calcite.fmpp")
+    id("calcite.javacc")
     id("com.github.vlsi.ide")
 }
 

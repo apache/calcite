@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 plugins {
-    calcite.javacc
+    id("calcite.javacc")
     id("com.github.vlsi.ide")
 }
 

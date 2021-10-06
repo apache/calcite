@@ -40,6 +40,7 @@ pluginManagement {
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
     }
+    includeBuild("build-logic")
     if (extra.has("enableMavenLocal") && extra["enableMavenLocal"].toString().ifBlank { "true" }.toBoolean()) {
         repositories {
             mavenLocal()

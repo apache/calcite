@@ -27,7 +27,6 @@ import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
     // java-base is needed for platform(...) resolution,
@@ -36,7 +35,7 @@ plugins {
     publishing
     // Verification
     checkstyle
-    calcite.buildext
+    id("calcite.style")
     id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
@@ -151,9 +150,11 @@ releaseParams {
         staleRemovalFilters {
             includes.add(Regex(".*apache-calcite-\\d.*"))
             validates.empty()
-            validates.add(provider {
-                Regex("release/calcite/apache-calcite-${version.toString().removeSuffix("-SNAPSHOT")}")
-            })
+            validates.add(
+                provider {
+                    Regex("release/calcite/apache-calcite-${version.toString().removeSuffix("-SNAPSHOT")}")
+                }
+            )
         }
     }
 }
@@ -188,7 +189,8 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 val adaptersForSqlline = listOf(
     ":babel", ":cassandra", ":druid", ":elasticsearch",
     ":file", ":geode", ":innodb", ":kafka", ":mongodb",
-    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk")
+    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk"
+)
 
 val dataSetsForSqlline = listOf(
     "net.hydromatic:foodmart-data-hsqldb",
@@ -330,7 +332,10 @@ allprojects {
         autostyle {
             kotlinGradle {
                 license()
-                ktlint()
+                ktlint("0.40.0")
+                filter {
+                    exclude("build-logic/*/build")
+                }
             }
             format("configs") {
                 filter {
@@ -340,6 +345,8 @@ allprojects {
                     // Autostyle does not support gitignore yet https://github.com/autostyle/autostyle/issues/13
                     exclude("bin/**", "out/**", "target/**", "gradlew*")
                     exclude(rootDir.resolve(".ratignore").readLines())
+                    // Autostyle should probably ignore directories used by the included builds
+                    exclude("build-logic")
                 }
                 license()
             }
@@ -453,9 +460,13 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
+        configure<JavaPluginExtension> {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
+            if (!skipJavadoc) {
+                withSourcesJar()
+                withJavadocJar()
+            }
         }
         configure<JavaPluginExtension> {
             consistentResolution {
@@ -647,7 +658,8 @@ allprojects {
                 // Consider Java assert statements for nullness and other checks
                 extraJavacArgs.add("-AassumeAssertionsAreEnabled")
                 // https://checkerframework.org/manual/#stub-using
-                extraJavacArgs.add("-Astubs=" +
+                extraJavacArgs.add(
+                    "-Astubs=" +
                         fileTree("$rootDir/src/main/config/checkerframework") {
                             include("**/*.astub")
                         }.asPath
@@ -695,39 +707,6 @@ allprojects {
                 }
                 if (enableCheckerframework) {
                     options.forkOptions.memoryMaximumSize = "2g"
-                }
-            }
-            configureEach<Test> {
-                outputs.cacheIf("test results depend on the database configuration, so we souldn't cache it") {
-                    false
-                }
-                useJUnitPlatform {
-                    excludeTags("slow")
-                }
-                testLogging {
-                    exceptionFormat = TestExceptionFormat.FULL
-                    showStandardStreams = true
-                }
-                exclude("**/*Suite*")
-                jvmArgs("-Xmx1536m")
-                jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
-                // Pass the property to tests
-                fun passProperty(name: String, default: String? = null) {
-                    val value = System.getProperty(name) ?: default
-                    value?.let { systemProperty(name, it) }
-                }
-                passProperty("java.awt.headless")
-                passProperty("junit.jupiter.execution.parallel.enabled", "true")
-                passProperty("junit.jupiter.execution.parallel.mode.default", "concurrent")
-                passProperty("junit.jupiter.execution.timeout.default", "5 m")
-                passProperty("user.language", "TR")
-                passProperty("user.country", "tr")
-                passProperty("user.timezone", "UTC")
-                val props = System.getProperties()
-                for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-                    if (e.startsWith("calcite.") || e.startsWith("avatica.")) {
-                        passProperty(e)
-                    }
                 }
             }
             // Cannot be moved above otherwise configure each will override
@@ -779,23 +758,6 @@ allprojects {
             archiveClassifier.set("tests")
         }
 
-        val sourcesJar by tasks.registering(Jar::class) {
-            from(sourceSets["main"].allJava)
-            archiveClassifier.set("sources")
-        }
-
-        val javadocJar by tasks.registering(Jar::class) {
-            from(tasks.named(JavaPlugin.JAVADOC_TASK_NAME))
-            archiveClassifier.set("javadoc")
-        }
-
-        val archives by configurations.getting
-
-        // Parenthesis needed to use Project#getArtifacts
-        (artifacts) {
-            archives(sourcesJar)
-        }
-
         val archivesBaseName = "calcite-$name"
         setProperty("archivesBaseName", archivesBaseName)
 
@@ -814,13 +776,6 @@ allprojects {
                     version = rootProject.version.toString()
                     description = project.description
                     from(components["java"])
-
-                    if (!skipJavadoc) {
-                        // Eager task creation is required due to
-                        // https://github.com/gradle/gradle/issues/6246
-                        artifact(sourcesJar.get())
-                        artifact(javadocJar.get())
-                    }
 
                     // Use the resolved versions in pom.xml
                     // Gradle might have different resolution rules, so we set the versions
@@ -856,35 +811,6 @@ allprojects {
                             (project.findProperty("artifact.name") as? String) ?: "Calcite ${project.name.capitalize()}"
                         )
                         description.set(project.description ?: "Calcite ${project.name.capitalize()}")
-                        inceptionYear.set("2012")
-                        url.set("https://calcite.apache.org")
-                        licenses {
-                            license {
-                                name.set("The Apache License, Version 2.0")
-                                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                                comments.set("A business-friendly OSS license")
-                                distribution.set("repo")
-                            }
-                        }
-                        issueManagement {
-                            system.set("Jira")
-                            url.set("https://issues.apache.org/jira/browse/CALCITE")
-                        }
-                        mailingLists {
-                            mailingList {
-                                name.set("Apache Calcite developers list")
-                                subscribe.set("dev-subscribe@calcite.apache.org")
-                                unsubscribe.set("dev-unsubscribe@calcite.apache.org")
-                                post.set("dev@calcite.apache.org")
-                                archive.set("https://lists.apache.org/list.html?dev@calcite.apache.org")
-                            }
-                        }
-                        scm {
-                            connection.set("scm:git:https://gitbox.apache.org/repos/asf/calcite.git")
-                            developerConnection.set("scm:git:https://gitbox.apache.org/repos/asf/calcite.git")
-                            url.set("https://github.com/apache/calcite")
-                            tag.set("HEAD")
-                        }
                     }
                 }
             }

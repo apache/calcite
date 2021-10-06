@@ -16,8 +16,8 @@
  */
 plugins {
     id("com.github.vlsi.ide")
-    calcite.fmpp
-    calcite.javacc
+    id("calcite.fmpp")
+    id("calcite.javacc")
 }
 
 dependencies {
