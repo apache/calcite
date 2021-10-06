@@ -9097,6 +9097,23 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testdatetrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashrow = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("2008-19-12"), builder.literal("DAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashrow, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('2008-19-12', DAY) AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', DAY) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testhashrow() {
     final RelBuilder builder = relBuilder();
     final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
@@ -9113,7 +9130,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
-
   @Test public void testConcatFunction() {
     String query = "select '%''.' || '\\\\PWAPIKB01E\\Labelfiles\\'";
     final String expectedBQSql = "SELECT CONCAT('%\\'.', '\\\\\\\\PWAPIKB01E\\\\Labelfiles"
