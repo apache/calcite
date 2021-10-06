@@ -132,13 +132,13 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       }
     }
 
-    buff.append("  private final org.apache.calcite.rel.metadata.MetadataDef def;\n");
+    buff.append("  private final ").append(MetadataDef.class.getName()).append(" def;\n");
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("  public final ").append(handlerAndName.getKey().getClass().getName())
           .append(' ').append(handlerAndName.getValue()).append(";\n");
     }
     buff.append("  public ").append(name).append("(\n")
-        .append("      org.apache.calcite.rel.metadata.MetadataDef def");
+        .append("      ").append(MetadataDef.class.getName()).append(" def");
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
       buff.append(",\n")
           .append("      ")
