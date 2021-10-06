@@ -58,6 +58,13 @@ public class MssqlSqlDialect extends SqlDialect {
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
+  private static final SqlFunction MSSQL_DATEADD =
+      new SqlFunction("DATEADD", SqlStdOperatorTable.TIMESTAMP_ADD.getKind(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getReturnTypeInference(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getOperandTypeInference(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getOperandTypeChecker(),
+          SqlStdOperatorTable.TIMESTAMP_ADD.getFunctionType());
+
   /** Whether to generate "SELECT TOP(fetch)" rather than
    * "SELECT ... FETCH NEXT fetch ROWS ONLY". */
   private final boolean top;
@@ -139,6 +146,10 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
+  @Override public boolean useTimestampAddInsteadOfDatetimePlus() {
+    return true;
+  }
+
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     writer.literal("'" + literal.toFormattedString() + "'");
@@ -151,6 +162,8 @@ public class MssqlSqlDialect extends SqlDialect {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call, false);
+    } else if (call.getOperator() == SqlStdOperatorTable.TIMESTAMP_ADD) {
+      SqlUtil.unparseFunctionSyntax(MSSQL_DATEADD, writer, call, false);
     } else {
       switch (call.getKind()) {
       case FLOOR:
