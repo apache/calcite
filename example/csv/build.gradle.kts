@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+plugins {
+    kotlin("jvm")
+    kotlin("kapt")
+}
+
 val sqllineClasspath by configurations.creating {
     isCanBeConsumed = false
     extendsFrom(configurations.testRuntimeClasspath.get())
@@ -35,6 +40,9 @@ dependencies {
 
     sqllineClasspath(project)
     sqllineClasspath(files(sourceSets.test.map { it.output }))
+
+    kapt("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
 }
 
 val buildSqllineClasspath by tasks.registering(Jar::class) {

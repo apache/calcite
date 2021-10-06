@@ -304,7 +304,13 @@ allprojects {
         dependencies {
             "annotationProcessor"(platform(project(":bom")))
             "implementation"(platform(project(":bom")))
-            "testAnnotationProcessor"(platform(project(":bom")))
+        }
+    }
+
+    plugins.withId("kotlin-kapt") {
+        dependencies {
+            "kaptTest"(platform(project(":bom")))
+            "kapt"(platform(project(":bom")))
         }
     }
 
@@ -492,7 +498,9 @@ allprojects {
         if (!skipAutostyle) {
             autostyle {
                 java {
-                    filter.exclude(*javaccGeneratedPatterns + "**/test/java/*.java")
+                    filter.exclude(*javaccGeneratedPatterns +
+                            "**/test/java/*.java" +
+                            "**/RelRule.java" /** remove as part of CALCITE-4831 **/)
                     license()
                     if (!project.props.bool("junit4", default = false)) {
                         replace("junit5: Test", "org.junit.Test", "org.junit.jupiter.api.Test")

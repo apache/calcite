@@ -39,6 +39,7 @@ pluginManagement {
         idv("org.nosphere.apache.rat")
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
+        kotlin("kapt") version "kotlin".v()
     }
     if (extra.has("enableMavenLocal") && extra["enableMavenLocal"].toString().ifBlank { "true" }.toBoolean()) {
         repositories {

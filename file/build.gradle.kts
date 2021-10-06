@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+plugins {
+    kotlin("jvm")
+    kotlin("kapt")
+}
+
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
@@ -30,4 +35,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind")
 
     testImplementation(project(":testkit"))
+    kapt("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
 }

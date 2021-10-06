@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+plugins {
+    kotlin("jvm")
+    kotlin("kapt")
+}
+
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
@@ -31,4 +36,7 @@ dependencies {
     }
     testImplementation("org.cassandraunit:cassandra-unit")
     testRuntimeOnly("net.java.dev.jna:jna")
+
+    kapt("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
 }

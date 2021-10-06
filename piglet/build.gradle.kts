@@ -16,6 +16,8 @@
  */
 plugins {
     calcite.javacc
+    kotlin("jvm")
+    kotlin("kapt")
     id("com.github.vlsi.ide")
 }
 
@@ -35,6 +37,8 @@ dependencies {
     testImplementation("org.apache.hadoop:hadoop-client")
     testImplementation("org.hsqldb:hsqldb")
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    kapt("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
 }
 
 val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCTask::class) {
