@@ -9170,4 +9170,20 @@ class RelToSqlConverterTest {
         .withHive2().ok(expectedHive)
         .withBigQuery().ok(expectedBigQuery);
   }
+
+  @Test public void testRowid() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rowidRexNode = builder.call(SqlLibraryOperators.ROWID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(rowidRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT ROWID() AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT GENERATE_UUID() ATpchTestS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
