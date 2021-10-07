@@ -169,6 +169,62 @@ class EnumerableCorrelateTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4833">[CALCITE-4833]
+   * Complex nested correlated subquery failed</a>.
+   */
+  @Test void complexNestedCorrelatedSubquery() {
+    String sql = "SELECT t1.empid FROM emps t1 LEFT JOIN emps t2 ON (SELECT t2.empid)<=101";
+
+    tester(false, new HrSchema())
+        .query(sql)
+        .returnsUnordered(
+            "empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
+
+    sql = "SELECT t1.empid FROM emps t1 LEFT JOIN emps t2 ON (SELECT t2.empid)<101";
+
+    tester(false, new HrSchema())
+        .query(sql)
+        .returnsUnordered(
+            "empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
+
+    sql = "SELECT t1.empid FROM emps t1 LEFT JOIN emps t2 ON (SELECT t2.empid)>150";
+
+    tester(false, new HrSchema())
+        .query(sql)
+        .returnsUnordered(
+            "empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
+
+    sql = "SELECT t1.empid FROM emps t1 LEFT JOIN emps t2 ON (SELECT t2.empid)=150";
+
+    tester(false, new HrSchema())
+        .query(sql)
+        .returnsUnordered(
+            "empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
+
+    sql = "SELECT t1.empid FROM emps t1 LEFT JOIN emps t2 ON (SELECT t2.empid)=(select 100 + 50)";
+
+    tester(false, new HrSchema())
+        .query(sql)
+        .returnsUnordered(
+            "empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2920">[CALCITE-2920]
    * RelBuilder: new method to create an anti-join</a>. */
   @Test void antiJoinCorrelate() {
