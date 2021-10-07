@@ -9099,11 +9099,11 @@ class RelToSqlConverterTest {
 
   @Test public void testdatetrunc() {
     final RelBuilder builder = relBuilder();
-    final RexNode hashrow = builder.call(SqlLibraryOperators.TRUNC,
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
         builder.literal("2008-19-12"), builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(hashrow, "FD"))
+        .project(builder.alias(trunc, "FD"))
         .build();
     final String expectedSql = "SELECT TRUNC('2008-19-12', DAY) AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
