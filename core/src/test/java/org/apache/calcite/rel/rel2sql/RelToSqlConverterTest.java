@@ -6828,6 +6828,16 @@ class RelToSqlConverterTest {
         .ok(expectedSnowFlake);
   }
 
+  @Test public void testToNumberFunctionWithColumns() {
+    String query = "SELECT TO_NUMBER(\"first_name\", '000') FROM \"foodmart\""
+        + ".\"employee\"";
+    final String expectedBigQuery = "SELECT CAST(first_name AS INT64)n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void testOver() {
     String query = "SELECT distinct \"product_id\", MAX(\"product_id\") \n"
         + "OVER(PARTITION BY \"product_id\") AS abc\n"
