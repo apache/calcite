@@ -61,7 +61,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
-import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -1936,15 +1935,12 @@ public class SubstitutionVisitor {
       }
       final List<AggregateCall> aggregateCalls = new ArrayList<>();
       for (AggregateCall aggregateCall : query.aggCalls) {
-        final SqlAggFunction aggregation = aggregateCall.getAggregation();
-        if ((aggregateCall.isDistinct()
-            || aggregation.getDistinctOptionality() == Optionality.IGNORED)
-            && aggregateCall.getArgList().size() == 1) {
+        if (aggregateCall.isDistinct() && aggregateCall.getArgList().size() == 1) {
           final int aggIndex = aggregateCall.getArgList().get(0);
           final int newIndex = targetGroupByIndexList.indexOf(aggIndex);
           if (newIndex >= 0) {
             aggregateCalls.add(
-                AggregateCall.create(aggregation,
+                AggregateCall.create(aggregateCall.getAggregation(),
                     aggregateCall.isDistinct(), aggregateCall.isApproximate(),
                     aggregateCall.ignoreNulls(),
                     ImmutableList.of(newIndex), -1, aggregateCall.distinctKeys,
@@ -1960,7 +1956,7 @@ public class SubstitutionVisitor {
         }
         // When an SqlAggFunction does not support roll up, it will return null, which means that
         // it cannot do secondary aggregation and the materialization recognition will fail.
-        final SqlAggFunction aggFunction = aggregation.getRollup();
+        final SqlAggFunction aggFunction = aggregateCall.getAggregation().getRollup();
         if (aggFunction == null) {
           return null;
         }

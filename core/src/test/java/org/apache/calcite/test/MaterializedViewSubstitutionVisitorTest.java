@@ -1659,47 +1659,6 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv, query).ok();
   }
 
-  @Test void testQueryNoDistinctOptionalityAggCallColInTargetGroupBy1() {
-    final String mv = ""
-        + "select \"name\", \"deptno\" "
-        + "from \"emps\" group by \"name\", \"deptno\"";
-    final String query = ""
-        + "select \"name\", min(\"deptno\")\n"
-        + "from \"emps\" group by \"name\"";
-    sql(mv, query).ok();
-  }
-
-  @Test void testQueryNoDistinctOptionalityAggCallColInTargetGroupBy2() {
-    final String mv = ""
-        + "select \"name\", \"commission\", \"deptno\"\n"
-        + "from \"emps\" group by \"name\", \"commission\", \"deptno\"";
-    final String query = ""
-        + "select \"name\", \"commission\", max(\"deptno\") as cnt\n"
-        + "from \"emps\" group by \"name\", \"commission\"";
-    sql(mv, query).ok();
-  }
-
-  @Test void testQueryNoDistinctOptionalityAggCallColInTargetGroupBy3() {
-    final String mv = ""
-        + "select \"name\", \"deptno\", \"empid\", count(\"commission\")\n"
-        + "from \"emps\" group by \"name\", \"deptno\", \"empid\"";
-    final String query = ""
-        + "select \"name\", max(\"deptno\"), count(distinct \"empid\"), count"
-        + "(\"commission\")\n"
-        + "from \"emps\" group by \"name\"";
-    sql(mv, query).ok();
-  }
-
-  @Test void testQueryNoDistinctOptionalityAggCallColInTargetGroupBy4() {
-    final String mv = ""
-        + "select \"name\", \"deptno\", \"empid\"\n"
-        + "from \"emps\" group by \"name\", \"deptno\", \"empid\"";
-    final String query = ""
-        + "select \"name\", min(\"deptno\")\n"
-        + "from \"emps\" group by \"name\"";
-    sql(mv, query).ok();
-  }
-
   @Test void testRexPredicate() {
     final String mv = ""
         + "select \"name\"\n"
