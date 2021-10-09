@@ -7743,8 +7743,9 @@ public class JdbcTest {
   }
 
   @Test public void testNestedRowType() {
-    CalciteAssert.that().query("select row(row(1, row(2)), row(3)) t")
-        .returns("T={{1, {2}}, {3}}\n");
+    CalciteAssert.that().query("select row(row(1, row(2)), row(3), row('a')) t")
+        .typeIs("[T STRUCT NOT NULL]")
+        .returns("T={{1, {2}}, {3}, {a}}\n");
   }
 
   private static String sums(int n, boolean c) {
