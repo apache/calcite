@@ -149,6 +149,9 @@ public abstract class Types {
       TypeVariable typeVariable = (TypeVariable) type;
       return toClass(typeVariable.getBounds()[0]);
     }
+    if (type instanceof RecordType) {
+      return toClass(((RecordType) type).getRecordFields().get(0).getType());
+    }
     throw new RuntimeException("unsupported type " + type); // TODO:
   }
 

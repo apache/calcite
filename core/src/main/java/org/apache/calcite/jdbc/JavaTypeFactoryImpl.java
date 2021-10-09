@@ -343,8 +343,14 @@ public class JavaTypeFactoryImpl
   /** Creates a synthetic Java class whose fields have the same names and
    * relational types. */
   private Type createSyntheticType(RelRecordType type) {
-    final String name =
-        "Record" + type.getFieldCount() + "_" + syntheticTypes.size();
+    final StringBuilder sb = new StringBuilder();
+    for (final RelDataTypeField relDataTypeField: type.getFieldList()) {
+      final String fieldDataTypeName = relDataTypeField.getType().getSqlTypeName().getName();
+      sb.append(fieldDataTypeName.charAt(0))
+          .append(fieldDataTypeName.charAt(fieldDataTypeName.length() - 1));
+    }
+    final String name = "Record" + type.getFieldCount()
+        + "_" + syntheticTypes.size() + "_" + sb;
     final SyntheticRecordType syntheticType =
         new SyntheticRecordType(type, name);
     for (final RelDataTypeField recordField : type.getFieldList()) {

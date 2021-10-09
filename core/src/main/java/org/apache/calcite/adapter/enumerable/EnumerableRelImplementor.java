@@ -327,6 +327,9 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     for (Types.RecordField field : type.getRecordFields()) {
       MethodCallExpression compareCall;
       try {
+        if (!Comparable.class.isAssignableFrom(field.getType().getClass())) {
+          continue;
+        }
         final Method method = (field.nullable()
             ? BuiltInMethod.COMPARE_NULLS_LAST
             : BuiltInMethod.COMPARE).method;
@@ -558,8 +561,12 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         return;
       }
       if (type instanceof JavaTypeFactoryImpl.SyntheticRecordType) {
-        memberDeclarations.add(
-            classDecl((JavaTypeFactoryImpl.SyntheticRecordType) type));
+        JavaTypeFactoryImpl.SyntheticRecordType recordType =
+            (JavaTypeFactoryImpl.SyntheticRecordType) type;
+        memberDeclarations.add(classDecl(recordType));
+        for (Types.RecordField rf: recordType.getRecordFields()) {
+          register(rf.getType());
+        }
       }
       if (type instanceof ParameterizedType) {
         for (Type type1 : ((ParameterizedType) type).getActualTypeArguments()) {

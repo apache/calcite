@@ -7742,6 +7742,11 @@ public class JdbcTest {
     assertThat.query(query).returns("EXPR$0=4200000000\n");
   }
 
+  @Test public void testNestedRowType() {
+    CalciteAssert.that().query("select row(row(1, row(2)), row(3)) t")
+        .returns("T={{1, {2}}, {3}}\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
