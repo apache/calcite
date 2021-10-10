@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.codehaus.janino;
+package org.codehaus.commons.compiler;
 
 import org.checkerframework.checker.nullness.qual.*;
 
-class SimpleCompiler {
+public interface ISimpleCompiler {
   void setParentClassLoader(@Nullable ClassLoader optionalParentClassLoader);
 }

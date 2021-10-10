@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -298,9 +299,10 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       String classBody, MetadataDef<M> def,
       List<Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
+    ClassLoader classLoader =
+        Objects.requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(), "classLoader");
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
-          JaninoRelMetadataProvider.class.getClassLoader());
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);

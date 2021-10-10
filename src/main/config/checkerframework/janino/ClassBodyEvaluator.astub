@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.codehaus.commons.compiler;
+package org.codehaus.janino;
 
 import org.checkerframework.checker.nullness.qual.*;
 
-interface ICookable {
-  void setParentClassLoader(@Nullable ClassLoader optionalParentClassLoader);
+public class ClassBodyEvaluator extends Cookable implements IClassBodyEvaluator {
+  public void setParentClassLoader(@Nullable ClassLoader parentClassLoader);
 }
