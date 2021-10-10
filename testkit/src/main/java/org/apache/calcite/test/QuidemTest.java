@@ -48,6 +48,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -149,6 +150,10 @@ public abstract class QuidemTest {
               final boolean b = value instanceof Boolean
                   && (Boolean) value;
               closer.add(Prepare.THREAD_EXPAND.push(b));
+            }
+            if (propertyName.equals("insubquerythreshold")) {
+              int thresholdValue = ((BigDecimal) value).intValue();
+              closer.add(Prepare.THREAD_INSUBQUERY_THRESHOLD.push(thresholdValue));
             }
           })
           .withEnv(QuidemTest::getEnv)
