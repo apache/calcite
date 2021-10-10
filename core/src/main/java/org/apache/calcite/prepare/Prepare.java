@@ -78,6 +78,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql2rel.SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
 
 import static java.util.Objects.requireNonNull;
 
@@ -111,6 +112,10 @@ public abstract class Prepare {
    * is fixed, remove those overrides and use false everywhere. */
   public static final TryThreadLocal<@Nullable Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
+
+  // temporary. for testing.
+  public static final TryThreadLocal<@Nullable Integer> THREAD_INSUBQUERY_THRESHOLD =
+      TryThreadLocal.of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
@@ -232,6 +237,7 @@ public abstract class Prepare {
         SqlToRelConverter.config()
             .withTrimUnusedFields(true)
             .withExpand(castNonNull(THREAD_EXPAND.get()))
+            .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()))
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
     final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
     Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.run(configHolder);
@@ -369,7 +375,8 @@ public abstract class Prepare {
   protected RelRoot trimUnusedFields(RelRoot root) {
     final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(castNonNull(THREAD_EXPAND.get()));
+        .withExpand(castNonNull(THREAD_EXPAND.get()))
+        .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();

@@ -1141,7 +1141,9 @@ public class SqlToRelConverter {
 
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
-        if (valueList.size() < config.getInSubQueryThreshold()) {
+        boolean includeColumns = valueList.stream()
+                .anyMatch(value -> value instanceof SqlIdentifier);
+        if (valueList.size() < config.getInSubQueryThreshold() || includeColumns) {
           // We're under the threshold, so convert to OR.
           subQuery.expr =
               convertInToOr(

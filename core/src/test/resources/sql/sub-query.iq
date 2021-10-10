@@ -3257,4 +3257,19 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[null:BOOLEAN], proj#0..8=[{exprs}])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-4844] when the value of sub-query threshold smaller than IN list size
+# the In list include columns return wrong result.
+
+!set insubquerythreshold 0
+SELECT empno, ename, mgr FROM "scott".emp WHERE 7782 IN (empno, mgr);
++-------+--------+------+
+| EMPNO | ENAME  | MGR  |
++-------+--------+------+
+|  7782 | CLARK  | 7839 |
+|  7934 | MILLER | 7782 |
++-------+--------+------+
+(2 rows)
+
+!ok
+
 # End sub-query.iq
