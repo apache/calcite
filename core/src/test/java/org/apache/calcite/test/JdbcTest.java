@@ -7745,12 +7745,14 @@ public class JdbcTest {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4811">[CALCITE-4811]
-   * Coalesce(null, row) fails with NPE</a>.
+   * Check for internal content in case of ROW in
+   * RelDataTypeFactoryImpl#leastRestrictiveStructuredType should be after isStruct check</a>.
    */
   @Test public void testCoalesceNullAndRow() {
     CalciteAssert.that()
-        .query("SELECT COALESCE(NULL, ROW(1))")
-        .returns("EXPR$0={1}\n");
+        .query("SELECT COALESCE(NULL, ROW(1)) AS F")
+        .typeIs("[F STRUCT]")
+        .returns("F={1}\n");
   }
 
   private static String sums(int n, boolean c) {
