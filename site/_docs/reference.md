@@ -1837,6 +1837,8 @@ and `LISTAGG`).
 | COVAR_POP(numeric1, numeric2)                 | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
 | COVAR_SAMP(numeric1, numeric2)                | Returns the sample covariance of the pair (*numeric1*, *numeric2*) across all input values
 | EVERY(condition)                              | Returns TRUE if all of the values of *condition* are TRUE
+| EXISTS_AGG(*)                                 | Returns whether count of input rows is greater than zero
+| EXISTS_AGG( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns whether count of input rows is greater than zero for which *value* is not null (wholly not null if *value* is composite)
 | FUSION(multiset)                              | Returns the multiset union of *multiset* across all input values
 | INTERSECTION(multiset)                        | Returns the multiset intersection of *multiset* across all input values
 | LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')

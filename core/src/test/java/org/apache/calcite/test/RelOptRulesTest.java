@@ -5449,6 +5449,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test void testReduceExistsAgg() {
+    String sql = "select name, exists_agg(deptno)"
+        + " from sales.dept group by name";
+    sql(sql).withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .check();
+  }
+
   private Sql checkSubQuery(String sql) {
     return sql(sql)
         .withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
@@ -6170,6 +6177,16 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(rule).check();
   }
 
+  @Test void testNoReduceExistsAgg() {
+    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
+        .withOperandFor(LogicalAggregate.class)
+        .withFunctionsToReduce(EnumSet.noneOf(SqlKind.class))
+        .toRule();
+    String sql = "select name, exists_agg(deptno)"
+        + " from sales.dept group by name";
+    sql(sql).withRule(rule).checkUnchanged();
+  }
+
   @Test void testNoReduceAverage() {
     final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
         .withOperandFor(LogicalAggregate.class)
@@ -6222,10 +6239,11 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(
             EnumSet.of(SqlKind.AVG, SqlKind.SUM, SqlKind.STDDEV_POP,
-                SqlKind.STDDEV_SAMP, SqlKind.VAR_POP, SqlKind.VAR_SAMP))
+                SqlKind.STDDEV_SAMP, SqlKind.VAR_POP, SqlKind.VAR_SAMP,
+                SqlKind.EXISTS_AGG))
         .toRule();
     final String sql = "select name, stddev_pop(deptno), avg(deptno),"
-        + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno)\n"
+        + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno), exists_agg(deptno)\n"
         + "from sales.dept group by name";
     sql(sql).withRule(rule).check();
   }

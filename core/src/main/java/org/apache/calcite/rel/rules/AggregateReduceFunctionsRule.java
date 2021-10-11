@@ -63,31 +63,34 @@ import java.util.function.IntPredicate;
  * <p>Rewrites:
  * <ul>
  *
- * <li>AVG(x) &rarr; SUM(x) / COUNT(x)
+ * <li>{@code AVG(x)} &rarr; {@code SUM(x) / COUNT(x)}
  *
- * <li>STDDEV_POP(x) &rarr; SQRT(
+ * <li>{@code STDDEV_POP(x)} &rarr; {@code SQRT(
  *     (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
- *    / COUNT(x))
+ *    / COUNT(x))}
  *
- * <li>STDDEV_SAMP(x) &rarr; SQRT(
+ * <li>{@code STDDEV_SAMP(x)} &rarr; {@code SQRT(
  *     (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
- *     / CASE COUNT(x) WHEN 1 THEN NULL ELSE COUNT(x) - 1 END)
+ *     / CASE COUNT(x) WHEN 1 THEN NULL ELSE COUNT(x) - 1 END)}
  *
- * <li>VAR_POP(x) &rarr; (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
- *     / COUNT(x)
+ * <li>{@code VAR_POP(x)} &rarr; {@code (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
+ *     / COUNT(x)}
  *
- * <li>VAR_SAMP(x) &rarr; (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
- *        / CASE COUNT(x) WHEN 1 THEN NULL ELSE COUNT(x) - 1 END
+ * <li>{@code VAR_SAMP(x)} &rarr; {@code (SUM(x * x) - SUM(x) * SUM(x) / COUNT(x))
+ *        / CASE COUNT(x) WHEN 1 THEN NULL ELSE COUNT(x) - 1 END}
  *
- * <li>COVAR_POP(x, y) &rarr; (SUM(x * y) - SUM(x, y) * SUM(y, x)
- *     / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
+ * <li>{@code COVAR_POP(x, y)} &rarr; {@code (SUM(x * y) - SUM(x, y) * SUM(y, x)
+ *     / REGR_COUNT(x, y)) / REGR_COUNT(x, y)}
  *
- * <li>COVAR_SAMP(x, y) &rarr; (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y))
- *     / CASE REGR_COUNT(x, y) WHEN 1 THEN NULL ELSE REGR_COUNT(x, y) - 1 END
+ * <li>{@code COVAR_SAMP(x, y)} &rarr; {@code (SUM(x * y) - SUM(x, y) * SUM(y, x)
+ *    / REGR_COUNT(x, y))
+ *    / CASE REGR_COUNT(x, y) WHEN 1 THEN NULL ELSE REGR_COUNT(x, y) - 1 END}
  *
- * <li>REGR_SXX(x, y) &rarr; REGR_COUNT(x, y) * VAR_POP(y)
+ * <li>{@code EXISTS_AGG(x)} &rarr; {@code COUNT(x) > 0}
  *
- * <li>REGR_SYY(x, y) &rarr; REGR_COUNT(x, y) * VAR_POP(x)
+ * <li>{@code REGR_SXX(x, y)} &rarr; {@code REGR_COUNT(x, y) * VAR_POP(y)}
+ *
+ * <li>{@code REGR_SYY(x, y)} &rarr; {@code REGR_COUNT(x, y) * VAR_POP(x)}
  *
  * </ul>
  *
@@ -113,7 +116,7 @@ public class AggregateReduceFunctionsRule
   private static boolean isValid(SqlKind function) {
     return SqlKind.AVG_AGG_FUNCTIONS.contains(function)
         || SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(function)
-        || function == SqlKind.SUM;
+        || function == SqlKind.SUM || function == SqlKind.EXISTS_AGG;
   }
 
   private final Set<SqlKind> functionsToReduce;
@@ -262,6 +265,10 @@ public class AggregateReduceFunctionsRule
         //     / CASE COUNT(x) WHEN 1 THEN NULL ELSE COUNT(x) - 1 END)
         return reduceCovariance(oldAggRel, oldCall, false, newCalls,
             aggCallMapping, inputExprs);
+      case EXISTS_AGG:
+        // replace original EXISTS_AGG(x) with
+        // COUNT(x) > 0
+        return reduceExistsAgg(oldAggRel, oldCall, newCalls, aggCallMapping, inputExprs);
       case REGR_SXX:
         // replace original REGR_SXX(x, y) with
         // REGR_COUNT(x, y) * VAR_POP(y)
@@ -402,6 +409,39 @@ public class AggregateReduceFunctionsRule
     final RexNode divideRef =
         rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, numeratorRef, denominatorRef);
     return rexBuilder.makeCast(oldCall.getType(), divideRef);
+  }
+
+  private static RexNode reduceExistsAgg(
+      Aggregate oldAggRel,
+      AggregateCall oldCall,
+      List<AggregateCall> newCalls,
+      Map<AggregateCall, RexNode> aggCallMapping,
+      @SuppressWarnings("unused") List<RexNode> inputExprs) {
+    final int nGroups = oldAggRel.getGroupCount();
+    final RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
+    final AggregateCall count =
+        AggregateCall.create(
+            SqlStdOperatorTable.COUNT,
+            oldCall.isDistinct(),
+            oldCall.isApproximate(),
+            oldCall.ignoreNulls(),
+            oldCall.getArgList(),
+            oldCall.filterArg,
+            oldCall.distinctKeys,
+            oldCall.collation,
+            oldAggRel.getGroupCount(),
+            oldAggRel.getInput(),
+            null,
+            null);
+    RexNode countRef =
+        rexBuilder.addAggCall(count,
+            nGroups,
+            newCalls,
+            aggCallMapping,
+            oldAggRel.getInput()::fieldIsNullable);
+
+    return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, countRef,
+        rexBuilder.makeExactLiteral(BigDecimal.ZERO));
   }
 
   private static RexNode reduceSum(
@@ -844,6 +884,7 @@ public class AggregateReduceFunctionsRule
             .addAll(SqlKind.AVG_AGG_FUNCTIONS)
             .addAll(SqlKind.COVAR_AVG_AGG_FUNCTIONS)
             .add(SqlKind.SUM)
+            .add(SqlKind.EXISTS_AGG)
             .build();
 
     @Override default AggregateReduceFunctionsRule toRule() {

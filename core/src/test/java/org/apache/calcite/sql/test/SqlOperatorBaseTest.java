@@ -5636,6 +5636,28 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("exp(cast(null as double))");
   }
 
+  @Test void testExistsAggFunc() {
+    tester.setFor(SqlStdOperatorTable.COUNT, VM_EXPAND);
+    tester.checkType("exists_agg(*)", "BOOLEAN NOT NULL");
+    tester.checkType("exists_agg('name')", "BOOLEAN NOT NULL");
+    tester.checkType("exists_agg(1)", "BOOLEAN NOT NULL");
+    tester.checkType("exists_agg(null)", "BOOLEAN NOT NULL");
+    tester.checkType("EXISTS_AGG(DISTINCT 'x')", "BOOLEAN NOT NULL");
+    tester.checkFails(
+        "^EXISTS_AGG()^",
+        "Invalid number of arguments to function 'EXISTS_AGG'. Was expecting 1 arguments",
+        false);
+    tester.checkType("exists_agg(1, 2)", "BOOLEAN NOT NULL");
+    tester.checkType("exists_agg(1, 2, 'x', 'y')", "BOOLEAN NOT NULL");
+
+    final String[] values = {"0", "CAST(null AS INTEGER)"};
+    tester.checkAgg("EXISTS_AGG(*)", values, true, 0d);
+    tester.checkAgg("EXISTS_AGG(x)", values, true, 0d);
+    tester.checkAgg("EXISTS_AGG(CASE x WHEN 0 THEN NULL ELSE -1 END)", values, true, 0d);
+    tester.checkAgg("EXISTS_AGG(CASE x WHEN 0 THEN NULL ELSE NULL END)", values, false, 0d);
+    tester.checkAgg("EXISTS_AGG(DISTINCT x)", values, true, 0d);
+  }
+
   @Test void testModFunc() {
     tester.setFor(SqlStdOperatorTable.MOD);
     tester.checkScalarExact("mod(4,2)", "0");

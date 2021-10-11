@@ -874,6 +874,9 @@ public enum SqlKind {
   /** The {@code BIT_XOR} aggregate function. */
   BIT_XOR,
 
+  /** The {@code EXISTS_AGG} aggregate function. */
+  EXISTS_AGG,
+
   /** The {@code ROW_NUMBER} window function. */
   ROW_NUMBER,
 
@@ -1084,7 +1087,7 @@ public enum SqlKind {
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
           LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
           PERCENTILE_CONT, PERCENTILE_DISC,
-          INTERSECTION, ANY_VALUE);
+          INTERSECTION, ANY_VALUE, EXISTS_AGG);
 
   /**
    * Category consisting of all DML operators.
