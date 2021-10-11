@@ -7755,10 +7755,11 @@ public class JdbcTest {
         .returns("F={1}\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4600">[CALCITE-4600]
+   * ClassCastException retrieving from an ARRAY that has DATE, TIME or
+   * TIMESTAMP elements</a>. */
   @Test public void testArrayOfDates() {
-    if (!Bug.CALCITE_4600_FIXED) {
-      return;
-    }
     CalciteAssert.that()
         .query("select array[cast('1900-1-1' as date)]")
         .returns("EXPR$0=[1900-01-01]\n");
