@@ -120,6 +120,7 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
+  @Deprecated
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();

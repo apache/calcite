@@ -66,7 +66,6 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   /** Cache of pre-generated handlers by provider and kind of metadata.
    * For the cache to be effective, providers should implement identity
    * correctly. */
-  @SuppressWarnings("unchecked")
   private static final LoadingCache<Key, MetadataHandler<?>> HANDLERS =
       maxSize(CacheBuilder.newBuilder(),
           CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value())

@@ -17,7 +17,7 @@
 package org.apache.calcite.rel.metadata.janino;
 
 /**
- * An key used in caching with descriptive to string.  Note the key uses
+ * A key used in caching with descriptive to string.  Note the key uses
  * reference equality for performance.
  */
 public final class DescriptiveCacheKey {
