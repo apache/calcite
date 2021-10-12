@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.rel.metadata.janino;
 
-import org.apache.calcite.linq4j.Ord;
-
 import java.lang.reflect.Method;
 
 /**
@@ -28,20 +26,21 @@ class CodeGeneratorUtil {
   private CodeGeneratorUtil() {
   }
 
-  /** Returns e.g. ",\n boolean ignoreNulls". */
-  static StringBuilder paramList(StringBuilder buff, Method method, int startIndex) {
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
-        .subList(startIndex, method.getParameterCount())) {
-      buff.append(",\n      ").append(t.e.getName()).append(" a").append(t.i);
+  /** Returns e.g. ",\n boolean ignoreNulls".  This ignores the first 2 arguments. */
+  static StringBuilder paramList(StringBuilder buff, Method method) {
+    Class<?>[] parameterTypes = method.getParameterTypes();
+    for (int i = 2; i < parameterTypes.length; i++) {
+      Class<?> t = parameterTypes[i];
+      buff.append(",\n      ").append(t.getName()).append(" a").append(i);
     }
     return buff;
   }
 
-  /** Returns e.g. ", ignoreNulls". */
-  static StringBuilder argList(StringBuilder buff, Method method, int startIndex) {
-    for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
-        .subList(startIndex, method.getParameterCount())) {
-      buff.append(", a").append(t.i);
+  /** Returns e.g. ", a2, a3". This ignores the first 2 arguments. */
+  static StringBuilder argList(StringBuilder buff, Method method) {
+    Class<?>[] argTypes = method.getParameterTypes();
+    for (int i = 2; i < argTypes.length; i++) {
+      buff.append(", a").append(i);
     }
     return buff;
   }

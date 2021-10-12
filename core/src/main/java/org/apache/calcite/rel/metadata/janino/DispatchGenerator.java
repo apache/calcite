@@ -75,7 +75,7 @@ public class DispatchGenerator {
         .append("      ")
         .append(RelMetadataQuery.class.getName())
         .append(" mq");
-    paramList(buff, method, 2)
+    paramList(buff, method)
         .append(") {\n");
     if (delegateClassList.isEmpty()) {
       throwUnknown(buff.append("    "), method)
@@ -134,7 +134,7 @@ public class DispatchGenerator {
       Class<? extends RelNode> clazz) {
     buff.append(handlerName).append(".").append(method.getName())
         .append("((").append(clazz.getName()).append(") r, mq");
-    argList(buff, method, 2);
+    argList(buff, method);
     buff.append(");\n");
   }
 
