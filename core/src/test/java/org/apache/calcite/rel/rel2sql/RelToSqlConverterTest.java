@@ -1200,6 +1200,44 @@ class RelToSqlConverterTest {
         .ok(mssql);
   }
 
+  @Test public void testAnalyticalFunctionInGroupByWhereAnalyticalFunctionIsInput() {
+    final String query = "select\n"
+        + "\"rnk\""
+        + "  from ("
+        + "    select\n"
+        + "    case when row_number() over (PARTITION by \"hire_date\") = 1 THEN 100 else 200 END AS \"rnk\""
+        + "    from \"foodmart\".\"employee\"\n) group by \"rnk\"";
+    final String expectedSql = "SELECT CASE WHEN (ROW_NUMBER() OVER (PARTITION BY \"hire_date\"))"
+        + " = 1 THEN 100 ELSE 200 END AS \"rnk\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY CASE WHEN"
+        + " (ROW_NUMBER() OVER (PARTITION BY \"hire_date\")) = 1 THEN 100 ELSE 200 END";
+    final String expectedHive = "SELECT CASE WHEN (ROW_NUMBER() OVER (PARTITION BY hire_date)) = "
+        + "1 THEN 100 ELSE 200 END rnk\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY CASE WHEN (ROW_NUMBER() "
+        + "OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT rnk\n"
+        + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER "
+        + "(PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END AS rnk\n"
+        + "FROM foodmart.employee) AS t\n"
+        + "GROUP BY rnk";
+    final  String mssql = "SELECT CASE WHEN (ROW_NUMBER() OVER (PARTITION BY [hire_date])) = 1 "
+        + "THEN 100 ELSE 200 END AS [rnk]\n"
+        + "FROM [foodmart].[employee]\nGROUP BY CASE WHEN "
+        + "(ROW_NUMBER() OVER (PARTITION BY [hire_date])) = 1 THEN 100 ELSE 200 END";
+    sql(query)
+        .ok(expectedSql)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withMssql()
+        .ok(mssql);
+  }
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
    * JDBC adapter throws NullPointerException while generating GROUP BY query
