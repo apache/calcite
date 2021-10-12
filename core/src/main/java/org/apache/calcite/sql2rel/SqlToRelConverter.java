@@ -1667,14 +1667,18 @@ public class SqlToRelConverter {
 
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tupleList =
         ImmutableList.builder();
+    final RelDataType listType = validator().getValidatedNodeType(rowList);
     final RelDataType rowType;
     if (targetRowType != null) {
-      rowType = targetRowType;
+      rowType =
+          typeFactory.createTypeWithNullability(
+              targetRowType,
+              SqlTypeUtil.containsNullable(listType));
     } else {
       rowType =
           SqlTypeUtil.promoteToRowType(
               typeFactory,
-              validator().getValidatedNodeType(rowList),
+              listType,
               null);
     }
 
