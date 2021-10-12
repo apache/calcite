@@ -197,7 +197,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
-  private static final String TEMP_REGEX = "\\s?°([CcFf])";
   /**
    * Creates a BigQuerySqlDialect.
    */
@@ -590,11 +589,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private SqlNode handleBackSlashes(SqlNode operand) {
-    if (requireNonNull(((SqlCharStringLiteral) operand).toValue()).matches(TEMP_REGEX)) {
+    if (operand.toString().length() < 3 || !operand.toString().substring(1, 3).equals("\\\\")) {
       return operand;
     }
     String modifiedString = operand.toString().replaceAll("\\\\", "\\\\\\\\");
-    return modifiedString.equals(operand.toString()) ? operand : SqlLiteral.createCharString(
+    return SqlLiteral.createCharString(
             requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
   }
 
