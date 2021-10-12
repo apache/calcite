@@ -30,7 +30,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
@@ -46,6 +45,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -121,14 +121,16 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return provider.handlers(def);
   }
 
-  @Override public ImmutableSet<MetadataHandler<?>> handlers(
+  @Override public List<MetadataHandler<?>> handlers(
       Class<? extends MetadataHandler<?>> handlerClass) {
     return provider.handlers(handlerClass);
   }
 
   private static <MH extends MetadataHandler<?>> MH generateCompileAndInstantiate(
       Class<MH> handlerClass,
-      ImmutableSet<? extends MetadataHandler<? extends Metadata>> handlerSet) {
+      List<? extends MetadataHandler<? extends Metadata>> handlers) {
+    final LinkedHashSet<? extends MetadataHandler<? extends Metadata>> handlerSet =
+        new LinkedHashSet<>(handlers);
     final StringBuilder buff = new StringBuilder();
     final String name =
         "GeneratedMetadata_" + simpleNameForHandler(handlerClass);

@@ -1030,7 +1030,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
           return metadataProvider.handlers(def);
         }
 
-        @Override public ImmutableSet<MetadataHandler<?>> handlers(
+        @Override public List<MetadataHandler<?>> handlers(
             Class<? extends MetadataHandler<?>> handlerClass) {
           return metadataProvider.handlers(handlerClass);
         }
@@ -1894,9 +1894,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
       // Repeat the above tests directly against the handler.
       final RelMdColumnUniqueness handler =
-          (RelMdColumnUniqueness) RelMdColumnUniqueness.SOURCE
-              .handlers(BuiltInMetadata.ColumnUniqueness.Handler.class)
-              .iterator().next();
+          (RelMdColumnUniqueness) Iterables.getOnlyElement(RelMdColumnUniqueness.SOURCE
+              .handlers(BuiltInMetadata.ColumnUniqueness.Handler.class));
       assertThat(handler.areColumnsUnique(values, mq, col0, false),
           is(true));
       assertThat(handler.areColumnsUnique(values, mq, col1, false),

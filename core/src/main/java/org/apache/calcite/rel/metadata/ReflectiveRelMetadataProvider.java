@@ -28,7 +28,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -72,7 +71,7 @@ public class ReflectiveRelMetadataProvider
   @Deprecated // to be removed before 2.0
   private final ImmutableMultimap<Method, MetadataHandler> handlerMap;
   private final Class<? extends MetadataHandler<?>> handlerClass;
-  private final ImmutableSet handlers;
+  private final ImmutableList<MetadataHandler<?>> handlers;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -94,7 +93,7 @@ public class ReflectiveRelMetadataProvider
     this.metadataClass0 = metadataClass0;
     this.handlerMap = ImmutableMultimap.copyOf(handlerMap);
     this.handlerClass = handlerClass;
-    this.handlers = ImmutableSet.copyOf(handlerMap.values());
+    this.handlers = ImmutableList.copyOf(handlerMap.values());
   }
 
   /** Returns an implementation of {@link RelMetadataProvider} that scans for
@@ -135,6 +134,7 @@ public class ReflectiveRelMetadataProvider
     return reflectiveSource(handler, handler.getDef().methods, handlerClass);
   }
 
+  @Deprecated // to be removed before 2.0
   private static RelMetadataProvider reflectiveSource(
       final MetadataHandler target, final ImmutableList<Method> methods,
       final Class<? extends MetadataHandler<?>> handlerClass) {
@@ -233,16 +233,16 @@ public class ReflectiveRelMetadataProvider
     return builder.build();
   }
 
-  @Override public ImmutableSet<MetadataHandler<?>> handlers(
+  @Override public List<MetadataHandler<?>> handlers(
       Class<? extends MetadataHandler<?>> handlerClass) {
     if (this.handlerClass.isAssignableFrom(handlerClass)) {
-      //noinspection unchecked
       return handlers;
     } else {
-      return ImmutableSet.of();
+      return ImmutableList.of();
     }
   }
 
+  @Deprecated // to be removed before 2.0
   private static boolean couldImplement(Method handlerMethod, Method method) {
     if (!handlerMethod.getName().equals(method.getName())
         || (handlerMethod.getModifiers() & Modifier.STATIC) != 0
@@ -306,6 +306,7 @@ public class ReflectiveRelMetadataProvider
 
   /** Workspace for computing which methods can act as handlers for
    * given metadata methods. */
+  @Deprecated // to be removed before 2.0
   static class Space {
     final Set<Class<RelNode>> classes = new HashSet<>();
     final Map<Pair<Class<RelNode>, Method>, Method> handlerMap = new HashMap<>();
@@ -360,6 +361,7 @@ public class ReflectiveRelMetadataProvider
   }
 
   /** Extended work space. */
+  @Deprecated // to be removed before 2.0
   static class Space2 extends Space {
     private Class<Metadata> metadataClass0;
 
@@ -369,6 +371,7 @@ public class ReflectiveRelMetadataProvider
       this.metadataClass0 = metadataClass0;
     }
 
+    @Deprecated // to be removed before 2.0
     public static Space2 create(
         MetadataHandler<?> target,
         ImmutableList<Method> methods) {

@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -90,7 +89,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     return underlyingProvider.handlers(def);
   }
 
-  @Override public ImmutableSet<MetadataHandler<?>> handlers(
+  @Override public List<MetadataHandler<?>> handlers(
       Class<? extends MetadataHandler<?>> handlerClass) {
     return underlyingProvider.handlers(handlerClass);
   }

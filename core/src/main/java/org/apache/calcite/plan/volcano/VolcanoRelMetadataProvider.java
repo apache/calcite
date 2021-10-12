@@ -23,13 +23,14 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -126,8 +127,8 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     return ImmutableMultimap.of();
   }
 
-  @Override public ImmutableSet<MetadataHandler<?>> handlers(
+  @Override public List<MetadataHandler<?>> handlers(
       Class<? extends MetadataHandler<?>> handlerClass) {
-    return ImmutableSet.of();
+    return ImmutableList.of();
   }
 }

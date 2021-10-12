@@ -21,7 +21,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -117,11 +116,11 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     return builder.build();
   }
 
-  @Override public ImmutableSet<MetadataHandler<?>> handlers(
+  @Override public List<MetadataHandler<?>> handlers(
       Class<? extends MetadataHandler<?>> handlerClass) {
-    final ImmutableSet.Builder<MetadataHandler<?>> builder =
-        ImmutableSet.builder();
-    for (RelMetadataProvider provider : providers.reverse()) {
+    final ImmutableList.Builder<MetadataHandler<?>> builder =
+        ImmutableList.builder();
+    for (RelMetadataProvider provider : providers) {
       builder.addAll(provider.handlers(handlerClass));
     }
     return builder.build();
