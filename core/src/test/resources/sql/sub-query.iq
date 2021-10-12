@@ -3306,4 +3306,50 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7782], expr#9=[CAST($t0):INTEGER NO
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-4846] IN-list that includes NULL converted to Values throws exception
+
+select * from "scott".emp where empno not in (null, 7782);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[0:BIGINT], expr#14=[=($t8, $t13)], expr#15=[IS NULL($t12)], expr#16=[>=($t9, $t8)], expr#17=[AND($t15, $t16)], expr#18=[OR($t14, $t17)], proj#0..7=[{exprs}], $condition=[$t18])
+  EnumerableMergeJoin(condition=[=($10, $11)], joinType=[left])
+    EnumerableSort(sort0=[$10], dir0=[ASC])
+      EnumerableCalc(expr#0..9=[{inputs}], proj#0..9=[{exprs}], EMPNO0=[$t0])
+        EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+          EnumerableTableScan(table=[[scott, EMP]])
+          EnumerableAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
+            EnumerableValues(tuples=[[{ null }, { 7782 }]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
+        EnumerableValues(tuples=[[{ null }, { 7782 }]])
+!plan
+
+select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0:BIGINT], expr#16=[=($t8, $t15)], expr#17=[IS NULL($t14)], expr#18=[>=($t9, $t8)], expr#19=[IS NOT NULL($t11)], expr#20=[AND($t17, $t18, $t19)], expr#21=[OR($t16, $t20)], proj#0..7=[{exprs}], $condition=[$t21])
+  EnumerableMergeJoin(condition=[AND(=($10, $12), =($11, $13))], joinType=[left])
+    EnumerableSort(sort0=[$10], sort1=[$11], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..9=[{inputs}], proj#0..9=[{exprs}], EMPNO0=[$t0], DEPTNO0=[$t7])
+        EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+          EnumerableTableScan(table=[[scott, EMP]])
+          EnumerableAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0, $1)])
+            EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }]])
+    EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
+        EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }]])
+!plan
+
 # End sub-query.iq
