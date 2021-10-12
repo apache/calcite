@@ -177,6 +177,13 @@ class EnumerableCorrelateTest {
 
     tester(false, new HrSchema())
         .query(sql)
+        .explainContains(""
+            + "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            + "  EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[101], expr#6=[<=($t0, $t5)], $f5=[$t6], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n\n")
         .returnsUnordered(
             "empid=100",
             "empid=110",
@@ -187,6 +194,13 @@ class EnumerableCorrelateTest {
 
     tester(false, new HrSchema())
         .query(sql)
+        .explainContains(""
+            + "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            + "  EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[101], expr#6=[<($t0, $t5)], $f5=[$t6], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n\n")
         .returnsUnordered(
             "empid=100",
             "empid=110",
@@ -197,6 +211,13 @@ class EnumerableCorrelateTest {
 
     tester(false, new HrSchema())
         .query(sql)
+        .explainContains(""
+            + "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            + "  EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[>($t0, $t5)], $f5=[$t6], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n\n")
         .returnsUnordered(
             "empid=100",
             "empid=110",
@@ -207,6 +228,13 @@ class EnumerableCorrelateTest {
 
     tester(false, new HrSchema())
         .query(sql)
+        .explainContains(""
+            + "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n" +
+            "  EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n" +
+            "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n" +
+            "      EnumerableTableScan(table=[[s, emps]])\n" +
+            "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[=($t0, $t5)], empid=[$t0], $condition=[$t6])\n" +
+            "      EnumerableTableScan(table=[[s, emps]])\n\n")
         .returnsUnordered(
             "empid=100",
             "empid=110",
@@ -217,6 +245,18 @@ class EnumerableCorrelateTest {
 
     tester(false, new HrSchema())
         .query(sql)
+        .explainContains(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t0])\n"
+            + "  EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t0):INTEGER], empid=[$t1], $f0=[$t2])\n"
+            + "      EnumerableHashJoin(condition=[=($0, $1)], joinType=[inner])\n"
+            + "        EnumerableAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+            + "          EnumerableCalc(expr#0=[{inputs}], expr#1=[100], expr#2=[50], expr#3=[+($t1, $t2)], EXPR$0=[$t3])\n"
+            + "            EnumerableValues(tuples=[[{ 0 }]])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n\n")
         .returnsUnordered(
             "empid=100",
             "empid=110",
