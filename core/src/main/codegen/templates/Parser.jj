@@ -1473,9 +1473,13 @@ SqlNode SqlDescribe() :
     |
         // Use syntactic lookahead to determine whether a table name is coming.
         // We do not allow SimpleIdentifier() because that includes <STATEMENT>.
-        LOOKAHEAD( <TABLE> | <IDENTIFIER>
-           | <HYPHENATED_IDENTIFIER> | <QUOTED_IDENTIFIER>
-           | <BACK_QUOTED_IDENTIFIER> | <BRACKET_QUOTED_IDENTIFIER> )
+        LOOKAHEAD( <TABLE>
+           | <IDENTIFIER>
+           | <HYPHENATED_IDENTIFIER>
+           | <QUOTED_IDENTIFIER>
+           | <BACK_QUOTED_IDENTIFIER>
+           | <BIG_QUERY_BACK_QUOTED_IDENTIFIER>
+           | <BRACKET_QUOTED_IDENTIFIER> )
         (<TABLE>)?
         table = CompoundIdentifier()
         (
@@ -4967,6 +4971,12 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
             pos = getPos().withQuoting(true);
         }
     |
+        <BIG_QUERY_BACK_QUOTED_IDENTIFIER> {
+            id = SqlParserUtil.stripQuotes(getToken(0).image, "`", "`", "\\`",
+                quotedCasing);
+            pos = getPos().withQuoting(true);
+        }
+    |
         <BRACKET_QUOTED_IDENTIFIER> {
             id = SqlParserUtil.stripQuotes(getToken(0).image, "[", "]", "]]",
                 quotedCasing);
@@ -8170,12 +8180,15 @@ Lexical states:
 
 DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
 DQID:    Identifiers are double-quoted, e.g. "My Identifier"
-BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`
-BQID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`,
+BTID:    Identifiers are enclosed in back-ticks, escaped using back-ticks,
+         e.g. `My ``Quoted`` Identifier`
+BQID:    Identifiers are enclosed in back-ticks, escaped using backslash,
+         e.g. `My \`Quoted\` Identifier`,
          and with the potential to shift into BQHID in contexts where table
          names are expected, and thus allow hyphen-separated identifiers as
          part of table names
-BQHID:   Identifiers are enclosed in back-ticks, e.g. `My Identifier`
+BQHID:   Identifiers are enclosed in back-ticks, escaped using backslash,
+         e.g. `My \`Quoted\` Identifier`
          and unquoted identifiers may contain hyphens, e.g. foo-bar
 IN_SINGLE_LINE_COMMENT:
 IN_FORMAL_COMMENT:
@@ -8273,7 +8286,7 @@ MORE :
     >
 }
 
-<BTID, BQID, BQHID> TOKEN :
+<BTID> TOKEN :
 {
     < BACK_QUOTED_IDENTIFIER:
     "`"
@@ -8282,6 +8295,20 @@ MORE :
     |
         ("``")
     )+
+    "`"
+    >
+}
+
+<BQID, BQHID> TOKEN :
+{
+    // BigQuery-style backtick-quoted identifier, escaped using backslash
+    < BIG_QUERY_BACK_QUOTED_IDENTIFIER:
+    "`"
+    (
+        (~["\\", "`"])
+    |
+        ("\\" ~[])
+    )*
     "`"
     >
 }

@@ -548,6 +548,8 @@ public abstract class SqlAbstractParserImpl {
         return DEFAULT;
       case DOUBLE_QUOTE:
         return DQID;
+      case BACK_TICK_BACKSLASH:
+        return BQID;
       case BACK_TICK:
         if (config.conformance().allowHyphenInUnquotedTableName()
             && config.charLiteralStyles().equals(
