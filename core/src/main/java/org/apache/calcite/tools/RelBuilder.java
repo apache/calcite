@@ -72,8 +72,6 @@ import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexFieldCollation;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
