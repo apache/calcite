@@ -81,7 +81,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.apache.calcite.sql.SqlUtil.GENERATED_EXPR_ALIAS_PREFIX;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -1333,7 +1332,8 @@ public class SqlValidatorUtil {
   }
 
   public static final Suggester EXPR_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, GENERATED_EXPR_ALIAS_PREFIX) + attempt;
+      (original, attempt, size) ->
+          Util.first(original, SqlUtil.GENERATED_EXPR_ALIAS_PREFIX) + attempt;
 
   public static final Suggester F_SUGGESTER =
       (original, attempt, size) -> Util.first(original, "$f")

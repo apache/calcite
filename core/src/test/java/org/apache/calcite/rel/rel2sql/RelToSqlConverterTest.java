@@ -6167,30 +6167,6 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4740">[CALCITE-4740]
-   * JDBC adapter generates incorrect HAVING clause in BigQuery dialect</a>. */
-  @Test void testBigQueryHavingWithoutGeneratedAlias() {
-    final String sql = ""
-        + "SELECT \"DEPTNO\", COUNT(DISTINCT \"EMPNO\")\n"
-        + "FROM \"EMP\"\n"
-        + "GROUP BY \"DEPTNO\"\n"
-        + "HAVING COUNT(DISTINCT \"EMPNO\") > 0\n"
-        + "ORDER BY COUNT(DISTINCT \"EMPNO\") DESC";
-    final String expected = ""
-        + "SELECT DEPTNO, COUNT(DISTINCT EMPNO)\n"
-        + "FROM SCOTT.EMP\n"
-        + "GROUP BY DEPTNO\n"
-        + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
-        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, COUNT(DISTINCT EMPNO) DESC";
-
-    // Convert rel node to SQL with BigQuery dialect,
-    // in which "isHavingAlias" is true.
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withBigQuery().ok(expected);
-  }
-
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;

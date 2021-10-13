@@ -79,7 +79,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public abstract class SqlUtil {
   //~ Constants --------------------------------------------------------------
 
-  // Use a '$' so that queries can't easily reference the generated name.
+  /** Prefix for generated column aliases. Ends with '$' so that human-written
+   * queries are unlikely to accidentally reference the generated name. */
   public static final String GENERATED_EXPR_ALIAS_PREFIX = "EXPR$";
 
   //~ Methods ----------------------------------------------------------------
