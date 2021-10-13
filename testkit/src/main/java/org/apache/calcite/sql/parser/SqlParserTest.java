@@ -2280,15 +2280,37 @@ public class SqlParserTest {
     expr("     ^\"^a  \"\" b!c\"")
         .fails("(?s).*Encountered.*");
 
-    expr("^\"^x`y`z\"")
-        .fails("(?s).*Encountered.*");
+    expr("^\"^x`y`z\"").fails("(?s).*Encountered.*");
     expr("`x``y``z`").ok("`x``y``z`");
+    expr("`x\\`^y^\\`z`").fails("(?s).*Encountered.*");
 
     expr("myMap[field] + myArray[1 + 2]")
         .ok("(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
 
     sql("VALUES a").node(isQuoted(0, false));
     sql("VALUES `a`").node(isQuoted(0, true));
+    sql("VALUES `a``b`").node(isQuoted(0, true));
+  }
+
+  @Test void testBackTickBackslashIdentifier() {
+    quoting = Quoting.BACK_TICK_BACKSLASH;
+    expr("ab").ok("`AB`");
+    expr("     `a  \" b!c`").ok("`a  \" b!c`");
+    expr("     \"a  \"^\" b!c\"^")
+        .fails("(?s).*Encountered.*");
+
+    // BACK_TICK_BACKSLASH identifiers implies
+    // BigQuery dialect, which implies double-quoted character literals.
+    expr("^\"^x`y`z\"").ok("'x`y`z'");
+    expr("`x`^`y`^`z`").fails("(?s).*Encountered.*");
+    expr("`x\\`y\\`z`").ok("`x``y``z`");
+
+    expr("myMap[field] + myArray[1 + 2]")
+        .ok("(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
+
+    sql("VALUES a").node(isQuoted(0, false));
+    sql("VALUES `a`").node(isQuoted(0, true));
+    sql("VALUES `a\\`b`").node(isQuoted(0, true));
   }
 
   @Test void testBracketIdentifier() {
@@ -3722,6 +3744,7 @@ public class SqlParserTest {
             + "    <HYPHENATED_IDENTIFIER> \\.\\.\\.\n"
             + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
+            + "    <BIG_QUERY_BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    \"\\(\" \\.\\.\\.\n.*");
@@ -4493,28 +4516,28 @@ public class SqlParserTest {
             + "FROM emp");
 
     // MySQL uses single-quotes as escapes; BigQuery uses backslashes
-    sql("select 'Let''s call him \"Elvis\"!'")
+    sql("select 'Let''s call the dog \"Elvis\"!'")
         .withDialect(MYSQL)
-        .node(isCharLiteral("Let's call him \"Elvis\"!"));
+        .node(isCharLiteral("Let's call the dog \"Elvis\"!"));
 
-    sql("select 'Let\\'\\'s call him \"Elvis\"!'")
+    sql("select 'Let\\'\\'s call the dog \"Elvis\"!'")
         .withDialect(BIG_QUERY)
-        .node(isCharLiteral("Let''s call him \"Elvis\"!"));
+        .node(isCharLiteral("Let''s call the dog \"Elvis\"!"));
 
-    sql("select 'Let\\'s ^call^ him \"Elvis\"!'")
+    sql("select 'Let\\'s ^call^ the dog \"Elvis\"!'")
         .withDialect(MYSQL)
         .fails("(?s)Encountered \"call\" at .*")
         .withDialect(BIG_QUERY)
-        .node(isCharLiteral("Let's call him \"Elvis\"!"));
+        .node(isCharLiteral("Let's call the dog \"Elvis\"!"));
 
     // Oracle uses double-quotes as escapes in identifiers;
     // BigQuery uses backslashes as escapes in double-quoted character literals.
-    sql("select \"Let's call him \\\"Elvis^\\^\"!\"")
+    sql("select \"Let's call the dog \\\"Elvis^\\^\"!\"")
         .withDialect(ORACLE)
-        .fails("(?s)Lexical error at line 1, column 31\\.  "
+        .fails("(?s)Lexical error at line 1, column 35\\.  "
             + "Encountered: \"\\\\\\\\\" \\(92\\), after : \"\".*")
         .withDialect(BIG_QUERY)
-        .node(isCharLiteral("Let's call him \"Elvis\"!"));
+        .node(isCharLiteral("Let's call the dog \"Elvis\"!"));
   }
 
   private static Matcher<SqlNode> isCharLiteral(String s) {
@@ -9331,35 +9354,35 @@ public class SqlParserTest {
 
   @Test void testConfigureFromDialect() {
     // Calcite's default converts unquoted identifiers to upper case
-    sql("select unquotedColumn from \"doubleQuotedTable\"")
+    sql("select unquotedColumn from \"double\"\"QuotedTable\"")
         .withDialect(CALCITE)
         .ok("SELECT \"UNQUOTEDCOLUMN\"\n"
-            + "FROM \"doubleQuotedTable\"");
+            + "FROM \"double\"\"QuotedTable\"");
     // MySQL leaves unquoted identifiers unchanged
-    sql("select unquotedColumn from `doubleQuotedTable`")
+    sql("select unquotedColumn from `double``QuotedTable`")
         .withDialect(MYSQL)
         .ok("SELECT `unquotedColumn`\n"
-            + "FROM `doubleQuotedTable`");
+            + "FROM `double``QuotedTable`");
     // Oracle converts unquoted identifiers to upper case
-    sql("select unquotedColumn from \"doubleQuotedTable\"")
+    sql("select unquotedColumn from \"double\"\"QuotedTable\"")
         .withDialect(ORACLE)
         .ok("SELECT \"UNQUOTEDCOLUMN\"\n"
-            + "FROM \"doubleQuotedTable\"");
+            + "FROM \"double\"\"QuotedTable\"");
     // PostgreSQL converts unquoted identifiers to lower case
-    sql("select unquotedColumn from \"doubleQuotedTable\"")
+    sql("select unquotedColumn from \"double\"\"QuotedTable\"")
         .withDialect(POSTGRESQL)
         .ok("SELECT \"unquotedcolumn\"\n"
-            + "FROM \"doubleQuotedTable\"");
+            + "FROM \"double\"\"QuotedTable\"");
     // Redshift converts all identifiers to lower case
-    sql("select unquotedColumn from \"doubleQuotedTable\"")
+    sql("select unquotedColumn from \"double\"\"QuotedTable\"")
         .withDialect(REDSHIFT)
         .ok("SELECT \"unquotedcolumn\"\n"
-            + "FROM \"doublequotedtable\"");
+            + "FROM \"double\"\"quotedtable\"");
     // BigQuery leaves quoted and unquoted identifiers unchanged
-    sql("select unquotedColumn from `doubleQuotedTable`")
+    sql("select unquotedColumn from `double\\`QuotedTable`")
         .withDialect(BIG_QUERY)
         .ok("SELECT unquotedColumn\n"
-            + "FROM doubleQuotedTable");
+            + "FROM `double\\`QuotedTable`");
   }
 
   /** Test case for

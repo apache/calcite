@@ -32,10 +32,11 @@ public enum Lex {
   /** Lexical policy similar to BigQuery.
    * The case of identifiers is preserved whether or not they quoted;
    * after which, identifiers are matched case-insensitively.
-   * Back-ticks allow identifiers to contain non-alphanumeric characters.
+   * Back-ticks allow identifiers to contain non-alphanumeric characters;
+   * a back-tick is escaped using a backslash.
    * Character literals may be enclosed in single or double quotes. */
-  BIG_QUERY(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true,
-      CharLiteralStyle.BQ_SINGLE, CharLiteralStyle.BQ_DOUBLE),
+  BIG_QUERY(Quoting.BACK_TICK_BACKSLASH, Casing.UNCHANGED, Casing.UNCHANGED,
+      true, CharLiteralStyle.BQ_SINGLE, CharLiteralStyle.BQ_DOUBLE),
 
   /** Lexical policy similar to Oracle. The case of identifiers enclosed in
    * double-quotes is preserved; unquoted identifiers are converted to
@@ -47,7 +48,8 @@ public enum Lex {
    * MySQL on Linux uses case-sensitive matching, like the Linux file system.)
    * The case of identifiers is preserved whether or not they quoted;
    * after which, identifiers are matched case-insensitively.
-   * Back-ticks allow identifiers to contain non-alphanumeric characters. */
+   * Back-ticks allow identifiers to contain non-alphanumeric characters;
+   * a back-tick is escaped using a back-tick. */
   MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false,
       CharLiteralStyle.STANDARD),
 
@@ -71,7 +73,7 @@ public enum Lex {
    * The case of identifiers is preserved whether or not they are quoted;
    * after which, identifiers are matched case-sensitively.
    * Unlike Java, back-ticks allow identifiers to contain non-alphanumeric
-   * characters. */
+   * characters; a back-tick is escaped using a back-tick. */
   JAVA(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true,
       CharLiteralStyle.STANDARD);
 
