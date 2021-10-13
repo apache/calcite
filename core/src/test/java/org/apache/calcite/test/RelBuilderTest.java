@@ -2431,28 +2431,26 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
-  @Test public void testRexSubQueryIn() {
+  @Test void testInQuery() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
     //   WHERE deptno IN (
     //     SELECT deptno
     //     FROM dept
-    //     WHERE dname = 'Accounting'
-    //     )
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root = builder.scan("EMP")
-        .filter(
-            builder.in(
-                builder.scan("DEPT")
-                    .filter(
-                        builder.call(SqlStdOperatorTable.EQUALS,
-                            builder.field("DNAME"),
-                            builder.literal("Accounting")))
-                    .project(builder.field("DEPTNO"))
-                    .build(),
-                ImmutableList.of(builder.field("DEPTNO"))))
-        .build();
+    //     WHERE dname = 'Accounting')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.in(b.field("DEPTNO"),
+                    b2 ->
+                        b2.scan("DEPT")
+                            .filter(
+                                b2.equals(b2.field("DNAME"),
+                                    b2.literal("Accounting")))
+                            .project(b2.field("DEPTNO"))
+                            .build()))
+            .build();
 
     final String expected = "LogicalFilter(condition=[IN($7, {\n"
         + "LogicalProject(DEPTNO=[$0])\n"
@@ -2460,123 +2458,131 @@ public class RelBuilderTest {
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "})])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
-  /** Example 1, uses {@link RelBuilder#in(RelNode, Iterable)}. The relational
-   * expression is created explicitly just before {@code #in} is called, and
-   * passed as an argument. */
-  void example1(RelBuilder builder) {
-    RelNode root = builder.scan("EMP")
-        .filter(
-            builder.in(
-                builder.scan("DEPT")
-                    .filter(
-                        builder.call(SqlStdOperatorTable.EQUALS,
-                            builder.field("DNAME"),
-                            builder.literal("AAA")))
-                    .project(builder.field("DEPTNO"))
-                    .build(),
-                ImmutableList.of(builder.field("DEPTNO"))))
-        .build();
-  }
-
-  /** Example 2, uses {@link RelBuilder#inQuery(RexNode)}. The relational
-   * expression is created, and pushed onto the stack, by the call to
-   * {@link RelBuilder#let} immediately before {@code inQuery} is called. */
-  void example2(RelBuilder builder) {
-    RelNode root = builder.scan("EMP")
-        .let(b -> b.scan("DEPT")
-            .filter(
-                builder.call(SqlStdOperatorTable.EQUALS,
-                    builder.field("DNAME"),
-                    builder.literal("AAA")))
-            .project(builder.field("DEPTNO")))
-        .filter(builder.inQuery(builder.field("DEPTNO")))
-        .build();
-  }
-
-  /** Example 3, uses {@link RelBuilder#in(RexNode, Function)}. The relational
-   * expression is created by means of a callback from the {@code #in}
-   * function. */
-  void example3(RelBuilder builder) {
-    RelNode root = builder.scan("EMP")
-        .filter(
-            builder.in(builder.field("DEPTNO"),
-                b -> b.scan("DEPT")
-                    .filter(
-                        builder.call(SqlStdOperatorTable.EQUALS,
-                            builder.field("DNAME"),
-                            builder.literal("AAA")))
-                    .project(builder.field("DEPTNO"))
-                    .build()))
-        .build();
-  }
-
-  @Test public void testRexSubQueryExists() {
+  @Test void testExists() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
     //   WHERE EXISTS (
-    //     SELECT deptno
+    //     SELECT null
     //     FROM dept
-    //     WHERE dept.deptno = emp.deptno
-    //     )
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root = builder.scan("EMP")
-        .filter(
-            builder.exists(
-                builder.scan("DEPT")
-                    .filter(
-                        builder.call(SqlStdOperatorTable.EQUALS,
-                            builder.field("DNAME"),
-                            builder.literal("Accounting")))
-                    .project(builder.field("DEPTNO"))
-                    .build()))
-        .build();
+    //     WHERE dname = 'Accounting')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.exists(b2 ->
+                    b2.scan("DEPT")
+                        .filter(
+                            b2.equals(b2.field("DNAME"),
+                                b2.literal("Accounting")))
+                        .build()))
+            .build();
 
     final String expected = "LogicalFilter(condition=[EXISTS({\n"
-        + "LogicalProject(DEPTNO=[$0])\n"
-        + "  LogicalFilter(condition=[=($1, 'Accounting')])\n"
-        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "LogicalFilter(condition=[=($1, 'Accounting')])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
         + "})])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
-  @Test public void testRexSubQueryScalar() {
+  @Test void testExistsCorrelated() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE EXISTS (
+    //     SELECT null
+    //     FROM dept
+    //     WHERE deptno = emp.deptno)
+    final Function<RelBuilder, RelNode> f = b -> {
+      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      return b.scan("EMP")
+          .variable(v)
+          .filter(ImmutableList.of(v.get().id),
+              b.exists(b2 ->
+                  b2.scan("DEPT")
+                      .filter(
+                          b2.equals(b2.field("DEPTNO"),
+                              b2.field(v.get(), "DEPTNO")))
+                      .build()))
+          .build();
+    };
+
+    final String expected = "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})], variablesSet=[[$cor0]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testSomeAll() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE sal > SOME (SELECT comm FROM emp)
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.some(b.field("SAL"),
+                    SqlStdOperatorTable.GREATER_THAN,
+                    b2 ->
+                        b2.scan("EMP")
+                            .project(b2.field("COMM"))
+                        .build()))
+            .build();
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE NOT (sal <= ALL (SELECT comm FROM emp))
+    final Function<RelBuilder, RelNode> f2 = b ->
+        b.scan("EMP")
+            .filter(
+                b.not(
+                    b.all(b.field("SAL"),
+                        SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                        b2 ->
+                            b2.scan("EMP")
+                                .project(b2.field("COMM"))
+                                .build())))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[> SOME($5, {\n"
+        + "LogicalProject(COMM=[$6])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f2.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testScalarSubQuery() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
     //   WHERE sal > (
     //     SELECT AVG(sal)
-    //     FROM emp
-    //     )
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root = builder.scan("EMP")
-        .filter(
-            builder.call(
-                SqlStdOperatorTable.GREATER_THAN,
-                builder.field("SAL"),
-                builder.scalar(
-                    builder.scan("EMP")
-                        .aggregate(
-                            builder.groupKey(),
-                            builder.aggregateCall(
-                                SqlStdOperatorTable.AVG,
-                                builder.field("SAL")))
-                        .build())))
-        .build();
+    //     FROM emp)
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.greaterThan(b.field("SAL"),
+                    b.scalar(b2 ->
+                        b2.scan("EMP")
+                            .aggregate(b2.groupKey(),
+                                b2.avg(b2.field("SAL")))
+                            .build())))
+            .build();
 
     final String expected = "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
         + "LogicalAggregate(group=[{}], agg#0=[AVG($5)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "}))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
   @Test void testAlias() {
