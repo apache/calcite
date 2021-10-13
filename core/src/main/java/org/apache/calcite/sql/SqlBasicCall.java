@@ -41,7 +41,7 @@ public class SqlBasicCall extends SqlCall {
   @Deprecated // to be removed before 1.29
   public final @Nullable SqlNode[] operands;
 
-  private final List<SqlNode> operandList;
+  private final List<@Nullable SqlNode> operandList;
   private final @Nullable SqlLiteral functionQuantifier;
   private final boolean expanded;
 

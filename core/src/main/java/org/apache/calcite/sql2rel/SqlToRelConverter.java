@@ -1683,7 +1683,7 @@ public class SqlToRelConverter {
       if (isRowConstructor(node)) {
         call = (SqlBasicCall) node;
         ImmutableList.Builder<RexLiteral> tuple = ImmutableList.builder();
-        for (Ord<@Nullable SqlNode> operand : Ord.zip(call.getOperandList())) {
+        for (Ord<SqlNode> operand : Ord.zip(call.getOperandList())) {
           RexLiteral rexLiteral =
               convertLiteralInValuesList(
                   operand.e,
