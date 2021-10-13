@@ -700,6 +700,30 @@ public class RelBuilder {
     return getRexBuilder().makeIn(arg, ImmutableList.copyOf(ranges));
   }
 
+  /** Creates an IN sub-query. */
+  @Experimental
+  public RexSubQuery in(RelNode rel, Iterable<? extends RexNode> nodes) {
+    return RexSubQuery.in(rel, ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates an SOME sub-query. */
+  @Experimental
+  public RexSubQuery some(RelNode rel, Iterable<? extends RexNode> nodes, SqlQuantifyOperator op) {
+    return RexSubQuery.some(rel, ImmutableList.copyOf(nodes), op);
+  }
+
+  /** Creates an EXISTS sub-query. */
+  @Experimental
+  public RexSubQuery exists(RelNode rel) {
+    return RexSubQuery.exists(rel);
+  }
+
+  /** Creates a scalar sub-query. */
+  @Experimental
+  public RexSubQuery scalar(RelNode rel) {
+    return RexSubQuery.scalar(rel);
+  }
+
   /** Creates an AND. */
   public RexNode and(RexNode... operands) {
     return and(ImmutableList.copyOf(operands));
@@ -2643,26 +2667,6 @@ public class RelBuilder {
    * @see #antiJoin(Iterable) */
   public RelBuilder antiJoin(RexNode... conditions) {
     return antiJoin(ImmutableList.copyOf(conditions));
-  }
-
-  /** Creates an IN sub-query. */
-  public RexSubQuery in(RelNode rel, Iterable<? extends RexNode> nodes) {
-    return RexSubQuery.in(rel, ImmutableList.copyOf(nodes));
-  }
-
-  /** Creates an SOME sub-query. */
-  public RexSubQuery some(RelNode rel, Iterable<? extends RexNode> nodes, SqlQuantifyOperator op) {
-    return RexSubQuery.some(rel, ImmutableList.copyOf(nodes), op);
-  }
-
-  /** Creates an EXISTS sub-query. */
-  public RexSubQuery exists(RelNode rel) {
-    return RexSubQuery.exists(rel);
-  }
-
-  /** Creates a scalar sub-query. */
-  public RexSubQuery scalar(RelNode rel) {
-    return RexSubQuery.scalar(rel);
   }
 
   /** Assigns a table alias to the top entry on the stack. */
