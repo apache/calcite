@@ -1205,15 +1205,15 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     /** Sets {@link #matchNullability()}. */
     Config withMatchNullability(boolean matchNullability);
 
-    /**
-     * Whether to treat dynamic functions as constants.
-     * Default is false, a dynamic function (e.g. USER) is not reduced.
-     * When {@link #treatDynamicCallsAsConstant()} is to true, a dynamic function
-     * is treated as a constant, and reduced.
-     */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean treatDynamicCallsAsConstant();
+    /** Whether to treat
+     * {@link SqlOperator#isDynamicFunction() dynamic functions} as constants.
+     *
+     * <p>When false (the default), calls to dynamic functions (e.g.
+     * {@code USER}) are not reduced. When true, calls to dynamic functions
+     * are treated as a constant, and reduced. */
+    @Value.Default default boolean treatDynamicCallsAsConstant() {
+      return false;
+    }
 
     /** Sets {@link #treatDynamicCallsAsConstant()}. */
     Config withTreatDynamicCallsAsConstant(boolean treatDynamicCallsAsConstant);

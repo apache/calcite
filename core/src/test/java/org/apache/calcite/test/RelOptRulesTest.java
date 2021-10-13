@@ -2844,37 +2844,33 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2736">[CALCITE-2736]
-   * ReduceExpressionsRule never reduces dynamic expressions but this should be configurable</a>.
-   * Tests that a dynamic function (USER) is treated as a constant, and reduced, if
-   * {@link ReduceExpressionsRule.Config#treatDynamicCallsAsConstant()} is true.
-   */
+   * ReduceExpressionsRule never reduces dynamic expressions but this should be
+   * configurable</a>. Tests that a dynamic function (USER) is reduced if and
+   * only if {@link ReduceExpressionsRule.Config#treatDynamicCallsAsConstant()}
+   * is true. */
   @Test public void testReduceDynamic() {
-    testDynamic(true).check();
+    checkDynamicFunctions(true).check();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2736">[CALCITE-2736]
-   * ReduceExpressionsRule never reduces dynamic expressions but this should be configurable</a>.
-   * Tests that a dynamic function (USER) is not reduced, if
-   * {@link ReduceExpressionsRule.Config#treatDynamicCallsAsConstant()} is false.
-   */
+  /** As {@link #testReduceDynamic()}. */
   @Test public void testNoReduceDynamic() {
-    testDynamic(false).checkUnchanged();
+    checkDynamicFunctions(false).checkUnchanged();
   }
 
-  private Sql testDynamic(boolean treatDynamicCallsAsConstant) {
-    // Create a customized executor with given context operator that reduces "USER" to
-    // "happyCalciteUser"
+  private Sql checkDynamicFunctions(boolean treatDynamicCallsAsConstant) {
+    // Create a customized executor with given context operator that reduces
+    // "USER" to "happyCalciteUser"
     final RexExecutorImpl executor =
         new RexExecutorImpl(
             DataContexts.of(name ->
-                name.equals(DataContext.Variable.USER.camelName) ? "happyCalciteUser"
+                name.equals(DataContext.Variable.USER.camelName)
+                    ? "happyCalciteUser"
                     : fail("unknown: " + name)));
 
     RelOptPlanner planner = new MockRelOptPlanner(Contexts.empty());
     planner.setExecutor(executor);
 
-    final ProjectReduceExpressionsRule rule =
+    final ReduceExpressionsRule<?> rule =
         CoreRules.PROJECT_REDUCE_EXPRESSIONS.config
             .withOperandFor(LogicalProject.class)
             .withTreatDynamicCallsAsConstant(treatDynamicCallsAsConstant)
@@ -2882,7 +2878,6 @@ class RelOptRulesTest extends RelOptTestBase {
             .toRule();
 
     final String sql = "select USER from emp";
-
     return sql(sql)
         .withTester(t -> ((TesterImpl) tester).withPlannerFactory(context -> planner))
         .withRule(rule);
