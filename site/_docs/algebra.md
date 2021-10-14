@@ -448,6 +448,9 @@ added to the stack.
 The following methods convert a sub-query into a scalar value (a `BOOLEAN` in
 the case of `in`, `exists`, `some`, `all`, `unique`;
 any scalar type for `scalarQuery`).
+an `ARRAY` for `arrayQuery`,
+a `MAP` for `mapQuery`,
+and a `MULTISET` for `multisetQuery`).
 
 In all the following, `relFn` is a function that takes a `RelBuilder` argument
 and returns a `RelNode`. You typically implement it as a lambda; the method
@@ -457,8 +460,11 @@ returns the `RelNode` that is to be the sub-query.
 | Method              | Description
 |:------------------- |:-----------
 | `all(expr, op, relFn)` | Returns whether *expr* has a particular relation to all of the values of the sub-query
+| `arrayQuery(relFn)` | Returns the rows of a sub-query as an `ARRAY`
 | `exists(relFn)` | Tests whether sub-query is non-empty
 | `in(expr, relFn)`<br/>`in(exprList, relFn)` | Tests whether a value occurs in a sub-query
+| `mapQuery(relFn)` | Returns the rows of a sub-query as a `MAP`
+| `multisetQuery(relFn)` | Returns the rows of a sub-query as a `MULTISET`
 | `scalarQuery(relFn)` | Returns the value of the sole column of the sole row of a sub-query
 | `some(expr, op, relFn)` | Returns whether *expr* has a particular relation to one or more of the values of the sub-query
 | `unique(relFn)` | Returns whether the rows of a sub-query are unique
