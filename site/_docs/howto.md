@@ -32,15 +32,15 @@ adapters.
 ## Building from a source distribution
 
 Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15)
-and Gradle (version 6.8.1) on your path.
+and Gradle (version 7.2) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.27.0-src.tar.gz
-$ cd apache-calcite-1.27.0-src
+$ tar xvfz apache-calcite-1.28.0-src.tar.gz
+$ cd apache-calcite-1.28.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -727,6 +727,11 @@ Before you start:
   a fix version assigned (most likely the version we are
   just about to release)
 
+Generate list of contributors:
+```
+./sqlsh -o headers "select distinct author from git_commits where author_timestamp > DATE '2021-06-03' order by 1 "
+```
+
 Smoke-test `sqlline` with Spatial and Oracle function tables:
 
 {% highlight sql %}
@@ -746,8 +751,9 @@ The release candidate process does not add commits,
 so there's no harm if it fails. It might leave `-rc` tag behind
 which can be removed if required.
 
-You can perform a dry-run release with a help of https://github.com/vlsi/asflike-release-environment
-That would perform the same steps, however it would push changes to the mock Nexus, Git, and SVN servers.
+You can perform a dry-run release with a help of
+[asflike-release-environment](https://github.com/vlsi/asflike-release-environment);
+it would perform the same steps, but it would push changes to the mock Nexus, Git, and SVN servers.
 
 If any of the steps fail, fix the problem, and
 start again from the top.
