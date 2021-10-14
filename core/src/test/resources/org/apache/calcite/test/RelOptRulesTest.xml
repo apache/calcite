@@ -1097,6 +1097,22 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateWithDynamicParam">
+    <Resource name="sql">
+      <![CDATA[SELECT sal, COUNT(1) AS count_val
+FROM emp t WHERE sal = ?
+GROUP BY sal HAVING sal < 1000]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[<($0, 1000)])
+  LogicalAggregate(group=[{0}], COUNT_VAL=[COUNT()])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalFilter(condition=[=($5, ?0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAll">
     <Resource name="sql">
       <![CDATA[select * from emp e1
