@@ -38,7 +38,7 @@ public final class GeneratedMetadata_ParallelismHandler
     }
     final Object key;
     key = methodKey0;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -48,13 +48,13 @@ public final class GeneratedMetadata_ParallelismHandler
       }
       return (java.lang.Boolean) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.lang.Boolean x = isPhaseTransition_(r, mq);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }
@@ -82,7 +82,7 @@ public final class GeneratedMetadata_ParallelismHandler
     }
     final Object key;
     key = methodKey1;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -92,13 +92,13 @@ public final class GeneratedMetadata_ParallelismHandler
       }
       return (java.lang.Integer) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.lang.Integer x = splitCount_(r, mq);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }

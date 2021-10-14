@@ -18,13 +18,12 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 
-import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Proxy;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
@@ -62,31 +61,45 @@ import static java.util.Objects.requireNonNull;
  * </ol>
  */
 public class RelMetadataQueryBase {
+
   //~ Instance fields --------------------------------------------------------
 
   /** Set of active metadata queries, and cache of previous results. */
-  public final Table<RelNode, Object, Object> map = HashBasedTable.create();
+  @Deprecated // to be removed before 2.0
+  public final Table<RelNode, Object, Object> map;
 
-  public final @Nullable JaninoRelMetadataProvider metadataProvider;
+  public final MetadataCache cache;
+  protected final MetadataHandlerProvider metadataHandlerProvider;
+
+  @Deprecated // to be removed before 2.0
+  public final @Nullable JaninoRelMetadataProvider metadataProvider = THREAD_PROVIDERS.get();
 
   //~ Static fields/initializers ---------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   public static final ThreadLocal<@Nullable JaninoRelMetadataProvider> THREAD_PROVIDERS =
       new ThreadLocal<>();
 
-  //~ Constructors -----------------------------------------------------------
-
-  protected RelMetadataQueryBase(@Nullable JaninoRelMetadataProvider metadataProvider) {
-    this.metadataProvider = metadataProvider;
-  }
-
+  @Deprecated // to be removed before 2.0
   protected static <H> H initialHandler(Class<H> handlerClass) {
     return handlerClass.cast(
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
-            new Class[] {handlerClass}, (proxy, method, args) -> {
+            new Class[]{handlerClass}, (proxy, method, args) -> {
               final RelNode r = requireNonNull((RelNode) args[0], "(RelNode) args[0]");
               throw new JaninoRelMetadataProvider.NoHandler(r.getClass());
             }));
+  }
+
+  //~ Constructors ----------------------------------------------------------
+
+  protected RelMetadataQueryBase(MetadataHandlerProvider metadataHandlerProvider) {
+    this.metadataHandlerProvider = metadataHandlerProvider;
+    this.cache = metadataHandlerProvider.buildCache();
+    if (cache instanceof TableMetadataCache) {
+      map = ((TableMetadataCache) cache).map;
+    } else {
+      map = ImmutableTable.of();
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -96,15 +109,7 @@ public class RelMetadataQueryBase {
   @Deprecated // to be removed before 2.0
   protected <M extends Metadata, H extends MetadataHandler<M>> H
       revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
-    requireNonNull(metadataProvider, "metadataProvider");
-    return (H) revise(def.handlerClass);
-  }
-
-  /** Re-generates the handler for a given kind of metadata, adding support for
-   * {@code class_} if it is not already present. */
-  protected <H extends MetadataHandler<?>> H revise(Class<H> def) {
-    requireNonNull(metadataProvider, "metadataProvider");
-    return metadataProvider.revise(def);
+    return (H) def.handlerClass.cast(metadataHandlerProvider.revise(def.handlerClass));
   }
 
   /**
@@ -114,12 +119,6 @@ public class RelMetadataQueryBase {
    * @return true if cache for the provided RelNode was not empty
    */
   public boolean clearCache(RelNode rel) {
-    Map<Object, Object> row = map.row(rel);
-    if (row.isEmpty()) {
-      return false;
-    }
-
-    row.clear();
-    return true;
+    return cache.clear(rel);
   }
 }

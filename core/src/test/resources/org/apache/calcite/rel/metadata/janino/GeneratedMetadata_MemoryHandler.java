@@ -40,7 +40,7 @@ public final class GeneratedMetadata_MemoryHandler
     }
     final Object key;
     key = methodKey0;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -50,13 +50,13 @@ public final class GeneratedMetadata_MemoryHandler
       }
       return (java.lang.Double) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.lang.Double x = cumulativeMemoryWithinPhase_(r, mq);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }
@@ -78,7 +78,7 @@ public final class GeneratedMetadata_MemoryHandler
     }
     final Object key;
     key = methodKey1;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -88,13 +88,13 @@ public final class GeneratedMetadata_MemoryHandler
       }
       return (java.lang.Double) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.lang.Double x = cumulativeMemoryWithinPhaseSplit_(r, mq);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }
@@ -116,7 +116,7 @@ public final class GeneratedMetadata_MemoryHandler
     }
     final Object key;
     key = methodKey2;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -126,13 +126,13 @@ public final class GeneratedMetadata_MemoryHandler
       }
       return (java.lang.Double) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.lang.Double x = memory_(r, mq);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }

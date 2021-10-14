@@ -20,7 +20,6 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.JaninoRexCompiler;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.janino.RelMetadataHandlerGeneratorUtil;
-import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.CacheBuilder;
@@ -178,7 +177,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return handlerClass.cast(o);
   }
 
-  synchronized <H extends MetadataHandler<?>> H revise(Class<H> handlerClass) {
+  static synchronized <H extends MetadataHandler<?>> H revise(
+      RelMetadataProvider provider, Class<H> handlerClass) {
     try {
       final Key key = new Key(handlerClass, provider);
       //noinspection unchecked
@@ -197,12 +197,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
 
   /** Exception that indicates there there should be a handler for
    * this class but there is not. The action is probably to
-   * re-generate the handler class. */
-  public static class NoHandler extends ControlFlowException {
-    public final Class<? extends RelNode> relClass;
+   * re-generate the handler class.
+   *
+   * Please use MetadataHandlerProvider.NoHandler.*/
+  @Deprecated
+  public static class NoHandler extends MetadataHandlerProvider.NoHandler {
 
     public NoHandler(Class<? extends RelNode> relClass) {
-      this.relClass = relClass;
+      super(relClass);
     }
   }
 
