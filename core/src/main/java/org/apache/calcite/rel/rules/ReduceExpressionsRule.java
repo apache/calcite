@@ -1071,7 +1071,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     @Override public Void visitInputRef(RexInputRef inputRef) {
       final RexNode constant = constants.get(inputRef);
       if (constant != null) {
-        if (constant instanceof RexCall) {
+        if (constant instanceof RexCall || constant instanceof RexDynamicParam) {
           constant.accept(this);
         } else {
           stack.add(Constancy.REDUCIBLE_CONSTANT);
