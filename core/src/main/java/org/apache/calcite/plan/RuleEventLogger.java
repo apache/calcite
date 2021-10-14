@@ -20,9 +20,10 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.slf4j.Logger;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public class RuleEventLogger implements RelOptListener {
   private static final Logger LOG = CalciteTrace.getPlannerTracer();
-
+  private static final Marker FULL = MarkerFactory.getMarker("FULL_PLAN");
   @Override public void relEquivalenceFound(final RelEquivalenceEvent event) {
 
   }
@@ -48,11 +49,14 @@ public class RuleEventLogger implements RelOptListener {
   @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
     if (event.isBefore() && LOG.isDebugEnabled()) {
       RelOptRuleCall call = event.getRuleCall();
-      RelNode newRel = Objects.requireNonNull(event.getRel());
-      String relPlan = RelOptUtil.toString(newRel);
-      String relDesc = "rel#" + newRel.getId() + ":" + newRel.getRelTypeName();
-      LOG.debug("call#{}: Rule [{}] produced [{}]:\n {}",
-          call.id, call.getRule(), relDesc, relPlan);
+      RelNode newRel = event.getRel();
+      String description =
+          newRel == null ? "null" : "rel#" + newRel.getId() + ":" + newRel.getRelTypeName();
+      LOG.debug("call#{}: Rule [{}] produced [{}]", call.id, call.getRule(), description);
+      if (newRel != null) {
+        LOG.debug(FULL, "call#{}: Full plan for [{}]:{}", call.id, description,
+            System.lineSeparator() + RelOptUtil.toString(newRel));
+      }
     }
   }
 

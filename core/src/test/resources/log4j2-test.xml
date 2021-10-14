@@ -37,5 +37,8 @@
     <logger name="org.apache.calcite.avatica" level="ERROR"/>
     <logger name="org.eclipse.jetty" level="ERROR"/>
     <logger name="org.apache.calcite.sql.parser" level="ERROR"/>
+    <logger name="org.apache.calcite.plan.RelOptPlanner" level="ERROR">
+      <MarkerFilter marker="FULL_PLAN" onMatch="DENY" onMismatch="NEUTRAL"/>
+    </logger>
   </Loggers>
 </Configuration>
