@@ -928,6 +928,79 @@ public class RelBuilder {
     return RexSubQuery.scalar(f.apply(this));
   }
 
+  /** Creates an ARRAY sub-query.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Depts")
+   *     .project(
+   *         b.field("deptno")
+   *         b.arrayQuery(b2 ->
+   *             b2.scan("Emps")
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT deptno, ARRAY (SELECT * FROM Emps)
+   * FROM Depts
+   * }</pre> */
+  @Experimental
+  public RexSubQuery arrayQuery(Function<RelBuilder, RelNode> f) {
+    return RexSubQuery.array(f.apply(this));
+  }
+
+  /** Creates a MULTISET sub-query.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Depts")
+   *     .project(
+   *         b.field("deptno")
+   *         b.multisetQuery(b2 ->
+   *             b2.scan("Emps")
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT deptno, MULTISET (SELECT * FROM Emps)
+   * FROM Depts
+   * }</pre> */
+  @Experimental
+  public RexSubQuery multisetQuery(Function<RelBuilder, RelNode> f) {
+    return RexSubQuery.multiset(f.apply(this));
+  }
+
+  /** Creates a MAP sub-query.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Depts")
+   *     .project(
+   *         b.field("deptno")
+   *         b.multisetQuery(b2 ->
+   *             b2.scan("Emps")
+   *                 .project(b2.field("empno"), b2.field("job"))
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT deptno, MAP (SELECT empno, job FROM Emps)
+   * FROM Depts
+   * }</pre> */
+  @Experimental
+  public RexSubQuery mapQuery(Function<RelBuilder, RelNode> f) {
+    return RexSubQuery.map(f.apply(this));
+  }
+
   /** Creates an AND. */
   public RexNode and(RexNode... operands) {
     return and(ImmutableList.copyOf(operands));
