@@ -33,7 +33,7 @@ Downloads are available on the
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 15;
-Guava versions 19.0 to 30.1.1-jre;
+Guava versions 19.0 to 31.0.1-jre;
 other software versions as specified in gradle.properties.
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.27.0">1.27.0</a> / 2021-06-03

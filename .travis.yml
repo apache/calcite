@@ -34,7 +34,7 @@ matrix:
     - jdk: openjdk11
       env:
         - ERRORPRONE=Y
-        - GUAVA=30.1.1-jre # ErrorProne checks for Beta APIs, so use newest supported Guava version
+        - GUAVA=31.0.1-jre # ErrorProne checks for Beta APIs, so use newest supported Guava version
       script:
         - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
         - ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableErrorprone classes
@@ -43,7 +43,7 @@ matrix:
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
     - jdk: openjdk15
       env:
-        - GUAVA=30.1.1-jre # newest supported Guava version
+        - GUAVA=31.0.1-jre # newest supported Guava version
 branches:
   only:
     - master
