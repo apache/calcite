@@ -26,22 +26,20 @@ limitations under the License.
 
 # Upcoming talks
 
-## Morel, a functional query language (Julian Hyde)
-
-At [Strange Loop 2021](https://thestrangeloop.com/2021/morel-a-functional-query-language.html), St. Louis, Missouri, September 30, 2021.
+None scheduled.
 
 # Project Members
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endunless %}{% endfor %}
 
 Emeritus members
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endif %}{% endfor %}
 
 # Mailing Lists
@@ -88,6 +86,12 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## Morel, a functional query language (Julian Hyde)
+
+At [Strange Loop 2021](https://thestrangeloop.com/2021/morel-a-functional-query-language.html),
+St. Louis, Missouri, September 30, 2021;
+[[slides](https://www.slideshare.net/julianhyde/morel-a-functional-query-language)].
 
 ## Building modern SQL query optimizers with Apache Calcite
 
