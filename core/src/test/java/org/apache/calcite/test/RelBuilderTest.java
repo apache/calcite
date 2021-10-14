@@ -2559,7 +2559,31 @@ public class RelBuilderTest {
     assertThat(f2.apply(createBuilder()), hasTree(expected));
   }
 
-  @Test void testScalarSubQuery() {
+  @Test void testUnique() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM dept
+    //   WHERE UNIQUE (SELECT deptno FROM emp WHERE job = 'MANAGER')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("DEPT")
+            .filter(
+                b.unique(b2 ->
+                    b2.scan("EMP")
+                        .filter(
+                            b2.equals(b2.field("JOB"),
+                                b2.literal("MANAGER")))
+                        .build()))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[UNIQUE({\n"
+        + "LogicalFilter(condition=[=($2, 'MANAGER')])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testScalarQuery() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -2570,7 +2594,7 @@ public class RelBuilderTest {
         b.scan("EMP")
             .filter(
                 b.greaterThan(b.field("SAL"),
-                    b.scalar(b2 ->
+                    b.scalarQuery(b2 ->
                         b2.scan("EMP")
                             .aggregate(b2.groupKey(),
                                 b2.avg(b2.field("SAL")))

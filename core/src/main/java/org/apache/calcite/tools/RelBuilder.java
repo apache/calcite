@@ -873,6 +873,34 @@ public class RelBuilder {
     return RexSubQuery.exists(rel);
   }
 
+  /** Creates a UNIQUE predicate.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Depts")
+   *     .filter(
+   *         b.exists(b2 ->
+   *             b2.scan("Emps")
+   *                 .filter(
+   *                     b2.eq(b2.field("job"), b2.literal("Manager")))
+   *                 .project(b2.field("deptno")
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Depts
+   * WHERE UNIQUE (SELECT deptno FROM Emps WHERE job = 'Manager')
+   * }</pre> */
+  @Experimental
+  public RexSubQuery unique(Function<RelBuilder, RelNode> f) {
+    final RelNode rel = f.apply(this);
+    return RexSubQuery.unique(rel);
+  }
+
   /** Creates a scalar sub-query.
    *
    * <p>For example,
@@ -881,7 +909,7 @@ public class RelBuilder {
    * b.scan("Depts")
    *     .project(
    *         b.field("deptno")
-   *         b.scalar(b2 ->
+   *         b.scalarQuery(b2 ->
    *             b2.scan("Emps")
    *                 .aggregate(
    *                     b2.eq(b2.field("job"), b2.literal("Manager")))
@@ -895,7 +923,7 @@ public class RelBuilder {
    * FROM Depts
    * }</pre> */
   @Experimental
-  public RexSubQuery scalar(Function<RelBuilder, RelNode> f) {
+  public RexSubQuery scalarQuery(Function<RelBuilder, RelNode> f) {
     return RexSubQuery.scalar(f.apply(this));
   }
 
