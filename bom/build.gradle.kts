@@ -147,7 +147,10 @@ dependencies {
         apiv("org.postgresql:postgresql")
         apiv("org.scala-lang:scala-library")
         apiv("org.slf4j:slf4j-api", "slf4j")
-        apiv("org.slf4j:slf4j-log4j12", "slf4j")
+        // TODO: https://issues.apache.org/jira/browse/CALCITE-4862
+        // Eventually we should get rid of slf4j-log4j12 dependency but currently it is not possible
+        // since certain modules (Pig, Piglet) have dependencies using directly Log4j 1.x APIs
+        runtimev("org.slf4j:slf4j-log4j12", "slf4j")
         apiv("org.testcontainers:testcontainers")
         apiv("redis.clients:jedis")
         apiv("sqlline:sqlline")

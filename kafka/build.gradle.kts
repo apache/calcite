@@ -23,4 +23,5 @@ dependencies {
     implementation("com.google.guava:guava")
 
     testImplementation(project(":testkit"))
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }

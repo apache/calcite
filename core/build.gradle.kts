@@ -53,7 +53,10 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
-    implementation("com.google.uzaygezen:uzaygezen-core")
+    implementation("com.google.uzaygezen:uzaygezen-core") {
+        exclude("log4j", "log4j").because("conflicts with log4j-slf4j-impl which uses log4j2 and" +
+                " also leaks transitively to projects depending on calcite-core")
+    }
     implementation("com.jayway.jsonpath:json-path")
     implementation("com.yahoo.datasketches:sketches-core")
     implementation("commons-codec:commons-codec")
@@ -86,7 +89,7 @@ dependencies {
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
 tasks.jar {

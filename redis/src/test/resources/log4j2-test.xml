@@ -15,18 +15,21 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<Configuration status="WARN">
+<Configuration>
   <Appenders>
-    <Console name="console" target="SYSTEM_OUT">
+    <Console name="A1" target="SYSTEM_OUT">
       <PatternLayout
-          pattern="[%-5level] %d{HH:mm:ss.SSS} %logger{36}.%M() - %msg%n" />
+          pattern="%logger %d [%t] %-5p - %m%n"/>
     </Console>
   </Appenders>
 
   <Loggers>
-    <Logger name="org.elasticsearch" level="WARN"/>
-    <Root level="INFO" additivity="false">
-      <AppenderRef ref="console" />
+    <Root level="INFO">
+      <AppenderRef ref="A1"/>
     </Root>
+    <!-- Silence messages coming from testcontainers-->
+    <logger name="org.testcontainers" level="WARN"/>
+    <!-- Change level to debug problems in Redis adapter-->
+    <logger name="org.apache.calcite.plan.RelOptPlanner" level="WARN"/>
   </Loggers>
 </Configuration>

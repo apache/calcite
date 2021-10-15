@@ -33,7 +33,7 @@ dependencies {
     testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.hsqldb:hsqldb")
     testImplementation("org.incava:java-diff")
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
 val fmppMain by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {

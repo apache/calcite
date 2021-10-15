@@ -31,7 +31,7 @@ dependencies {
     implementation("net.sf.opencsv:opencsv")
 
     testImplementation(project(":testkit"))
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")

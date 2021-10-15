@@ -15,21 +15,20 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
+<Configuration>
+  <Appenders>
+    <Console name="A1" target="SYSTEM_OUT">
+      <PatternLayout
+          pattern="%logger %d [%t] %-5p - %m%n"/>
+    </Console>
+  </Appenders>
 
-<!-- Cassandra Unit uses logback API for logging -->
-<configuration>
+  <Loggers>
+    <Root level="INFO">
+      <AppenderRef ref="A1"/>
+    </Root>
 
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
-    </encoder>
-  </appender>
-
-  <root level="error">
-    <appender-ref ref="STDOUT" />
-  </root>
-
-  <!-- Avoid showing connection errors on cassandra shutdown -->
-  <logger name="com.datastax.driver.core.ControlConnection" level="off" additivity="false"/>
-
-</configuration>
+    <logger name="hsqldb.db" level="WARN"/>
+    <logger name="org.apache.calcite.plan.RexImplicationChecker" level="ERROR"/>
+  </Loggers>
+</Configuration>
