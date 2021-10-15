@@ -35,13 +35,23 @@ dependencies {
     testImplementation("org.apache.cassandra:cassandra-all") {
         exclude("org.slf4j", "log4j-over-slf4j")
             .because("log4j is already present in the classpath")
+        exclude("ch.qos.logback", "logback-core")
+            .because("conflicts with log4j-slf4j-impl")
+        exclude("ch.qos.logback", "logback-classic")
+            .because("conflicts with log4j-slf4j-impl")
     }
-    testImplementation("org.cassandraunit:cassandra-unit")
+    testImplementation("org.cassandraunit:cassandra-unit") {
+        exclude("ch.qos.logback", "logback-core")
+            .because("conflicts with log4j-slf4j-impl")
+        exclude("ch.qos.logback", "logback-classic")
+            .because("conflicts with log4j-slf4j-impl")
+    }
     testRuntimeOnly("net.java.dev.jna:jna")
 
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
 fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {

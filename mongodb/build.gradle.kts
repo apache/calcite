@@ -27,4 +27,5 @@ dependencies {
     testImplementation("de.bwaldvogel:mongo-java-server-core")
     testImplementation("de.bwaldvogel:mongo-java-server-memory-backend")
     testImplementation("net.hydromatic:foodmart-data-json")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
