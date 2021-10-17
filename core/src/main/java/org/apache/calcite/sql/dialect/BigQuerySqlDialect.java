@@ -956,7 +956,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame trunc = writer.startFunCall("DATE_TRUNC");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
-      writer.sep(SqlLibraryOperators.removeSingleQuotes(call.operand(1)));
+      writer.sep(removeSingleQuotes(call.operand(1)));
       writer.endFunCall(trunc);
       break;
     case "HASHBUCKET":
@@ -1400,5 +1400,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+  }
+
+  private static String removeSingleQuotes(SqlNode sqlNode) {
+    return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
+        "");
   }
 }
