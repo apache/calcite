@@ -9170,4 +9170,16 @@ class RelToSqlConverterTest {
         .withHive2().ok(expectedHive)
         .withBigQuery().ok(expectedBigQuery);
   }
+
+  @Test public void testEscapeFunction() {
+    String query =
+        "SELECT '\\\\PWFSNFS01EFS\\imagenowcifs\\debitmemo' AS DM_SENDFILE_PATH1";
+    final String expectedBQSql =
+        "SELECT '\\\\\\\\PWFSNFS01EFS\\\\imagenowcifs\\\\debitmemo' AS "
+            + "DM_SENDFILE_PATH1";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
 }
