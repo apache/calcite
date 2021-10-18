@@ -79,9 +79,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
         writer.startList(
             SqlWriter.FrameTypeEnum.AS);
     if (call.operand(0) instanceof SqlCharStringLiteral) {
-      String modifiedString = call.operand(0).toString().replace("\\", "\\\\");
-      SqlNode literalValue = SqlLiteral.createCharString(
-          requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
+      SqlNode literalValue = handleBackSlashes(call.operand(0));
       literalValue.unparse(writer, leftPrec, rightPrec);
     } else {
       call.operand(0).unparse(writer, leftPrec, getLeftPrec());
@@ -103,6 +101,14 @@ public class SqlAsOperator extends SqlSpecialOperator {
       writer.endList(frame1);
     }
     writer.endList(frame);
+  }
+  private SqlNode handleBackSlashes(SqlNode operand) {
+    if (operand.toString().length() < 3 || !operand.toString().substring(1, 3).equals("\\\\")) {
+      return operand;
+    }
+    String modifiedString = operand.toString().replaceAll("\\\\", "\\\\\\\\");
+    return SqlLiteral.createCharString(
+        requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
   }
   public @Nullable String unquoteStringLiteral(@Nullable String val) {
     if (val != null
