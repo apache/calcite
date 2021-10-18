@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<connection-fields>
+  <field name="server" label="Server" value-type="string" category="endpoint" >
+    <validation-rule reg-exp="^(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$"/>
+  </field>
+
+  <field name="port" label="Port" value-type="string" category="endpoint" default-value="5432" />
+
+  <field name="authentication" label="Authentication" category="authentication" value-type="string" editable="false" default-value="auth-user-pass" />
+
+  <field name="username" label="Username" value-type="string" category="authentication" />
+
+  <field name="password" label="Password" value-type="string" category="authentication" secure="true" />
+
+  <field name="sslmode" label="Require SSL" value-type="boolean" category="general" default-value="" >
+    <boolean-options>
+      <false-value value="" />
+      <true-value value="require" />
+    </boolean-options>
+  </field>
+
+</connection-fields>
