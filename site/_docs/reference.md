@@ -2054,7 +2054,7 @@ completeness. Session is applied per product.
 **Note**: The `Tumble`, `Hop` and `Session` window table functions assign
 each row in the original table to a window. The output table has all
 the same columns as the original table plus two additional columns `window_start`
-and `window_end`, which repesent the start and end of the window interval, respectively.
+and `window_end`, which represent the start and end of the window interval, respectively.
 
 ### Grouped window functions
 **warning**: grouped window functions are deprecated.
@@ -2674,7 +2674,7 @@ Result
 SQL
 
 {% highlight sql %}
-ELECT JSON_KEYS(v) AS c1,
+SELECT JSON_KEYS(v) AS c1,
   JSON_KEYS(v, 'lax $.a') AS c2,
   JSON_KEYS(v, 'lax $.b') AS c2,
   JSON_KEYS(v, 'strict $.a[0]') AS c3,
