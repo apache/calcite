@@ -40,7 +40,6 @@ import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -470,8 +469,6 @@ public class AggregateJoinTransposeRule
     }
 
     /** Whether to push down aggregate functions, default false. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default
     default boolean isAllowFunctions() {
       return false;

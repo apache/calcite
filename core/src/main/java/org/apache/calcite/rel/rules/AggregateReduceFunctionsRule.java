@@ -34,7 +34,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -850,7 +849,6 @@ public class AggregateReduceFunctionsRule
       return new AggregateReduceFunctionsRule(this);
     }
 
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Nullable Set<SqlKind> functionsToReduce();
 
     /** Sets {@link #functionsToReduce}. */

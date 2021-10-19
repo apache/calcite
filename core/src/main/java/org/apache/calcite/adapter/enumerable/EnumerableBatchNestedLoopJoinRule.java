@@ -31,7 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.immutables.value.Value;
@@ -166,8 +165,6 @@ public class EnumerableBatchNestedLoopJoinRule
      *
      * <p>Warning: if the batch size is around or bigger than 1000 there
      * can be an error because the generated code exceeds the size limit. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(100)
     @Value.Default default int batchSize() {
       return 100;
     }

@@ -24,7 +24,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.immutables.value.Value;
 
@@ -119,8 +118,6 @@ public class SortUnionTransposeRule
 
     /** Whether to match a Sort whose {@link Sort#fetch} is null. Generally
      * this only makes sense if the Union preserves order (and merges). */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean matchNullFetch() {
       return false;
     }

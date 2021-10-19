@@ -40,7 +40,6 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -815,7 +814,6 @@ class VolcanoPlannerTest {
         return new SubsetRule(this);
       }
 
-      @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = false)
       List<String> buf();
 
       /** Sets {@link #buf()}. */
@@ -861,7 +859,6 @@ class VolcanoPlannerTest {
         return new PhysSingleSubsetRule(this);
       }
 
-      @SuppressWarnings("deprecation") @ImmutableBeans.Property(makeImmutable = false)
       List<String> buf();
 
       /** Sets {@link #buf()}. */

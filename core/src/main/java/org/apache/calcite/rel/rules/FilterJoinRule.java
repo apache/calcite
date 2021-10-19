@@ -31,7 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -308,10 +307,6 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       perform(call, null, join);
     }
 
-    /** Deprecated, use {@link JoinConditionPushRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends JoinConditionPushRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface JoinConditionPushRuleConfig extends FilterJoinRule.Config {
@@ -371,10 +366,6 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       perform(call, filter, join);
     }
 
-    /** Deprecated, use {@link FilterIntoJoinRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends FilterIntoJoinRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface FilterIntoJoinRuleConfig extends FilterJoinRule.Config {
@@ -404,8 +395,6 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    */
   public interface Config extends RelRule.Config {
     /** Whether to try to strengthen join-type, default false. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isSmart() {
       return false;
     }
@@ -416,7 +405,6 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     /** Predicate that returns whether a filter is valid in the ON clause of a
      * join for this particular kind of join. If not, Calcite will push it back to
      * above the join. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Parameter
     Predicate getPredicate();
 

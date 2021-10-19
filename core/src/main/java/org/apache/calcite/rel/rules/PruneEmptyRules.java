@@ -344,10 +344,6 @@ public abstract class PruneEmptyRules {
       call.transformTo(emptyValues);
     }
 
-    /** Deprecated, use {@link RemoveEmptySingleRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends RemoveEmptySingleRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface RemoveEmptySingleRuleConfig extends PruneEmptyRule.Config {

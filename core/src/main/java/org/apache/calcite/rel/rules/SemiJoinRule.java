@@ -156,10 +156,6 @@ public abstract class SemiJoinRule
       perform(call, project, join, left, aggregate);
     }
 
-    /** Deprecated, use {@link ProjectToSemiJoinRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends ProjectToSemiJoinRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface ProjectToSemiJoinRuleConfig extends SemiJoinRule.Config {
@@ -212,10 +208,6 @@ public abstract class SemiJoinRule
       final Aggregate aggregate = call.rel(2);
       perform(call, null, join, left, aggregate);
     }
-
-    /** Deprecated, use {@link JoinToSemiJoinRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends JoinToSemiJoinRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable

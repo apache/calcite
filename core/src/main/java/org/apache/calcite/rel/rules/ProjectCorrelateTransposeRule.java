@@ -33,7 +33,6 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.immutables.value.Value;
@@ -219,7 +218,6 @@ public class ProjectCorrelateTransposeRule
     }
 
     /** Defines when an expression should not be pushed. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     PushProjector.ExprCondition preserveExprCondition();
 
     /** Sets {@link #preserveExprCondition()}. */

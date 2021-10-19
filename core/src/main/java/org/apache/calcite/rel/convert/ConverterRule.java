@@ -24,7 +24,6 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -191,19 +190,16 @@ public abstract class ConverterRule
           }
         }).build();
 
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     RelTrait inTrait();
 
     /** Sets {@link #inTrait}. */
     Config withInTrait(RelTrait trait);
 
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     RelTrait outTrait();
 
     /** Sets {@link #outTrait}. */
     Config withOutTrait(RelTrait trait);
 
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     Function<Config, ConverterRule> ruleFactory();
 
     /** Sets {@link #outTrait}. */

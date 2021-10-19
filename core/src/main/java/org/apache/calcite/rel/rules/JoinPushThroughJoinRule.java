@@ -31,7 +31,6 @@ import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -348,8 +347,6 @@ public class JoinPushThroughJoinRule
     }
 
     /** Whether to push on the right. If false, push to the left. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isRight() {
       return false;
     }

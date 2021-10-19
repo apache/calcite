@@ -23,7 +23,6 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -124,8 +123,6 @@ public class CoerceInputsRule
     }
 
     /** Whether to coerce names. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isCoerceNames() {
       return false;
     }
@@ -134,7 +131,6 @@ public class CoerceInputsRule
     Config withCoerceNames(boolean coerceNames);
 
     /** Class of {@link RelNode} to coerce to. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     Class<? extends RelNode> consumerRelClass();
 
     /** Sets {@link #consumerRelClass()}. */

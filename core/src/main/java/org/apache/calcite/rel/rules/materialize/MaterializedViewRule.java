@@ -48,7 +48,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -1393,7 +1392,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
   public interface Config extends RelRule.Config {
     /** Whether to generate rewritings containing union if the query results
      * are contained within the view results. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     boolean generateUnionRewriting();
 
     /** Sets {@link #generateUnionRewriting()}. */
@@ -1401,7 +1399,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** If we generate union rewriting, we might want to pull up projections
      * from the query itself to maximize rewriting opportunities. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Nullable HepProgram unionRewritingPullProgram();
 
     /** Sets {@link #unionRewritingPullProgram()}. */
@@ -1409,7 +1406,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** Whether we should create the rewriting in the minimal subtree of plan
      * operators. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     boolean fastBailOut();
 
     /** Sets {@link #fastBailOut()}. */

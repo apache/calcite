@@ -19,14 +19,12 @@ package org.apache.calcite.plan;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -128,32 +126,14 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
   }
 
   /** Rule configuration. */
-  @SuppressWarnings("deprecation")
   public interface Config {
-    /**
-     * Empty configuration.
-     *
-     * This is based on ImmutableBeans and dynamic proxies and has been replaced
-     * by the use of the Immutables annotation processor to pre-generate values.
-     *
-     * This field will be removed in a subsequent release.
-     * */
-    @Deprecated
-    RelRule.Config EMPTY = ImmutableBeans.create(Config.class)
-        .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
-        .withOperandSupplier(b -> {
-          throw new IllegalArgumentException("Rules must have at least one "
-              + "operand. Call Config.withOperandSupplier to specify them.");
-        });
 
     /** Creates a rule that uses this configuration. Sub-class must override. */
     RelOptRule toRule();
 
     /** Casts this configuration to another type, usually a sub-class. */
     default <T extends Object> T as(Class<T> class_) {
-      if (Proxy.isProxyClass(this.getClass())) {
-        return ImmutableBeans.copy(class_, this);
-      } else if (class_.isAssignableFrom(this.getClass())) {
+      if (class_.isAssignableFrom(this.getClass())) {
         return class_.cast(this);
       } else {
         throw new UnsupportedOperationException(
@@ -166,7 +146,6 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
 
     /** The factory that is used to create a
      * {@link org.apache.calcite.tools.RelBuilder} during rule invocations. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelBuilderFactory relBuilderFactory() {
       return RelFactories.LOGICAL_BUILDER;
     }
@@ -176,14 +155,12 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
 
     /** Description of the rule instance. */
     // CALCITE-4831: remove the second nullable annotation once immutables/#1261 is fixed
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @javax.annotation.Nullable @Nullable String description();
 
     /** Sets {@link #description()}. */
     Config withDescription(@Nullable String description);
 
     /** Creates the operands for the rule instance. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default OperandTransform operandSupplier() {
       return s -> {
         throw new IllegalArgumentException("Rules must have at least one "

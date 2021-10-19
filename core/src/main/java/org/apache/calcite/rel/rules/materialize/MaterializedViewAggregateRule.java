@@ -52,7 +52,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mapping;
@@ -917,7 +916,6 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
   public interface Config extends MaterializedViewRule.Config {
 
     /** Instance of rule to push filter through project. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule filterProjectTransposeRule() {
       return CoreRules.FILTER_PROJECT_TRANSPOSE.config
           .withRelBuilderFactory(relBuilderFactory())
@@ -934,7 +932,6 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     Config withFilterProjectTransposeRule(RelOptRule rule);
 
     /** Instance of rule to push filter through aggregate. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule filterAggregateTransposeRule() {
       return CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
           .withRelBuilderFactory(relBuilderFactory())
@@ -947,7 +944,6 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     Config withFilterAggregateTransposeRule(RelOptRule rule);
 
     /** Instance of rule to pull up constants into aggregate. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule aggregateProjectPullUpConstantsRule() {
       return AggregateProjectPullUpConstantsRule.Config.DEFAULT
           .withRelBuilderFactory(relBuilderFactory())
@@ -961,7 +957,6 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     Config withAggregateProjectPullUpConstantsRule(RelOptRule rule);
 
     /** Instance of rule to merge project operators. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default RelOptRule projectMergeRule() {
       return CoreRules.PROJECT_MERGE.config
           .withRelBuilderFactory(relBuilderFactory())

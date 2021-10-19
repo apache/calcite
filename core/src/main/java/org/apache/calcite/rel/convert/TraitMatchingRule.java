@@ -24,7 +24,6 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -98,7 +97,6 @@ public class TraitMatchingRule extends RelRule<TraitMatchingRule.Config> {
 
     /** Returns the rule to be restricted; rule must take a single
      * operand expecting a single input. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     ConverterRule converterRule();
 
     /** Sets {@link #converterRule()}. */

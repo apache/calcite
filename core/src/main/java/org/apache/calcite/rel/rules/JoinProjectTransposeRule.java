@@ -39,7 +39,6 @@ import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -428,8 +427,6 @@ public class JoinProjectTransposeRule
     }
 
     /** Whether to include outer joins, default false. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isIncludeOuter() {
       return false;
     }

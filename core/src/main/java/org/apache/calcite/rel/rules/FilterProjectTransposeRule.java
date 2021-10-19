@@ -31,7 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.immutables.value.Value;
 
@@ -221,8 +220,6 @@ public class FilterProjectTransposeRule
 
     /** Whether to create a {@link Filter} of the same convention as the
      * matched Filter. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isCopyFilter() {
       return true;
     }
@@ -232,8 +229,6 @@ public class FilterProjectTransposeRule
 
     /** Whether to create a {@link Project} of the same convention as the
      * matched Project. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isCopyProject() {
       return true;
     }

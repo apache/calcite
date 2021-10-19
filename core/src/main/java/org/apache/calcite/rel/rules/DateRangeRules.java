@@ -95,7 +95,7 @@ public abstract class DateRangeRules {
    * {@code FLOOR} and {@code CEIL} functions to date ranges (typically using
    * the {@code BETWEEN} operator). */
   public static final RelOptRule FILTER_INSTANCE =
-      FilterDateRangeRule.Config.DEFAULT
+      FilterDateRangeRule.FilterDateRangeRuleConfig.DEFAULT
           .as(FilterDateRangeRule.FilterDateRangeRuleConfig.class)
           .toRule();
 
@@ -214,10 +214,6 @@ public abstract class DateRangeRules {
           .filter(condition);
       call.transformTo(relBuilder.build());
     }
-
-    /** Deprecated, use {@link FilterDateRangeRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends FilterDateRangeRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable
