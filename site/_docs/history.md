@@ -187,7 +187,7 @@ changes needed to be made:
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4774">CALCITE-4774</a>]
   Materialized view recognition fails for equivalent predicates
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4742">CALCITE-4742</a>]
-  Implement `SOME &lt;&gt;` sub-query
+  Implement `SOME <>` sub-query
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4726">CALCITE-4726</a>]
   Support aggregate calls with a `FILTER` clause in
   `AggregateExpandWithinDistinctRule`
