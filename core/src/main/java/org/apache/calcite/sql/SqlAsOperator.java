@@ -31,8 +31,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -110,14 +108,14 @@ public class SqlAsOperator extends SqlSpecialOperator {
     return SqlLiteral.createCharString(
         requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
   }
-  public @Nullable String unquoteStringLiteral(@Nullable String val) {
+  public String unquoteStringLiteral(String val) {
     if (val != null
         && val.startsWith("'")
         && val.endsWith("'")) {
       final String stripped =
-          val.substring("'".length(),
-              val.length() - "'".length());
-      return stripped.replace("\\'", "'");
+          val.substring(1,
+              val.length() - 1);
+      return stripped.replace("\\'", "");
     }
     return val;
   }
