@@ -6869,7 +6869,7 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionWithColumns() {
     String query = "SELECT TO_NUMBER(\"first_name\", '000') FROM \"foodmart\""
         + ".\"employee\"";
-    final String expectedBigQuery = "SELECT CAST(first_name AS INT64)n"
+    final String expectedBigQuery = "SELECT CAST(first_name AS INT64)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
