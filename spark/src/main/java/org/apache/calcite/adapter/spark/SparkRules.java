@@ -185,7 +185,7 @@ public abstract class SparkRules {
     SparkValues(
         RelOptCluster cluster,
         RelDataType rowType,
-        ImmutableList<ImmutableList<RexLiteral>> tuples,
+        List<? extends List<RexLiteral>> tuples,
         RelTraitSet traitSet) {
       super(cluster, rowType, tuples, traitSet);
     }
