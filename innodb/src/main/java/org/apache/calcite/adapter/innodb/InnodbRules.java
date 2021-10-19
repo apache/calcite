@@ -67,18 +67,18 @@ public class InnodbRules {
   /** Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to
    * a {@link InnodbFilter}. */
   public static final InnodbFilterRule FILTER =
-      InnodbFilterRule.Config.DEFAULT.toRule();
+      InnodbFilterRule.InnodbFilterRuleConfig.DEFAULT.toRule();
 
   /** Rule to convert a {@link org.apache.calcite.rel.core.Sort} with a
    * {@link org.apache.calcite.rel.core.Filter} to a
    * {@link InnodbSort}. */
   public static final InnodbSortFilterRule SORT_FILTER =
-      InnodbSortFilterRule.Config.DEFAULT.toRule();
+      InnodbSortFilterRule.InnodbSortFilterRuleConfig.DEFAULT.toRule();
 
   /** Rule to convert a {@link org.apache.calcite.rel.core.Sort} to a
    * {@link InnodbSort} based on InnoDB table clustering index. */
   public static final InnodbSortTableScanRule SORT_SCAN =
-      InnodbSortTableScanRule.Config.DEFAULT.toRule();
+      InnodbSortTableScanRule.InnodbSortTableScanRuleConfig.DEFAULT.toRule();
 
   public static final List<RelOptRule> RULES =
       ImmutableList.of(PROJECT,
@@ -203,10 +203,6 @@ public class InnodbRules {
       return filter;
     }
 
-    /** Deprecated, use {@link InnodbFilterRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends InnodbFilterRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface InnodbFilterRuleConfig extends RelRule.Config {
@@ -317,10 +313,6 @@ public class InnodbRules {
       return collationsCompatible(sort.getCollation(), filter.getImplicitCollation());
     }
 
-    /** Deprecated, use {@link InnodbSortFilterRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends InnodbSortFilterRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface InnodbSortFilterRuleConfig extends RelRule.Config {
@@ -360,10 +352,6 @@ public class InnodbRules {
       final InnodbTableScan tableScan = call.rel(2);
       return collationsCompatible(sort.getCollation(), tableScan.getImplicitCollation());
     }
-
-    /** Deprecated, use {@link InnodbSortTableScanRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends InnodbSortTableScanRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable(singleton = false)

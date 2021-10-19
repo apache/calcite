@@ -63,7 +63,6 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -255,10 +254,6 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       }
     }
 
-    /** Deprecated, use {@link FilterReduceExpressionsRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends FilterReduceExpressionsRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface FilterReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
@@ -402,10 +397,6 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       call.getPlanner().prune(join);
     }
 
-    /** Deprecated, use {@link JoinReduceExpressionsRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends JoinReduceExpressionsRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface JoinReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
@@ -534,10 +525,6 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       return call.builder().push(input).empty().build();
     }
 
-    /** Deprecated, use {@link CalcReduceExpressionsRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends CalcReduceExpressionsRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface CalcReduceExpressionsRuleConfig extends ReduceExpressionsRule.Config {
@@ -630,10 +617,6 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
         call.getPlanner().prune(window);
       }
     }
-
-    /** Deprecated, use {@link WindowReduceExpressionsRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends WindowReduceExpressionsRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable
@@ -1196,8 +1179,6 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
 
     /** Whether to add a CAST when a nullable expression
      * reduces to a NOT NULL literal. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean matchNullability() {
       return false;
     }

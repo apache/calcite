@@ -90,10 +90,6 @@ public class StreamRules {
       call.transformTo(newProject);
     }
 
-    /** Deprecated, use {@link DeltaProjectTransposeRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaProjectTransposeRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface DeltaProjectTransposeRuleConfig extends RelRule.Config {
@@ -132,10 +128,6 @@ public class StreamRules {
           LogicalFilter.create(newDelta, filter.getCondition());
       call.transformTo(newFilter);
     }
-
-    /** Deprecated, use {@link DeltaFilterTransposeRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaFilterTransposeRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable
@@ -178,10 +170,6 @@ public class StreamRules {
       call.transformTo(newAggregate);
     }
 
-    /** Deprecated, use {@link DeltaAggregateTransposeRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaAggregateTransposeRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface DeltaAggregateTransposeRuleConfig extends RelRule.Config {
@@ -223,10 +211,6 @@ public class StreamRules {
       call.transformTo(newSort);
     }
 
-    /** Deprecated, use {@link DeltaSortTransposeRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaSortTransposeRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface DeltaSortTransposeRuleConfig extends RelRule.Config {
@@ -263,10 +247,6 @@ public class StreamRules {
       final LogicalUnion newUnion = LogicalUnion.create(newInputs, union.all);
       call.transformTo(newUnion);
     }
-
-    /** Deprecated, use {@link DeltaUnionTransposeRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaUnionTransposeRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable
@@ -317,10 +297,6 @@ public class StreamRules {
       }
     }
 
-    /** Deprecated, use {@link DeltaTableScanRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaTableScanRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface DeltaTableScanRuleConfig extends RelRule.Config {
@@ -359,10 +335,6 @@ public class StreamRules {
         call.transformTo(builder.values(delta.getRowType()).build());
       }
     }
-
-    /** Deprecated, use {@link DeltaTableScanToEmptyRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaTableScanToEmptyRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable
@@ -436,10 +408,6 @@ public class StreamRules {
       final LogicalUnion newNode = LogicalUnion.create(inputsToUnion, true);
       call.transformTo(newNode);
     }
-
-    /** Deprecated, use {@link DeltaJoinTransposeRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DeltaJoinTransposeRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable

@@ -227,10 +227,6 @@ public class GeodeRules {
       call.transformTo(geodeSort);
     }
 
-    /** Deprecated, use {@link GeodeSortLimitRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends GeodeSortLimitRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface GeodeSortLimitRuleConfig extends RelRule.Config {
@@ -385,10 +381,6 @@ public class GeodeRules {
           convert(filter.getInput(), GeodeRel.CONVENTION),
           filter.getCondition());
     }
-
-    /** Deprecated, use {@link GeodeFilterRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends GeodeFilterRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable(singleton = false)

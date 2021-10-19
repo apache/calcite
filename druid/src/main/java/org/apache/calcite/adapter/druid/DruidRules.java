@@ -78,13 +78,16 @@ public class DruidRules {
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
-  public static final DruidFilterRule FILTER = DruidFilterRule.Config.DEFAULT.toRule();
-  public static final DruidProjectRule PROJECT = DruidProjectRule.Config.DEFAULT.toRule();
-  public static final DruidAggregateRule AGGREGATE = DruidAggregateRule.Config.DEFAULT.toRule();
+  public static final DruidFilterRule FILTER =
+      DruidFilterRule.DruidFilterRuleConfig.DEFAULT.toRule();
+  public static final DruidProjectRule PROJECT =
+      DruidProjectRule.DruidProjectRuleConfig.DEFAULT.toRule();
+  public static final DruidAggregateRule AGGREGATE =
+      DruidAggregateRule.DruidAggregateRuleConfig.DEFAULT.toRule();
   public static final DruidAggregateProjectRule AGGREGATE_PROJECT =
-      DruidAggregateProjectRule.Config.DEFAULT
-      .toRule();
-  public static final DruidSortRule SORT = DruidSortRule.Config.DEFAULT.toRule();
+      DruidAggregateProjectRule.DruidAggregateProjectRuleConfig.DEFAULT.toRule();
+  public static final DruidSortRule SORT =
+      DruidSortRule.DruidSortRuleConfig.DEFAULT.toRule();
 
   /** Rule to push an {@link org.apache.calcite.rel.core.Sort} through a
    * {@link org.apache.calcite.rel.core.Project}. Useful to transform
@@ -134,7 +137,7 @@ public class DruidRules {
           .toRule();
 
   public static final DruidPostAggregationProjectRule POST_AGGREGATION_PROJECT =
-      DruidPostAggregationProjectRule.Config.DEFAULT.toRule();
+      DruidPostAggregationProjectRule.DruidPostAggregationProjectRuleConfig.DEFAULT.toRule();
 
   /** Rule to extract a {@link org.apache.calcite.rel.core.Project} from
    * {@link org.apache.calcite.rel.core.Aggregate} on top of
@@ -147,7 +150,7 @@ public class DruidRules {
           .toRule();
 
   public static final DruidHavingFilterRule DRUID_HAVING_FILTER_RULE =
-      DruidHavingFilterRule.Config.DEFAULT
+      DruidHavingFilterRule.DruidHavingFilterRuleConfig.DEFAULT
       .toRule();
 
   public static final List<RelOptRule> RULES =
@@ -280,10 +283,6 @@ public class DruidRules {
       return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
     }
 
-    /** Deprecated, use {@link DruidFilterRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DruidFilterRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface DruidFilterRuleConfig extends RelRule.Config {
@@ -329,10 +328,6 @@ public class DruidRules {
         call.transformTo(newDruidQuery);
       }
     }
-
-    /** Deprecated, use {@link DruidHavingFilterRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DruidHavingFilterRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
@@ -433,10 +428,6 @@ public class DruidRules {
       return Pair.of(aboveNodes, belowNodes);
     }
 
-    /** Deprecated, use {@link DruidProjectRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DruidProjectRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface DruidProjectRuleConfig extends RelRule.Config {
@@ -500,10 +491,6 @@ public class DruidRules {
       }
     }
 
-    /** Deprecated, use {@link DruidPostAggregationProjectRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DruidPostAggregationProjectRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface DruidPostAggregationProjectRuleConfig extends RelRule.Config {
@@ -559,10 +546,6 @@ public class DruidRules {
           .copy(aggregate.getTraitSet(), ImmutableList.of(query.getTopNode()));
       call.transformTo(DruidQuery.extendQuery(query, newAggregate));
     }
-
-    /** Deprecated, use {@link DruidAggregateRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DruidAggregateRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
@@ -807,10 +790,6 @@ public class DruidRules {
       return refs;
     }
 
-    /** Deprecated, use {@link DruidAggregateProjectRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DruidAggregateProjectRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable(singleton = false)
     public interface DruidAggregateProjectRuleConfig extends RelRule.Config {
@@ -860,10 +839,6 @@ public class DruidRules {
           .copy(sort.getTraitSet(), ImmutableList.of(Util.last(query.rels)));
       call.transformTo(DruidQuery.extendQuery(query, newSort));
     }
-
-    /** Deprecated, use {@link DruidSortRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends DruidSortRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable(singleton = false)

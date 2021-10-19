@@ -37,7 +37,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Optionality;
@@ -943,8 +942,6 @@ public final class AggregateExpandDistinctAggregatesRule
     }
 
     /** Whether to use GROUPING SETS, default true. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isUsingGroupingSets() {
       return true;
     }

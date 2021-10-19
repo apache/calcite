@@ -31,7 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -244,7 +243,6 @@ public class ProjectFilterTransposeRule
     }
 
     /** Expressions that should be preserved in the projection. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Default default PushProjector.ExprCondition preserveExprCondition() {
       return expr -> false;
     }
@@ -254,8 +252,6 @@ public class ProjectFilterTransposeRule
 
     /** Whether to push whole expressions from the project;
      * if false (the default), only pushes references. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isWholeProject() {
       return false;
     }
@@ -265,8 +261,6 @@ public class ProjectFilterTransposeRule
 
     /** Whether to push whole expressions from the filter;
      * if false (the default), only pushes references. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
     @Value.Default default boolean isWholeFilter() {
       return false;
     }

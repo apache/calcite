@@ -48,7 +48,6 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -235,25 +234,20 @@ public abstract class AbstractMaterializedViewTest {
       getTester().checkNoMaterialize(this);
     }
 
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Nullable SchemaSpec getDefaultSchemaSpec();
     Sql withDefaultSchemaSpec(@Nullable SchemaSpec spec);
 
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     List<Pair<String, String>> getMaterializations();
     Sql withMaterializations(Iterable<? extends Pair<String, String>> materialize);
 
     @Value.Parameter
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     String getQuery();
     Sql withQuery(String query);
 
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Nullable Function<String, Boolean> getChecker();
     Sql withChecker(@Nullable Function<String, Boolean> checker);
 
     @Value.Parameter
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     AbstractMaterializedViewTest getTester();
     Sql withTester(AbstractMaterializedViewTest tester);
   }

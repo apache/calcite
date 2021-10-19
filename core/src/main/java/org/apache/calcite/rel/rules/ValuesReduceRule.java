@@ -33,7 +33,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -287,7 +286,6 @@ public class ValuesReduceRule
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Parameter
     MatchHandler<ValuesReduceRule> matchHandler();
 

@@ -69,7 +69,6 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -280,8 +279,6 @@ class TraitPropagationTest {
         return new PhysProjRule(this);
       }
 
-      @SuppressWarnings("deprecation") @ImmutableBeans.Property
-      @ImmutableBeans.BooleanDefault(false)
       boolean subsetHack();
 
       /** Sets {@link #subsetHack()}. */

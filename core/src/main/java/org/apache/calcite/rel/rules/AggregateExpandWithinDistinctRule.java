@@ -27,7 +27,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -530,8 +529,6 @@ public class AggregateExpandWithinDistinctRule
      * {@code throwIfNotUnique} is true, the query would throw because of the
      * values [100, 120]; if false, the query would sum the distinct values
      * [100, 120, 150]. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean throwIfNotUnique() {
       return true;
     }

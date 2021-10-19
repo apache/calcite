@@ -27,7 +27,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -179,8 +178,6 @@ public class JoinAssociateRule
      * Whether to emit the new join tree if the new top or bottom join has a condition which
      * is always {@code TRUE}.
      */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
     @Value.Default default boolean isAllowAlwaysTrueCondition() {
       return true;
     }

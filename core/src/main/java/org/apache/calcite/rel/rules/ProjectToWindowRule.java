@@ -103,10 +103,6 @@ public abstract class ProjectToWindowRule
       call.transformTo(newRel);
     }
 
-    /** Deprecated, use {@link CalcToWindowRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends CalcToWindowRuleConfig { }
-
     /** Rule configuration. */
     @Value.Immutable
     public interface CalcToWindowRuleConfig extends ProjectToWindowRule.Config {
@@ -184,10 +180,6 @@ public abstract class ProjectToWindowRule
       RelNode newRel = transform.execute();
       call.transformTo(newRel);
     }
-
-    /** Deprecated, use {@link ProjectToLogicalProjectAndWindowRuleConfig} instead. **/
-    @Deprecated
-    public interface Config extends ProjectToLogicalProjectAndWindowRuleConfig { }
 
     /** Rule configuration. */
     @Value.Immutable

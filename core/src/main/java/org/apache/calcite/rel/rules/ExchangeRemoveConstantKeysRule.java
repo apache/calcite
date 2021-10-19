@@ -31,7 +31,6 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.immutables.value.Value;
 
@@ -195,7 +194,6 @@ public class ExchangeRemoveConstantKeysRule
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     @Value.Parameter
     MatchHandler<ExchangeRemoveConstantKeysRule> matchHandler();
 

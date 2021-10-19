@@ -25,7 +25,6 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.immutables.value.Value;
 
@@ -128,7 +127,6 @@ public class ProjectSetOpTransposeRule
     }
 
     /** Defines when an expression should not be pushed. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     PushProjector.ExprCondition preserveExprCondition();
 
     /** Sets {@link #preserveExprCondition()}. */

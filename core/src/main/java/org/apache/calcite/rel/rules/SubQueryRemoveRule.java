@@ -41,7 +41,6 @@ import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
@@ -890,7 +889,6 @@ public class SubQueryRemoveRule
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @SuppressWarnings("deprecation") @ImmutableBeans.Property
     MatchHandler<SubQueryRemoveRule> matchHandler();
 
     /** Sets {@link #matchHandler()}. */
