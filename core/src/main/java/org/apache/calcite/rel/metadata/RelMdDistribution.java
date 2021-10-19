@@ -39,7 +39,7 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.List;RelMdSize
+import java.util.List;
 
 /**
  * RelMdCollation supplies a default implementation of
