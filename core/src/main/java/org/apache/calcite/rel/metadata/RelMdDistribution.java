@@ -37,11 +37,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.collect.ImmutableList;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.List;
+import java.util.List;RelMdSize
 
 /**
  * RelMdCollation supplies a default implementation of
