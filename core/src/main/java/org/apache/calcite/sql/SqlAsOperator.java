@@ -73,9 +73,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
       int leftPrec,
       int rightPrec) {
     assert call.operandCount() >= 2;
-    final SqlWriter.Frame frame =
-        writer.startList(
-            SqlWriter.FrameTypeEnum.AS);
+    final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
     if (call.operand(0) instanceof SqlCharStringLiteral) {
       SqlNode literalValue = handleBackSlashes(call.operand(0));
       literalValue.unparse(writer, leftPrec, rightPrec);
@@ -100,6 +98,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     }
     writer.endList(frame);
   }
+
   private SqlNode handleBackSlashes(SqlNode operand) {
     if (operand.toString().length() < 3 || !operand.toString().substring(1, 3).equals("\\\\")) {
       return operand;
@@ -108,13 +107,10 @@ public class SqlAsOperator extends SqlSpecialOperator {
     return SqlLiteral.createCharString(
         requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
   }
+
   public String unquoteStringLiteral(String val) {
-    if (val != null
-        && val.startsWith("'")
-        && val.endsWith("'")) {
-      final String stripped =
-          val.substring(1,
-              val.length() - 1);
+    if (val != null && val.startsWith("'") && val.endsWith("'")) {
+      final String stripped = val.substring(1, val.length() - 1);
       return stripped.replace("\\'", "");
     }
     return val;
