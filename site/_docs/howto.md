@@ -727,9 +727,15 @@ Before you start:
   a fix version assigned (most likely the version we are
   just about to release)
 
-Generate list of contributors:
+Generate a list of contributors by running the following (changing the
+date literal to the date of the previous release):
 ```
-./sqlsh -o headers "select distinct author from git_commits where author_timestamp > DATE '2021-06-03' order by 1 "
+# distinct authors
+./sqlsh "select distinct author from git_commits where author_timestamp > DATE '2021-06-03' order by 1"
+# most prolific authors
+./sqlsh "select author, count(*) from git_commits where commit_timestamp > DATE '2021-06-03' group by author order by 2"
+# number of commits, distinct authors, and JIRA cases
+./sqlsh "select count(*) as c, count(distinct author) as a, count(*) filter (where message like '%CALCITE-%') as j from git_commits where commit_timestamp > DATE '2021-06-03' order by 1"
 ```
 
 Smoke-test `sqlline` with Spatial and Oracle function tables:
@@ -773,7 +779,7 @@ git clean -xn
 ./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
-./gradlew prepareVote -Prc=0 -Pasf
+./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
 #### Troubleshooting
@@ -916,7 +922,7 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
-./gradlew publishDist -Prc=0 -Pasf
+./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
 Svnpubsub will publish to the
