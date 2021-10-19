@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
