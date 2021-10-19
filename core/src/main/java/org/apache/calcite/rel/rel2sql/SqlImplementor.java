@@ -1936,15 +1936,10 @@ public abstract class SqlImplementor {
 
     private boolean hasAnalyticalFunctionUsedInGroupBy(Aggregate rel) {
       if (node instanceof SqlSelect) {
-        List<String> groupByFieldNames = rel.getRowType().getFieldNames();
         Project projectRel = (Project) rel.getInput(0);
-        for (String grp : groupByFieldNames) {
-          for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
-            if (grp.equals(projectRel.getRowType().getFieldNames().get(i))) {
-              if (isAnalyticalRex(projectRel.getChildExps().get(i))) {
-                return true;
-              }
-            }
+        for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
+          if (isAnalyticalRex(projectRel.getChildExps().get(i))) {
+            return true;
           }
         }
       }

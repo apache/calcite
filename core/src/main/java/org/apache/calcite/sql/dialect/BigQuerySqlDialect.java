@@ -952,7 +952,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(farm_fingerprint);
       break;
-
+    case "TRUNC":
+      final SqlWriter.Frame trunc = writer.startFunCall("DATE_TRUNC");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      writer.sep(removeSingleQuotes(call.operand(1)));
+      writer.endFunCall(trunc);
+      break;
     case "HASHBUCKET":
       if (!call.getOperandList().isEmpty()) {
         unparseCall(writer, call.operand(0), leftPrec, rightPrec);
@@ -1394,5 +1400,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+  }
+
+  private static String removeSingleQuotes(SqlNode sqlNode) {
+    return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
+        "");
   }
 }
