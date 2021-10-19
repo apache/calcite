@@ -92,6 +92,7 @@ Yingyu Wang,
 YuKong.
 
 #### Breaking changes
+{: #breaking-changes-in-1-28-0}
 
 In 1.28, Calcite converted the recently introduced
 [configuration system](https://issues.apache.org/jira/browse/CALCITE-3328)
