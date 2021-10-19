@@ -61,7 +61,7 @@ public abstract class Values extends AbstractRelNode {
 
   //~ Instance fields --------------------------------------------------------
 
-  public final ImmutableList<ImmutableList<RexLiteral>> tuples;
+  public final List<? extends List<RexLiteral>> tuples;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -82,7 +82,7 @@ public abstract class Values extends AbstractRelNode {
   protected Values(
       RelOptCluster cluster,
       RelDataType rowType,
-      ImmutableList<ImmutableList<RexLiteral>> tuples,
+      List<? extends List<RexLiteral>> tuples,
       RelTraitSet traits) {
     super(cluster, traits);
     this.rowType = rowType;
@@ -122,13 +122,13 @@ public abstract class Values extends AbstractRelNode {
     return !isEmpty(values);
   }
 
-  public ImmutableList<ImmutableList<RexLiteral>> getTuples(RelInput input) {
+  public List<? extends List<RexLiteral>> getTuples(RelInput input) {
     return input.getTuples("tuples");
   }
 
   /** Returns the rows of literals represented by this Values relational
    * expression. */
-  public ImmutableList<ImmutableList<RexLiteral>> getTuples() {
+  public List<? extends List<RexLiteral>> getTuples() {
     return tuples;
   }
 

@@ -265,10 +265,10 @@ public class RelJsonReader {
         return relJson.toDistribution((Map<String, Object>) getNonNull("distribution"));
       }
 
-      @Override public ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag) {
+      @Override public List<? extends List<RexLiteral>> getTuples(String tag) {
         //noinspection unchecked
         final List<List> jsonTuples = (List) getNonNull(tag);
-        final ImmutableList.Builder<ImmutableList<RexLiteral>> builder =
+        final ImmutableList.Builder<List<RexLiteral>> builder =
             ImmutableList.builder();
         for (List jsonTuple : jsonTuples) {
           builder.add(getTuple(jsonTuple));
@@ -276,7 +276,7 @@ public class RelJsonReader {
         return builder.build();
       }
 
-      public ImmutableList<RexLiteral> getTuple(List jsonTuple) {
+      public List<RexLiteral> getTuple(List jsonTuple) {
         final ImmutableList.Builder<RexLiteral> builder =
             ImmutableList.builder();
         for (Object jsonValue : jsonTuple) {

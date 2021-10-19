@@ -165,7 +165,7 @@ public class RelMdDistribution
   /** Helper method to determine a
    * {@link Values}'s distribution. */
   public static RelDistribution values(RelDataType rowType,
-      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+      List<? extends List<RexLiteral>> tuples) {
     return RelDistributions.BROADCAST_DISTRIBUTED;
   }
 

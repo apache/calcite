@@ -59,7 +59,7 @@ public class LogicalValues extends Values {
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelDataType rowType,
-      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+      List<? extends List<RexLiteral>> tuples) {
     super(cluster, rowType, tuples, traitSet);
   }
 
@@ -67,7 +67,7 @@ public class LogicalValues extends Values {
   public LogicalValues(
       RelOptCluster cluster,
       RelDataType rowType,
-      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+      List<? extends List<RexLiteral>> tuples) {
     this(cluster, cluster.traitSetOf(Convention.NONE), rowType, tuples);
   }
 
@@ -81,7 +81,7 @@ public class LogicalValues extends Values {
   /** Creates a LogicalValues. */
   public static LogicalValues create(RelOptCluster cluster,
       final RelDataType rowType,
-      final ImmutableList<ImmutableList<RexLiteral>> tuples) {
+      final List<? extends List<RexLiteral>> tuples) {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,

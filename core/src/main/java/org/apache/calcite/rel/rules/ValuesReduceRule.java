@@ -177,7 +177,7 @@ public class ValuesReduceRule
         false, true, false);
 
     int changeCount = 0;
-    final ImmutableList.Builder<ImmutableList<RexLiteral>> tuplesBuilder =
+    final ImmutableList.Builder<List<RexLiteral>> tuplesBuilder =
         ImmutableList.builder();
     for (int row = 0; row < values.getTuples().size(); ++row) {
       int i = 0;
@@ -191,7 +191,7 @@ public class ValuesReduceRule
         }
       }
 
-      final ImmutableList<RexLiteral> valuesList;
+      final List<RexLiteral> valuesList;
       if (projectExprs != null) {
         ++changeCount;
         final ImmutableList.Builder<RexLiteral> tupleBuilder =

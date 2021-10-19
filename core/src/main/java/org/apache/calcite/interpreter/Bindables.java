@@ -672,7 +672,7 @@ public class Bindables {
    * in bindable calling convention. */
   public static class BindableValues extends Values implements BindableRel {
     BindableValues(RelOptCluster cluster, RelDataType rowType,
-        ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
+try         List<? extends List<RexLiteral>> tuples, RelTraitSet traitSet) {
       super(cluster, rowType, tuples, traitSet);
     }
 

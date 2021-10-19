@@ -365,7 +365,7 @@ public class RelMdColumnUniqueness
     }
     final Set<List<Comparable>> set = new HashSet<>();
     final List<Comparable> values = new ArrayList<>(columns.cardinality());
-    for (ImmutableList<RexLiteral> tuple : rel.tuples) {
+    for (List<RexLiteral> tuple : rel.tuples) {
       for (int column : columns) {
         final RexLiteral literal = tuple.get(column);
         Comparable value = literal.getValueAs(Comparable.class);

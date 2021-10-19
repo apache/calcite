@@ -1106,7 +1106,7 @@ public class JdbcRules {
   /** Values operator implemented in JDBC convention. */
   public static class JdbcValues extends Values implements JdbcRel {
     JdbcValues(RelOptCluster cluster, RelDataType rowType,
-        ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
+        List<? extends List<RexLiteral>> tuples, RelTraitSet traitSet) {
       super(cluster, rowType, tuples, traitSet);
     }
 

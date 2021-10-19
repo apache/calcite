@@ -201,7 +201,7 @@ public class RelMdDistinctRowCount
 
     final Set<List<Comparable>> set = new HashSet<>();
     final List<Comparable> values = new ArrayList<>(groupKey.cardinality());
-    for (ImmutableList<RexLiteral> tuple : rel.tuples) {
+    for (List<RexLiteral> tuple : rel.tuples) {
       for (int column : groupKey) {
         final RexLiteral literal = tuple.get(column);
         Comparable value = literal.getValueAs(Comparable.class);

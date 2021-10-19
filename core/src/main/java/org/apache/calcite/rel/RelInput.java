@@ -94,7 +94,7 @@ public interface RelInput {
 
   RelDistribution getDistribution();
 
-  ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag);
+  List<? extends List<RexLiteral>> getTuples(String tag);
 
   boolean getBoolean(String tag, boolean default_);
 }

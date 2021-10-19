@@ -1209,7 +1209,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     final ImmutableList.Builder<ImmutableList<RexLiteral>> newTuples =
         ImmutableList.builder();
-    for (ImmutableList<RexLiteral> tuple : values.getTuples()) {
+    for (List<RexLiteral> tuple : values.getTuples()) {
       ImmutableList.Builder<RexLiteral> newTuple = ImmutableList.builder();
       for (int field : fieldsUsed) {
         newTuple.add(tuple.get(field));

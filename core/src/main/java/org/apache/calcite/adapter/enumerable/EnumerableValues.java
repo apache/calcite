@@ -55,14 +55,14 @@ import static java.util.Objects.requireNonNull;
 public class EnumerableValues extends Values implements EnumerableRel {
   /** Creates an EnumerableValues. */
   private EnumerableValues(RelOptCluster cluster, RelDataType rowType,
-      ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
+      List<? extends List<RexLiteral>> tuples, RelTraitSet traitSet) {
     super(cluster, rowType, tuples, traitSet);
   }
 
   /** Creates an EnumerableValues. */
   public static EnumerableValues create(RelOptCluster cluster,
       final RelDataType rowType,
-      final ImmutableList<ImmutableList<RexLiteral>> tuples) {
+      final List<? extends List<RexLiteral>> tuples) {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)

@@ -390,7 +390,7 @@ public class RelMdCollation
    * <p>So, for an empty Values with 4 columns, we would emit
    * {@code (a, b, c, d), (b, c, d), (c, d), (d)}. */
   public static List<RelCollation> values(RelMetadataQuery mq,
-      RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples) {
+      RelDataType rowType, List<? extends List<RexLiteral>> tuples) {
     Util.discard(mq); // for future use
     final List<RelCollation> list = new ArrayList<>();
     final int n = rowType.getFieldCount();

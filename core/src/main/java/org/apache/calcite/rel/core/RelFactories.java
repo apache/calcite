@@ -446,7 +446,7 @@ public class RelFactories {
      * Creates a Values.
      */
     RelNode createValues(RelOptCluster cluster, RelDataType rowType,
-        List<ImmutableList<RexLiteral>> tuples);
+        List<? extends List<RexLiteral>> tuples);
   }
 
   /**
@@ -455,7 +455,7 @@ public class RelFactories {
    */
   private static class ValuesFactoryImpl implements ValuesFactory {
     @Override public RelNode createValues(RelOptCluster cluster, RelDataType rowType,
-        List<ImmutableList<RexLiteral>> tuples) {
+        List<? extends List<RexLiteral>> tuples) {
       return LogicalValues.create(cluster, rowType,
           ImmutableList.copyOf(tuples));
     }

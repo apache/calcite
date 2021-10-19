@@ -42,9 +42,9 @@ public class ValuesNode implements Node {
 
   private static ImmutableList<Row> createRows(Compiler compiler,
       int fieldCount,
-      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+      List<? extends List<RexLiteral>> tuples) {
     final List<RexNode> nodes = new ArrayList<>();
-    for (ImmutableList<RexLiteral> tuple : tuples) {
+    for (List<RexLiteral> tuple : tuples) {
       nodes.addAll(tuple);
     }
     final Scalar scalar = compiler.compile(nodes, null);

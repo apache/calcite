@@ -160,7 +160,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
         list.add(averageTypeValueSize(field.getType()));
       } else {
         double d = 0;
-        for (ImmutableList<RexLiteral> literals : rel.getTuples()) {
+        for (List<RexLiteral> literals : rel.getTuples()) {
           d += typeValueSize(field.getType(),
               literals.get(i).getValueAs(Comparable.class));
         }
