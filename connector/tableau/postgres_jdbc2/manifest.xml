@@ -2,9 +2,9 @@
 
 <connector-plugin class='calcite_jdbc' superclass='jdbc' plugin-version='0.0.0' name='Apache Calcite JDBC' version='18.1' min-version-tableau='2020.4'>
   <vendor-information>
-      <company name="Apache Software Foundation"/>
-      <support-link url="https://example.com"/>
-      <driver-download-link url="https://drivers.example.com"/>
+      <company name="Apache"/>
+      <support-link url="https://calcite.apache.org"/>
+      <driver-download-link url="https://search.maven.org/artifact/org.apache.calcite.avatica/avatica-core/1.19.0/jar"/>
   </vendor-information>
   <connection-customization class="calcite_jdbc" enabled="true" version="10.0">
     <vendor name="Apache Software Foundation"/>
