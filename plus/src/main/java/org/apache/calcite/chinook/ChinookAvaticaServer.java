@@ -19,11 +19,16 @@ package org.apache.calcite.chinook;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver;
+import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
 
+import com.google.common.collect.ImmutableList;
+
 import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
+
+import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -34,16 +39,47 @@ import java.util.List;
  * between Avatica JDBC transport and Calcite.
  */
 public class ChinookAvaticaServer {
+  private final Config config;
   private HttpServer server;
+
+  private ChinookAvaticaServer(Config config) {
+    this.config = config;
+  }
+
+  /** Creates a ChinookAvaticaServer with default options. */
+  public ChinookAvaticaServer() {
+    this(Config.DEFAULT);
+  }
+
+  private HttpServer start(Config config) throws Exception {
+    return Main.start(config.argList.toArray(new String[0]), config.port,
+        config.handlerFactory);
+  }
 
   public void startWithCalcite() throws Exception {
     final String[] args = {CalciteChinookMetaFactory.class.getName()};
-    this.server = Main.start(args, 0, AvaticaProtobufHandler::new);
+    final Config config2 = config.withArgs(ImmutableList.copyOf(args))
+        .withHandlerFactory(AvaticaProtobufHandler::new);
+    this.server = start(config2);
   }
 
   public void startWithRaw() throws Exception {
     final String[] args = {RawChinookMetaFactory.class.getName()};
-    this.server = Main.start(args, 0, AvaticaProtobufHandler::new);
+    final Config config2 = config.withArgs(ImmutableList.copyOf(args))
+        .withHandlerFactory(AvaticaProtobufHandler::new);
+    this.server = start(config2);
+  }
+
+  /** Starts the server on port 57198. */
+  public static void main(String[] args) throws Exception {
+    final String[] args2 = {CalciteChinookMetaFactory.class.getName()};
+    final Config config = Config.DEFAULT.withPort(57198)
+        .withArgs(ImmutableList.copyOf(args2));
+    final ChinookAvaticaServer server = new ChinookAvaticaServer(config);
+    server.startWithCalcite();
+    for (;;) {
+      Thread.sleep(10_000L);
+    }
   }
 
   public String getURL() {
@@ -103,6 +139,42 @@ public class ChinookAvaticaServer {
 
     @Override public Meta create(List<String> args) {
       return getInstance();
+    }
+  }
+
+  /** Configuration. (Immutable.) */
+  private static class Config {
+    final int port;
+    final ImmutableList<String> argList;
+    final Main.HandlerFactory handlerFactory;
+
+    static final Config DEFAULT =
+        new Config(0, ImmutableList.of(), Config::barf);
+
+    Config(int port, ImmutableList<String> argList,
+        Main.HandlerFactory handlerFactory) {
+      this.port = port;
+      this.argList = argList;
+      this.handlerFactory = handlerFactory;
+    }
+
+    private static AbstractHandler barf(Service s) {
+      throw new UnsupportedOperationException();
+    }
+
+    Config withArgs(ImmutableList<String> argList) {
+      return this.argList.equals(argList) ? this
+          : new Config(port, argList, handlerFactory);
+    }
+
+    Config withPort(int port) {
+      return this.port == port ? this
+          : new Config(port, argList, handlerFactory);
+    }
+
+    Config withHandlerFactory(Main.HandlerFactory handlerFactory) {
+      return this.handlerFactory == handlerFactory ? this
+          : new Config(port, argList, handlerFactory);
     }
   }
 }
