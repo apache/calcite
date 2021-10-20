@@ -1,1 +1,0 @@
-A sample JDBC connector. This requires the Postgres JDBC driver.
