@@ -2,7 +2,7 @@
 
 <!-- See notes below for definitions that require 2020.3 or newer -->
 <dialect name='FullPostgreSQL90JDBC'
-         class='postgres_jdbc'
+         class='calcite-jdbc'
          version='18.1'>
   <function-map>
     <function group='numeric' name='ABS' return-type='real'>

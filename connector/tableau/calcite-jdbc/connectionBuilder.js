@@ -1,5 +1,5 @@
 (function dsbuilder(attr) {
-    var urlBuilder = "jdbc:postgresql://" + attr[connectionHelper.attributeServer] + ":" + attr[connectionHelper.attributePort] + "/" + attr[connectionHelper.attributeDatabase] + "?";
+    var urlBuilder = "jdbc:avatica:remote:url=http://" + attr[connectionHelper.attributeServer] + ":" + attr[connectionHelper.attributePort] + ";serialization=PROTOBUF;database=" + attr[connectionHelper.attributeDatabase];
 
     return [urlBuilder];
 })

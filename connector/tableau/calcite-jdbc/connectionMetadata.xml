@@ -4,5 +4,5 @@
   <database enabled='true'>
     <field />
   </database>
-  <schema enabled='false' />
+  <schema enabled='true' />
 </connection-metadata>

@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8' ?>
 
-<connector-plugin class='postgres_jdbc' superclass='jdbc' plugin-version='0.0.0' name='PostgreSQL JDBC' version='18.1' min-version-tableau='2020.4'>
+<connector-plugin class='calcite-jdbc' superclass='jdbc' plugin-version='0.0.0' name='Apache Calcite JDBC' version='18.1' min-version-tableau='2020.4'>
   <vendor-information>
-      <company name="Company Name"/>
-      <support-link url="https://example.com"/>
-      <driver-download-link url="https://drivers.example.com"/>
+      <company name="Apache"/>
+      <support-link url="https://calcite.apache.org"/>
+      <driver-download-link url="https://search.maven.org/artifact/org.apache.calcite.avatica/avatica-core/1.19.0/jar"/>
   </vendor-information>
-  <connection-customization class="postgres_jdbc" enabled="true" version="10.0">
-    <vendor name="vendor"/>
-    <driver name="driver"/>
+  <connection-customization class="calcite-jdbc" enabled="true" version="10.0">
+    <vendor name="Apache Software Foundation"/>
+    <driver name="Calcite JDBC Driver"/>
     <customizations>
       <customization name="CAP_SELECT_INTO" value="yes"/>
       <customization name="CAP_SELECT_TOP_INTO" value="yes"/>
