@@ -1284,4 +1284,14 @@ public abstract class SqlLibraryOperators {
           null,
           null,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TRUNC =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATE,
+          SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 }
