@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
@@ -657,6 +658,31 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker CURSOR =
       family(SqlTypeFamily.CURSOR);
+
+  public static final SqlOperandTypeChecker MEASURE =
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.ANY),
+          i -> false) {
+        @Override public boolean checkSingleOperandType(
+            SqlCallBinding callBinding, SqlNode node,
+            int iFormalOperand, boolean throwOnFailure) {
+          if (!super.checkSingleOperandType(callBinding, node, iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+          // Scope is non-null at validate time, which is when we need to make
+          // this check.
+          final @Nullable SqlValidatorScope scope = callBinding.getScope();
+          if (scope != null && !scope.isMeasureRef(node)) {
+            if (throwOnFailure) {
+              throw callBinding.newValidationError(
+                  RESOURCE.argumentMustBeMeasure(
+                      callBinding.getOperator().getName()));
+            }
+            return false;
+          }
+          return true;
+        }
+      };
 
   /**
    * Parameter type-checking strategy where type must a nullable time interval,

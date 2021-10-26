@@ -50,6 +50,8 @@ public enum SqlLibrary {
   /** A collection of operators that are in Google BigQuery but not in standard
    * SQL. */
   BIG_QUERY("b", "bigquery"),
+  /** Calcite-specific extensions. */
+  CALCITE("c", "calcite"),
   /** A collection of operators that are in Apache Hive but not in standard
    * SQL. */
   HIVE("h", "hive"),

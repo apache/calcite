@@ -49,6 +49,13 @@ here to appease testAllFunctionsAreDocumented:
 | SUCCEEDS       | Documented as a period operator
 | TABLE          | Documented as part of FROM syntax
 | VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
+
+Dialect-specific:
+
+| C | Function       | Reason not documented
+|:--|:-------------- |:---------------------
+| c | AGGREGATE(m)   | TODO: document; also AS MEASURE
+
 {% endcomment %}
 -->
 

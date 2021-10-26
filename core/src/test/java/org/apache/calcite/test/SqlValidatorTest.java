@@ -5372,6 +5372,96 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
   }
 
+  @Test void testMeasureRef() {
+    // A measure can be used in the SELECT clause of a GROUP BY query even
+    // though it is not a GROUP BY key.
+    SqlValidatorFixture f =
+        fixture().withExtendedCatalog()
+            .withOperatorTable(operatorTableFor(SqlLibrary.CALCITE));
+    SqlValidatorFixture f2 =
+        f.withValidatorConfig(c -> c.withNakedMeasures(false));
+
+    final String measureIllegal =
+        "Measure expressions can only occur within AGGREGATE function";
+    final String measureIllegal2 =
+        "Measure expressions can only occur within a GROUP BY query";
+
+    final String sql0 = "select deptno, ^count_plus_100^\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql0)
+        .isAggregate(is(true))
+        .ok();
+
+    // Same SQL is invalid if naked measures are not enabled
+    f2.withSql(sql0).fails(measureIllegal);
+
+    // Similarly, with alias
+    final String sql1b = "select deptno, ^count_plus_100^ as x\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql1b).isAggregate(is(true)).ok();
+    f2.withSql(sql1b).fails(measureIllegal);
+
+    // Similarly, in an expression
+    final String sql1c = "select deptno, deptno + ^count_plus_100^ * 2 as x\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql1c).isAggregate(is(true)).ok();
+    f2.withSql(sql1c).fails(measureIllegal);
+
+    // Similarly, for a query that is an aggregate query because of another
+    // aggregate function.
+    final String sql1 = "select count(*), ^count_plus_100^\n"
+        + "from empm";
+    f.withSql(sql1).isAggregate(is(true)).ok();
+    f2.withSql(sql1).fails(measureIllegal);
+
+    // A measure in a non-aggregate query.
+    // Using a measure should not make it an aggregate query.
+    // The type of the measure should be the result type of the COUNT aggregate
+    // function (BIGINT), not type of the un-aggregated argument type (VARCHAR).
+    final String sql2 = "select deptno, ^count_plus_100^, ename\n"
+        + "from empm";
+    f.withSql(sql2)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "MEASURE<INTEGER NOT NULL> NOT NULL COUNT_PLUS_100, "
+            + "VARCHAR(20) NOT NULL ENAME) NOT NULL")
+        .isAggregate(is(false));
+    f2.withSql(sql2).fails(measureIllegal2);
+
+    // as above, wrapping the measure in AGGREGATE
+    final String sql3 = "select deptno, aggregate(count_plus_100) as x, ename\n"
+        + "from empm\n"
+        + "group by deptno, ename";
+    f.withSql(sql3)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "MEASURE<INTEGER NOT NULL> NOT NULL X, "
+            + "VARCHAR(20) NOT NULL ENAME) NOT NULL");
+
+    // you can apply the AGGREGATE function only to measures
+    f.withSql("select deptno, aggregate(count_plus_100), ^aggregate(ename)^\n"
+            + "from empm\n"
+            + "group by deptno, ename")
+        .fails("Argument to function 'AGGREGATE' must be a measure");
+
+    f.withSql("select deptno, ^aggregate(count_plus_100 + 1)^\n"
+            + "from empm\n"
+            + "group by deptno, ename")
+        .fails("Argument to function 'AGGREGATE' must be a measure");
+
+    // A query with AGGREGATE is an aggregate query, even without GROUP BY,
+    // and even if it is inside an expression.
+    f.withSql("select aggregate(count_plus_100) + 1\n"
+            + "from empm")
+        .isAggregate(is(true));
+
+    // Including a measure in a query does not make it an aggregate query
+    f.withSql("select count_plus_100\n"
+            + "from empm")
+        .isAggregate(is(false));
+  }
+
   @Test void testAmbiguousColumnInIn() {
     // ok: cyclic reference
     sql("select * from emp as e\n"
