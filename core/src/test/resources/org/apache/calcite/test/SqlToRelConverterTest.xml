@@ -4341,6 +4341,20 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMeasureRef">
+    <Resource name="sql">
+      <![CDATA[select deptno, aggregate(count_plus_100) as c
+from empm
+group by deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], C=[AGGREGATE($1)])
+  LogicalProject(DEPTNO=[$7], COUNT_PLUS_100=[$9])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPM]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModeFunction">
     <Resource name="sql">
       <![CDATA[select mode(deptno)

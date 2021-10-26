@@ -106,21 +106,12 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
       return litmus.fail("{} != {}", this, node);
     }
     SqlRowTypeNameSpec that = (SqlRowTypeNameSpec) node;
-    if (this.fieldNames.size() != that.fieldNames.size()) {
+    if (!SqlNode.equalDeep(this.fieldNames, that.fieldNames,
+        litmus.withMessageArgs("{} != {}", this, node))) {
       return litmus.fail("{} != {}", this, node);
     }
-    for (int i = 0; i < fieldNames.size(); i++) {
-      if (!this.fieldNames.get(i).equalsDeep(that.fieldNames.get(i), litmus)) {
-        return litmus.fail("{} != {}", this, node);
-      }
-    }
-    if (this.fieldTypes.size() != that.fieldTypes.size()) {
+    if (!this.fieldTypes.equals(that.fieldTypes)) {
       return litmus.fail("{} != {}", this, node);
-    }
-    for (int i = 0; i < fieldTypes.size(); i++) {
-      if (!this.fieldTypes.get(i).equals(that.fieldTypes.get(i))) {
-        return litmus.fail("{} != {}", this, node);
-      }
     }
     return litmus.succeed();
   }

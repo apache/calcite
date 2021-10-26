@@ -49,6 +49,12 @@ here to appease testAllFunctionsAreDocumented:
 | SUCCEEDS       | Documented as a period operator
 | TABLE          | Documented as part of FROM syntax
 | VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
+
+Dialect-specific:
+
+| C | Function       | Reason not documented
+|:--|:-------------- |:---------------------
+
 {% endcomment %}
 -->
 
@@ -2563,6 +2569,7 @@ connect string parameter.
 
 The 'C' (compatibility) column contains value:
 * 'b' for Google BigQuery ('fun=bigquery' in the connect string),
+* 'c' for Apache Calcite ('fun=calcite' in the connect string),
 * 'h' for Apache Hive ('fun=hive' in the connect string),
 * 'm' for MySQL ('fun=mysql' in the connect string),
 * 'q' for Microsoft SQL Server ('fun=mssql' in the connect string),
@@ -2679,6 +2686,7 @@ Dialect-specific aggregate functions.
 
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
+| c | AGGREGATE(m)                                   | Computes measure *m* in the context of the current GROUP BY key
 | b p | ARRAY_AGG( [ ALL &#124; DISTINCT ] value [ RESPECT NULLS &#124; IGNORE NULLS ] [ ORDER BY orderItem [, orderItem ]* ] ) | Gathers values into arrays
 | b p | ARRAY_CONCAT_AGG( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] ) | Concatenates arrays into arrays
 | p | BOOL_AND(condition)                            | Synonym for `EVERY`

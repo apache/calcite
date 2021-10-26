@@ -40,10 +40,12 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
+import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -4408,6 +4410,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select avg(empno) within distinct (deptno)\n"
         + "from emp";
     sql(sql).ok();
+  }
+
+  /** Tests a reference to a measure column in an underlying table. The measure
+   * is treated as a black box: it is not expanded, just wrapped in a call to
+   * AGGREGATE. */
+  @Test void testMeasureRef() {
+    final String sql = "select deptno, aggregate(count_plus_100) as c\n"
+        + "from empm\n"
+        + "group by deptno";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.CALCITE)))
+        .withCatalogReader(MockCatalogReaderExtended::create)
+        .withSql(sql)
+        .ok();
   }
 
   /** Test case for:

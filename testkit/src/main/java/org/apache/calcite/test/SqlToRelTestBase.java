@@ -60,7 +60,7 @@ public abstract class SqlToRelTestBase {
    * Default catalog: {@link org.apache.calcite.test.catalog.MockCatalogReaderSimple#init()}.
    */
   public final SqlToRelFixture sql(String sql) {
-    return fixture().expression(false).withSql(sql);
+    return fixture().withSql(sql);
   }
 
   public final SqlToRelFixture expr(String sql) {

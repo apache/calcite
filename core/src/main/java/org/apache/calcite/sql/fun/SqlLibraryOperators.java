@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.CALCITE;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
@@ -69,6 +70,17 @@ import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 public abstract class SqlLibraryOperators {
   private SqlLibraryOperators() {
   }
+
+  /** The "AGGREGATE(m)" aggregate function;
+   * aggregates a measure column according to the measure's rollup strategy.
+   * This is a Calcite-specific extension.
+   *
+   * <p>This operator is for SQL (and AST); for internal use (RexNode and
+   * Aggregate) use {@code AGG_M2M}. */
+  @LibraryOperator(libraries = {CALCITE})
+  public static final SqlFunction AGGREGATE =
+      SqlBasicAggFunction.create("AGGREGATE", SqlKind.AGGREGATE_FN,
+          ReturnTypes.ARG0, OperandTypes.MEASURE);
 
   /** The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function;
    * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}.

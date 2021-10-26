@@ -68,6 +68,7 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
   @Override public MockCatalogReaderExtended init() {
     super.init();
 
+    final Fixture f = new Fixture(typeFactory);
     MockSchema salesSchema = new MockSchema("SALES");
     // Same as "EMP_20" except it uses ModifiableViewTable which populates
     // constrained columns with default values on INSERT and has a single constraint on DEPTNO.
@@ -114,9 +115,25 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
         empModifiableViewNames3.get(2), false, 20, null);
     registerTable(mockEmpViewTable3);
 
+    // Register "EMPM" table.
+    // Same as "EMP" but with a "COUNT_PLUS_100" measure column.
+    final MockTable empmTable =
+        MockTable.create(this, salesSchema, "EMPM", false, 14);
+    empmTable.addColumn("EMPNO", f.intType, true);
+    empmTable.addColumn("ENAME", f.varchar20Type);
+    empmTable.addColumn("JOB", f.varchar10Type);
+    empmTable.addColumn("MGR", f.intTypeNull);
+    empmTable.addColumn("HIREDATE", f.timestampType);
+    empmTable.addColumn("SAL", f.intType);
+    empmTable.addColumn("COMM", f.intType);
+    empmTable.addColumn("DEPTNO", f.intType);
+    empmTable.addColumn("SLACKER", f.booleanType);
+    empmTable.addColumn("COUNT_PLUS_100",
+        f.typeFactory.createMeasureType(f.intType));
+    registerTable(empmTable);
+
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
-    final Fixture f = new Fixture(typeFactory);
     final List<CompoundNameColumn> columnsExtended = Arrays.asList(
         new CompoundNameColumn("", "K0", f.varchar20TypeNull),
         new CompoundNameColumn("", "C1", f.varchar20TypeNull),

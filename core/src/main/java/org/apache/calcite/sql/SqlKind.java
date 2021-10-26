@@ -891,6 +891,9 @@ public enum SqlKind {
   /** The {@code SINGLE_VALUE} aggregate function. */
   SINGLE_VALUE,
 
+  /** The {@code AGGREGATE} aggregate function. */
+  AGGREGATE_FN,
+
   /** The {@code BIT_AND} aggregate function. */
   BIT_AND,
 

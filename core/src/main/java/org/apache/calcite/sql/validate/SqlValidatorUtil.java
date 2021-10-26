@@ -1287,6 +1287,22 @@ public class SqlValidatorUtil {
     }
   }
 
+  /** Returns whether a select item is a measure. */
+  public static boolean isMeasure(SqlNode selectItem) {
+    return getMeasure(selectItem) != null;
+  }
+
+  /** Returns the measure expression if a select item is a measure, null
+   * otherwise.
+   *
+   * <p>For a measure, {@code selectItem} will have the form
+   * {@code AS(MEASURE(exp), alias)} and this method returns {@code exp}. */
+  public static @Nullable SqlNode getMeasure(SqlNode selectItem) {
+    // The implementation of this method will be extended when we add the
+    // 'AS MEASURE' construct in [CALCITE-4496].
+    return null;
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1373,12 +1389,13 @@ public class SqlValidatorUtil {
     /** Extra expressions, computed from the input as extra GROUP BY
      * expressions. For example, calls to the {@code TUMBLE} functions. */
     final List<SqlNode> extraExprs = new ArrayList<>();
+    final List<SqlNode> measureExprs = new ArrayList<>();
     final List<SqlNode> groupExprs = new ArrayList<>();
     final Map<Integer, Integer> groupExprProjection = new HashMap<>();
     final List<ImmutableBitSet> flatGroupSets = new ArrayList<>();
 
     AggregatingSelectScope.Resolved finish() {
-      return new AggregatingSelectScope.Resolved(extraExprs,
+      return new AggregatingSelectScope.Resolved(extraExprs, measureExprs,
           groupExprs, flatGroupSets, groupExprProjection);
     }
   }
