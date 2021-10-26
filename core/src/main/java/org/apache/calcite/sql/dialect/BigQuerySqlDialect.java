@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -134,9 +135,15 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -584,6 +591,17 @@ public class BigQuerySqlDialect extends SqlDialect {
     case GROUPING:
       unparseGroupingFunction(writer, call, leftPrec, rightPrec);
       break;
+    case CAST:
+      if (call.operand(1).toString().equals("`TIMESTAMP`")) {
+        SqlWriter.Frame castDateTimeFrame = writer.startFunCall("CAST");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep("AS", true);
+        writer.literal("DATETIME");
+        writer.endFunCall(castDateTimeFrame);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -712,7 +730,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
     if (isDateTimeCall(call) && isIntervalYearAndMonth(call)) {
       writer.sep("AS", true);
-      writer.literal("TIMESTAMP");
+      writer.literal("DATETIME");
       writer.endFunCall(castTimeStampFrame);
     }
   }
@@ -804,7 +822,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         new CurrentTimestampHandler(this)
             .unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
       } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+        final SqlWriter.Frame currentDatetimeFunc = writer.startFunCall("CURRENT_DATETIME");
+        writer.endFunCall(currentDatetimeFunc);
       }
       break;
     case "CURRENT_USER":
@@ -836,6 +855,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       break;
     case "PARSE_TIMESTAMP":
+      String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
+          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+          .getValue()
+          : call.operand(0).toString();
+      SqlCall formatCall = PARSE_DATETIME.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+      break;
     case "FORMAT_TIME":
       unparseFormatCall(writer, call, leftPrec, rightPrec);
       break;
@@ -970,9 +997,47 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame generate_uuid = writer.startFunCall("GENERATE_UUID");
       writer.endFunCall(generate_uuid);
       break;
+    case "TIMESTAMP_SECONDS":
+      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
+      break;
+    case "TIMESTAMP_MILLIS":
+      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
+      break;
+    case "TIMESTAMP_MICROS":
+      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
+      break;
+    case "UNIX_SECONDS":
+      castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_SECONDS);
+      break;
+    case "UNIX_MILLIS":
+      castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_MILLIS);
+      break;
+    case "UNIX_MICROS":
+      castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_MICROS);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void castAsDatetime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      SqlFunction sqlFunction) {
+    final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+    sqlFunction.unparse(writer, call, leftPrec, rightPrec);
+    writer.sep("AS");
+    writer.literal("DATETIME");
+    writer.endFunCall(castFrame);
+  }
+
+  private void castOperandToTimestamp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      SqlFunction sqlFunction) {
+    final SqlWriter.Frame sqlFunctionFrame = writer.startFunCall(sqlFunction.getName());
+    final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+    call.getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep("AS");
+    writer.literal("TIMESTAMP");
+    writer.endFunCall(castFrame);
+    writer.endFunCall(sqlFunctionFrame);
   }
 
   private void secFromMidnight(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1391,7 +1456,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case TIME:
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
-        return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
+        return createSqlDataTypeSpecByName("DATETIME", typeName);
       default:
         break;
       }

@@ -1625,7 +1625,7 @@ class RelToSqlConverterTest {
         + "CAST(CAST(employee_id AS STRING) AS STRING), "
         + "CAST(CAST(employee_id AS STRING) AS BYTES), "
         + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-        + "CAST(CAST(employee_id AS STRING) AS TIMESTAMP), "
+        + "CAST(CAST(employee_id AS STRING) AS DATETIME), "
         + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
         + "CAST(CAST(employee_id AS STRING) AS NUMERIC), "
         + "CAST(CAST(employee_id AS STRING) AS DATE), "
@@ -5844,7 +5844,7 @@ class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = CAST"
-        + "(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP)";
+        + "(CONCAT('1996-01-01 ', '00:00:00') AS DATETIME)";
     final String mssql = "SELECT [employee_id]\n"
         + "FROM [foodmart].[employee]\n"
         + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
@@ -5929,7 +5929,7 @@ class RelToSqlConverterTest {
     final String expectedSql = "SELECT CURRENT_TIMESTAMP(6) AS \"CT\"\n"
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E6S', "
-        + "CURRENT_TIMESTAMP) AS TIMESTAMP) AS CT\n"
+        + "CURRENT_DATETIME()) AS DATETIME) AS CT\n"
         + "FROM scott.EMP";
     final String expectedSpark = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
         + ".ssssss') AS TIMESTAMP) CT\n"
@@ -6013,7 +6013,7 @@ class RelToSqlConverterTest {
     String query = "select \"hire_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
     final String expectedBigQuery = "SELECT CAST(DATETIME_ADD(CAST(hire_date AS DATETIME), "
         + "INTERVAL "
-        + "-10 MONTH) AS TIMESTAMP)\n"
+        + "-10 MONTH) AS DATETIME)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
@@ -6163,7 +6163,7 @@ class RelToSqlConverterTest {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' minute from \"employee\"";
     final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
-            + "TIMESTAMP), INTERVAL 2 MINUTE)\n"
+            + "DATETIME), INTERVAL 2 MINUTE)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6174,7 +6174,7 @@ class RelToSqlConverterTest {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' hour from \"employee\"";
     final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
-            + "TIMESTAMP), INTERVAL 2 HOUR)\n"
+            + "DATETIME), INTERVAL 2 HOUR)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6184,7 +6184,7 @@ class RelToSqlConverterTest {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
             + "second from \"employee\"";
     final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS"
-            + " TIMESTAMP), INTERVAL 2 SECOND)\n"
+            + " DATETIME), INTERVAL 2 SECOND)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6426,8 +6426,8 @@ class RelToSqlConverterTest {
     String query = "SELECT CURRENT_TIMESTAMP + INTERVAL '06:10:30' HOUR TO SECOND,"
         + "CURRENT_TIMESTAMP - INTERVAL '06:10:30' HOUR TO SECOND "
         + "FROM \"employee\"";
-    final String expectedBQ = "SELECT TIMESTAMP_ADD(CURRENT_TIMESTAMP, INTERVAL 22230 SECOND), "
-            + "TIMESTAMP_SUB(CURRENT_TIMESTAMP, INTERVAL 22230 SECOND)\n"
+    final String expectedBQ = "SELECT TIMESTAMP_ADD(CURRENT_DATETIME(), INTERVAL 22230 SECOND), "
+            + "TIMESTAMP_SUB(CURRENT_DATETIME(), INTERVAL 22230 SECOND)\n"
             + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
@@ -6513,7 +6513,7 @@ class RelToSqlConverterTest {
     String query = "select current_timestamp";
     final String expectedHiveQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
     final String expectedSparkQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
-    final String expectedBigQuery = "SELECT CURRENT_TIMESTAMP AS CURRENT_TIMESTAMP";
+    final String expectedBigQuery = "SELECT CURRENT_DATETIME() AS CURRENT_TIMESTAMP";
 
     sql(query)
         .withHiveIdentifierQuoteString()
@@ -6808,7 +6808,7 @@ class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
-        + "CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP)";
+        + "CAST(CONCAT('1996-01-01 ', '00:00:00') AS DATETIME)";
     sql(query)
         .ok(expected)
         .withBigQuery()
@@ -7759,13 +7759,15 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     final String expected = "SELECT CAST(birth_date AS TIMESTAMP)\n"
         + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME)\n"
+        + "FROM foodmart.employee";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
         .ok(expected)
         .withBigQuery()
-        .ok(expected);
+        .ok(expectedBigQuery);
   }
 
   @Test public void testCastToTimestampWithPrecision() {
@@ -7776,7 +7778,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = expectedHive;
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E3S', CAST"
-        + "(birth_date AS TIMESTAMP)) AS TIMESTAMP)\n"
+        + "(birth_date AS DATETIME)) AS DATETIME)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
@@ -8133,23 +8135,23 @@ class RelToSqlConverterTest {
             + ", PARSE_TIMESTAMP('yyyy-MM-dd-HH:mm:ss.S(3)@ZZ', '2015-09-11-09:07:23') AS \"timestamp9\"\n"
             + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery =
-        "SELECT PARSE_TIMESTAMP('%F %H:%M:%S', '2009-03-20 12:25:50') AS date1,"
-            + " PARSE_TIMESTAMP('%M %d-%Y-%m %S %H', '25 20-2009-03 50 12') AS date2,"
-            + " PARSE_TIMESTAMP('%Y%m%d%I%m%S', '20200903020211') AS timestamp1,"
-            + " PARSE_TIMESTAMP('%Y%m%d%I%m%S', '20200903210211') AS timestamp2,"
-            + " PARSE_TIMESTAMP('%I%m%S', '215313') AS time1,"
-            + " PARSE_TIMESTAMP('%m%d%y', '090415') AS date10,"
-            + " PARSE_TIMESTAMP('%m%d%y', 'Jun1215') AS date20,"
-            + " PARSE_TIMESTAMP('%Y%m%d%I', '2015061221') AS date3,"
-            + " PARSE_TIMESTAMP('%Y%d%m', '20150653') AS date5,"
-            + " PARSE_TIMESTAMP('%Y%m%d', '20155308') AS date6,"
-            + " PARSE_TIMESTAMP('%F%I:%m:%S', '2009-03-2021:25:50') AS timestamp3,"
-            + " PARSE_TIMESTAMP('%F%I:%m:%S', '2009-03-2007:25:50') AS timestamp4, "
-            + "PARSE_TIMESTAMP('%F%I:%m:%S %Z', '2009-03-20 12:25:50.222') AS timestamp5, "
-            + "PARSE_TIMESTAMP('%FT%I:%m:%S', '2012-05-09T04:12:12') AS timestamp6,"
-            + " PARSE_TIMESTAMP('%Y- %m-%d  %I: -%m:%S', '2015- 09-11  09: -07:23') AS timestamp7,"
-            + " PARSE_TIMESTAMP('%Y- %m-%d%I: -%m:%S', '2015- 09-1109: -07:23') AS timestamp8,"
-            + " PARSE_TIMESTAMP('%F-%I:%m:%E3S%Ez', '2015-09-11-09:07:23') AS timestamp9\n"
+        "SELECT PARSE_DATETIME('%F %H:%M:%S', '2009-03-20 12:25:50') AS date1,"
+            + " PARSE_DATETIME('%M %d-%Y-%m %S %H', '25 20-2009-03 50 12') AS date2,"
+            + " PARSE_DATETIME('%Y%m%d%I%m%S', '20200903020211') AS timestamp1,"
+            + " PARSE_DATETIME('%Y%m%d%I%m%S', '20200903210211') AS timestamp2,"
+            + " PARSE_DATETIME('%I%m%S', '215313') AS time1,"
+            + " PARSE_DATETIME('%m%d%y', '090415') AS date10,"
+            + " PARSE_DATETIME('%m%d%y', 'Jun1215') AS date20,"
+            + " PARSE_DATETIME('%Y%m%d%I', '2015061221') AS date3,"
+            + " PARSE_DATETIME('%Y%d%m', '20150653') AS date5,"
+            + " PARSE_DATETIME('%Y%m%d', '20155308') AS date6,"
+            + " PARSE_DATETIME('%F%I:%m:%S', '2009-03-2021:25:50') AS timestamp3,"
+            + " PARSE_DATETIME('%F%I:%m:%S', '2009-03-2007:25:50') AS timestamp4, "
+            + "PARSE_DATETIME('%F%I:%m:%S %Z', '2009-03-20 12:25:50.222') AS timestamp5, "
+            + "PARSE_DATETIME('%FT%I:%m:%S', '2012-05-09T04:12:12') AS timestamp6,"
+            + " PARSE_DATETIME('%Y- %m-%d  %I: -%m:%S', '2015- 09-11  09: -07:23') AS timestamp7,"
+            + " PARSE_DATETIME('%Y- %m-%d%I: -%m:%S', '2015- 09-1109: -07:23') AS timestamp8,"
+            + " PARSE_DATETIME('%F-%I:%m:%E3S%Ez', '2015-09-11-09:07:23') AS timestamp9\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -8168,7 +8170,7 @@ class RelToSqlConverterTest {
         "SELECT TO_TIMESTAMP('2009-03-20 12:25:50', 'yyyy-MM-dd HH24:MI:SS') AS "
             + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
     final String expectedBiqQuery =
-        "SELECT PARSE_TIMESTAMP('%F %H:%M:%S', '2009-03-20 12:25:50') AS timestamp_value\n"
+        "SELECT PARSE_DATETIME('%F %H:%M:%S', '2009-03-20 12:25:50') AS timestamp_value\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -8244,7 +8246,7 @@ class RelToSqlConverterTest {
         "SELECT TO_DATE('2009/03/20', 'yyyy/MM/dd') AS \"date_value\"\n"
             + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery =
-        "SELECT DATE(PARSE_TIMESTAMP('%Y/%m/%d', '2009/03/20')) AS date_value\n"
+        "SELECT DATE(PARSE_DATETIME('%Y/%m/%d', '2009/03/20')) AS date_value\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9010,7 +9012,7 @@ class RelToSqlConverterTest {
         + " \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT CAST(DATE_DIFF(HIREDATE, CAST(CAST(HIREDATE AS DATE) "
-        + "AS TIMESTAMP), SECOND) AS STRING) AS FD\n"
+        + "AS DATETIME), SECOND) AS STRING) AS FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -9035,7 +9037,7 @@ class RelToSqlConverterTest {
     String query = "SELECT EXTRACT(DAY FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_TIMESTAMP)";
     final String expectedSFSql = "SELECT DAY(CURRENT_DATE), DAY(CURRENT_TIMESTAMP)";
     final String expectedBQSql = "SELECT EXTRACT(DAY FROM CURRENT_DATE), "
-        + "EXTRACT(DAY FROM CURRENT_TIMESTAMP)";
+        + "EXTRACT(DAY FROM CURRENT_DATETIME())";
     final String expectedMsSql = "SELECT DAY(CAST(GETDATE() AS DATE)), DAY(GETDATE())";
 
     sql(query)
@@ -9051,7 +9053,7 @@ class RelToSqlConverterTest {
     String query = "SELECT EXTRACT(MONTH FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_TIMESTAMP)";
     final String expectedSFSql = "SELECT MONTH(CURRENT_DATE), MONTH(CURRENT_TIMESTAMP)";
     final String expectedBQSql = "SELECT EXTRACT(MONTH FROM CURRENT_DATE), "
-        + "EXTRACT(MONTH FROM CURRENT_TIMESTAMP)";
+        + "EXTRACT(MONTH FROM CURRENT_DATETIME())";
     final String expectedMsSql = "SELECT MONTH(CAST(GETDATE() AS DATE)), MONTH(GETDATE())";
 
     sql(query)
@@ -9067,7 +9069,7 @@ class RelToSqlConverterTest {
     String query = "SELECT EXTRACT(YEAR FROM CURRENT_DATE), EXTRACT(YEAR FROM CURRENT_TIMESTAMP)";
     final String expectedSFSql = "SELECT YEAR(CURRENT_DATE), YEAR(CURRENT_TIMESTAMP)";
     final String expectedBQSql = "SELECT EXTRACT(YEAR FROM CURRENT_DATE), "
-        + "EXTRACT(YEAR FROM CURRENT_TIMESTAMP)";
+        + "EXTRACT(YEAR FROM CURRENT_DATETIME())";
     final String expectedMsSql = "SELECT YEAR(CAST(GETDATE() AS DATE)), YEAR(GETDATE())";
 
     sql(query)
@@ -9103,6 +9105,60 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testParseDatetime() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseDatetimeRexNode = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("YYYYMMDD_HH24MISS"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseDatetimeRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT PARSE_DATETIME('%Y%m%d_%H%M%S', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testUnixFunctions() {
+    final RelBuilder builder = relBuilder();
+    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.UNIX_SECONDS,
+        builder.scan("EMP").field(4));
+    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.UNIX_MICROS,
+        builder.scan("EMP").field(4));
+    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.UNIX_MILLIS,
+        builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(unixSecondsRexNode, "US"),
+            builder.alias(unixMicrosRexNode,  "UM"),
+            builder.alias(unixMillisRexNode, "UMI"))
+        .build();
+    final String expectedBiqQuery = "SELECT UNIX_SECONDS(CAST(HIREDATE AS TIMESTAMP)) AS US, "
+        + "UNIX_MICROS(CAST(HIREDATE AS TIMESTAMP)) AS UM, UNIX_MILLIS(CAST(HIREDATE AS TIMESTAMP)) "
+        + "AS UMI\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimestampFunctions() {
+    final RelBuilder builder = relBuilder();
+    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS,
+        builder.scan("EMP").field(4));
+    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MICROS,
+        builder.scan("EMP").field(4));
+    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS,
+        builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(unixSecondsRexNode, "TS"),
+            builder.alias(unixMicrosRexNode, "TM"),
+            builder.alias(unixMillisRexNode, "TMI"))
+        .build();
+    final String expectedBiqQuery = "SELECT CAST(TIMESTAMP_SECONDS(HIREDATE) AS DATETIME) AS TS, "
+        + "CAST(TIMESTAMP_MICROS(HIREDATE) AS DATETIME) AS TM, CAST(TIMESTAMP_MILLIS(HIREDATE) AS "
+        + "DATETIME) AS TMI\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 
   @Test public void testGroupingFunction() {
     String query = "SELECT \"first_name\",\"last_name\", "
@@ -9168,6 +9224,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
   @Test public void testConcatFunction() {
     String query = "select '%''.' || '\\\\PWAPIKB01E\\Labelfiles\\'";
     final String expectedBQSql = "SELECT CONCAT('%\\'.', '\\\\\\\\PWAPIKB01E\\\\Labelfiles"
@@ -9239,5 +9296,17 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testEscapeFunction() {
+    String query =
+        "SELECT '\\\\PWFSNFS01EFS\\imagenowcifs\\debitmemo' AS DM_SENDFILE_PATH1";
+    final String expectedBQSql =
+        "SELECT '\\\\\\\\PWFSNFS01EFS\\\\imagenowcifs\\\\debitmemo' AS "
+            + "DM_SENDFILE_PATH1";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
   }
 }
