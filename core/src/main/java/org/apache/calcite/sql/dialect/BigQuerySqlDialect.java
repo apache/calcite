@@ -993,6 +993,10 @@ public class BigQuerySqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "ROWID":
+      final SqlWriter.Frame generate_uuid = writer.startFunCall("GENERATE_UUID");
+      writer.endFunCall(generate_uuid);
+      break;
     case "TIMESTAMP_SECONDS":
       castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
       break;
