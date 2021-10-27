@@ -4038,7 +4038,7 @@ class RelToSqlConverterTest {
     final String expect0 = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "WHERE TIMESTAMP_SUB(hire_date, INTERVAL 19800 SECOND)"
-        + " > TIMESTAMP '2005-10-17 00:00:00'";
+        + " > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql0).withBigQuery().ok(expect0);
 
     final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
@@ -4046,7 +4046,7 @@ class RelToSqlConverterTest {
     final String expect1 = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "WHERE TIMESTAMP_ADD(hire_date, INTERVAL 10 HOUR)"
-        + " > TIMESTAMP '2005-10-17 00:00:00'";
+        + " > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql1).withBigQuery().ok(expect1);
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
@@ -8530,7 +8530,7 @@ class RelToSqlConverterTest {
             + "cast('2010-12-31 01:00:00.123' as TIMESTAMP))";
     final String expectedHive = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
     final String expectedSpark = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
-    final String bigQueryExpected = "SELECT TIMESTAMP '2099-12-31 00:00:00'";
+    final String bigQueryExpected = "SELECT CAST('2099-12-31 00:00:00' AS DATETIME)";
     sql(query)
             .withHive()
             .ok(expectedHive)
@@ -8876,6 +8876,14 @@ class RelToSqlConverterTest {
     sql(query)
             .withBigQuery()
             .ok(expectedBQ);
+  }
+
+  @Test public void testTimestampLiteral() {
+    final String query = "SELECT Timestamp '1993-07-21 10:10:10'";
+    final String expectedBQ = "SELECT CAST('1993-07-21 10:10:10' AS DATETIME)";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
   }
 
   @Test public void testCaseForLnFunction() {
