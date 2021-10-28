@@ -63,6 +63,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
@@ -451,6 +452,14 @@ public class BigQuerySqlDialect extends SqlDialect {
         (Locale.ROOT, "%s%s%s", "HH24:MI:SS.S(", precision, ")"), pos);
     SqlCall formattedCall = FORMAT_TIME.createCall(pos, timeFormat, castedTimeNode);
     return CAST.createCall(pos, formattedCall, timeWithoutPrecision);
+  }
+
+  @Override public SqlNode getTimestampLiteral(
+      TimestampString timestampString, int precision, SqlParserPos pos) {
+    SqlNode timestampNode = getCastSpec(
+        new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+    return CAST.createCall(pos, SqlLiteral.createCharString(timestampString.toString(), pos),
+        timestampNode);
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,

@@ -40,6 +40,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -947,6 +948,11 @@ public class SqlDialect {
 
   public SqlNode getTimeLiteral(TimeString timeString, int precision, SqlParserPos pos) {
     return SqlLiteral.createTime(timeString, precision, pos);
+  }
+
+  public SqlNode getTimestampLiteral(TimestampString timestampString,
+      int precision, SqlParserPos pos) {
+    return SqlLiteral.createTimestamp(timestampString, precision, pos);
   }
 
   /** Rewrite SINGLE_VALUE into expression based on database variants

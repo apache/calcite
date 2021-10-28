@@ -1457,8 +1457,7 @@ public abstract class SqlImplementor {
       return dialect.getTimeLiteral(castNonNull(literal.getValueAs(TimeString.class)),
         literal.getType().getPrecision(), POS);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp(
-          castNonNull(literal.getValueAs(TimestampString.class)),
+      return dialect.getTimestampLiteral(castNonNull(literal.getValueAs(TimestampString.class)),
           literal.getType().getPrecision(), POS);
     case ANY:
     case NULL:
