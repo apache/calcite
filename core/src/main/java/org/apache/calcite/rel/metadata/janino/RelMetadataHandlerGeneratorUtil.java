@@ -34,7 +34,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 /**
  * Generates the {@link MetadataHandler} code.
  */
-public class RelMetadataHandlerGenerator {
+public class RelMetadataHandlerGeneratorUtil {
   private static final String LICENSE = "/*\n"
       + " * Licensed to the Apache Software Foundation (ASF) under one or more\n"
       + " * contributor license agreements.  See the NOTICE file distributed with\n"
@@ -52,13 +52,13 @@ public class RelMetadataHandlerGenerator {
       + " * limitations under the License.\n"
       + " */\n";
 
-  private RelMetadataHandlerGenerator() {
+  private RelMetadataHandlerGeneratorUtil() {
   }
 
   public static HandlerNameAndGeneratedCode generateHandler(
       Class<? extends MetadataHandler<?>> handlerClass,
       List<? extends MetadataHandler<?>> handlers) {
-    final String classPackage = castNonNull(RelMetadataHandlerGenerator.class.getPackage())
+    final String classPackage = castNonNull(RelMetadataHandlerGeneratorUtil.class.getPackage())
         .getName();
     final String name =
         "GeneratedMetadata_" + simpleNameForHandler(handlerClass);
@@ -82,7 +82,7 @@ public class RelMetadataHandlerGenerator {
 
     //PROPERTIES
     for (int i = 0; i < declaredMethods.length; i++) {
-      CacheGenerator.cacheProperties(buff, declaredMethods[i], i);
+      CacheGeneratorUtil.cacheProperties(buff, declaredMethods[i], i);
     }
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("  public final ").append(handlerAndName.getKey().getClass().getName())
@@ -117,7 +117,7 @@ public class RelMetadataHandlerGenerator {
 
     DispatchGenerator dispatchGenerator = new DispatchGenerator(handlerToName);
     for (int i = 0; i < declaredMethods.length; i++) {
-      CacheGenerator.cachedMethod(buff, declaredMethods[i], i);
+      CacheGeneratorUtil.cachedMethod(buff, declaredMethods[i], i);
       dispatchGenerator.dispatchMethod(buff, declaredMethods[i], handlers);
     }
     //End of Class

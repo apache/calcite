@@ -37,9 +37,9 @@ import java.nio.file.Paths;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
- * Test {@link RelMetadataHandlerGenerator}.
+ * Test {@link RelMetadataHandlerGeneratorUtil}.
  */
-class RelMetadataHandlerGeneratorTest {
+class RelMetadataHandlerGeneratorUtilTest {
   private static final Path RESULT_DIR = Paths.get("build/metadata");
 
   @Test void testAllPredicatesGenerateHandler() {
@@ -142,8 +142,8 @@ class RelMetadataHandlerGeneratorTest {
    * Performance a regression test on the generated code for a given handler.
    */
   private void testGenerateHandler(Class<? extends MetadataHandler<?>> handlerClass) {
-    RelMetadataHandlerGenerator.HandlerNameAndGeneratedCode nameAndGeneratedCode =
-        RelMetadataHandlerGenerator.generateHandler(handlerClass,
+    RelMetadataHandlerGeneratorUtil.HandlerNameAndGeneratedCode nameAndGeneratedCode =
+        RelMetadataHandlerGeneratorUtil.generateHandler(handlerClass,
             DefaultRelMetadataProvider.INSTANCE.handlers(handlerClass));
     String resourcePath =
         nameAndGeneratedCode.getHandlerName().replace(".", "/") + ".java";
@@ -158,7 +158,7 @@ class RelMetadataHandlerGeneratorTest {
 
   private static String readResource(String resourceName) {
     URL url = castNonNull(
-        RelMetadataHandlerGeneratorTest.class.getClassLoader().getResource(resourceName));
+        RelMetadataHandlerGeneratorUtilTest.class.getClassLoader().getResource(resourceName));
     try (Reader reader = Sources.of(url).reader()) {
       return CharStreams.toString(reader).replace("\r\n", "\n");
     } catch (IOException e) {

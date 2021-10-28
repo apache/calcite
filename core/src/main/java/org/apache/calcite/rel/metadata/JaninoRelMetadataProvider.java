@@ -19,7 +19,7 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.JaninoRexCompiler;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.janino.RelMetadataHandlerGenerator;
+import org.apache.calcite.rel.metadata.janino.RelMetadataHandlerGeneratorUtil;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
@@ -127,8 +127,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     final List<? extends MetadataHandler<? extends Metadata>> uniqueHandlers = handlers.stream()
         .distinct()
         .collect(Collectors.toList());
-    RelMetadataHandlerGenerator.HandlerNameAndGeneratedCode handlerNameAndGeneratedCode =
-        RelMetadataHandlerGenerator.generateHandler(handlerClass, uniqueHandlers);
+    RelMetadataHandlerGeneratorUtil.HandlerNameAndGeneratedCode handlerNameAndGeneratedCode =
+        RelMetadataHandlerGeneratorUtil.generateHandler(handlerClass, uniqueHandlers);
 
     try {
       return compile(handlerNameAndGeneratedCode.getHandlerName(),

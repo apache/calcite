@@ -37,9 +37,9 @@ import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.paramList
 /**
  * Generates caching code for janino backed metadata.
  */
-class CacheGenerator {
+class CacheGeneratorUtil {
 
-  private CacheGenerator() {
+  private CacheGeneratorUtil() {
   }
 
   static void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
