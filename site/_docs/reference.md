@@ -1150,7 +1150,8 @@ Note:
 
 | Type     | Description                | Example literals
 |:-------- |:---------------------------|:---------------
-| ANY      | A value of an unknown type |
+| ANY      | The union of all types |
+| UNKNOWN  | A value of an unknown type; used as a placeholder |
 | ROW      | Row with 1 or more columns | Example: Row(f0 int null, f1 varchar)
 | MAP      | Collection of keys mapped to values |
 | MULTISET | Unordered collection that may contain duplicates | Example: int multiset

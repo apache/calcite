@@ -40,7 +40,7 @@ public class BasicSqlType extends AbstractSqlType {
 
   private final int precision;
   private final int scale;
-  private final RelDataTypeSystem typeSystem;
+  protected final RelDataTypeSystem typeSystem;
   private final @Nullable SqlCollation collation;
   private final @Nullable SerializableCharset wrappedCharset;
 
@@ -54,19 +54,14 @@ public class BasicSqlType extends AbstractSqlType {
    * @param typeName Type name
    */
   public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName) {
-    this(typeSystem, typeName, false, PRECISION_NOT_SPECIFIED,
-        SCALE_NOT_SPECIFIED, null, null);
-    checkPrecScale(typeName, false, false);
+    this(typeSystem, typeName, false);
   }
 
-  /** Throws if {@code typeName} does not allow the given combination of
-   * precision and scale. */
-  protected static void checkPrecScale(SqlTypeName typeName,
-      boolean precisionSpecified, boolean scaleSpecified) {
-    if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
-      throw new AssertionError("typeName.allowsPrecScale("
-          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
-    }
+  protected BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
+      boolean nullable) {
+    this(typeSystem, typeName, nullable, PRECISION_NOT_SPECIFIED,
+        SCALE_NOT_SPECIFIED, null, null);
+    checkPrecScale(typeName, false, false);
   }
 
   /**
@@ -113,6 +108,16 @@ public class BasicSqlType extends AbstractSqlType {
     this.collation = collation;
     this.wrappedCharset = wrappedCharset;
     computeDigest();
+  }
+
+  /** Throws if {@code typeName} does not allow the given combination of
+   * precision and scale. */
+  protected static void checkPrecScale(SqlTypeName typeName,
+      boolean precisionSpecified, boolean scaleSpecified) {
+    if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
+      throw new AssertionError("typeName.allowsPrecScale("
+          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
