@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl.UnknownSqlType;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -33,6 +34,7 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.Is.isA;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -212,4 +214,18 @@ class SqlTypeFactoryTest {
     assertThat(tsWithPrecision3 == tsWithPrecision8, is(true));
   }
 
+  /** Test that the {code UNKNOWN} type does not does not change class when nullified. */
+  @Test void testUnknownCreateWithNullabiliityTypeConsistency() {
+    SqlTypeFixture f = new SqlTypeFixture();
+
+    RelDataType unknownType  = f.typeFactory.createUnknownType();
+    assertThat(unknownType, isA(UnknownSqlType.class));
+    assertThat(unknownType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertFalse(unknownType.isNullable());
+
+    RelDataType nullableRelDataType = f.typeFactory.createTypeWithNullability(unknownType, true);
+    assertThat(nullableRelDataType, isA(UnknownSqlType.class));
+    assertThat(nullableRelDataType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertTrue(nullableRelDataType.isNullable());
+  }
 }
