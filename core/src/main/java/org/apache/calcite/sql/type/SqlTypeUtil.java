@@ -824,6 +824,9 @@ public abstract class SqlTypeUtil {
 
     final SqlTypeName fromTypeName = fromType.getSqlTypeName();
     final SqlTypeName toTypeName = toType.getSqlTypeName();
+    if (toTypeName == SqlTypeName.UNKNOWN) {
+      return true;
+    }
     if (toType.isStruct() || fromType.isStruct()) {
       if (toTypeName == SqlTypeName.DISTINCT) {
         if (fromTypeName == SqlTypeName.DISTINCT) {

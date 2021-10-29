@@ -571,8 +571,20 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   /** The unknown type. Similar to the NULL type, but is only equal to
    * itself. */
   private static class UnknownSqlType extends BasicSqlType {
+
     UnknownSqlType(RelDataTypeFactory typeFactory) {
-      super(typeFactory.getTypeSystem(), SqlTypeName.NULL);
+      this(typeFactory.getTypeSystem(), false);
+    }
+
+    private UnknownSqlType(RelDataTypeSystem typeSystem, boolean nullable) {
+      super(typeSystem, SqlTypeName.UNKNOWN, nullable);
+    }
+
+    @Override BasicSqlType createWithNullability(boolean nullable) {
+      if (nullable == this.isNullable) {
+        return this;
+      }
+      return new UnknownSqlType(this.typeSystem, nullable);
     }
 
     @Override protected void generateTypeString(StringBuilder sb,

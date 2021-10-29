@@ -40,7 +40,7 @@ public class BasicSqlType extends AbstractSqlType {
 
   private final int precision;
   private final int scale;
-  private final RelDataTypeSystem typeSystem;
+  protected final RelDataTypeSystem typeSystem;
   private final @Nullable SqlCollation collation;
   private final @Nullable SerializableCharset wrappedCharset;
 
@@ -54,7 +54,11 @@ public class BasicSqlType extends AbstractSqlType {
    * @param typeName Type name
    */
   public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName) {
-    this(typeSystem, typeName, false, PRECISION_NOT_SPECIFIED,
+    this(typeSystem, typeName, false);
+  }
+
+  public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName, boolean nullable) {
+    this(typeSystem, typeName, nullable, PRECISION_NOT_SPECIFIED,
         SCALE_NOT_SPECIFIED, null, null);
     checkPrecScale(typeName, false, false);
   }
