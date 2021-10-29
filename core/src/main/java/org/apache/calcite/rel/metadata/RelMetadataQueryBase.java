@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
 
+import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Proxy;
@@ -68,6 +69,7 @@ public class RelMetadataQueryBase {
   @Deprecated // to be removed before 2.0
   public final Table<RelNode, Object, Object> map;
 
+  @API(status = API.Status.INTERNAL)
   public final MetadataCache cache;
   protected final MetadataHandlerProvider metadataHandlerProvider;
 

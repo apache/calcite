@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * Rel Metadata cache back by @see HashBasedTable table.
  */
-public class TableMetadataCache implements MetadataCache {
+class TableMetadataCache implements MetadataCache {
   public final Table<RelNode, Object, Object> map = HashBasedTable.create();
 
   /**

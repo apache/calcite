@@ -81,7 +81,6 @@ import org.apache.calcite.rel.metadata.RelMdColumnUniqueness;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.metadata.TableMetadataCache;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -115,12 +114,14 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.CoreMatchers;
@@ -1684,27 +1685,33 @@ public class RelMetadataTest extends SqlToRelTestBase {
    */
   @Deprecated
   static class LegacyInvalidationMetadataCache implements MetadataCache {
-    private final TableMetadataCache metadataCache = new TableMetadataCache();
+    public final Table<RelNode, Object, Object> map = HashBasedTable.create();
 
     @Deprecated
     @Override public boolean clear(RelNode rel) {
-      return metadataCache.clear(rel);
+      Map<Object, Object> row = map.row(rel);
+      if (row.isEmpty()) {
+        return false;
+      }
+
+      row.clear();
+      return true;
     }
 
     @Deprecated
     @Override public @Nullable Object remove(RelNode relNode, Object args) {
-      return metadataCache.remove(relNode, toArgList(relNode, args));
+      return map.remove(relNode, toArgList(relNode, args));
     }
 
     @Deprecated
     @Override public @Nullable Object get(RelNode relNode, Object args) {
-      return metadataCache.get(relNode, toArgList(relNode, args));
+      return map.get(relNode, toArgList(relNode, args));
     }
 
     @Deprecated
     @Override public @Nullable Object put(RelNode relNode,
         Object args, Object value) {
-      return metadataCache.put(relNode, toArgList(relNode, args), value);
+      return map.put(relNode, toArgList(relNode, args), value);
     }
 
     @Deprecated
