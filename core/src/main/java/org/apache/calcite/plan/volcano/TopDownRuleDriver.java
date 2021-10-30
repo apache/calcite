@@ -440,7 +440,7 @@ class TopDownRuleDriver implements RuleDriver {
       input.setExplored();
       for (RelSubset subset : input.getSet().subsets) {
         // Clear the LB cache as exploring state has changed.
-        input.getCluster().getMetadataQuery().cache.clear(subset);
+        input.getCluster().getMetadataQuery().clearCache(subset);
       }
     }
 
