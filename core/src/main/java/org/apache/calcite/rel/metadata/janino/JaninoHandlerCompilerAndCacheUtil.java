@@ -42,7 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Util for {@ref RelMetadataHandler}.
+ * Util for compiling, instantating, caching of {@link RelMetadataHandler}.
  */
 public class JaninoHandlerCompilerAndCacheUtil {
 
