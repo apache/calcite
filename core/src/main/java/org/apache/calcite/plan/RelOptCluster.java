@@ -144,7 +144,7 @@ public class RelOptCluster {
    * @param metadataProvider custom provider
    */
   @EnsuresNonNull({"this.metadataProvider", "this.metadataFactory"})
-  @SuppressWarnings("deprecation")
+  @Deprecated
   public void setMetadataProvider(
       @UnknownInitialization RelOptCluster this,
       RelMetadataProvider metadataProvider) {

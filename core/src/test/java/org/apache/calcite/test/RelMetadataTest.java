@@ -145,6 +145,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -214,9 +215,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   private static RelNode convertSql(Tester tester, String sql) {
-    final RelRoot root = tester.convertSqlToRel(sql);
-    root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
-    return root.rel;
+    return tester.convertSqlToRel(sql).rel;
   }
 
   private RelNode convertSql(String sql, boolean typeCoercion) {
@@ -1041,7 +1040,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
       };
 
       RelOptCluster cluster = rel.getCluster();
-      cluster.setMetadataProvider(wrappedProvider);
+      cluster.setMetadataQuerySupplier(
+          RelMetadataQuery.builder()
+              .withProviders(wrappedProvider)
+              .createSupplier());
       cluster.invalidateMetadataQuery();
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       final Double result = mq.getRowCount(rel);
@@ -1542,17 +1544,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
+          cluster.setMetadataQuerySupplier(
+              RelMetadataQuery.builder(MyRelMetadataQuery::new, MyRelMetadataQuery::new)
+                  .withProviders(BrokenColTypeImpl.SOURCE)
+                  .createSupplier());
           return cluster;
         })
         .convertSqlToRel(sql);
 
     final RelNode rel = root.rel;
     assertThat(rel, instanceOf(LogicalFilter.class));
-    final MyRelMetadataQuery mq = new MyRelMetadataQuery();
+    final MyRelMetadataQuery mq = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
 
     try {
       assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
@@ -1575,11 +1577,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(
+              RelMetadataQuery.builder(MyRelMetadataQuery::new, MyRelMetadataQuery::new)
+                  .withProviders(BrokenColTypeImpl.SOURCE)
+                  .createSupplier());
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -1724,7 +1725,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Deprecated
   @Test void testSupportLegacyCachingBehaviorViaMetadataQuery() {
-    JaninoMetadataHandlerProvider provider = new JaninoMetadataHandlerProvider() {
+    JaninoMetadataHandlerProvider provider = new JaninoMetadataHandlerProvider(
+        ColTypeImpl.SOURCE) {
       @Override public MetadataCache buildCache() {
         return new LegacyInvalidationMetadataCache();
       }
@@ -1738,7 +1740,6 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester.convertSqlToRel(sql);
     final RelNode rel = root.rel;
-    rel.getCluster().setMetadataProvider(ColTypeImpl.SOURCE);
     final RelMetadataQuery mq = new CustomMq(prototype);
 
     // Top node is a filter. Its metadata uses getColType(RelNode, int).
@@ -1788,12 +1789,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
         .withClusterFactory(cluster -> {
           // Create a custom provider that includes ColType.
           // Include the same provider twice just to be devious.
-          final ImmutableList<RelMetadataProvider> list =
-              ImmutableList.of(ColTypeImpl.SOURCE, ColTypeImpl.SOURCE,
-                  cluster.getMetadataProvider());
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(list));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(
+              RelMetadataQuery.builder(MyRelMetadataQuery::new, MyRelMetadataQuery::new)
+                  .withProviders(ColTypeImpl.SOURCE, ColTypeImpl.SOURCE)
+                  .createSupplier());
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -3662,11 +3661,18 @@ public class RelMetadataTest extends SqlToRelTestBase {
    *
    * <p>Illustrates how you would package up a user-defined metadata type. */
   private static class MyRelMetadataQuery extends RelMetadataQuery {
+    private static final Supplier<RelMetadataQuery> SUPPLIER = builder(
+        MyRelMetadataQuery::new, MyRelMetadataQuery::new).createSupplier();
     private ColType.Handler colTypeHandler;
 
-    MyRelMetadataQuery() {
-      colTypeHandler =
-          JaninoMetadataHandlerProvider.INSTANCE.initialHandler(ColType.Handler.class);
+    private MyRelMetadataQuery(MetadataHandlerProvider metadataHandlerProvider) {
+      super(metadataHandlerProvider);
+      colTypeHandler = metadataHandlerProvider.initialHandler(ColType.Handler.class);
+    }
+
+    private MyRelMetadataQuery(MyRelMetadataQuery prototype) {
+      super(prototype);
+      colTypeHandler = prototype.colTypeHandler;
     }
 
     public String colType(RelNode rel, int column) {

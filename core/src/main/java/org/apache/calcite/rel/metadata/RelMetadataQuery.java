@@ -38,6 +38,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -77,8 +79,9 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * plugin mechanism.
  */
 public class RelMetadataQuery extends RelMetadataQueryBase {
+  @Deprecated
   private static final RelMetadataQuery PROTOTYPE =
-      new RelMetadataQuery(JaninoMetadataHandlerProvider.INSTANCE);
+      new RelMetadataQuery(LegacyJaninoMetadataHandlerProvider.INSTANCE);
 
   private BuiltInMetadata.Collation.Handler collationHandler;
   private BuiltInMetadata.ColumnOrigin.Handler columnOriginHandler;
@@ -108,6 +111,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   /**
    * Creates the instance using the Handler.classualt prototype.
    */
+  @Deprecated
   protected RelMetadataQuery() {
     this(PROTOTYPE);
   }
@@ -202,7 +206,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * occur while computing metadata.
    */
   public static RelMetadataQuery instance() {
-    return new RelMetadataQuery();
+    return new RelMetadataQuery(PROTOTYPE);
   }
 
   /**
@@ -919,6 +923,55 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         lowerBoundCostHandler =
             metadataHandlerProvider.revise(BuiltInMetadata.LowerBoundCost.Handler.class);
       }
+    }
+  }
+
+  public static Builder<RelMetadataQuery> builder() {
+    return new Builder<>(RelMetadataQuery::new, RelMetadataQuery::new,
+        DefaultRelMetadataProvider.INSTANCE);
+  }
+
+  public static <MDQ extends RelMetadataQuery> Builder<MDQ> builder(
+      Function<MetadataHandlerProvider, MDQ> createPrototypeQuery,
+      Function<MDQ, MDQ> createQueryFromPrototype) {
+
+    return new Builder<>(createPrototypeQuery, createQueryFromPrototype,
+        DefaultRelMetadataProvider.INSTANCE);
+  }
+
+  /**
+   * Used to create custom {@link RelMetadataQuery} and bind {@link RelMetadataProvider}.
+   * @param <MDQ> Custom Metadata query type
+   */
+  public static class Builder<MDQ extends RelMetadataQuery> {
+    private final Function<MetadataHandlerProvider, MDQ> createPrototypeQuery;
+    private final Function<MDQ, MDQ> createQueryFromPrototype;
+    private final RelMetadataProvider relMetadataProvider;
+
+
+    private Builder(
+        Function<MetadataHandlerProvider, MDQ> prototypeFunction,
+        Function<MDQ, MDQ> queryFunction,
+        RelMetadataProvider provider) {
+      this.createPrototypeQuery = prototypeFunction;
+      this.createQueryFromPrototype = queryFunction;
+      this.relMetadataProvider = provider;
+    }
+
+    public Builder<MDQ> withProviders(RelMetadataProvider...relMetadataProviders) {
+      RelMetadataProvider newProvider = ChainedRelMetadataProvider.of(
+          ImmutableList.<RelMetadataProvider>builder()
+              .add(relMetadataProviders)
+              .add(this.relMetadataProvider)
+              .build());
+      return new Builder<>(createPrototypeQuery, createQueryFromPrototype,
+          newProvider);
+    }
+
+    public Supplier<RelMetadataQuery> createSupplier() {
+      MDQ prototype = createPrototypeQuery.apply(
+          new JaninoMetadataHandlerProvider(relMetadataProvider));
+      return () -> createQueryFromPrototype.apply(prototype);
     }
   }
 }

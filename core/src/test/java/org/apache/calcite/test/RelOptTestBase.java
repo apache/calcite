@@ -29,9 +29,6 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
-import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
-import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.test.SqlTestFactory;
@@ -46,8 +43,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -113,12 +108,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
         RelOptPlanner planner, RelNode relInitial, boolean unchanged) {
     assertNotNull(relInitial);
     final DiffRepository diffRepos = getDiffRepos();
-    List<RelMetadataProvider> list = new ArrayList<>();
-    list.add(DefaultRelMetadataProvider.INSTANCE);
-    RelMetadataProvider plannerChain =
-        ChainedRelMetadataProvider.of(list);
     final RelOptCluster cluster = relInitial.getCluster();
-    cluster.setMetadataProvider(plannerChain);
 
     RelNode relBefore;
     if (preProgram == null) {

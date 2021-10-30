@@ -19,6 +19,8 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.janino.JaninoHandlerCompilerAndCacheUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Proxy;
 
 import static java.util.Objects.requireNonNull;
@@ -26,11 +28,15 @@ import static java.util.Objects.requireNonNull;
 /**
  * Provides metadata handlers generated via Janino.
  */
-public class JaninoMetadataHandlerProvider implements MetadataHandlerProvider {
-  private final RelMetadataProvider relMetadataProvider;
+@Deprecated
+class LegacyJaninoMetadataHandlerProvider implements MetadataHandlerProvider {
 
-  public JaninoMetadataHandlerProvider(RelMetadataProvider relMetadataProvider) {
-    this.relMetadataProvider = relMetadataProvider;
+  public static final LegacyJaninoMetadataHandlerProvider INSTANCE =
+      new LegacyJaninoMetadataHandlerProvider();
+  private static final ThreadLocal<@Nullable RelMetadataProvider> METADATA_PROVIDER_THREAD_LOCAL =
+      new ThreadLocal<>();
+
+  private LegacyJaninoMetadataHandlerProvider() {
   }
 
   @Override public <MH extends MetadataHandler<?>> MH initialHandler(Class<MH> handlerClass) {
@@ -38,12 +44,14 @@ public class JaninoMetadataHandlerProvider implements MetadataHandlerProvider {
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
             new Class[] {handlerClass}, (proxy, method, args) -> {
               final RelNode r = requireNonNull((RelNode) args[0], "(RelNode) args[0]");
+              METADATA_PROVIDER_THREAD_LOCAL.set(r.getCluster().getMetadataProvider());
               throw new NoHandler(r.getClass());
             }));
   }
 
   @Override public <MH extends MetadataHandler<?>> MH revise(Class<MH> handlerClass) {
-    return JaninoHandlerCompilerAndCacheUtil.getHandler(relMetadataProvider, handlerClass);
+    RelMetadataProvider provider = requireNonNull(METADATA_PROVIDER_THREAD_LOCAL.get());
+    return JaninoHandlerCompilerAndCacheUtil.getHandler(provider, handlerClass);
   }
 
   @Override public MetadataCache buildCache() {

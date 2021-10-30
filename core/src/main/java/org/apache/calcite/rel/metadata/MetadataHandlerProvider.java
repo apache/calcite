@@ -26,10 +26,10 @@ import org.apache.calcite.util.ControlFlowException;
  */
 public interface MetadataHandlerProvider {
 
-  <H extends MetadataHandler<M>, M extends Metadata> H initialHandler(Class<H> handlerClass);
+  <MH extends MetadataHandler<?>> MH initialHandler(Class<MH> handlerClass);
 
   /** Re-generates the handler for a given kind of metadata.. */
-  <H extends MetadataHandler<M>, M extends Metadata> H revise(Class<H> handlerClass);
+  <MH extends MetadataHandler<?>> MH revise(Class<MH> handlerClass);
 
   /**
    * Creates a new cache.
