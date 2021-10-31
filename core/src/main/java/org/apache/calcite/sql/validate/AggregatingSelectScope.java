@@ -27,20 +27,16 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMultiset;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -57,13 +53,6 @@ public class AggregatingSelectScope
 
   private final SqlSelect select;
   private final boolean distinct;
-
-  /** Use while resolving. */
-  private SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;
-
-  @SuppressWarnings("methodref.receiver.bound.invalid")
-  public final Supplier<Resolved> resolved =
-      Suppliers.memoize(this::resolve)::get;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -88,49 +77,49 @@ public class AggregatingSelectScope
 
   //~ Methods ----------------------------------------------------------------
 
-  private Resolved resolve() {
-    assert groupAnalyzer == null : "resolve already in progress";
-    SqlValidatorUtil.GroupAnalyzer groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
-    this.groupAnalyzer = groupAnalyzer;
-    try {
-      final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
-          ImmutableList.builder();
-      boolean groupByDistinct = false;
-      if (select.getGroup() != null) {
-        SqlNodeList groupList = select.getGroup();
-        // if the DISTINCT keyword of GROUP BY is present it can be the only item
-        if (groupList.size() == 1 && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
-          groupList = new SqlNodeList(((SqlCall) groupList.get(0)).getOperandList(),
-              groupList.getParserPosition());
-          groupByDistinct = true;
-        }
-        for (SqlNode groupExpr : groupList) {
-          SqlValidatorUtil.analyzeGroupItem(this, groupAnalyzer, builder,
-              groupExpr);
-        }
-      }
+  @Override protected void analyze(SqlValidatorUtil.GroupAnalyzer analyzer) {
+    super.analyze(analyzer);
 
-      final List<ImmutableBitSet> flatGroupSets = new ArrayList<>();
-      for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
-        flatGroupSets.add(ImmutableBitSet.union(groupSet));
+    final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
+        ImmutableList.builder();
+    boolean groupByDistinct = false;
+    if (select.getGroup() != null) {
+      SqlNodeList groupList = select.getGroup();
+      // if the DISTINCT keyword of GROUP BY is present it can be the only item
+      if (groupList.size() == 1
+          && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+        groupList = new SqlNodeList(((SqlCall) groupList.get(0)).getOperandList(),
+            groupList.getParserPosition());
+        groupByDistinct = true;
       }
-
-      // For GROUP BY (), we need a singleton grouping set.
-      if (flatGroupSets.isEmpty()) {
-        flatGroupSets.add(ImmutableBitSet.of());
+      for (SqlNode groupExpr : groupList) {
+        SqlValidatorUtil.analyzeGroupItem(this, analyzer, builder,
+            groupExpr);
       }
-
-      if (groupByDistinct) {
-        ImmutableSet<ImmutableBitSet> sets = ImmutableSet.copyOf(flatGroupSets);
-        flatGroupSets.clear();
-        flatGroupSets.addAll(sets);
-      }
-
-      return new Resolved(groupAnalyzer.extraExprs, groupAnalyzer.groupExprs,
-          flatGroupSets, groupAnalyzer.groupExprProjection);
-    } finally {
-      this.groupAnalyzer = null;
     }
+
+    for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
+      analyzer.flatGroupSets.add(ImmutableBitSet.union(groupSet));
+    }
+
+    // For GROUP BY (), we need a singleton grouping set.
+    if (analyzer.flatGroupSets.isEmpty()) {
+      analyzer.flatGroupSets.add(ImmutableBitSet.of());
+    }
+
+    if (groupByDistinct) {
+      assign(analyzer.flatGroupSets, Util.distinctList(analyzer.flatGroupSets));
+    }
+  }
+
+  /** Replaces the contents of {@code target} collection with the contents of
+   * {@code source}. */
+  private static <E> void assign(Collection<E> target, Collection<E> source) {
+    if (source == target) {
+      return;
+    }
+    target.clear();
+    target.addAll(source);
   }
 
   /**
@@ -245,7 +234,6 @@ public class AggregatingSelectScope
   /** Information about an aggregating scope that can only be determined
    * after validation has occurred. Therefore it cannot be populated when
    * the scope is created. */
-  @SuppressWarnings("UnstableApiUsage")
   public static class Resolved {
     public final ImmutableList<SqlNode> extraExprList;
     public final ImmutableList<SqlNode> groupExprList;

@@ -33,6 +33,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,6 +45,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -64,6 +67,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   protected final SqlValidatorScope parent;
   protected final SqlValidatorImpl validator;
+
+  /** Computes and stores information that cannot be computed on construction,
+   * but only after sub-queries have been validated. */
+  @SuppressWarnings({"methodref.receiver.bound.invalid", "FunctionalExpressionCanBeFolded"})
+  public final Supplier<AggregatingSelectScope.Resolved> resolved =
+      Suppliers.memoize(this::resolve)::get;
+
+  /** Use while resolving. */
+  SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -584,6 +596,38 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       }
     }
     return false;
+  }
+
+  private AggregatingSelectScope.Resolved resolve() {
+    Preconditions.checkArgument(groupAnalyzer == null,
+        "resolve already in progress");
+    SqlValidatorUtil.GroupAnalyzer groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
+    this.groupAnalyzer = groupAnalyzer;
+    try {
+      analyze(groupAnalyzer);
+      return groupAnalyzer.finish();
+    } finally {
+      this.groupAnalyzer = null;
+    }
+  }
+
+  /** Analyzes expressions in this scope and populates a
+   * {@code GroupAnalyzer}. */
+  protected void analyze(SqlValidatorUtil.GroupAnalyzer analyzer) {
+    final SelectScope selectScope = SqlValidatorUtil.getEnclosingSelectScope(this);
+    if (selectScope != null) {
+      // Find all expressions in this scope that reference measures
+      for (ScopeChild child : selectScope.children) {
+        if (child.namespace instanceof SelectNamespace) {
+          final SqlSelect select = ((SelectNamespace) child.namespace).getNode();
+          Pair.forEach(select.getSelectList(),
+              child.namespace.getRowType().getFieldList(),
+              (selectItem, field) -> {
+                // TODO
+              });
+        }
+      }
+    }
   }
 
   /**

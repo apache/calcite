@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -149,9 +150,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         name);
   }
 
-  @Override public boolean fieldExists(String name) {
+  @Override public @Nullable RelDataTypeField field(String name) {
     final RelDataType rowType = getRowType();
-    return validator.catalogReader.nameMatcher().field(rowType, name) != null;
+    return validator.catalogReader.nameMatcher().field(rowType, name);
   }
 
   @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
