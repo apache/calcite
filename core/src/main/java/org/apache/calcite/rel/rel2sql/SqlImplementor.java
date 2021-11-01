@@ -236,7 +236,7 @@ public abstract class SqlImplementor {
   public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
-    String alias = SqlValidatorUtil.getAlias(node, -1);
+    @Nullable String alias = SqlValidatorUtil.alias(node);
     if (alias == null || !alias.equals(name)) {
       node = as(node, name);
     }
@@ -389,7 +389,7 @@ public abstract class SqlImplementor {
         || aliases instanceof LinkedHashMap
         || aliases instanceof ImmutableMap
         : "must use a Map implementation that preserves order";
-    final String alias2 = SqlValidatorUtil.getAlias(node, -1);
+    final @Nullable String alias2 = SqlValidatorUtil.alias(node);
     final String alias3 = alias2 != null ? alias2 : "t";
     final String alias4 =
         SqlValidatorUtil.uniquify(
@@ -444,7 +444,7 @@ public abstract class SqlImplementor {
           rowType.getFieldList(),
           (selectItem, field) ->
               builder.add(
-                  Util.first(SqlValidatorUtil.getAlias(selectItem, -1),
+                  Util.first(SqlValidatorUtil.alias(selectItem),
                       field.getName()),
                   field.getType()));
       return builder.build();
@@ -490,8 +490,7 @@ public abstract class SqlImplementor {
       collectAliases(builder, join.getLeft(),  aliases);
       collectAliases(builder, join.getRight(), aliases);
     } else {
-      final String alias = SqlValidatorUtil.getAlias(node, -1);
-      assert alias != null;
+      final String alias = requireNonNull(SqlValidatorUtil.alias(node), "alias");
       builder.put(alias, aliases.next());
     }
   }
@@ -1743,8 +1742,8 @@ public abstract class SqlImplementor {
               final String name = ((SqlIdentifier) node).getSimple();
               for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
                 if (selectItem.i != ordinal) {
-                  final String alias =
-                      SqlValidatorUtil.getAlias(selectItem.e, -1);
+                  final @Nullable String alias =
+                      SqlValidatorUtil.alias(selectItem.e);
                   if (name.equalsIgnoreCase(alias)) {
                     return SqlLiteral.createExactNumeric(
                         Integer.toString(ordinal + 1), SqlParserPos.ZERO);

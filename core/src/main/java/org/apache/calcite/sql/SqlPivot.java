@@ -132,7 +132,7 @@ public class SqlPivot extends SqlCall {
   public void forEachAgg(BiConsumer<@Nullable String, SqlNode> consumer) {
     for (SqlNode agg : aggList) {
       final SqlNode call = SqlUtil.stripAs(agg);
-      final String alias = SqlValidatorUtil.getAlias(agg, -1);
+      final @Nullable String alias = SqlValidatorUtil.alias(agg);
       consumer.accept(alias, call);
     }
   }

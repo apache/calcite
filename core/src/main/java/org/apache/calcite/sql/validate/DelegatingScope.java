@@ -74,9 +74,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   DelegatingScope(SqlValidatorScope parent) {
     super();
-    assert parent != null;
+    this.parent = requireNonNull(parent, "parent");
     this.validator = (SqlValidatorImpl) parent.getValidator();
-    this.parent = parent;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -397,8 +396,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       // change "e.empno" to "E.empno".
       if (fromNs.getEnclosingNode() != null
           && !(this instanceof MatchRecognizeScope)) {
-        String alias =
-            SqlValidatorUtil.getAlias(fromNs.getEnclosingNode(), -1);
+        @Nullable String alias =
+            SqlValidatorUtil.alias(fromNs.getEnclosingNode());
         if (alias != null
             && i > 0
             && !alias.equals(identifier.names.get(i - 1))) {
