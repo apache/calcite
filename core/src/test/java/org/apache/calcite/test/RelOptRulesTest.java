@@ -5644,9 +5644,11 @@ class RelOptRulesTest extends RelOptTestBase {
    * empno is unique and all aggregate functions are splittable.
    */
   @Test void testAggregateRemove1() {
-    final String sql = "select empno, sum(sal), min(sal), max(sal), "
-        + "bit_and(distinct sal), bit_or(sal), count(distinct sal) "
-        + "from sales.emp group by empno, deptno\n";
+    final String sql = "select empno, sum(sal), min(sal), max(sal),\n"
+        + " bit_and(distinct sal), bit_or(sal), count(distinct sal),\n"
+        + " grouping(deptno)\n"
+        + "from sales.emp\n"
+        + "group by empno, deptno";
     sql(sql)
         .withRule(CoreRules.AGGREGATE_REMOVE,
             CoreRules.PROJECT_MERGE)

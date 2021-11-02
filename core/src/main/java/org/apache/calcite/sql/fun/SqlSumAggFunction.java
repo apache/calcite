@@ -80,7 +80,7 @@ public class SqlSumAggFunction extends SqlAggFunction {
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
-    if (clazz == SqlSplittableAggFunction.class) {
+    if (clazz.isInstance(SqlSplittableAggFunction.SumSplitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.SumSplitter.INSTANCE);
     }
     return super.unwrap(clazz);

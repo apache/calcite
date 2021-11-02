@@ -98,6 +98,8 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.adapter.enumerable.EnumUtils.generateCollatorExpression;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Add;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Divide;
@@ -111,6 +113,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlInternalOperators.LITERAL_AGG;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
@@ -871,6 +874,7 @@ public class RexImpTable {
           constructorSupplier(GroupingImplementor.class);
       aggMap.put(GROUPING, grouping);
       aggMap.put(GROUPING_ID, grouping);
+      aggMap.put(LITERAL_AGG, constructorSupplier(LiteralAggImplementor.class));
       winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
       winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
       winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
@@ -1685,6 +1689,27 @@ public class RexImpTable {
         }
       }
       return e != null ? e : Expressions.constant(0, info.returnType());
+    }
+  }
+
+  /** Implementor for the {@code LITERAL_AGG} aggregate function. */
+  static class LiteralAggImplementor implements AggImplementor {
+    @Override public List<Type> getStateType(AggContext info) {
+      return ImmutableList.of();
+    }
+
+    @Override public void implementReset(AggContext info, AggResetContext reset) {
+    }
+
+    @Override public void implementAdd(AggContext info, AggAddContext add) {
+    }
+
+    @Override public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      checkArgument(info.aggregation().kind == SqlKind.LITERAL_AGG);
+      checkArgument(result.call().rexList.size() == 1);
+      final RexNode rexNode = result.call().rexList.get(0);
+      return result.resultTranslator().translate(rexNode);
     }
   }
 

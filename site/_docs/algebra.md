@@ -506,9 +506,10 @@ The following methods return an
 | `aggregateCall(op, expr...)`<br/>`aggregateCall(op, exprList)` | Creates a call to a given aggregate function
 | `count([ distinct, alias, ] expr...)`<br/>`count([ distinct, alias, ] exprList)` | Creates a call to the `COUNT` aggregate function
 | `countStar(alias)` | Creates a call to the `COUNT(*)` aggregate function
-| `sum([ distinct, alias, ] expr)` | Creates a call to the `SUM` aggregate function
-| `min([ alias, ] expr)` | Creates a call to the `MIN` aggregate function
+| `literalAgg(value)` | Creates a call to an aggregate function that always evaluates to *value*
 | `max([ alias, ] expr)` | Creates a call to the `MAX` aggregate function
+| `min([ alias, ] expr)` | Creates a call to the `MIN` aggregate function
+| `sum([ distinct, alias, ] expr)` | Creates a call to the `SUM` aggregate function
 
 To further modify the `AggCall`, call its methods:
 

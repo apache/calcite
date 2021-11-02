@@ -101,7 +101,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
-import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
@@ -3229,8 +3228,8 @@ public class RelMetadataTest {
   /** Tests calling {@link RelMetadataQuery#getTableOrigin} for
    * an aggregate with no columns. Previously threw. */
   @Test void testEmptyAggregateTableOrigin() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+    final RelBuilder builder =
+        RelBuilderTest.createBuilder(b -> b.withPreventEmptyFieldList(false));
     RelMetadataQuery mq = builder.getCluster().getMetadataQuery();
     RelNode agg = builder
         .scan("EMP")
@@ -3241,8 +3240,7 @@ public class RelMetadataTest {
   }
 
   @Test void testGetPredicatesForJoin() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+    final RelBuilder builder = RelBuilderTest.createBuilder();
     RelNode join = builder
         .scan("EMP")
         .scan("DEPT")
@@ -3266,9 +3264,8 @@ public class RelMetadataTest {
         is("=($0, $8)"));
   }
 
-  @Test void testGetPredicatesForFilter() throws Exception {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+  @Test void testGetPredicatesForFilter() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
     RelNode filter = builder
         .scan("EMP")
         .filter(builder.call(NONDETERMINISTIC_OP))

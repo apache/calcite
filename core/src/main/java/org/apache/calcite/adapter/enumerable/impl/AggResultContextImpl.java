@@ -18,10 +18,12 @@ package org.apache.calcite.adapter.enumerable.impl;
 
 import org.apache.calcite.adapter.enumerable.AggResultContext;
 import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -68,5 +70,11 @@ public class AggResultContextImpl extends AggResetContextImpl
 
   @Override public AggregateCall call() {
     return requireNonNull(call, "call");
+  }
+
+  @Override public RexToLixTranslator resultTranslator() {
+    requireNonNull(keyPhysType, "keyPhysType");
+    return RexToLixTranslator.forAggregation(keyPhysType.getTypeFactory(),
+        currentBlock(), null, SqlConformanceEnum.DEFAULT);
   }
 }

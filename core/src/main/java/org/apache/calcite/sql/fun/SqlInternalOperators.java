@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
@@ -136,6 +137,10 @@ public abstract class SqlInternalOperators {
   public static final SqlOperator OFFSET =
       SqlBasicOperator.create("OFFSET")
           .withPrecedence(SqlStdOperatorTable.UNION.getLeftPrec() - 2, true);
+
+  /** Aggregate function that always returns a given literal. */
+  public static final SqlAggFunction LITERAL_AGG =
+      SqlLiteralAggFunction.INSTANCE;
 
   /** Subject to change. */
   private static class SqlBasicOperator extends SqlOperator {

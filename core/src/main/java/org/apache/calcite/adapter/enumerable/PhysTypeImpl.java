@@ -117,6 +117,10 @@ public class PhysTypeImpl implements PhysType {
     return format;
   }
 
+  @Override public JavaTypeFactory getTypeFactory() {
+    return typeFactory;
+  }
+
   @Override public PhysType project(List<Integer> integers, JavaRowFormat format) {
     return project(integers, false, format);
   }
