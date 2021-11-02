@@ -882,20 +882,23 @@ LogicalProject(ENAME=['John':VARCHAR(20)], SAL=[$0])
   </TestCase>
   <TestCase name="testAggregateRemove1">
     <Resource name="sql">
-      <![CDATA[select empno, sum(sal), min(sal), max(sal), bit_and(distinct sal), bit_or(sal), count(distinct sal) from sales.emp group by empno, deptno
-]]>
+      <![CDATA[select empno, sum(sal), min(sal), max(sal),
+ bit_and(distinct sal), bit_or(sal), count(distinct sal),
+ grouping(deptno)
+from sales.emp
+group by empno, deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4], EXPR$4=[$5], EXPR$5=[$6], EXPR$6=[$7])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM($2)], EXPR$2=[MIN($2)], EXPR$3=[MAX($2)], EXPR$4=[BIT_AND($2)], EXPR$5=[BIT_OR($2)], EXPR$6=[COUNT(DISTINCT $2)])
+LogicalProject(EMPNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4], EXPR$4=[$5], EXPR$5=[$6], EXPR$6=[$7], EXPR$7=[$8])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM($2)], EXPR$2=[MIN($2)], EXPR$3=[MAX($2)], EXPR$4=[BIT_AND($2)], EXPR$5=[BIT_OR($2)], EXPR$6=[COUNT(DISTINCT $2)], EXPR$7=[GROUPING($1)])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[$5], EXPR$2=[$5], EXPR$3=[$5], EXPR$4=[$5], EXPR$5=[$5], EXPR$6=[1:BIGINT])
+LogicalProject(EMPNO=[$0], EXPR$1=[$5], EXPR$2=[$5], EXPR$3=[$5], EXPR$4=[$5], EXPR$5=[$5], EXPR$6=[1:BIGINT], EXPR$7=[0:BIGINT])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -1326,8 +1329,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[OR(AND(IS NOT NULL($5), <>($2, 0)), AND(<($3
       LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
         LogicalProject(MGR=[$3])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(MGR=[$3], i=[true])
+    LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+      LogicalProject(MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -1340,8 +1343,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[OR(AND(IS NOT NULL($5), <>($2, 0)), AND(<($3
       LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
         LogicalProject(MGR=[$3])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(MGR=[$3], i=[true])
+    LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+      LogicalProject(MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -3533,8 +3536,8 @@ LogicalProject(EMPNO=[$0])
     LogicalFilter(condition=[OR(IS NOT NULL($10), <($5, 100))])
       LogicalJoin(condition=[=($7, $9)], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{0, 1}])
-          LogicalProject(DEPTNO=[$7], i=[true])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(DEPTNO=[$7])
             LogicalFilter(condition=[<($0, 20)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -3579,8 +3582,8 @@ LogicalProject(EMPNO=[$0])
             LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
               LogicalFilter(condition=[<($0, 20)])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{0, 1}])
-          LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)], i=[true])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
             LogicalFilter(condition=[<($0, 20)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -3957,8 +3960,8 @@ LogicalProject(DEPTNO=[$7])
 LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($10), true, false)])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$7], i=[true])
+    LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+      LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[<($0, 20)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -4022,8 +4025,8 @@ LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(true, CAST($7):
           LogicalFilter(condition=[<($0, 20)])
             LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$1], i=[true])
+    LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+      LogicalProject(DEPTNO=[$1])
         LogicalFilter(condition=[<($0, 20)])
           LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])

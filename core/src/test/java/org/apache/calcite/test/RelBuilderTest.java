@@ -124,6 +124,7 @@ import static org.apache.calcite.test.Matchers.hasTree;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -1963,19 +1964,31 @@ public class RelBuilderTest {
             .project()
             .distinct()
             .build();
-    final String expected = "LogicalAggregate(group=[{}])\n"
-        + "  LogicalFilter(condition=[IS NULL($6)])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder()), hasTree(expected));
+    final String expected = ""
+        + "LogicalValues(tuples=[[{ true }]])\n";
+    final RelNode r = f.apply(createBuilder());
+    assertThat(r, hasTree(expected));
 
-    // now without pruning
+    // Now without adding extra fields
+    final String expected2 = ""
+        + "LogicalValues(tuples=[[{  }]])\n";
+    final RelNode r2 =
+        f.apply(createBuilder(c -> c.withPreventEmptyFieldList(false)));
+    assertThat(r2, hasTree(expected2));
+
+    // Now without pruning
     // (The empty LogicalProject is dubious, but it's what we've always done)
-    final String expected2 = "LogicalAggregate(group=[{}])\n"
+    final String expected3 = ""
+        + "LogicalAggregate(group=[{}])\n"
         + "  LogicalProject\n"
         + "    LogicalFilter(condition=[IS NULL($6)])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
-        hasTree(expected2));
+    final RelNode r3 =
+        f.apply(
+            createBuilder(c ->
+                c.withPruneInputOfAggregate(false)
+                    .withPreventEmptyFieldList(false)));
+    assertThat(r3, hasTree(expected3));
   }
 
   @Test void testUnion() {
@@ -3355,14 +3368,21 @@ public class RelBuilderTest {
   }
 
   @Test void testValuesBadNullFieldNames() {
-    try {
-      final RelBuilder builder = RelBuilder.create(config().build());
-      RelBuilder root = builder.values((String[]) null, "a", "b");
-      fail("expected error, got " + root);
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(),
-          is("Value count must be a positive multiple of field count"));
-    }
+    final RelBuilder builder = RelBuilder.create(config().build());
+    assertThrows(NullPointerException.class,
+        () -> builder.values((String[]) null, "a", "b"),
+        "fieldNames");
+
+    final String[] f1 = {"x"};
+    assertThat(builder.values(f1, "a", "b", "c", "d"), notNullValue());
+
+    final String[] f2 = {"x", "y"};
+    assertThat(builder.values(f2, "a", "b", "c", "d"), notNullValue());
+
+    final String[] f3 = {"x", "y", "z"};
+    assertThrows(IllegalArgumentException.class,
+        () -> builder.values(f3, "a", "b", "c", "d"),
+        "Value count must be a positive multiple of field count");
   }
 
   @Test void testValuesBadNoFields() {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.RelCollation;
@@ -49,6 +50,9 @@ public interface PhysType {
    * <p>For instance, when the java row type is {@code Object[]}, the java
    * field type is {@code Object} even if the field is not nullable.</p> */
   Type getJavaFieldType(int field);
+
+  /** Returns the type factory. */
+  JavaTypeFactory getTypeFactory();
 
   /** Returns the physical type of a field. */
   PhysType field(int ordinal);

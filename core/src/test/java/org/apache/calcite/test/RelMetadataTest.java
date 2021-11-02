@@ -101,7 +101,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
-import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
@@ -128,6 +127,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -146,6 +146,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.object.HasToString.hasToString;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1462,7 +1463,7 @@ public class RelMetadataTest {
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
 
     // There is no caching. Another request causes another call to the provider.
-    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
+    assertThat(buf, hasToString("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
     assertThat(buf.size(), equalTo(3));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(4));
@@ -3229,8 +3230,8 @@ public class RelMetadataTest {
   /** Tests calling {@link RelMetadataQuery#getTableOrigin} for
    * an aggregate with no columns. Previously threw. */
   @Test void testEmptyAggregateTableOrigin() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+    final RelBuilder builder =
+        RelBuilderTest.createBuilder(b -> b.withPreventEmptyFieldList(false));
     RelMetadataQuery mq = builder.getCluster().getMetadataQuery();
     RelNode agg = builder
         .scan("EMP")
@@ -3241,8 +3242,7 @@ public class RelMetadataTest {
   }
 
   @Test void testGetPredicatesForJoin() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+    final RelBuilder builder = RelBuilderTest.createBuilder();
     RelNode join = builder
         .scan("EMP")
         .scan("DEPT")
@@ -3266,9 +3266,8 @@ public class RelMetadataTest {
         is("=($0, $8)"));
   }
 
-  @Test void testGetPredicatesForFilter() throws Exception {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+  @Test void testGetPredicatesForFilter() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
     RelNode filter = builder
         .scan("EMP")
         .filter(builder.call(NONDETERMINISTIC_OP))
@@ -3288,6 +3287,28 @@ public class RelMetadataTest {
             .get(0)
             .toString(),
         is("=($0, $1)"));
+  }
+
+  @Test void testGetPredicatesForLiteralAgg() {
+    final RelBuilder b = RelBuilderTest.createBuilder();
+    RelNode r = b
+        .scan("EMP")
+        .aggregate(b.groupKey("DEPTNO"),
+            b.literalAgg(42),
+            b.literalAgg(null))
+        .build();
+    RelMetadataQuery mq = r.getCluster().getMetadataQuery();
+    final RelOptPredicateList predicateList = mq.getPulledUpPredicates(r);
+    assertThat(predicateList.pulledUpPredicates,
+        hasToString("[=($1, 42), IS NULL($2)]"));
+    assertThat(toSortedStringList(predicateList.constantMap),
+        hasToString("[$1=42, $2=null:NULL]"));
+  }
+
+  /** Converts a Map to a sorted list of its entries. */
+  static <K, V> List<String> toSortedStringList(Map<K, V> map) {
+    return map.entrySet().stream().map(Object::toString)
+        .sorted().collect(Util.toImmutableList());
   }
 
   /** Test case for

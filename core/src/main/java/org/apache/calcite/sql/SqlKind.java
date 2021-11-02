@@ -772,6 +772,14 @@ public enum SqlKind {
 
   // internal operators (evaluated in validator) 200-299
 
+  /** The {@code LITERAL_AGG} aggregate function that always returns the same
+   * literal (even if the group is empty).
+   *
+   * <p>Useful during optimization because it allows you to, say, generate a
+   * non-null value (to detect outer joins) in an Aggregate without an extra
+   * Project. */
+  LITERAL_AGG,
+
   /**
    * Literal chain operator (for composite string literals).
    * An internal operator that does not appear in SQL syntax.

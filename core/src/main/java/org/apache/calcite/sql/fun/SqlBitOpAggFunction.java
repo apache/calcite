@@ -57,7 +57,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
-    if (clazz == SqlSplittableAggFunction.class) {
+    if (clazz.isInstance(SqlSplittableAggFunction.SelfSplitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }
     return super.unwrap(clazz);

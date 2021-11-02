@@ -92,7 +92,7 @@ public enum MappingType {
    * An inverse function has a source for every target, but a source might
    * have 0, 1 or more targets.
    *
-   * <p>Obeys the constaints {@link MappingType#isMandatorySource()},
+   * <p>Obeys the constraints {@link MappingType#isMandatorySource()},
    * {@link MappingType#isSingleSource()}.
    *
    * <p>Similar types:

@@ -80,6 +80,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -1168,21 +1169,28 @@ public abstract class SqlImplementor {
     /** Converts a call to an aggregate function to an expression. */
     public SqlNode toSql(AggregateCall aggCall) {
       return toSql(aggCall.getAggregation(), aggCall.isDistinct(),
+          Util.transform(aggCall.rexList, e -> toSql((RexProgram) null, e)),
           Util.transform(aggCall.getArgList(), this::field),
           aggCall.filterArg, aggCall.collation, aggCall.isApproximate());
     }
 
     /** Converts a call to an aggregate function, with a given list of operands,
      * to an expression. */
-    private SqlCall toSql(SqlOperator op, boolean distinct,
-        List<SqlNode> operandList, int filterArg, RelCollation collation,
+    private SqlNode toSql(SqlOperator op, boolean distinct,
+        List<SqlNode> preOperandList, List<SqlNode> operandList,
+        int filterArg, RelCollation collation,
         boolean approximate) {
       final SqlLiteral qualifier =
           distinct ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
+
+      if (op == SqlInternalOperators.LITERAL_AGG) {
+        return preOperandList.get(0);
+      }
+
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         final SqlNode node =
-            toSql(SqlStdOperatorTable.SUM, distinct, operandList, filterArg,
-                collation, approximate);
+            toSql(SqlStdOperatorTable.SUM, distinct, preOperandList,
+                operandList, filterArg, collation, approximate);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node, ZERO);
       }
 
@@ -1206,7 +1214,8 @@ public abstract class SqlImplementor {
         if (operandList.size() > 1) {
           newOperandList.addAll(Util.skip(operandList));
         }
-        return toSql(op, distinct, newOperandList, -1, collation, approximate);
+        return toSql(op, distinct, preOperandList, newOperandList, -1,
+            collation, approximate);
       }
 
       if (op instanceof SqlCountAggFunction && operandList.isEmpty()) {

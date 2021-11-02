@@ -426,6 +426,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select sum(deptno) from emp group by ()").ok();
   }
 
+  @Test void testGroupEmptyYieldLiteral() {
+    // Expected plan is "VALUES 42". The result is one row even if EMP is empty.
+    sql("select 42 from emp group by ()").ok();
+  }
+
   // Same effect as writing "GROUP BY deptno"
   @Test void testSingletonGroupingSet() {
     sql("select sum(sal) from emp group by grouping sets (deptno)").ok();

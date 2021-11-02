@@ -217,6 +217,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.runtime.FlatLists.append;
+import static org.apache.calcite.sql.SqlUtil.containsIn;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static java.util.Objects.requireNonNull;
@@ -959,31 +960,6 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Returns whether a given node contains a {@link SqlInOperator}.
-   *
-   * @param node a RexNode tree
-   */
-  private static boolean containsInOperator(
-      SqlNode node) {
-    try {
-      SqlVisitor<Void> visitor =
-          new SqlBasicVisitor<Void>() {
-            @Override public Void visit(SqlCall call) {
-              if (call.getOperator() instanceof SqlInOperator) {
-                throw new Util.FoundOne(call);
-              }
-              return super.visit(call);
-            }
-          };
-      node.accept(visitor);
-      return false;
-    } catch (Util.FoundOne e) {
-      Util.swallow(e, null);
-      return true;
-    }
-  }
-
-  /**
    * Push down all the NOT logical operators into any IN/NOT IN operators.
    *
    * @param scope Scope where {@code sqlNode} occurs
@@ -992,7 +968,7 @@ public class SqlToRelConverter {
    */
   private static SqlNode pushDownNotForIn(SqlValidatorScope scope,
       SqlNode sqlNode) {
-    if (!(sqlNode instanceof SqlCall) || !containsInOperator(sqlNode)) {
+    if (!(sqlNode instanceof SqlCall) || !containsIn(sqlNode)) {
       return sqlNode;
     }
     final SqlCall sqlCall = (SqlCall) sqlNode;

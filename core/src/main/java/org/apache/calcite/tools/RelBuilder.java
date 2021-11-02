@@ -62,6 +62,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.AggregateRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -88,9 +89,11 @@ import org.apache.calcite.schema.impl.ListTransientTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlStaticAggFunction;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -152,6 +155,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.rel.rules.AggregateRemoveRule.canFlattenStatic;
 import static org.apache.calcite.sql.SqlKind.UNION;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -1183,6 +1187,10 @@ public class RelBuilder {
     }
   }
 
+  private RexNode aliasMaybe(RexNode node, @Nullable String name) {
+    return name == null ? node : alias(node, name);
+  }
+
   /** Converts a sort expression to descending. */
   public RexNode desc(RexNode node) {
     return call(SqlStdOperatorTable.DESC, node);
@@ -1531,6 +1539,12 @@ public class RelBuilder {
     return aggregateCall(SqlStdOperatorTable.MAX, false, false, false, null,
         null, ImmutableList.of(), alias, ImmutableList.of(),
         ImmutableList.of(operand));
+  }
+
+  /** Creates a call to the {@code LITERAL_AGG} aggregate function. */
+  public AggCall literalAgg(@Nullable Object value) {
+    return aggregateCall(SqlInternalOperators.LITERAL_AGG)
+        .preOperands(literal(value));
   }
 
   // Methods for patterns
@@ -2023,9 +2037,7 @@ public class RelBuilder {
 
     // Simplify expressions.
     if (config.simplify()) {
-      for (int i = 0; i < nodeList.size(); i++) {
-        nodeList.set(i, simplifier.simplifyPreservingType(nodeList.get(i)));
-      }
+      nodeList.replaceAll(e -> simplifier.simplifyPreservingType(e));
     }
 
     // Replace null names with generated aliases.
@@ -2286,69 +2298,78 @@ public class RelBuilder {
   /** Creates an {@link Aggregate} that makes the
    * relational expression distinct on all fields. */
   public RelBuilder distinct() {
-    return aggregate(groupKey(fields()));
+    return aggregate_((GroupKeyImpl) groupKey(fields()), ImmutableList.of());
   }
 
   /** Creates an {@link Aggregate} with an array of
    * calls. */
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public RelBuilder aggregate(GroupKey groupKey, AggCall... aggCalls) {
-    return aggregate(groupKey, ImmutableList.copyOf(aggCalls));
+    return aggregate_((GroupKeyImpl) groupKey,
+        (ImmutableList) ImmutableList.copyOf(aggCalls));
   }
 
   /** Creates an {@link Aggregate} with an array of
    * {@link AggregateCall}s. */
-  public RelBuilder aggregate(GroupKey groupKey, List<AggregateCall> aggregateCalls) {
-    return aggregate(groupKey,
+  public RelBuilder aggregate(GroupKey groupKey,
+      List<AggregateCall> aggregateCalls) {
+    return aggregate_((GroupKeyImpl) groupKey,
         aggregateCalls.stream()
             .map(aggregateCall ->
                 new AggCallImpl2(aggregateCall,
                     aggregateCall.getArgList().stream()
                         .map(this::field)
                         .collect(Util.toImmutableList())))
-            .collect(Collectors.toList()));
+            .collect(Util.toImmutableList()));
   }
 
   /** Creates an {@link Aggregate} with multiple calls. */
-  public RelBuilder aggregate(GroupKey groupKey, Iterable<AggCall> aggCalls) {
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public RelBuilder aggregate(GroupKey groupKey,
+      Iterable<? extends AggCall> aggCalls) {
+    return aggregate_((GroupKeyImpl) groupKey,
+        ImmutableList.<AggCallPlus>copyOf((Iterable) aggCalls));
+  }
+
+  /** Creates an {@link Aggregate} with multiple calls. */
+  private RelBuilder aggregate_(GroupKeyImpl groupKey,
+      final ImmutableList<AggCallPlus> aggCalls) {
+    if (groupKey.nodes.isEmpty()
+        && aggCalls.isEmpty()
+        && config.pruneInputOfAggregate()) {
+      // Query is "SELECT /* no fields */ FROM t GROUP BY ()", which always
+      // returns one row with zero columns.
+      if (config.preventEmptyFieldList()) {
+        // Convert to "VALUES ROW(true)".
+        return values(new String[] {"dummy"}, true);
+      } else {
+        // Convert to "VALUES ROW()".
+        return values(ImmutableList.of(ImmutableList.of()),
+            getTypeFactory().builder().build());
+      }
+    }
     final Registrar registrar =
         new Registrar(fields(), peek().getRowType().getFieldNames());
-    final GroupKeyImpl groupKey_ = (GroupKeyImpl) groupKey;
-    ImmutableBitSet groupSet =
-        ImmutableBitSet.of(registrar.registerExpressions(groupKey_.nodes));
-  label:
-    if (Iterables.isEmpty(aggCalls)) {
-      final RelMetadataQuery mq = peek().getCluster().getMetadataQuery();
-      if (groupSet.isEmpty()) {
-        final Double minRowCount = mq.getMinRowCount(peek());
-        if (minRowCount == null || minRowCount < 1D) {
-          // We can't remove "GROUP BY ()" if there's a chance the rel could be
-          // empty.
-          break label;
-        }
-      }
-      if (registrar.extraNodes.size() == fields().size()) {
-        final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
-        if (unique != null && unique
-            && !config.aggregateUnique()
-            && groupKey_.isSimple()) {
-          // Rel is already unique.
-          return project(fields(groupSet));
-        }
-      }
-      final Double maxRowCount = mq.getMaxRowCount(peek());
-      if (maxRowCount != null && maxRowCount <= 1D
-          && !config.aggregateUnique()
-          && groupKey_.isSimple()) {
-        // If there is at most one row, rel is already unique.
-        return project(fields(groupSet));
-      }
+    final ImmutableBitSet groupSet =
+        ImmutableBitSet.of(registrar.registerExpressions(groupKey.nodes));
+    if (alreadyUnique(aggCalls, groupKey, groupSet, registrar.extraNodes)) {
+      final List<RexNode> nodes = new ArrayList<>(fields(groupSet));
+      aggCalls.forEach(c -> {
+        final AggregateCall call = c.aggregateCall();
+        final SqlStaticAggFunction staticFun =
+            call.getAggregation().unwrapOrThrow(SqlStaticAggFunction.class);
+        final RexNode node =
+            staticFun.constant(getRexBuilder(), groupSet, ImmutableList.of(), call);
+        nodes.add(aliasMaybe(requireNonNull(node, "node"), call.getName()));
+      });
+      return project(nodes);
     }
 
     ImmutableList<ImmutableBitSet> groupSets;
-    if (groupKey_.nodeLists != null) {
+    if (groupKey.nodeLists != null) {
       final int sizeBefore = registrar.extraNodes.size();
       final List<ImmutableBitSet> groupSetList = new ArrayList<>();
-      for (ImmutableList<RexNode> nodeList : groupKey_.nodeLists) {
+      for (ImmutableList<RexNode> nodeList : groupKey.nodeLists) {
         final ImmutableBitSet groupSet2 =
             ImmutableBitSet.of(registrar.registerExpressions(nodeList));
         if (!groupSet.contains(groupSet2)) {
@@ -2360,10 +2381,10 @@ public class RelBuilder {
       final ImmutableSortedMultiset<ImmutableBitSet> groupSetMultiset =
           ImmutableSortedMultiset.copyOf(ImmutableBitSet.COMPARATOR,
               groupSetList);
-      if (Iterables.any(aggCalls, RelBuilder::isGroupId)
+      if (aggCalls.stream().anyMatch(RelBuilder::isGroupId)
           || !ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetMultiset)) {
         return rewriteAggregateWithDuplicateGroupSets(groupSet, groupSetMultiset,
-            ImmutableList.copyOf(aggCalls));
+            aggCalls);
       }
       groupSets = ImmutableList.copyOf(groupSetMultiset.elementSet());
       if (registrar.extraNodes.size() > sizeBefore) {
@@ -2375,17 +2396,14 @@ public class RelBuilder {
       groupSets = ImmutableList.of(groupSet);
     }
 
-    for (AggCall aggCall : aggCalls) {
-      ((AggCallPlus) aggCall).register(registrar);
-    }
+    aggCalls.forEach(aggCall -> aggCall.register(registrar));
     project(registrar.extraNodes);
     rename(registrar.names);
     final Frame frame = stack.pop();
     RelNode r = frame.rel;
     final List<AggregateCall> aggregateCalls = new ArrayList<>();
-    for (AggCall aggCall : aggCalls) {
-      aggregateCalls.add(
-          ((AggCallPlus) aggCall).aggregateCall(registrar, groupSet, r));
+    for (AggCallPlus aggCall : aggCalls) {
+      aggregateCalls.add(aggCall.aggregateCall(registrar, groupSet, r));
     }
 
     assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
@@ -2394,6 +2412,8 @@ public class RelBuilder {
     }
 
     List<Field> inFields = frame.fields;
+    final ImmutableBitSet groupSet2;
+    final ImmutableList<ImmutableBitSet> groupSets2;
     if (config.pruneInputOfAggregate()
         && r instanceof Project) {
       final Set<Integer> fieldsUsed =
@@ -2402,6 +2422,8 @@ public class RelBuilder {
       // pretend that one field is used.
       if (fieldsUsed.isEmpty()) {
         r = ((Project) r).getInput();
+        groupSet2 = groupSet;
+        groupSets2 = groupSets;
       } else if (fieldsUsed.size() < r.getRowType().getFieldCount()) {
         // Some fields are computed but not used. Prune them.
         final Map<Integer, Integer> map = new HashMap<>();
@@ -2409,8 +2431,8 @@ public class RelBuilder {
           map.put(source, map.size());
         }
 
-        groupSet = groupSet.permute(map);
-        groupSets =
+        groupSet2 = groupSet.permute(map);
+        groupSets2 =
             ImmutableBitSet.ORDERING.immutableSortedCopy(
                 ImmutableBitSet.permute(groupSets, map));
 
@@ -2433,12 +2455,20 @@ public class RelBuilder {
           newProjects.add(project.getProjects().get(i));
           builder.add(project.getRowType().getFieldList().get(i));
         }
-        r = project.copy(cluster.traitSet(), project.getInput(), newProjects, builder.build());
+        r =
+            project.copy(cluster.traitSet(), project.getInput(), newProjects,
+                builder.build());
+      } else {
+        groupSet2 = groupSet;
+        groupSets2 = groupSets;
       }
+    } else {
+      groupSet2 = groupSet;
+      groupSets2 = groupSets;
     }
 
     if (!config.dedupAggregateCalls() || Util.isDistinct(aggregateCalls)) {
-      return aggregate_(groupSet, groupSets, r, aggregateCalls,
+      return aggregate_(groupSet2, groupSets2, r, aggregateCalls,
           registrar.extraNodes, inFields);
     }
 
@@ -2463,10 +2493,50 @@ public class RelBuilder {
     aggregate_(groupSet, groupSets, r, distinctAggregateCalls,
         registrar.extraNodes, inFields);
     final List<RexNode> fields = projects.stream()
-        .map(p -> p.right == null ? field(p.left)
-            : alias(field(p.left), p.right))
+        .map(p -> aliasMaybe(field(p.left), p.right))
         .collect(Collectors.toList());
     return project(fields);
+  }
+
+  /** Returns whether an input is already unique, and therefore a Project
+   * can be created instead of an Aggregate.
+   *
+   * <p>{@link AggregateRemoveRule} does something similar, but also handles
+   * {@link org.apache.calcite.sql.SqlSingletonAggFunction} calls. */
+  private boolean alreadyUnique(List<AggCallPlus> aggCallList,
+      GroupKeyImpl groupKey, ImmutableBitSet groupSet,
+      List<RexNode> extraNodes) {
+    final RelMetadataQuery mq = peek().getCluster().getMetadataQuery();
+    if (aggCallList.isEmpty() && groupSet.isEmpty()) {
+      final Double minRowCount = mq.getMinRowCount(peek());
+      if (minRowCount == null || minRowCount < 1d) {
+        // We can't remove "GROUP BY ()" if there's a chance the rel could be
+        // empty.
+        return false;
+      }
+    }
+
+    // If there are aggregate functions, we must be able to flatten them
+    if (!aggCallList.stream()
+        .allMatch(c -> canFlattenStatic(c.aggregateCall()))) {
+      return false;
+    }
+
+    if (extraNodes.size() == fields().size()) {
+      final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
+      if (unique != null && unique
+          && !config.aggregateUnique()
+          && groupKey.isSimple()) {
+        // Rel is already unique.
+        return true;
+      }
+    }
+
+    // If there is at most one row, rel is already unique.
+    final Double maxRowCount = mq.getMaxRowCount(peek());
+    return maxRowCount != null && maxRowCount <= 1D
+        && !config.aggregateUnique()
+        && groupKey.isSimple();
   }
 
   /** Finishes the implementation of {@link #aggregate} by creating an
@@ -2540,11 +2610,11 @@ public class RelBuilder {
   private RelBuilder rewriteAggregateWithDuplicateGroupSets(
       ImmutableBitSet groupSet,
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
-      List<AggCall> aggregateCalls) {
+      List<AggCallPlus> aggregateCalls) {
     final List<String> fieldNamesIfNoRewrite =
         Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(), false,
             groupSet, groupSets.asList(),
-            aggregateCalls.stream().map(c -> ((AggCallPlus) c).aggregateCall())
+            aggregateCalls.stream().map(AggCallPlus::aggregateCall)
                 .collect(Util.toImmutableList())).getFieldNames();
 
     // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
@@ -3061,7 +3131,10 @@ public class RelBuilder {
    * {@code fieldNames}, or an integer multiple if you wish to create multiple
    * rows.
    *
-   * <p>If there are zero rows, or if all values of a any column are
+   * <p>The {@code fieldNames} array must not be null or empty, but may contain
+   * null values.
+   *
+   * <p>If there are zero rows, or if all values of any column are
    * null, this method cannot deduce the type of columns. For these cases,
    * call {@link #values(Iterable, RelDataType)}.
    *
@@ -3069,8 +3142,8 @@ public class RelBuilder {
    * @param values Values
    */
   public RelBuilder values(@Nullable String[] fieldNames, @Nullable Object... values) {
-    if (fieldNames == null
-        || fieldNames.length == 0
+    requireNonNull(fieldNames, "fieldNames");
+    if (fieldNames.length == 0
         || values.length % fieldNames.length != 0
         || values.length < fieldNames.length) {
       throw new IllegalArgumentException(
@@ -4051,7 +4124,7 @@ public class RelBuilder {
       final RelDataType type =
           getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
       return AggregateCall.create(aggFunction, distinct, approximate,
-          ignoreNulls, ImmutableList.of(), ImmutableList.of(), -1,
+          ignoreNulls, preOperands, ImmutableList.of(), -1,
           null, collation, type, alias);
     }
 
@@ -4489,7 +4562,7 @@ public class RelBuilder {
           .makeOver(type, op, operands, partitionKeys, sortKeys,
               lowerBound, upperBound, rows, allowPartial, nullWhenCountZero,
               distinct, ignoreNulls);
-      return alias == null ? over : alias(over, alias);
+      return aliasMaybe(over, alias);
     }
   }
 
@@ -4722,6 +4795,15 @@ public class RelBuilder {
 
     /** Sets {@link #pruneInputOfAggregate}. */
     Config withPruneInputOfAggregate(boolean pruneInputOfAggregate);
+
+    /** Whether to ensure that relational operators always have at least one
+     * column. */
+    @Value.Default default boolean preventEmptyFieldList() {
+      return true;
+    }
+
+    /** Sets {@link #preventEmptyFieldList()}. */
+    Config withPreventEmptyFieldList(boolean preventEmptyFieldList);
 
     /** Whether to push down join conditions; default false (but
      * {@link SqlToRelConverter#config()} by default sets this to true). */

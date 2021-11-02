@@ -44,7 +44,7 @@ import java.util.List;
  * <p>For example, {@code COUNT(x)} can be split into {@code COUNT(x)} on
  * subsets followed by {@code SUM} to combine those counts.
  */
-public interface SqlSplittableAggFunction {
+public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
   AggregateCall split(AggregateCall aggregateCall,
       Mappings.TargetMapping mapping);
 
@@ -74,28 +74,6 @@ public interface SqlSplittableAggFunction {
   AggregateCall topSplit(RexBuilder rexBuilder, Registry<RexNode> extra,
       int offset, RelDataType inputRowType, AggregateCall aggregateCall,
       int leftSubTotal, int rightSubTotal);
-
-  /** Generates an expression for the value of the aggregate function when
-   * applied to a single row.
-   *
-   * <p>For example, if there is one row:
-   * <ul>
-   *   <li>{@code SUM(x)} is {@code x}
-   *   <li>{@code MIN(x)} is {@code x}
-   *   <li>{@code MAX(x)} is {@code x}
-   *   <li>{@code COUNT(x)} is {@code CASE WHEN x IS NOT NULL THEN 1 ELSE 0 END 1}
-   *   which can be simplified to {@code 1} if {@code x} is never null
-   *   <li>{@code COUNT(*)} is 1
-   * </ul>
-   *
-   * @param rexBuilder Rex builder
-   * @param inputRowType Input row type
-   * @param aggregateCall Aggregate call
-   *
-   * @return Expression for single row
-   */
-  RexNode singleton(RexBuilder rexBuilder, RelDataType inputRowType,
-      AggregateCall aggregateCall);
 
   /**
    * Merge top and bottom aggregate calls into a single aggregate call,

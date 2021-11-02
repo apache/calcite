@@ -720,9 +720,8 @@ public class SubQueryRemoveRule
         builder.push(e.rel);
         // fall through
       default:
-        fields.add(builder.alias(trueLiteral, "i"));
-        builder.project(fields);
-        builder.distinct();
+        builder.aggregate(builder.groupKey(fields),
+            builder.literalAgg(true).as("i"));
       }
     }
 
