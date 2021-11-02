@@ -570,7 +570,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   /** The unknown type. Similar to the NULL type, but is only equal to
    * itself. */
-  private static class UnknownSqlType extends BasicSqlType {
+  static class UnknownSqlType extends BasicSqlType {
 
     UnknownSqlType(RelDataTypeFactory typeFactory) {
       this(typeFactory.getTypeSystem(), false);

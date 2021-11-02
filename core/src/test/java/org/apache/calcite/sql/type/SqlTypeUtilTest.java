@@ -38,6 +38,7 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsMapSansNullability;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test of {@link org.apache.calcite.sql.type.SqlTypeUtil}.
@@ -225,5 +226,30 @@ class SqlTypeUtilTest {
 
     compareTypesIgnoringNullability("identical types should return true.",
         bigIntType, bigIntType1, true);
+  }
+
+  @Test public void testCanAlwaysCastToUnknownFromBasic() {
+    RelDataType unknownType = f.typeFactory.createUnknownType();
+    RelDataType nullableUnknownType = f.typeFactory.createTypeWithNullability(unknownType, true);
+
+    for (SqlTypeName fromTypeName : SqlTypeName.values()) {
+      BasicSqlType fromType;
+      try {
+        // This only works for basic types. Ignore the rest.
+        fromType = (BasicSqlType) f.typeFactory.createSqlType(fromTypeName);
+      } catch (AssertionError e) {
+        continue;
+      }
+      BasicSqlType nullableFromType = fromType.createWithNullability(!fromType.isNullable);
+
+      assertTrue(SqlTypeUtil.canCastFrom(unknownType, fromType, false));
+      assertTrue(SqlTypeUtil.canCastFrom(unknownType, fromType, true));
+      assertTrue(SqlTypeUtil.canCastFrom(unknownType, nullableFromType, false));
+      assertTrue(SqlTypeUtil.canCastFrom(unknownType, nullableFromType, true));
+      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, fromType, false));
+      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, fromType, true));
+      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, nullableFromType, false));
+      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, nullableFromType, true));
+    }
   }
 }
