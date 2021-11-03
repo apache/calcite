@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -33,6 +34,8 @@ import org.apache.calcite.util.Util;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>AS</code> operator associates an expression with an alias.
@@ -70,10 +73,13 @@ public class SqlAsOperator extends SqlSpecialOperator {
       int leftPrec,
       int rightPrec) {
     assert call.operandCount() >= 2;
-    final SqlWriter.Frame frame =
-        writer.startList(
-            SqlWriter.FrameTypeEnum.AS);
-    call.operand(0).unparse(writer, leftPrec, getLeftPrec());
+    final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
+    if (call.operand(0) instanceof SqlCharStringLiteral) {
+      SqlNode literalValue = handleBackSlashes(call.operand(0));
+      literalValue.unparse(writer, leftPrec, rightPrec);
+    } else {
+      call.operand(0).unparse(writer, leftPrec, getLeftPrec());
+    }
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
     if (writer.getDialect().allowsAs()) {
@@ -91,6 +97,23 @@ public class SqlAsOperator extends SqlSpecialOperator {
       writer.endList(frame1);
     }
     writer.endList(frame);
+  }
+
+  private SqlNode handleBackSlashes(SqlNode operand) {
+    if (operand.toString().length() < 3 || !operand.toString().substring(1, 3).equals("\\\\")) {
+      return operand;
+    }
+    String modifiedString = operand.toString().replaceAll("\\\\", "\\\\\\\\");
+    return SqlLiteral.createCharString(
+        requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
+  }
+
+  public String unquoteStringLiteral(String val) {
+    if (val != null && val.startsWith("'") && val.endsWith("'")) {
+      final String stripped = val.substring(1, val.length() - 1);
+      return stripped.replace("\\'", "");
+    }
+    return val;
   }
 
   @Override public void validateCall(

@@ -6866,6 +6866,16 @@ class RelToSqlConverterTest {
         .ok(expectedSnowFlake);
   }
 
+  @Test public void testToNumberFunctionWithColumns() {
+    String query = "SELECT TO_NUMBER(\"first_name\", '000') FROM \"foodmart\""
+        + ".\"employee\"";
+    final String expectedBigQuery = "SELECT CAST(first_name AS INT64)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void testOver() {
     String query = "SELECT distinct \"product_id\", MAX(\"product_id\") \n"
         + "OVER(PARTITION BY \"product_id\") AS abc\n"
@@ -9303,5 +9313,33 @@ class RelToSqlConverterTest {
     relFn(b -> root)
         .withHive2().ok(expectedHive)
         .withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test public void testRowid() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rowidRexNode = builder.call(SqlLibraryOperators.ROWID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(rowidRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT ROWID() AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT GENERATE_UUID() ATpchTestS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testEscapeFunction() {
+    String query =
+        "SELECT '\\\\PWFSNFS01EFS\\imagenowcifs\\debitmemo' AS DM_SENDFILE_PATH1";
+    final String expectedBQSql =
+        "SELECT '\\\\\\\\PWFSNFS01EFS\\\\imagenowcifs\\\\debitmemo' AS "
+            + "DM_SENDFILE_PATH1";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
   }
 }

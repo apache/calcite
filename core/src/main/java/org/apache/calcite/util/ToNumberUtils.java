@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
@@ -84,7 +85,9 @@ public class ToNumberUtils {
                     && call.operand(1).toString().contains("E")
                     ? SqlTypeName.DECIMAL : SqlTypeName.BIGINT;
           }
-          modifyOperand(call);
+          if (!(call.operand(0) instanceof SqlIdentifier)) {
+            modifyOperand(call);
+          }
           handleCasting(writer, call, leftPrec, rightPrec, sqlType, dialect);
         }
       }

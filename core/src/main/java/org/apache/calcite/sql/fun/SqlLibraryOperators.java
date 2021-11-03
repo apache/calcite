@@ -1284,6 +1284,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {NETEZZA})
+  public static final SqlFunction ROWID =
+      new SqlFunction(
+          "ROWID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          null,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction TRUNC =
       new SqlFunction(
