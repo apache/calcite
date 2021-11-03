@@ -50,6 +50,15 @@ public interface RelOptNode {
   String getDigest();
 
   /**
+   * Like {@link #getDigest()} but describes this relational expression as well as all of it's
+   * inputs, with each digest separated by newlines and children indented according to depth.
+   * This is mainly useful for visual comparisons of rel node trees while debugging.
+   *
+   * @return Digest string of this {@code RelNode}, with input digests indented recursively underneath
+   */
+  String getDigestRecursive();
+
+  /**
    * Retrieves this RelNode's traits. Note that although the RelTraitSet
    * returned is modifiable, it <b>must not</b> be modified during
    * optimization. It is legal to modify the traits of a RelNode before or

@@ -114,4 +114,10 @@ public class HepRelVertex extends AbstractRelNode implements DelegatingMetadataR
   @Override public String getDigest() {
     return "HepRelVertex(" + currentRel + ')';
   }
+
+  @Override public String getDigestRecursive() {
+    // For the purposes of the recursive digest (which is really only intended for debugging),
+    // pretend vertices don't exist.
+    return currentRel.getDigestRecursive();
+  }
 }

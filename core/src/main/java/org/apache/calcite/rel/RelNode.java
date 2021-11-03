@@ -271,6 +271,28 @@ public interface RelNode extends RelOptNode, Cloneable {
   }
 
   /**
+   * Returns a digest string of this {@code RelNode}, as well as the digests of all its input rel
+   * nodes as an indented tree, useful for visual debugging.
+   *
+   * <p>Each call creates many new digest strings,
+   * so don't forget to cache the result if necessary.
+   *
+   * @return Digest string of this {@code RelNode} and all it's direct or indirect inputs.
+   *
+   * @see #getDigest()
+   */
+  @Override default String getDigestRecursive() {
+    final String indentedNewline = "\n  ";
+    final StringBuilder builder = new StringBuilder();
+    builder.append(getDigest());
+    for (RelNode input: getInputs()) {
+      builder.append(indentedNewline);
+      builder.append(input.getDigestRecursive().replace("\n", indentedNewline));
+    }
+    return builder.toString();
+  }
+
+  /**
    * Returns a digest of this {@code RelNode}.
    *
    * <p>INTERNAL USE ONLY. For use by the planner.
