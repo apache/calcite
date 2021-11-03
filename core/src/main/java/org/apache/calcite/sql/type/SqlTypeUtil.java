@@ -523,6 +523,11 @@ public abstract class SqlTypeUtil {
     return typeName == SqlTypeName.NULL;
   }
 
+  /** Returns whether a type is the UNKNOWN type. */
+  public static boolean isUnknown(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.UNKNOWN;
+  }
+
   /**
    * Tests whether two types have the same name and structure, possibly with
    * differing modifiers. For example, VARCHAR(1) and VARCHAR(10) are
@@ -1034,7 +1039,7 @@ public abstract class SqlTypeUtil {
     assert typeName != null;
 
     final SqlTypeNameSpec typeNameSpec;
-    if (isAtomic(type) || isNull(type)) {
+    if (isAtomic(type) || isNull(type) || isUnknown(type)) {
       int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {

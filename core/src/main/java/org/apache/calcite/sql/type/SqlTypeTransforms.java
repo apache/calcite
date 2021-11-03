@@ -145,6 +145,8 @@ public abstract class SqlTypeTransforms {
             return SqlTypeName.ANY;
           case NULL:
             return SqlTypeName.NULL;
+          case UNKNOWN:
+            return SqlTypeName.UNKNOWN;
           default:
             throw Util.unexpected(sqlTypeName);
           }
