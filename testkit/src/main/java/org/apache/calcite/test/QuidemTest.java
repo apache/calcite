@@ -269,6 +269,7 @@ public abstract class QuidemTest {
       case "oraclefunc":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "oracle")
+            .with(CalciteAssert.Config.REGULAR)
             .connect();
       case "catchall":
         return CalciteAssert.that()
