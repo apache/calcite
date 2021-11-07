@@ -120,6 +120,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -450,6 +451,9 @@ public enum BuiltInMethod {
       "getModifiableCollection"),
   SCANNABLE_TABLE_SCAN(ScannableTable.class, "scan", DataContext.class),
   STRING_TO_BOOLEAN(SqlFunctions.class, "toBoolean", String.class),
+  STRING_TO_DECIMAL(SqlFunctions.class, "toBigDecimal", String.class),
+  STRING_TRIM(String.class,"trim"),
+  STRING_VALUEOF(String.class,"valueOf", Object.class),
   INTERNAL_TO_DATE(SqlFunctions.class, "internalToDate", int.class),
   INTERNAL_TO_TIME(SqlFunctions.class, "internalToTime", int.class),
   INTERNAL_TO_TIMESTAMP(SqlFunctions.class, "internalToTimestamp", long.class),
@@ -636,6 +640,9 @@ public enum BuiltInMethod {
       long.class),
   BIG_DECIMAL_ADD(BigDecimal.class, "add", BigDecimal.class),
   BIG_DECIMAL_NEGATE(BigDecimal.class, "negate"),
+  BIG_DECIMAL_SET_SCALE(BigDecimal.class, "setScale", int.class, RoundingMode.class),
+  BIG_DECIMAL_GET_SCALE(BigDecimal.class, "scale"),
+  BIG_DECIMAL_GET_PRECISION(BigDecimal.class, "precision"),
   COMPARE_TO(Comparable.class, "compareTo", Object.class);
 
   @SuppressWarnings("ImmutableEnumChecker")

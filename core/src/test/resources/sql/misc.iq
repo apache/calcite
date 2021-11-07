@@ -2334,13 +2334,189 @@ FROM (VALUES (0, 2, 4, 8),
    (1, 2, 4, 8),
    (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
 V
-13.0
-9.5
-1.75
-1.875
 null
-0
-14
+0E-8
+1.75000000
+1.87500000
+13.00000000
+14.00000000
+9.50000000
 !ok
+
+# test cast decimal type has illegal precision and scale parameter to throw an exception
+
+values cast(15.3 as decimal(3,4));
+DECIMAL scale '4' must be between 0 and precision '3'
+!error
+
+# Cast a decimal literal to a decimal
+
+values cast(15.3 as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(15.3 as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(15.3 as decimal(3,2));
+numeric field overflow
+!error
+
+values cast(15.6 as decimal(3,0));
+EXPR$0
+16
+!ok
+
+values cast(15.6 as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(15.6 as decimal(3,2));
+numeric field overflow
+!error
+
+# Cast a character literal to a decimal
+
+values cast(' 15.3 ' as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(' 15.3 ' as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(' 15.3 ' as decimal(3,2));
+numeric field overflow
+!error
+
+values cast(' 15.66 ' as decimal(3,0));
+EXPR$0
+16
+!ok
+
+values cast(' 15.66 ' as decimal(3,1));
+EXPR$0
+15.7
+!ok
+
+values cast(' 15.66 ' as decimal(3,2));
+numeric field overflow
+!error
+
+values cast(' 15.66 ' as decimal(4,1));
+EXPR$0
+15.7
+!ok
+
+# Cast a int literal to a decimal
+values cast(15 as decimal(3,1));
+EXPR$0
+15.0
+!ok
+
+values cast(15 as decimal(3,2));
+numeric field overflow
+!error
+
+values cast(15 as decimal(3,0));
+EXPR$0
+15
+!ok
+
+# Cast a double literal to a decimal
+
+values cast(cast(15.3 as double) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.3 as double) as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(cast(15.3 as double) as decimal(3,2));
+numeric field overflow
+!error
+
+values cast(cast(15.6 as double) as decimal(3,0));
+EXPR$0
+16
+!ok
+
+values cast(cast(15.6 as double) as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(cast(15.6 as double) as decimal(3,2));
+numeric field overflow
+!error
+
+# Cast a float literal to a decimal
+
+values cast(cast(15.3 as float) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.3 as float) as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(cast(15.3 as float) as decimal(3,2));
+numeric field overflow
+!error
+
+values cast(cast(15.6 as float) as decimal(3,0));
+EXPR$0
+16
+!ok
+
+values cast(cast(15.6 as float) as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(cast(15.6 as float) as decimal(3,2));
+numeric field overflow
+!error
+
+# Cast a real literal to a decimal
+
+values cast(cast(15.3 as real) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.3 as real) as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(cast(15.3 as real) as decimal(3,2));
+numeric field overflow
+!error
+
+values cast(cast(15.6 as real) as decimal(3,0));
+EXPR$0
+16
+!ok
+
+values cast(cast(15.6 as real) as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(cast(15.6 as real) as decimal(3,2));
+numeric field overflow
+!error
 
 # End misc.iq

@@ -92,6 +92,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -594,6 +595,18 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (type == null) {
       type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
     }
+
+    if (type.getSqlTypeName() == SqlTypeName.DECIMAL) {
+      int prescision = type.getPrecision();
+      int scale = type.getScale();
+      if (prescision <= 0 || prescision > 1000) {
+        throw RESOURCE.invalidPrescisionForDecimalType(prescision).ex();
+      }
+      if (scale > prescision) {
+        throw RESOURCE.invalidScaleForDecimalType(scale, prescision).ex();
+      }
+    }
+
     RexNode arg = cx.convertExpression(left);
     if (arg.getType().isNullable()) {
       type = typeFactory.createTypeWithNullability(type, true);

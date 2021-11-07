@@ -1744,7 +1744,7 @@ public abstract class SqlTypeUtil {
     case DECIMAL:
       final int intDigits = value.precision() - value.scale();
       final int maxIntDigits = toType.getPrecision() - toType.getScale();
-      return intDigits <= maxIntDigits;
+      return intDigits <= maxIntDigits && value.scale() == toType.getScale();
     default:
       return true;
     }

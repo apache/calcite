@@ -971,4 +971,10 @@ public interface CalciteResource {
   @BaseMessage("No operator for ''{0}'' with kind: ''{1}'', syntax: ''{2}'' during JSON deserialization")
   ExInst<CalciteException> noOperator(String name, String kind, String syntax);
 
+  @BaseMessage("DECIMAL precision ''{0}'' must be between 1 and 1000")
+  ExInst<CalciteException> invalidPrescisionForDecimalType(int precision);
+
+  @BaseMessage("DECIMAL scale ''{0}'' must be between 0 and precision ''{1}''")
+  ExInst<CalciteException> invalidScaleForDecimalType(int scale, int precision);
+
 }

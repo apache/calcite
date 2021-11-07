@@ -25,9 +25,11 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.CatchBlock;
+import org.apache.calcite.linq4j.tree.ConditionalStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
@@ -69,12 +71,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -269,6 +273,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       Expression operand) {
     Expression convert = null;
     switch (targetType.getSqlTypeName()) {
+    case DECIMAL:
+      convert = translateCastToDecimal(sourceType, operand, targetType);
+      break;
     case ANY:
       convert = operand;
       break;
@@ -675,6 +682,74 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       break;
     }
     return convert;
+  }
+
+  private @Nullable Expression translateCastToDecimal(RelDataType sourceType, Expression operand,
+      RelDataType targetType) {
+    Expression convert = null;
+    switch (sourceType.getSqlTypeName()) {
+    case TINYINT:
+    case SMALLINT:
+    case INTEGER:
+    case BIGINT:
+    case REAL:
+    case FLOAT:
+    case DOUBLE:
+      Expression condition = operand;
+      if(operand instanceof MethodCallExpression) {
+        condition = ((MethodCallExpression) operand).targetExpression;
+      }
+      operand = Expressions.call(BuiltInMethod.STRING_VALUEOF.method, operand);
+      convert = translateCharToDecimal(operand, targetType, condition);
+      break;
+    case CHAR:
+    case VARCHAR:
+      convert = translateCharToDecimal(operand, targetType, operand);
+      break;
+    case DECIMAL:
+      Expression sourceIntDigits =
+          Expressions.constant(sourceType.getPrecision() - sourceType.getScale());
+      Expression targetIntDigits =
+          Expressions.constant(targetType.getPrecision() - targetType.getScale());
+      ConditionalStatement conditionalStatement =
+          Expressions.ifThen(
+              Expressions.andAlso(checkNotNull(operand),
+                  Expressions.greaterThan(sourceIntDigits, targetIntDigits)),
+              Expressions.throw_(
+                  Expressions.new_(RuntimeException.class,
+                      Expressions.constant("numeric field overflow"))));
+      list.add(conditionalStatement);
+      convert = Expressions.call(operand, BuiltInMethod.BIG_DECIMAL_SET_SCALE.method,
+          Expressions.constant(targetType.getScale()), Expressions.constant(RoundingMode.HALF_UP));
+      break;
+    default:
+      break;
+    }
+    return convert;
+  }
+
+  private @NotNull Expression translateCharToDecimal(Expression operand, RelDataType targetType,
+      Expression condition) {
+    Expression bigDecimal =
+        Expressions.call(BuiltInMethod.STRING_TO_DECIMAL.method, operand);
+    Expression sourcePrecision =
+        Expressions.call(bigDecimal, BuiltInMethod.BIG_DECIMAL_GET_PRECISION.method);
+    Expression sourceScale =
+        Expressions.call(bigDecimal, BuiltInMethod.BIG_DECIMAL_GET_SCALE.method);
+    Expression sourceIntDigits =
+        Expressions.subtract(sourcePrecision, sourceScale);
+    Expression targetIntDigits =
+        Expressions.constant(targetType.getPrecision() - targetType.getScale());
+    ConditionalStatement conditionalStatement =
+        Expressions.ifThen(
+            Expressions.andAlso(checkNotNull(condition),
+                Expressions.greaterThan(sourceIntDigits, targetIntDigits)),
+            Expressions.throw_(
+                Expressions.new_(RuntimeException.class,
+                    Expressions.constant("numeric field overflow"))));
+    list.add(conditionalStatement);
+    return Expressions.call(bigDecimal, BuiltInMethod.BIG_DECIMAL_SET_SCALE.method,
+        Expressions.constant(targetType.getScale()), Expressions.constant(RoundingMode.HALF_UP));
   }
 
   /**
