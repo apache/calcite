@@ -83,7 +83,7 @@ jobs:
         java-version: 11
     - name: 'Clone Avatica to Maven Local repository'
       run: |
-        git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
+        git clone --branch rel/avatica-1.19.0 --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
     - uses: burrunan/gradle-cache-action@v1
       name: Build Avatica
       env:
@@ -95,7 +95,7 @@ jobs:
         build-root-directory: ../calcite-avatica
         arguments: publishToMavenLocal
         properties: |
-          calcite.avatica.version=1.0.0-dev-master
+          calcite.avatica.version=1.19.0
           skipJavadoc=
     - uses: actions/checkout@v2
       with:
@@ -111,7 +111,7 @@ jobs:
         execution-only-caches: true
         arguments: --scan --no-parallel --no-daemon build javadoc
         properties: |
-          calcite.avatica.version=1.0.0-dev-master-SNAPSHOT
+          calcite.avatica.version=1.19.0-SNAPSHOT
           enableMavenLocal=
 
   linux-openj9:
