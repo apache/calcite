@@ -73,6 +73,7 @@ import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.GroupByConstantAddJoinRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.MultiJoin;
@@ -198,6 +199,30 @@ class RelOptRulesTest extends RelOptTestBase {
   private static boolean skipItem(RexNode expr) {
     return expr instanceof RexCall
           && "item".equalsIgnoreCase(((RexCall) expr).getOperator().getName());
+  }
+
+  @Test void testGroupByBooleanConstantSimple() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(GroupByConstantAddJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.GROUP_BY_CONSTANT_ADD_JOIN_RULE);
+
+    final String query = "select avg(sal)\n"
+        + "from emp\n"
+        + "group by true";
+    sql(query).withPlanner(hepPlanner).check();
+  }
+
+  @Test void testGroupByBooleanConstantMultiple() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(GroupByConstantAddJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.GROUP_BY_CONSTANT_ADD_JOIN_RULE);
+
+    final String query = "select avg(sal)\n"
+        + "from emp\n"
+        + "group by false, deptno, true, true, empno, false";
+    sql(query).withPlanner(hepPlanner).check();
   }
 
   @Test void testReduceNot() {

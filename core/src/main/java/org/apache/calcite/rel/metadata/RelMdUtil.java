@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -26,6 +27,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -41,6 +43,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Util;
@@ -709,9 +712,33 @@ public class RelMdUtil {
     return dRows;
   }
 
+  private static boolean relContainsValuesOfBooleans(RelNode rel) {
+    if (!(rel instanceof RelSubset) || !(((RelSubset) rel).getBest() instanceof Values)) {
+      return false;
+    }
+    RelNode bestRel = ((RelSubset) rel).getBest();
+    if (bestRel == null) {
+      return false;
+    }
+    boolean isBoolean = true;
+    for (ImmutableList<RexLiteral> list: ((Values) bestRel).getTuples()) {
+      for (RexLiteral literal: list) {
+        isBoolean &= literal.getTypeName() == SqlTypeName.BOOLEAN;
+      }
+    }
+
+    return isBoolean;
+  }
+
   /** Returns an estimate of the number of rows returned by a {@link Join}. */
   public static @Nullable Double getJoinRowCount(RelMetadataQuery mq, Join join,
       RexNode condition) {
+    if (join.getCondition() instanceof RexLiteral && join.getCondition().isAlwaysTrue()) {
+      if (relContainsValuesOfBooleans(join.getLeft())
+          || relContainsValuesOfBooleans(join.getRight())) {
+        return 1D;
+      }
+    }
     if (!join.getJoinType().projectsRight()) {
       // Create a RexNode representing the selectivity of the
       // semijoin filter and pass it to getSelectivity

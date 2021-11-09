@@ -4036,6 +4036,54 @@ LogicalProject(EXPR$0=[1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testGroupByBooleanConstantMultiple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal) from emp group by false, deptno, true, true, empno, false]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$4])
+  LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$0=[AVG($4)])
+    LogicalProject($f0=[false], DEPTNO=[$7], $f2=[true], EMPNO=[$0], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$4])
+  LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$0=[AVG($4)])
+    LogicalProject(F=[$10], DEPTNO=[$7], T=[$9], EMPNO=[$0], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ true, false }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByBooleanConstantSimple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[true], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject(T=[$9], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ true }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testHeterogeneousConversion">
     <Resource name="sql">
       <![CDATA[select upper(ename) from emp union all

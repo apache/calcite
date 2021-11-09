@@ -219,22 +219,6 @@ class RelToSqlConverterTest {
         .getSql();
   }
 
-  @Test void testGroupByBooleanConstant() {
-    final String query = "select \"gender\", avg(\"salary\")\n"
-        + "from \"employee\"\n"
-        + "group by true, \"gender\", false, 'a'";
-    final String expectedRedShift = "SELECT \"gender\", AVG(\"salary\")\n"
-        + "FROM \"foodmart\".\"employee\"\n"
-        + "GROUP BY (SELECT 1), \"gender\", (SELECT 1), (SELECT 1)";
-    final String expectedPostgres = "SELECT \"gender\", AVG(\"salary\")\n"
-        + "FROM \"foodmart\".\"employee\"\n"
-        + "GROUP BY TRUE, \"gender\", FALSE, (SELECT 1)";
-    sql(query)
-        .withRedshift()
-        .ok(expectedRedShift)
-        .withPostgresql()
-        .ok(expectedPostgres);
-  }
 
   @Test void testSimpleSelectStarFromProductTable() {
     String query = "select * from \"product\"";
