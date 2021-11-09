@@ -26,6 +26,7 @@ import org.apache.calcite.rel.metadata.janino.DispatchGenerator;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -33,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -424,5 +426,11 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           && ((Key) obj).handlerClass.equals(handlerClass)
           && ((Key) obj).provider.equals(provider);
     }
+  }
+
+  @API(status = API.Status.INTERNAL)
+  @VisibleForTesting
+  public static void clearStaticCache() {
+    HANDLERS.invalidateAll();
   }
 }
