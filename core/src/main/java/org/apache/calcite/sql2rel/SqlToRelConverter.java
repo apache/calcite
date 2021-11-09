@@ -2436,7 +2436,7 @@ public class SqlToRelConverter {
     final List<RexNode> exprs = new ArrayList<>();
     Ord.forEach(nodes, (node, i) -> {
       final RexNode e = bb.convertExpression(node);
-      final String alias = validator().deriveAlias(node, i);
+      final String alias = SqlValidatorUtil.alias(node, i);
       exprs.add(relBuilder.alias(e, alias));
     });
     RelNode child =
