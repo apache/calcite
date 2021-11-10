@@ -53,9 +53,6 @@ public class CoreRules {
 
   private CoreRules() {}
 
-  public static final GroupByConstantAddJoinRule GROUP_BY_CONSTANT_ADD_JOIN_RULE =
-      GroupByConstantAddJoinRule.Config.DEFAULT.toRule();
-
   /** Rule that recognizes an {@link Aggregate}
    * on top of a {@link Project} and if possible
    * aggregates through the Project or removes the Project. */

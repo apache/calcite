@@ -1101,19 +1101,6 @@ public class JdbcTest {
             "c0=1997; c1=Q1; c2=Non-Consumable; m0=12506.0000");
   }
 
-  @Test void testGroupByBoolean() {
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select avg(\"salary\")\n"
-            + "from \"employee\"\n"
-            + "group by true")
-        .explainMatches("",
-            CalciteAssert.checkResultContains(
-                "JdbcJoin(condition=[true], joinType=[inner])\n"
-                    + "        JdbcTableScan(table=[[foodmart, employee]])\n"
-                    + "        JdbcValues(tuples=[[{ true }]])"));
-  }
-
   /** Tests plan for a query with 4 tables, 3 joins. */
   @Disabled("The actual and expected plan differ")
   @Test void testCloneGroupBy2Plan() {

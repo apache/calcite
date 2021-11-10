@@ -33,7 +33,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -69,17 +68,6 @@ public class GroupByConstantAddJoinRule
    */
   protected GroupByConstantAddJoinRule(Config config) {
     super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public GroupByConstantAddJoinRule(
-      Class<? extends Aggregate> aggregateClass,
-      Class<? extends Project> projectClass,
-      RelBuilderFactory relBuilderFactory) {
-    this(CoreRules.GROUP_BY_CONSTANT_ADD_JOIN_RULE.config
-        .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withOperandFor(aggregateClass, projectClass));
   }
 
   @Override public boolean matches(RelOptRuleCall call) {

@@ -28,7 +28,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
@@ -48,7 +47,6 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
-import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.metadata.RelMdUtil;
@@ -65,9 +63,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -305,7 +301,7 @@ public class JdbcRules {
         }
         newInputs.add(input);
       }
-      if (convertInputTraits && !canJoinOnCondition(join)) {
+      if (convertInputTraits && !canJoinOnCondition(join.getCondition())) {
         return null;
       }
       try {
@@ -321,28 +317,6 @@ public class JdbcRules {
         LOGGER.debug(e.toString());
         return null;
       }
-    }
-
-    private static boolean canJoinOnCondition(Join join) {
-      if (join.getCondition().getKind() == SqlKind.LITERAL
-          && join.getLeft() instanceof RelSubset && join.getRight() instanceof RelSubset) {
-        RelNode left = ((RelSubset) join.getLeft()).getBestOrOriginal();
-        RelNode right = ((RelSubset) join.getRight()).getBestOrOriginal();
-        if ((left instanceof TableScan && right instanceof Values)
-            || right instanceof TableScan && left instanceof Values) {
-          Values v = (Values) (left instanceof Values ? left : right);
-          boolean isBoolean = true;
-          for (ImmutableList<RexLiteral> list: v.getTuples()) {
-            for (RexLiteral literal: list) {
-              isBoolean &= literal.getTypeName() == SqlTypeName.BOOLEAN;
-            }
-          }
-          if (isBoolean) {
-            return true;
-          }
-        }
-      }
-      return canJoinOnCondition(join.getCondition());
     }
 
     /**

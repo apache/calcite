@@ -205,7 +205,7 @@ class RelOptRulesTest extends RelOptTestBase {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(GroupByConstantAddJoinRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.GROUP_BY_CONSTANT_ADD_JOIN_RULE);
+    hepPlanner.addRule(GroupByConstantAddJoinRule.Config.DEFAULT.toRule());
 
     final String query = "select avg(sal)\n"
         + "from emp\n"
@@ -217,7 +217,7 @@ class RelOptRulesTest extends RelOptTestBase {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(GroupByConstantAddJoinRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.GROUP_BY_CONSTANT_ADD_JOIN_RULE);
+    hepPlanner.addRule(GroupByConstantAddJoinRule.Config.DEFAULT.toRule());
 
     final String query = "select avg(sal)\n"
         + "from emp\n"
