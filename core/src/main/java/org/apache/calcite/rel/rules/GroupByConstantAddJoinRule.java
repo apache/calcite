@@ -82,7 +82,7 @@ public class GroupByConstantAddJoinRule
         .withOperandFor(aggregateClass, projectClass));
   }
 
-  public boolean matches(RelOptRuleCall call) {
+  @Override public boolean matches(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final Project project = call.rel(1);
 
@@ -109,8 +109,8 @@ public class GroupByConstantAddJoinRule
     return hasBooleanLiteral;
   }
 
-  private LogicalValues getValues(Aggregate aggregate, Project project, RexBuilder rexBuilder,
-      RelBuilder builder) {
+  private static LogicalValues getValues(
+      Aggregate aggregate, Project project, RexBuilder rexBuilder, RelBuilder builder) {
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tuples =
         ImmutableList.builder();
     ImmutableList.Builder<RexLiteral> b = ImmutableList.builder();
