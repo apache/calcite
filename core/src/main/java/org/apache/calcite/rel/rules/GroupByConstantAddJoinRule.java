@@ -38,6 +38,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,6 +59,7 @@ import java.util.List;
  * from emp, (select true x) dummy
  * group by dummy.x;
  */
+@Value.Enclosing
 public class GroupByConstantAddJoinRule
     extends RelRule<GroupByConstantAddJoinRule.Config> {
 
@@ -166,8 +169,7 @@ public class GroupByConstantAddJoinRule
         if (pair.getKey().isAlwaysTrue()) {
           newProjects.add(RexInputRef.of(trueIndex, join.getRowType()));
           names.add(join.getRowType().getFieldList().get(trueIndex).getName());
-        }
-        if (pair.getKey().isAlwaysFalse()) {
+        } else if (pair.getKey().isAlwaysFalse()) {
           newProjects.add(RexInputRef.of(falseIndex, join.getRowType()));
           names.add(join.getRowType().getFieldList().get(falseIndex).getName());
         }
@@ -186,8 +188,9 @@ public class GroupByConstantAddJoinRule
   /**
    * Rule Configuration.
    */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableGroupByConstantAddJoinRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalProject.class);
 
     @Override default GroupByConstantAddJoinRule toRule() {
