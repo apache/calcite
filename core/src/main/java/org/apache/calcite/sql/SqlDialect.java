@@ -711,6 +711,10 @@ public class SqlDialect {
     return true;
   }
 
+  public boolean supportsGroupByBoolean() {
+    return true;
+  }
+
   public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case COUNT:
