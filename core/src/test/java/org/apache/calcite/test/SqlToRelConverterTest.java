@@ -2217,6 +2217,91 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionWithPartitionKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by productid, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultiplePartitionKeys() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by (orderId, productid), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithOrderKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by orderId, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleOrderKeys() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by (orderId, productid), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithComplexOrderBy() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by (orderId desc, productid desc nulls last), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithOrderByWithNullLast() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by orderId desc nulls last, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithPartitionKeyAndOrderKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by productid order by orderId, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "topn(\n"
+        + "  DATA => table orders partition by productid order by orderId,\n"
+        + "  COL => 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithSubQuery() {
+    final String sql = "select *\n"
+        + "from table(topn("
+        + "select * from orders partition by productid order by orderId desc nulls last, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithSubQueryWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "topn(\n"
+        + "  DATA => select * from orders partition by productid order by orderId nulls first,\n"
+        + "  COL => 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleInputTables() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "similarlity(\n"
+        + "  table emp partition by deptno order by empno nulls first,\n"
+        + "  table emp_b partition by deptno order by empno nulls first))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleInputTablesWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "similarlity(\n"
+        + "  LTABLE => table emp partition by deptno order by empno nulls first,\n"
+        + "  RTABLE => table emp_b partition by deptno order by empno nulls first))";
+    sql(sql).ok();
+  }
+
   @Test void testNotNotIn() {
     final String sql = "select * from EMP where not (ename not in ('Fred') )";
     sql(sql).ok();

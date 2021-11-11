@@ -1961,12 +1961,46 @@ Not implemented:
 
 Table functions occur in the `FROM` clause.
 
+Table functions may have generic table parameters (i.e., no row type is
+declared when the table function is created), and the row type of the result
+ might depend on the row type(s) of the input tables.
+Besides, input tables are classified by three characteristics.
+The first characteristic is semantics. Input tables have either row semantics
+or set semantics, as follows:
+* Row semantics means that the result of the table function depends on a
+row-by-row basis.
+* Set semantics means that the outcome of the function depends on how the
+data is partitioned.
+
+The second characteristic, which applies only to input tables with
+set semantics, is whether the table function can generate a result row
+even if the input table is empty.
+* If the table function can generate a result row on empty input,
+the table is said to be "keep when empty".
+* The alternative is called "prune when empty", meaning that
+the result would be pruned out if the input table is empty.
+
+The third characteristic is whether the input table supports
+pass-through columns or not. Pass-through columns is a mechanism
+enabling the table function to copy every column of an input row
+into columns of an output row.
+
+The input tables with set semantics may be partitioned on one or more columns.
+The input tables with set semantics may be ordered on one or more columns.
+
+Note:
+* The input tables with row semantics may not be partitioned or ordered.
+* A polymorphic table function may have multiple input tables. However,
+at most one input table could have row semantics.
+
 #### TUMBLE
 
 In streaming queries, TUMBLE assigns a window for each row of a relation based
 on a timestamp column. An assigned window is specified by its beginning and
 ending. All assigned windows have the same length, and that's why tumbling
 sometimes is named as "fixed windowing".
+The first parameter of the TUMBLE table function is a generic table parameter.
+The input table has row semantics and supports pass-through columns.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -1998,7 +2032,8 @@ whether data is complete.
 
 In streaming queries, HOP assigns windows that cover rows within the interval of *size* and shifting every *slide* based
 on a timestamp column. Windows assigned could have overlapping so hopping sometime is named as "sliding windowing".
-
+The first parameter of the HOP table function is a generic table parameter.
+The input table has row semantics and supports pass-through columns.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2032,7 +2067,10 @@ orders that tells data completeness.
 
 In streaming queries, SESSION assigns windows that cover rows based on *datetime*. Within a session window, distances
 of rows are less than *interval*. Session window is applied per *key*.
-
+The first parameter of the SESSION table function is a generic table parameter.
+The input table has set semantics and supports pass-through columns.
+Besides, the SESSION table function would not generate a result row
+if the input table is empty.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2043,18 +2081,16 @@ Here is an example:
 {% highlight sql %}
 SELECT * FROM TABLE(
   SESSION(
-    TABLE orders,
+    TABLE orders PARTITION BY product,
     DESCRIPTOR(rowtime),
-    DESCRIPTOR(product),
     INTERVAL '20' MINUTE));
 
 -- or with the named params
 -- note: the DATA param must be the first
 SELECT * FROM TABLE(
   SESSION(
-    DATA => TABLE orders,
+    DATA => TABLE orders PARTITION BY product,
     TIMECOL => DESCRIPTOR(rowtime),
-    KEY => DESCRIPTOR(product),
     SIZE => INTERVAL '20' MINUTE));
 {% endhighlight %}
 

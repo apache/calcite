@@ -80,6 +80,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.TableCharacteristic;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -3377,6 +3378,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case UNNEST:
       validateUnnest((SqlCall) node, scope, targetRowType);
       break;
+    case COLLECTION_TABLE:
+      validateTableFunction((SqlCall) node, scope, targetRowType);
+      break;
     default:
       validateQuery(node, scope, targetRowType);
       break;
@@ -3385,6 +3389,65 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate the namespace representation of the node, just in case the
     // validation did not occur implicitly.
     getNamespaceOrThrow(node, scope).validate(targetRowType);
+  }
+
+  protected void validateTableFunction(SqlCall node, SqlValidatorScope scope,
+      RelDataType targetRowType) {
+    // Dig out real call; TABLE() wrapper is just syntactic.
+    SqlCall call = node.operand(0);
+    if (call.getOperator() instanceof SqlTableFunction) {
+      SqlTableFunction tableFunction = (SqlTableFunction) call.getOperator();
+      boolean visitedRowSemanticsTable = false;
+      for (int idx = 0; idx < call.operandCount(); idx++) {
+        TableCharacteristic tableCharacteristic = tableFunction.tableCharacteristic(idx);
+        if (tableCharacteristic != null) {
+          // Skip validate if current input table has set semantics
+          if (tableCharacteristic.semantics == TableCharacteristic.Semantics.SET) {
+            continue;
+          }
+          // A table function at most has one input table with row semantics
+          if (visitedRowSemanticsTable) {
+            throw newValidationError(
+                call,
+                RESOURCE.multipleRowSemanticsTables(call.getOperator().getName()));
+          }
+          visitedRowSemanticsTable = true;
+        }
+        // If table function defines the parameter is not table parameter, or is an input table
+        // parameter with row semantics, then it should not be with PARTITION BY OR ORDER BY.
+        SqlNode currentNode = call.operand(idx);
+        if (currentNode instanceof SqlCall) {
+          SqlOperator op = ((SqlCall) currentNode).getOperator();
+          if (op == SqlStdOperatorTable.ARGUMENT_ASSIGNMENT) {
+            // Dig out the underlying operand
+            SqlNode realNode = ((SqlBasicCall) currentNode).operand(0);
+            if (realNode instanceof SqlCall) {
+              currentNode = realNode;
+              op = ((SqlCall) realNode).getOperator();
+            }
+          }
+          if (op == SqlStdOperatorTable.SET_SEMANTICS_TABLE) {
+            throwInvalidRowSemanticsTable(call, idx, (SqlCall) currentNode);
+          }
+        }
+      }
+    }
+    validateQuery(node, scope, targetRowType);
+  }
+
+  private void throwInvalidRowSemanticsTable(SqlCall call, int idx, SqlCall table) {
+    SqlNodeList partitionList = table.operand(1);
+    if (!partitionList.isEmpty()) {
+      throw newValidationError(call,
+          RESOURCE.invalidPartitionKeys(
+              idx, call.getOperator().getName()));
+    }
+    SqlNodeList orderList = table.operand(2);
+    if (!orderList.isEmpty()) {
+      throw newValidationError(call,
+          RESOURCE.invalidOrderBy(
+              idx, call.getOperator().getName()));
+    }
   }
 
   protected void validateOver(SqlCall call, SqlValidatorScope scope) {

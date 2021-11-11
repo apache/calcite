@@ -1564,6 +1564,56 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature FOO..");
   }
 
+  @Test void testInvalidTableFunction() {
+    // A table function at most have one input table with row semantics
+    sql("select * from table(^invalid(table orders, table emp)^)")
+        .fails("A table function at most has one input table with row semantics."
+            + " Table function 'INVALID' has multiple input tables with row semantics");
+    // Only tables with set semantics may be partitioned
+    sql("select * from table(^score(table orders partition by productid)^)")
+        .fails("Only tables with set semantics may be partitioned."
+            + " Invalid PARTITION BY clause in the 0-th operand of table function 'SCORE'");
+    // Only tables with set semantics may be ordered
+    sql("select * from table(^score(table orders order by orderId)^)")
+        .fails("Only tables with set semantics may be ordered."
+            + " Invalid ORDER BY clause in the 0-th operand of table function 'SCORE'");
+  }
+
+  @Test void testTableFunctionWithTableParam() {
+    // test input table with row semantic
+    sql("select * from table(score(table orders))").ok();
+    // test no partition by clause and order by clause for input table with set semantic
+    sql("select * from table(topn(table orders, 3))").ok();
+    // test one partition key for input table with set semantic
+    sql("select * from table(topn(table orders partition by productid, 3))")
+        .ok();
+    // test multiple partition keys for input table with set semantic
+    sql("select * from table(topn(table orders partition by (orderId, productid), 3))")
+        .ok();
+    // test one order key for input table with set semantic
+    sql("select * from table(topn(table orders order by orderId, 3))")
+        .ok();
+    // test multiple order keys for input table with set semantic
+    sql("select * from table(topn(table orders order by (orderId, productid), 3))")
+        .ok();
+    // test complex order-by clause for input table with set semantic
+    sql("select * from table(topn(table orders order by (orderId desc, productid asc), 3))")
+        .ok();
+    // test partition by clause and order by clause for input table with set semantic
+    sql("select * from table(topn(table orders partition by productid order by orderId, 3))")
+        .ok();
+    // test partition by clause and order by clause for subquery
+    sql("select * from table(topn(select * from Orders partition by productid\n "
+        + "order by orderId, 3))")
+        .ok();
+    // test multiple input tables
+    sql("select * from table(\n"
+        + "similarlity(\n"
+        + "  table emp partition by deptno order by empno,\n"
+        + "  table emp_b partition by deptno order by empno))")
+        .ok();
+  }
+
   @Test void testUnknownFunctionHandling() {
     final SqlValidatorFixture s = fixture().withLenientOperatorLookup(true);
     s.withExpr("concat('a', 2)").ok();

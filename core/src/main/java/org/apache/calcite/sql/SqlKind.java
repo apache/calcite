@@ -130,6 +130,20 @@ public enum SqlKind {
    */
   OTHER_FUNCTION,
 
+  /**
+   * Input tables have either row semantics or set semantics.
+   * <ul>
+   * <li>Row semantics means that the the result of the table function is
+   * decided on a row-by-row basis.
+   * <li>Set semantics means that the outcome of the function depends on how
+   * the data is partitioned.
+   * When the table function is called from a query, the table parameter can
+   * optionally be extended with either a PARTITION BY clause or
+   * an ORDER BY clause or both.
+   * </ul>
+   */
+  SET_SEMANTICS_TABLE,
+
   /** POSITION function. */
   POSITION,
 

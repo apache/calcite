@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -43,6 +44,7 @@ import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalSortExchange;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -590,6 +592,14 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   public void rewriteRel(SelfFlatteningRel rel) {
     rel.flattenRel(this);
+  }
+
+  public void rewriteRel(LogicalExchange rel) {
+    rewriteGeneric(rel);
+  }
+
+  public void rewriteRel(LogicalSortExchange rel) {
+    rewriteGeneric(rel);
   }
 
   public void rewriteGeneric(RelNode rel) {
