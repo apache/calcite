@@ -93,6 +93,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlSnapshot;
+import org.apache.calcite.sql.SqlSetSemanticsTable;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
@@ -2355,10 +2356,149 @@ SqlNode TableFunctionCall(SqlParserPos pos) :
             funcType = SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
         }
     ]
-    call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    call = NamedRoutineTableFunctionCall(funcType)
     {
         return SqlStdOperatorTable.COLLECTION_TABLE.createCall(pos, call);
     }
+}
+
+SqlNode NamedRoutineTableFunctionCall(SqlFunctionCategory routineType) :
+{
+    SqlIdentifier name;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    final Span s;
+}
+{
+    name = CompoundIdentifier() {
+        s = span();
+    }
+    <LPAREN>
+    [
+        TableFunctionArg(list)
+        (
+            <COMMA> TableFunctionArg(list)
+        )*
+    ]
+    <RPAREN>
+    {
+        return createCall(name, s.end(this), routineType, null, list);
+    }
+}
+
+void TableFunctionArg(List list) :
+{
+    SqlIdentifier name = null;
+    SqlNode e = null;
+}
+{
+    [
+        LOOKAHEAD(2) name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
+    ]
+    (
+        e = Default()
+    |
+        e = TableFunctionTableArg()
+    |
+        e = TableFunctionSubQueryArg0()
+    )
+    {
+        if (e != null) {
+            if (name != null) {
+                e = SqlStdOperatorTable.ARGUMENT_ASSIGNMENT.createCall(
+                    Span.of(name, e).pos(), e, name);
+            }
+            list.add(e);
+        }
+    }
+}
+
+SqlNode TableFunctionTableArg() :
+{
+    final Span s;
+    SqlNode tableRef;
+    SqlNodeList partitionList = SqlNodeList.EMPTY;
+    SqlNodeList orderList = SqlNodeList.EMPTY;
+}
+{
+    { s = span(); }
+    tableRef = ExplicitTable(getPos())
+    [
+        <PARTITION> <BY>
+        partitionList = SimpleIdentifierOrList()
+    ]
+    [
+        orderList = OrderByInTableParam()
+    ]
+    {
+        if (partitionList.isEmpty() && orderList.isEmpty()) {
+          return tableRef;
+        } else {
+          return new SqlSetSemanticsTable(s.pos(), tableRef, partitionList, orderList);
+        }
+    }
+}
+
+SqlNode TableFunctionSubQueryArg0() :
+{
+    final Span s;
+    SqlNode subQuery;
+    SqlNodeList partitionList = SqlNodeList.EMPTY;
+    SqlNodeList orderList = SqlNodeList.EMPTY;
+}
+{
+    { s = span(); }
+    subQuery = OrderedQueryOrExpr(ExprContext.ACCEPT_ALL)
+    [
+        <PARTITION> <BY>
+        partitionList = SimpleIdentifierOrList()
+    ]
+    [
+        orderList = OrderByInTableParam()
+    ]
+    {
+        if (partitionList.isEmpty() && orderList.isEmpty()) {
+          return subQuery;
+        } else {
+          return new SqlSetSemanticsTable(s.pos(), subQuery, partitionList, orderList);
+        }
+    }
+}
+
+SqlNodeList OrderByInTableParam() :
+{
+    List<SqlNode> list;
+    SqlNode e;
+    final Span s;
+}
+{
+  <ORDER> { s = span(); }
+  <BY>
+  (
+      LOOKAHEAD(2)
+      <LPAREN> e = OrderItem()
+      {
+          list = startList(e);
+      }
+      (
+          // NOTE jvs 6-Feb-2004:  See comments at top of file for why
+          // hint is necessary here.
+          LOOKAHEAD(2)
+          <COMMA>
+          e = OrderItem()
+          {
+              list.add(e);
+          }
+      )*
+      <RPAREN> {
+          return new SqlNodeList(list, s.addAll(list).pos());
+      }
+  |
+      e = OrderItem()
+      {
+          list = startList(e);
+          return new SqlNodeList(list, s.addAll(list).pos());
+      }
+  )
 }
 
 /**

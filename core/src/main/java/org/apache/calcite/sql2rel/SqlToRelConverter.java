@@ -30,6 +30,8 @@ import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -1362,10 +1364,95 @@ public class SqlToRelConverter {
       //
       bb.cursors.add(converted.r);
       return;
-
+    case SET_SEMANTICS_TABLE:
+      if (!config.isExpand()) {
+        return;
+      }
+      call = (SqlBasicCall) subQuery.node;
+      query = call.operand(0);
+      final SqlValidatorScope innerTableScope =
+          (query instanceof SqlSelect)
+              ? validator().getSelectScope((SqlSelect) query)
+              : null;
+      final Blackboard setSemanticsTableBb = createBlackboard(innerTableScope, null, false);
+      final RelNode inputOfSetSemanticsTable = convertQueryRecursive(query, false, null).project();
+      requireNonNull(inputOfSetSemanticsTable, () -> "input RelNode is null for query " + query);
+      SqlNodeList partitionList = call.operand(1);
+      final ImmutableBitSet partitionKeys = buildPartitionKeys(setSemanticsTableBb, partitionList);
+      // For set semantics table, distribution is singleton if does not specify partition keys
+      RelDistribution distribution = partitionKeys.isEmpty()
+          ? RelDistributions.SINGLETON
+          : RelDistributions.hash(partitionKeys.asList());
+      // ORDER BY
+      final SqlNodeList orderList = call.operand(2);
+      final RelCollation orders = buildCollation(setSemanticsTableBb, orderList);
+      relBuilder.push(inputOfSetSemanticsTable);
+      if (orderList.isEmpty()) {
+        relBuilder.exchange(distribution);
+      } else {
+        relBuilder.sortExchange(distribution, orders);
+      }
+      RelNode tableRel = relBuilder.build();
+      subQuery.expr = bb.register(tableRel, JoinRelType.LEFT);
+      // This is used when converting window table functions:
+      //
+      // select * from table(tumble(table emps, descriptor(deptno), interval '3' DAY))
+      //
+      bb.cursors.add(tableRel);
+      return;
     default:
       throw new AssertionError("unexpected kind of sub-query: "
           + subQuery.node);
+    }
+  }
+
+  private ImmutableBitSet buildPartitionKeys(Blackboard bb, SqlNodeList partitionList) {
+    final ImmutableBitSet.Builder partitionKeys = ImmutableBitSet.builder();
+    for (SqlNode partition : partitionList) {
+      validator().deriveType(bb.scope(), partition);
+      RexNode e = bb.convertExpression(partition);
+      partitionKeys.set(parseFieldIdx(e));
+    }
+    return partitionKeys.build();
+  }
+
+  private RelCollation buildCollation(Blackboard bb, SqlNodeList orderList) {
+    final List<RelFieldCollation> orderKeys = new ArrayList<>();
+    for (SqlNode order : orderList) {
+      final RelFieldCollation.Direction direction;
+      switch (order.getKind()) {
+      case DESCENDING:
+        direction = RelFieldCollation.Direction.DESCENDING;
+        order = ((SqlCall) order).operand(0);
+        break;
+      case NULLS_FIRST:
+      case NULLS_LAST:
+        throw new AssertionError();
+      default:
+        direction = RelFieldCollation.Direction.ASCENDING;
+        break;
+      }
+      final RelFieldCollation.NullDirection nullDirection =
+          validator().config().defaultNullCollation().last(desc(direction))
+              ? RelFieldCollation.NullDirection.LAST
+              : RelFieldCollation.NullDirection.FIRST;
+      RexNode e = bb.convertExpression(order);
+      orderKeys.add(
+          new RelFieldCollation(parseFieldIdx(e), direction, nullDirection));
+    }
+    return cluster.traitSet().canonize(RelCollations.of(orderKeys));
+  }
+
+  private static int parseFieldIdx(RexNode e) {
+    switch (e.getKind()) {
+    case FIELD_ACCESS:
+      final RexFieldAccess f = (RexFieldAccess) e;
+      return f.getField().getIndex();
+    case INPUT_REF:
+      final RexInputRef ref = (RexInputRef) e;
+      return ref.getIndex();
+    default:
+      throw new AssertionError();
     }
   }
 
@@ -1885,6 +1972,7 @@ public class SqlToRelConverter {
     case ARRAY_QUERY_CONSTRUCTOR:
     case MAP_QUERY_CONSTRUCTOR:
     case CURSOR:
+    case SET_SEMANTICS_TABLE:
     case SCALAR_QUERY:
       if (!registerOnlyScalarSubQueries
           || (kind == SqlKind.SCALAR_QUERY)) {
@@ -2325,39 +2413,11 @@ public class SqlToRelConverter {
 
     // PARTITION BY
     final SqlNodeList partitionList = matchRecognize.getPartitionList();
-    final ImmutableBitSet.Builder partitionKeys = ImmutableBitSet.builder();
-    for (SqlNode partition : partitionList) {
-      RexNode e = matchBb.convertExpression(partition);
-      partitionKeys.set(((RexInputRef) e).getIndex());
-    }
+    final ImmutableBitSet partitionKeys = buildPartitionKeys(matchBb, partitionList);
 
     // ORDER BY
     final SqlNodeList orderList = matchRecognize.getOrderList();
-    final List<RelFieldCollation> orderKeys = new ArrayList<>();
-    for (SqlNode order : orderList) {
-      final RelFieldCollation.Direction direction;
-      switch (order.getKind()) {
-      case DESCENDING:
-        direction = RelFieldCollation.Direction.DESCENDING;
-        order = ((SqlCall) order).operand(0);
-        break;
-      case NULLS_FIRST:
-      case NULLS_LAST:
-        throw new AssertionError();
-      default:
-        direction = RelFieldCollation.Direction.ASCENDING;
-        break;
-      }
-      final RelFieldCollation.NullDirection nullDirection =
-          validator().config().defaultNullCollation().last(desc(direction))
-              ? RelFieldCollation.NullDirection.LAST
-              : RelFieldCollation.NullDirection.FIRST;
-      RexNode e = matchBb.convertExpression(order);
-      orderKeys.add(
-          new RelFieldCollation(((RexInputRef) e).getIndex(), direction,
-              nullDirection));
-    }
-    final RelCollation orders = cluster.traitSet().canonize(RelCollations.of(orderKeys));
+    final RelCollation orders = buildCollation(matchBb, orderList);
 
     // convert pattern
     final Set<String> patternVarsSet = new HashSet<>();
@@ -2469,7 +2529,7 @@ public class SqlToRelConverter {
             rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after, subsetMap,
-            allRows, partitionKeys.build(), orders, intervalNode);
+            allRows, partitionKeys, orders, intervalNode);
     bb.setRoot(rel, false);
   }
 

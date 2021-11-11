@@ -69,6 +69,7 @@ import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlSetSemanticsTable;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
@@ -80,6 +81,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.TableCharacteristics;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -140,6 +142,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -3371,6 +3374,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case UNNEST:
       validateUnnest((SqlCall) node, scope, targetRowType);
       break;
+    case COLLECTION_TABLE:
+      validateTableFunction((SqlCall) node, scope, targetRowType);
+      break;
     default:
       validateQuery(node, scope, targetRowType);
       break;
@@ -3379,6 +3385,64 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate the namespace representation of the node, just in case the
     // validation did not occur implicitly.
     getNamespaceOrThrow(node, scope).validate(targetRowType);
+  }
+
+  protected void validateTableFunction(SqlCall node, SqlValidatorScope scope,
+      RelDataType targetRowType) {
+    // Dig out real call; TABLE() wrapper is just syntactic.
+    SqlCall call = node.operand(0);
+    if (call.getOperator() instanceof SqlTableFunction) {
+      SqlTableFunction tableFunction = (SqlTableFunction) call.getOperator();
+      boolean hasRowSemanticsTable = false;
+      for (int idx = 0; idx < call.operandCount(); idx++) {
+        Optional<TableCharacteristics> tableCharacteristics =
+            tableFunction.tableCharacteristics(idx);
+        boolean isRowSemanticsTable =
+            tableCharacteristics.filter(
+                c -> c.getSemantics() == TableCharacteristics.Semantics.ROW
+            ).isPresent();
+        if (isRowSemanticsTable) {
+          if (hasRowSemanticsTable) {
+            throw newValidationError(call,
+                RESOURCE.multipleRowSemanticsTables(call.getOperator().getName()));
+          }
+          hasRowSemanticsTable = true;
+        }
+        if (!tableCharacteristics.isPresent() || isRowSemanticsTable) {
+          validateWithoutSetSemanticsTableNode(call, idx);
+        }
+      }
+    }
+    validateQuery(node, scope, targetRowType);
+  }
+
+  private void validateWithoutSetSemanticsTableNode(SqlCall call, int idx) {
+    SqlNode node = call.operand(idx);
+    if (node instanceof SqlSetSemanticsTable) {
+      throwInvalidRowSemanticsTable(call, idx, (SqlSetSemanticsTable) node);
+    } else if (node instanceof SqlBasicCall
+        && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.ARGUMENT_ASSIGNMENT) {
+      // Dig out the underlying operand
+      SqlNode node2 = ((SqlBasicCall) node).operand(0);
+      if (node2 instanceof SqlSetSemanticsTable) {
+        throwInvalidRowSemanticsTable(call, idx, (SqlSetSemanticsTable) node2);
+      }
+    }
+  }
+
+  private void throwInvalidRowSemanticsTable(SqlCall call, int idx, SqlSetSemanticsTable table) {
+    SqlNodeList partitionList = table.operand(1);
+    if (!partitionList.isEmpty()) {
+      throw newValidationError(call,
+          RESOURCE.invalidPartitionKeys(
+              idx, call.getOperator().getName()));
+    }
+    SqlNodeList orderList = table.operand(2);
+    if (!orderList.isEmpty()) {
+      throw newValidationError(call,
+          RESOURCE.invalidOrderBy(
+              idx, call.getOperator().getName()));
+    }
   }
 
   protected void validateOver(SqlCall call, SqlValidatorScope scope) {
