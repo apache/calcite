@@ -19,13 +19,18 @@ package org.apache.calcite.test;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.TableCharacteristic;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -33,15 +38,23 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
@@ -81,7 +94,11 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
                 new NotATableFunction(),
                 new BadTableFunction(),
                 new StructuredFunction(),
-                new CompositeFunction())));
+                new CompositeFunction(),
+                new ScoreTableFunction(),
+                new TopNTableFunction(),
+                new SimilarlityTableFunction(),
+                new InvalidTableFunction())));
   }
 
   /** Adds a library set. */
@@ -185,6 +202,298 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return opBinding -> opBinding.getTypeFactory().builder()
           .add("NAME", SqlTypeName.VARCHAR, 1024)
           .build();
+    }
+  }
+
+  /** "Score" user-defined table function. First parameter is input table
+   * with row semantics. */
+  public static class ScoreTableFunction extends SqlFunction
+      implements SqlTableFunction {
+
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(
+            0,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.ROW)
+                .passColumnsThrough().build());
+
+    public ScoreTableFunction() {
+      super("SCORE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          new OperandMetadataImpl(),
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    private static RelDataType inferRowType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      final RelDataType inputRowType = opBinding.getOperandType(0);
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
+      return typeFactory.builder()
+          .kind(inputRowType.getStructKind())
+          .addAll(inputRowType.getFieldList())
+          .add("SCORE_VALUE", bigintType).nullable(true)
+          .build();
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return ScoreTableFunction::inferRowType;
+    }
+
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return tableParams.get(ordinal);
+    }
+
+    @Override public boolean argumentMustBeScalar(int ordinal) {
+      return !tableParams.containsKey(ordinal);
+    }
+
+    /** Operand type checker for {@link ScoreTableFunction}. */
+    private static class OperandMetadataImpl implements SqlOperandMetadata {
+
+      @Override public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        return ImmutableList.of(typeFactory.createSqlType(SqlTypeName.ANY));
+      }
+
+      @Override public List<String> paramNames() {
+        return ImmutableList.of("DATA");
+      }
+
+      @Override public boolean checkOperandTypes(
+          SqlCallBinding callBinding, boolean throwOnFailure) {
+        return true;
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        return SqlOperandCountRanges.of(1);
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return "Score(TABLE table_name)";
+      };
+
+      @Override public SqlOperandTypeChecker.Consistency getConsistency() {
+        return Consistency.NONE;
+      }
+
+      @Override public boolean isOptional(int i) {
+        return false;
+      }
+    }
+  }
+
+  /** "TopN" user-defined table function. First parameter is input table
+   * with set semantics. */
+  public static class TopNTableFunction extends SqlFunction
+      implements SqlTableFunction {
+
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(
+            0,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.SET)
+                .passColumnsThrough()
+                .pruneIfEmpty()
+                .build());
+
+    public TopNTableFunction() {
+      super("TOPN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          new OperandMetadataImpl(),
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    private static RelDataType inferRowType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      final RelDataType inputRowType = opBinding.getOperandType(0);
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
+      return typeFactory.builder()
+          .kind(inputRowType.getStructKind())
+          .addAll(inputRowType.getFieldList())
+          .add("RANK_NUMBER", bigintType).nullable(true)
+          .build();
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return TopNTableFunction::inferRowType;
+    }
+
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return tableParams.get(ordinal);
+    }
+
+    @Override public boolean argumentMustBeScalar(int ordinal) {
+      return !tableParams.containsKey(ordinal);
+    }
+
+    /** Operand type checker for {@link TopNTableFunction}. */
+    private static class OperandMetadataImpl implements SqlOperandMetadata {
+
+      @Override public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        return ImmutableList.of(
+            typeFactory.createSqlType(SqlTypeName.ANY),
+            typeFactory.createSqlType(SqlTypeName.INTEGER));
+      }
+
+      @Override public List<String> paramNames() {
+        return ImmutableList.of("DATA", "COL");
+      }
+
+      @Override public boolean checkOperandTypes(
+          SqlCallBinding callBinding, boolean throwOnFailure) {
+        final SqlNode operand1 = callBinding.operand(1);
+        final SqlValidator validator = callBinding.getValidator();
+        final RelDataType type = validator.getValidatedNodeType(operand1);
+        if (!SqlTypeUtil.isIntType(type)) {
+          if (throwOnFailure) {
+            throw callBinding.newValidationSignatureError();
+          } else {
+            return false;
+          }
+        } else {
+          return true;
+        }
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        return SqlOperandCountRanges.of(2);
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return "TopN(TABLE table_name, BIGINT rows)";
+      }
+
+      @Override public Consistency getConsistency() {
+        return Consistency.NONE;
+      }
+
+      @Override public boolean isOptional(int i) {
+        return false;
+      }
+    }
+  }
+
+  /** Similarity performs an analysis on two data sets, which are both tables
+   * of two columns, treated as the x and y axes of a graph. It has two input
+   * tables with set semantics. */
+  public static class SimilarlityTableFunction extends SqlFunction
+      implements SqlTableFunction {
+
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(
+            0,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.SET)
+                .build(),
+            1,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.SET)
+                .build());
+
+    public SimilarlityTableFunction() {
+      super("SIMILARLITY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          new OperandMetadataImpl(),
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
+          .add("VAL", SqlTypeName.DECIMAL, 5, 2)
+          .build();
+    }
+
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return tableParams.get(ordinal);
+    }
+
+    @Override public boolean argumentMustBeScalar(int ordinal) {
+      return !tableParams.containsKey(ordinal);
+    }
+
+
+    /** Operand type checker for {@link TopNTableFunction}. */
+    private static class OperandMetadataImpl implements SqlOperandMetadata {
+
+      @Override public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        return ImmutableList.of(
+            typeFactory.createSqlType(SqlTypeName.ANY),
+            typeFactory.createSqlType(SqlTypeName.ANY));
+      }
+
+      @Override public List<String> paramNames() {
+        return ImmutableList.of("LTABLE", "RTABLE");
+      }
+
+      @Override public boolean checkOperandTypes(
+          SqlCallBinding callBinding, boolean throwOnFailure) {
+        return true;
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        return SqlOperandCountRanges.of(2);
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return "SIMILARLITY(TABLE table_name, TABLE table_name)";
+      }
+
+      @Override public Consistency getConsistency() {
+        return Consistency.NONE;
+      }
+
+      @Override public boolean isOptional(int i) {
+        return false;
+      }
+    }
+  }
+
+  /** Invalid user-defined table function with multiple input tables with
+   * row semantics. */
+  public static class InvalidTableFunction extends SqlFunction
+      implements SqlTableFunction {
+
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(
+            0,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.ROW)
+                .passColumnsThrough()
+                .build(),
+            1,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.ROW)
+                .passColumnsThrough()
+                .build());
+
+    public InvalidTableFunction() {
+      super("INVALID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
+          .add("NAME", SqlTypeName.VARCHAR, 1024)
+          .build();
+    }
+
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return tableParams.get(ordinal);
+    }
+
+    @Override public boolean argumentMustBeScalar(int ordinal) {
+      return !tableParams.containsKey(ordinal);
     }
   }
 

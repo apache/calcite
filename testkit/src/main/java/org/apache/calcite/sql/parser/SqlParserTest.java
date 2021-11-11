@@ -4164,6 +4164,95 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testTableFunction() {
+    final String sql = "select * from table(score(table orders))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithPartitionKey() {
+    // test one partition key for input table
+    final String sql = "select * from table(topn(table orders partition by productid, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultiplePartitionKeys() {
+    // test multiple partition keys for input table
+    final String sql =
+        "select * from table(topn(table orders partition by (orderId, productid), 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `ORDERID`, `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithOrderKey() {
+    // test one order key for input table
+    final String sql =
+        "select * from table(topn(table orders order by orderId, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultipleOrderKeys() {
+    // test multiple order keys for input table
+    final String sql =
+        "select * from table(topn(table orders order by (orderId, productid), 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`, `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithComplexOrderBy() {
+    // test complex order-by clause for input table
+    final String sql =
+        "select * from table(topn(table orders order by (orderId desc, productid asc), 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID` DESC, `PRODUCTID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithPartitionKeyAndOrderKey() {
+    // test partition by clause and order by clause for input table
+    final String sql =
+        "select * from table(topn(table orders partition by productid order by orderId, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithSubQuery() {
+    // test partition by clause and order by clause for subquery
+    final String sql =
+        "select * from table(topn(select * from Orders partition by productid "
+            + "order by orderId, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(((SELECT *\n"
+        + "FROM `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultipleInputTables() {
+    final String sql = "select * from table(similarlity(table emp, table emp_b))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SIMILARLITY`((TABLE `EMP`), (TABLE `EMP_B`)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithMultipleInputTablesAndSubClauses() {
+    final String sql = "select * from table("
+        + "similarlity("
+        + "  table emp partition by deptno order by empno, "
+        + "  table emp_b partition by deptno order by empno))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SIMILARLITY`(((TABLE `EMP`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`), "
+        + "((TABLE `EMP_B`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`)))";
+    sql(sql).ok(expected);
+  }
+
   @Test void testIllegalCursors() {
     sql("select ^cursor^(select * from emps) from emps")
         .fails("CURSOR expression encountered in illegal context");

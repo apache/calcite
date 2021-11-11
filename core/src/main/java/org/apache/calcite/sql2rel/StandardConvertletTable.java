@@ -49,6 +49,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
@@ -90,6 +91,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
@@ -958,7 +960,17 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
   private static List<RexNode> convertOperands(SqlRexContext cx,
       SqlCall call, SqlOperandTypeChecker.Consistency consistency) {
-    return convertOperands(cx, call, call.getOperandList(), consistency);
+    List<SqlNode> operandList;
+    if (call.getOperator() instanceof SqlTableFunction) {
+      // skip set semantic table node of table function
+      operandList =
+          call.getOperandList().stream().filter(
+              operand -> operand.getKind() != SqlKind.SET_SEMANTICS_TABLE)
+              .collect(Collectors.toList());
+    } else {
+      operandList = call.getOperandList();
+    }
+    return convertOperands(cx, call, operandList, consistency);
   }
 
   private static List<RexNode> convertOperands(SqlRexContext cx,
