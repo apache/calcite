@@ -130,6 +130,9 @@ public enum SqlKind {
    */
   OTHER_FUNCTION,
 
+  /** Clause of input table with set semantics of Table Function. */
+  SET_SEMANTICS_TABLE,
+
   /** POSITION function. */
   POSITION,
 

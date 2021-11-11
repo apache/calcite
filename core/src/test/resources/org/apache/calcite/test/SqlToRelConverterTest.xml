@@ -6917,6 +6917,147 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTableFunctionWithComplexOrderBy">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders order by (orderId desc, productid desc), 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[single], collation=[[2 DESC, 1 DESC]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithMultipleOrderKeys">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders order by (orderId, productid), 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[single], collation=[[2, 1]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithMultiplePartitionKeys">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders partition by (orderId, productid), 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalExchange(distribution=[hash[1, 2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithOrderKey">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders order by orderId, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[single], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithParamNames">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+topn(
+  DATA => table orders partition by productid order by orderId,
+  COL => 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithPartitionKey">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders partition by productid, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalExchange(distribution=[hash[1]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithPartitionKeyAndOrderKey">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders partition by productid order by orderId, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithSubQuery">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(select * from orders partition by productid order by orderId, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithSubQueryWithParamNames">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+topn(
+  DATA => select * from orders partition by productid order by orderId,
+  COL => 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTableSubset">
     <Resource name="sql">
       <![CDATA[select deptno, name from dept]]>

@@ -1014,7 +1014,9 @@ void AddArg0(List<SqlNode> list, ExprContext exprContext) :
     (
         e = Default()
     |
-        e = OrderedQueryOrExpr(firstExprContext)
+        e = TableArg()
+    |
+        e = PartitionedQueryOrQueryOrExpr(firstExprContext)
     )
     {
         if (name != null) {
@@ -1039,6 +1041,8 @@ void AddArg(List<SqlNode> list, ExprContext exprContext) :
         e = Default()
     |
         e = Expression(exprContext)
+    |
+        e = TableArg()
     )
     {
         if (name != null) {
@@ -1567,6 +1571,108 @@ SqlNode NamedRoutineCall(
     {
         return createCall(name, s.end(this), routineType, null, list);
     }
+}
+
+/**
+ * Table argument of a table function.
+ * The input table with set semantics may be partitioned/ordered on one or more columns.
+ */
+SqlNode TableArg() :
+{
+    final Span s;
+    SqlNode tableRef;
+    SqlNodeList partitionList = SqlNodeList.EMPTY;
+    SqlNodeList orderList = SqlNodeList.EMPTY;
+}
+{
+    { s = span(); }
+    tableRef = ExplicitTable(getPos())
+    [
+        <PARTITION> <BY>
+        partitionList = SimpleIdentifierOrList()
+    ]
+    [
+        orderList = OrderByInTableParam()
+    ]
+    {
+        if (partitionList.isEmpty() && orderList.isEmpty()) {
+          return tableRef;
+        } else {
+          return SqlStdOperatorTable.SET_SEMANTICS_TABLE.createCall(
+              s.pos(), tableRef, partitionList, orderList);
+        }
+    }
+}
+
+SqlNode PartitionedQueryOrQueryOrExpr(ExprContext exprContext) :
+{
+    SqlNode e;
+}
+{
+    e = OrderedQueryOrExpr(exprContext)
+    e = PartitionedByAndOrderBy(e)
+
+    { return e; }
+}
+
+SqlNode PartitionedByAndOrderBy(SqlNode e):
+{
+    final Span s;
+    SqlNodeList partitionList = SqlNodeList.EMPTY;
+    SqlNodeList orderList = SqlNodeList.EMPTY;
+}
+{
+    { s = span(); }
+    [
+        <PARTITION> <BY>
+        partitionList = SimpleIdentifierOrList()
+    ]
+    [
+        orderList = OrderByInTableParam()
+    ]
+    {
+        if (partitionList.isEmpty() && orderList.isEmpty()) {
+          return e;
+        } else {
+          return SqlStdOperatorTable.SET_SEMANTICS_TABLE.createCall(
+              s.pos(), e, partitionList, orderList);
+        }
+    }
+}
+
+SqlNodeList OrderByInTableParam() :
+{
+    List<SqlNode> list;
+    SqlNode e;
+    final Span s;
+}
+{
+  <ORDER> { s = span(); }
+  <BY>
+  (
+      LOOKAHEAD(2)
+      <LPAREN> e = OrderItem()
+      {
+          list = startList(e);
+      }
+      (
+          LOOKAHEAD(2)
+          <COMMA>
+          e = OrderItem()
+          {
+              list.add(e);
+          }
+      )*
+      <RPAREN> {
+          return new SqlNodeList(list, s.addAll(list).pos());
+      }
+  |
+      e = OrderItem()
+      {
+          list = startList(e);
+          return new SqlNodeList(list, s.addAll(list).pos());
+      }
+  )
 }
 
 /**
