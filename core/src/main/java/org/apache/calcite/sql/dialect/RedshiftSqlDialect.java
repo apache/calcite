@@ -111,8 +111,4 @@ public class RedshiftSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsIsTrueInsideCaseWhen() {
-    return false;
-  }
-
 }

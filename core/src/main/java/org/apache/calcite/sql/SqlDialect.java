@@ -453,7 +453,21 @@ public class SqlDialect {
           operator = SqlInternalOperators.ANONYMOUS_ROW;
         }
       }
-      // fall through
+      operator.unparse(writer, call, leftPrec, rightPrec);
+      break;
+    case IS_TRUE:
+    case IS_NOT_FALSE:
+    case IS_FALSE:
+    case IS_NOT_TRUE:
+      if (call.operand(0) instanceof SqlBasicCall) {
+        // Wrap in parentheses the operation associated to any of the above functions
+        // when they are applied to a sqlBasicCall
+        final SqlWriter.Frame frame = writer.startList("(", ")");
+        call.operand(0).unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
+        writer.endList(frame);
+        writer.keyword(operator.getName());
+        break;
+      }
     default:
       operator.unparse(writer, call, leftPrec, rightPrec);
     }
@@ -1081,13 +1095,6 @@ public class SqlDialect {
   public boolean supportsImplicitTypeCoercion(RexCall call) {
     final RexNode operand0 = call.getOperands().get(0);
     return SqlTypeUtil.isCharacter(operand0.getType());
-  }
-
-  /**
-   * Returns whether the dialect supports having IS TRUE operations inside the CASE WHEN operators.
-   */
-  public boolean supportsIsTrueInsideCaseWhen() {
-    return true;
   }
 
   /** Returns the name of the system table that has precisely one row.
