@@ -18,8 +18,6 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 
-import java.math.BigInteger;
-
 /**
  * Holder for a list of constants describing which bugs which have not been
  * fixed.
