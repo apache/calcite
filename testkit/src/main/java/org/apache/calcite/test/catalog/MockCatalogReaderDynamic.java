@@ -23,6 +23,8 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,17 +39,24 @@ public class MockCatalogReaderDynamic extends MockCatalogReader {
   /**
    * Creates a MockCatalogReader.
    *
-   * <p>Caller must then call {@link #init} to populate with data.</p>
+   * <p>Caller must then call {@link #init} to populate with data;
+   * constructor is protected to encourage you to call {@link #create}.
    *
    * @param typeFactory   Type factory
    * @param caseSensitive case sensitivity
    */
-  public MockCatalogReaderDynamic(RelDataTypeFactory typeFactory,
+  protected MockCatalogReaderDynamic(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
     super(typeFactory, caseSensitive);
   }
 
-  @Override public MockCatalogReader init() {
+  /** Creates and initializes a MockCatalogReaderDynamic. */
+  public static @NonNull MockCatalogReaderDynamic create(
+      RelDataTypeFactory typeFactory, boolean caseSensitive) {
+    return new MockCatalogReaderDynamic(typeFactory, caseSensitive).init();
+  }
+
+  @Override public MockCatalogReaderDynamic init() {
     // Register "DYNAMIC" schema.
     MockSchema schema = new MockSchema("SALES");
     registerSchema(schema);

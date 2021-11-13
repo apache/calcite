@@ -1143,7 +1143,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlSubstringFunction op,
       SqlCall call) {
     final SqlLibrary library =
-        cx.getValidator().config().sqlConformance().semantics();
+        cx.getValidator().config().conformance().semantics();
     final SqlBasicCall basicCall = (SqlBasicCall) call;
     switch (library) {
     case BIG_QUERY:

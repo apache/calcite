@@ -534,7 +534,7 @@ class ServerTest {
     }
   }
 
-  @Test public void testDropWithFullyQualifiedNameWhenSchemaDoesntExist() throws Exception {
+  @Test void testDropWithFullyQualifiedNameWhenSchemaDoesntExist() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "schema", "Schema");

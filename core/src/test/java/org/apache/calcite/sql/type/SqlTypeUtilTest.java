@@ -182,7 +182,7 @@ class SqlTypeUtilTest {
     assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
   }
 
-  @Test public void testGetMaxPrecisionScaleDecimal() {
+  @Test void testGetMaxPrecisionScaleDecimal() {
     RelDataType decimal = SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory);
     assertThat(decimal, is(f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, 9)));
   }
@@ -210,7 +210,7 @@ class SqlTypeUtilTest {
         SqlTypeUtil.equalSansNullability(type1, type2), is(expectedResult));
   }
 
-  @Test public void testEqualSansNullability() {
+  @Test void testEqualSansNullability() {
     RelDataType bigIntType = f.sqlBigInt;
     RelDataType nullableBigIntType = f.sqlBigIntNullable;
     RelDataType varCharType = f.sqlVarchar;
