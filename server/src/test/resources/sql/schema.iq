@@ -65,9 +65,16 @@ create schema if not exists s;
 !update
 
 # Bad library
-# create foreign schema fs library 'com.example.BadSchemaFactory';
-# Property 'com.example.BadSchemaFactory' not valid for plugin type org.apache.calcite.schema.SchemaFactory
-# !error
+!if (fixed.calcite4877) {
+create foreign schema fs library 'com.example.BadSchemaFactory';
+Property 'com.example.BadSchemaFactory' not valid as 'com.example.BadSchemaFactory' not found in the classpath
+!error
+!}
+!if (not.fixed.calcite4877) {
+create foreign schema fs library 'com.example.BadSchemaFactory';
+Property 'com.example.BadSchemaFactory' not valid for plugin type org.apache.calcite.schema.SchemaFactory
+!error
+!}
 
 # Bad type
 create foreign schema fs type 'bad';
