@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 
+import java.util.Objects;
+
 /**
  * Holder for a list of constants describing which bugs which have not been
  * fixed.
@@ -259,9 +261,9 @@ public abstract class Bug {
       // Avatica 1.20 and later gives
       //   Property 'org.apache.calcite.NonExistent' not valid as
       //   'org.apache.calcite.NonExistent' not found in the classpath
-      return e.getMessage().equals("Property 'org.apache.calcite.NonExistent' "
-          + "not valid as 'org.apache.calcite.NonExistent' not found in the "
-          + "classpath");
+      return Objects.equals(e.getMessage(),
+          "Property 'org.apache.calcite.NonExistent' not valid as "
+              + "'org.apache.calcite.NonExistent' not found in the classpath");
     }
     return false;
   }
