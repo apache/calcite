@@ -55,8 +55,12 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -79,6 +83,18 @@ public abstract class QuidemTest {
           return Bug.CALCITE_1045_FIXED;
         case "calcite1048":
           return Bug.CALCITE_1048_FIXED;
+        case "calcite4877":
+          return Bug.CALCITE_4877_FIXED;
+        }
+        return null;
+      };
+    case "not":
+      return (Function<String, Object>) v -> {
+        final Object o = getEnv(v);
+        if (o instanceof Function) {
+          @SuppressWarnings("unchecked") final Function<String, Object> f =
+              (Function<String, Object>) o;
+          return (Function<String, Object>) v2 -> !((Boolean) f.apply(v2));
         }
         return null;
       };
