@@ -14,23 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.test;
+package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.test.SqlValidatorTestCase;
 
 /**
- * Concrete subclass of {@link SqlOperatorBaseTest} which checks against
- * a {@link SqlValidator}. Tests that involve execution trivially succeed.
+ * Embodiment of {@link SqlOperatorTest}
+ * that checks against a {@link SqlValidator}.
+ *
+ * <p>Tests that involve execution trivially succeed.
  */
-class SqlOperatorTest extends SqlOperatorBaseTest {
-  private static final SqlTester DEFAULT_TESTER =
-      (SqlTester) new SqlValidatorTestCase().getTester();
-
-  /**
-   * Creates a SqlOperatorTest.
-   */
-  SqlOperatorTest() {
-    super(false, DEFAULT_TESTER);
-  }
+class CoreSqlOperatorTest extends SqlOperatorTest {
 }

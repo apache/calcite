@@ -31,7 +31,7 @@
     <logger name="org.apache.calcite.runtime.CalciteException" level="FATAL"/>
     <logger name="org.apache.calcite.sql.validate.SqlValidatorException" level="ERROR"/>
     <logger name="org.apache.calcite.plan.RexImplicationChecker" level="FATAL"/>
-    <logger name="org.apache.calcite.sql.test.SqlOperatorBaseTest" level="FATAL"/>
+    <logger name="org.apache.calcite.test.SqlOperatorTest" level="FATAL"/>
     <!-- [CALCITE-4858] Silence anything but errors -->
     <logger name="org.apache.calcite.plan.VisitorDataContext" level="ERROR"/>
     <logger name="org.apache.calcite.avatica" level="ERROR"/>

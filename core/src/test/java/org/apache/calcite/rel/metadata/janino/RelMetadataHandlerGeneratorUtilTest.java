@@ -23,7 +23,6 @@ import org.apache.calcite.util.Sources;
 
 import com.google.common.io.CharStreams;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -36,6 +35,8 @@ import java.nio.file.Paths;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
  * Test {@link RelMetadataHandlerGeneratorUtil}.
  */
@@ -43,105 +44,105 @@ class RelMetadataHandlerGeneratorUtilTest {
   private static final Path RESULT_DIR = Paths.get("build/metadata");
 
   @Test void testAllPredicatesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.AllPredicates.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.AllPredicates.Handler.class);
   }
 
   @Test void testCollationGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Collation.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.Collation.Handler.class);
   }
 
   @Test void testColumnOriginGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ColumnOrigin.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.ColumnOrigin.Handler.class);
   }
 
   @Test void testColumnUniquenessGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ColumnUniqueness.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.ColumnUniqueness.Handler.class);
   }
 
   @Test void testCumulativeCostGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.CumulativeCost.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.CumulativeCost.Handler.class);
   }
 
   @Test void testDistinctRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.DistinctRowCount.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.DistinctRowCount.Handler.class);
   }
 
   @Test void testDistributionGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Distribution.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.Distribution.Handler.class);
   }
 
   @Test void testExplainVisibilityGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ExplainVisibility.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.ExplainVisibility.Handler.class);
   }
 
   @Test void testExpressionLineageGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
   }
 
   @Test void testLowerBoundCostGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
   }
 
   @Test void testMaxRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.MaxRowCount.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.MaxRowCount.Handler.class);
   }
 
   @Test void testMemoryGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Memory.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.Memory.Handler.class);
   }
 
   @Test void testMinRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.MinRowCount.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.MinRowCount.Handler.class);
   }
 
   @Test void testNodeTypesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.NodeTypes.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.NodeTypes.Handler.class);
   }
 
   @Test void testNonCumulativeCostGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.NonCumulativeCost.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.NonCumulativeCost.Handler.class);
   }
 
   @Test void testParallelismGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Parallelism.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.Parallelism.Handler.class);
   }
 
   @Test void testPercentageOriginalRowsGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.PercentageOriginalRows.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.PercentageOriginalRows.Handler.class);
   }
 
   @Test void testPopulationSizeGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.PopulationSize.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.PopulationSize.Handler.class);
   }
 
   @Test void testPredicatesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Predicates.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.Predicates.Handler.class);
   }
 
   @Test void testRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.RowCount.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.RowCount.Handler.class);
   }
 
   @Test void testSelectivityGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Selectivity.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.Selectivity.Handler.class);
   }
 
   @Test void testSizeGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Size.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.Size.Handler.class);
   }
 
   @Test void testTableReferencesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.TableReferences.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.TableReferences.Handler.class);
   }
 
   @Test void testUniqueKeysGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.UniqueKeys.Handler.class);
+    checkGenerateHandler(BuiltInMetadata.UniqueKeys.Handler.class);
   }
 
   /**
    * Performance a regression test on the generated code for a given handler.
    */
-  private void testGenerateHandler(Class<? extends MetadataHandler<?>> handlerClass) {
+  private void checkGenerateHandler(Class<? extends MetadataHandler<?>> handlerClass) {
     RelMetadataHandlerGeneratorUtil.HandlerNameAndGeneratedCode nameAndGeneratedCode =
         RelMetadataHandlerGeneratorUtil.generateHandler(handlerClass,
             DefaultRelMetadataProvider.INSTANCE.handlers(handlerClass));
@@ -153,7 +154,7 @@ class RelMetadataHandlerGeneratorUtilTest {
     assert !expected.contains("\r") : "Expected code should not contain \\r";
     assert !nameAndGeneratedCode.getGeneratedCode().equals("\r")
         : "Generated code should not contain \\r";
-    Assertions.assertEquals(expected, nameAndGeneratedCode.getGeneratedCode());
+    assertEquals(expected, nameAndGeneratedCode.getGeneratedCode());
   }
 
   private static String readResource(String resourceName) {

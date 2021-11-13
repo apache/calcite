@@ -456,7 +456,7 @@ public class ScannableTableTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3758">[CALCITE-3758]
    * FilterTableScanRule generate wrong mapping for filter condition
    * when underlying is BindableTableScan</a>. */
-  @Test public void testPFTableInBindableConvention() {
+  @Test void testPFTableInBindableConvention() {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {

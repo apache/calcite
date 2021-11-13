@@ -1034,7 +1034,7 @@ LogicalProject(MGR=[$0], SUM_SAL=[$2])
   <TestCase name="testAggregateUnionTransposeWithAllInputsUnique">
     <Resource name="sql">
       <![CDATA[select deptno, SUM(t) from (
-select deptno, 1 as t from sales.emp e1
+select distinct deptno, 1 as t from sales.emp e1
 union all
 select distinct deptno, 2 as t from sales.emp e2)
 group by deptno]]>
@@ -1789,6 +1789,12 @@ LogicalProject(EMPNO=[$0])
         LogicalProject(EMPNO=[$0], SAL=[$5])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT e1.empno
+FROM emp e1, dept d1 where e1.deptno = d1.deptno
+and e1.deptno < 10 and d1.deptno < 15
+and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
     </Resource>
   </TestCase>
   <TestCase name="testDecorrelateAggWithConstantGroupKey">
@@ -2757,7 +2763,8 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT(
   </TestCase>
   <TestCase name="testDynamicStarWithUnion">
     <Resource name="sql">
-      <![CDATA[(select n_nationkey from SALES.CUSTOMER) union all (select n_name from CUSTOMER_MODIFIABLEVIEW)]]>
+      <![CDATA[(select n_nationkey from SALES.CUSTOMER) union all
+(select n_name from CUSTOMER_MODIFIABLEVIEW)]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -3054,7 +3061,9 @@ LogicalValues(tuples=[[]])
   </TestCase>
   <TestCase name="testEnumerableCalcRule">
     <Resource name="sql">
-      <![CDATA[select ename from emp where sal > 10.0]]]>
+      <![CDATA[select FNAME, LNAME
+from SALES.CUSTOMER
+where CONTACTNO > 10]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -6225,6 +6234,28 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
     <Resource name="finalPlan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{}], DUMMY=[COUNT()])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{}], DUMMY=[COUNT()])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
       <![CDATA[
 LogicalProject(DEPTNO=[$0])
   LogicalJoin(condition=[true], joinType=[inner])
@@ -11506,10 +11537,14 @@ LogicalProject(DNAME=[$1])
   </TestCase>
   <TestCase name="testSemiJoinTrim">
     <Resource name="sql">
-      <![CDATA[select s.deptno from (select * from dept where exists (
-  select * from emp
-  where emp.deptno = dept.deptno
-  and emp.sal > 100)) s join customer.account on s.deptno = account.acctno]]>
+      <![CDATA[select s.deptno
+from (select *
+  from dept
+  where exists (
+    select * from emp
+    where emp.deptno = dept.deptno
+    and emp.sal > 100)) s
+join customer.account on s.deptno = account.acctno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -12502,8 +12537,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5
   </TestCase>
   <TestCase name="testSubQueryWithDynamicStarHang">
     <Resource name="sql">
-      <![CDATA[select n.n_regionkey from (select * from
-(select * from sales.customer) t) n where n.n_nationkey >1]]>
+      <![CDATA[select n.n_regionkey from (select * from (select * from sales.customer) t) n where n.n_nationkey >1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[

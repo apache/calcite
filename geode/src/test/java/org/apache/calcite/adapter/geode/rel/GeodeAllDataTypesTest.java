@@ -82,25 +82,22 @@ class GeodeAllDataTypesTest extends AbstractGeodeTest {
             .build());
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static Connection createConnection() throws SQLException  {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("geode",
-            new GeodeSchema(
-                POLICY.cache(),
-                Collections.singleton("allDataTypesRegion")));
+    root.add("geode",
+        new GeodeSchema(POLICY.cache(),
+            Collections.singleton("allDataTypesRegion")));
 
-        return connection;
-      }
-    };
+    return connection;
   }
 
   private CalciteAssert.AssertThat calciteAssert() {
     return CalciteAssert.that()
-        .with(newConnectionFactory());
+        .with(GeodeAllDataTypesTest::createConnection);
   }
 
   @Test void testSqlSingleBooleanWhereFilter() {

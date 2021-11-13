@@ -38,7 +38,6 @@ class EnumerableCalcTest {
   @Test void testCoalesceImplementation() {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new HrSchema()))
-        .query("?")
         .withRel(
             builder -> builder
                 .scan("s", "emps")
@@ -94,7 +93,6 @@ class EnumerableCalcTest {
       String... expectedResult) {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new HrSchema()))
-        .query("?")
         .withRel(
             builder -> builder
                 .scan("s", "emps")

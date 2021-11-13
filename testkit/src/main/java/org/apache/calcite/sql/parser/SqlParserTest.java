@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -31,18 +30,16 @@ import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
-import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.util.SqlShuttle;
-import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.tools.Hoist;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.SourceStringReader;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -50,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
@@ -64,13 +62,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.util.Util.toLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -87,9 +86,13 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * A <code>SqlParserTest</code> is a unit-test for
  * {@link SqlParser the SQL parser}.
  *
- * <p>To reuse this test for an extension parser, implement the
- * {@link #parserImplFactory()} method to return the extension parser
- * implementation.
+ * <p>To reuse this test for an extension parser, override the
+ * {@link #fixture()} method,
+ * calling {@link SqlParserFixture#withConfig(UnaryOperator)}
+ * and then {@link SqlParser.Config#withParserFactory(SqlParserImplFactory)}.
+ *
+ * @see SqlParserFixture
+ * @see SqlParserListFixture
  */
 public class SqlParserTest {
   /**
@@ -573,9 +576,6 @@ public class SqlParserTest {
 
   private static final String ANY = "(?s).*";
 
-  private static final ThreadLocal<boolean[]> LINUXIFY =
-      ThreadLocal.withInitial(() -> new boolean[] {true});
-
   private static final SqlWriterConfig SQL_WRITER_CONFIG =
       SqlPrettyWriter.config()
           .withAlwaysUseParentheses(true)
@@ -598,58 +598,31 @@ public class SqlParserTest {
   private static final SqlDialect REDSHIFT =
       SqlDialect.DatabaseProduct.REDSHIFT.getDialect();
 
-  Quoting quoting = Quoting.DOUBLE_QUOTE;
-  Casing unquotedCasing = Casing.TO_UPPER;
-  Casing quotedCasing = Casing.UNCHANGED;
-  SqlConformance conformance = SqlConformanceEnum.DEFAULT;
-
-  protected Tester getTester() {
-    return new TesterImpl();
+  /** Creates the test fixture that determines the behavior of tests.
+   * Sub-classes that, say, test different parser implementations should
+   * override. */
+  public SqlParserFixture fixture() {
+    return SqlParserFixture.DEFAULT;
   }
 
-  protected Sql sql(String sql) {
-    return new Sql(StringAndPos.of(sql), false, null, parser -> { });
+  protected SqlParserFixture sql(String sql) {
+    return fixture().sql(sql);
   }
 
-  protected Sql expr(String sql) {
-    return new Sql(StringAndPos.of(sql), true, null, parser -> { });
+  protected SqlParserFixture expr(String sql) {
+    return sql(sql).expression(true);
   }
 
-  /** Creates an instance of helper class {@link SqlList} to test parsing a
-   * list of statements. */
-  protected SqlList sqlList(String sql) {
-    return new SqlList(sql);
+  /** Converts a string to linux format (LF line endings rather than CR-LF),
+   * except if disabled in {@link SqlParserFixture#convertToLinux}. */
+  static UnaryOperator<String> linux(boolean convertToLinux) {
+    return convertToLinux ? Util::toLinux : UnaryOperator.identity();
   }
 
-  /**
-   * Implementors of custom parsing logic who want to reuse this test should
-   * override this method with the factory for their extension parser.
-   */
-  protected SqlParserImplFactory parserImplFactory() {
-    return SqlParserImpl.FACTORY;
-  }
-
-  public SqlParser getSqlParser(String sql) {
-    return getSqlParser(new SourceStringReader(sql), UnaryOperator.identity());
-  }
-
-  protected SqlParser getSqlParser(Reader source,
+  protected static SqlParser sqlParser(Reader source,
       UnaryOperator<SqlParser.Config> transform) {
-    final SqlParser.Config configBuilder =
-        SqlParser.config()
-            .withParserFactory(parserImplFactory())
-            .withQuoting(quoting)
-            .withUnquotedCasing(unquotedCasing)
-            .withQuotedCasing(quotedCasing)
-            .withConformance(conformance);
-    final SqlParser.Config config = transform.apply(configBuilder);
+    final SqlParser.Config config = transform.apply(SqlParser.Config.DEFAULT);
     return SqlParser.create(source, config);
-  }
-
-  private static UnaryOperator<SqlParser.Config> getTransform(
-      SqlDialect dialect) {
-    return dialect == null ? UnaryOperator.identity()
-        : dialect::configureParser;
   }
 
   /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a
@@ -690,11 +663,11 @@ public class SqlParserTest {
    * used to disable tests that behave differently with different collections
    * of reserved words. */
   protected boolean isReserved(String word) {
-    SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
+    SqlAbstractParserImpl.Metadata metadata = fixture().parser().getMetadata();
     return metadata.isReservedWord(word.toUpperCase(Locale.ROOT));
   }
 
-  protected static SortedSet<String> keywords(String dialect) {
+  protected static SortedSet<String> keywords(@Nullable String dialect) {
     final ImmutableSortedSet.Builder<String> builder =
         ImmutableSortedSet.naturalOrder();
     String r = null;
@@ -1222,43 +1195,53 @@ public class SqlParserTest {
             + "FROM `SALES`.`DEPTS`) AS `T`");
 
     // Conformance DEFAULT and LENIENT support explicit row value constructor
-    conformance = SqlConformanceEnum.DEFAULT;
     final String selectRow = "select ^row(t1a, t2a)^ from t1";
     final String expected = "SELECT (ROW(`T1A`, `T2A`))\n"
         + "FROM `T1`";
-    sql(selectRow).ok(expected);
-    conformance = SqlConformanceEnum.LENIENT;
-    sql(selectRow).ok(expected);
+    sql(selectRow)
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok(expected);
+    sql(selectRow)
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok(expected);
 
     final String pattern = "ROW expression encountered in illegal context";
-    conformance = SqlConformanceEnum.MYSQL_5;
-    sql(selectRow).fails(pattern);
-    conformance = SqlConformanceEnum.ORACLE_12;
-    sql(selectRow).fails(pattern);
-    conformance = SqlConformanceEnum.STRICT_2003;
-    sql(selectRow).fails(pattern);
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(selectRow).fails(pattern);
+    sql(selectRow)
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .fails(pattern);
+    sql(selectRow)
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .fails(pattern);
+    sql(selectRow)
+        .withConformance(SqlConformanceEnum.STRICT_2003)
+        .fails(pattern);
+    sql(selectRow)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .fails(pattern);
 
     final String whereRow = "select 1 from t2 where ^row (x, y)^ < row (a, b)";
     final String whereExpected = "SELECT 1\n"
         + "FROM `T2`\n"
         + "WHERE ((ROW(`X`, `Y`)) < (ROW(`A`, `B`)))";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(whereRow).ok(whereExpected);
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(whereRow).fails(pattern);
+    sql(whereRow)
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok(whereExpected);
+    sql(whereRow)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .fails(pattern);
 
     final String whereRow2 = "select 1 from t2 where ^(x, y)^ < (a, b)";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(whereRow2).ok(whereExpected);
+    sql(whereRow2)
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok(whereExpected);
 
     // After this point, SqlUnparserTest has problems.
     // We generate ROW in a dialect that does not allow ROW in all contexts.
     // So bail out.
-    assumeFalse(isUnparserTest());
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(whereRow2).ok(whereExpected);
+    assumeFalse(fixture().tester.isUnparserTest());
+    sql(whereRow2)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(whereExpected);
   }
 
   @Test void testRowValueExpression() {
@@ -1291,18 +1274,12 @@ public class SqlParserTest {
         .withDialect(MSSQL)
         .ok(expected3);
 
-    conformance = SqlConformanceEnum.DEFAULT;
     expr("ROW(EMP.EMPNO, EMP.ENAME)").ok("(ROW(`EMP`.`EMPNO`, `EMP`.`ENAME`))");
     expr("ROW(EMP.EMPNO + 1, EMP.ENAME)").ok("(ROW((`EMP`.`EMPNO` + 1), `EMP`.`ENAME`))");
     expr("ROW((select deptno from dept where dept.deptno = emp.deptno), EMP.ENAME)")
         .ok("(ROW((SELECT `DEPTNO`\n"
             + "FROM `DEPT`\n"
             + "WHERE (`DEPT`.`DEPTNO` = `EMP`.`DEPTNO`)), `EMP`.`ENAME`))");
-  }
-
-  /** Whether this is a sub-class that tests un-parsing as well as parsing. */
-  protected boolean isUnparserTest() {
-    return false;
   }
 
   @Test void testRowWithDot() {
@@ -1361,21 +1338,21 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `EMP`,\n"
         + "`DEPT`";
-    sqlList("select * from emp, dept").ok(expected);
+    sql("select * from emp, dept").list().ok(expected);
   }
 
   @Test void testStmtListWithSelectAndSemicolon() {
     final String expected = "SELECT *\n"
         + "FROM `EMP`,\n"
         + "`DEPT`";
-    sqlList("select * from emp, dept;").ok(expected);
+    sql("select * from emp, dept;").list().ok(expected);
   }
 
   @Test void testStmtListWithTwoSelect() {
     final String expected = "SELECT *\n"
         + "FROM `EMP`,\n"
         + "`DEPT`";
-    sqlList("select * from emp, dept ; select * from emp, dept")
+    sql("select * from emp, dept ; select * from emp, dept").list()
         .ok(expected, expected);
   }
 
@@ -1383,7 +1360,7 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `EMP`,\n"
         + "`DEPT`";
-    sqlList("select * from emp, dept ; select * from emp, dept;")
+    sql("select * from emp, dept ; select * from emp, dept;").list()
         .ok(expected, expected);
   }
 
@@ -1392,7 +1369,7 @@ public class SqlParserTest {
         + "FROM `EMP`,\n"
         + "`DEPT`";
     final String expected1 = "DELETE FROM `EMP`";
-    sqlList("select * from emp, dept; delete from emp")
+    sql("select * from emp, dept; delete from emp").list()
         .ok(expected, expected1);
   }
 
@@ -1405,7 +1382,7 @@ public class SqlParserTest {
         + "`DEPT`";
     final String expected1 = "DELETE FROM `EMP`";
     final String expected2 = "UPDATE `EMPS` SET `EMPNO` = (`EMPNO` + 1)";
-    sqlList(sql).ok(expected, expected1, expected2);
+    sql(sql).list().ok(expected, expected1, expected2);
   }
 
   @Test void testStmtListWithSemiColonInComment() {
@@ -1416,7 +1393,7 @@ public class SqlParserTest {
         + "FROM `EMP`,\n"
         + "`DEPT`";
     final String expected1 = "VALUES (ROW(2))";
-    sqlList(sql).ok(expected, expected1);
+    sql(sql).list().ok(expected, expected1);
   }
 
   @Test void testStmtListWithSemiColonInWhere() {
@@ -1424,7 +1401,7 @@ public class SqlParserTest {
         + "FROM `EMP`\n"
         + "WHERE (`NAME` LIKE 'toto;')";
     final String expected1 = "DELETE FROM `EMP`";
-    sqlList("select * from emp where name like 'toto;'; delete from emp")
+    sql("select * from emp where name like 'toto;'; delete from emp").list()
         .ok(expected, expected1);
   }
 
@@ -1439,22 +1416,24 @@ public class SqlParserTest {
         + "WHERE (`NAME` LIKE 'toto;')";
     final String expected2 = "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
         + "VALUES (ROW('b', 123))";
-    sqlList(sql).ok(expected, expected1, expected2);
+    sql(sql).list().ok(expected, expected1, expected2);
   }
 
   /** Should fail since the first statement lacks semicolon. */
   @Test void testStmtListWithoutSemiColon1() {
-    sqlList("select * from emp where name like 'toto' "
+    sql("select * from emp where name like 'toto' "
         + "^delete^ from emp")
+        .list()
         .fails("(?s).*Encountered \"delete\" at .*");
   }
 
   /** Should fail since the third statement lacks semicolon. */
   @Test void testStmtListWithoutSemiColon2() {
-    sqlList("select * from emp where name like 'toto'; "
+    sql("select * from emp where name like 'toto'; "
         + "delete from emp; "
         + "insert into dept (name, deptno) values ('a', 123) "
         + "^select^ * from dept")
+        .list()
         .fails("(?s).*Encountered \"select\" at .*");
   }
 
@@ -2274,81 +2253,90 @@ public class SqlParserTest {
   }
 
   @Test void testBackTickIdentifier() {
-    quoting = Quoting.BACK_TICK;
-    expr("ab").ok("`AB`");
-    expr("     `a  \" b!c`").ok("`a  \" b!c`");
-    expr("     ^\"^a  \"\" b!c\"")
+    SqlParserFixture f = fixture()
+        .withConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .expression();
+    f.sql("ab").ok("`AB`");
+    f.sql("     `a  \" b!c`").ok("`a  \" b!c`");
+    f.sql("     ^\"^a  \"\" b!c\"")
         .fails("(?s).*Encountered.*");
 
-    expr("^\"^x`y`z\"").fails("(?s).*Encountered.*");
-    expr("`x``y``z`").ok("`x``y``z`");
-    expr("`x\\`^y^\\`z`").fails("(?s).*Encountered.*");
+    f.sql("^\"^x`y`z\"").fails("(?s).*Encountered.*");
+    f.sql("`x``y``z`").ok("`x``y``z`");
+    f.sql("`x\\`^y^\\`z`").fails("(?s).*Encountered.*");
 
-    expr("myMap[field] + myArray[1 + 2]")
+    f.sql("myMap[field] + myArray[1 + 2]")
         .ok("(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
 
-    sql("VALUES a").node(isQuoted(0, false));
-    sql("VALUES `a`").node(isQuoted(0, true));
-    sql("VALUES `a``b`").node(isQuoted(0, true));
+    f = f.expression(false);
+    f.sql("VALUES a").node(isQuoted(0, false));
+    f.sql("VALUES `a`").node(isQuoted(0, true));
+    f.sql("VALUES `a``b`").node(isQuoted(0, true));
   }
 
   @Test void testBackTickBackslashIdentifier() {
-    quoting = Quoting.BACK_TICK_BACKSLASH;
-    expr("ab").ok("`AB`");
-    expr("     `a  \" b!c`").ok("`a  \" b!c`");
-    expr("     \"a  \"^\" b!c\"^")
+    SqlParserFixture f = fixture()
+        .withConfig(c -> c.withQuoting(Quoting.BACK_TICK_BACKSLASH))
+        .expression();
+    f.sql("ab").ok("`AB`");
+    f.sql("     `a  \" b!c`").ok("`a  \" b!c`");
+    f.sql("     \"a  \"^\" b!c\"^")
         .fails("(?s).*Encountered.*");
 
     // BACK_TICK_BACKSLASH identifiers implies
     // BigQuery dialect, which implies double-quoted character literals.
-    expr("^\"^x`y`z\"").ok("'x`y`z'");
-    expr("`x`^`y`^`z`").fails("(?s).*Encountered.*");
-    expr("`x\\`y\\`z`").ok("`x``y``z`");
+    f.sql("^\"^x`y`z\"").ok("'x`y`z'");
+    f.sql("`x`^`y`^`z`").fails("(?s).*Encountered.*");
+    f.sql("`x\\`y\\`z`").ok("`x``y``z`");
 
-    expr("myMap[field] + myArray[1 + 2]")
+    f.sql("myMap[field] + myArray[1 + 2]")
         .ok("(`MYMAP`[`FIELD`] + `MYARRAY`[(1 + 2)])");
 
-    sql("VALUES a").node(isQuoted(0, false));
-    sql("VALUES `a`").node(isQuoted(0, true));
-    sql("VALUES `a\\`b`").node(isQuoted(0, true));
+    f = f.expression(false);
+    f.sql("VALUES a").node(isQuoted(0, false));
+    f.sql("VALUES `a`").node(isQuoted(0, true));
+    f.sql("VALUES `a\\`b`").node(isQuoted(0, true));
   }
 
   @Test void testBracketIdentifier() {
-    quoting = Quoting.BRACKET;
-    expr("ab").ok("`AB`");
-    expr("     [a  \" b!c]").ok("`a  \" b!c`");
-    expr("     ^`^a  \" b!c`")
+    SqlParserFixture f = fixture()
+        .withConfig(c -> c.withQuoting(Quoting.BRACKET))
+        .expression();
+    f.sql("ab").ok("`AB`");
+    f.sql("     [a  \" b!c]").ok("`a  \" b!c`");
+    f.sql("     ^`^a  \" b!c`")
         .fails("(?s).*Encountered.*");
-    expr("     ^\"^a  \"\" b!c\"")
-        .fails("(?s).*Encountered.*");
-
-    expr("[x`y`z]").ok("`x``y``z`");
-    expr("^\"^x`y`z\"")
-        .fails("(?s).*Encountered.*");
-    expr("^`^x``y``z`")
+    f.sql("     ^\"^a  \"\" b!c\"")
         .fails("(?s).*Encountered.*");
 
-    expr("[anything [even brackets]] is].[ok]")
+    f.sql("[x`y`z]").ok("`x``y``z`");
+    f.sql("^\"^x`y`z\"")
+        .fails("(?s).*Encountered.*");
+    f.sql("^`^x``y``z`")
+        .fails("(?s).*Encountered.*");
+
+    f.sql("[anything [even brackets]] is].[ok]")
         .ok("`anything [even brackets] is`.`ok`");
 
     // What would be a call to the 'item' function in DOUBLE_QUOTE and BACK_TICK
     // is a table alias.
-    sql("select * from myMap[field], myArray[1 + 2]")
+    f = f.expression(false);
+    f.sql("select * from myMap[field], myArray[1 + 2]")
         .ok("SELECT *\n"
             + "FROM `MYMAP` AS `field`,\n"
             + "`MYARRAY` AS `1 + 2`");
-    sql("select * from myMap [field], myArray [1 + 2]")
+    f.sql("select * from myMap [field], myArray [1 + 2]")
         .ok("SELECT *\n"
             + "FROM `MYMAP` AS `field`,\n"
             + "`MYARRAY` AS `1 + 2`");
 
-    sql("VALUES a").node(isQuoted(0, false));
-    sql("VALUES [a]").node(isQuoted(0, true));
+    f.sql("VALUES a").node(isQuoted(0, false));
+    f.sql("VALUES [a]").node(isQuoted(0, true));
   }
 
   @Test void testBackTickQuery() {
-    quoting = Quoting.BACK_TICK;
     sql("select `x`.`b baz` from `emp` as `x` where `x`.deptno in (10, 20)")
+        .withConfig(c -> c.withQuoting(Quoting.BACK_TICK))
         .ok("SELECT `x`.`b baz`\n"
             + "FROM `emp` AS `x`\n"
             + "WHERE (`x`.`DEPTNO` IN (10, 20))");
@@ -2362,69 +2350,79 @@ public class SqlParserTest {
     final String expectingAlias = "Expecting alias, found character literal";
 
     final String sql1 = "select 1 as ^'a b'^ from t";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(sql1).fails(expectingAlias);
-    conformance = SqlConformanceEnum.MYSQL_5;
+    sql(sql1)
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails(expectingAlias);
     final String sql1b = "SELECT 1 AS `a b`\n"
         + "FROM `T`";
-    sql(sql1).ok(sql1b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql1).ok(sql1b);
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(sql1).ok(sql1b);
+    sql(sql1)
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(sql1b);
+    sql(sql1)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok(sql1b);
+    sql(sql1)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(sql1b);
 
     // valid on MSSQL (alias contains a single quote)
     final String sql2 = "with t as (select 1 as ^'x''y'^)\n"
         + "select [x'y] from t as [u]";
-    conformance = SqlConformanceEnum.DEFAULT;
-    quoting = Quoting.BRACKET;
-    sql(sql2).fails(expectingAlias);
-    conformance = SqlConformanceEnum.MYSQL_5;
+    final SqlParserFixture f2 = sql(sql2)
+        .withConfig(c -> c.withQuoting(Quoting.BRACKET)
+            .withConformance(SqlConformanceEnum.DEFAULT));
+    f2.fails(expectingAlias);
     final String sql2b = "WITH `T` AS (SELECT 1 AS `x'y`) (SELECT `x'y`\n"
         + "FROM `T` AS `u`)";
-    sql(sql2).ok(sql2b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql2).ok(sql2b);
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(sql2).ok(sql2b);
+    f2.withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(sql2b);
+    f2.withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok(sql2b);
+    f2.withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(sql2b);
 
     // also valid on MSSQL
     final String sql3 = "with [t] as (select 1 as [x]) select [x] from [t]";
     final String sql3b = "WITH `t` AS (SELECT 1 AS `x`) (SELECT `x`\n"
         + "FROM `t`)";
-    conformance = SqlConformanceEnum.DEFAULT;
-    quoting = Quoting.BRACKET;
-    sql(sql3).ok(sql3b);
-    conformance = SqlConformanceEnum.MYSQL_5;
-    sql(sql3).ok(sql3b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql3).ok(sql3b);
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(sql3).ok(sql3b);
+    final SqlParserFixture f3 = sql(sql3)
+        .withConfig(c -> c.withQuoting(Quoting.BRACKET)
+            .withConformance(SqlConformanceEnum.DEFAULT));
+    f3.ok(sql3b);
+    f3.withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(sql3b);
+    f3.withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok(sql3b);
+    f3.withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(sql3b);
 
     // char literal as table alias is invalid on MSSQL (and others)
     final String sql4 = "with t as (select 1 as x) select x from t as ^'u'^";
     final String sql4b = "(?s)Encountered \"\\\\'u\\\\'\" at .*";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(sql4).fails(sql4b);
-    conformance = SqlConformanceEnum.MYSQL_5;
-    sql(sql4).fails(sql4b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql4).fails(sql4b);
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(sql4).fails(sql4b);
+    final SqlParserFixture f4 = sql(sql4)
+        .withConfig(c -> c.withQuoting(Quoting.BRACKET)
+            .withConformance(SqlConformanceEnum.DEFAULT));
+    f4.fails(sql4b);
+    f4.withConformance(SqlConformanceEnum.MYSQL_5)
+        .fails(sql4b);
+    f4.withConformance(SqlConformanceEnum.BIG_QUERY)
+        .fails(sql4b);
+    f4.withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .fails(sql4b);
 
     // char literal as table alias (without AS) is invalid on MSSQL (and others)
     final String sql5 = "with t as (select 1 as x) select x from t ^'u'^";
     final String sql5b = "(?s)Encountered \"\\\\'u\\\\'\" at .*";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(sql5).fails(sql5b);
-    conformance = SqlConformanceEnum.MYSQL_5;
-    sql(sql5).fails(sql5b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql5).fails(sql5b);
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
-    sql(sql5).fails(sql5b);
+    final SqlParserFixture f5 = sql(sql5)
+        .withConfig(c -> c.withQuoting(Quoting.BRACKET)
+            .withConformance(SqlConformanceEnum.DEFAULT));
+    f5.fails(sql5b);
+    f5.withConformance(SqlConformanceEnum.MYSQL_5)
+        .fails(sql5b);
+    f5.withConformance(SqlConformanceEnum.BIG_QUERY)
+        .fails(sql5b);
+    f5.withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .fails(sql5b);
   }
 
   @Test void testInList() {
@@ -2629,13 +2627,14 @@ public class SqlParserTest {
     final String sql = "select col1 from table1 ^MINUS^ select col1 from table2";
     sql(sql).fails(pattern);
 
-    conformance = SqlConformanceEnum.ORACLE_10;
     final String expected = "(SELECT `COL1`\n"
         + "FROM `TABLE1`\n"
         + "EXCEPT\n"
         + "SELECT `COL1`\n"
         + "FROM `TABLE2`)";
-    sql(sql).ok(expected);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .ok(expected);
 
     final String sql2 =
         "select col1 from table1 MINUS ALL select col1 from table2";
@@ -2644,7 +2643,9 @@ public class SqlParserTest {
         + "EXCEPT ALL\n"
         + "SELECT `COL1`\n"
         + "FROM `TABLE2`)";
-    sql(sql2).ok(expected2);
+    sql(sql2)
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .ok(expected2);
   }
 
   /** MINUS is a <b>reserved</b> keyword in Calcite in all conformances, even
@@ -2831,32 +2832,35 @@ public class SqlParserTest {
         + "cross apply table(ramp(deptno)) as t(a^)^";
     sql(sql).fails(pattern);
 
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
     final String expected = "SELECT *\n"
         + "FROM `DEPT`\n"
         + "CROSS JOIN LATERAL TABLE(`RAMP`(`DEPTNO`)) AS `T` (`A`)";
-    sql(sql).ok(expected);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(expected);
 
     // Supported in Oracle 12 but not Oracle 10
-    conformance = SqlConformanceEnum.ORACLE_10;
-    sql(sql).fails(pattern);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .fails(pattern);
 
-    conformance = SqlConformanceEnum.ORACLE_12;
-    sql(sql).ok(expected);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .ok(expected);
   }
 
   /** Tests OUTER APPLY. */
   @Test void testOuterApply() {
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
     final String sql = "select * from dept outer apply table(ramp(deptno))";
     final String expected = "SELECT *\n"
         + "FROM `DEPT`\n"
         + "LEFT JOIN LATERAL TABLE(`RAMP`(`DEPTNO`)) ON TRUE";
-    sql(sql).ok(expected);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(expected);
   }
 
   @Test void testOuterApplySubQuery() {
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
     final String sql = "select * from dept\n"
         + "outer apply (select * from emp where emp.deptno = dept.deptno)";
     final String expected = "SELECT *\n"
@@ -2864,11 +2868,12 @@ public class SqlParserTest {
         + "LEFT JOIN LATERAL (SELECT *\n"
         + "FROM `EMP`\n"
         + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)) ON TRUE";
-    sql(sql).ok(expected);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(expected);
   }
 
   @Test void testOuterApplyValues() {
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
     final String sql = "select * from dept\n"
         + "outer apply (select * from emp where emp.deptno = dept.deptno)";
     final String expected = "SELECT *\n"
@@ -2876,19 +2881,21 @@ public class SqlParserTest {
         + "LEFT JOIN LATERAL (SELECT *\n"
         + "FROM `EMP`\n"
         + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`)) ON TRUE";
-    sql(sql).ok(expected);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(expected);
   }
 
   /** Even in SQL Server conformance mode, we do not yet support
    * 'function(args)' as an abbreviation for 'table(function(args)'. */
   @Test void testOuterApplyFunctionFails() {
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
     final String sql = "select * from dept outer apply ramp(deptno^)^)";
-    sql(sql).fails("(?s).*Encountered \"\\)\" at .*");
+    sql(sql)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .fails("(?s).*Encountered \"\\)\" at .*");
   }
 
   @Test void testCrossOuterApply() {
-    conformance = SqlConformanceEnum.SQL_SERVER_2008;
     final String sql = "select * from dept\n"
         + "cross apply table(ramp(deptno)) as t(a)\n"
         + "outer apply table(ramp2(a))";
@@ -2896,7 +2903,9 @@ public class SqlParserTest {
         + "FROM `DEPT`\n"
         + "CROSS JOIN LATERAL TABLE(`RAMP`(`DEPTNO`)) AS `T` (`A`)\n"
         + "LEFT JOIN LATERAL TABLE(`RAMP2`(`A`)) ON TRUE";
-    sql(sql).ok(expected);
+    sql(sql)
+        .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
+        .ok(expected);
   }
 
   @Test void testTableSample() {
@@ -3004,12 +3013,15 @@ public class SqlParserTest {
     final String sql0b = "SELECT 1 AS `AN_ALIAS`, X'01'\n"
         + "'AB' AS `X`\n"
         + "FROM `T`";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(sql0).ok(sql0b);
-    conformance = SqlConformanceEnum.MYSQL_5;
-    sql(sql0).ok(sql0b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql0).ok(sql0b);
+    sql(sql0)
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok(sql0b);
+    sql(sql0)
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(sql0b);
+    sql(sql0)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok(sql0b);
 
     // Is 'ab' an alias or is it part of the x'01' 'ab' continued binary string
     // literal? It's ambiguous, but we prefer the latter.
@@ -3020,12 +3032,15 @@ public class SqlParserTest {
     final String sql1b = "SELECT 1 AS `an alias`, X'01'\n"
         + "'AB'\n"
         + "FROM `T`";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(sql1).fails(expectingAlias);
-    conformance = SqlConformanceEnum.MYSQL_5;
-    sql(sql1).ok(sql1b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql1).ok(sql1b);
+    sql(sql1)
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails(expectingAlias);
+    sql(sql1)
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(sql1b);
+    sql(sql1)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok(sql1b);
 
     // Parser prefers continued character and binary string literals over
     // character string aliases, regardless of whether the dialect allows
@@ -3039,12 +3054,15 @@ public class SqlParserTest {
         + "'char literal, not alias', X'01'\n"
         + "'AB'\n"
         + "FROM `T`";
-    conformance = SqlConformanceEnum.DEFAULT;
-    sql(sql2).ok(sql2b);
-    conformance = SqlConformanceEnum.MYSQL_5;
-    sql(sql2).ok(sql2b);
-    conformance = SqlConformanceEnum.BIG_QUERY;
-    sql(sql2).ok(sql2b);
+    sql(sql2)
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok(sql2b);
+    sql(sql2)
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(sql2b);
+    sql(sql2)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok(sql2b);
   }
 
   @Test void testMixedFrom() {
@@ -3299,30 +3317,32 @@ public class SqlParserTest {
   }
 
   @Test void testLimitStartCount() {
-    conformance = SqlConformanceEnum.DEFAULT;
     final String error = "'LIMIT start, count' is not allowed under the "
         + "current SQL conformance level";
     sql("select a from foo limit 1,^2^")
+        .withConformance(SqlConformanceEnum.DEFAULT)
         .fails(error);
 
     // "limit all" is equivalent to no limit
     final String expected0 = "SELECT `A`\n"
         + "FROM `FOO`";
     sql("select a from foo limit all")
+        .withConformance(SqlConformanceEnum.DEFAULT)
         .ok(expected0);
 
     final String expected1 = "SELECT `A`\n"
         + "FROM `FOO`\n"
         + "ORDER BY `X`";
     sql("select a from foo order by x limit all")
+        .withConformance(SqlConformanceEnum.DEFAULT)
         .ok(expected1);
 
-    conformance = SqlConformanceEnum.LENIENT;
     final String expected2 = "SELECT `A`\n"
         + "FROM `FOO`\n"
         + "OFFSET 2 ROWS\n"
         + "FETCH NEXT 3 ROWS ONLY";
     sql("select a from foo limit 2,3")
+        .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected2);
 
     // "offset 4" overrides the earlier "2"
@@ -3331,6 +3351,7 @@ public class SqlParserTest {
         + "OFFSET 4 ROWS\n"
         + "FETCH NEXT 3 ROWS ONLY";
     sql("select a from foo limit 2,3 offset 4")
+        .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected3);
 
     // "fetch next 4" overrides the earlier "limit 3"
@@ -3339,10 +3360,12 @@ public class SqlParserTest {
         + "OFFSET 2 ROWS\n"
         + "FETCH NEXT 4 ROWS ONLY";
     sql("select a from foo limit 2,3 fetch next 4 rows only")
+        .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected4);
 
     // "limit start, all" is not valid
     sql("select a from foo limit 2, ^all^")
+        .withConformance(SqlConformanceEnum.LENIENT)
         .fails("(?s).*Encountered \"all\" at line 1.*");
   }
 
@@ -4031,9 +4054,8 @@ public class SqlParserTest {
   }
 
   @Test void testExplainJsonFormat() {
-    final String sql = "explain plan as json for select * from emps";
-    TesterImpl tester = (TesterImpl) getTester();
-    SqlExplain sqlExplain = (SqlExplain) tester.parseStmtsAndHandleEx(sql).get(0);
+    SqlExplain sqlExplain =
+        (SqlExplain) sql("explain plan as json for select * from emps").node();
     assertThat(sqlExplain.isJson(), is(true));
   }
 
@@ -4189,11 +4211,11 @@ public class SqlParserTest {
         + "FROM `EMPS`)";
     sql("insert into emps(z boolean)(x,y) select * from emps")
         .ok(expected);
-    conformance = SqlConformanceEnum.LENIENT;
     expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`, `Z`)\n"
         + "(SELECT *\n"
         + "FROM `EMPS`)";
     sql("insert into emps(x, y, z boolean) select * from emps")
+        .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected);
   }
 
@@ -4232,11 +4254,11 @@ public class SqlParserTest {
         + "FROM `EMPS`)";
     sql("insert into \"emps\"(\"z\" boolean)(\"x\",\"y\") select * from emps")
         .ok(expected);
-    conformance = SqlConformanceEnum.LENIENT;
     expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`, `z`)\n"
         + "(SELECT *\n"
         + "FROM `EMPS`)";
     sql("insert into \"emps\"(\"x\", \"y\", \"z\" boolean) select * from emps")
+        .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected);
   }
 
@@ -4456,15 +4478,10 @@ public class SqlParserTest {
     expr("'foo\nbar'")
         .ok("'foo\nbar'");
 
-    // prevent test infrastructure from converting '\r\n' to '\n'
-    boolean[] linuxify = LINUXIFY.get();
-    try {
-      linuxify[0] = false;
-      expr("'foo\r\nbar'")
-          .ok("'foo\r\nbar'");
-    } finally {
-      linuxify[0] = true;
-    }
+    expr("'foo\r\nbar'")
+        // prevent test infrastructure from converting '\r\n' to '\n'
+        .withConvertToLinux(false)
+        .ok("'foo\r\nbar'");
   }
 
   @Test void testStringLiteralFails() {
@@ -4553,7 +4570,7 @@ public class SqlParserTest {
     };
   }
 
-  @Test public void testCaseExpression() {
+  @Test void testCaseExpression() {
     // implicit simple "ELSE NULL" case
     expr("case \t col1 when 1 then 'one' end")
         .ok("(CASE WHEN (`COL1` = 1) THEN 'one' ELSE NULL END)");
@@ -6280,9 +6297,9 @@ public class SqlParserTest {
         .ok("INTERVAL '0' DAY(0)");
   }
 
-  @Test void testVisitSqlInsertWithSqlShuttle() throws Exception {
+  @Test void testVisitSqlInsertWithSqlShuttle() {
     final String sql = "insert into emps select * from emps";
-    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode sqlNode = sql(sql).node();
     final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
         // Copy the identifier in order to return a new SqlInsert.
@@ -6293,9 +6310,9 @@ public class SqlParserTest {
     assertThat(sqlNodeVisited.getKind(), is(SqlKind.INSERT));
   }
 
-  @Test void testSqlInsertSqlBasicCallToString() throws Exception {
+  @Test void testSqlInsertSqlBasicCallToString() {
     final String sql0 = "insert into emps select * from emps";
-    final SqlNode sqlNode0 = getSqlParser(sql0).parseStmt();
+    final SqlNode sqlNode0 = sql(sql0).node();
     final SqlNode sqlNodeVisited0 = sqlNode0.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
         // Copy the identifier in order to return a new SqlInsert.
@@ -6305,10 +6322,10 @@ public class SqlParserTest {
     final String str0 = "INSERT INTO `EMPS`\n"
         + "(SELECT *\n"
         + "FROM `EMPS`)";
-    assertEquals(linux(sqlNodeVisited0.toString()), str0);
+    assertThat(str0, is(toLinux(sqlNodeVisited0.toString())));
 
     final String sql1 = "insert into emps select empno from emps";
-    final SqlNode sqlNode1 = getSqlParser(sql1).parseStmt();
+    final SqlNode sqlNode1 = sql(sql1).node();
     final SqlNode sqlNodeVisited1 = sqlNode1.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
         // Copy the identifier in order to return a new SqlInsert.
@@ -6318,10 +6335,10 @@ public class SqlParserTest {
     final String str1 = "INSERT INTO `EMPS`\n"
         + "(SELECT `EMPNO`\n"
         + "FROM `EMPS`)";
-    assertEquals(linux(sqlNodeVisited1.toString()), str1);
+    assertThat(str1, is(toLinux(sqlNodeVisited1.toString())));
   }
 
-  @Test void testVisitSqlMatchRecognizeWithSqlShuttle() throws Exception {
+  @Test void testVisitSqlMatchRecognizeWithSqlShuttle() {
     final String sql = "select *\n"
         + "from emp \n"
         + "match_recognize (\n"
@@ -6330,7 +6347,7 @@ public class SqlParserTest {
         + "    down as down.sal < PREV(down.sal),\n"
         + "    up as up.sal > PREV(up.sal)\n"
         + ") mr";
-    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode sqlNode = sql(sql).node();
     final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
         // Copy the identifier in order to return a new SqlMatchRecognize.
@@ -7552,8 +7569,8 @@ public class SqlParserTest {
   @Test void testGeometry() {
     expr("cast(null as ^geometry^)")
         .fails("Geo-spatial extensions and the GEOMETRY data type are not enabled");
-    conformance = SqlConformanceEnum.LENIENT;
     expr("cast(null as geometry)")
+        .withConformance(SqlConformanceEnum.LENIENT)
         .ok("CAST(NULL AS GEOMETRY)");
   }
 
@@ -7824,7 +7841,7 @@ public class SqlParserTest {
   }
 
   @Test protected void testMetadata() {
-    SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
+    SqlAbstractParserImpl.Metadata metadata = sql("").parser().getMetadata();
     assertThat(metadata.isReservedFunctionName("ABS"), is(true));
     assertThat(metadata.isReservedFunctionName("FOO"), is(false));
 
@@ -7872,7 +7889,7 @@ public class SqlParserTest {
   @Test void testNoUnintendedNewReservedKeywords() {
     assumeTrue(isNotSubclass(), "don't run this test for sub-classes");
     final SqlAbstractParserImpl.Metadata metadata =
-        getSqlParser("").getMetadata();
+        fixture().parser().getMetadata();
 
     final SortedSet<String> reservedKeywords = new TreeSet<>();
     final SortedSet<String> keywords92 = keywords("92");
@@ -7932,7 +7949,8 @@ public class SqlParserTest {
   /**
    * Tests that you can't quote the names of builtin functions.
    *
-   * @see org.apache.calcite.test.SqlValidatorTest#testQuotedFunction()
+   * <p>See
+   * {@code org.apache.calcite.test.SqlValidatorTest#testQuotedFunction()}.
    */
   @Test void testQuotedFunction() {
     expr("\"CAST\"(1 ^as^ double)")
@@ -8038,8 +8056,8 @@ public class SqlParserTest {
         .fails(".*is not exactly four hex digits.*");
   }
 
-  @Test void testSqlOptions() throws SqlParseException {
-    SqlNode node = getSqlParser("alter system set schema = true").parseStmt();
+  @Test void testSqlOptions() {
+    SqlNode node = sql("alter system set schema = true").node();
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
     SqlPrettyWriter writer = new SqlPrettyWriter();
@@ -8071,7 +8089,7 @@ public class SqlParserTest {
         .ok("SET `APPROX` = -12.3450")
         .node(isDdl());
 
-    node = getSqlParser("reset schema").parseStmt();
+    node = sql("reset schema").node();
     opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo(null));
     writer = new SqlPrettyWriter();
@@ -9345,10 +9363,9 @@ public class SqlParserTest {
 
   @Test void testParseWithReader() throws Exception {
     String query = "select * from dual";
-    SqlParser sqlParserReader = getSqlParser(new StringReader(query), b -> b);
+    SqlParser sqlParserReader = sqlParser(new StringReader(query), b -> b);
     SqlNode node1 = sqlParserReader.parseQuery();
-    SqlParser sqlParserString = getSqlParser(query);
-    SqlNode node2 = sqlParserString.parseQuery();
+    SqlNode node2 = sql(query).node();
     assertEquals(node2.toString(), node1.toString());
   }
 
@@ -9545,9 +9562,9 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testHintThroughShuttle() throws Exception {
+  @Test void testHintThroughShuttle() {
     final String sql = "select * from emp /*+ options('key1' = 'val1') */";
-    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode sqlNode = sql(sql).node();
     final SqlNode shuttled = sqlNode.accept(new SqlShuttle() {
       @Override public SqlNode visit(SqlIdentifier identifier) {
         // Copy the identifier in order to return a new SqlTableRef.
@@ -9557,7 +9574,7 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `EMP`\n"
         + "/*+ `OPTIONS`('key1' = 'val1') */";
-    assertThat(linux(shuttled.toString()), is(expected));
+    assertThat(toLinux(shuttled.toString()), is(expected));
   }
 
   @Test void testInvalidHintFormat() {
@@ -9639,22 +9656,33 @@ public class SqlParserTest {
    * Callback to control how test actions are performed.
    */
   protected interface Tester {
-    void checkList(StringAndPos sap, List<String> expected);
+    void checkList(SqlTestFactory factory, StringAndPos sap,
+        @Nullable SqlDialect dialect, UnaryOperator<String> converter,
+        List<String> expected);
 
-    void check(StringAndPos sap, SqlDialect dialect, String expected,
+    void check(SqlTestFactory factory, StringAndPos sap,
+        @Nullable SqlDialect dialect, UnaryOperator<String> converter,
+        String expected, Consumer<SqlParser> parserChecker);
+
+    void checkExp(SqlTestFactory factory, StringAndPos sap,
+        UnaryOperator<String> converter, String expected,
         Consumer<SqlParser> parserChecker);
 
-    void checkExp(StringAndPos sap, SqlDialect dialect, String expected,
-        Consumer<SqlParser> parserChecker);
+    void checkFails(SqlTestFactory factory, StringAndPos sap,
+        boolean list, String expectedMsgPattern);
 
-    void checkFails(StringAndPos sap, SqlDialect dialect, boolean list,
+    /** Tests that an expression throws an exception that matches the given
+     * pattern. */
+    void checkExpFails(SqlTestFactory factory, StringAndPos sap,
         String expectedMsgPattern);
 
-    void checkExpFails(StringAndPos sap, SqlDialect dialect,
-        String expectedMsgPattern);
-
-    void checkNode(StringAndPos sap, SqlDialect dialect,
+    void checkNode(SqlTestFactory factory, StringAndPos sap,
         Matcher<SqlNode> matcher);
+
+    /** Whether this is a sub-class that tests un-parsing as well as parsing. */
+    default boolean isUnparserTest() {
+      return false;
+    }
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -9662,40 +9690,46 @@ public class SqlParserTest {
   /**
    * Default implementation of {@link Tester}.
    */
-  protected class TesterImpl implements Tester {
-    private void check(
-        SqlNode sqlNode,
-        SqlDialect dialect,
+  protected static class TesterImpl implements Tester {
+    static final TesterImpl DEFAULT = new TesterImpl();
+
+    private static void check0(SqlNode sqlNode,
+        SqlWriterConfig sqlWriterConfig,
+        UnaryOperator<String> converter,
         String expected) {
-      final SqlDialect dialect2 = Util.first(dialect, AnsiSqlDialect.DEFAULT);
-      final SqlWriterConfig c2 = SQL_WRITER_CONFIG.withDialect(dialect2);
-      final String actual = sqlNode.toSqlString(c -> c2).getSql();
-      TestUtil.assertEqualsVerbose(expected, linux(actual));
+      final String actual = sqlNode.toSqlString(c -> sqlWriterConfig).getSql();
+      TestUtil.assertEqualsVerbose(expected, converter.apply(actual));
     }
 
-    @Override public void checkList(StringAndPos sap, List<String> expected) {
-      final SqlNodeList sqlNodeList = parseStmtsAndHandleEx(sap.sql);
+    @Override public void checkList(SqlTestFactory factory, StringAndPos sap,
+        @Nullable SqlDialect dialect, UnaryOperator<String> converter,
+        List<String> expected) {
+      final SqlNodeList sqlNodeList = parseStmtsAndHandleEx(factory, sap.sql);
       assertThat(sqlNodeList.size(), is(expected.size()));
 
+      final SqlWriterConfig sqlWriterConfig =
+          SQL_WRITER_CONFIG.withDialect(
+              Util.first(dialect, AnsiSqlDialect.DEFAULT));
       for (int i = 0; i < sqlNodeList.size(); i++) {
         SqlNode sqlNode = sqlNodeList.get(i);
-        check(sqlNode, null, expected.get(i));
+        check0(sqlNode, sqlWriterConfig, converter, expected.get(i));
       }
     }
 
-    @Override public void check(StringAndPos sap, SqlDialect dialect, String expected,
-        Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
+    @Override public void check(SqlTestFactory factory, StringAndPos sap,
+        @Nullable SqlDialect dialect, UnaryOperator<String> converter,
+        String expected, Consumer<SqlParser> parserChecker) {
       final SqlNode sqlNode =
-          parseStmtAndHandleEx(sap.sql, transform, parserChecker);
-      check(sqlNode, dialect, expected);
+          parseStmtAndHandleEx(factory, sap.sql, parserChecker);
+      final SqlWriterConfig sqlWriterConfig =
+          SQL_WRITER_CONFIG.withDialect(
+              Util.first(dialect, AnsiSqlDialect.DEFAULT));
+      check0(sqlNode, sqlWriterConfig, converter, expected);
     }
 
-    protected SqlNode parseStmtAndHandleEx(String sql,
-        UnaryOperator<SqlParser.Config> transform,
-        Consumer<SqlParser> parserChecker) {
-      final Reader reader = new SourceStringReader(sql);
-      final SqlParser parser = getSqlParser(reader, transform);
+    protected SqlNode parseStmtAndHandleEx(SqlTestFactory factory,
+        String sql, Consumer<SqlParser> parserChecker) {
+      final SqlParser parser = factory.createParser(sql);
       final SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();
@@ -9707,32 +9741,32 @@ public class SqlParserTest {
     }
 
     /** Parses a list of statements. */
-    protected SqlNodeList parseStmtsAndHandleEx(String sql) {
+    protected SqlNodeList parseStmtsAndHandleEx(SqlTestFactory factory,
+        String sql) {
+      final SqlParser parser = factory.createParser(sql);
       final SqlNodeList sqlNodeList;
       try {
-        sqlNodeList = getSqlParser(sql).parseStmtList();
+        sqlNodeList = parser.parseStmtList();
       } catch (SqlParseException e) {
         throw new RuntimeException("Error while parsing SQL: " + sql, e);
       }
       return sqlNodeList;
     }
 
-    @Override public void checkExp(StringAndPos sap, SqlDialect dialect, String expected,
+    @Override public void checkExp(SqlTestFactory factory, StringAndPos sap,
+        UnaryOperator<String> converter, String expected,
         Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
       final SqlNode sqlNode =
-          parseExpressionAndHandleEx(sap.sql, transform, parserChecker);
+          parseExpressionAndHandleEx(factory, sap.sql, parserChecker);
       final String actual = sqlNode.toSqlString(null, true).getSql();
-      TestUtil.assertEqualsVerbose(expected, linux(actual));
+      TestUtil.assertEqualsVerbose(expected, converter.apply(actual));
     }
 
-    protected SqlNode parseExpressionAndHandleEx(String sql,
-        UnaryOperator<SqlParser.Config> transform,
-        Consumer<SqlParser> parserChecker) {
+    protected SqlNode parseExpressionAndHandleEx(SqlTestFactory factory,
+        String sql, Consumer<SqlParser> parserChecker) {
       final SqlNode sqlNode;
       try {
-        final SqlParser parser =
-            getSqlParser(new SourceStringReader(sql), transform);
+        final SqlParser parser = factory.createParser(sql);
         sqlNode = parser.parseExpression();
         parserChecker.accept(parser);
       } catch (SqlParseException e) {
@@ -9741,15 +9775,12 @@ public class SqlParserTest {
       return sqlNode;
     }
 
-    @Override public void checkFails(StringAndPos sap, SqlDialect dialect,
-        boolean list, String expectedMsgPattern) {
+    @Override public void checkFails(SqlTestFactory factory,
+        StringAndPos sap, boolean list, String expectedMsgPattern) {
       Throwable thrown = null;
       try {
+        final SqlParser parser = factory.createParser(sap.sql);
         final SqlNode sqlNode;
-        final UnaryOperator<SqlParser.Config> transform =
-            getTransform(dialect);
-        final Reader reader = new SourceStringReader(sap.sql);
-        final SqlParser parser = getSqlParser(reader, transform);
         if (list) {
           sqlNode = parser.parseStmtList();
         } else {
@@ -9763,12 +9794,10 @@ public class SqlParserTest {
       checkEx(expectedMsgPattern, sap, thrown);
     }
 
-    @Override public void checkNode(StringAndPos sap, SqlDialect dialect,
+    @Override public void checkNode(SqlTestFactory factory, StringAndPos sap,
         Matcher<SqlNode> matcher) {
       try {
-        final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
-        final Reader reader = new SourceStringReader(sap.sql);
-        final SqlParser parser = getSqlParser(reader, transform);
+        final SqlParser parser = factory.createParser(sap.sql);
         final SqlNode sqlNode = parser.parseStmt();
         assertThat(sqlNode, matcher);
       } catch (SqlParseException e) {
@@ -9776,17 +9805,11 @@ public class SqlParserTest {
       }
     }
 
-    /**
-     * Tests that an expression throws an exception which matches the given
-     * pattern.
-     */
-    @Override public void checkExpFails(StringAndPos sap, SqlDialect dialect,
-        String expectedMsgPattern) {
+    @Override public void checkExpFails(SqlTestFactory factory,
+        StringAndPos sap, String expectedMsgPattern) {
       Throwable thrown = null;
       try {
-        final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
-        final Reader reader = new SourceStringReader(sap.sql);
-        final SqlParser parser = getSqlParser(reader, transform);
+        final SqlParser parser = factory.createParser(sap.sql);
         final SqlNode sqlNode = parser.parseExpression();
         Util.discard(sqlNode);
       } catch (Throwable ex) {
@@ -9797,7 +9820,7 @@ public class SqlParserTest {
     }
 
     protected void checkEx(String expectedMsgPattern, StringAndPos sap,
-        Throwable thrown) {
+        @Nullable Throwable thrown) {
       SqlTests.checkEx(thrown, expectedMsgPattern, sap,
           SqlTests.Stage.VALIDATE);
     }
@@ -9811,31 +9834,35 @@ public class SqlParserTest {
    * Implementation of {@link Tester} which makes sure that the results of
    * unparsing a query are consistent with the original query.
    */
-  public class UnparsingTesterImpl extends TesterImpl {
-    private UnaryOperator<SqlWriterConfig> simple() {
+  public static class UnparsingTesterImpl extends TesterImpl {
+    @Override public boolean isUnparserTest() {
+      return true;
+    }
+
+    static UnaryOperator<SqlWriterConfig> simple() {
       return c -> c.withSelectListItemsOnSeparateLines(false)
           .withUpdateSetListNewline(false)
           .withIndentation(0)
           .withFromFolding(SqlWriterConfig.LineFolding.TALL);
     }
 
-    private SqlWriterConfig simpleWithParens(SqlWriterConfig c) {
-      return simple().andThen(this::withParens).apply(c);
+    static SqlWriterConfig simpleWithParens(SqlWriterConfig c) {
+      return simple().andThen(UnparsingTesterImpl::withParens).apply(c);
     }
 
-    private SqlWriterConfig simpleWithParensAnsi(SqlWriterConfig c) {
+    static SqlWriterConfig simpleWithParensAnsi(SqlWriterConfig c) {
       return withAnsi(simpleWithParens(c));
     }
 
-    private SqlWriterConfig withParens(SqlWriterConfig c) {
+    static SqlWriterConfig withParens(SqlWriterConfig c) {
       return c.withAlwaysUseParentheses(true);
     }
 
-    private SqlWriterConfig withAnsi(SqlWriterConfig c) {
+    static SqlWriterConfig withAnsi(SqlWriterConfig c) {
       return c.withDialect(AnsiSqlDialect.DEFAULT);
     }
 
-    private UnaryOperator<SqlWriterConfig> randomize(Random random) {
+    static UnaryOperator<SqlWriterConfig> randomize(Random random) {
       return c -> c.withFoldLength(random.nextInt(5) * 20 + 3)
           .withHavingFolding(nextLineFolding(random))
           .withWhereFolding(nextLineFolding(random))
@@ -9853,45 +9880,45 @@ public class SqlParserTest {
           .collect(Collectors.joining(";"));
     }
 
-    private SqlWriterConfig.LineFolding nextLineFolding(Random random) {
+    static SqlWriterConfig.LineFolding nextLineFolding(Random random) {
       return nextEnum(random, SqlWriterConfig.LineFolding.class);
     }
 
-    private <E extends Enum<E>> E nextEnum(Random random, Class<E> enumClass) {
+    static <E extends Enum<E>> E nextEnum(Random random, Class<E> enumClass) {
       final E[] constants = enumClass.getEnumConstants();
       return constants[random.nextInt(constants.length)];
     }
 
-    private void checkList(SqlNodeList sqlNodeList, List<String> expected) {
+    private void checkList(SqlNodeList sqlNodeList,
+        UnaryOperator<String> converter, List<String> expected) {
       assertThat(sqlNodeList.size(), is(expected.size()));
 
       for (int i = 0; i < sqlNodeList.size(); i++) {
         SqlNode sqlNode = sqlNodeList.get(i);
         // Unparse with no dialect, always parenthesize.
         final String actual =
-            sqlNode.toSqlString(this::simpleWithParensAnsi).getSql();
-        assertEquals(expected.get(i), linux(actual));
+            sqlNode.toSqlString(UnparsingTesterImpl::simpleWithParensAnsi)
+                .getSql();
+        assertEquals(expected.get(i), converter.apply(actual));
       }
     }
 
-    @Override public void checkList(StringAndPos sap, List<String> expected) {
-      SqlNodeList sqlNodeList = parseStmtsAndHandleEx(sap.sql);
+    @Override public void checkList(SqlTestFactory factory, StringAndPos sap,
+        @Nullable SqlDialect dialect, UnaryOperator<String> converter,
+        List<String> expected) {
+      SqlNodeList sqlNodeList = parseStmtsAndHandleEx(factory, sap.sql);
 
-      checkList(sqlNodeList, expected);
+      checkList(sqlNodeList, converter, expected);
 
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 = toSqlString(sqlNodeList, simple());
 
       // Parse and unparse again.
-      SqlNodeList sqlNodeList2;
-      final Quoting q = quoting;
-      try {
-        quoting = Quoting.DOUBLE_QUOTE;
-        sqlNodeList2 = parseStmtsAndHandleEx(sql1);
-      } finally {
-        quoting = q;
-      }
+      SqlNodeList sqlNodeList2 =
+          parseStmtsAndHandleEx(
+              factory.withParserConfig(c ->
+                  c.withQuoting(Quoting.DOUBLE_QUOTE)), sql1);
       final String sql2 = toSqlString(sqlNodeList2, simple());
 
       // Should be the same as we started with.
@@ -9900,39 +9927,35 @@ public class SqlParserTest {
       // Now unparse again in the null dialect.
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
-      checkList(sqlNodeList2, expected);
+      checkList(sqlNodeList2, converter, expected);
 
       final Random random = new Random();
       final String sql3 = toSqlString(sqlNodeList, randomize(random));
       assertThat(sql3, notNullValue());
     }
 
-    @Override public void check(StringAndPos sap, SqlDialect dialect,
+    @Override public void check(SqlTestFactory factory, StringAndPos sap,
+        @Nullable SqlDialect dialect, UnaryOperator<String> converter,
         String expected, Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
-      SqlNode sqlNode = parseStmtAndHandleEx(sap.sql, transform, parserChecker);
+      SqlNode sqlNode = parseStmtAndHandleEx(factory, sap.sql, parserChecker);
 
       // Unparse with the given dialect, always parenthesize.
       final SqlDialect dialect2 = Util.first(dialect, AnsiSqlDialect.DEFAULT);
-      final UnaryOperator<SqlWriterConfig> transform2 =
+      final UnaryOperator<SqlWriterConfig> writerTransform =
           c -> simpleWithParens(c)
               .withDialect(dialect2);
-      final String actual = sqlNode.toSqlString(transform2).getSql();
-      assertEquals(expected, linux(actual));
+      final String actual = sqlNode.toSqlString(writerTransform).getSql();
+      assertEquals(expected, converter.apply(actual));
 
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 = sqlNode.toSqlString(simple()).getSql();
 
       // Parse and unparse again.
-      SqlNode sqlNode2;
-      final Quoting q = quoting;
-      try {
-        quoting = Quoting.DOUBLE_QUOTE;
-        sqlNode2 = parseStmtAndHandleEx(sql1, b -> b, parser -> { });
-      } finally {
-        quoting = q;
-      }
+      SqlTestFactory factory2 =
+          factory.withParserConfig(c -> c.withQuoting(Quoting.DOUBLE_QUOTE));
+      SqlNode sqlNode2 =
+          parseStmtAndHandleEx(factory2, sql1, parser -> { });
       final String sql2 = sqlNode2.toSqlString(simple()).getSql();
 
       // Should be the same as we started with.
@@ -9941,36 +9964,32 @@ public class SqlParserTest {
       // Now unparse again in the given dialect.
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
-      final String actual2 = sqlNode.toSqlString(transform2).getSql();
-      assertEquals(expected, linux(actual2));
+      final String actual2 = sqlNode.toSqlString(writerTransform).getSql();
+      assertEquals(expected, converter.apply(actual2));
 
       // Now unparse with a randomly configured SqlPrettyWriter.
       // (This is a much a test for SqlPrettyWriter as for the parser.)
       final Random random = new Random();
       final String sql3 = sqlNode.toSqlString(randomize(random)).getSql();
       assertThat(sql3, notNullValue());
-      SqlNode sqlNode4;
-      try {
-        quoting = Quoting.DOUBLE_QUOTE;
-        sqlNode4 = parseStmtAndHandleEx(sql1, b -> b, parser -> { });
-      } finally {
-        quoting = q;
-      }
+      SqlNode sqlNode4 =
+          parseStmtAndHandleEx(factory2, sql1, parser -> { });
       final String sql4 = sqlNode4.toSqlString(simple()).getSql();
       assertEquals(sql1, sql4);
     }
 
-    @Override public void checkExp(StringAndPos sap, SqlDialect dialect,
-        String expected, Consumer<SqlParser> parserChecker) {
-      final UnaryOperator<SqlParser.Config> transform = getTransform(dialect);
+    @Override public void checkExp(SqlTestFactory factory, StringAndPos sap,
+        UnaryOperator<String> converter, String expected,
+        Consumer<SqlParser> parserChecker) {
       SqlNode sqlNode =
-          parseExpressionAndHandleEx(sap.sql, transform, parserChecker);
+          parseExpressionAndHandleEx(factory, sap.sql, parserChecker);
 
       // Unparse with no dialect, always parenthesize.
-      final UnaryOperator<SqlWriterConfig> transform2 = c ->
-          simpleWithParens(c).withDialect(AnsiSqlDialect.DEFAULT);
-      final String actual = sqlNode.toSqlString(transform2).getSql();
-      assertEquals(expected, linux(actual));
+      final UnaryOperator<SqlWriterConfig> writerTransform =
+          c -> simpleWithParens(c)
+              .withDialect(AnsiSqlDialect.DEFAULT);
+      final String actual = sqlNode.toSqlString(writerTransform).getSql();
+      assertEquals(expected, converter.apply(actual));
 
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
@@ -9979,14 +9998,11 @@ public class SqlParserTest {
 
       // Parse and unparse again.
       // (Turn off parser checking, and use double-quotes.)
-      SqlNode sqlNode2;
-      final Quoting q = quoting;
-      try {
-        quoting = Quoting.DOUBLE_QUOTE;
-        sqlNode2 = parseExpressionAndHandleEx(sql1, transform, parser -> { });
-      } finally {
-        quoting = q;
-      }
+      final Consumer<SqlParser> nullChecker = parser -> { };
+      final SqlTestFactory dqFactory =
+          factory.withParserConfig(c -> c.withQuoting(Quoting.DOUBLE_QUOTE));
+      SqlNode sqlNode2 =
+          parseExpressionAndHandleEx(dqFactory, sql1, nullChecker);
       final String sql2 =
           sqlNode2.toSqlString(UnaryOperator.identity()).getSql();
 
@@ -9997,106 +10013,17 @@ public class SqlParserTest {
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
       final String actual2 = sqlNode2.toSqlString(null, true).getSql();
-      assertEquals(expected, linux(actual2));
+      assertEquals(expected, converter.apply(actual2));
     }
 
-    @Override public void checkFails(StringAndPos sap, SqlDialect dialect,
-        boolean list, String expectedMsgPattern) {
+    @Override public void checkFails(SqlTestFactory factory,
+        StringAndPos sap, boolean list, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
 
-    @Override public void checkExpFails(StringAndPos sap, SqlDialect dialect,
-        String expectedMsgPattern) {
+    @Override public void checkExpFails(SqlTestFactory factory,
+        StringAndPos sap, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
-    }
-  }
-
-  /** Converts a string to linux format (LF line endings rather than CR-LF),
-   * except if disabled in {@link #LINUXIFY}. */
-  private static String linux(String s) {
-    if (LINUXIFY.get()[0]) {
-      s = Util.toLinux(s);
-    }
-    return s;
-  }
-
-  /** Helper class for building fluent code such as
-   * {@code sql("values 1").ok();}. */
-  protected class Sql {
-    private final StringAndPos sap;
-    private final boolean expression;
-    private final SqlDialect dialect;
-    private final Consumer<SqlParser> parserChecker;
-
-    Sql(StringAndPos sap, boolean expression, SqlDialect dialect,
-        Consumer<SqlParser> parserChecker) {
-      this.sap = Objects.requireNonNull(sap, "sap");
-      this.expression = expression;
-      this.dialect = dialect;
-      this.parserChecker = Objects.requireNonNull(parserChecker, "parserChecker");
-    }
-
-    public Sql same() {
-      return ok(sap.sql);
-    }
-
-    public Sql ok(String expected) {
-      if (expression) {
-        getTester().checkExp(sap, dialect, expected, parserChecker);
-      } else {
-        getTester().check(sap, dialect, expected, parserChecker);
-      }
-      return this;
-    }
-
-    public Sql fails(String expectedMsgPattern) {
-      if (expression) {
-        getTester().checkExpFails(sap, dialect, expectedMsgPattern);
-      } else {
-        getTester().checkFails(sap, dialect, false, expectedMsgPattern);
-      }
-      return this;
-    }
-
-    public Sql hasWarning(Consumer<List<? extends Throwable>> messageMatcher) {
-      return new Sql(sap, expression, dialect, parser ->
-          messageMatcher.accept(parser.getWarnings()));
-    }
-
-    public Sql node(Matcher<SqlNode> matcher) {
-      getTester().checkNode(sap, dialect, matcher);
-      return this;
-    }
-
-    /** Flags that this is an expression, not a whole query. */
-    public Sql expression() {
-      return expression ? this : new Sql(sap, true, dialect, parserChecker);
-    }
-
-    public Sql withDialect(SqlDialect dialect) {
-      return new Sql(sap, expression, dialect, parserChecker);
-    }
-  }
-
-  /** Helper class for building fluent code,
-   * similar to {@link Sql}, but used to manipulate
-   * a list of statements, such as
-   * {@code sqlList("select * from a;").ok();}. */
-  protected class SqlList {
-    private final StringAndPos sap;
-
-    SqlList(String sql) {
-      this.sap = StringAndPos.of(sql);
-    }
-
-    public SqlList ok(String... expected) {
-      getTester().checkList(sap, ImmutableList.copyOf(expected));
-      return this;
-    }
-
-    public SqlList fails(String expectedMsgPattern) {
-      getTester().checkFails(sap, null, true, expectedMsgPattern);
-      return this;
     }
   }
 

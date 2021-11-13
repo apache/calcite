@@ -4670,7 +4670,6 @@ public class RelBuilderTest {
   @Test void testExecuteNotLike() {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new HrSchema()))
-        .query("?")
         .withRel(
             builder -> builder
                 .scan("s", "emps")
