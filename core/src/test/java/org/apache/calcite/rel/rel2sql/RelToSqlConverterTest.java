@@ -1881,6 +1881,31 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expectedSql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4876">[CALCITE-4876]
+   * Converting RelNode to SQL with CalciteSqlDialect gets wrong result
+   * while EnumerableIntersect is followed by EnumerableLimit</a>.
+   */
+  @Test void testUnparseIntersectWithLimit() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .project(b.field("DEPTNO"))
+        .scan("EMP")
+        .project(b.field("DEPTNO"))
+        .intersect(true)
+        .limit(1, 3)
+        .build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "INTERSECT ALL\n"
+        + "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\")\n"
+        + "OFFSET 1 ROWS\n"
+        + "FETCH NEXT 3 ROWS ONLY";
+    relFn(relFn).ok(expectedSql);
+  }
+
   @Test void testSelectQueryWithLimitClause() {
     String query = "select \"product_id\" from \"product\" limit 100 offset 10";
     final String expected = "SELECT product_id\n"
