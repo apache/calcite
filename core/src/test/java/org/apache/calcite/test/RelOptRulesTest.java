@@ -63,6 +63,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
+import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
@@ -73,7 +74,6 @@ import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.GroupByConstantAddJoinRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.MultiJoin;
@@ -203,9 +203,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testGroupByBooleanConstantSimple() {
     HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(GroupByConstantAddJoinRule.class);
+    builder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(GroupByConstantAddJoinRule.Config.DEFAULT.toRule());
 
     final String query = "select avg(sal)\n"
         + "from emp\n"
@@ -215,9 +214,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testGroupByBooleanConstantMultiple() {
     HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(GroupByConstantAddJoinRule.class);
+    builder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(GroupByConstantAddJoinRule.Config.DEFAULT.toRule());
 
     final String query = "select avg(sal)\n"
         + "from emp\n"

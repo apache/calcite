@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -59,14 +60,14 @@ import java.util.List;
  * group by dummy.x;
  */
 @Value.Enclosing
-public class GroupByConstantAddJoinRule
-    extends RelRule<GroupByConstantAddJoinRule.Config> {
+public final class AggregateProjectConstantToDummyJoinRule
+    extends RelRule<AggregateProjectConstantToDummyJoinRule.Config> {
 
   /**
    * Creates a RelRule.
    *
    */
-  protected GroupByConstantAddJoinRule(Config config) {
+  private AggregateProjectConstantToDummyJoinRule(Config config) {
     super(config);
   }
 
@@ -79,57 +80,18 @@ public class GroupByConstantAddJoinRule
       return false;
     }
 
-    boolean hasBooleanLiteral = false;
-
     for (int groupKey: aggregate.getGroupSet().asList()) {
       if (groupKey >= aggregate.getRowType().getFieldCount()) {
         continue;
       }
-      hasBooleanLiteral = (aggregate.getRowType().getFieldList().get(groupKey).getType().getFamily()
-          == SqlTypeFamily.BOOLEAN)
-          && (project.getProjects().get(groupKey) instanceof RexLiteral);
-
-      if (hasBooleanLiteral) {
+      RexNode groupKeyProject = project.getProjects().get(groupKey);
+      if (groupKeyProject instanceof RexLiteral
+          && groupKeyProject.getType().getFamily() == SqlTypeFamily.BOOLEAN) {
         return true;
       }
     }
 
-    return hasBooleanLiteral;
-  }
-
-  private static LogicalValues getValues(
-      Aggregate aggregate, Project project, RexBuilder rexBuilder, RelBuilder builder) {
-    final ImmutableList.Builder<ImmutableList<RexLiteral>> tuples =
-        ImmutableList.builder();
-    ImmutableList.Builder<RexLiteral> b = ImmutableList.builder();
-    boolean truePresent = false;
-    boolean falsePresent = false;
-
-    for (int groupKey: aggregate.getGroupSet().asList()) {
-      if (project.getProjects().get(groupKey) instanceof RexLiteral) {
-        if (project.getProjects().get(groupKey).isAlwaysTrue()) {
-          truePresent = true;
-        }
-        if (project.getProjects().get(groupKey).isAlwaysFalse()) {
-          falsePresent = true;
-        }
-      }
-    }
-
-    RelDataTypeFactory.Builder relDataTypeBuilder = rexBuilder.getTypeFactory().builder();
-    if (truePresent) {
-      b.add(rexBuilder.makeLiteral(true));
-      relDataTypeBuilder.add("T", SqlTypeName.BOOLEAN);
-    }
-    if (falsePresent) {
-      b.add(rexBuilder.makeLiteral(false));
-      relDataTypeBuilder.add("F", SqlTypeName.BOOLEAN);
-    }
-    tuples.add(b.build());
-    LogicalValues values = LogicalValues.create(builder.getCluster(), relDataTypeBuilder.build(),
-        tuples.build());
-
-    return values;
+    return false;
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -140,37 +102,29 @@ public class GroupByConstantAddJoinRule
     RexBuilder rexBuilder = builder.getRexBuilder();
 
     builder.push(project.getInput());
-    LogicalValues values = getValues(aggregate, project, rexBuilder, builder);
-    builder.push(values);
-
+    builder.values(new String[]{"T", "F"}, true, false);
     builder.join(JoinRelType.INNER, rexBuilder.makeLiteral(true));
-    Join join = (Join) builder.build();
 
     List<RexNode> newProjects = new ArrayList<>();
-    List<String> names = new ArrayList<>();
 
-    int falseIndex = join.getRowType().getFieldCount() - 1;
-    int trueIndex = join.getRight().getRowType().getFieldCount() == 1
-        ? falseIndex : falseIndex - 1;
     for (Pair<RexNode, String> pair: project.getNamedProjects()) {
       if (pair.getKey() instanceof RexLiteral) {
         if (pair.getKey().isAlwaysTrue()) {
-          newProjects.add(RexInputRef.of(trueIndex, join.getRowType()));
-          names.add(join.getRowType().getFieldList().get(trueIndex).getName());
+          newProjects.add(builder.field("T"));
         } else if (pair.getKey().isAlwaysFalse()) {
-          newProjects.add(RexInputRef.of(falseIndex, join.getRowType()));
-          names.add(join.getRowType().getFieldList().get(falseIndex).getName());
+          newProjects.add(builder.field("F"));
         }
       } else {
         newProjects.add(pair.getKey());
-        names.add(pair.getValue());
       }
     }
 
-    Project newProject = LogicalProject.create(join, project.getHints(), newProjects, names);
-    Aggregate newAggregate = aggregate.copy(aggregate.getTraitSet(), newProject,
-        aggregate.getGroupSet(), aggregate.getGroupSets(), aggregate.getAggCallList());
-    call.transformTo(newAggregate);
+    builder.project(newProjects);
+    builder.aggregate(builder.groupKey(
+        aggregate.getGroupSet(),(Iterable<ImmutableBitSet>) aggregate.getGroupSets()),
+        aggregate.getAggCallList());
+
+    call.transformTo(builder.build());
   }
 
   /**
@@ -178,11 +132,11 @@ public class GroupByConstantAddJoinRule
    */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = ImmutableGroupByConstantAddJoinRule.Config.of()
+    Config DEFAULT = ImmutableAggregateProjectConstantToDummyJoinRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalProject.class);
 
-    @Override default GroupByConstantAddJoinRule toRule() {
-      return new GroupByConstantAddJoinRule(this);
+    @Override default AggregateProjectConstantToDummyJoinRule toRule() {
+      return new AggregateProjectConstantToDummyJoinRule(this);
     }
 
     default Config withOperandFor(Class<? extends Aggregate> aggregateClass,

@@ -31,7 +31,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.rules.GroupByConstantAddJoinRule;
+import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -167,9 +167,8 @@ public abstract class SqlImplementor {
     RelNode best;
     if (!this.dialect.supportsGroupByBoolean()) {
       HepProgramBuilder hepProgramBuilder = new HepProgramBuilder();
-      hepProgramBuilder.addRuleClass(GroupByConstantAddJoinRule.class);
+      hepProgramBuilder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
       HepPlanner hepPlanner = new HepPlanner(hepProgramBuilder.build());
-      hepPlanner.addRule(GroupByConstantAddJoinRule.Config.DEFAULT.toRule());
 
       hepPlanner.setRoot(r);
       best = hepPlanner.findBestExp();

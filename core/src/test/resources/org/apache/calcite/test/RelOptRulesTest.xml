@@ -4080,7 +4080,7 @@ LogicalProject(EXPR$0=[$1])
     LogicalProject(T=[$9], SAL=[$5])
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalValues(tuples=[[{ true }]])
+        LogicalValues(tuples=[[{ true, false }]])
 ]]>
     </Resource>
   </TestCase>
