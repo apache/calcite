@@ -9243,15 +9243,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testConcatFunction() {
-    String query = "select '%''.' || '\\\\PWAPIKB01E\\Labelfiles\\'";
-    final String expectedBQSql = "SELECT CONCAT('%\\'.', '\\\\\\\\PWAPIKB01E\\\\Labelfiles"
-        + "\\\\')";
-    sql(query)
-        .withBigQuery()
-        .ok(expectedBQSql);
-  }
-
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();
@@ -9309,7 +9300,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT ROWID() AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT GENERATE_UUID() ATpchTestS FD\n"
+    final String expectedBiqQuery = "SELECT GENERATE_UUID() AS FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));

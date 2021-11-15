@@ -519,12 +519,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
       for (SqlNode operand : call.getOperandList()) {
         writer.sep(",");
-        if (operand instanceof SqlCharStringLiteral) {
-          SqlNode literalValue = handleBackSlashes(operand);
-          literalValue.unparse(writer, leftPrec, rightPrec);
-        } else {
-          operand.unparse(writer, leftPrec, rightPrec);
-        }
+        operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(concatFrame);
       break;
@@ -615,16 +610,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
-
-  private SqlNode handleBackSlashes(SqlNode operand) {
-    if (requireNonNull(((SqlCharStringLiteral) operand).toValue()).matches(TEMP_REGEX)) {
-      return operand;
-    }
-    String modifiedString = operand.toString().replaceAll("\\\\", "\\\\\\\\");
-    return modifiedString.equals(operand.toString()) ? operand : SqlLiteral.createCharString(
-            requireNonNull(unquoteStringLiteral(modifiedString)), SqlParserPos.ZERO);
-  }
-
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
   }
