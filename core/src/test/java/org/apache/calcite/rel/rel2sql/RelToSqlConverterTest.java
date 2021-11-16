@@ -221,9 +221,14 @@ class RelToSqlConverterTest {
 
   @Test void testGroupByBoolean() {
     String query = "select avg(\"salary\") from \"employee\" group by true";
-    String expected = "SELECT AVG(\"employee\".\"salary\")\nFROM \"foodmart\".\"employee\",\n"
-        + "(VALUES (TRUE, FALSE)) AS \"t\" (\"T\", \"F\")\nGROUP BY \"t\".\"T\"";
-    sql(query).withRedshift().ok(expected);
+    String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\",\n"
+        + "(SELECT TRUE AS \"T\", FALSE AS \"F\") AS \"t\"\nGROUP BY \"t\".\"T\"";
+    String expectedInformix = "SELECT AVG(employee.salary)\nFROM foodmart.employee,"
+        + "\n(SELECT TRUE AS T, FALSE AS F) AS t\nGROUP BY t.T";
+    sql(query)
+        .withRedshift().ok(expectedRedshift)
+        .withInformix().ok(expectedInformix);
   }
 
   @Test void testSimpleSelectStarFromProductTable() {
@@ -6363,6 +6368,10 @@ class RelToSqlConverterTest {
 
     Sql withRedshift() {
       return dialect(DatabaseProduct.REDSHIFT.getDialect());
+    }
+
+    Sql withInformix() {
+      return dialect(DatabaseProduct.INFORMIX.getDialect());
     }
 
     Sql withSnowflake() {

@@ -19,24 +19,17 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalValues;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
-
-import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
 
@@ -120,7 +113,8 @@ public final class AggregateProjectConstantToDummyJoinRule
     }
 
     builder.project(newProjects);
-    builder.aggregate(builder.groupKey(
+    builder.aggregate(
+        builder.groupKey(
         aggregate.getGroupSet(),(Iterable<ImmutableBitSet>) aggregate.getGroupSets()),
         aggregate.getAggCallList());
 

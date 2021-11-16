@@ -165,9 +165,10 @@ public abstract class SqlImplementor {
   /** Visits a relational expression that has no parent. */
   public final Result visitRoot(RelNode r) {
     RelNode best;
-    if (!this.dialect.supportsGroupByBoolean()) {
+    if (!this.dialect.supportsGroupByBooleanConstant()) {
       HepProgramBuilder hepProgramBuilder = new HepProgramBuilder();
-      hepProgramBuilder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
+      hepProgramBuilder.addRuleInstance(
+          AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
       HepPlanner hepPlanner = new HepPlanner(hepProgramBuilder.build());
 
       hepPlanner.setRoot(r);
