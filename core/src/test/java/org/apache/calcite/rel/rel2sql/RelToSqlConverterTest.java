@@ -9318,4 +9318,32 @@ class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBQSql);
   }
+
+  @Test public void testTimeAdd() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlLibraryOperators.TIME_ADD,
+        builder.literal("00:00:00"),
+        builder.call(SqlLibraryOperators.INTERVAL_SECONDS, builder.literal(10000)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT TIME_ADD('00:00:00', INTERVAL 10000 SECOND) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+  @Test public void testIntervalSeconds() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call
+        (SqlLibraryOperators.INTERVAL_SECONDS, builder.literal(10000));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT INTERVAL 10000 SECOND AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }

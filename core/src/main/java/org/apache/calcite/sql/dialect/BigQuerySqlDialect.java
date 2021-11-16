@@ -1009,9 +1009,18 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "UNIX_MICROS":
       castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_MICROS);
       break;
+    case "INTERVAL_SECONDS":
+      unparseIntervalSeconds(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    writer.print("INTERVAL ");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print("SECOND");
   }
 
   private void castAsDatetime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
