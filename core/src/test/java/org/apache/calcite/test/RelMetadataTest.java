@@ -2400,6 +2400,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(RelMdUtil.linear(12, 0, 10, 100, 200), is(200d));
   }
 
+  // ----------------------------------------------------------------------
+  // Tests for getExpressionLineage
+  // ----------------------------------------------------------------------
+
+  private void assertExpressionLineage(
+      String sql, int columnIndex, String expected, String comment) {
+    RelNode rel = convertSql(sql);
+    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RexNode ref = RexInputRef.of(columnIndex, rel.getRowType().getFieldList());
+    Set<RexNode> r = mq.getExpressionLineage(rel, ref);
+
+    assertEquals(expected, String.valueOf(r), "Lineage for expr '" + ref + "' in node '"
+        + rel + "'" + " for query '" + sql + "': " + comment);
+  }
+
   @Test void testExpressionLineageStar() {
     // All columns in output
     final RelNode tableRel = convertSql("select * from emp");
@@ -2481,6 +2496,31 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(inputRef2.getQualifiedName(), is(EMP_QNAME));
     assertThat(inputRef2.getIndex(), is(7));
     assertThat(inputRef1.getIdentifier(), is(inputRef2.getIdentifier()));
+  }
+
+  @Test void testExpressionLineageConjuntiveExpression() {
+    String sql = "select (empno = 1 or ename = 'abc') and deptno > 1 from emp";
+    String expected = "[AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1), "
+        + "=([CATALOG, SALES, EMP].#0.$1, 'abc')), "
+        + ">([CATALOG, SALES, EMP].#0.$7, 1))]";
+    String comment = "'empno' is column 0 in 'catalog.sales.emp', "
+        + "'ename' is column 1 in 'catalog.sales.emp', and "
+        + "'deptno' is column 7 in 'catalog.sales.emp'";
+
+    assertExpressionLineage(sql, 0, expected, comment);
+  }
+
+  @Test void testExpressionLineageBetweenExpressionWithJoin() {
+    String sql = "select dept.deptno + empno between 1 and 2"
+        + " from emp join dept on emp.deptno = dept.deptno";
+    String expected = "[AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
+        + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))]";
+    String comment = "'empno' is column 0 in 'catalog.sales.emp', "
+        + "'deptno' is column 0 in 'catalog.sales.dept', and "
+        + "'dept.deptno + empno between 1 and 2' is translated into "
+        + "'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'";
+
+    assertExpressionLineage(sql, 0, expected, comment);
   }
 
   @Test void testExpressionLineageInnerJoinLeft() {
