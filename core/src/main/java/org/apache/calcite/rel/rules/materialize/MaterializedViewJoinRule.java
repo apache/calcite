@@ -279,8 +279,10 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
           exprsLineage.add(RexUtil.composeDisjunction(rexBuilder, rewrittenExprs));
         }
       } else {
-        assert lineages.size() == 1 : "We only support project - filter - join, "
-            + "thus expression lineage should map to a single expression, got: " + lineages;
+        if (lineages.size() != 1) {
+          throw new IllegalStateException("We only support project - filter - join, "
+              + "thus expression lineage should map to a single expression, got: " + lineages);
+        }
         // Rewrite expr. Take first element from the corresponding equivalence class
         // (no need to swap the table references following the table mapping)
         exprsLineage.add(
