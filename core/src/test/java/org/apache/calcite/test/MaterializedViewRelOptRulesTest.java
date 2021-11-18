@@ -36,7 +36,7 @@ import java.util.List;
  * sub-classes, in which materialized views are matched to the structure of a
  * plan.
  */
-public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
+class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
 
   @Test void testSwapJoin() {
     sql("select count(*) as c from \"foodmart\".\"sales_fact_1997\" as s"
@@ -1055,6 +1055,86 @@ public class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTes
             + "join \"dependents\" using (\"empid\")"
             + "join \"depts\" \"a\" on (\"emps\".\"deptno\"=\"a\".\"deptno\")\n"
             + "where \"emps\".\"name\" = 'Bill'")
+        .ok();
+  }
+
+  @Test void testQueryProjectWithBetween() {
+    sql("select *"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1",
+        "select s.\"time_id\" between 1 and 3"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1")
+        .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withChecker(
+            resultContains(""
+                + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[>=($t1, $t8)],"
+                + " expr#10=[3], expr#11=[<=($t1, $t10)], expr#12=[AND($t9, $t11)], $f0=[$t12])\n"
+                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .ok();
+  }
+
+  @Test void testJoinQueryProjectWithBetween() {
+    sql("select *"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " join \"foodmart\".\"time_by_day\" as t on s.\"time_id\" = t.\"time_id\""
+            + " where s.\"store_id\" = 1",
+        "select s.\"time_id\" between 1 and 3"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " join \"foodmart\".\"time_by_day\" as t on s.\"time_id\" = t.\"time_id\""
+            + " where s.\"store_id\" = 1")
+        .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withChecker(
+            resultContains(""
+                + "EnumerableCalc(expr#0..17=[{inputs}], expr#18=[1], expr#19=[>=($t8, $t18)], "
+                + "expr#20=[3], expr#21=[<=($t8, $t20)], expr#22=[AND($t19, $t21)], $f0=[$t22])\n"
+                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .ok();
+  }
+
+  @Test void testViewProjectWithBetween() {
+    sql("select s.\"time_id\", s.\"time_id\" between 1 and 3"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1",
+        "select s.\"time_id\""
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1")
+        .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withChecker(
+            resultContains(""
+                + "EnumerableCalc(expr#0..1=[{inputs}], time_id=[$t0])\n"
+                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .ok();
+  }
+
+  @Test void testQueryAndViewProjectWithBetween() {
+    sql("select s.\"time_id\", s.\"time_id\" between 1 and 3"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1",
+        "select s.\"time_id\" between 1 and 3"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1")
+        .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withChecker(
+            resultContains(""
+                + "EnumerableCalc(expr#0..1=[{inputs}], EXPR$1=[$t1])\n"
+                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .ok();
+  }
+
+  @Test void testViewProjectWithMultifieldExpressions() {
+    sql("select s.\"time_id\", s.\"time_id\" >= 1 and s.\"time_id\" < 3,"
+            + " s.\"time_id\" >= 1 or s.\"time_id\" < 3"
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1",
+        "select s.\"time_id\""
+            + " from \"foodmart\".\"sales_fact_1997\" as s"
+            + " where s.\"store_id\" = 1")
+        .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withChecker(
+            resultContains(""
+                + "EnumerableCalc(expr#0..2=[{inputs}], time_id=[$t0])\n"
+                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
         .ok();
   }
 
