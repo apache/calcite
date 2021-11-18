@@ -1055,9 +1055,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           exprsLineage.put(RexUtil.composeDisjunction(rexBuilder, rewrittenExprs), i);
         }
       } else {
-        // We only support project - filter - join, thus it should map to
-        // a single expression
-        assert lineages.size() == 1;
+        assert lineages.size() == 1 : "We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: " + lineages;
         // Rewrite expr. First we swap the table references following the table
         // mapping, then we take first element from the corresponding equivalence class
         final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
@@ -1103,8 +1102,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           exprsLineage.put(RexUtil.composeDisjunction(rexBuilder, rewrittenExprs), i);
         }
       } else {
-        // We only support project - filter - join, thus it should map to
-        // a single expression
+        assert lineages.size() == 1 : "We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: " + lineages;
         final RexNode node2 = Iterables.getOnlyElement(lineages);
         // Rewrite expr. First we take first element from the corresponding equivalence class,
         // then we swap the table references following the table mapping
