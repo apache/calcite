@@ -831,20 +831,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIMESTAMP":
-      switch (call.operand(0).toString()) {
-      case "'W'":
-        TimeUnit dayOfMonth = TimeUnit.DAY;
-        unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
-        break;
-      case "'WW'":
-        TimeUnit dayOfYear = TimeUnit.DOY;
-        unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
-        break;
-      case "'SEC_FROM_MIDNIGHT'":
-        secFromMidnight(writer, call, leftPrec, rightPrec);
-        break;
-      case "'EEEE'":
-      case "'EEE'":
+      if (call.operand(0).toString().equals("'EEE'")
+          || call.operand(0).toString().equals("'EEEE'")) {
         if (isOperandCastedToDateTime(call)) {
           String dateFormat = call.operand(0).toString();
           SqlCall secondOperand = call.operand(1);
@@ -861,28 +849,13 @@ public class BigQuerySqlDialect extends SqlDialect {
         } else {
           unparseFormatCall(writer, call, leftPrec, rightPrec);
         }
-        break;
-      default:
-        unparseFormatCall(writer, call, leftPrec, rightPrec);
+      } else {
+        unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       }
       break;
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
-      switch (call.operand(0).toString()) {
-      case "'W'":
-        TimeUnit dayOfMonth = TimeUnit.DAY;
-        unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
-        break;
-      case "'WW'":
-        TimeUnit dayOfYear = TimeUnit.DOY;
-        unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
-        break;
-      case "'SEC_FROM_MIDNIGHT'":
-        secFromMidnight(writer, call, leftPrec, rightPrec);
-        break;
-      default:
-        unparseFormatCall(writer, call, leftPrec, rightPrec);
-      }
+      unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       break;
     case "PARSE_TIMESTAMP":
       String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
@@ -1059,6 +1032,23 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print("SECOND");
   }
 
+  private void unparseFormatDatetime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.operand(0).toString()) {
+    case "'W'":
+      TimeUnit dayOfMonth = TimeUnit.DAY;
+      unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
+      break;
+    case "'WW'":
+      TimeUnit dayOfYear = TimeUnit.DOY;
+      unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
+      break;
+    case "'SEC_FROM_MIDNIGHT'":
+      secFromMidnight(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      unparseFormatCall(writer, call, leftPrec, rightPrec);
+    }
+  }
   private void castAsDatetime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       SqlFunction sqlFunction) {
     final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
