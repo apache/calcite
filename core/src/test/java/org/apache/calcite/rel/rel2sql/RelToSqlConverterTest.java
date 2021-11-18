@@ -9258,15 +9258,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testConcatFunction() {
-    String query = "select '%''.' || '\\\\PWAPIKB01E\\Labelfiles\\'";
-    final String expectedBQSql = "SELECT CONCAT('%\\'.', '\\\\\\\\PWAPIKB01E\\\\Labelfiles"
-        + "\\\\')";
-    sql(query)
-        .withBigQuery()
-        .ok(expectedBQSql);
-  }
-
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();
@@ -9324,7 +9315,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT ROWID() AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT GENERATE_UUID() ATpchTestS FD\n"
+    final String expectedBiqQuery = "SELECT GENERATE_UUID() AS FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9341,5 +9332,33 @@ class RelToSqlConverterTest {
     sql(query)
         .withBigQuery()
         .ok(expectedBQSql);
+  }
+
+  @Test public void testTimeAdd() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlLibraryOperators.TIME_ADD,
+        builder.literal("00:00:00"),
+        builder.call(SqlLibraryOperators.INTERVAL_SECONDS, builder.literal(10000)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT TIME_ADD('00:00:00', INTERVAL 10000 SECOND) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+  @Test public void testIntervalSeconds() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call
+        (SqlLibraryOperators.INTERVAL_SECONDS, builder.literal(10000));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT INTERVAL 10000 SECOND AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }

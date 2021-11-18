@@ -474,6 +474,19 @@ public abstract class SqlLibraryOperators {
       OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIME),
       SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_ADD = new SqlFunction("TIME_ADD",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TIME, null,
+      OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction INTERVAL_SECONDS = new SqlFunction("INTERVAL_SECONDS",
+        SqlKind.OTHER_FUNCTION,
+        ReturnTypes.INTEGER, null,
+        OperandTypes.ANY, SqlFunctionCategory.TIMEDATE);
+
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
