@@ -987,6 +987,24 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
+  @Test void testMapType() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(
+            builder.call(new MockSqlOperatorTable.MapFunction(),
+                builder.literal("key"), builder.literal("value")))
+        .build();
+    final String relJson = RelOptUtil.dumpPlan("", rel,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    final String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = ""
+        + "LogicalProject($f0=[MAP('key', 'value')])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
    * in this plan, or null if there are no scans. */
   private RelOptSchema getSchema(RelNode rel) {
