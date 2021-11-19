@@ -296,6 +296,13 @@ public class RelJson {
       componentType = toType(typeFactory, component);
       return typeFactory.createArrayType(componentType, -1);
 
+    case MAP:
+      Object key = get(map, "key");
+      Object value = get(map, "value");
+      RelDataType keyType = toType(typeFactory, key);
+      RelDataType valueType = toType(typeFactory, value);
+      return typeFactory.createMapType(keyType, valueType);
+
     case MULTISET:
       component = requireNonNull(map.get("component"), "component");
       componentType = toType(typeFactory, component);
@@ -386,6 +393,12 @@ public class RelJson {
       map.put("nullable", node.isNullable());
       if (node.getComponentType() != null) {
         map.put("component", toJson(node.getComponentType()));
+      }
+      if (node.getKeyType() != null) {
+        map.put("key", toJson(node.getKeyType()));
+      }
+      if (node.getValueType() != null) {
+        map.put("value", toJson(node.getValueType()));
       }
       if (node.getSqlTypeName().allowsPrec()) {
         map.put("precision", node.getPrecision());
