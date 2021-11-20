@@ -121,8 +121,13 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       // Set operations are binary for now.
       final SqlCall operand0 = ((SqlCall) query).operand(0);
       final SqlCall operand1 = ((SqlCall) query).operand(1);
-      final boolean coerced = rowTypeCoercion(scope, operand0, columnIndex, targetType)
-          && rowTypeCoercion(scope, operand1, columnIndex, targetType);
+      // Operand1 should be coerced even if operand0 not need to be coerced.
+      // For example, we have one table named t:
+      // INSERT INTO t -- only one column is c(int).
+      // SELECT 1 UNION   -- operand0 not need to be coerced.
+      // SELECT 1.0  -- operand1 should be coerced.
+      boolean coerced = rowTypeCoercion(scope, operand0, columnIndex, targetType);
+      coerced = rowTypeCoercion(scope, operand1, columnIndex, targetType) || coerced;
       // Update the nested SET operator node type.
       if (coerced) {
         updateInferredColumnType(
