@@ -48,6 +48,7 @@ import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -830,23 +831,31 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseTimestampAddSub(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIMESTAMP":
+      if (call.operand(0).toString().equals("'EEE'")
+          || call.operand(0).toString().equals("'EEEE'")) {
+        if (isOperandCastedToDateTime(call)) {
+          String dateFormat = call.operand(0).toString();
+          SqlCall secondOperand = call.operand(1);
+          SqlWriter.Frame formatTimestampFrame = writer.startFunCall("FORMAT_TIMESTAMP");
+          writer.sep(",");
+          writer.literal(createDateTimeFormatSqlCharLiteral(dateFormat).toString());
+          writer.sep(",");
+          SqlWriter.Frame castTimestampFrame = writer.startFunCall("CAST");
+          secondOperand.operand(0).unparse(writer, leftPrec, rightPrec);
+          writer.sep("AS", true);
+          writer.literal("TIMESTAMP");
+          writer.endFunCall(castTimestampFrame);
+          writer.endFunCall(formatTimestampFrame);
+        } else {
+          unparseFormatCall(writer, call, leftPrec, rightPrec);
+        }
+      } else {
+        unparseFormatDatetime(writer, call, leftPrec, rightPrec);
+      }
+      break;
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
-      switch (call.operand(0).toString()) {
-      case "'W'":
-        TimeUnit dayOfMonth = TimeUnit.DAY;
-        unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
-        break;
-      case "'WW'":
-        TimeUnit dayOfYear = TimeUnit.DOY;
-        unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
-        break;
-      case "'SEC_FROM_MIDNIGHT'":
-        secFromMidnight(writer, call, leftPrec, rightPrec);
-        break;
-      default:
-        unparseFormatCall(writer, call, leftPrec, rightPrec);
-      }
+      unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       break;
     case "PARSE_TIMESTAMP":
       String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
@@ -1023,6 +1032,23 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print("SECOND");
   }
 
+  private void unparseFormatDatetime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.operand(0).toString()) {
+    case "'W'":
+      TimeUnit dayOfMonth = TimeUnit.DAY;
+      unparseDayWithFormat(writer, call, dayOfMonth, leftPrec, rightPrec);
+      break;
+    case "'WW'":
+      TimeUnit dayOfYear = TimeUnit.DOY;
+      unparseDayWithFormat(writer, call, dayOfYear, leftPrec, rightPrec);
+      break;
+    case "'SEC_FROM_MIDNIGHT'":
+      secFromMidnight(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      unparseFormatCall(writer, call, leftPrec, rightPrec);
+    }
+  }
   private void castAsDatetime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       SqlFunction sqlFunction) {
     final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
@@ -1030,6 +1056,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep("AS");
     writer.literal("DATETIME");
     writer.endFunCall(castFrame);
+  }
+
+  private boolean isOperandCastedToDateTime(SqlCall call) {
+    return call.operand(1) instanceof SqlBasicCall
+          && ((SqlBasicCall) (call.operand(1))).getOperator() instanceof SqlCastFunction
+          && ((SqlBasicCall) (call.operand(1))).operand(1).toString().equals("DATETIME");
   }
 
   private void castOperandToTimestamp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,

@@ -9178,6 +9178,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testFormatTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("EEEE"),
+        builder.cast(builder.literal("1999-07-01 15:00:00-08:00"), SqlTypeName.TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode, "FT"))
+        .build();
+    final String expectedBiqQuery =
+        "SELECT FORMAT_TIMESTAMP('%A', CAST('1999-07-01 15:00:00-08:00' AS TIMESTAMP)) AS FT\n"
+            + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testGroupingFunction() {
     String query = "SELECT \"first_name\",\"last_name\", "
         + "grouping(\"first_name\")+ grouping(\"last_name\") "
