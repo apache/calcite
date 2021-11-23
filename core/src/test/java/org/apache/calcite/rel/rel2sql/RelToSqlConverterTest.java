@@ -9361,4 +9361,11 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test void testUnicodeCharacters() {
+    final String query = "SELECT 'ð', '°C' FROM \"product\"";
+    final String expected = "SELECT '\\u00f0', '\\u00b0C'\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
 }
