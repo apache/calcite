@@ -677,12 +677,11 @@ public class SqlDialect {
    * <code>can't{tab}run\</code> becomes <code>u'can''t\0009run\\'</code>.
    */
   public void quoteStringLiteralUnicode(StringBuilder buf, String val) {
-    //buf.append("u&'");
-    buf.append("'\\u");
+    buf.append("'");
     for (int i = 0; i < val.length(); i++) {
       char c = val.charAt(i);
       if (c < 32 || c >= 128) {
-       // buf.append('\\');
+        buf.append("\\u");
         buf.append(HEXITS[(c >> 12) & 0xf]);
         buf.append(HEXITS[(c >> 8) & 0xf]);
         buf.append(HEXITS[(c >> 4) & 0xf]);
