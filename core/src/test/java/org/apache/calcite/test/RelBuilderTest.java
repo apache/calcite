@@ -40,6 +40,8 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
@@ -4039,6 +4041,22 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testFilterInCharWithDiffLength() {
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(b.in(b.field("JOB"), b.literal("CLERK"), b.literal("A")))
+            .build();
+    final String expected =
+        "LogicalFilter(condition=[SEARCH($2, Sarg['A':CHAR(5), 'CLERK']:CHAR(5))])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expectedWithLeastRestrictive =
+        "LogicalFilter(condition=[SEARCH($2, Sarg['A':VARCHAR(5), 'CLERK':VARCHAR(5)]:VARCHAR(5))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(RelBuilder.create(config().typeSystem(VaryingTypeSystem.INSTANCE).build())),
+        hasTree(expectedWithLeastRestrictive));
+  }
+
   @Test void testRelBuilderToString() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
@@ -4695,6 +4713,18 @@ public class RelBuilderTest {
           return optional;
         }
       };
+    }
+  }
+
+  /**
+   * Custom type system that converts different length of CHAR type to VARCHAR type.
+   */
+  public static class VaryingTypeSystem extends RelDataTypeSystemImpl {
+
+    public static final RelDataTypeSystem INSTANCE = new VaryingTypeSystem();
+
+    @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+      return true;
     }
   }
 }

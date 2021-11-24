@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -49,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -622,6 +624,33 @@ class RexBuilderTest {
     final RexNode literal2 = rexBuilder.makeLiteral(2.0f, floatType);
     RexNode inCall = rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
+  }
+
+  @Test void testMakeInCharWithDiffLength() {
+    final Function<RelDataTypeSystem, RelDataType> f = t -> {
+      final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(t);
+      RexBuilder rexBuilder = new RexBuilder(typeFactory);
+      RelDataType type = typeFactory.createSqlType(SqlTypeName.VARCHAR, 9);
+      RexNode left = rexBuilder.makeInputRef(type, 0);
+      final RelDataType charType5 = typeFactory.createSqlType(SqlTypeName.CHAR, 5);
+      final RexNode literal1 = rexBuilder.makeLiteral("CLERK", charType5);
+      final RelDataType charType1 = typeFactory.createSqlType(SqlTypeName.CHAR, 1);
+      final RexNode literal2 = rexBuilder.makeLiteral("A", charType1);
+      RexCall searchCall = (RexCall) rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
+      RexNode searchArgument = searchCall.getOperands().get(1);
+      return searchArgument.getType();
+    };
+
+    assertThat(f.apply(PostgresqlSqlDialect.POSTGRESQL_TYPE_SYSTEM).getSqlTypeName(),
+        is(SqlTypeName.CHAR));
+
+    assertThat(
+        f.apply(
+            new RelDataTypeSystemImpl() {
+              @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+                return true;
+              } }).getSqlTypeName(),
+        is(SqlTypeName.VARCHAR));
   }
 
   /** Tests {@link RexCopier#visitOver(RexOver)}. */

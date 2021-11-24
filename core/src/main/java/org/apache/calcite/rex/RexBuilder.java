@@ -76,6 +76,8 @@ import java.util.function.IntPredicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory for row expressions.
  *
@@ -1332,10 +1334,14 @@ public class RexBuilder {
     if (areAssignable(arg, ranges)) {
       final Sarg sarg = toSarg(Comparable.class, ranges, RexUnknownAs.UNKNOWN);
       if (sarg != null) {
-        final RexNode range0 = ranges.get(0);
+        final List<RelDataType> types = Util.transform(ranges, RexNode::getType);
+        final List<RelDataType> distinctTypes = Util.distinctList(types);
+        final RelDataType sargType = requireNonNull(
+            typeFactory.leastRestrictive(distinctTypes),
+            () -> "Can't find leastRestrictive type among " + distinctTypes);
         return makeCall(SqlStdOperatorTable.SEARCH,
             arg,
-            makeSearchArgumentLiteral(sarg, range0.getType()));
+            makeSearchArgumentLiteral(sarg, sargType));
       }
     }
     return RexUtil.composeDisjunction(this, ranges.stream()
