@@ -14,10 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import com.github.vlsi.gradle.properties.dsl.props
-
 plugins {
     id("com.github.vlsi.gradle-extensions")
+}
+
+repositories {
+    maven {
+        setUrl("https://maven.codelibs.org/")
+    }
 }
 
 dependencies {
@@ -37,25 +41,10 @@ dependencies {
     implementation("org.apache.httpcomponents:httpcore")
     implementation("org.checkerframework:checker-qual")
 
-    // https://github.com/elastic/elasticsearch/issues/49218
-    if (project.props.bool("elasticStrictAsm", default = true)) {
-        val asm = Action<DependencyConstraint> {
-            version { strictly("5.1") }
-        }
-        constraints {
-            testRuntimeOnly("org.ow2.asm:asm", asm)
-            testRuntimeOnly("org.ow2.asm:asm-all", asm)
-            testRuntimeOnly("org.ow2.asm:asm-debug-all", asm)
-            testRuntimeOnly("org.ow2.asm:asm-analysis", asm)
-            testRuntimeOnly("org.ow2.asm:asm-commons", asm)
-            testRuntimeOnly("org.ow2.asm:asm-tree", asm)
-            testRuntimeOnly("org.ow2.asm:asm-util", asm)
-        }
-    }
-
     testImplementation("org.apache.logging.log4j:log4j-api")
     testImplementation("org.apache.logging.log4j:log4j-core")
     testImplementation("org.codelibs.elasticsearch.module:lang-painless")
+    testImplementation("org.codelibs.elasticsearch.module:scripting-painless-spi")
     testImplementation("org.elasticsearch.plugin:transport-netty4-client")
     testImplementation("org.elasticsearch:elasticsearch")
     testImplementation(project(":testkit"))
