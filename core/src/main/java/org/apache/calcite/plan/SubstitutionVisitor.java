@@ -376,7 +376,7 @@ public class SubstitutionVisitor {
         return rexBuilder.makeCall(call.getOperator(), left, right);
       }
 
-      RexNode newCall = rexBuilder.makeCall(call.getOperator(), right, left);
+      RexNode newCall = rexBuilder.makeCall(call.getOperator(), left, right);
       // new call should not be used if its inferred type is not same as old
       if (!newCall.getType().equals(call.getType())) {
         return call;
