@@ -4041,7 +4041,26 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
-  @Test void testFilterInCharWithDiffLength() {
+  /**
+   * Tests {@link RelBuilder#in} would throw exception if types of the ranges are not compatible.
+   */
+  @Test void testFilterInWithNotCompatibleArguments() {
+    try {
+      final RelBuilder b = RelBuilder.create(config().build());
+      final RelNode root = b.scan("EMP")
+          .filter(b.in(b.field(2), b.literal(1), b.literal(true)))
+          .build();
+      fail("expected error, got " + root);
+    } catch (ClassCastException e) {
+      // good
+    }
+  }
+
+  /**
+   * Tests {@link RelBuilder#in} would generate a search call if types of the ranges are
+   * compatible. Type of search argument literal is least restrictive type of ranges.
+   */
+  @Test void testFilterInWithCompatibleArguments() {
     final Function<RelBuilder, RelNode> f = b ->
         b.scan("EMP")
             .filter(b.in(b.field("JOB"), b.literal("CLERK"), b.literal("A")))

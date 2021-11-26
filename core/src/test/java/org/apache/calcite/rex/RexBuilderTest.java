@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -626,8 +625,28 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
-  @Test void testMakeInCharWithDiffLength() {
-    final Function<RelDataTypeSystem, RelDataType> f = t -> {
+  /**
+   * Tests {@link RexBuilder#makeIn} would generate a disjunction if types of the ranges are not
+   * compatible.
+   */
+  @Test void testMakeInWithNotCompatibleArguments() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RexNode left = rexBuilder.makeInputRef(type, 0);
+    final RelDataType boolType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RexNode literal1 = rexBuilder.makeLiteral(true, boolType);
+    final RexNode literal2 = rexBuilder.makeLiteral(1, type);
+    RexCall call = (RexCall) rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
+    assertThat(call.getOperator(), is(SqlStdOperatorTable.OR));
+  }
+
+  /**
+   * Tests {@link RexBuilder#makeIn} would generate a search call if types of the ranges are
+   * compatible. Type of search argument literal is least restrictive type of ranges.
+   */
+  @Test void testMakeInWithCompatibleArguments() {
+    final Function<RelDataTypeSystem, RexCall> f = t -> {
       final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(t);
       RexBuilder rexBuilder = new RexBuilder(typeFactory);
       RelDataType type = typeFactory.createSqlType(SqlTypeName.VARCHAR, 9);
@@ -636,21 +655,24 @@ class RexBuilderTest {
       final RexNode literal1 = rexBuilder.makeLiteral("CLERK", charType5);
       final RelDataType charType1 = typeFactory.createSqlType(SqlTypeName.CHAR, 1);
       final RexNode literal2 = rexBuilder.makeLiteral("A", charType1);
-      RexCall searchCall = (RexCall) rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
-      RexNode searchArgument = searchCall.getOperands().get(1);
-      return searchArgument.getType();
+      return (RexCall) rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
     };
 
-    assertThat(f.apply(PostgresqlSqlDialect.POSTGRESQL_TYPE_SYSTEM).getSqlTypeName(),
-        is(SqlTypeName.CHAR));
+    RexCall rexCall1 = f.apply(RelDataTypeSystem.DEFAULT);
+    assertThat(rexCall1.getOperator(), is(SqlStdOperatorTable.SEARCH));
+    RelDataType sargType1 = rexCall1.getOperands().get(1).getType();
+    assertThat(sargType1.getSqlTypeName(), is(SqlTypeName.CHAR));
+    assertThat(sargType1.getPrecision(), is(5));
 
-    assertThat(
-        f.apply(
-            new RelDataTypeSystemImpl() {
-              @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
-                return true;
-              } }).getSqlTypeName(),
-        is(SqlTypeName.VARCHAR));
+    RexCall rexCall2 = f.apply(
+        new RelDataTypeSystemImpl() {
+          @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+            return true;
+          } });
+    assertThat(rexCall2.getOperator(), is(SqlStdOperatorTable.SEARCH));
+    RelDataType sargType2 = rexCall2.getOperands().get(1).getType();
+    assertThat(sargType2.getSqlTypeName(), is(SqlTypeName.VARCHAR));
+    assertThat(sargType2.getPrecision(), is(5));
   }
 
   /** Tests {@link RexCopier#visitOver(RexOver)}. */
