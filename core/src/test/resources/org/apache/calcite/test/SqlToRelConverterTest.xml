@@ -6182,6 +6182,21 @@ LogicalProject(DEPTNO=[$7])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSubQueryNoExpand">
+    <Resource name="sql">
+      <![CDATA[select (select empno from EMP where 1 = 0)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$SCALAR_QUERY({
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=(1, 0)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSubQueryOr">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno = 10 or deptno in (

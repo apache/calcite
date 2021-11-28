@@ -2938,6 +2938,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testSubQueryNoExpand() {
+    final String sql = "select (select empno from EMP where 1 = 0)";
+    sql(sql).expand(false).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
