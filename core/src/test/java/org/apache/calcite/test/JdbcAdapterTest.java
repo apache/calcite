@@ -50,23 +50,25 @@ class JdbcAdapterTest {
    * same time. */
   private static final ReentrantLock LOCK = new ReentrantLock();
 
-  /** VALUES is not pushed down, currently. */
+  /** VALUES is pushed down. */
   @Test void testValuesPlan() {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
-    final String explain = "PLAN="
-        + "EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
-        + "  JdbcToEnumerableConverter\n"
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcJoin(condition=[true], joinType=[inner])\n"
         + "    JdbcTableScan(table=[[foodmart, days]])\n"
-        + "  EnumerableValues(tuples=[[{ 1 }, { 2 }]])";
+        + "    JdbcValues(tuples=[[{ 1 }, { 2 }]])";
     final String jdbcSql = "SELECT *\n"
-        + "FROM \"foodmart\".\"days\"";
+        + "FROM \"foodmart\".\"days\",\n"
+        + "(VALUES (1),\n"
+        + "(2)) AS \"t\" (\"C\")";
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query(sql)
         .explainContains(explain)
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB
             || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
-        .planHasSql(jdbcSql);
+        .planHasSql(jdbcSql)
+        .returnsCount(14);
   }
 
   @Test void testUnionPlan() {
@@ -360,17 +362,14 @@ class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
   }
 
-  // JdbcJoin not used for this
   @Test void testCartesianJoinWithoutKeyPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname\n"
             + "from scott.emp e,scott.dept d")
-        .explainContains("PLAN=EnumerableNestedLoopJoin(condition=[true], "
-            + "joinType=[inner])\n"
-            + "  JdbcToEnumerableConverter\n"
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcJoin(condition=[true], joinType=[inner])\n"
             + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
             + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "  JdbcToEnumerableConverter\n"
             + "    JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
@@ -400,6 +399,26 @@ class JdbcAdapterTest {
             + "WHERE CAST(\"DEPTNO\" AS INTEGER) = 20) AS \"t0\"\n"
             + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
             + "FROM \"SCOTT\".\"DEPT\") AS \"t1\" ON \"t0\".\"DEPTNO\" = \"t1\".\"DEPTNO\"");
+  }
+
+  @Test void testJoinConditionAlwaysTruePushDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select empno, ename, d.deptno, dname\n"
+                + "from scott.emp e,scott.dept d\n"
+                + "where true")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+                + "  JdbcJoin(condition=[true], joinType=[inner])\n"
+                + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+                + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
+                + "    JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+                + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT *\n"
+                + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+                + "FROM \"SCOTT\".\"EMP\") AS \"t\",\n"
+                + "(SELECT \"DEPTNO\", \"DNAME\"\n"
+                + "FROM \"SCOTT\".\"DEPT\") AS \"t0\"");
   }
 
   /** Test case for
