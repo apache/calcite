@@ -33,7 +33,6 @@ import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
-import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -462,16 +461,14 @@ public class JdbcRules {
   /** Calc operator implemented in JDBC convention.
    *
    * @see org.apache.calcite.rel.core.Calc */
-  public static class JdbcCalc extends SingleRel implements JdbcRel {
-    private final RexProgram program;
+  public static class JdbcCalc extends Calc implements JdbcRel {
 
     public JdbcCalc(RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode input,
         RexProgram program) {
-      super(cluster, traitSet, input);
+      super(cluster, traitSet, ImmutableList.of(), input, program);
       assert getConvention() instanceof JdbcConvention;
-      this.program = program;
       this.rowType = program.getOutputRowType();
     }
 
@@ -499,8 +496,8 @@ public class JdbcRules {
       return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
     }
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new JdbcCalc(getCluster(), traitSet, sole(inputs), program);
+    @Override public Calc copy(RelTraitSet traitSet, RelNode child, RexProgram program) {
+      return new JdbcCalc(getCluster(), traitSet, child, program);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
