@@ -696,7 +696,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case FLOAT:
     case DOUBLE:
       Expression condition = operand;
-      if(operand instanceof MethodCallExpression) {
+      if (operand instanceof MethodCallExpression) {
         condition = ((MethodCallExpression) operand).targetExpression;
       }
       operand = Expressions.call(BuiltInMethod.STRING_VALUEOF.method, operand);
