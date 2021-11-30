@@ -642,6 +642,36 @@ class RexBuilderTest {
   }
 
   /**
+   * Tests {@link RexBuilder#makeIn} would generate a disjunction if it is impossible to convert a
+   * list of input expressions to a search argument.
+   */
+  @Test void testMakeInWithNullValueLiteral() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DATE);
+    RexNode left = rexBuilder.makeInputRef(type, 0);
+    final RexNode literal1 = rexBuilder.makeLiteral(null, type);
+    final RexNode literal2 = rexBuilder.makeLiteral(1, type);
+    RexCall call = (RexCall) rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
+    assertThat(call.getOperator(), is(SqlStdOperatorTable.OR));
+  }
+
+  /**
+   * Tests {@link RexBuilder#makeIn} would generate a disjunction if it is impossible to convert a
+   * list of input expressions to a search argument.
+   */
+  @Test void testMakeInWithNonLiteral() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DATE);
+    RexNode left = rexBuilder.makeInputRef(type, 0);
+    final RexNode literal1 = rexBuilder.makeLiteral(1, type);
+    final RexNode field1 = rexBuilder.makeInputRef(type, 1);
+    RexCall call = (RexCall) rexBuilder.makeIn(left, ImmutableList.of(literal1, field1));
+    assertThat(call.getOperator(), is(SqlStdOperatorTable.OR));
+  }
+
+  /**
    * Tests {@link RexBuilder#makeIn} would generate a search call if types of the ranges are
    * compatible. Type of search argument literal is least restrictive type of ranges.
    */
