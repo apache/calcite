@@ -381,4 +381,10 @@ class ModelTest {
         .withModel(inUrl)
         .doWithConnection(calciteConnection -> null);
   }
+
+  @Test void testClasspathYamlResourceDetection() throws Exception {
+    CalciteAssert.that()
+        .withClasspathResourceModel("classpath:/empty-model.yaml")
+        .doWithConnection(calciteConnection -> null);
+  }
 }

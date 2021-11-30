@@ -101,7 +101,13 @@ public class ModelHandler {
       root = mapper.readValue(inline, JsonRoot.class);
     } else {
       mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
-      root = mapper.readValue(new File(uri), JsonRoot.class);
+      if (uri.startsWith("classpath:")) {
+        root = mapper.readValue(
+            ModelHandler.class.getResource(uri.substring("classpath:".length()).trim()),
+            JsonRoot.class);
+      } else {
+        root = mapper.readValue(new File(uri), JsonRoot.class);
+      }
     }
     visit(root);
   }

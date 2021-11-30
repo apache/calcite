@@ -1161,6 +1161,15 @@ public class CalciteAssert {
           Sources.of(model).file().getAbsolutePath());
     }
 
+    public final AssertThat withClasspathResourceModel(String classpathResourceModelPath) {
+      if (classpathResourceModelPath == null
+          || !classpathResourceModelPath.startsWith("classpath:")) {
+        throw new IllegalArgumentException(
+            "The classpath resource model path must start with 'classpath:'.");
+      }
+      return with(CalciteConnectionProperty.MODEL, classpathResourceModelPath);
+    }
+
     public final AssertThat withMaterializations(String model,
          final String... materializations) {
       return withMaterializations(model, false, materializations);
