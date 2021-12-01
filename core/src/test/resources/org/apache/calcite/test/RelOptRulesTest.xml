@@ -10877,6 +10877,28 @@ LogicalValues(tuples=[[{ 11, 1, 10 }, { 23, 3, 20 }]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testReduceWithNonTypePredicate">
+    <Resource name="sql">
+      <![CDATA[select avg(sal), avg(sal) within distinct (deptno)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], EXPR$1=[AVG($0) WITHIN DISTINCT ($1)])
+  LogicalProject(SAL=[$5], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[CAST(/($1, $2)):INTEGER])
+  LogicalProject(EXPR$0=[$0], $f1=[CASE(=($2, 0), null:INTEGER, $1)], $f2=[$2])
+    LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], agg#1=[$SUM0($0) WITHIN DISTINCT ($1)], agg#2=[COUNT() WITHIN DISTINCT ($1)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testRemoveDistinctOnAgg">
     <Resource name="sql">
       <![CDATA[SELECT empno, SUM(distinct sal), MIN(sal), MIN(distinct sal), MAX(distinct sal), bit_and(distinct sal), bit_or(sal), count(distinct sal) from sales.emp group by empno, deptno
