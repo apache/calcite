@@ -6321,6 +6321,16 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(rule).check();
   }
 
+  @Test void testReduceWithNonTypePredicate() {
+    // Make sure we can reduce with more specificity than just agg function type.
+    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
+        .withExtraCondition(call -> call.distinctKeys != null)
+        .toRule();
+    final String sql = "select avg(sal), avg(sal) within distinct (deptno)\n"
+        + "from emp";
+    sql(sql).withRule(rule).check();
+  }
+
   /** Test case for
   * <a href="https://issues.apache.org/jira/browse/CALCITE-2803">[CALCITE-2803]
   * Identify expanded IS NOT DISTINCT FROM expression when pushing project past join</a>.

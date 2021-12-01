@@ -9767,6 +9767,28 @@ LogicalProject(NAME=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testReduceWithNonTypePredicate">
+    <Resource name="sql">
+      <![CDATA[select avg(sal), avg(sal) within distinct (deptno)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], EXPR$1=[AVG($0) WITHIN DISTINCT ($1)])
+  LogicalProject(SAL=[$5], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[CAST(/($1, $2)):INTEGER])
+  LogicalProject(EXPR$0=[$0], $f1=[CASE(=($2, 0), null:INTEGER, $1)], $f2=[$2])
+    LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], agg#1=[$SUM0($0) WITHIN DISTINCT ($1)], agg#2=[COUNT() WITHIN DISTINCT ($1)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceAverage">
     <Resource name="sql">
       <![CDATA[select name, max(name), avg(deptno), min(name)
