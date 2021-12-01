@@ -475,11 +475,18 @@ public abstract class SqlLibraryOperators {
       SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIME_ADD = new SqlFunction("TIME_ADD",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.TIME, null,
-      OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME),
-      SqlFunctionCategory.TIMEDATE);
+  public static final SqlFunction TIME_ADD =
+      new SqlFunction("TIME_ADD",
+          SqlKind.PLUS,
+          ReturnTypes.TIME, null,
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME),
+          SqlFunctionCategory.TIMEDATE) {
+
+    @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+      writer.getDialect().unparseIntervalOperandsBasedFunctions(
+          writer, call, leftPrec, rightPrec);
+    }
+  };
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction INTERVAL_SECONDS = new SqlFunction("INTERVAL_SECONDS",
@@ -1141,11 +1148,17 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIME_SUB =
       new SqlFunction("TIME_SUB",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.MINUS,
           ReturnTypes.TIME,
           null,
           OperandTypes.DATETIME_INTERVAL,
-          SqlFunctionCategory.TIMEDATE);
+          SqlFunctionCategory.TIMEDATE) {
+
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+              writer, call, leftPrec, rightPrec);
+        }
+      };
 
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TO_BINARY =
