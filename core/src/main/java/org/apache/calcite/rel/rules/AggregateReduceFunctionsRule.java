@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -115,6 +116,7 @@ public class AggregateReduceFunctionsRule
   }
 
   private final Set<SqlKind> functionsToReduce;
+  private final Predicate<AggregateCall> extraCondition;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -123,6 +125,7 @@ public class AggregateReduceFunctionsRule
     super(config);
     this.functionsToReduce =
         ImmutableSet.copyOf(config.actualFunctionsToReduce());
+    this.extraCondition = config.actualExtraCondition();
   }
 
   @Deprecated // to be removed before 2.0
@@ -173,7 +176,7 @@ public class AggregateReduceFunctionsRule
 
   /** Returns whether this rule can reduce a given aggregate function call. */
   public boolean canReduce(AggregateCall call) {
-    return functionsToReduce.contains(call.getAggregation().getKind());
+    return functionsToReduce.contains(call.getAggregation().getKind()) && extraCondition.test(call);
   }
 
   /**
@@ -847,11 +850,27 @@ public class AggregateReduceFunctionsRule
       return new AggregateReduceFunctionsRule(this);
     }
 
+    /** The set of aggregate function types to try to reduce.
+     *
+     * Any agg function whose type is omitted from this set, OR which does not pass the
+     * {@link #extraCondition}, will be ignored.
+     */
     @ImmutableBeans.Property
     @Nullable Set<SqlKind> functionsToReduce();
 
+    /** A test that must pass before attempting to reduce any aggregate function.
+     *
+     * Any agg function which does not pass, OR whose type is omitted from
+     * {@link #functionsToReduce}, will be ignored. The default predicate always passes.
+     */
+    @ImmutableBeans.Property
+    @Nullable Predicate<AggregateCall> extraCondition();
+
     /** Sets {@link #functionsToReduce}. */
     Config withFunctionsToReduce(@Nullable Set<SqlKind> functionSet);
+
+    /** Sets {@link #extraCondition}. */
+    Config withExtraCondition(@Nullable Predicate<AggregateCall> test);
 
     /** Returns the validated set of functions to reduce, or the default set
      * if not specified. */
@@ -860,6 +879,10 @@ public class AggregateReduceFunctionsRule
           Util.first(functionsToReduce(), DEFAULT_FUNCTIONS_TO_REDUCE);
       set.forEach(AggregateReduceFunctionsRule::validateFunction);
       return set;
+    }
+
+    default Predicate<AggregateCall> actualExtraCondition() {
+      return Util.first(extraCondition(), ignored -> true);
     }
 
     /** Defines an operand tree for the given classes. */
