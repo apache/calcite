@@ -199,6 +199,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   boolean topDownOpt = CalciteSystemProperty.TOPDOWN_OPT.value();
 
   /**
+   * Whether to apply logical pruning aggresively.
+   */
+  boolean aggressivePruning = CalciteSystemProperty.AGGRESSIVE_PRUNING.value();
+
+  /**
    * Extra roots for explorations.
    */
   Set<RelSubset> explorationRoots = new HashSet<>();
@@ -242,7 +247,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   @EnsuresNonNull("ruleDriver")
   private void initRuleQueue() {
     if (topDownOpt) {
-      ruleDriver = new TopDownRuleDriver(this);
+      ruleDriver = new TopDownRuleDriver(this, aggressivePruning);
     } else {
       ruleDriver = new IterativeRuleDriver(this);
     }
@@ -408,6 +413,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.materializations.clear();
     this.latticeByName.clear();
     this.provenanceMap.clear();
+    this.nonRootOperandClass = null;
   }
 
   @Override public boolean addRule(RelOptRule rule) {
@@ -1178,9 +1184,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       ensureRootConverters();
     }
 
-    if (ruleDriver != null) {
-      ruleDriver.onSetMerged(set1);
-    }
+    ruleDriver.onSetMerged(set1, set2);
     return set1;
   }
 
@@ -1410,10 +1414,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       // ignore
     }
 
-    if (ruleDriver != null) {
-      ruleDriver.onProduce(rel, subset);
-    }
-
     return subset;
   }
 
@@ -1519,8 +1519,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   public boolean isLogical(RelNode rel) {
-    return !(rel instanceof PhysicalNode)
-        && rel.getConvention() != rootConvention;
+    return rel.getConvention() == Convention.NONE;
   }
 
   /**
@@ -1545,39 +1544,21 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return match.getRule() instanceof TransformationRule;
   }
 
-
-  /**
-   * Gets the lower bound cost of a relational operator.
-   *
-   * @param rel The rel node
-   * @return The lower bound cost of the given rel. The value is ensured NOT NULL.
-   */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  protected RelOptCost getLowerBound(RelNode rel) {
-    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    RelOptCost lowerBound = mq.getLowerBoundCost(rel, this);
-    if (lowerBound == null) {
-      return zeroCost;
-    }
-    return lowerBound;
-  }
-
-  /**
-   * Gets the upper bound of its inputs.
-   * Allow users to overwrite this method as some implementations may have
-   * different cost model on some RelNodes, like Spool.
-   */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  protected RelOptCost upperBoundForInputs(
-      RelNode mExpr, RelOptCost upperBound) {
-    if (!upperBound.isInfinite()) {
-      RelOptCost rootCost = mExpr.getCluster()
-          .getMetadataQuery().getNonCumulativeCost(mExpr);
-      if (rootCost != null && !rootCost.isInfinite()) {
-        return upperBound.minus(rootCost);
+  @Nullable private Set<Class<? extends RelNode>> nonRootOperandClass = null;
+  @API(status = API.Status.EXPERIMENTAL)
+  public boolean nonRootOperandsContainsClass(Class<? extends RelNode> clz) {
+    if (nonRootOperandClass == null) {
+      nonRootOperandClass = new HashSet<>();
+      for (RelOptRule rule : getRules()) {
+        for (RelOptRuleOperand op : rule.getOperands()) {
+          if (op.ordinalInRule == 0) {
+            continue;
+          }
+          nonRootOperandClass.add(op.getMatchedClass());
+        }
       }
     }
-    return upperBound;
+    return nonRootOperandClass.contains(clz);
   }
 
   //~ Inner Classes ----------------------------------------------------------

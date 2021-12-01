@@ -489,7 +489,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   boolean resetTaskState() {
-    boolean optimized = taskState != null;
+    boolean optimized = taskState == OptimizeState.COMPLETED;
     taskState = null;
     upperBound = bestCost;
     return optimized;
@@ -508,20 +508,11 @@ public class RelSubset extends AbstractRelNode {
     return ((PhysicalNode) rel).passThrough(this.getTraitSet());
   }
 
-  boolean isExplored() {
-    return set.exploringState == RelSet.ExploringState.EXPLORED;
-  }
-
-  boolean explore() {
-    if (set.exploringState != null) {
-      return false;
+  public boolean derivedBy(PhysicalNode mExpr) {
+    if (passThroughCache == null) {
+      passThroughCache = Sets.newIdentityHashSet();
     }
-    set.exploringState = RelSet.ExploringState.EXPLORING;
-    return true;
-  }
-
-  void setExplored() {
-    set.exploringState = RelSet.ExploringState.EXPLORED;
+    return passThroughCache.add(mExpr);
   }
 
   //~ Inner Classes ----------------------------------------------------------

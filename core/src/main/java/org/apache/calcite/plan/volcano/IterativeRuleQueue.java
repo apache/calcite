@@ -62,13 +62,8 @@ class IterativeRuleQueue extends RuleQueue {
   /**
    * Clear internal data structure for this rule queue.
    */
-  @Override public boolean clear() {
-    boolean empty = true;
-    if (!matchList.queue.isEmpty() || !matchList.preQueue.isEmpty()) {
-      empty = false;
-    }
+  @Override public void clear() {
     matchList.clear();
-    return !empty;
   }
 
   /**
@@ -100,7 +95,7 @@ class IterativeRuleQueue extends RuleQueue {
    * obsolete set or has been pruned.
    *
    */
-  public @Nullable VolcanoRuleMatch popMatch() {
+  @Override public @Nullable VolcanoRuleMatch popMatch() {
     dumpPlannerState();
 
     VolcanoRuleMatch match;

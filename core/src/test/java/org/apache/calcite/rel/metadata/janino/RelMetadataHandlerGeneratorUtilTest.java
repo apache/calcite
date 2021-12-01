@@ -78,10 +78,6 @@ class RelMetadataHandlerGeneratorUtilTest {
     testGenerateHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
   }
 
-  @Test void testLowerBoundCostGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
-  }
-
   @Test void testMaxRowCountGenerateHandler() {
     testGenerateHandler(BuiltInMetadata.MaxRowCount.Handler.class);
   }

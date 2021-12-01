@@ -40,7 +40,6 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.Pair;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 
@@ -585,12 +584,7 @@ class VolcanoPlannerTest {
     // as the related node has been pruned
     RuleQueue ruleQueue = planner.ruleDriver.getRuleQueue();
     while (true) {
-      VolcanoRuleMatch ruleMatch;
-      if (ruleQueue instanceof IterativeRuleQueue) {
-        ruleMatch = ((IterativeRuleQueue) ruleQueue).popMatch();
-      } else {
-        ruleMatch = ((TopDownRuleQueue) ruleQueue).popMatch(Pair.of(leafRel, null));
-      }
+      VolcanoRuleMatch ruleMatch = ruleQueue.popMatch();
       if (ruleMatch == null) {
         break;
       }

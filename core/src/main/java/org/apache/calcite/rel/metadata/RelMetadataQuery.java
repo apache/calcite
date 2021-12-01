@@ -19,7 +19,6 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
@@ -104,7 +103,6 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.Selectivity.Handler selectivityHandler;
   private BuiltInMetadata.Size.Handler sizeHandler;
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
-  private BuiltInMetadata.LowerBoundCost.Handler lowerBoundCostHandler;
 
   /**
    * Creates the instance with {@link JaninoRelMetadataProvider} instance
@@ -142,7 +140,6 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.selectivityHandler = initialHandler(BuiltInMetadata.Selectivity.Handler.class);
     this.sizeHandler = initialHandler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeys.Handler.class);
-    this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
   }
 
   private RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
@@ -171,7 +168,6 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.selectivityHandler = prototype.selectivityHandler;
     this.sizeHandler = prototype.sizeHandler;
     this.uniqueKeysHandler = prototype.uniqueKeysHandler;
-    this.lowerBoundCostHandler = prototype.lowerBoundCostHandler;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -875,20 +871,6 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return distributionHandler.distribution(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         distributionHandler = revise(BuiltInMetadata.Distribution.Handler.class);
-      }
-    }
-  }
-
-  /**
-   * Returns the lower bound cost of a RelNode.
-   */
-  public @Nullable RelOptCost getLowerBoundCost(RelNode rel, VolcanoPlanner planner) {
-    for (;;) {
-      try {
-        return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);
-      } catch (JaninoRelMetadataProvider.NoHandler e) {
-        lowerBoundCostHandler =
-            revise(BuiltInMetadata.LowerBoundCost.Handler.class);
       }
     }
   }

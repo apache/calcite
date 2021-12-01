@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.slf4j.Logger;
@@ -72,10 +71,7 @@ class IterativeRuleDriver implements RuleDriver {
 
   }
 
-  @Override public void onProduce(RelNode rel, RelSubset subset) {
-  }
-
-  @Override public void onSetMerged(RelSet set) {
+  @Override public void onSetMerged(RelSet dest, RelSet src) {
   }
 
   @Override public void clear() {
