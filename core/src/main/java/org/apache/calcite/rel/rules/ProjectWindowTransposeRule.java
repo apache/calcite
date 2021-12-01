@@ -37,6 +37,7 @@ import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 
@@ -99,7 +100,7 @@ public class ProjectWindowTransposeRule
 
     final LogicalProject projectBelowWindow =
         new LogicalProject(cluster, window.getTraitSet(), ImmutableList.of(),
-            window.getInput(), exps, builder.build());
+            window.getInput(), exps, builder.build(), ImmutableSet.of());
 
     // Create a new LogicalWindow with necessary inputs only
     final List<Window.Group> groups = new ArrayList<>();

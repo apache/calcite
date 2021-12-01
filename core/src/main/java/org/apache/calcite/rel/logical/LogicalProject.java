@@ -24,6 +24,8 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdCollation;
@@ -35,16 +37,21 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Project} not
  * targeted at any particular engine or calling convention.
  */
 public final class LogicalProject extends Project {
+  private final ImmutableSet<CorrelationId> variablesSet;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -52,12 +59,14 @@ public final class LogicalProject extends Project {
    *
    * <p>Use {@link #create} unless you know what you're doing.
    *
-   * @param cluster  Cluster this relational expression belongs to
-   * @param traitSet Traits of this relational expression
-   * @param hints    Hints of this relational expression
-   * @param input    Input relational expression
-   * @param projects List of expressions for the input columns
-   * @param rowType  Output row type
+   * @param cluster      Cluster this relational expression belongs to
+   * @param traitSet     Traits of this relational expression
+   * @param hints        Hints of this relational expression
+   * @param input        Input relational expression
+   * @param projects     List of expressions for the input columns
+   * @param rowType      Output row type
+   * @param variablesSet Correlation variables set by this relational expression
+   *                     to be used by nested expressions
    */
   public LogicalProject(
       RelOptCluster cluster,
@@ -65,22 +74,26 @@ public final class LogicalProject extends Project {
       List<RelHint> hints,
       RelNode input,
       List<? extends RexNode> projects,
-      RelDataType rowType) {
+      RelDataType rowType,
+      ImmutableSet<CorrelationId> variablesSet) {
     super(cluster, traitSet, hints, input, projects, rowType);
     assert traitSet.containsIfApplicable(Convention.NONE);
+    this.variablesSet = Objects.requireNonNull(variablesSet, "variablesSet");
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType,
+        ImmutableSet.of());
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType,
       int flags) {
-    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType,
+        ImmutableSet.of());
     Util.discard(flags);
   }
 
@@ -90,7 +103,7 @@ public final class LogicalProject extends Project {
     this(cluster, cluster.traitSetOf(RelCollations.EMPTY),
         ImmutableList.of(), input, projects,
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
-            fieldNames, null));
+            fieldNames, null), ImmutableSet.of());
     Util.discard(flags);
   }
 
@@ -99,6 +112,7 @@ public final class LogicalProject extends Project {
    */
   public LogicalProject(RelInput input) {
     super(input);
+    this.variablesSet = ImmutableSet.of();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -123,12 +137,31 @@ public final class LogicalProject extends Project {
         cluster.traitSet().replace(Convention.NONE)
             .replaceIfs(RelCollationTraitDef.INSTANCE,
                 () -> RelMdCollation.project(mq, input, projects));
-    return new LogicalProject(cluster, traitSet, hints, input, projects, rowType);
+    return new LogicalProject(cluster, traitSet, hints, input, projects, rowType,
+        ImmutableSet.of());
+  }
+
+  /** Creates a LogicalProject, specifying row type rather than field names. */
+  public static LogicalProject create(final RelNode input, List<RelHint> hints,
+      final List<? extends RexNode> projects, RelDataType rowType,
+      ImmutableSet<CorrelationId> variablesSet) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    final RelTraitSet traitSet =
+        cluster.traitSet().replace(Convention.NONE)
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                () -> RelMdCollation.project(mq, input, projects));
+    return new LogicalProject(cluster, traitSet, hints, input, projects, rowType, variablesSet);
+  }
+
+  @Override public Set<CorrelationId> getVariablesSet() {
+    return variablesSet;
   }
 
   @Override public LogicalProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType) {
-    return new LogicalProject(getCluster(), traitSet, hints, input, projects, rowType);
+    return new LogicalProject(getCluster(), traitSet, hints, input, projects, rowType,
+        variablesSet);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {
@@ -137,14 +170,20 @@ public final class LogicalProject extends Project {
 
   @Override public RelNode withHints(List<RelHint> hintList) {
     return new LogicalProject(getCluster(), traitSet, hintList,
-        input, getProjects(), getRowType());
+        input, getProjects(), getRowType(), variablesSet);
+  }
+
+  @Override public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty());
   }
 
   @Override public boolean deepEquals(@Nullable Object obj) {
-    return deepEquals0(obj);
+    return deepEquals0(obj)
+        && variablesSet.equals(((LogicalProject) obj).variablesSet);
   }
 
   @Override public int deepHashCode() {
-    return deepHashCode0();
+    return Objects.hash(deepHashCode0(), variablesSet);
   }
 }

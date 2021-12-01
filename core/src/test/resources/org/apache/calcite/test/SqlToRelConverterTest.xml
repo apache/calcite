@@ -590,6 +590,40 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelatedScalarSubQueryInSelectList">
+    <Resource name="planNotExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[>($cor0.DEPTNO, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], EXPR$2=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[AND(>($cor0.DEPTNO, 0), <($cor0.DEPTNO, 10))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], EXPR$1=[$9], EXPR$2=[$10])
+  LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{7}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+        LogicalProject($f0=[0])
+          LogicalFilter(condition=[>($cor0.DEPTNO, 0)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+      LogicalProject($f0=[0])
+        LogicalFilter(condition=[AND(>($cor1.DEPTNO, 0), <($cor1.DEPTNO, 10))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelatedArraySubQuery">
     <Resource name="sql">
       <![CDATA[select *,
@@ -750,7 +784,7 @@ LogicalProject(DEPTNO=[$7], EXPR$1=[$9])
 LogicalProject(DEPTNO=[$7], EXPR$1=[$SCALAR_QUERY({
 LogicalProject(NAME=[$0])
   LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.DEPTNO)], rowType=[RecordType(VARCHAR(1024) NAME)])
-})])
+})], variablesSet=[[$cor0]])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

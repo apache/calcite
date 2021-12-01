@@ -2696,16 +2696,6 @@ public class SqlToRelConverter {
             validator().getValidatedNodeType(call),
             columnMappings);
 
-    final SqlValidatorScope selectScope =
-        ((DelegatingScope) bb.scope()).getParent();
-    final Blackboard seekBb = createBlackboard(selectScope, null, false);
-
-    final CorrelationUse p = getCorrelationUse(seekBb, callRel);
-    if (p != null) {
-      assert p.r instanceof LogicalTableFunctionScan;
-      callRel = (LogicalTableFunctionScan) p.r;
-    }
-
     bb.setRoot(callRel, true);
     afterTableFunction(bb, call, callRel);
   }
@@ -4400,7 +4390,21 @@ public class SqlToRelConverter {
 
     relBuilder.push(bb.root())
         .projectNamed(exprs, fieldNames, true);
-    bb.setRoot(relBuilder.build(), false);
+
+    RelNode project = relBuilder.build();
+
+    final RelNode r;
+    final CorrelationUse p = getCorrelationUse(bb, project);
+    if (p != null) {
+      assert p.r instanceof Project;
+      Project proj = (Project) p.r;
+      r = LogicalProject.create(proj.getInput(), proj.getHints(),
+          proj.getProjects(), proj.getRowType(), ImmutableSet.of(p.id));
+    } else {
+      r = project;
+    }
+
+    bb.setRoot(r, false);
 
     assert bb.columnMonotonicities.isEmpty();
     bb.columnMonotonicities.addAll(columnMonotonicityList);

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
@@ -41,12 +42,14 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.DeduplicateCorrelateVariables;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 
@@ -129,8 +132,25 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteScalarQuery(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder, int inputCount, int offset) {
-    builder.push(e.rel);
-    final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
+    // in case the relation has several scalar queries
+    // referred to the same correlated variable, every
+    // such a query will be re-written to a particular
+    // correlate with the common set of variables,
+    // resulting a different relations will be trying to
+    // set the same correlated variable. To overcome this
+    // let's rewrite an every correlated variable with a
+    // new one created specially for current scalar query
+    RelNode r = e.rel;
+    RelOptCluster cluster = r.getCluster();
+    ImmutableSet.Builder<CorrelationId> newVariablesSet = ImmutableSet.builder();
+    for (CorrelationId corrId : variablesSet) {
+      CorrelationId newId = cluster.createCorrel();
+      newVariablesSet.add(newId);
+      r = DeduplicateCorrelateVariables.go(cluster.getRexBuilder(), newId,
+          ImmutableSet.of(corrId), r);
+    }
+    builder.push(r);
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final Boolean unique = mq.areColumnsUnique(builder.peek(),
         ImmutableBitSet.of());
     if (unique == null || !unique) {
@@ -138,7 +158,7 @@ public class SubQueryRemoveRule
           builder.aggregateCall(SqlStdOperatorTable.SINGLE_VALUE,
               builder.field(0)));
     }
-    builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
+    builder.join(JoinRelType.LEFT, builder.literal(true), newVariablesSet.build());
     return field(builder, inputCount, offset);
   }
 

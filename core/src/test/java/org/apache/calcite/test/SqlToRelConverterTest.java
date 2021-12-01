@@ -1288,6 +1288,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "from emp e");
   }
 
+  @Test void testCorrelatedScalarSubQueryInSelectList() {
+    Consumer<String> fn = sql -> {
+      sql(sql).expand(true).decorrelate(false)
+          .convertsTo("${planExpanded}");
+      sql(sql).expand(false).decorrelate(false)
+          .convertsTo("${planNotExpanded}");
+    };
+    fn.accept("select e.deptno,\n"
+        + "  (select count(*) from emp where e.deptno > 0),\n"
+        + "  (select count(*) from emp where e.deptno > 0 and e.deptno < 10)\n"
+        + "from emp e");
+  }
+
   @Test void testCorrelationLateralSubQuery() {
     String sql = "SELECT deptno, ename\n"
         + "FROM\n"
