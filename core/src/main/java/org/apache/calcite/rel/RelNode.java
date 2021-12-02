@@ -410,7 +410,20 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return A copy of this node incorporating changes made by the shuttle to
    * this node's children
    */
-  RelNode accept(RelShuttle shuttle);
+  default RelNode accept(RelShuttle shuttle) {
+    return accept((GenericRelVisitor<RelNode, RuntimeException>) shuttle);
+  }
+
+  /**
+   * Accepts a visit from a generic visitor.
+   *
+   * @param visitor
+   * @param <T> The return type of the visitor.
+   * @param <E> An exception that maybe thrown by the acceptance of the visitor.
+   * @return
+   * @throws E A configurable exception type based on the visitor.
+   */
+  <T, E extends Throwable> T accept(GenericRelVisitor<T, E> visitor) throws E;
 
   /**
    * Accepts a visit from a shuttle. If the shuttle updates expression, then
