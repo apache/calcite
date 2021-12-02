@@ -1710,6 +1710,18 @@ class RexProgramTest extends RexProgramTestBase {
         .expandedSearch(expanded);
   }
 
+  @Test void testSimplifyAndIsNotNullWithEquality() {
+    // "AND(IS NOT NULL(x), =(x, y)) => AND(IS NOT NULL(x), =(x, y)) (unknownAsFalse=false),
+    // "=(x, y)" (unknownAsFalse=true)
+    checkSimplify2(and(isNotNull(vInt(0)), eq(vInt(0), vInt(1))),
+        "AND(IS NOT NULL(?0.int0), =(?0.int0, ?0.int1))",
+        "=(?0.int0, ?0.int1)");
+
+    // "AND(IS NOT NULL(x), =(x, y)) => "=(x, y)"
+    checkSimplify(and(isNotNull(vIntNotNull(0)), eq(vIntNotNull(0), vInt(1))),
+        "=(?0.notNullInt0, ?0.int1)");
+  }
+
   @Test void testSimplifyAndIsNull() {
     final RexNode aRef = input(tInt(true), 0);
     final RexNode bRef = input(tInt(true), 1);
