@@ -71,6 +71,6 @@ public interface GenericRelVisitor<T, E extends Throwable> {
 
   T visit(LogicalTableModify modify) throws E;
 
-  T visit(T other) throws E;
+  T visit(RelNode other) throws E;
 
 }
