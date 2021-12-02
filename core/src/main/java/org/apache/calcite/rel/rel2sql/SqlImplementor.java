@@ -783,6 +783,11 @@ public abstract class SqlImplementor {
           SqlNode fieldOperand = field(ordinal);
           return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
         }
+        // Ideally the UNKNOWN type would never exist in a fully-formed, validated rel node, but
+        // it can be useful in certain situations where determining the type of an expression is
+        // infeasible, such as inserting arbitrary user-provided SQL snippets into an otherwise
+        // manually-constructed (as opposed to parsed) rel node.
+        // In such a context, assume that casting anything to UNKNOWN is a no-op.
         if (ignoreCast || call.getType().getSqlTypeName() == SqlTypeName.UNKNOWN) {
           assert nodeList.size() == 1;
           return nodeList.get(0);

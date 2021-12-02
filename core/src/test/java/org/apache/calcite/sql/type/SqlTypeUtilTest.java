@@ -38,7 +38,6 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsMapSansNullability;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test of {@link org.apache.calcite.sql.type.SqlTypeUtil}.
@@ -242,14 +241,21 @@ class SqlTypeUtilTest {
       }
       BasicSqlType nullableFromType = fromType.createWithNullability(!fromType.isNullable);
 
-      assertTrue(SqlTypeUtil.canCastFrom(unknownType, fromType, false));
-      assertTrue(SqlTypeUtil.canCastFrom(unknownType, fromType, true));
-      assertTrue(SqlTypeUtil.canCastFrom(unknownType, nullableFromType, false));
-      assertTrue(SqlTypeUtil.canCastFrom(unknownType, nullableFromType, true));
-      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, fromType, false));
-      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, fromType, true));
-      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, nullableFromType, false));
-      assertTrue(SqlTypeUtil.canCastFrom(nullableUnknownType, nullableFromType, true));
+      assertCanCast(unknownType, fromType);
+      assertCanCast(unknownType, nullableFromType);
+      assertCanCast(nullableUnknownType, fromType);
+      assertCanCast(nullableUnknownType, nullableFromType);
     }
+  }
+
+  private static void assertCanCast(RelDataType toType, RelDataType fromType) {
+    assertThat(
+        String.format(
+            "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
+        SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ false), is(true));
+    assertThat(
+        String.format(
+            "Expected to be able to cast from %s to %s with coercion.", fromType, toType),
+        SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ true), is(true));
   }
 }

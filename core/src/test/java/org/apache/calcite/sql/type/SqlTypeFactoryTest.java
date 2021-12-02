@@ -281,7 +281,7 @@ class SqlTypeFactoryTest {
   }
 
   /** Test that the {code UNKNOWN} type does not does not change class when nullified. */
-  @Test void testUnknownCreateWithNullabiliityTypeConsistency() {
+  @Test void testUnknownCreateWithNullabilityTypeConsistency() {
     SqlTypeFixture f = new SqlTypeFixture();
 
     RelDataType unknownType  = f.typeFactory.createUnknownType();
