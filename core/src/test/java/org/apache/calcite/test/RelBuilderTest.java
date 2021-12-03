@@ -4056,10 +4056,11 @@ public class RelBuilderTest {
     }
   }
 
-  /**
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4888">[CALCITE-4888]
+   * Fix type inferring when call RelBuilder.in with arguments that are different types</a>.
    * Tests {@link RelBuilder#in} would generate a search call if types of the ranges are
-   * compatible. Type of search argument literal is least restrictive type of ranges.
-   */
+   * compatible. Type of search argument literal is least restrictive type of ranges.*/
   @Test void testFilterInWithCompatibleArguments() {
     final Function<RelBuilder, RelNode> f = b ->
         b.scan("EMP")

@@ -642,8 +642,8 @@ class RexBuilderTest {
   }
 
   /**
-   * Tests {@link RexBuilder#makeIn} would generate a disjunction if it is impossible to convert a
-   * list of input expressions to a search argument.
+   * Tests {@link RexBuilder#makeIn} would generate a disjunction if one or more ranges expressions
+   * are literals with null value.
    */
   @Test void testMakeInWithNullValueLiteral() {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -657,8 +657,8 @@ class RexBuilderTest {
   }
 
   /**
-   * Tests {@link RexBuilder#makeIn} would generate a disjunction if it is impossible to convert a
-   * list of input expressions to a search argument.
+   * Tests {@link RexBuilder#makeIn} would generate a disjunction if not all ranges expressions are
+   * literals.
    */
   @Test void testMakeInWithNonLiteral() {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -671,10 +671,11 @@ class RexBuilderTest {
     assertThat(call.getOperator(), is(SqlStdOperatorTable.OR));
   }
 
-  /**
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4888">[CALCITE-4888]
+   * Fix type inferring when call RelBuilder.in with arguments that are different types</a>.
    * Tests {@link RexBuilder#makeIn} would generate a search call if types of the ranges are
-   * compatible. Type of search argument literal is least restrictive type of ranges.
-   */
+   * compatible. Type of search argument literal is least restrictive type of ranges.*/
   @Test void testMakeInWithCompatibleArguments() {
     final Function<RelDataTypeSystem, RexCall> f = t -> {
       final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(t);
@@ -694,6 +695,7 @@ class RexBuilderTest {
     assertThat(sargType1.getSqlTypeName(), is(SqlTypeName.CHAR));
     assertThat(sargType1.getPrecision(), is(5));
 
+    // Type of search argument literal is least restrictive type of char1 and char5.
     RexCall rexCall2 = f.apply(
         new RelDataTypeSystemImpl() {
           @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
