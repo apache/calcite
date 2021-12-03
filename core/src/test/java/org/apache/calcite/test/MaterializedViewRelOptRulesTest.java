@@ -1124,7 +1124,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
 
   @Test void testViewProjectWithMultifieldExpressions() {
     sql("select s.\"time_id\", s.\"time_id\" >= 1 and s.\"time_id\" < 3,"
-            + " s.\"time_id\" >= 1 or s.\"time_id\" < 3"
+            + " s.\"time_id\" >= 1 or s.\"time_id\" < 3, "
+            + " s.\"time_id\" + s.\"time_id\", "
+            + " s.\"time_id\" * s.\"time_id\""
             + " from \"foodmart\".\"sales_fact_1997\" as s"
             + " where s.\"store_id\" = 1",
         "select s.\"time_id\""
@@ -1133,7 +1135,7 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
         .withChecker(
             resultContains(""
-                + "EnumerableCalc(expr#0..2=[{inputs}], time_id=[$t0])\n"
+                + "EnumerableCalc(expr#0..4=[{inputs}], time_id=[$t0])\n"
                 + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
         .ok();
   }
