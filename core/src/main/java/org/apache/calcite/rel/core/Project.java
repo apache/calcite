@@ -101,8 +101,8 @@ public abstract class Project extends SingleRel implements Hintable {
     this.exps = ImmutableList.copyOf(projects);
     this.hints = ImmutableList.copyOf(hints);
     this.rowType = rowType;
-    this.variablesSet = Objects.requireNonNull(
-        ImmutableSet.copyOf(variablesSet), "variablesSet");
+    this.variablesSet = ImmutableSet.copyOf(
+        Objects.requireNonNull(variablesSet, "variablesSet"));
     assert isValid(Litmus.THROW, null);
   }
 
@@ -280,7 +280,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw)
-      .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty());
+      .itemIf("correlation", variablesSet, !variablesSet.isEmpty());
 
     // Skip writing field names so the optimizer can reuse the projects that differ in
     // field names only

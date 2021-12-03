@@ -11756,7 +11756,7 @@ from emp
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[> SOME($0, {
+LogicalProject(correlation=[[$cor0]], EXPR$0=[> SOME($0, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[=($cor0.JOB, $1)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -11798,7 +11798,7 @@ LogicalProject(EXPR$0=[CAST(OR(AND(IS TRUE(>($0, $9)), IS NOT TRUE(OR(IS NULL($1
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[NOT(IN($0, {
+LogicalProject(correlation=[[$cor0]], SAL=[$5], EXPR$1=[NOT(IN($0, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[=($cor0.JOB, $1)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
