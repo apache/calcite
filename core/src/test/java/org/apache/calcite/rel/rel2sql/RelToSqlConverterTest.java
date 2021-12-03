@@ -5095,7 +5095,8 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
     final String expectedSnowflake = expectedPostgresql;
-    final String expectedRedshift = expectedPostgresql;
+    final String expectedRedshift = "SELECT \"a\"\nFROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
+        + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
     sql(sql)
         .withClickHouse().ok(expectedClickHouse)
         .withBigQuery().ok(expectedBigQuery)

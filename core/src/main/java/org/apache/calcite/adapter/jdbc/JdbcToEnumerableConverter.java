@@ -36,9 +36,12 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -347,8 +350,20 @@ public class JdbcToEnumerableConverter
     final JdbcImplementor jdbcImplementor =
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
+    RelNode best;
+    if (!dialect.supportsGroupByBooleanConstant()) {
+      HepProgramBuilder hepProgramBuilder = new HepProgramBuilder();
+      hepProgramBuilder.addRuleInstance(
+          AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
+      HepPlanner hepPlanner = new HepPlanner(hepProgramBuilder.build());
+
+      hepPlanner.setRoot(this);
+      best = hepPlanner.findBestExp();
+    } else {
+      best = this;
+    }
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitRoot(this);
+        jdbcImplementor.visitInput(best, 0);
     return result.asStatement().toSqlString(dialect);
   }
 }

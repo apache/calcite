@@ -21,8 +21,6 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -68,11 +66,6 @@ public final class AggregateProjectConstantToDummyJoinRule
     final Aggregate aggregate = call.rel(0);
     final Project project = call.rel(1);
 
-    // avoids transforming correlated queries
-    if (aggregate.getAggCallList().size() == 0) {
-      return false;
-    }
-
     for (int groupKey: aggregate.getGroupSet().asList()) {
       if (groupKey >= aggregate.getRowType().getFieldCount()) {
         continue;
@@ -115,7 +108,7 @@ public final class AggregateProjectConstantToDummyJoinRule
     builder.project(newProjects);
     builder.aggregate(
         builder.groupKey(
-        aggregate.getGroupSet(),(Iterable<ImmutableBitSet>) aggregate.getGroupSets()),
+            aggregate.getGroupSet(), (Iterable<ImmutableBitSet>) aggregate.getGroupSets()),
         aggregate.getAggCallList());
 
     call.transformTo(builder.build());
@@ -127,7 +120,7 @@ public final class AggregateProjectConstantToDummyJoinRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableAggregateProjectConstantToDummyJoinRule.Config.of()
-        .withOperandFor(LogicalAggregate.class, LogicalProject.class);
+        .withOperandFor(Aggregate.class, Project.class);
 
     @Override default AggregateProjectConstantToDummyJoinRule toRule() {
       return new AggregateProjectConstantToDummyJoinRule(this);
