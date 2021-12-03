@@ -61,7 +61,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -77,7 +76,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -1042,31 +1040,17 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
         // Next expression
         continue;
       }
-      final RexNode expr = nodeExprs.get(i);
-      if (SqlKind.AND == expr.getKind() || SqlKind.OR == expr.getKind()) {
-        List<RexNode> rewrittenExprs = lineages.stream()
-            .map(
-                l -> RexUtil.swapTableColumnReferences(rexBuilder,
-                    l, tableMapping, ec.getEquivalenceClassesMap()))
-            .collect(Collectors.toList());
-        if (SqlKind.AND == expr.getKind()) {
-          exprsLineage.put(RexUtil.composeConjunction(rexBuilder, rewrittenExprs), i);
-        } else {
-          exprsLineage.put(RexUtil.composeDisjunction(rexBuilder, rewrittenExprs), i);
-        }
-      } else {
-        if (lineages.size() != 1) {
-          throw new IllegalStateException("We only support project - filter - join, "
-              + "thus expression lineage should map to a single expression, got: " + lineages);
-        }
-        // Rewrite expr. First we swap the table references following the table
-        // mapping, then we take first element from the corresponding equivalence class
-        final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
-            lineages.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
-        exprsLineage.put(e, i);
-        if (RexUtil.isLosslessCast(e)) {
-          exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
-        }
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: " + lineages);
+      }
+      // Rewrite expr. First we swap the table references following the table
+      // mapping, then we take first element from the corresponding equivalence class
+      final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
+          lineages.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
+      exprsLineage.put(e, i);
+      if (RexUtil.isLosslessCast(e)) {
+        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
       }
     }
     return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);
@@ -1091,32 +1075,17 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
         // Next expression
         continue;
       }
-      final RexNode expr = nodeExprs.get(i);
-      if (SqlKind.AND == expr.getKind() || SqlKind.OR == expr.getKind()) {
-        List<RexNode> rewrittenExprs = lineages.stream()
-            .map(
-                l -> RexUtil.swapColumnTableReferences(rexBuilder,
-                l, ec.getEquivalenceClassesMap(), tableMapping))
-            .collect(Collectors.toList());
-        if (SqlKind.AND == expr.getKind()) {
-          exprsLineage.put(RexUtil.composeConjunction(rexBuilder, rewrittenExprs), i);
-        } else {
-          exprsLineage.put(RexUtil.composeDisjunction(rexBuilder, rewrittenExprs), i);
-        }
-      } else {
-        if (lineages.size() != 1) {
-          throw new IllegalStateException("We only support project - filter - join, "
-              + "thus expression lineage should map to a single expression, got: " + lineages);
-        }
-        final RexNode node2 = Iterables.getOnlyElement(lineages);
-        // Rewrite expr. First we take first element from the corresponding equivalence class,
-        // then we swap the table references following the table mapping
-        final RexNode e = RexUtil.swapColumnTableReferences(rexBuilder, node2,
-            ec.getEquivalenceClassesMap(), tableMapping);
-        exprsLineage.put(e, i);
-        if (RexUtil.isLosslessCast(e)) {
-          exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
-        }
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: " + lineages);
+      }
+      // Rewrite expr. First we take first element from the corresponding equivalence class,
+      // then we swap the table references following the table mapping
+      final RexNode e = RexUtil.swapColumnTableReferences(rexBuilder,
+          lineages.iterator().next(), ec.getEquivalenceClassesMap(), tableMapping);
+      exprsLineage.put(e, i);
+      if (RexUtil.isLosslessCast(e)) {
+        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
       }
     }
     return new NodeLineage(exprsLineage, exprsLineageLosslessCasts);

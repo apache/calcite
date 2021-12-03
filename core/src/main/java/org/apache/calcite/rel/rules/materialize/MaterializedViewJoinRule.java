@@ -29,7 +29,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
@@ -44,7 +43,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /** Materialized view rewriting for join.
  *
@@ -267,28 +265,15 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
         // Bail out
         return null;
       }
-      if (SqlKind.AND == expr.getKind() || SqlKind.OR == expr.getKind()) {
-        List<RexNode> rewrittenExprs = lineages.stream()
-            .map(
-                l -> RexUtil.swapColumnReferences(
-                rexBuilder, l, queryEC.getEquivalenceClassesMap()))
-            .collect(Collectors.toList());
-        if (SqlKind.AND == expr.getKind()) {
-          exprsLineage.add(RexUtil.composeConjunction(rexBuilder, rewrittenExprs));
-        } else {
-          exprsLineage.add(RexUtil.composeDisjunction(rexBuilder, rewrittenExprs));
-        }
-      } else {
-        if (lineages.size() != 1) {
-          throw new IllegalStateException("We only support project - filter - join, "
-              + "thus expression lineage should map to a single expression, got: " + lineages);
-        }
-        // Rewrite expr. Take first element from the corresponding equivalence class
-        // (no need to swap the table references following the table mapping)
-        exprsLineage.add(
-            RexUtil.swapColumnReferences(rexBuilder,
-                lineages.iterator().next(), queryEC.getEquivalenceClassesMap()));
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: " + lineages);
       }
+      // Rewrite expr. Take first element from the corresponding equivalence class
+      // (no need to swap the table references following the table mapping)
+      exprsLineage.add(
+          RexUtil.swapColumnReferences(rexBuilder,
+              lineages.iterator().next(), queryEC.getEquivalenceClassesMap()));
     }
     List<RexNode> viewExprs = topViewProject == null
         ? extractReferences(rexBuilder, viewNode)
