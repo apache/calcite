@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
@@ -214,7 +215,9 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
 
   @SuppressWarnings("deprecation")
-  protected <H> H createInitialHandler(Class<H> handlerClass) {
+  protected <H> H createInitialHandler(
+      @UnderInitialization(RelMetadataQuery.class) RelMetadataQuery this,
+      Class<H> handlerClass) {
     return initialHandler(handlerClass);
   }
 
