@@ -707,8 +707,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       convert = translateCharToDecimal(operand, targetType, operand);
       break;
     case DECIMAL:
+      Expression sourcePrecision =
+          Expressions.call(operand, BuiltInMethod.BIG_DECIMAL_GET_PRECISION.method);
+      Expression sourceScale =
+          Expressions.call(operand, BuiltInMethod.BIG_DECIMAL_GET_SCALE.method);
       Expression sourceIntDigits =
-          Expressions.constant(sourceType.getPrecision() - sourceType.getScale());
+          Expressions.subtract(sourcePrecision, sourceScale);
       Expression targetIntDigits =
           Expressions.constant(targetType.getPrecision() - targetType.getScale());
       ConditionalStatement conditionalStatement =
