@@ -216,7 +216,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   @SuppressWarnings("deprecation")
   protected <H> H createInitialHandler(
-      @UnderInitialization(RelMetadataQuery.class) RelMetadataQuery this,
+      @UnderInitialization RelMetadataQuery this,
       Class<H> handlerClass) {
     return initialHandler(handlerClass);
   }
