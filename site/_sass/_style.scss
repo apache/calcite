@@ -599,6 +599,16 @@ article h2:first-child { margin-top: 0; }
 
 /* Code Highlighting */
 
+.crowded-table-style {
+  pre,
+  code {
+    white-space: pre-wrap;
+  }
+}
+
+.scroll-table-style {
+  overflow-x: scroll;
+}
 
 pre,
 code {

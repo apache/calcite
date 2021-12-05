@@ -349,6 +349,7 @@ return the `RelBuilder`.
 | `repeatUnion(tableName, all [, n])` | Creates a [RepeatUnion]({{ site.apiRoot }}/org/apache/calcite/rel/core/RepeatUnion.html) associated to a [TransientTable]({{ site.apiRoot }}/org/apache/calcite/schema/TransientTable.html) of the two most recent relational expressions, with `n` maximum number of iterations (default -1, i.e. no limit).
 | `snapshot(period)` | Creates a [Snapshot]({{ site.apiRoot }}/org/apache/calcite/rel/core/Snapshot.html) of the given snapshot period.
 | `match(pattern, strictStart,` `strictEnd, patterns, measures,` `after, subsets, allRows,` `partitionKeys, orderKeys,` `interval)` | Creates a [Match]({{ site.apiRoot }}/org/apache/calcite/rel/core/Match.html).
+{:.crowded-table-style}
 
 Argument types:
 
@@ -442,6 +443,7 @@ added to the stack.
 | `nullsFirst(expr)` | Changes sort order to nulls first (only valid as an argument to `sort` or `sortLimit`)
 | `nullsLast(expr)` | Changes sort order to nulls last (only valid as an argument to `sort` or `sortLimit`)
 | `cursor(n, input)` | Reference to `input`th (0-based) relational input of a `TableFunctionScan` with `n` inputs (see `functionScan`)
+{:.crowded-table-style}
 
 #### Sub-query methods
 
@@ -544,3 +546,4 @@ To further modify the `OverCall`, call its methods:
 | `nullWhenCountZero(b)` | Sets whether whether the aggregate function should evaluate to null if no rows are in the window; default false
 | `as(alias)`          | Assigns a column alias (see SQL `AS`) and converts this `OverCall` to a `RexNode`
 | `toRex()`            | Converts this `OverCall` to a `RexNode`
+{:.crowded-table-style}
