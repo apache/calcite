@@ -332,11 +332,11 @@ public class JdbcRules {
      * @return Whether condition is supported
      */
     private static boolean canJoinOnCondition(RexNode node) {
-      if (node.isAlwaysTrue() || node.isAlwaysFalse()) {
-        return true;
-      }
       final List<RexNode> operands;
       switch (node.getKind()) {
+      case LITERAL:
+        // literal on a join condition would be TRUE or FALSE
+        return true;
       case AND:
       case OR:
         operands = ((RexCall) node).getOperands();

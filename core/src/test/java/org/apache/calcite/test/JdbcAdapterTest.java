@@ -50,6 +50,7 @@ class JdbcAdapterTest {
    * same time. */
   private static final ReentrantLock LOCK = new ReentrantLock();
 
+  /** VALUES is pushed down. */
   @Test void testValuesPlan() {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
@@ -402,12 +403,10 @@ class JdbcAdapterTest {
 
   @Test void testJoinConditionAlwaysTruePushDown() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query(
-            "select empno, ename, d.deptno, dname\n"
+        .query("select empno, ename, d.deptno, dname\n"
                 + "from scott.emp e,scott.dept d\n"
                 + "where true")
-        .explainContains(
-            "PLAN=JdbcToEnumerableConverter\n"
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
                 + "  JdbcJoin(condition=[true], joinType=[inner])\n"
                 + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
                 + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
@@ -415,8 +414,7 @@ class JdbcAdapterTest {
                 + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql(
-            "SELECT *\n"
+        .planHasSql("SELECT *\n"
                 + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
                 + "FROM \"SCOTT\".\"EMP\") AS \"t\",\n"
                 + "(SELECT \"DEPTNO\", \"DNAME\"\n"
