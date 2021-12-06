@@ -189,6 +189,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static final double DEPT_SIZE = 4d;
 
   private static final List<String> EMP_QNAME = ImmutableList.of("CATALOG", "SALES", "EMP");
+  private static final List<String> DEPT_QNAME = ImmutableList.of("CATALOG", "SALES", "DEPT");
 
   /** Ensures that tests that use a lot of memory do not run at the same
    * time. */
@@ -2480,6 +2481,115 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(inputRef2.getQualifiedName(), is(EMP_QNAME));
     assertThat(inputRef2.getIndex(), is(7));
     assertThat(inputRef1.getIdentifier(), is(inputRef2.getIdentifier()));
+  }
+
+  @Test void testExpressionLineageComplexExpression() {
+    // empno is column 0 in catalog.sales.emp
+    // ename is column 1 in catalog.sales.emp
+    // deptno is column 7 in catalog.sales.emp
+    final RelNode rel = convertSql("select (empno = 1 or ename = 'abc') and deptno > 1 from emp");
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
+    final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
+    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
+
+    // check '(empno = 1 or ename = 'abc') and deptno > 1'
+    assertThat(r.size(), is(1));
+    final RexNode result = r.iterator().next();
+    assertThat(result.getKind(), is(SqlKind.AND));
+    final RexCall and = (RexCall) result;
+
+    // check '(empno = 1 or ename = 'abc')'
+    assertThat(and.getOperands().size(), is(2));
+    final RexCall or = (RexCall) and.getOperands().get(0);
+    assertThat(or.getKind(), is(SqlKind.OR));
+    assertThat(or.getOperands().size(), is(2));
+
+    // check 'empno = 1'
+    final RexCall eq1 = (RexCall) or.getOperands().get(0);
+    assertThat(eq1.getKind(), is(SqlKind.EQUALS));
+    final RexTableInputRef inputRef1 = (RexTableInputRef) eq1.getOperands().get(0);
+    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+    assertThat(inputRef1.getIndex(), is(0));
+    final RexLiteral literal1 = (RexLiteral) eq1.getOperands().get(1);
+    assertThat(literal1.getValueAs(Integer.class), is(1));
+
+    // check 'ename = 'abc''
+    final RexCall eq2 = (RexCall) or.getOperands().get(1);
+    assertThat(eq2.getKind(), is(SqlKind.EQUALS));
+    final RexTableInputRef inputRef2 = (RexTableInputRef) eq2.getOperands().get(0);
+    assertThat(inputRef2.getQualifiedName(), is(EMP_QNAME));
+    assertThat(inputRef2.getIndex(), is(1));
+    final RexLiteral literal2 = (RexLiteral) eq2.getOperands().get(1);
+    assertThat(literal2.getValueAs(String.class), is("abc"));
+
+    // check 'deptno > 1'
+    final RexCall gt = (RexCall) and.getOperands().get(1);
+    assertThat(gt.getKind(), is(SqlKind.GREATER_THAN));
+    final RexTableInputRef inputRef3 = (RexTableInputRef) gt.getOperands().get(0);
+    assertThat(inputRef3.getQualifiedName(), is(EMP_QNAME));
+    assertThat(inputRef3.getIndex(), is(7));
+    final RexLiteral literal3 = (RexLiteral) gt.getOperands().get(1);
+    assertThat(literal3.getValueAs(Integer.class), is(1));
+  }
+
+  @Test void testExpressionLineageComplexExpressionWithJoin() {
+    // empno is column 0 in catalog.sales.emp
+    // deptno is column 0 in catalog.sales.dept
+    final RelNode rel = convertSql("select dept.deptno + empno between 1 and 2"
+        + " from emp join dept on emp.deptno = dept.deptno");
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
+    final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
+    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
+
+    // 'dept.deptno + empno between 1 and 2' is translated into
+    // 'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'
+    assertThat(r.size(), is(1));
+    final RexNode result = r.iterator().next();
+    assertThat(result.getKind(), is(SqlKind.AND));
+    final RexCall and = (RexCall) result;
+    assertThat(and.getOperands().size(), is(2));
+
+    // check 'dept.deptno + empno >= 1'
+    final RexCall gt1 = (RexCall) and.getOperands().get(0);
+    assertThat(gt1.getKind(), is(SqlKind.GREATER_THAN_OR_EQUAL));
+    assertThat(gt1.getOperands().size(), is(2));
+    final RexCall plus1 = (RexCall) gt1.getOperands().get(0);
+    // check 'dept.deptno + empno'
+    assertThat(plus1.getKind(), is(SqlKind.PLUS));
+    assertThat(plus1.getOperands().size(), is(2));
+    // check 'dept.deptno'
+    final RexTableInputRef inputRef1 = (RexTableInputRef) plus1.getOperands().get(0);
+    assertThat(inputRef1.getQualifiedName(), is(DEPT_QNAME));
+    assertThat(inputRef1.getIndex(), is(0));
+    // check 'empno'
+    final RexTableInputRef inputRef2 = (RexTableInputRef) plus1.getOperands().get(1);
+    assertThat(inputRef2.getQualifiedName(), is(EMP_QNAME));
+    assertThat(inputRef2.getIndex(), is(0));
+    // check '1'
+    final RexLiteral literal1 = (RexLiteral) gt1.getOperands().get(1);
+    assertThat(literal1.getValueAs(Integer.class), is(1));
+
+    // check 'dept.deptno + empno <= 2'
+    final RexCall lt2 = (RexCall) and.getOperands().get(1);
+    assertThat(lt2.getKind(), is(SqlKind.LESS_THAN_OR_EQUAL));
+    assertThat(lt2.getOperands().size(), is(2));
+    // check 'dept.deptno + empno'
+    final RexCall plus2 = (RexCall) lt2.getOperands().get(0);
+    assertThat(plus2.getKind(), is(SqlKind.PLUS));
+    assertThat(plus2.getOperands().size(), is(2));
+    // check 'dept.deptno'
+    final RexTableInputRef inputRef3 = (RexTableInputRef) plus2.getOperands().get(0);
+    assertThat(inputRef3.getQualifiedName(), is(DEPT_QNAME));
+    assertThat(inputRef3.getIndex(), is(0));
+    // check 'empno'
+    final RexTableInputRef inputRef4 = (RexTableInputRef) plus2.getOperands().get(1);
+    assertThat(inputRef4.getQualifiedName(), is(EMP_QNAME));
+    assertThat(inputRef4.getIndex(), is(0));
+    // check '2'
+    final RexLiteral literal2 = (RexLiteral) lt2.getOperands().get(1);
+    assertThat(literal2.getValueAs(Integer.class), is(2));
   }
 
   @Test void testExpressionLineageInnerJoinLeft() {
