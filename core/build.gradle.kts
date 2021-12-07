@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.autostyle.gradle.AutostyleTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.ide.dsl.settings
@@ -184,6 +185,18 @@ val javaCCTest by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
 
 tasks.compileTestKotlin {
     dependsOn(javaCCTest)
+}
+
+tasks.withType<Checkstyle>().configureEach {
+    mustRunAfter(versionClass)
+    mustRunAfter(javaCCMain)
+    mustRunAfter(javaCCTest)
+}
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(versionClass)
+    mustRunAfter(javaCCMain)
+    mustRunAfter(javaCCTest)
 }
 
 ide {
