@@ -394,11 +394,13 @@ public class RelJson {
       if (node.getComponentType() != null) {
         map.put("component", toJson(node.getComponentType()));
       }
-      if (node.getKeyType() != null) {
-        map.put("key", toJson(requireNonNull(node.getKeyType(), "key type")));
+      RelDataType keyType = node.getKeyType();
+      if (keyType != null) {
+        map.put("key", toJson(keyType));
       }
-      if (node.getValueType() != null) {
-        map.put("value", toJson(requireNonNull(node.getValueType(), "value type")));
+      RelDataType valueType = node.getValueType();
+      if (valueType != null) {
+        map.put("value", toJson(valueType));
       }
       if (node.getSqlTypeName().allowsPrec()) {
         map.put("precision", node.getPrecision());
