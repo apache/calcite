@@ -712,13 +712,15 @@ public class SqlDialect {
   }
 
   /**
-   * Returns whether the dialect supports group by constants booleans, like,
+   * Returns whether the dialect supports group by with boolean constants.
    *
+   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the query below is illegal.
+   * <pre>{@code
    * select avg(salary)
    * from emp
    * group by true
-   *
-   * The dialects that don't support this, can override this method and return false.
+   * }</pre>
+   * </p>
    */
   public boolean supportsGroupByBooleanConstant() {
     return true;
