@@ -1283,16 +1283,6 @@ public class RelBuilder {
   }
 
   // CHECKSTYLE: IGNORE 1
-  /** @deprecated Use {@link #groupKey(ImmutableBitSet)}
-   * or {@link #groupKey(ImmutableBitSet, Iterable)}. */
-  @Deprecated // to be removed before 2.0
-  public GroupKey groupKey(ImmutableBitSet groupSet,
-      @Nullable ImmutableList<ImmutableBitSet> groupSets) {
-    return groupKey_(groupSet, groupSets == null
-        ? ImmutableList.of(groupSet) : ImmutableList.copyOf(groupSets));
-  }
-
-  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #groupKey(ImmutableBitSet, Iterable)}. */
   @Deprecated // to be removed before 2.0
   public GroupKey groupKey(ImmutableBitSet groupSet, boolean indicator,

@@ -34,7 +34,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
@@ -812,8 +811,7 @@ public class AggregateReduceFunctionsRule
       Aggregate oldAggregate,
       List<AggregateCall> newCalls) {
     relBuilder.aggregate(
-        relBuilder.groupKey(oldAggregate.getGroupSet(),
-            (Iterable<ImmutableBitSet>) oldAggregate.getGroupSets()),
+        relBuilder.groupKey(oldAggregate.getGroupSet(), oldAggregate.getGroupSets()),
         newCalls);
   }
 
