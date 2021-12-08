@@ -714,13 +714,12 @@ public class SqlDialect {
   /**
    * Returns whether the dialect supports group by with boolean constants.
    *
-   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the query below is illegal.
+   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the query below is illegal.</p>
    * <pre>{@code
    * select avg(salary)
    * from emp
    * group by true
    * }</pre>
-   * </p>
    */
   public boolean supportsGroupByBooleanConstant() {
     return true;
