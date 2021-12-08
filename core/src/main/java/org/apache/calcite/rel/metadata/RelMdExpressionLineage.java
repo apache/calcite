@@ -493,7 +493,7 @@ public class RelMdExpressionLineage
       Map<RexInputRef, RexNode> singleMapping, Set<RexNode> result) {
     if (mapping.isEmpty()) {
       final RexReplacer replacer = new RexReplacer(singleMapping);
-      final List<RexNode> updatedPreds = new ArrayList<>();
+      final List<RexNode> updatedPreds = new ArrayList<>(1);
       updatedPreds.add(rexBuilder.copy(expr));
       replacer.mutate(updatedPreds);
       result.addAll(updatedPreds);
