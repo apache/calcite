@@ -2491,15 +2491,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
     final Set<RexNode> r = Objects.requireNonNull(mq.getExpressionLineage(rel, ref));
 
-    final String assertionMessage = "For query '" + sql + "':\n"
+    final String assertionMessage = "Lineage for expr '"
+        + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
         + "'empno' is column 0 in 'catalog.sales.emp', "
         + "'ename' is column 1 in 'catalog.sales.emp', and "
         + "'deptno' is column 7 in 'catalog.sales.emp'";
 
-    final String actualExp = Iterables.getOnlyElement(r).toString();
-    assertEquals("AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1),"
-        + " =([CATALOG, SALES, EMP].#0.$1, 'abc')),"
-        + " >([CATALOG, SALES, EMP].#0.$7, 1))", actualExp, assertionMessage);
+    assertEquals("[AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1), "
+        + "=([CATALOG, SALES, EMP].#0.$1, 'abc')), "
+        + ">([CATALOG, SALES, EMP].#0.$7, 1))]", r.toString(), assertionMessage);
   }
 
   @Test void testExpressionLineageBetweenExpressionWithJoin() {
@@ -2511,15 +2511,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
     final Set<RexNode> r = Objects.requireNonNull(mq.getExpressionLineage(rel, ref));
 
-    final String assertionMessage = "For query '" + sql + "':\n"
+    final String assertionMessage = "Lineage for expr '"
+        + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
         + "'empno' is column 0 in 'catalog.sales.emp', "
         + "'deptno' is column 0 in 'catalog.sales.dept', and "
         + "'dept.deptno + empno between 1 and 2' is translated into "
         + "'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'";
 
-    final String actualExp = Iterables.getOnlyElement(r).toString();
-    assertEquals("AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
-        + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))", actualExp,
+    assertEquals("[AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
+        + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))]", r.toString(),
         assertionMessage);
   }
 
