@@ -92,15 +92,15 @@ public final class AggregateProjectConstantToDummyJoinRule
 
     List<RexNode> newProjects = new ArrayList<>();
 
-    for (Pair<RexNode, String> pair: project.getNamedProjects()) {
-      if (pair.getKey() instanceof RexLiteral) {
-        if (pair.getKey().isAlwaysTrue()) {
+    for (RexNode exp : project.getProjects()) {
+      if (exp instanceof RexLiteral) {
+        if (exp.isAlwaysTrue()) {
           newProjects.add(builder.field("T"));
-        } else if (pair.getKey().isAlwaysFalse()) {
+        } else if (exp.isAlwaysFalse()) {
           newProjects.add(builder.field("F"));
         }
       } else {
-        newProjects.add(pair.getKey());
+        newProjects.add(exp);
       }
     }
 
