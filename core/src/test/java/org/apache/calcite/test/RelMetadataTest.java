@@ -138,6 +138,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -2483,38 +2484,43 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test void testExpressionLineageConjuntiveExpression() {
-    // empno is column 0 in catalog.sales.emp
-    // ename is column 1 in catalog.sales.emp
-    // deptno is column 7 in catalog.sales.emp
-    final RelNode rel = convertSql("select (empno = 1 or ename = 'abc') and deptno > 1 from emp");
+    final String sql = "select (empno = 1 or ename = 'abc') and deptno > 1 from emp";
+    final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
-    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
-    assertThat(r.size(), is(1));
+    final Set<RexNode> r = Objects.requireNonNull(mq.getExpressionLineage(rel, ref));
 
-    final String actualExp = r.iterator().next().toString();
+    final String assertionMessage = "For query '" + sql + "':\n"
+        + "'empno' is column 0 in 'catalog.sales.emp', "
+        + "'ename' is column 1 in 'catalog.sales.emp', and "
+        + "'deptno' is column 7 in 'catalog.sales.emp'";
+
+    final String actualExp = Iterables.getOnlyElement(r).toString();
     assertEquals("AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1),"
         + " =([CATALOG, SALES, EMP].#0.$1, 'abc')),"
-        + " >([CATALOG, SALES, EMP].#0.$7, 1))", actualExp);
+        + " >([CATALOG, SALES, EMP].#0.$7, 1))", actualExp, assertionMessage);
   }
 
   @Test void testExpressionLineageBetweenExpressionWithJoin() {
-    // empno is column 0 in catalog.sales.emp
-    // deptno is column 0 in catalog.sales.dept
-    final RelNode rel = convertSql("select dept.deptno + empno between 1 and 2"
-        + " from emp join dept on emp.deptno = dept.deptno");
+    final String sql = "select dept.deptno + empno between 1 and 2"
+        + " from emp join dept on emp.deptno = dept.deptno";
+    final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
-    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
-    assertThat(r.size(), is(1));
+    final Set<RexNode> r = Objects.requireNonNull(mq.getExpressionLineage(rel, ref));
 
-    // 'dept.deptno + empno between 1 and 2' is translated into
-    // 'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'
-    final String actualExp = r.iterator().next().toString();
+    final String assertionMessage = "For query '" + sql + "':\n"
+        + "'empno' is column 0 in 'catalog.sales.emp', "
+        + "'deptno' is column 0 in 'catalog.sales.dept', and "
+        + "'dept.deptno + empno between 1 and 2' is translated into "
+        + "'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'";
+
+    final String actualExp = Iterables.getOnlyElement(r).toString();
     assertEquals("AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
-        + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))", actualExp);
+        + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))", actualExp,
+        assertionMessage);
   }
 
   @Test void testExpressionLineageInnerJoinLeft() {
