@@ -2411,7 +2411,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     Set<RexNode> r = mq.getExpressionLineage(rel, ref);
 
     assertEquals(expected, String.valueOf(r), "Lineage for expr '" + ref + "' in node '"
-        + rel + "'" + " for query '" + sql + "':n" + comment);
+        + rel + "'" + " for query '" + sql + "':\n" + comment);
   }
 
   @Test void testExpressionLineageStar() {
