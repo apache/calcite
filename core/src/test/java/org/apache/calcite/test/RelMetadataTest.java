@@ -140,7 +140,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static org.apache.calcite.test.Matchers.within;
@@ -2404,14 +2403,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
   // Tests for getExpressionLineage
   // ----------------------------------------------------------------------
 
-  private void assertExpressionLineage(String sql, int columnIndex, String expected,
-      BiFunction<RexNode, RelNode, String> message) {
+  private void assertExpressionLineage(
+      String sql, int columnIndex, String expected, String comment) {
     RelNode rel = convertSql(sql);
     RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RexNode ref = RexInputRef.of(columnIndex, rel.getRowType().getFieldList());
     Set<RexNode> r = mq.getExpressionLineage(rel, ref);
 
-    assertEquals(expected, r.toString(), message.apply(ref, rel));
+    assertEquals(expected, String.valueOf(r), "Lineage for expr '" + ref + "' in node '" +
+        rel + "'" + " for query '" + sql + "':\n" + comment);
   }
 
   @Test void testExpressionLineageStar() {
@@ -2502,14 +2502,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
     String expected = "[AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1), "
         + "=([CATALOG, SALES, EMP].#0.$1, 'abc')), "
         + ">([CATALOG, SALES, EMP].#0.$7, 1))]";
-
-    BiFunction<RexNode, RelNode, String> supplier = (ref, rel) -> "Lineage for expr '"
-        + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
-        + "'empno' is column 0 in 'catalog.sales.emp', "
+    String comment = "'empno' is column 0 in 'catalog.sales.emp', "
         + "'ename' is column 1 in 'catalog.sales.emp', and "
         + "'deptno' is column 7 in 'catalog.sales.emp'";
 
-    assertExpressionLineage(sql, 0, expected, supplier);
+    assertExpressionLineage(sql, 0, expected, comment);
   }
 
   @Test void testExpressionLineageBetweenExpressionWithJoin() {
@@ -2517,15 +2514,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + " from emp join dept on emp.deptno = dept.deptno";
     String expected = "[AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
         + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))]";
-
-    BiFunction<RexNode, RelNode, String> supplier = (ref, rel) -> "Lineage for expr '"
-        + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
-        + "'empno' is column 0 in 'catalog.sales.emp', "
+    String comment = "'empno' is column 0 in 'catalog.sales.emp', "
         + "'deptno' is column 0 in 'catalog.sales.dept', and "
         + "'dept.deptno + empno between 1 and 2' is translated into "
         + "'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'";
 
-    assertExpressionLineage(sql, 0, expected, supplier);
+    assertExpressionLineage(sql, 0, expected, comment);
   }
 
   @Test void testExpressionLineageInnerJoinLeft() {
