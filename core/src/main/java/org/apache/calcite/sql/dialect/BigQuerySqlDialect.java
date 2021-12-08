@@ -471,6 +471,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.sep(",");
+      if (call.operand(0).toString().contains("\\")) {
+        SqlCharStringLiteral regexNode = makeRegexNodeForPosition(call);
+        call.setOperand(0, regexNode);
+      }
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       if (3 == call.operandCount()) {
         throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
@@ -615,6 +619,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     return ((SqlBasicCall) aggCall).operand(0);
   }
 
+  private SqlCharStringLiteral makeRegexNodeForPosition(SqlCall call) {
+    String regexLiteral = call.operand(0).toString();
+    regexLiteral = (regexLiteral.substring(1, regexLiteral.length() - 1)).replace("\\", "\\\\");
+    return SqlLiteral.createCharString(regexLiteral,
+        call.operand(0).getParserPosition());
+  }
   /**
    * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
    */

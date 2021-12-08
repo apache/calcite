@@ -2158,6 +2158,13 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test void testPositionFunctionWithSlashForBigQuery() {
+    final String query = "select position('\\,' IN 'ABC') from \"product\"";
+    final String expected = "SELECT STRPOS('ABC', '\\\\,')\n"
+        + "FROM foodmart.product";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   /** Tests that we escape single-quotes in character literals using back-slash
    * in BigQuery. The norm is to escape single-quotes with single-quotes. */
   @Test void testCharLiteralForBigQuery() {
