@@ -126,7 +126,7 @@ public class AggregateReduceFunctionsRule
     super(config);
     this.functionsToReduce =
         ImmutableSet.copyOf(config.actualFunctionsToReduce());
-    this.extraCondition = config.actualExtraCondition();
+    this.extraCondition = config.extraCondition();
   }
 
   @Deprecated // to be removed before 2.0
@@ -854,17 +854,20 @@ public class AggregateReduceFunctionsRule
 
     /** The set of aggregate function types to try to reduce.
      *
-     * Any agg function whose type is omitted from this set, OR which does not pass the
+     * <p>Any agg function whose type is omitted from this set, OR which does not pass the
      * {@link #extraCondition}, will be ignored.
      */
     @Nullable Set<SqlKind> functionsToReduce();
 
     /** A test that must pass before attempting to reduce any aggregate function.
      *
-     * Any agg function which does not pass, OR whose type is omitted from
+     * <p>Any agg function which does not pass, OR whose type is omitted from
      * {@link #functionsToReduce}, will be ignored. The default predicate always passes.
      */
-    @Nullable Predicate<AggregateCall> extraCondition();
+    @Value.Default
+    default Predicate<AggregateCall> extraCondition() {
+      return ignored -> true;
+    }
 
     /** Sets {@link #functionsToReduce}. */
     Config withFunctionsToReduce(@Nullable Iterable<SqlKind> functionSet);
@@ -883,10 +886,6 @@ public class AggregateReduceFunctionsRule
           Util.first(functionsToReduce(), DEFAULT_FUNCTIONS_TO_REDUCE);
       set.forEach(AggregateReduceFunctionsRule::validateFunction);
       return set;
-    }
-
-    default Predicate<AggregateCall> actualExtraCondition() {
-      return Util.first(extraCondition(), ignored -> true);
     }
 
     /** Defines an operand tree for the given classes. */
