@@ -40,24 +40,23 @@ import java.util.List;
  * contains boolean literals (true, false), and removes the literals from the group keys by joining
  * with a dummy table of boolean literals.
  *
+ * <pre>{@code
  * select avg(sal)
  * from emp
  * group by true;
- *
+ * }</pre>
  * becomes
- *
+ * <pre>{@code
  * select avg(sal)
  * from emp, (select true x) dummy
  * group by dummy.x;
+ * }</pre>
  */
 @Value.Enclosing
 public final class AggregateProjectConstantToDummyJoinRule
     extends RelRule<AggregateProjectConstantToDummyJoinRule.Config> {
 
-  /**
-   * Creates a RelRule.
-   *
-   */
+  /** Creates an AggregateProjectConstantToDummyJoinRule. */
   private AggregateProjectConstantToDummyJoinRule(Config config) {
     super(config);
   }
@@ -114,9 +113,7 @@ public final class AggregateProjectConstantToDummyJoinRule
     call.transformTo(builder.build());
   }
 
-  /**
-   * Rule Configuration.
-   */
+  /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableAggregateProjectConstantToDummyJoinRule.Config.of()
