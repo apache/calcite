@@ -138,7 +138,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -2489,7 +2488,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
-    final Set<RexNode> r = Objects.requireNonNull(mq.getExpressionLineage(rel, ref));
+    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
 
     final String assertionMessage = "Lineage for expr '"
         + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
@@ -2509,7 +2508,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
-    final Set<RexNode> r = Objects.requireNonNull(mq.getExpressionLineage(rel, ref));
+    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
 
     final String assertionMessage = "Lineage for expr '"
         + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
