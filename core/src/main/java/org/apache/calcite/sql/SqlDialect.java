@@ -719,12 +719,6 @@ public class SqlDialect {
    * group by true
    *
    * The dialects that don't support this, can override this method and return false.
-   * Doing so, the above query should be transformed to an equivalent form of
-   *
-   * select avg(salary)
-   * from emp, (select true T, false F) dummy
-   * group by dummy.T
-   *
    */
   public boolean supportsGroupByBooleanConstant() {
     return true;
