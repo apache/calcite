@@ -3355,7 +3355,7 @@ public class SqlToRelConverter {
       ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     relBuilder.push(bb.root());
     final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(groupSet, (Iterable<ImmutableBitSet>) groupSets);
+        relBuilder.groupKey(groupSet, groupSets);
     return relBuilder.aggregate(groupKey, aggCalls)
         .build();
   }

@@ -1437,9 +1437,7 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7),
-                    (Iterable<ImmutableBitSet>)
-                        ImmutableList.of(ImmutableBitSet.of(7),
-                            ImmutableBitSet.of())),
+                    ImmutableList.of(ImmutableBitSet.of(7), ImmutableBitSet.of())),
                 builder.count()
                     .filter(
                         builder.greaterThan(builder.field("EMPNO"),
@@ -1669,9 +1667,7 @@ public class RelBuilderTest {
           builder.scan("EMP")
               .aggregate(
                   builder.groupKey(ImmutableBitSet.of(7),
-                      (Iterable<ImmutableBitSet>)
-                          ImmutableList.of(ImmutableBitSet.of(4),
-                              ImmutableBitSet.of())))
+                      ImmutableList.of(ImmutableBitSet.of(4), ImmutableBitSet.of())))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -1689,8 +1685,7 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7, 6),
-                    (Iterable<ImmutableBitSet>)
-                        ImmutableList.of(ImmutableBitSet.of(7),
+                    ImmutableList.of(ImmutableBitSet.of(7),
                             ImmutableBitSet.of(6),
                             ImmutableBitSet.of(7))))
             .build();
@@ -1712,8 +1707,7 @@ public class RelBuilderTest {
         .aggregate(
             builder.groupKey(
                 ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             builder.count(false, "C"),
             builder.sum(false, "S", builder.field("SAL")))
         .filter(

@@ -152,8 +152,7 @@ public class ProjectAggregateMergeRule
     final RelBuilder builder = call.builder();
     builder.push(aggregate.getInput());
     builder.aggregate(
-        builder.groupKey(aggregate.getGroupSet(),
-            (Iterable<ImmutableBitSet>) aggregate.groupSets), aggCallList);
+        builder.groupKey(aggregate.getGroupSet(), aggregate.groupSets), aggCallList);
     builder.project(
         RexPermuteInputsShuttle.of(mapping).visitList(projects2));
     call.transformTo(builder.build());

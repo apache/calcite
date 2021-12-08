@@ -1095,9 +1095,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       newAggCallList.add(relBuilder.count(false, "DUMMY"));
     }
 
-    final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(newGroupSet,
-            (Iterable<ImmutableBitSet>) newGroupSets);
+    final RelBuilder.GroupKey groupKey = relBuilder.groupKey(newGroupSet, newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
 
     final RelNode newAggregate = RelOptUtil.propagateRelHints(aggregate, relBuilder.build());

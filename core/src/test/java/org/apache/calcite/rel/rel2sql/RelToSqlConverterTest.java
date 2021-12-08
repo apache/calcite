@@ -455,8 +455,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
@@ -480,8 +479,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
@@ -512,9 +510,9 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0), ImmutableBitSet.of())),
+                ImmutableList.of(ImmutableBitSet.of(0, 1),
+                    ImmutableBitSet.of(0),
+                    ImmutableBitSet.of())),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
@@ -545,9 +543,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .project(b.field("JOB"))
@@ -567,9 +563,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .sort(b.field("C"))
@@ -590,9 +584,9 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0), ImmutableBitSet.of())),
+                ImmutableList.of(ImmutableBitSet.of(0, 1),
+                    ImmutableBitSet.of(0),
+                    ImmutableBitSet.of())),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
