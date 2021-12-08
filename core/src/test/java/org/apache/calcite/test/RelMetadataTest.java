@@ -140,6 +140,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static org.apache.calcite.test.Matchers.within;
@@ -2399,6 +2400,20 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(RelMdUtil.linear(12, 0, 10, 100, 200), is(200d));
   }
 
+  // ----------------------------------------------------------------------
+  // Tests for getExpressionLineage
+  // ----------------------------------------------------------------------
+
+  private void assertExpressionLineage(String sql, int columnIndex, String expected,
+      BiFunction<RexNode, RelNode, String> message) {
+    RelNode rel = convertSql(sql);
+    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RexNode ref = RexInputRef.of(columnIndex, rel.getRowType().getFieldList());
+    Set<RexNode> r = mq.getExpressionLineage(rel, ref);
+
+    assertEquals(expected, r.toString(), message.apply(ref, rel));
+  }
+
   @Test void testExpressionLineageStar() {
     // All columns in output
     final RelNode tableRel = convertSql("select * from emp");
@@ -2483,43 +2498,34 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test void testExpressionLineageConjuntiveExpression() {
-    final String sql = "select (empno = 1 or ename = 'abc') and deptno > 1 from emp";
-    final RelNode rel = convertSql(sql);
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    String sql = "select (empno = 1 or ename = 'abc') and deptno > 1 from emp";
+    String expected = "[AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1), "
+        + "=([CATALOG, SALES, EMP].#0.$1, 'abc')), "
+        + ">([CATALOG, SALES, EMP].#0.$7, 1))]";
 
-    final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
-    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
-
-    final String assertionMessage = "Lineage for expr '"
+    BiFunction<RexNode, RelNode, String> supplier = (ref, rel) -> "Lineage for expr '"
         + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
         + "'empno' is column 0 in 'catalog.sales.emp', "
         + "'ename' is column 1 in 'catalog.sales.emp', and "
         + "'deptno' is column 7 in 'catalog.sales.emp'";
 
-    assertEquals("[AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1), "
-        + "=([CATALOG, SALES, EMP].#0.$1, 'abc')), "
-        + ">([CATALOG, SALES, EMP].#0.$7, 1))]", r.toString(), assertionMessage);
+    assertExpressionLineage(sql, 0, expected, supplier);
   }
 
   @Test void testExpressionLineageBetweenExpressionWithJoin() {
-    final String sql = "select dept.deptno + empno between 1 and 2"
+    String sql = "select dept.deptno + empno between 1 and 2"
         + " from emp join dept on emp.deptno = dept.deptno";
-    final RelNode rel = convertSql(sql);
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    String expected = "[AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
+        + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))]";
 
-    final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
-    final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
-
-    final String assertionMessage = "Lineage for expr '"
+    BiFunction<RexNode, RelNode, String> supplier = (ref, rel) -> "Lineage for expr '"
         + ref + "' in node '" + rel + "'" + " for query '" + sql + "':\n"
         + "'empno' is column 0 in 'catalog.sales.emp', "
         + "'deptno' is column 0 in 'catalog.sales.dept', and "
         + "'dept.deptno + empno between 1 and 2' is translated into "
         + "'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'";
 
-    assertEquals("[AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
-        + " <=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 2))]", r.toString(),
-        assertionMessage);
+    assertExpressionLineage(sql, 0, expected, supplier);
   }
 
   @Test void testExpressionLineageInnerJoinLeft() {
