@@ -2410,8 +2410,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RexNode ref = RexInputRef.of(columnIndex, rel.getRowType().getFieldList());
     Set<RexNode> r = mq.getExpressionLineage(rel, ref);
 
-    assertEquals(expected, String.valueOf(r), "Lineage for expr '" + ref + "' in node '" +
-        rel + "'" + " for query '" + sql + "':\n" + comment);
+    assertEquals(expected, String.valueOf(r), "Lineage for expr '" + ref + "' in node '"
+        + rel + "'" + " for query '" + sql + "':n" + comment);
   }
 
   @Test void testExpressionLineageStar() {
