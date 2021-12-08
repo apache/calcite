@@ -1035,14 +1035,16 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     final Map<RexNode, Integer> exprsLineage = new HashMap<>();
     final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
-      final Set<RexNode> lineages = mq.getExpressionLineage(node, nodeExprs.get(i));
+      final RexNode expr = nodeExprs.get(i);
+      final Set<RexNode> lineages = mq.getExpressionLineage(node, expr);
       if (lineages == null) {
         // Next expression
         continue;
       }
       if (lineages.size() != 1) {
         throw new IllegalStateException("We only support project - filter - join, "
-            + "thus expression lineage should map to a single expression, got: " + lineages);
+            + "thus expression lineage should map to a single expression, got: '"
+            + lineages + "' for expr '" + expr + "' in node '" + node + "'");
       }
       // Rewrite expr. First we swap the table references following the table
       // mapping, then we take first element from the corresponding equivalence class
@@ -1070,14 +1072,16 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     final Map<RexNode, Integer> exprsLineage = new HashMap<>();
     final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
-      final Set<RexNode> lineages = mq.getExpressionLineage(node, nodeExprs.get(i));
+      final RexNode expr = nodeExprs.get(i);
+      final Set<RexNode> lineages = mq.getExpressionLineage(node, expr);
       if (lineages == null) {
         // Next expression
         continue;
       }
       if (lineages.size() != 1) {
         throw new IllegalStateException("We only support project - filter - join, "
-            + "thus expression lineage should map to a single expression, got: " + lineages);
+            + "thus expression lineage should map to a single expression, got: '"
+            + lineages + "' for expr '" + expr + "' in node '" + node + "'");
       }
       // Rewrite expr. First we take first element from the corresponding equivalence class,
       // then we swap the table references following the table mapping
