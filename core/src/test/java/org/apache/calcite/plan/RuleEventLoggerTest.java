@@ -36,12 +36,11 @@ import java.util.Arrays;
  * Class to conveniently print the output of the {@link RuleEventLogger} with Volcano and
  * HepPlanner.
  *
- * The class is not meant to be committed.
+ * <p>The class is not meant to be committed.</p>
  *
- * Add the following line in log4j.properties file and run the test:
- * <pre>
- *  log4j.logger.org.apache.calcite.plan.RelOptPlanner=DEBUG
- * </pre>
+ * <p>Change the level of org.apache.calcite.plan.RelOptPlanner logger in log4j2-test.xml
+ * to DEBUG and run the test. To see the full plan after a rule production switch the
+ * FULL_PLAN marker to ALLOW.</p>
  */
 public class RuleEventLoggerTest {
   public static Frameworks.ConfigBuilder config() {
