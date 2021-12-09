@@ -40,7 +40,8 @@ public class MetadataDef<M extends Metadata> {
     this.metadataClass = metadataClass;
     this.handlerClass = handlerClass;
     this.methods = ImmutableList.copyOf(methods);
-    final Method[] handlerMethods = handlerClass.getDeclaredMethods();
+    final Method[] handlerMethods = Arrays.stream(handlerClass.getDeclaredMethods())
+        .filter(m -> !m.getName().equals("getDef")).toArray(i -> new Method[i]);
 
     // Handler must have the same methods as Metadata, each method having
     // additional "subclass-of-RelNode, RelMetadataQuery" parameters.
