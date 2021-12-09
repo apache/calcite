@@ -72,6 +72,7 @@ import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
+import org.apache.calcite.rel.metadata.MetadataHandlerProvider;
 import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
@@ -3543,15 +3544,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static class MyRelMetadataQuery extends RelMetadataQuery {
     private ColType.Handler colTypeHandler;
 
+
     MyRelMetadataQuery() {
-      colTypeHandler = initialHandler(ColType.Handler.class);
+      colTypeHandler = handler(ColType.Handler.class);
     }
 
     public String colType(RelNode rel, int column) {
       for (;;) {
         try {
           return colTypeHandler.getColType(rel, this, column);
-        } catch (JaninoRelMetadataProvider.NoHandler e) {
+        } catch (MetadataHandlerProvider.NoHandler e) {
           colTypeHandler = revise(ColType.Handler.class);
         }
       }
