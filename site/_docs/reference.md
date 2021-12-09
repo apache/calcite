@@ -1365,7 +1365,6 @@ Not implemented:
 | TIMESTAMPADD(timeUnit, integer, datetime) | Returns *datetime* with an interval of (signed) *integer* *timeUnit*s added. Equivalent to `datetime + INTERVAL 'integer' timeUnit`
 | TIMESTAMPDIFF(timeUnit, datetime, datetime2) | Returns the (signed) number of *timeUnit* intervals between *datetime* and *datetime2*. Equivalent to `(datetime2 - datetime) timeUnit`
 | LAST_DAY(date)            | Returns the date of the last day of the month in a value of datatype DATE; For example, it returns DATE'2020-02-29' for both DATE'2020-02-10' and TIMESTAMP'2020-02-10 10:10:10'
-{:.crowded-table-style}
 
 Calls to niladic functions such as `CURRENT_DATE` do not accept parentheses in
 standard SQL. Calls with parentheses, such as `CURRENT_DATE()` are accepted in certain

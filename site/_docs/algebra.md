@@ -442,7 +442,6 @@ added to the stack.
 | `nullsFirst(expr)` | Changes sort order to nulls first (only valid as an argument to `sort` or `sortLimit`)
 | `nullsLast(expr)` | Changes sort order to nulls last (only valid as an argument to `sort` or `sortLimit`)
 | `cursor(n, input)` | Reference to `input`th (0-based) relational input of a `TableFunctionScan` with `n` inputs (see `functionScan`)
-{:.crowded-table-style}
 
 #### Sub-query methods
 
