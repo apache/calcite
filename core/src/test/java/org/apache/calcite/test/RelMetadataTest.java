@@ -68,10 +68,12 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
-import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
+import org.apache.calcite.rel.metadata.JaninoMetadataHandlerProvider;
 import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.MetadataCache;
 import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
+import org.apache.calcite.rel.metadata.MetadataHandlerProvider;
 import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
@@ -112,12 +114,14 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.CoreMatchers;
@@ -141,6 +145,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -210,9 +215,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   private static RelNode convertSql(Tester tester, String sql) {
-    final RelRoot root = tester.convertSqlToRel(sql);
-    root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
-    return root.rel;
+    return tester.convertSqlToRel(sql).rel;
   }
 
   private RelNode convertSql(String sql, boolean typeCoercion) {
@@ -1035,7 +1038,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
           return metadataProvider.handlers(handlerClass);
         }
       };
-      RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(wrappedProvider));
+
+      RelOptCluster cluster = rel.getCluster();
+      cluster.setMetadataQuerySupplier(
+          RelMetadataQuery.builder()
+              .withProviders(wrappedProvider)
+              .createSupplier());
+      cluster.invalidateMetadataQuery();
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       final Double result = mq.getRowCount(rel);
       assertThat(result, within(14d, 0.1d));
@@ -1535,17 +1544,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
+          cluster.setMetadataQuerySupplier(
+              RelMetadataQuery.builder(MyRelMetadataQuery::new, MyRelMetadataQuery::new)
+                  .withProviders(BrokenColTypeImpl.SOURCE)
+                  .createSupplier());
           return cluster;
         })
         .convertSqlToRel(sql);
 
     final RelNode rel = root.rel;
     assertThat(rel, instanceOf(LogicalFilter.class));
-    final MyRelMetadataQuery mq = new MyRelMetadataQuery();
+    final MyRelMetadataQuery mq = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
 
     try {
       assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
@@ -1568,11 +1577,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(
+              RelMetadataQuery.builder(MyRelMetadataQuery::new, MyRelMetadataQuery::new)
+                  .withProviders(BrokenColTypeImpl.SOURCE)
+                  .createSupplier());
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -1670,6 +1678,107 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(buf.size(), equalTo(7));
   }
 
+  /**
+   * Cache for testing supported legacy behavior.
+   *
+   * @see MetadataCache that adds @see RelOptPlanner.getRelMetadataTimestamp()
+   * to the key.
+   */
+  @Deprecated
+  static class LegacyInvalidationMetadataCache implements MetadataCache {
+    public final Table<RelNode, Object, Object> map = HashBasedTable.create();
+
+    @Deprecated
+    @Override public boolean clear(RelNode rel) {
+      Map<Object, Object> row = map.row(rel);
+      if (row.isEmpty()) {
+        return false;
+      }
+
+      row.clear();
+      return true;
+    }
+
+    @Deprecated
+    @Override public @Nullable Object remove(RelNode relNode, Object args) {
+      return map.remove(relNode, toArgList(relNode, args));
+    }
+
+    @Deprecated
+    @Override public @Nullable Object get(RelNode relNode, Object args) {
+      return map.get(relNode, toArgList(relNode, args));
+    }
+
+    @Deprecated
+    @Override public @Nullable Object put(RelNode relNode,
+        Object args, Object value) {
+      return map.put(relNode, toArgList(relNode, args), value);
+    }
+
+    @Deprecated
+    private List<?> toArgList(RelNode relNode, Object args) {
+      return ImmutableList.builder().add(args)
+          .add(relNode.getCluster().getPlanner().getRelMetadataTimestamp(relNode))
+          .build();
+    }
+  }
+
+  @Deprecated
+  @Test void testSupportLegacyCachingBehaviorViaMetadataQuery() {
+    JaninoMetadataHandlerProvider provider = new JaninoMetadataHandlerProvider(
+        ColTypeImpl.SOURCE) {
+      @Override public MetadataCache buildCache() {
+        return new LegacyInvalidationMetadataCache();
+      }
+    };
+    RelMetadataQuery prototype = new CustomMq(provider);
+
+    final List<String> buf = new ArrayList<>();
+    ColTypeImpl.THREAD_LIST.set(buf);
+
+    final String sql = "select deptno, count(*) from emp where deptno > 10 "
+        + "group by deptno having count(*) = 0";
+    final RelRoot root = tester.convertSqlToRel(sql);
+    final RelNode rel = root.rel;
+    final RelMetadataQuery mq = new CustomMq(prototype);
+
+    // Top node is a filter. Its metadata uses getColType(RelNode, int).
+    assertThat(rel, instanceOf(LogicalFilter.class));
+
+    // Next node is an aggregate. Its metadata uses
+    // getColType(LogicalAggregate, int).
+    final RelNode input = rel.getInput(0);
+    assertThat(input, instanceOf(LogicalAggregate.class));
+    try {
+      provider.initialHandler(ColType.Handler.class).getColType(input, mq, 0);
+      fail();
+    } catch (MetadataHandlerProvider.NoHandler noHandler) {
+      //ignore
+    }
+    ColType.Handler colTypeHandler = provider.revise(ColType.Handler.class);
+
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(1));
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(1));
+    assertThat(colTypeHandler.getColType(input, mq, 1), equalTo("EXPR$1-agg"));
+    assertThat(buf.size(), equalTo(2));
+    assertThat(colTypeHandler.getColType(input, mq, 1), equalTo("EXPR$1-agg"));
+    assertThat(buf.size(), equalTo(2));
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(2));
+
+    // With a different timestamp, a metadata item is re-computed on first call.
+    final RelOptPlanner planner = rel.getCluster().getPlanner();
+    long timestamp = planner.getRelMetadataTimestamp(rel);
+    assertThat(timestamp, equalTo(0L));
+    ((MockRelOptPlanner) planner).setRelMetadataTimestamp(timestamp + 1);
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(3));
+    assertThat(colTypeHandler.getColType(input, mq, 0), equalTo("DEPTNO-agg"));
+    assertThat(buf.size(), equalTo(3));
+  }
+
   @Test void testCustomProviderWithRelMetadataQuery() {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
@@ -1680,12 +1789,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
         .withClusterFactory(cluster -> {
           // Create a custom provider that includes ColType.
           // Include the same provider twice just to be devious.
-          final ImmutableList<RelMetadataProvider> list =
-              ImmutableList.of(ColTypeImpl.SOURCE, ColTypeImpl.SOURCE,
-                  cluster.getMetadataProvider());
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(list));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(
+              RelMetadataQuery.builder(MyRelMetadataQuery::new, MyRelMetadataQuery::new)
+                  .withProviders(ColTypeImpl.SOURCE, ColTypeImpl.SOURCE)
+                  .createSupplier());
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -3344,6 +3451,19 @@ public class RelMetadataTest extends SqlToRelTestBase {
         is(mq.getPopulationSize(rel, ImmutableBitSet.of(0))));
   }
 
+  /**
+   * Custom Metadata Query for using a different MetadataHandlerProvider.
+   */
+  static class CustomMq extends RelMetadataQuery {
+    CustomMq(MetadataHandlerProvider metadataHandlerProvider) {
+      super(metadataHandlerProvider);
+    }
+
+    CustomMq(RelMetadataQuery prototype) {
+      super(prototype);
+    }
+  }
+
   private static final SqlOperator NONDETERMINISTIC_OP = new SqlSpecialOperator(
           "NDC",
           SqlKind.OTHER_FUNCTION,
@@ -3541,18 +3661,26 @@ public class RelMetadataTest extends SqlToRelTestBase {
    *
    * <p>Illustrates how you would package up a user-defined metadata type. */
   private static class MyRelMetadataQuery extends RelMetadataQuery {
+    private static final Supplier<RelMetadataQuery> SUPPLIER = builder(
+        MyRelMetadataQuery::new, MyRelMetadataQuery::new).createSupplier();
     private ColType.Handler colTypeHandler;
 
-    MyRelMetadataQuery() {
-      colTypeHandler = initialHandler(ColType.Handler.class);
+    private MyRelMetadataQuery(MetadataHandlerProvider metadataHandlerProvider) {
+      super(metadataHandlerProvider);
+      colTypeHandler = metadataHandlerProvider.initialHandler(ColType.Handler.class);
+    }
+
+    private MyRelMetadataQuery(MyRelMetadataQuery prototype) {
+      super(prototype);
+      colTypeHandler = prototype.colTypeHandler;
     }
 
     public String colType(RelNode rel, int column) {
       for (;;) {
         try {
           return colTypeHandler.getColType(rel, this, column);
-        } catch (JaninoRelMetadataProvider.NoHandler e) {
-          colTypeHandler = revise(ColType.Handler.class);
+        } catch (MetadataHandlerProvider.NoHandler e) {
+          colTypeHandler = metadataHandlerProvider.revise(ColType.Handler.class);
         }
       }
     }

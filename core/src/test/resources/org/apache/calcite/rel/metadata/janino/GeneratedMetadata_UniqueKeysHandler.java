@@ -39,7 +39,7 @@ public final class GeneratedMetadata_UniqueKeysHandler
     }
     final Object key;
     key = a2 ? methodKey0True : methodKey0False;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -49,13 +49,13 @@ public final class GeneratedMetadata_UniqueKeysHandler
       }
       return (java.util.Set) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.util.Set x = getUniqueKeys_(r, mq, a2);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }

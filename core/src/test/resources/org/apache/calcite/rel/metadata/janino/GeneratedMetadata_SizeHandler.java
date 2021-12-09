@@ -38,7 +38,7 @@ public final class GeneratedMetadata_SizeHandler
     }
     final Object key;
     key = methodKey0;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -48,13 +48,13 @@ public final class GeneratedMetadata_SizeHandler
       }
       return (java.util.List) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.util.List x = averageColumnSizes_(r, mq);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }
@@ -102,7 +102,7 @@ public final class GeneratedMetadata_SizeHandler
     }
     final Object key;
     key = methodKey1;
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -112,13 +112,13 @@ public final class GeneratedMetadata_SizeHandler
       }
       return (java.lang.Double) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.lang.Double x = averageRowSize_(r, mq);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }

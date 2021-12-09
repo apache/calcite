@@ -43,7 +43,7 @@ public final class GeneratedMetadata_ExplainVisibilityHandler
     } else {
       key = methodKey0[a2.ordinal()];
     }
-    final Object v = mq.map.get(r, key);
+    final Object v = mq.cache.get(r, key);
     if (v != null) {
       if (v == org.apache.calcite.rel.metadata.NullSentinel.ACTIVE) {
         throw new org.apache.calcite.rel.metadata.CyclicMetadataException();
@@ -53,13 +53,13 @@ public final class GeneratedMetadata_ExplainVisibilityHandler
       }
       return (java.lang.Boolean) v;
     }
-    mq.map.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
+    mq.cache.put(r, key,org.apache.calcite.rel.metadata.NullSentinel.ACTIVE);
     try {
       final java.lang.Boolean x = isVisibleInExplain_(r, mq, a2);
-      mq.map.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
+      mq.cache.put(r, key, org.apache.calcite.rel.metadata.NullSentinel.mask(x));
       return x;
     } catch (java.lang.Exception e) {
-      mq.map.row(r).clear();
+      mq.cache.clear(r);
       throw e;
     }
   }

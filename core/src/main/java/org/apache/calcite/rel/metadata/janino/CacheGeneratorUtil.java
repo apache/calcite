@@ -66,7 +66,7 @@ class CacheGeneratorUtil {
         .append("    }\n")
         .append("    final Object key;\n");
     selectStrategy(method).cacheKeyBlock(buff, method, methodIndex);
-    buff.append("    final Object v = mq.map.get(r, key);\n")
+    buff.append("    final Object v = mq.cache.get(r, key);\n")
         .append("    if (v != null) {\n")
         .append("      if (v == ")
         .append(NullSentinel.class.getName())
@@ -84,7 +84,7 @@ class CacheGeneratorUtil {
         .append(method.getReturnType().getName())
         .append(") v;\n")
         .append("    }\n")
-        .append("    mq.map.put(r, key,")
+        .append("    mq.cache.put(r, key,")
         .append(NullSentinel.class.getName())
         .append(".ACTIVE);\n")
         .append("    try {\n")
@@ -95,14 +95,14 @@ class CacheGeneratorUtil {
         .append("_(r, mq");
     argList(buff, method)
         .append(");\n")
-        .append("      mq.map.put(r, key, ")
+        .append("      mq.cache.put(r, key, ")
         .append(NullSentinel.class.getName())
         .append(".mask(x));\n")
         .append("      return x;\n")
         .append("    } catch (")
         .append(Exception.class.getName())
         .append(" e) {\n")
-        .append("      mq.map.row(r).clear();\n")
+        .append("      mq.cache.clear(r);\n")
         .append("      throw e;\n")
         .append("    }\n")
         .append("  }\n")
@@ -178,7 +178,7 @@ class CacheGeneratorUtil {
      *     final Object key;
      *     key = org.apache.calcite.runtime.FlatLists.of(method_key_0, org.apache.calcite.rel
      * .metadata.NullSentinel.mask(a2), a3);
-     *     final Object v = mq.map.get(r, key);
+     *     final Object v = mq.cache.get(r, key);
      *     if (v != null) {
      *      ...
      * </code>
@@ -236,7 +236,7 @@ class CacheGeneratorUtil {
      *       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
      *     final Object key;
      *     key = method_key_0;
-     *     final Object v = mq.map.get(r, key);
+     *     final Object v = mq.cache.get(r, key);
      * </code>
      */
     NO_ARG {
@@ -332,7 +332,7 @@ class CacheGeneratorUtil {
      *       boolean a2) {
      *     final Object key;
      *     key = a2 ? method_key_0True : method_key_0False;
-     *     final Object v = mq.map.get(r, key);
+     *     final Object v = mq.cache.get(r, key);
      *     ...
      * </code>
      */

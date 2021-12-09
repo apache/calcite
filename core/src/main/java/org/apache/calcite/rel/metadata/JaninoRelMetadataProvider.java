@@ -16,57 +16,27 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.interpreter.JaninoRexCompiler;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.janino.RelMetadataHandlerGeneratorUtil;
-import org.apache.calcite.util.ControlFlowException;
-import org.apache.calcite.util.Util;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.codehaus.commons.compiler.CompileException;
-import org.codehaus.commons.compiler.CompilerFactoryFactory;
-import org.codehaus.commons.compiler.ICompilerFactory;
-import org.codehaus.commons.compiler.ISimpleCompiler;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that generates
  * a class that dispatches to the underlying providers.
  */
+@Deprecated
 public class JaninoRelMetadataProvider implements RelMetadataProvider {
   private final RelMetadataProvider provider;
 
   // Constants and static fields
-
+  @Deprecated
   public static final JaninoRelMetadataProvider DEFAULT =
       JaninoRelMetadataProvider.of(DefaultRelMetadataProvider.INSTANCE);
-
-
-  /** Cache of pre-generated handlers by provider and kind of metadata.
-   * For the cache to be effective, providers should implement identity
-   * correctly. */
-  private static final LoadingCache<Key, MetadataHandler<?>> HANDLERS =
-      maxSize(CacheBuilder.newBuilder(),
-          CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value())
-          .build(
-              CacheLoader.from(key ->
-                  generateCompileAndInstantiate(key.handlerClass,
-                      key.provider.handlers(key.handlerClass))));
 
   /** Private constructor; use {@link #of}. */
   private JaninoRelMetadataProvider(RelMetadataProvider provider) {
@@ -77,20 +47,12 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
    *
    * @param provider Underlying provider
    */
+  @Deprecated
   public static JaninoRelMetadataProvider of(RelMetadataProvider provider) {
     if (provider instanceof JaninoRelMetadataProvider) {
       return (JaninoRelMetadataProvider) provider;
     }
     return new JaninoRelMetadataProvider(provider);
-  }
-
-  // helper for initialization
-  private static <K, V> CacheBuilder<K, V> maxSize(CacheBuilder<K, V> builder,
-      int size) {
-    if (size >= 0) {
-      builder.maximumSize(size);
-    }
-    return builder;
   }
 
   @Override public boolean equals(@Nullable Object obj) {
@@ -120,74 +82,6 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return provider.handlers(handlerClass);
   }
 
-  private static <MH extends MetadataHandler<?>> MH generateCompileAndInstantiate(
-      Class<MH> handlerClass,
-      List<? extends MetadataHandler<? extends Metadata>> handlers) {
-
-    final List<? extends MetadataHandler<? extends Metadata>> uniqueHandlers = handlers.stream()
-        .distinct()
-        .collect(Collectors.toList());
-    RelMetadataHandlerGeneratorUtil.HandlerNameAndGeneratedCode handlerNameAndGeneratedCode =
-        RelMetadataHandlerGeneratorUtil.generateHandler(handlerClass, uniqueHandlers);
-
-    try {
-      return compile(handlerNameAndGeneratedCode.getHandlerName(),
-          handlerNameAndGeneratedCode.getGeneratedCode(), handlerClass, uniqueHandlers);
-    } catch (CompileException | IOException e) {
-      throw new RuntimeException("Error compiling:\n"
-          + handlerNameAndGeneratedCode.getGeneratedCode(), e);
-    }
-  }
-
-
-  static  <MH extends MetadataHandler<?>> MH compile(String className,
-      String generatedCode, Class<MH> handlerClass,
-      List<? extends Object> argList) throws CompileException, IOException {
-    final ICompilerFactory compilerFactory;
-    ClassLoader classLoader =
-        Objects.requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(), "classLoader");
-    try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
-    } catch (Exception e) {
-      throw new IllegalStateException(
-          "Unable to instantiate java compiler", e);
-    }
-
-    final ISimpleCompiler compiler = compilerFactory.newSimpleCompiler();
-    compiler.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
-
-    if (CalciteSystemProperty.DEBUG.value()) {
-      // Add line numbers to the generated janino class
-      compiler.setDebuggingInformation(true, true, true);
-      System.out.println(generatedCode);
-    }
-
-    compiler.cook(generatedCode);
-    final Constructor constructor;
-    final Object o;
-    try {
-      constructor = compiler.getClassLoader().loadClass(className)
-          .getDeclaredConstructors()[0];
-      o = constructor.newInstance(argList.toArray());
-    } catch (InstantiationException
-        | IllegalAccessException
-        | InvocationTargetException
-        | ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-    return handlerClass.cast(o);
-  }
-
-  synchronized <H extends MetadataHandler<?>> H revise(Class<H> handlerClass) {
-    try {
-      final Key key = new Key(handlerClass, provider);
-      //noinspection unchecked
-      return handlerClass.cast(HANDLERS.get(key));
-    } catch (UncheckedExecutionException | ExecutionException e) {
-      throw Util.throwAsRuntime(Util.causeOrSelf(e));
-    }
-  }
-
   /** Registers some classes. Does not flush the providers, but next time we
    * need to generate a provider, it will handle all of these classes. So,
    * calling this method reduces the number of times we need to re-generate. */
@@ -197,36 +91,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
 
   /** Exception that indicates there there should be a handler for
    * this class but there is not. The action is probably to
-   * re-generate the handler class. */
-  public static class NoHandler extends ControlFlowException {
-    public final Class<? extends RelNode> relClass;
+   * re-generate the handler class.
+   *
+   * Please use MetadataHandlerProvider.NoHandler.*/
+  @Deprecated
+  public static class NoHandler extends MetadataHandlerProvider.NoHandler {
 
     public NoHandler(Class<? extends RelNode> relClass) {
-      this.relClass = relClass;
-    }
-  }
-
-  /** Key for the cache. */
-  private static class Key {
-    final Class<? extends MetadataHandler<? extends Metadata>> handlerClass;
-    final RelMetadataProvider provider;
-
-    private Key(Class<? extends MetadataHandler<?>> handlerClass,
-        RelMetadataProvider provider) {
-      this.handlerClass = handlerClass;
-      this.provider = provider;
-    }
-
-    @Override public int hashCode() {
-      return (handlerClass.hashCode() * 37
-          + provider.hashCode()) * 37;
-    }
-
-    @Override public boolean equals(@Nullable Object obj) {
-      return this == obj
-          || obj instanceof Key
-          && ((Key) obj).handlerClass.equals(handlerClass)
-          && ((Key) obj).provider.equals(provider);
+      super(relClass);
     }
   }
 }

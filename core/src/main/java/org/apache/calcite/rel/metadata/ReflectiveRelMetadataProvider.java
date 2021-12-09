@@ -201,7 +201,7 @@ public class ReflectiveRelMetadataProvider
                   }
                   key1 = FlatLists.copyOf(args2);
                 }
-                if (mq.map.put(rel, key1, NullSentinel.INSTANCE) != null) {
+                if (mq.cache.put(rel, key1, NullSentinel.INSTANCE) != null) {
                   throw new CyclicMetadataException();
                 }
                 try {
@@ -210,7 +210,7 @@ public class ReflectiveRelMetadataProvider
                     | UndeclaredThrowableException e) {
                   throw Util.throwAsRuntime(Util.causeOrSelf(e));
                 } finally {
-                  mq.map.remove(rel, key1);
+                  mq.cache.remove(rel, key1);
                 }
               });
       methodsMap.put(key, function);
