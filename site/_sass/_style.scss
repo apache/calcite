@@ -599,9 +599,6 @@ article h2:first-child { margin-top: 0; }
 
 /* Code Highlighting */
 
-.scroll-table-style {
-  overflow-x: scroll;
-}
 
 pre,
 code {
@@ -719,6 +716,8 @@ table {
   width: 100%;
   background-color: #555;
   margin: .5em 0;
+  display: block;
+  overflow-x: auto;
   @include border-radius(5px);
   @include box-shadow(0 1px 3px rgba(0,0,0,.3));
 }
