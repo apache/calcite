@@ -599,13 +599,6 @@ article h2:first-child { margin-top: 0; }
 
 /* Code Highlighting */
 
-.crowded-table-style {
-  pre,
-  code {
-    white-space: pre-wrap;
-  }
-}
-
 .scroll-table-style {
   overflow-x: scroll;
 }
@@ -617,6 +610,14 @@ code {
   margin: 0;
   font: 14px/1.8em Menlo, Consolas, "Courier New", Courier, "Liberation Mono", monospace;
   padding: 0 0.5em;
+}
+
+/* Allow code inside tables to wrap when there is no space */ 
+table {
+  pre,
+  code {
+    white-space: pre-wrap;
+  }
 }
 
 @media (min-width: 768px) {

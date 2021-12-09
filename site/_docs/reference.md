@@ -1187,7 +1187,6 @@ for example `ST_GeomFromText('POINT (30 10)')`.
 | MULTILINESTRING    |  5 | <code>ST_GeomFromText(&#8203;'MULTILINESTRING ((10 10, 20 20, 10 40), (40 40, 30 30, 40 20, 30 10))')</code>
 | MULTISURFACE       |  - | generalization of MULTIPOLYGON
 | MULTIPOLYGON       |  6 | <code>ST_GeomFromText(&#8203;'MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))')</code>
-{:.crowded-table-style}
 
 ## Operators and functions
 
