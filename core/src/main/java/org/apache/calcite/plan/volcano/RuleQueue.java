@@ -20,6 +20,8 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -43,11 +45,21 @@ public abstract class RuleQueue {
   public abstract void addMatch(VolcanoRuleMatch match);
 
   /**
+   * Removes the rule match from the head of match list, and returns it.
+   *
+   * <p>Returns {@code null} if there are no more matches.</p>
+   *
+   * <p>Note that the VolcanoPlanner may still decide to reject rule matches
+   * which have become invalid, say if one of their operands belongs to an
+   * obsolete set or has been pruned.
+   */
+  public @Nullable abstract VolcanoRuleMatch popMatch();
+
+  /**
    * clear this rule queue.
    * The return value indicates whether the rule queue was empty before clear.
-   * @return true if the rule queue was not empty
    */
-  public abstract boolean clear();
+  public abstract void clear();
 
 
   /** Returns whether to skip a match. This happens if any of the

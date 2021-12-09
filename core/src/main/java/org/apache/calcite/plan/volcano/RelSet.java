@@ -78,11 +78,6 @@ class RelSet {
   @MonotonicNonNull RelNode rel;
 
   /**
-   * Exploring state of current RelSet.
-   */
-  @Nullable ExploringState exploringState;
-
-  /**
    * Records conversions / enforcements that have happened on the
    * pair of derived and required traitset.
    */
@@ -462,22 +457,19 @@ class RelSet {
     }
   }
 
-  //~ Inner Classes ----------------------------------------------------------
+  private int checkedOrdinal = 0;
+  boolean checkTransitive(VolcanoPlanner planner) {
+    if (checkedOrdinal < 0) {
+      return false;
+    }
 
-  /**
-   * An enum representing exploring state of current RelSet.
-   */
-  enum ExploringState {
-    /**
-     * The RelSet is exploring.
-     * It means all possible rule matches are scheduled, but not fully applied.
-     * This RelSet will refuse to explore again, but cannot provide a valid LB.
-     */
-    EXPLORING,
-
-    /**
-     * The RelSet is fully explored and is able to provide a valid LB.
-     */
-    EXPLORED
+    for (; checkedOrdinal < rels.size(); ++ checkedOrdinal) {
+      RelNode node = rels.get(checkedOrdinal);
+      if (planner.nonRootOperandsContainsClass(node.getClass())) {
+        checkedOrdinal = -1;
+        return false;
+      }
+    }
+    return true;
   }
 }

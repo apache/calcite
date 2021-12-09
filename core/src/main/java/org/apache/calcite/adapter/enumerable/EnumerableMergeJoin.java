@@ -188,6 +188,9 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
    */
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
+    if (!(required.getConvention() instanceof EnumerableConvention)) {
+      return null;
+    }
     // Required collation keys can be subset or superset of merge join keys.
     RelCollation collation = getCollation(required);
     int leftInputFieldCount = left.getRowType().getFieldCount();

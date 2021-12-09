@@ -133,6 +133,13 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.planner.topdown.opt", false);
 
   /**
+   * Whether to enable aggresive logical pruning top-down optimization.
+   * This config can be overridden by {@link CalciteConnectionProperty#AGGRESSIVE_PRUNING}.
+   */
+  public static final CalciteSystemProperty<Boolean> AGGRESSIVE_PRUNING =
+      booleanProperty("calcite.planner.pruning.aggressively", true);
+
+  /**
    * Whether to run integration tests.
    */
   // TODO review zabetak:
