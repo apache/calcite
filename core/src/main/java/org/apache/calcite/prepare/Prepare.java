@@ -177,7 +177,7 @@ public abstract class Prepare {
     final RelNode rootRel4 = program.run(
         planner, root.rel, desiredTraits, materializationList, latticeList);
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Plan after physical tweaks: {}",
+      LOGGER.debug("Plan after physical tweaks:\n{}",
           RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
     }
 
