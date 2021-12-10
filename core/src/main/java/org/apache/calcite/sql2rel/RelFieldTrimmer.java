@@ -371,6 +371,15 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final List<RexNode> projs = Util.transform(rexProgram.getProjectList(),
         rexProgram::expandLocalRef);
 
+    RexNode conditionExpr = null;
+    if (rexProgram.getCondition() != null) {
+      final List<RexNode> filter = Util.transform(
+          ImmutableList.of(
+              rexProgram.getCondition()), rexProgram::expandLocalRef);
+      assert filter.size() == 1;
+      conditionExpr = filter.get(0);
+    }
+
     final RelDataType rowType = calc.getRowType();
     final int fieldCount = rowType.getFieldCount();
     final RelNode input = calc.getInput();
@@ -383,6 +392,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       if (fieldsUsed.get(ord.i)) {
         ord.e.accept(inputFinder);
       }
+    }
+    if (conditionExpr != null) {
+      conditionExpr.accept(inputFinder);
     }
     ImmutableBitSet inputFieldsUsed = inputFinder.build();
 
@@ -401,7 +413,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Some parts of the system can't handle rows with zero fields, so
     // pretend that one field is used.
-    if (fieldsUsed.cardinality() == 0) {
+    if (fieldsUsed.cardinality() == 0 && rexProgram.getCondition() == null) {
       return dummyProject(fieldCount, newInput);
     }
 
@@ -429,12 +441,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     final RelNode newInputRelNode = relBuilder.push(newInput).build();
     RexNode newConditionExpr = null;
-    if (rexProgram.getCondition() != null) {
-      final List<RexNode> filter = Util.transform(
-          ImmutableList.of(
-              rexProgram.getCondition()), rexProgram::expandLocalRef);
-      assert filter.size() == 1;
-      final RexNode conditionExpr = filter.get(0);
+    if (conditionExpr != null) {
       newConditionExpr = conditionExpr.accept(shuttle);
     }
     final RexProgram newRexProgram = RexProgram.create(newInputRelNode.getRowType(),
@@ -1088,9 +1095,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       newAggCallList.add(relBuilder.count(false, "DUMMY"));
     }
 
-    final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(newGroupSet,
-            (Iterable<ImmutableBitSet>) newGroupSets);
+    final RelBuilder.GroupKey groupKey = relBuilder.groupKey(newGroupSet, newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
 
     final RelNode newAggregate = RelOptUtil.propagateRelHints(aggregate, relBuilder.build());
