@@ -545,6 +545,16 @@ or with different predicates) the config *may* contain a method `withOperandFor`
 to make it easier to build common operand patterns.
 (See `FilterAggregateTransposeRule` for an example.)
 
+## Using Nighlty Snapshots
+
+As part of Calcite's CI, snapshots of the master branch are uploaded regularly to Apache's
+[Maven repository](https://repository.apache.org/content/groups/snapshots/org/apache/calcite/).
+These snapshots are made available to ease downstream projects adoption of new Calcite features.
+These snapshots are not official Apache releases and we strongly recommend against the use of them
+for any purpose beyond bleeding-edge development and integration testing. These builds go through
+nominal tests and may change or break at any time. Additionally, no compatibility between snapshots
+versions and released versions should be expected.
+
 # Advanced topics for committers
 
 The following sections are of interest to Calcite committers and in
