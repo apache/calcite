@@ -55,12 +55,12 @@ public final class LogicalProject extends Project {
    *
    * <p>Use {@link #create} unless you know what you're doing.
    *
-   * @param cluster      Cluster this relational expression belongs to
-   * @param traitSet     Traits of this relational expression
-   * @param hints        Hints of this relational expression
-   * @param input        Input relational expression
-   * @param projects     List of expressions for the input columns
-   * @param rowType      Output row type
+   * @param cluster  Cluster this relational expression belongs to
+   * @param traitSet Traits of this relational expression
+   * @param hints    Hints of this relational expression
+   * @param input    Input relational expression
+   * @param projects List of expressions for the input columns
+   * @param rowType  Output row type
    * @param variablesSet Correlation variables set by this relational expression
    *                     to be used by nested expressions
    */
