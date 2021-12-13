@@ -78,14 +78,14 @@ public abstract class Project extends SingleRel implements Hintable {
   /**
    * Creates a Project.
    *
-   * @param cluster      Cluster that this relational expression belongs to
-   * @param traits       Traits of this relational expression
-   * @param hints        Hints of this relation expression
-   * @param input        Input relational expression
-   * @param projects     List of expressions for the input columns
-   * @param rowType      Output row type
-   * @param variablesSet Correlation variables set by this relational expression to be used by
-   *                     nested expressions
+   * @param cluster  Cluster that this relational expression belongs to
+   * @param traits   Traits of this relational expression
+   * @param hints    Hints of this relation expression
+   * @param input    Input relational expression
+   * @param projects List of expressions for the input columns
+   * @param rowType  Output row type
+   * @param variablesSet Correlation variables set by this relational expression
+   *                    to be used by nested expressions
    */
   @SuppressWarnings("method.invocation.invalid")
   protected Project(

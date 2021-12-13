@@ -1817,7 +1817,74 @@ public class RelBuilder {
    */
   public RelBuilder project(Iterable<? extends RexNode> nodes,
       Iterable<? extends @Nullable String> fieldNames, boolean force) {
-    return project_(nodes, fieldNames, ImmutableList.of(), force);
+    return project_(ImmutableSet.of(), nodes, fieldNames, ImmutableList.of(), force);
+  }
+
+  /** Creates a {@link Project} of a set of correlation variables
+   * and the given expressions. */
+  public RelBuilder projectCorrelated(Iterable<CorrelationId> variablesSet,
+      RexNode... nodes) {
+    return projectCorrelated(variablesSet, ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a {@link Project} of a set of correlation variables
+   * and the given list of expressions.
+   *
+   * <p>Infers names as would {@link #projectCorrelated(Iterable, Iterable, Iterable)}
+   * if all suggested names were null.
+   *
+   * @param variablesSet Set of correlation variables
+   * @param nodes Expressions
+   */
+  public RelBuilder projectCorrelated(Iterable<CorrelationId> variablesSet,
+      Iterable<? extends RexNode> nodes) {
+    return projectCorrelated(variablesSet, nodes, ImmutableList.of());
+  }
+
+  /** Creates a {@link Project} of a set of correlation variables
+   * and the given list of expressions and field names.
+   *
+   * @param variablesSet Set of correlation variables
+   * @param nodes Expressions
+   * @param fieldNames field names for expressions
+   */
+  public RelBuilder projectCorrelated(
+      Iterable<CorrelationId> variablesSet,
+      Iterable<? extends RexNode> nodes,
+      Iterable<? extends @Nullable String> fieldNames) {
+    return projectCorrelated(variablesSet, nodes, fieldNames, false);
+  }
+
+  /** Creates a {@link Project} of a set of correlation variables
+   * and the given list of expressions, using the given names.
+   *
+   * <p>Names are deduced as follows:
+   * <ul>
+   *   <li>If the length of {@code fieldNames} is greater than the index of
+   *     the current entry in {@code nodes}, and the entry in
+   *     {@code fieldNames} is not null, uses it; otherwise
+   *   <li>If an expression projects an input field,
+   *     or is a cast an input field,
+   *     uses the input field name; otherwise
+   *   <li>If an expression is a call to
+   *     {@link SqlStdOperatorTable#AS}
+   *     (see {@link #alias}), removes the call but uses the intended alias.
+   * </ul>
+   *
+   * <p>After the field names have been inferred, makes the
+   * field names unique by appending numeric suffixes.
+   *
+   * @param variablesSet Set of correlation variables
+   * @param nodes Expressions
+   * @param fieldNames Suggested field names
+   * @param force create project even if it is identity
+   */
+  public RelBuilder projectCorrelated(
+      Iterable<CorrelationId> variablesSet,
+      Iterable<? extends RexNode> nodes,
+      Iterable<? extends @Nullable String> fieldNames,
+      boolean force) {
+    return project_(variablesSet, nodes, fieldNames, ImmutableList.of(), force);
   }
 
   /** Creates a {@link Project} of all original fields, plus the given
@@ -1882,12 +1949,14 @@ public class RelBuilder {
    * <p>After the field names have been inferred, makes the
    * field names unique by appending numeric suffixes.
    *
+   * @param variablesSet Set of correlation variables
    * @param nodes Expressions
    * @param fieldNames Suggested field names
    * @param hints Hints
    * @param force create project even if it is identity
    */
   private RelBuilder project_(
+      Iterable<CorrelationId> variablesSet,
       Iterable<? extends RexNode> nodes,
       Iterable<? extends @Nullable String> fieldNames,
       Iterable<RelHint> hints,
@@ -1958,7 +2027,7 @@ public class RelBuilder {
       final ImmutableSet.Builder<RelHint> mergedHints = ImmutableSet.builder();
       mergedHints.addAll(project.getHints());
       mergedHints.addAll(hints);
-      return project_(newNodes, fieldNameList, mergedHints.build(), force);
+      return project_(variablesSet, newNodes, fieldNameList, mergedHints.build(), force);
     }
 
     // Simplify expressions.
@@ -2043,7 +2112,8 @@ public class RelBuilder {
         struct.projectFactory.createProject(frame.rel,
             ImmutableList.copyOf(hints),
             ImmutableList.copyOf(nodeList),
-            fieldNameList);
+            fieldNameList,
+            ImmutableSet.copyOf(variablesSet));
     stack.pop();
     stack.push(new Frame(project, fields.build()));
     return this;
@@ -3278,7 +3348,8 @@ public class RelBuilder {
                 struct.projectFactory.createProject(sort,
                     project.getHints(),
                     project.getProjects(),
-                    Pair.right(project.getNamedProjects())));
+                    Pair.right(project.getNamedProjects()),
+                    project.getVariablesSet()));
             return this;
           }
         }

@@ -122,6 +122,18 @@ public final class LogicalProject extends Project {
     return create(input, hints, projects, rowType);
   }
 
+  /** Creates a LogicalProject. */
+  public static LogicalProject create(final RelNode input, List<RelHint> hints,
+      final List<? extends RexNode> projects,
+      @Nullable List<? extends @Nullable String> fieldNames,
+      Set<CorrelationId> variablesSet) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelDataType rowType =
+        RexUtil.createStructType(cluster.getTypeFactory(), projects,
+            fieldNames, SqlValidatorUtil.F_SUGGESTER);
+    return create(input, hints, projects, rowType, variablesSet);
+  }
+
   /** Creates a LogicalProject, specifying row type rather than field names. */
   public static LogicalProject create(final RelNode input, List<RelHint> hints,
       final List<? extends RexNode> projects, RelDataType rowType) {

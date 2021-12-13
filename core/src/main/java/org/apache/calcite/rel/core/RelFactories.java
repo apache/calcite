@@ -162,10 +162,20 @@ public class RelFactories {
      * @param hints The hints
      * @param childExprs The projection expressions
      * @param fieldNames The projection field names
+     * @param variablesSet Correlating variables that are set when reading
+     *   a row from the input, and which may be referenced from inside the
+     *   projection
      * @return a project
      */
     RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames);
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames,
+        Set<CorrelationId> variablesSet);
+
+    @Deprecated // to be removed before 2.0
+    default RelNode createProject(RelNode input, List<RelHint> hints,
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames) {
+      return createProject(input, hints, childExprs, fieldNames, ImmutableSet.of());
+    }
   }
 
   /**
@@ -174,8 +184,9 @@ public class RelFactories {
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
     @Override public RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames) {
-      return LogicalProject.create(input, hints, childExprs, fieldNames);
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames,
+        Set<CorrelationId> variablesSet) {
+      return LogicalProject.create(input, hints, childExprs, fieldNames, variablesSet);
     }
   }
 

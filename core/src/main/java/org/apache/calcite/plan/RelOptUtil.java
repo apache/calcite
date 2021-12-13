@@ -905,11 +905,11 @@ public abstract class RelOptUtil {
     if (rename) {
       // Use names and types from castRowType.
       return projectFactory.createProject(input, hints, castExps,
-          castRowType.getFieldNames());
+          castRowType.getFieldNames(), ImmutableSet.of());
     } else {
       // Use names from rowType, types from castRowType.
       return projectFactory.createProject(input, hints, castExps,
-          rowType.getFieldNames());
+          rowType.getFieldNames(), ImmutableSet.of());
     }
   }
 
