@@ -18,7 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
-import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * A function that returns a table.
@@ -40,7 +40,7 @@ public interface SqlTableFunction {
    * <p>Returns <code>Optional.empty</code> if the <code>ordinal</code>th argument is not table
    * parameter.
    */
-  default Optional<TableCharacteristics> tableCharacteristics(int ordinal) {
-    return Optional.empty();
+  default @Nullable TableCharacteristic tableCharacteristic(int ordinal) {
+    return null;
   }
 }

@@ -30,7 +30,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlTableFunction;
-import org.apache.calcite.sql.TableCharacteristics;
+import org.apache.calcite.sql.TableCharacteristic;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -50,7 +50,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
@@ -183,18 +182,13 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /**
-   * Score table function, first parameter is input table with row semantics.
-   */
+  /** "Score" user-defined table function. First parameter is input table with row semantics. */
   public static class ScoreTableFunction extends SqlFunction
       implements SqlTableFunction {
 
-    private static final Map<Integer, TableCharacteristics> TABLE_PARAMS = new HashMap<>();
+    private static final Map<Integer, TableCharacteristic> TABLE_PARAMS = new HashMap<>();
     static {
-      TABLE_PARAMS.put(
-          0,
-          TableCharacteristics.withRowSemantic(
-              TableCharacteristics.ColumnsPassThrough.PASS_THROUGH));
+      TABLE_PARAMS.put(0, TableCharacteristic.withRowSemantic(true));
     }
 
     public ScoreTableFunction() {
@@ -222,17 +216,15 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return ScoreTableFunction::inferRowType;
     }
 
-    @Override public Optional<TableCharacteristics> tableCharacteristics(int ordinal) {
-      return Optional.ofNullable(TABLE_PARAMS.get(ordinal));
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return TABLE_PARAMS.get(ordinal);
     }
 
     @Override public boolean argumentMustBeScalar(int ordinal) {
       return !TABLE_PARAMS.containsKey(ordinal);
     }
 
-    /**
-     * Operand type checker for TopNTableFunction.
-     */
+    /** Operand type checker for {@link ScoreTableFunction}. */
     private static class OperandMetadataImpl implements SqlOperandMetadata {
 
       @Override public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
@@ -266,19 +258,15 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /**
-   * TopN table function, first parameter is input table with set semantics.
-   */
+  /** "TopN" user-defined table function. First parameter is input table with set semantics. */
   public static class TopNTableFunction extends SqlFunction
       implements SqlTableFunction {
 
-    private static final Map<Integer, TableCharacteristics> TABLE_PARAMS = new HashMap<>();
+    private static final Map<Integer, TableCharacteristic> TABLE_PARAMS = new HashMap<>();
     static {
       TABLE_PARAMS.put(
           0,
-          TableCharacteristics.withSetSemantic(
-              TableCharacteristics.PrunabilityWhenEmpty.PRUNE,
-              TableCharacteristics.ColumnsPassThrough.PASS_THROUGH));
+          TableCharacteristic.withSetSemantic(true, true));
     }
 
     public TopNTableFunction() {
@@ -306,17 +294,15 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return TopNTableFunction::inferRowType;
     }
 
-    @Override public Optional<TableCharacteristics> tableCharacteristics(int ordinal) {
-      return Optional.ofNullable(TABLE_PARAMS.get(ordinal));
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return TABLE_PARAMS.get(ordinal);
     }
 
     @Override public boolean argumentMustBeScalar(int ordinal) {
       return !TABLE_PARAMS.containsKey(ordinal);
     }
 
-    /**
-     * Operand type checker for TopNTableFunction.
-     */
+    /** Operand type checker for {@link TopNTableFunction}. */
     private static class OperandMetadataImpl implements SqlOperandMetadata {
 
       @Override public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
@@ -363,22 +349,18 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /**
-   * Invalid user-defined table function with multiple input tables with row semantics.
-   */
+  /** Invalid user-defined table function with multiple input tables with row semantics. */
   public static class InvalidTableFunction extends SqlFunction
       implements SqlTableFunction {
 
-    private static final Map<Integer, TableCharacteristics> TABLE_PARAMS = new HashMap<>();
+    private static final Map<Integer, TableCharacteristic> TABLE_PARAMS = new HashMap<>();
     static {
       TABLE_PARAMS.put(
           0,
-          TableCharacteristics.withRowSemantic(
-              TableCharacteristics.ColumnsPassThrough.PASS_THROUGH));
+          TableCharacteristic.withRowSemantic(true));
       TABLE_PARAMS.put(
           1,
-          TableCharacteristics.withRowSemantic(
-              TableCharacteristics.ColumnsPassThrough.PASS_THROUGH));
+          TableCharacteristic.withRowSemantic(true));
     }
 
     public InvalidTableFunction() {
@@ -396,8 +378,8 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           .build();
     }
 
-    @Override public Optional<TableCharacteristics> tableCharacteristics(int ordinal) {
-      return Optional.ofNullable(TABLE_PARAMS.get(ordinal));
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return TABLE_PARAMS.get(ordinal);
     }
 
     @Override public boolean argumentMustBeScalar(int ordinal) {

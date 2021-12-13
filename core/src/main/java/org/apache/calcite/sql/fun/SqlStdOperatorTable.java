@@ -47,6 +47,7 @@ import org.apache.calcite.sql.SqlRankFunction;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSessionTableFunction;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSetSemanticsTableOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTumbleTableFunction;
@@ -2547,6 +2548,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           writer.endList(frame);
         }
       };
+
+  /** SetSemanticsTable represents as an input table with set semantics. */
+  public static final SqlSpecialOperator SET_SEMANTICS_TABLE = new SqlSetSemanticsTableOperator();
 
   //~ Methods ----------------------------------------------------------------
 

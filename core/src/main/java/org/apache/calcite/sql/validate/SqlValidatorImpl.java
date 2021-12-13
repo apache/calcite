@@ -69,7 +69,6 @@ import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
-import org.apache.calcite.sql.SqlSetSemanticsTable;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
@@ -81,7 +80,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
-import org.apache.calcite.sql.TableCharacteristics;
+import org.apache.calcite.sql.TableCharacteristic;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -142,7 +141,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -3393,44 +3391,46 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlCall call = node.operand(0);
     if (call.getOperator() instanceof SqlTableFunction) {
       SqlTableFunction tableFunction = (SqlTableFunction) call.getOperator();
-      boolean hasRowSemanticsTable = false;
+      boolean visitedRowSemanticsTable = false;
       for (int idx = 0; idx < call.operandCount(); idx++) {
-        Optional<TableCharacteristics> tableCharacteristics =
-            tableFunction.tableCharacteristics(idx);
-        boolean isRowSemanticsTable =
-            tableCharacteristics.filter(
-                c -> c.getSemantics() == TableCharacteristics.Semantics.ROW
-            ).isPresent();
-        if (isRowSemanticsTable) {
-          if (hasRowSemanticsTable) {
-            throw newValidationError(call,
+        TableCharacteristic tableCharacteristic = tableFunction.tableCharacteristic(idx);
+        if (tableCharacteristic != null) {
+          // Skip validate if current input table has set semantics
+          if (tableCharacteristic.semantics == TableCharacteristic.Semantics.SET) {
+            continue;
+          }
+          // A table function at most has one input table with row semantics
+          if (visitedRowSemanticsTable) {
+            throw newValidationError(
+                call,
                 RESOURCE.multipleRowSemanticsTables(call.getOperator().getName()));
           }
-          hasRowSemanticsTable = true;
+          visitedRowSemanticsTable = true;
         }
-        if (!tableCharacteristics.isPresent() || isRowSemanticsTable) {
-          validateWithoutSetSemanticsTableNode(call, idx);
+        // If table function defines the parameter is not table parameter, or is an input table
+        // parameter with row semantics, then it should not be with PARTITION BY OR ORDER BY.
+        SqlNode currentNode = call.operand(idx);
+        if (currentNode instanceof SqlCall) {
+          final SqlOperator op = ((SqlCall) currentNode).getOperator();
+          if (op == SqlStdOperatorTable.SET_SEMANTICS_TABLE) {
+            throwInvalidRowSemanticsTable(call, idx, (SqlCall) currentNode);
+          } else if (op == SqlStdOperatorTable.ARGUMENT_ASSIGNMENT) {
+            // Dig out the underlying operand
+            SqlNode realNode = ((SqlBasicCall) currentNode).operand(0);
+            if (realNode instanceof SqlCall) {
+              final SqlOperator realOp = ((SqlCall) realNode).getOperator();
+              if (realOp == SqlStdOperatorTable.SET_SEMANTICS_TABLE) {
+                throwInvalidRowSemanticsTable(call, idx, (SqlCall) realNode);
+              }
+            }
+          }
         }
       }
     }
     validateQuery(node, scope, targetRowType);
   }
 
-  private void validateWithoutSetSemanticsTableNode(SqlCall call, int idx) {
-    SqlNode node = call.operand(idx);
-    if (node instanceof SqlSetSemanticsTable) {
-      throwInvalidRowSemanticsTable(call, idx, (SqlSetSemanticsTable) node);
-    } else if (node instanceof SqlBasicCall
-        && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.ARGUMENT_ASSIGNMENT) {
-      // Dig out the underlying operand
-      SqlNode node2 = ((SqlBasicCall) node).operand(0);
-      if (node2 instanceof SqlSetSemanticsTable) {
-        throwInvalidRowSemanticsTable(call, idx, (SqlSetSemanticsTable) node2);
-      }
-    }
-  }
-
-  private void throwInvalidRowSemanticsTable(SqlCall call, int idx, SqlSetSemanticsTable table) {
+  private void throwInvalidRowSemanticsTable(SqlCall call, int idx, SqlCall table) {
     SqlNodeList partitionList = table.operand(1);
     if (!partitionList.isEmpty()) {
       throw newValidationError(call,
