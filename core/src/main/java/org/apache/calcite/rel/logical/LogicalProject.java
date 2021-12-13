@@ -115,11 +115,7 @@ public final class LogicalProject extends Project {
   public static LogicalProject create(final RelNode input, List<RelHint> hints,
       final List<? extends RexNode> projects,
       @Nullable List<? extends @Nullable String> fieldNames) {
-    final RelOptCluster cluster = input.getCluster();
-    final RelDataType rowType =
-        RexUtil.createStructType(cluster.getTypeFactory(), projects,
-            fieldNames, SqlValidatorUtil.F_SUGGESTER);
-    return create(input, hints, projects, rowType);
+    return create(input, hints, projects, fieldNames, ImmutableSet.of());
   }
 
   /** Creates a LogicalProject. */
@@ -137,14 +133,7 @@ public final class LogicalProject extends Project {
   /** Creates a LogicalProject, specifying row type rather than field names. */
   public static LogicalProject create(final RelNode input, List<RelHint> hints,
       final List<? extends RexNode> projects, RelDataType rowType) {
-    final RelOptCluster cluster = input.getCluster();
-    final RelMetadataQuery mq = cluster.getMetadataQuery();
-    final RelTraitSet traitSet =
-        cluster.traitSet().replace(Convention.NONE)
-            .replaceIfs(RelCollationTraitDef.INSTANCE,
-                () -> RelMdCollation.project(mq, input, projects));
-    return new LogicalProject(cluster, traitSet, hints, input, projects, rowType,
-        ImmutableSet.of());
+    return create(input, hints, projects, rowType, ImmutableSet.of());
   }
 
   /** Creates a LogicalProject, specifying row type rather than field names. */
