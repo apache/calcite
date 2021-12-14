@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
@@ -31,9 +30,9 @@ import org.immutables.value.Value;
 
 /**
  * Planner rule that merges a
- * {@link org.apache.calcite.rel.logical.LogicalFilter} and a
- * {@link org.apache.calcite.rel.logical.LogicalCalc}. The
- * result is a {@link org.apache.calcite.rel.logical.LogicalCalc}
+ * {@link org.apache.calcite.rel.core.Filter} and a
+ * {@link org.apache.calcite.rel.core.Calc}. The
+ * result is a {@link org.apache.calcite.rel.core.Calc}
  * whose filter condition is the logical AND of the two.
  *
  * @see FilterMergeRule
@@ -60,8 +59,8 @@ public class FilterCalcMergeRule
   //~ Methods ----------------------------------------------------------------
 
   @Override public void onMatch(RelOptRuleCall call) {
-    final LogicalFilter filter = call.rel(0);
-    final LogicalCalc calc = call.rel(1);
+    final Filter filter = call.rel(0);
+    final Calc calc = call.rel(1);
 
     // Don't merge a filter onto a calc which contains windowed aggregates.
     // That would effectively be pushing a multiset down through a filter.
@@ -87,8 +86,8 @@ public class FilterCalcMergeRule
             topProgram,
             bottomProgram,
             rexBuilder);
-    final LogicalCalc newCalc =
-        LogicalCalc.create(calc.getInput(), mergedProgram);
+    final Calc newCalc =
+        calc.copy(calc.getTraitSet(), calc.getInput(), mergedProgram);
     call.transformTo(newCalc);
   }
 
