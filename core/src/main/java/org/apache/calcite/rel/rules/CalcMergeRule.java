@@ -28,13 +28,13 @@ import org.immutables.value.Value;
 
 /**
  * Planner rule that merges a
- * {@link org.apache.calcite.rel.logical.LogicalCalc} onto a
- * {@link org.apache.calcite.rel.logical.LogicalCalc}.
+ * {@link org.apache.calcite.rel.core.Calc} onto a
+ * {@link org.apache.calcite.rel.core.Calc}.
  *
- * <p>The resulting {@link org.apache.calcite.rel.logical.LogicalCalc} has the
+ * <p>The resulting {@link org.apache.calcite.rel.core.Calc} has the
  * same project list as the upper
- * {@link org.apache.calcite.rel.logical.LogicalCalc}, but expressed in terms of
- * the lower {@link org.apache.calcite.rel.logical.LogicalCalc}'s inputs.
+ * {@link org.apache.calcite.rel.core.Calc}, but expressed in terms of
+ * the lower {@link org.apache.calcite.rel.core.Calc}'s inputs.
  *
  * @see CoreRules#CALC_MERGE
  */

@@ -28,6 +28,29 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.31.0">1.31.0</a> / 2022-MM-DD
+{: #v1-31-0}
+
+#### Breaking Changes
+{: #breaking-1-31-0}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4936">CALCITE-4936</a>]
+  Generalize `FilterCalcMergeRule`/`ProjectCalcMergeRule` to accept any `Filter`/`Project`/`Calc` operator
+
+#### New features
+{: #new-features-1-31-0}
+
+#### Bug-fixes, API changes and minor enhancements
+{: #fixes-1-31-0}
+
+#### Build and test suite
+{: #build-1-31-0}
+
+#### Dependency version upgrade
+{: #dependency-1-31-0}
+
+#### Web site and documentation
+{: #site-1-31-0}
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.30.0">1.30.0</a> / 2022-03-20
 {: #v1-30-0}
