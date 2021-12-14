@@ -58,6 +58,9 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.hint.HintPredicates;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -147,6 +150,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -1075,6 +1079,48 @@ class RelOptRulesTest extends RelOptTestBase {
         .withDecorrelation(true)
         .withTrim(true)
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4941">[CALCITE-4941]
+   * SemiJoinRule loses hints</a>. */
+  @Test void testSemiJoinRuleWithHint() {
+    final RelHint noHashJoinHint = RelHint.builder("no_hash_join").build();
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      b.getCluster().setHintStrategies(
+          HintStrategyTable.builder()
+              .hintStrategy("no_hash_join", HintPredicates.JOIN)
+              .build());
+      return b
+          .scan("DEPT")
+          .scan("EMP")
+          .project(b.field("DEPTNO"))
+          .distinct()
+          .join(
+              JoinRelType.INNER,
+              b.equals(
+                  b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO"))).hints(noHashJoinHint)
+          .project(b.field("DNAME"))
+          .build();
+    };
+
+    // verify plan
+    relFn(relFn)
+        .withRule(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .check();
+
+    // verify hint
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode input = relFn.apply(relBuilder);
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(input);
+    final RelNode output = hepPlanner.findBestExp();
+    final Join join = (Join) output.getInput(0);
+    assertTrue(join.getHints().contains(noHashJoinHint));
   }
 
   /** Test case for
