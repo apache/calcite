@@ -109,7 +109,7 @@ public abstract class SemiJoinRule
           RelOptUtil.createEquiJoinCondition(relBuilder.peek(2, 0),
               joinInfo.leftKeys, relBuilder.peek(2, 1), newRightKeys,
               rexBuilder);
-      relBuilder.semiJoin(newCondition);
+      relBuilder.semiJoin(newCondition).hints(join.getHints());
       break;
 
     case LEFT:
