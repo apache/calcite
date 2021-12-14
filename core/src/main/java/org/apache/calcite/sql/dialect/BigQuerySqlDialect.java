@@ -409,6 +409,16 @@ public class BigQuerySqlDialect extends SqlDialect {
           }
           return SqlLibraryOperators.DATETIME_ADD;
         }
+      case TIME:
+        switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        case INTERVAL_MINUTE:
+        case INTERVAL_SECOND:
+        case INTERVAL_HOUR:
+          if (call.op.kind == SqlKind.MINUS) {
+            return SqlLibraryOperators.TIME_SUB;
+          }
+          return SqlLibraryOperators.TIME_ADD;
+        }
       default:
         return super.getTargetFunc(call);
       }
@@ -585,7 +595,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case MINUS:
       if (call.getOperator() == SqlLibraryOperators.TIMESTAMP_SUB
-              && isIntervalHourAndSecond(call)) {
+          && isIntervalHourAndSecond(call)) {
         unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
       } else {
         BigQueryDateTimestampInterval minusInterval = new BigQueryDateTimestampInterval();
