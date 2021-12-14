@@ -79,7 +79,9 @@ public class BigQueryDateTimestampInterval {
     return SqlLibraryOperators.TIMESTAMP_ADD.getName().equals(operator)
         || SqlLibraryOperators.TIMESTAMP_SUB.getName().equals(operator)
         || SqlLibraryOperators.DATE_ADD.getName().equals(operator)
-        || SqlLibraryOperators.DATE_SUB.getName().equals(operator);
+        || SqlLibraryOperators.DATE_SUB.getName().equals(operator)
+        || SqlLibraryOperators.TIME_ADD.getName().equals(operator)
+        || SqlLibraryOperators.TIME_SUB.getName().equals(operator);
   }
 
   private boolean handleIntervalArithmeticCombination(SqlWriter writer, SqlCall call,
