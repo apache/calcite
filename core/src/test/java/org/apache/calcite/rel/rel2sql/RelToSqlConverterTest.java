@@ -122,6 +122,12 @@ class RelToSqlConverterTest {
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
+  private Sql sqlTest(String sql) {
+    return new Sql(CalciteAssert.SchemaSpec.FOODMART_TEST, sql,
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        UnaryOperator.identity(), null, ImmutableList.of());
+  }
+
   /** Initiates a test case with a given {@link RelNode} supplier. */
   private Sql relFn(Function<RelBuilder, RelNode> relFn) {
     return sql("?").relFn(relFn);
@@ -9483,5 +9489,16 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT DATE_SUB(DATE '1999-07-01', INTERVAL 1 DAY) AS FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testWhenTableNameAndColumnNameIsSame() {
+    String query =
+        "select \"test\" from \"foodmart\".\"test\"";
+    final String expectedBQSql =
+        "SELECT test.test\n"
+            + "FROM foodmart.test AS test";
+    sqlTest(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
   }
 }

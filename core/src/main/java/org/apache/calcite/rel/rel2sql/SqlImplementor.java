@@ -140,6 +140,7 @@ public abstract class SqlImplementor {
   protected final Map<String, SqlNode> ordinalMap = new HashMap<>();
 
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
+  protected boolean isTableNameColumnNameIdentical = false;
 
   /** Private RexBuilder for short-lived expressions. It has its own
    * dedicated type factory, so don't trust the types to be canonized. */
@@ -481,22 +482,32 @@ public abstract class SqlImplementor {
         SqlValidatorUtil.uniquify(
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
     final RelDataType rowType = adjustedRowType(rel, node);
+    isTableNameColumnNameIdentical = isTableNameColumnNameIdentical(rowType, alias4);
     if (aliases != null
         && !aliases.isEmpty()
         && (!dialect.hasImplicitTableAlias()
+        || (!dialect.supportsIdenticalTableAndColumnName() && isTableNameColumnNameIdentical)
           || aliases.size() > 1)) {
       return result(node, clauses, alias4, rowType, aliases);
     }
     final String alias5;
     if (alias2 == null
         || !alias2.equals(alias4)
-        || !dialect.hasImplicitTableAlias()) {
+        || !dialect.hasImplicitTableAlias()
+        || (!dialect.supportsIdenticalTableAndColumnName() && isTableNameColumnNameIdentical)) {
       alias5 = alias4;
     } else {
       alias5 = null;
     }
     return result(node, clauses, alias5, rowType,
         ImmutableMap.of(alias4, rowType));
+  }
+
+  private boolean isTableNameColumnNameIdentical(RelDataType rowType, String tableName) {
+    final List<RelDataTypeField> fields = rowType.getFieldList();
+    return fields.stream().anyMatch(
+        field -> field.getKey().equals(tableName)
+    );
   }
 
   /** Factory method for {@link Result}.
@@ -642,7 +653,8 @@ public abstract class SqlImplementor {
     }
     switch (node.getKind()) {
     case IDENTIFIER:
-      return !dialect.hasImplicitTableAlias();
+      return !dialect.hasImplicitTableAlias() || (!dialect.supportsIdenticalTableAndColumnName()
+          && isTableNameColumnNameIdentical);
     case AS:
     case JOIN:
     case EXPLICIT_TABLE:
@@ -1817,7 +1829,9 @@ public abstract class SqlImplementor {
         };
       } else {
         boolean qualified =
-            !dialect.hasImplicitTableAlias() || aliases.size() > 1;
+            (
+                !dialect.hasImplicitTableAlias() || (!dialect.supportsIdenticalTableAndColumnName()
+                && isTableNameColumnNameIdentical)) || aliases.size() > 1;
         // basically, we did a subSelect() since needNew is set and neededAlias is not null
         // now, we need to make sure that we need to update the alias context.
         // if our aliases map has a single element:  <neededAlias, rowType>,
@@ -2264,7 +2278,8 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         return (SqlSelect) node;
       }
-      if (!dialect.hasImplicitTableAlias()) {
+      if (!dialect.hasImplicitTableAlias() || (!dialect.supportsIdenticalTableAndColumnName()
+          && isTableNameColumnNameIdentical)) {
         return wrapSelect(asFrom());
       }
       return wrapSelect(node);

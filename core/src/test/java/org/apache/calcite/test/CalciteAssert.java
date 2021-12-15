@@ -979,6 +979,9 @@ public class CalciteAssert {
     case BOOKSTORE:
       return rootSchema.add(schema.schemaName,
           new ReflectiveSchema(new BookstoreSchema()));
+    case FOODMART_TEST:
+      return rootSchema.add(schema.schemaName,
+          new ReflectiveSchema(new FoodmartTestSchema()));
     default:
       throw new AssertionError("unknown schema " + schema);
     }
@@ -2061,7 +2064,8 @@ public class CalciteAssert {
     POST("POST"),
     ORINOCO("ORINOCO"),
     AUX("AUX"),
-    BOOKSTORE("bookstore");
+    BOOKSTORE("bookstore"),
+    FOODMART_TEST("foodmart");
 
     /** The name of the schema that is usually created from this specification.
      * (Names are not unique, and you can use another name if you wish.) */
