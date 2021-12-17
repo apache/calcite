@@ -221,8 +221,8 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       return withPre(builder.build());
     }
 
-    public Sql with(HepPlanner hepPlanner) {
-      return new Sql(tester, sql, preProgram, hepPlanner, hooks, transforms, relFn);
+    public Sql with(RelOptPlanner planner) {
+      return new Sql(tester, sql, preProgram, planner, hooks, transforms, relFn);
     }
 
     public Sql with(HepProgram program) {
