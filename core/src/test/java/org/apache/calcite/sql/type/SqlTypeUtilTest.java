@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
@@ -186,7 +187,7 @@ class SqlTypeUtilTest {
     assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
   }
 
-  @Test public void testGetMaxPrecisionScaleDecimal() {
+  @Test void testGetMaxPrecisionScaleDecimal() {
     RelDataType decimal = SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory);
     assertThat(decimal, is(f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, 9)));
   }
@@ -214,7 +215,7 @@ class SqlTypeUtilTest {
         SqlTypeUtil.equalSansNullability(type1, type2), is(expectedResult));
   }
 
-  @Test public void testEqualSansNullability() {
+  @Test void testEqualSansNullability() {
     RelDataType bigIntType = f.sqlBigInt;
     RelDataType nullableBigIntType = f.sqlBigIntNullable;
     RelDataType varCharType = f.sqlVarchar;
@@ -231,7 +232,7 @@ class SqlTypeUtilTest {
         bigIntType, bigIntType1, true);
   }
 
-  @Test public void testCanAlwaysCastToUnknownFromBasic() {
+  @Test void testCanAlwaysCastToUnknownFromBasic() {
     RelDataType unknownType = f.typeFactory.createUnknownType();
     RelDataType nullableUnknownType = f.typeFactory.createTypeWithNullability(unknownType, true);
 
@@ -254,11 +255,11 @@ class SqlTypeUtilTest {
 
   private static void assertCanCast(RelDataType toType, RelDataType fromType) {
     assertThat(
-        String.format(
+        String.format(Locale.ROOT,
             "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
         SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ false), is(true));
     assertThat(
-        String.format(
+        String.format(Locale.ROOT,
             "Expected to be able to cast from %s to %s with coercion.", fromType, toType),
         SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ true), is(true));
   }
