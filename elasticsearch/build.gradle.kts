@@ -18,12 +18,6 @@ plugins {
     id("com.github.vlsi.gradle-extensions")
 }
 
-repositories {
-    maven {
-        setUrl("https://maven.codelibs.org/")
-    }
-}
-
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
@@ -44,7 +38,6 @@ dependencies {
     testImplementation("org.apache.logging.log4j:log4j-api")
     testImplementation("org.apache.logging.log4j:log4j-core")
     testImplementation("org.codelibs.elasticsearch.module:lang-painless")
-    testImplementation("org.codelibs.elasticsearch.module:scripting-painless-spi")
     testImplementation("org.elasticsearch.plugin:transport-netty4-client")
     testImplementation("org.elasticsearch:elasticsearch")
     testImplementation(project(":testkit"))
