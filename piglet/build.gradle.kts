@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.autostyle.gradle.AutostyleTask
 import com.github.vlsi.gradle.ide.dsl.settings
 import com.github.vlsi.gradle.ide.dsl.taskTriggers
 
@@ -69,6 +70,15 @@ fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
 val annotationProcessorMain by tasks.registering(JavaCompile::class) {
     dependsOn(javaCCMain)
     configureAnnotationSet(sourceSets.main.get())
+}
+
+tasks.withType<Checkstyle>().matching { it.name == "checkstyleMain" }
+    .configureEach {
+        mustRunAfter(javaCCMain)
+    }
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(javaCCMain)
 }
 
 ide {

@@ -103,58 +103,58 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   // INTERSECT -> *
   // which explains the different precedence values
   public static final SqlSetOperator UNION =
-      new SqlSetOperator("UNION", SqlKind.UNION, 14, false);
+      new SqlSetOperator("UNION", SqlKind.UNION, 12, false);
 
   public static final SqlSetOperator UNION_ALL =
-      new SqlSetOperator("UNION ALL", SqlKind.UNION, 14, true);
+      new SqlSetOperator("UNION ALL", SqlKind.UNION, 12, true);
 
   public static final SqlSetOperator EXCEPT =
-      new SqlSetOperator("EXCEPT", SqlKind.EXCEPT, 14, false);
+      new SqlSetOperator("EXCEPT", SqlKind.EXCEPT, 12, false);
 
   public static final SqlSetOperator EXCEPT_ALL =
-      new SqlSetOperator("EXCEPT ALL", SqlKind.EXCEPT, 14, true);
+      new SqlSetOperator("EXCEPT ALL", SqlKind.EXCEPT, 12, true);
 
   public static final SqlSetOperator INTERSECT =
-      new SqlSetOperator("INTERSECT", SqlKind.INTERSECT, 18, false);
+      new SqlSetOperator("INTERSECT", SqlKind.INTERSECT, 14, false);
 
   public static final SqlSetOperator INTERSECT_ALL =
-      new SqlSetOperator("INTERSECT ALL", SqlKind.INTERSECT, 18, true);
+      new SqlSetOperator("INTERSECT ALL", SqlKind.INTERSECT, 14, true);
 
   /**
    * The {@code MULTISET UNION DISTINCT} operator.
    */
   public static final SqlMultisetSetOperator MULTISET_UNION_DISTINCT =
-      new SqlMultisetSetOperator("MULTISET UNION DISTINCT", 14, false);
+      new SqlMultisetSetOperator("MULTISET UNION DISTINCT", 12, false);
 
   /**
    * The {@code MULTISET UNION [ALL]} operator.
    */
   public static final SqlMultisetSetOperator MULTISET_UNION =
-      new SqlMultisetSetOperator("MULTISET UNION ALL", 14, true);
+      new SqlMultisetSetOperator("MULTISET UNION ALL", 12, true);
 
   /**
    * The {@code MULTISET EXCEPT DISTINCT} operator.
    */
   public static final SqlMultisetSetOperator MULTISET_EXCEPT_DISTINCT =
-      new SqlMultisetSetOperator("MULTISET EXCEPT DISTINCT", 14, false);
+      new SqlMultisetSetOperator("MULTISET EXCEPT DISTINCT", 12, false);
 
   /**
    * The {@code MULTISET EXCEPT [ALL]} operator.
    */
   public static final SqlMultisetSetOperator MULTISET_EXCEPT =
-      new SqlMultisetSetOperator("MULTISET EXCEPT ALL", 14, true);
+      new SqlMultisetSetOperator("MULTISET EXCEPT ALL", 12, true);
 
   /**
    * The {@code MULTISET INTERSECT DISTINCT} operator.
    */
   public static final SqlMultisetSetOperator MULTISET_INTERSECT_DISTINCT =
-      new SqlMultisetSetOperator("MULTISET INTERSECT DISTINCT", 18, false);
+      new SqlMultisetSetOperator("MULTISET INTERSECT DISTINCT", 14, false);
 
   /**
    * The {@code MULTISET INTERSECT [ALL]} operator.
    */
   public static final SqlMultisetSetOperator MULTISET_INTERSECT =
-      new SqlMultisetSetOperator("MULTISET INTERSECT ALL", 18, true);
+      new SqlMultisetSetOperator("MULTISET INTERSECT ALL", 14, true);
 
   //-------------------------------------------------------------
   //                   BINARY OPERATORS

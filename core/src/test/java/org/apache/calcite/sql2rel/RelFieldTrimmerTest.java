@@ -452,4 +452,36 @@ class RelFieldTrimmerTest {
     assertTrue(calc.getHints().contains(calcHint));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4783">[CALCITE-4783]
+   * RelFieldTrimmer incorrectly drops filter condition</a>. */
+  @Test void testCalcFieldTrimmer3() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(
+                builder.field("ENAME"),
+                builder.field("DEPTNO"))
+            .exchange(RelDistributions.SINGLETON)
+            .filter(builder.equals(builder.field("ENAME"), builder.literal("bob")))
+            .aggregate(builder.groupKey(), builder.countStar(null))
+            .build();
+
+    final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.FILTER_TO_CALC).build();
+
+    final HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(root);
+    final RelNode relNode = hepPlanner.findBestExp();
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(relNode);
+
+    final String expected = ""
+        + "LogicalAggregate(group=[{}], agg#0=[COUNT()])\n"
+        + "  LogicalCalc(expr#0=[{inputs}], expr#1=['bob'], expr#2=[=($t0, $t1)], $condition=[$t2])\n"
+        + "    LogicalExchange(distribution=[single])\n"
+        + "      LogicalProject(ENAME=[$1])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
 }

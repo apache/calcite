@@ -18,9 +18,11 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
@@ -536,6 +538,27 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
+  @Test public void testExchangeWithDistributionTraitDef() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .exchange(RelDistributions.hash(ImmutableList.of(0, 1)))
+        .build();
+    final String relJson = RelOptUtil.dumpPlan("", rel,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+    RelOptCluster cluster = RelOptCluster.create(planner, builder.getRexBuilder());
+
+    String plan = deserializeAndDump(cluster, getSchema(rel), relJson, SqlExplainFormat.TEXT);
+    final String expected = ""
+        + "LogicalExchange(distribution=[hash[0, 1]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(plan, isLinux(expected));
+  }
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
@@ -964,6 +987,24 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
+  @Test void testMapType() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(
+            builder.call(new MockSqlOperatorTable.MapFunction(),
+                builder.literal("key"), builder.literal("value")))
+        .build();
+    final String relJson = RelOptUtil.dumpPlan("", rel,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    final String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = ""
+        + "LogicalProject($f0=[MAP('key', 'value')])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
   /** Returns the schema of a {@link org.apache.calcite.rel.core.TableScan}
    * in this plan, or null if there are no scans. */
   private RelOptSchema getSchema(RelNode rel) {
@@ -998,6 +1039,18 @@ class RelWriterTest {
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
         });
     return s;
+  }
+
+  private String deserializeAndDump(RelOptCluster cluster, RelOptSchema schema, String relJson,
+      SqlExplainFormat format) {
+    final RelJsonReader reader = new RelJsonReader(cluster, schema, null);
+    RelNode node;
+    try {
+      node = reader.read(relJson);
+    } catch (IOException e) {
+      throw TestUtil.rethrow(e);
+    }
+    return RelOptUtil.dumpPlan("", node, format, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
   }
 
   /**

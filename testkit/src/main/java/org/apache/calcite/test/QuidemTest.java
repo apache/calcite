@@ -48,6 +48,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -78,6 +79,18 @@ public abstract class QuidemTest {
           return Bug.CALCITE_1045_FIXED;
         case "calcite1048":
           return Bug.CALCITE_1048_FIXED;
+        case "calcite4877":
+          return Bug.CALCITE_4877_FIXED;
+        }
+        return null;
+      };
+    case "not":
+      return (Function<String, Object>) v -> {
+        final Object o = getEnv(v);
+        if (o instanceof Function) {
+          @SuppressWarnings("unchecked") final Function<String, Object> f =
+              (Function<String, Object>) o;
+          return (Function<String, Object>) v2 -> !((Boolean) f.apply(v2));
         }
         return null;
       };
@@ -149,6 +162,10 @@ public abstract class QuidemTest {
               final boolean b = value instanceof Boolean
                   && (Boolean) value;
               closer.add(Prepare.THREAD_EXPAND.push(b));
+            }
+            if (propertyName.equals("insubquerythreshold")) {
+              int thresholdValue = ((BigDecimal) value).intValue();
+              closer.add(Prepare.THREAD_INSUBQUERY_THRESHOLD.push(thresholdValue));
             }
           })
           .withEnv(QuidemTest::getEnv)
@@ -269,6 +286,7 @@ public abstract class QuidemTest {
       case "oraclefunc":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "oracle")
+            .with(CalciteAssert.Config.REGULAR)
             .connect();
       case "catchall":
         return CalciteAssert.that()

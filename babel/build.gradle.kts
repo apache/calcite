@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.autostyle.gradle.AutostyleTask
+
 plugins {
     id("com.github.vlsi.ide")
     calcite.fmpp
@@ -50,6 +52,15 @@ val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
     }
     inputFile.from(parserFile)
     packageName.set("org.apache.calcite.sql.parser.babel")
+}
+
+tasks.withType<Checkstyle>().matching { it.name == "checkstyleMain" }
+    .configureEach {
+        mustRunAfter(javaCCMain)
+    }
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(javaCCMain)
 }
 
 ide {

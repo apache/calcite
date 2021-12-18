@@ -50,9 +50,13 @@ public class RelJsonWriter implements RelWriter {
   //~ Constructors -------------------------------------------------------------
 
   public RelJsonWriter() {
-    jsonBuilder = new JsonBuilder();
-    relList = jsonBuilder.list();
-    relJson = new RelJson(jsonBuilder);
+    this(new JsonBuilder());
+  }
+
+  public RelJsonWriter(JsonBuilder jsonBuilder) {
+    this.jsonBuilder = jsonBuilder;
+    relList = this.jsonBuilder.list();
+    relJson = new RelJson(this.jsonBuilder);
   }
 
   //~ Methods ------------------------------------------------------------------

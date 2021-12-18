@@ -455,8 +455,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
@@ -480,8 +479,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
@@ -512,9 +510,9 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0), ImmutableBitSet.of())),
+                ImmutableList.of(ImmutableBitSet.of(0, 1),
+                    ImmutableBitSet.of(0),
+                    ImmutableBitSet.of())),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
@@ -545,9 +543,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .project(b.field("JOB"))
@@ -567,9 +563,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .sort(b.field("C"))
@@ -590,9 +584,9 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .aggregate(
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1),
-                        ImmutableBitSet.of(0), ImmutableBitSet.of())),
+                ImmutableList.of(ImmutableBitSet.of(0, 1),
+                    ImmutableBitSet.of(0),
+                    ImmutableBitSet.of())),
             b.count(false, "C"),
             b.sum(false, "S", b.field("SAL")))
         .filter(
@@ -1878,6 +1872,31 @@ class RelToSqlConverterTest {
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
+    relFn(relFn).ok(expectedSql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4876">[CALCITE-4876]
+   * Converting RelNode to SQL with CalciteSqlDialect gets wrong result
+   * while EnumerableIntersect is followed by EnumerableLimit</a>.
+   */
+  @Test void testUnparseIntersectWithLimit() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .project(b.field("DEPTNO"))
+        .scan("EMP")
+        .project(b.field("DEPTNO"))
+        .intersect(true)
+        .limit(1, 3)
+        .build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "INTERSECT ALL\n"
+        + "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\")\n"
+        + "OFFSET 1 ROWS\n"
+        + "FETCH NEXT 3 ROWS ONLY";
     relFn(relFn).ok(expectedSql);
   }
 

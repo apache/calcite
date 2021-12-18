@@ -249,8 +249,7 @@ public final class AggregateExpandDistinctAggregatesRule
     int n = 0;
     if (!newAggCallList.isEmpty()) {
       final RelBuilder.GroupKey groupKey =
-          relBuilder.groupKey(groupSet,
-              (Iterable<ImmutableBitSet>) aggregate.getGroupSets());
+          relBuilder.groupKey(groupSet, aggregate.getGroupSets());
       relBuilder.aggregate(groupKey, newAggCallList);
       ++n;
     }
@@ -478,8 +477,7 @@ public final class AggregateExpandDistinctAggregatesRule
             groupSets.size(), relBuilder.peek(), null, "$g"));
 
     relBuilder.aggregate(
-        relBuilder.groupKey(fullGroupSet,
-            (Iterable<ImmutableBitSet>) groupSets),
+        relBuilder.groupKey(fullGroupSet, groupSets),
         distinctAggCalls);
 
     // GROUPING returns an integer (0 or 1). Add a project to convert those
@@ -537,8 +535,7 @@ public final class AggregateExpandDistinctAggregatesRule
     relBuilder.aggregate(
         relBuilder.groupKey(
             remap(fullGroupSet, groupSet),
-            (Iterable<ImmutableBitSet>)
-                remap(fullGroupSet, aggregate.getGroupSets())),
+            remap(fullGroupSet, aggregate.getGroupSets())),
         newCalls);
     relBuilder.convert(aggregate.getRowType(), true);
     call.transformTo(relBuilder.build());

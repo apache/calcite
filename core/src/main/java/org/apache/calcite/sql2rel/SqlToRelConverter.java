@@ -1141,8 +1141,9 @@ public class SqlToRelConverter {
 
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
-        if (valueList.size() < config.getInSubQueryThreshold()) {
-          // We're under the threshold, so convert to OR.
+        // When the list size under the threshold or the list references columns, we convert to OR.
+        if (valueList.size() < config.getInSubQueryThreshold()
+            || valueList.accept(new SqlIdentifierFinder())) {
           subQuery.expr =
               convertInToOr(
                   bb,
@@ -1666,14 +1667,18 @@ public class SqlToRelConverter {
 
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tupleList =
         ImmutableList.builder();
+    final RelDataType listType = validator().getValidatedNodeType(rowList);
     final RelDataType rowType;
     if (targetRowType != null) {
-      rowType = targetRowType;
+      rowType =
+          typeFactory.createTypeWithNullability(
+              targetRowType,
+              SqlTypeUtil.containsNullable(listType));
     } else {
       rowType =
           SqlTypeUtil.promoteToRowType(
               typeFactory,
-              validator().getValidatedNodeType(rowList),
+              listType,
               null);
     }
 
@@ -3350,7 +3355,7 @@ public class SqlToRelConverter {
       ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     relBuilder.push(bb.root());
     final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(groupSet, (Iterable<ImmutableBitSet>) groupSets);
+        relBuilder.groupKey(groupSet, groupSets);
     return relBuilder.aggregate(groupKey, aggCalls)
         .build();
   }
@@ -6112,6 +6117,43 @@ public class SqlToRelConverter {
       this.node = node;
       this.logic = logic;
     }
+  }
+
+  /**
+   * Visitor that looks for an SqlIdentifier inside a tree of
+   * {@link SqlNode} objects and return {@link Boolean#TRUE} when it finds
+   * one.
+   */
+  public static class SqlIdentifierFinder implements SqlVisitor<Boolean> {
+
+    @Override public Boolean visit(SqlCall sqlCall) {
+      return sqlCall.getOperandList().stream().anyMatch(sqlNode -> sqlNode.accept(this));
+    }
+
+    @Override public Boolean visit(SqlNodeList nodeList) {
+      return nodeList.stream().anyMatch(sqlNode -> sqlNode.accept(this));
+    }
+
+    @Override public Boolean visit(SqlIdentifier identifier) {
+      return true;
+    }
+
+    @Override public Boolean visit(SqlLiteral literal) {
+      return false;
+    }
+
+    @Override public Boolean visit(SqlDataTypeSpec type) {
+      return false;
+    }
+
+    @Override public Boolean visit(SqlDynamicParam param) {
+      return false;
+    }
+
+    @Override public Boolean visit(SqlIntervalQualifier intervalQualifier) {
+      return false;
+    }
+
   }
 
   /**

@@ -187,4 +187,26 @@ SELECT XMLTRANSFORM(
 Invalid input for XMLTRANSFORM xml: '<'
 !error
 
+# [CALCITE-4875] Preserve Operand Nullability in NVL rewrite
+# Asserting that NVL does not change a Nullable operand to NOT Nullable
+
+!use oraclefunc
+select nvl("name", 'undefined') FROM "hr"."emps";
+
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t2)], expr#6=[CAST($t2):VARCHAR], expr#7=['undefined':VARCHAR], expr#8=[CASE($t5, $t6, $t7)], EXPR$0=[$t8])
+  EnumerableTableScan(table=[[hr, emps]])
+!plan
+
++-----------+
+| EXPR$0    |
++-----------+
+| Bill      |
+| Eric      |
+| Sebastian |
+| Theodore  |
++-----------+
+(4 rows)
+
+!ok
+
 # End functions.iq
