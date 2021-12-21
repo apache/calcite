@@ -31,16 +31,16 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15)
-and Gradle (version 7.2) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16 or 17)
+and Gradle (version 7.3) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.28.0-src.tar.gz
-$ cd apache-calcite-1.28.0-src
+$ tar xvfz apache-calcite-1.29.0-src.tar.gz
+$ cd apache-calcite-1.29.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -605,7 +605,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.28.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.29.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
