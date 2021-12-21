@@ -80,10 +80,10 @@ import java.util.stream.Collectors;
  * for the standard logical algebra.
  */
 public class RelMdCollation
-    implements MetadataHandler<BuiltInMetadata.Collation> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdCollation(), BuiltInMetadata.Collation.Handler.class);
+          new RelMdCollation(), BuiltInMetadata.CollationHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -91,6 +91,7 @@ public class RelMdCollation
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.Collation> getDef() {
     return BuiltInMetadata.Collation.DEF;
   }

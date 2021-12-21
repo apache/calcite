@@ -43,105 +43,105 @@ class RelMetadataHandlerGeneratorUtilTest {
   private static final Path RESULT_DIR = Paths.get("build/metadata");
 
   @Test void testAllPredicatesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.AllPredicates.Handler.class);
+    testGenerateHandler(BuiltInMetadata.AllPredicatesHandler.class);
   }
 
   @Test void testCollationGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Collation.Handler.class);
+    testGenerateHandler(BuiltInMetadata.CollationHandler.class);
   }
 
   @Test void testColumnOriginGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ColumnOrigin.Handler.class);
+    testGenerateHandler(BuiltInMetadata.ColumnOriginHandler.class);
   }
 
   @Test void testColumnUniquenessGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ColumnUniqueness.Handler.class);
+    testGenerateHandler(BuiltInMetadata.ColumnUniquenessHandler.class);
   }
 
   @Test void testCumulativeCostGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.CumulativeCost.Handler.class);
+    testGenerateHandler(BuiltInMetadata.CumulativeCostHandler.class);
   }
 
   @Test void testDistinctRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.DistinctRowCount.Handler.class);
+    testGenerateHandler(BuiltInMetadata.DistinctRowCountHandler.class);
   }
 
   @Test void testDistributionGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Distribution.Handler.class);
+    testGenerateHandler(BuiltInMetadata.DistributionHandler.class);
   }
 
   @Test void testExplainVisibilityGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ExplainVisibility.Handler.class);
+    testGenerateHandler(BuiltInMetadata.ExplainVisibilityHandler.class);
   }
 
   @Test void testExpressionLineageGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
+    testGenerateHandler(BuiltInMetadata.ExpressionLineageHandler.class);
   }
 
   @Test void testLowerBoundCostGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    testGenerateHandler(BuiltInMetadata.LowerBoundCostHandler.class);
   }
 
   @Test void testMaxRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.MaxRowCount.Handler.class);
+    testGenerateHandler(BuiltInMetadata.MaxRowCountHandler.class);
   }
 
   @Test void testMemoryGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Memory.Handler.class);
+    testGenerateHandler(BuiltInMetadata.MemoryHandler.class);
   }
 
   @Test void testMinRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.MinRowCount.Handler.class);
+    testGenerateHandler(BuiltInMetadata.MinRowCountHandler.class);
   }
 
   @Test void testNodeTypesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.NodeTypes.Handler.class);
+    testGenerateHandler(BuiltInMetadata.NodeTypesHandler.class);
   }
 
   @Test void testNonCumulativeCostGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.NonCumulativeCost.Handler.class);
+    testGenerateHandler(BuiltInMetadata.NonCumulativeCostHandler.class);
   }
 
   @Test void testParallelismGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Parallelism.Handler.class);
+    testGenerateHandler(BuiltInMetadata.ParallelismHandler.class);
   }
 
   @Test void testPercentageOriginalRowsGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.PercentageOriginalRows.Handler.class);
+    testGenerateHandler(BuiltInMetadata.PercentageOriginalRowsHandler.class);
   }
 
   @Test void testPopulationSizeGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.PopulationSize.Handler.class);
+    testGenerateHandler(BuiltInMetadata.PopulationSizeHandler.class);
   }
 
   @Test void testPredicatesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Predicates.Handler.class);
+    testGenerateHandler(BuiltInMetadata.PredicatesHandler.class);
   }
 
   @Test void testRowCountGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.RowCount.Handler.class);
+    testGenerateHandler(BuiltInMetadata.RowCountHandler.class);
   }
 
   @Test void testSelectivityGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Selectivity.Handler.class);
+    testGenerateHandler(BuiltInMetadata.SelectivityHandler.class);
   }
 
   @Test void testSizeGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.Size.Handler.class);
+    testGenerateHandler(BuiltInMetadata.SizeHandler.class);
   }
 
   @Test void testTableReferencesGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.TableReferences.Handler.class);
+    testGenerateHandler(BuiltInMetadata.TableReferencesHandler.class);
   }
 
   @Test void testUniqueKeysGenerateHandler() {
-    testGenerateHandler(BuiltInMetadata.UniqueKeys.Handler.class);
+    testGenerateHandler(BuiltInMetadata.UniqueKeysHandler.class);
   }
 
   /**
    * Performance a regression test on the generated code for a given handler.
    */
-  private void testGenerateHandler(Class<? extends MetadataHandler<?>> handlerClass) {
+  private void testGenerateHandler(Class<? extends MetadataHandler> handlerClass) {
     RelMetadataHandlerGeneratorUtil.HandlerNameAndGeneratedCode nameAndGeneratedCode =
         RelMetadataHandlerGeneratorUtil.generateHandler(handlerClass,
             DefaultRelMetadataProvider.INSTANCE.handlers(handlerClass));

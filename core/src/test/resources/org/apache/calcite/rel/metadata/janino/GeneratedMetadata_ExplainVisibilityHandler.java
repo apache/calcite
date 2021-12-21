@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_ExplainVisibilityHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibilityHandler {
   private final Object methodKey0Null =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Boolean Handler.isVisibleInExplain(null)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Boolean ExplainVisibilityHandler.isVisibleInExplain(null)");
   private final Object[] methodKey0 =
       org.apache.calcite.rel.metadata.janino.CacheUtil.generateEnum("Boolean isVisibleInExplain", org.apache.calcite.sql.SqlExplainLevel.values());
   public final org.apache.calcite.rel.metadata.RelMdExplainVisibility provider0;
@@ -71,7 +71,7 @@ public final class GeneratedMetadata_ExplainVisibilityHandler
     if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.isVisibleInExplain((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Boolean org.apache.calcite.rel.metadata.BuiltInMetadata$ExplainVisibility$Handler.isVisibleInExplain(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.sql.SqlExplainLevel)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Boolean org.apache.calcite.rel.metadata.BuiltInMetadata$ExplainVisibilityHandler.isVisibleInExplain(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.sql.SqlExplainLevel)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

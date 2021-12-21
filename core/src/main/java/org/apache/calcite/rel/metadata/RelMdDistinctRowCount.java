@@ -51,10 +51,10 @@ import java.util.Set;
  * algebra.
  */
 public class RelMdDistinctRowCount
-    implements MetadataHandler<BuiltInMetadata.DistinctRowCount> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdDistinctRowCount(), BuiltInMetadata.DistinctRowCount.Handler.class);
+          new RelMdDistinctRowCount(), BuiltInMetadata.DistinctRowCountHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -62,6 +62,7 @@ public class RelMdDistinctRowCount
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.DistinctRowCount> getDef() {
     return BuiltInMetadata.DistinctRowCount.DEF;
   }

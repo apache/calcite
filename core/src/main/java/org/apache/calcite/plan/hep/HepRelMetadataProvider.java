@@ -18,7 +18,6 @@ package org.apache.calcite.plan.hep;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.Metadata;
-import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
@@ -71,13 +70,13 @@ class HepRelMetadataProvider implements RelMetadataProvider {
   }
 
   @Deprecated // to be removed before 2.0
-  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
-      MetadataDef<M> def) {
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler> handlers(
+      org.apache.calcite.rel.metadata.MetadataDef<M> def) {
     return ImmutableMultimap.of();
   }
 
-  @Override public List<MetadataHandler<?>> handlers(
-      Class<? extends MetadataHandler<?>> handlerClass) {
+  @Override public List<MetadataHandler> handlers(
+      Class<? extends MetadataHandler> handlerClass) {
     return ImmutableList.of();
   }
 }

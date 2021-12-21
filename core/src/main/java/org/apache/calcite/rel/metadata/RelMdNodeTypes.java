@@ -47,13 +47,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link RelMetadataQuery#getNodeTypes} for the standard logical algebra.
  */
 public class RelMdNodeTypes
-    implements MetadataHandler<BuiltInMetadata.NodeTypes> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdNodeTypes(), BuiltInMetadata.NodeTypes.Handler.class);
+          new RelMdNodeTypes(), BuiltInMetadata.NodeTypesHandler.class);
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.NodeTypes> getDef() {
     return BuiltInMetadata.NodeTypes.DEF;
   }

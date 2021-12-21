@@ -60,10 +60,10 @@ import java.util.Set;
  * <p>If tables cannot be obtained, we return null.
  */
 public class RelMdTableReferences
-    implements MetadataHandler<BuiltInMetadata.TableReferences> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdTableReferences(), BuiltInMetadata.TableReferences.Handler.class);
+          new RelMdTableReferences(), BuiltInMetadata.TableReferencesHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -71,6 +71,7 @@ public class RelMdTableReferences
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   @Override public MetadataDef<BuiltInMetadata.TableReferences> getDef() {
     return BuiltInMetadata.TableReferences.DEF;
   }

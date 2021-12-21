@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_PredicatesHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.PredicatesHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptPredicateList Handler.getPredicates()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptPredicateList PredicatesHandler.getPredicates()");
   public final org.apache.calcite.rel.metadata.RelMdPredicates provider0;
   public GeneratedMetadata_PredicatesHandler(
       org.apache.calcite.rel.metadata.RelMdPredicates provider0) {
@@ -87,7 +87,7 @@ public final class GeneratedMetadata_PredicatesHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getPredicates((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptPredicateList org.apache.calcite.rel.metadata.BuiltInMetadata$Predicates$Handler.getPredicates(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptPredicateList org.apache.calcite.rel.metadata.BuiltInMetadata$PredicatesHandler.getPredicates(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

@@ -53,31 +53,7 @@ import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCount;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.NodeTypes;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.PopulationSize;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.RowCount;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Size;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.TableReferences;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
-import org.apache.calcite.rel.metadata.Metadata;
+import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Automaton;
@@ -570,40 +546,42 @@ public enum BuiltInMethod {
   SUBMULTISET_OF(SqlFunctions.class, "submultisetOf", Collection.class,
       Collection.class),
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
-  SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
-  UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
-  AVERAGE_ROW_SIZE(Size.class, "averageRowSize"),
-  AVERAGE_COLUMN_SIZES(Size.class, "averageColumnSizes"),
-  IS_PHASE_TRANSITION(Parallelism.class, "isPhaseTransition"),
-  SPLIT_COUNT(Parallelism.class, "splitCount"),
-  LOWER_BOUND_COST(LowerBoundCost.class, "getLowerBoundCost",
+  @Deprecated SELECTIVITY(BuiltInMetadata.Selectivity.class, "getSelectivity", RexNode.class),
+  @Deprecated UNIQUE_KEYS(BuiltInMetadata.UniqueKeys.class, "getUniqueKeys", boolean.class),
+  @Deprecated AVERAGE_ROW_SIZE(BuiltInMetadata.Size.class, "averageRowSize"),
+  @Deprecated AVERAGE_COLUMN_SIZES(BuiltInMetadata.Size.class, "averageColumnSizes"),
+  @Deprecated IS_PHASE_TRANSITION(BuiltInMetadata.Parallelism.class, "isPhaseTransition"),
+  @Deprecated SPLIT_COUNT(BuiltInMetadata.Parallelism.class, "splitCount"),
+  @Deprecated LOWER_BOUND_COST(BuiltInMetadata.LowerBoundCost.class, "getLowerBoundCost",
       VolcanoPlanner.class),
-  MEMORY(Memory.class, "memory"),
-  CUMULATIVE_MEMORY_WITHIN_PHASE(Memory.class, "cumulativeMemoryWithinPhase"),
-  CUMULATIVE_MEMORY_WITHIN_PHASE_SPLIT(Memory.class,
+  @Deprecated MEMORY(BuiltInMetadata.Memory.class, "memory"),
+  @Deprecated CUMULATIVE_MEMORY_WITHIN_PHASE(BuiltInMetadata.Memory.class,
+      "cumulativeMemoryWithinPhase"),
+  @Deprecated CUMULATIVE_MEMORY_WITHIN_PHASE_SPLIT(BuiltInMetadata.Memory.class,
       "cumulativeMemoryWithinPhaseSplit"),
-  COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique",
+  @Deprecated COLUMN_UNIQUENESS(BuiltInMetadata.ColumnUniqueness.class, "areColumnsUnique",
       ImmutableBitSet.class, boolean.class),
-  COLLATIONS(Collation.class, "collations"),
-  DISTRIBUTION(Distribution.class, "distribution"),
-  NODE_TYPES(NodeTypes.class, "getNodeTypes"),
-  ROW_COUNT(RowCount.class, "getRowCount"),
-  MAX_ROW_COUNT(MaxRowCount.class, "getMaxRowCount"),
-  MIN_ROW_COUNT(MinRowCount.class, "getMinRowCount"),
-  DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
+  @Deprecated COLLATIONS(BuiltInMetadata.Collation.class, "collations"),
+  @Deprecated DISTRIBUTION(BuiltInMetadata.Distribution.class, "distribution"),
+  @Deprecated NODE_TYPES(BuiltInMetadata.NodeTypes.class, "getNodeTypes"),
+  @Deprecated ROW_COUNT(BuiltInMetadata.RowCount.class, "getRowCount"),
+  @Deprecated MAX_ROW_COUNT(BuiltInMetadata.MaxRowCount.class, "getMaxRowCount"),
+  @Deprecated MIN_ROW_COUNT(BuiltInMetadata.MinRowCount.class, "getMinRowCount"),
+  @Deprecated DISTINCT_ROW_COUNT(BuiltInMetadata.DistinctRowCount.class, "getDistinctRowCount",
       ImmutableBitSet.class, RexNode.class),
-  PERCENTAGE_ORIGINAL_ROWS(PercentageOriginalRows.class,
+  @Deprecated PERCENTAGE_ORIGINAL_ROWS(BuiltInMetadata.PercentageOriginalRows.class,
       "getPercentageOriginalRows"),
-  POPULATION_SIZE(PopulationSize.class, "getPopulationSize",
+  @Deprecated POPULATION_SIZE(BuiltInMetadata.PopulationSize.class, "getPopulationSize",
       ImmutableBitSet.class),
-  COLUMN_ORIGIN(ColumnOrigin.class, "getColumnOrigins", int.class),
-  EXPRESSION_LINEAGE(ExpressionLineage.class, "getExpressionLineage", RexNode.class),
-  TABLE_REFERENCES(TableReferences.class, "getTableReferences"),
-  CUMULATIVE_COST(CumulativeCost.class, "getCumulativeCost"),
-  NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
-  PREDICATES(Predicates.class, "getPredicates"),
-  ALL_PREDICATES(AllPredicates.class, "getAllPredicates"),
-  EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
+  @Deprecated COLUMN_ORIGIN(BuiltInMetadata.ColumnOrigin.class, "getColumnOrigins", int.class),
+  @Deprecated EXPRESSION_LINEAGE(BuiltInMetadata.ExpressionLineage.class,
+      "getExpressionLineage", RexNode.class),
+  @Deprecated TABLE_REFERENCES(BuiltInMetadata.TableReferences.class, "getTableReferences"),
+  @Deprecated CUMULATIVE_COST(BuiltInMetadata.CumulativeCost.class, "getCumulativeCost"),
+  @Deprecated NON_CUMULATIVE_COST(BuiltInMetadata.NonCumulativeCost.class, "getNonCumulativeCost"),
+  @Deprecated PREDICATES(BuiltInMetadata.Predicates.class, "getPredicates"),
+  @Deprecated ALL_PREDICATES(BuiltInMetadata.AllPredicates.class, "getAllPredicates"),
+  @Deprecated EXPLAIN_VISIBILITY(BuiltInMetadata.ExplainVisibility.class, "isVisibleInExplain",
       SqlExplainLevel.class),
   SCALAR_EXECUTE1(Scalar.class, "execute", Context.class),
   SCALAR_EXECUTE2(Scalar.class, "execute", Context.class, Object[].class),
@@ -612,7 +590,7 @@ public enum BuiltInMethod {
   FUNCTION_CONTEXTS_OF(FunctionContexts.class, "of", DataContext.class,
       Object[].class),
   DATA_CONTEXT_GET_QUERY_PROVIDER(DataContext.class, "getQueryProvider"),
-  METADATA_REL(Metadata.class, "rel"),
+  @Deprecated METADATA_REL(org.apache.calcite.rel.metadata.Metadata.class, "rel"),
   STRUCT_ACCESS(SqlFunctions.class, "structAccess", Object.class, int.class,
       String.class),
   SOURCE_SORTER(SourceSorter.class, Function2.class, Function1.class,

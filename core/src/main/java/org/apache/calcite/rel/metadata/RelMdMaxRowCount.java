@@ -45,13 +45,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link RelMetadataQuery#getMaxRowCount} for the standard logical algebra.
  */
 public class RelMdMaxRowCount
-    implements MetadataHandler<BuiltInMetadata.MaxRowCount> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdMaxRowCount(), BuiltInMetadata.MaxRowCount.Handler.class);
+          new RelMdMaxRowCount(), BuiltInMetadata.MaxRowCountHandler.class);
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.MaxRowCount> getDef() {
     return BuiltInMetadata.MaxRowCount.DEF;
   }

@@ -30,12 +30,12 @@ import org.apache.calcite.rel.core.Values;
  * @see org.apache.calcite.rel.metadata.RelMetadataQuery#splitCount
  */
 public class RelMdParallelism
-    implements MetadataHandler<BuiltInMetadata.Parallelism> {
+    implements MetadataHandler {
   /** Source for
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism}. */
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(new RelMdParallelism(),
-          BuiltInMetadata.Parallelism.Handler.class);
+          BuiltInMetadata.ParallelismHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -43,6 +43,7 @@ public class RelMdParallelism
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.Parallelism> getDef() {
     return BuiltInMetadata.Parallelism.DEF;
   }

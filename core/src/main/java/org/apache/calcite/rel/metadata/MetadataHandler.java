@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.rel.metadata;
 
-/**
- * Marker interface for a handler of metadata.
- *
- * @param <M> Kind of metadata
- */
-public interface MetadataHandler<M extends Metadata> {
-  MetadataDef<M> getDef();
+/** Marker interface for a handler of metadata. */
+public interface MetadataHandler {
+  @Deprecated
+  default MetadataDef<?> getDef() {
+    throw new UnsupportedOperationException();
+  };
 }

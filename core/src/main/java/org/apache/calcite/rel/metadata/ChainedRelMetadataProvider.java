@@ -106,9 +106,9 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
   }
 
   @Deprecated // to be removed before 2.0
-  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler> handlers(
       MetadataDef<M> def) {
-    final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
+    final ImmutableMultimap.Builder<Method, MetadataHandler> builder =
         ImmutableMultimap.builder();
     for (RelMetadataProvider provider : providers.reverse()) {
       builder.putAll(provider.handlers(def));
@@ -116,9 +116,9 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     return builder.build();
   }
 
-  @Override public List<MetadataHandler<?>> handlers(
-      Class<? extends MetadataHandler<?>> handlerClass) {
-    final ImmutableList.Builder<MetadataHandler<?>> builder =
+  @Override public List<MetadataHandler> handlers(
+      Class<? extends MetadataHandler> handlerClass) {
+    final ImmutableList.Builder<MetadataHandler> builder =
         ImmutableList.builder();
     for (RelMetadataProvider provider : providers) {
       builder.addAll(provider.handlers(handlerClass));
@@ -133,6 +133,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
 
   /** Invocation handler that calls a list of {@link Metadata} objects,
    * returning the first non-null value. */
+  @Deprecated // to be removed before 2.0
   private static class ChainedInvocationHandler implements InvocationHandler {
     private final List<Metadata> metadataList;
 
@@ -140,6 +141,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
       this.metadataList = ImmutableList.copyOf(metadataList);
     }
 
+    @Deprecated // to be removed before 2.0
     @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args)
         throws Throwable {
       for (Metadata metadata : metadataList) {

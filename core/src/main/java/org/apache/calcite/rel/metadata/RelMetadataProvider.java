@@ -72,7 +72,7 @@ public interface RelMetadataProvider {
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass);
 
   @Deprecated // to be removed before 2.0
-  <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  <M extends Metadata> Multimap<Method, MetadataHandler> handlers(
       MetadataDef<M> def);
 
   /**
@@ -90,5 +90,5 @@ public interface RelMetadataProvider {
    *
    * The behavior is undefined if the class hierarchy for dispatching is not a tree.
    */
-  List<MetadataHandler<?>> handlers(Class<? extends MetadataHandler<?>> handlerClass);
+  List<MetadataHandler> handlers(Class<? extends MetadataHandler> handlerClass);
 }

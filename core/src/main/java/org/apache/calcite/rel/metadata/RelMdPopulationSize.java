@@ -39,10 +39,10 @@ import java.util.List;
  * {@link RelMetadataQuery#getPopulationSize} for the standard logical algebra.
  */
 public class RelMdPopulationSize
-    implements MetadataHandler<BuiltInMetadata.PopulationSize> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdPopulationSize(), BuiltInMetadata.PopulationSize.Handler.class);
+          new RelMdPopulationSize(), BuiltInMetadata.PopulationSizeHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -50,6 +50,7 @@ public class RelMdPopulationSize
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   @Override public MetadataDef<BuiltInMetadata.PopulationSize> getDef() {
     return BuiltInMetadata.PopulationSize.DEF;
   }

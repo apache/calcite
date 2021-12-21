@@ -49,10 +49,10 @@ import java.util.List;
  * for the standard logical algebra.
  */
 public class RelMdDistribution
-    implements MetadataHandler<BuiltInMetadata.Distribution> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdDistribution(), BuiltInMetadata.Distribution.Handler.class);
+          new RelMdDistribution(), BuiltInMetadata.DistributionHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -60,6 +60,7 @@ public class RelMdDistribution
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.Distribution> getDef() {
     return BuiltInMetadata.Distribution.DEF;
   }

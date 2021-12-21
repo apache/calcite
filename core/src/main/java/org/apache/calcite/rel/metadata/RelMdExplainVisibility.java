@@ -26,10 +26,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link RelMetadataQuery#isVisibleInExplain} for the standard logical algebra.
  */
 public class RelMdExplainVisibility
-    implements MetadataHandler<BuiltInMetadata.ExplainVisibility> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdExplainVisibility(), BuiltInMetadata.ExplainVisibility.Handler.class);
+          new RelMdExplainVisibility(), BuiltInMetadata.ExplainVisibilityHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -37,6 +37,7 @@ public class RelMdExplainVisibility
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.ExplainVisibility> getDef() {
     return BuiltInMetadata.ExplainVisibility.DEF;
   }

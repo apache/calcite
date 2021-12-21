@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_CollationHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.Collation.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.CollationHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("ImmutableList Handler.collations()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("ImmutableList CollationHandler.collations()");
   public final org.apache.calcite.rel.metadata.RelMdCollation provider0;
   public GeneratedMetadata_CollationHandler(
       org.apache.calcite.rel.metadata.RelMdCollation provider0) {
@@ -99,7 +99,7 @@ public final class GeneratedMetadata_CollationHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.collations((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract com.google.common.collect.ImmutableList org.apache.calcite.rel.metadata.BuiltInMetadata$Collation$Handler.collations(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract com.google.common.collect.ImmutableList org.apache.calcite.rel.metadata.BuiltInMetadata$CollationHandler.collations(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

@@ -83,30 +83,30 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private static final Supplier<RelMetadataQuery> EMPTY =
       Suppliers.memoize(() -> new RelMetadataQuery(false));
 
-  private BuiltInMetadata.Collation.Handler collationHandler;
-  private BuiltInMetadata.ColumnOrigin.Handler columnOriginHandler;
-  private BuiltInMetadata.ExpressionLineage.Handler expressionLineageHandler;
-  private BuiltInMetadata.TableReferences.Handler tableReferencesHandler;
-  private BuiltInMetadata.ColumnUniqueness.Handler columnUniquenessHandler;
-  private BuiltInMetadata.CumulativeCost.Handler cumulativeCostHandler;
-  private BuiltInMetadata.DistinctRowCount.Handler distinctRowCountHandler;
-  private BuiltInMetadata.Distribution.Handler distributionHandler;
-  private BuiltInMetadata.ExplainVisibility.Handler explainVisibilityHandler;
-  private BuiltInMetadata.MaxRowCount.Handler maxRowCountHandler;
-  private BuiltInMetadata.MinRowCount.Handler minRowCountHandler;
-  private BuiltInMetadata.Memory.Handler memoryHandler;
-  private BuiltInMetadata.NonCumulativeCost.Handler nonCumulativeCostHandler;
-  private BuiltInMetadata.Parallelism.Handler parallelismHandler;
-  private BuiltInMetadata.PercentageOriginalRows.Handler percentageOriginalRowsHandler;
-  private BuiltInMetadata.PopulationSize.Handler populationSizeHandler;
-  private BuiltInMetadata.Predicates.Handler predicatesHandler;
-  private BuiltInMetadata.AllPredicates.Handler allPredicatesHandler;
-  private BuiltInMetadata.NodeTypes.Handler nodeTypesHandler;
-  private BuiltInMetadata.RowCount.Handler rowCountHandler;
-  private BuiltInMetadata.Selectivity.Handler selectivityHandler;
-  private BuiltInMetadata.Size.Handler sizeHandler;
-  private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
-  private BuiltInMetadata.LowerBoundCost.Handler lowerBoundCostHandler;
+  private BuiltInMetadata.CollationHandler collationHandler;
+  private BuiltInMetadata.ColumnOriginHandler columnOriginHandler;
+  private BuiltInMetadata.ExpressionLineageHandler expressionLineageHandler;
+  private BuiltInMetadata.TableReferencesHandler tableReferencesHandler;
+  private BuiltInMetadata.ColumnUniquenessHandler columnUniquenessHandler;
+  private BuiltInMetadata.CumulativeCostHandler cumulativeCostHandler;
+  private BuiltInMetadata.DistinctRowCountHandler distinctRowCountHandler;
+  private BuiltInMetadata.DistributionHandler distributionHandler;
+  private BuiltInMetadata.ExplainVisibilityHandler explainVisibilityHandler;
+  private BuiltInMetadata.MaxRowCountHandler maxRowCountHandler;
+  private BuiltInMetadata.MinRowCountHandler minRowCountHandler;
+  private BuiltInMetadata.MemoryHandler memoryHandler;
+  private BuiltInMetadata.NonCumulativeCostHandler nonCumulativeCostHandler;
+  private BuiltInMetadata.ParallelismHandler parallelismHandler;
+  private BuiltInMetadata.PercentageOriginalRowsHandler percentageOriginalRowsHandler;
+  private BuiltInMetadata.PopulationSizeHandler populationSizeHandler;
+  private BuiltInMetadata.PredicatesHandler predicatesHandler;
+  private BuiltInMetadata.AllPredicatesHandler allPredicatesHandler;
+  private BuiltInMetadata.NodeTypesHandler nodeTypesHandler;
+  private BuiltInMetadata.RowCountHandler rowCountHandler;
+  private BuiltInMetadata.SelectivityHandler selectivityHandler;
+  private BuiltInMetadata.SizeHandler sizeHandler;
+  private BuiltInMetadata.UniqueKeysHandler uniqueKeysHandler;
+  private BuiltInMetadata.LowerBoundCostHandler lowerBoundCostHandler;
 
   /**
    * Creates the instance with {@link JaninoRelMetadataProvider} instance
@@ -122,34 +122,34 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    */
   public RelMetadataQuery(MetadataHandlerProvider provider) {
     super(provider);
-    this.collationHandler = provider.handler(BuiltInMetadata.Collation.Handler.class);
-    this.columnOriginHandler = provider.handler(BuiltInMetadata.ColumnOrigin.Handler.class);
+    this.collationHandler = provider.handler(BuiltInMetadata.CollationHandler.class);
+    this.columnOriginHandler = provider.handler(BuiltInMetadata.ColumnOriginHandler.class);
     this.expressionLineageHandler =
-        provider.handler(BuiltInMetadata.ExpressionLineage.Handler.class);
-    this.tableReferencesHandler = provider.handler(BuiltInMetadata.TableReferences.Handler.class);
-    this.columnUniquenessHandler = provider.handler(BuiltInMetadata.ColumnUniqueness.Handler.class);
-    this.cumulativeCostHandler = provider.handler(BuiltInMetadata.CumulativeCost.Handler.class);
-    this.distinctRowCountHandler = provider.handler(BuiltInMetadata.DistinctRowCount.Handler.class);
-    this.distributionHandler = provider.handler(BuiltInMetadata.Distribution.Handler.class);
+        provider.handler(BuiltInMetadata.ExpressionLineageHandler.class);
+    this.tableReferencesHandler = provider.handler(BuiltInMetadata.TableReferencesHandler.class);
+    this.columnUniquenessHandler = provider.handler(BuiltInMetadata.ColumnUniquenessHandler.class);
+    this.cumulativeCostHandler = provider.handler(BuiltInMetadata.CumulativeCostHandler.class);
+    this.distinctRowCountHandler = provider.handler(BuiltInMetadata.DistinctRowCountHandler.class);
+    this.distributionHandler = provider.handler(BuiltInMetadata.DistributionHandler.class);
     this.explainVisibilityHandler =
-        provider.handler(BuiltInMetadata.ExplainVisibility.Handler.class);
-    this.maxRowCountHandler = provider.handler(BuiltInMetadata.MaxRowCount.Handler.class);
-    this.minRowCountHandler = provider.handler(BuiltInMetadata.MinRowCount.Handler.class);
-    this.memoryHandler = provider.handler(BuiltInMetadata.Memory.Handler.class);
+        provider.handler(BuiltInMetadata.ExplainVisibilityHandler.class);
+    this.maxRowCountHandler = provider.handler(BuiltInMetadata.MaxRowCountHandler.class);
+    this.minRowCountHandler = provider.handler(BuiltInMetadata.MinRowCountHandler.class);
+    this.memoryHandler = provider.handler(BuiltInMetadata.MemoryHandler.class);
     this.nonCumulativeCostHandler =
-        provider.handler(BuiltInMetadata.NonCumulativeCost.Handler.class);
-    this.parallelismHandler = provider.handler(BuiltInMetadata.Parallelism.Handler.class);
+        provider.handler(BuiltInMetadata.NonCumulativeCostHandler.class);
+    this.parallelismHandler = provider.handler(BuiltInMetadata.ParallelismHandler.class);
     this.percentageOriginalRowsHandler =
-        provider.handler(BuiltInMetadata.PercentageOriginalRows.Handler.class);
-    this.populationSizeHandler = provider.handler(BuiltInMetadata.PopulationSize.Handler.class);
-    this.predicatesHandler = provider.handler(BuiltInMetadata.Predicates.Handler.class);
-    this.allPredicatesHandler = provider.handler(BuiltInMetadata.AllPredicates.Handler.class);
-    this.nodeTypesHandler = provider.handler(BuiltInMetadata.NodeTypes.Handler.class);
-    this.rowCountHandler = provider.handler(BuiltInMetadata.RowCount.Handler.class);
-    this.selectivityHandler = provider.handler(BuiltInMetadata.Selectivity.Handler.class);
-    this.sizeHandler = provider.handler(BuiltInMetadata.Size.Handler.class);
-    this.uniqueKeysHandler = provider.handler(BuiltInMetadata.UniqueKeys.Handler.class);
-    this.lowerBoundCostHandler = provider.handler(BuiltInMetadata.LowerBoundCost.Handler.class);
+        provider.handler(BuiltInMetadata.PercentageOriginalRowsHandler.class);
+    this.populationSizeHandler = provider.handler(BuiltInMetadata.PopulationSizeHandler.class);
+    this.predicatesHandler = provider.handler(BuiltInMetadata.PredicatesHandler.class);
+    this.allPredicatesHandler = provider.handler(BuiltInMetadata.AllPredicatesHandler.class);
+    this.nodeTypesHandler = provider.handler(BuiltInMetadata.NodeTypesHandler.class);
+    this.rowCountHandler = provider.handler(BuiltInMetadata.RowCountHandler.class);
+    this.selectivityHandler = provider.handler(BuiltInMetadata.SelectivityHandler.class);
+    this.sizeHandler = provider.handler(BuiltInMetadata.SizeHandler.class);
+    this.uniqueKeysHandler = provider.handler(BuiltInMetadata.UniqueKeysHandler.class);
+    this.lowerBoundCostHandler = provider.handler(BuiltInMetadata.LowerBoundCostHandler.class);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
@@ -157,31 +157,31 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   @SuppressWarnings("deprecation")
   private RelMetadataQuery(@SuppressWarnings("unused") boolean dummy) {
     super(null);
-    this.collationHandler = initialHandler(BuiltInMetadata.Collation.Handler.class);
-    this.columnOriginHandler = initialHandler(BuiltInMetadata.ColumnOrigin.Handler.class);
-    this.expressionLineageHandler = initialHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
-    this.tableReferencesHandler = initialHandler(BuiltInMetadata.TableReferences.Handler.class);
-    this.columnUniquenessHandler = initialHandler(BuiltInMetadata.ColumnUniqueness.Handler.class);
-    this.cumulativeCostHandler = initialHandler(BuiltInMetadata.CumulativeCost.Handler.class);
-    this.distinctRowCountHandler = initialHandler(BuiltInMetadata.DistinctRowCount.Handler.class);
-    this.distributionHandler = initialHandler(BuiltInMetadata.Distribution.Handler.class);
-    this.explainVisibilityHandler = initialHandler(BuiltInMetadata.ExplainVisibility.Handler.class);
-    this.maxRowCountHandler = initialHandler(BuiltInMetadata.MaxRowCount.Handler.class);
-    this.minRowCountHandler = initialHandler(BuiltInMetadata.MinRowCount.Handler.class);
-    this.memoryHandler = initialHandler(BuiltInMetadata.Memory.Handler.class);
-    this.nonCumulativeCostHandler = initialHandler(BuiltInMetadata.NonCumulativeCost.Handler.class);
-    this.parallelismHandler = initialHandler(BuiltInMetadata.Parallelism.Handler.class);
+    this.collationHandler = initialHandler(BuiltInMetadata.CollationHandler.class);
+    this.columnOriginHandler = initialHandler(BuiltInMetadata.ColumnOriginHandler.class);
+    this.expressionLineageHandler = initialHandler(BuiltInMetadata.ExpressionLineageHandler.class);
+    this.tableReferencesHandler = initialHandler(BuiltInMetadata.TableReferencesHandler.class);
+    this.columnUniquenessHandler = initialHandler(BuiltInMetadata.ColumnUniquenessHandler.class);
+    this.cumulativeCostHandler = initialHandler(BuiltInMetadata.CumulativeCostHandler.class);
+    this.distinctRowCountHandler = initialHandler(BuiltInMetadata.DistinctRowCountHandler.class);
+    this.distributionHandler = initialHandler(BuiltInMetadata.DistributionHandler.class);
+    this.explainVisibilityHandler = initialHandler(BuiltInMetadata.ExplainVisibilityHandler.class);
+    this.maxRowCountHandler = initialHandler(BuiltInMetadata.MaxRowCountHandler.class);
+    this.minRowCountHandler = initialHandler(BuiltInMetadata.MinRowCountHandler.class);
+    this.memoryHandler = initialHandler(BuiltInMetadata.MemoryHandler.class);
+    this.nonCumulativeCostHandler = initialHandler(BuiltInMetadata.NonCumulativeCostHandler.class);
+    this.parallelismHandler = initialHandler(BuiltInMetadata.ParallelismHandler.class);
     this.percentageOriginalRowsHandler =
-        initialHandler(BuiltInMetadata.PercentageOriginalRows.Handler.class);
-    this.populationSizeHandler = initialHandler(BuiltInMetadata.PopulationSize.Handler.class);
-    this.predicatesHandler = initialHandler(BuiltInMetadata.Predicates.Handler.class);
-    this.allPredicatesHandler = initialHandler(BuiltInMetadata.AllPredicates.Handler.class);
-    this.nodeTypesHandler = initialHandler(BuiltInMetadata.NodeTypes.Handler.class);
-    this.rowCountHandler = initialHandler(BuiltInMetadata.RowCount.Handler.class);
-    this.selectivityHandler = initialHandler(BuiltInMetadata.Selectivity.Handler.class);
-    this.sizeHandler = initialHandler(BuiltInMetadata.Size.Handler.class);
-    this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeys.Handler.class);
-    this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
+        initialHandler(BuiltInMetadata.PercentageOriginalRowsHandler.class);
+    this.populationSizeHandler = initialHandler(BuiltInMetadata.PopulationSizeHandler.class);
+    this.predicatesHandler = initialHandler(BuiltInMetadata.PredicatesHandler.class);
+    this.allPredicatesHandler = initialHandler(BuiltInMetadata.AllPredicatesHandler.class);
+    this.nodeTypesHandler = initialHandler(BuiltInMetadata.NodeTypesHandler.class);
+    this.rowCountHandler = initialHandler(BuiltInMetadata.RowCountHandler.class);
+    this.selectivityHandler = initialHandler(BuiltInMetadata.SelectivityHandler.class);
+    this.sizeHandler = initialHandler(BuiltInMetadata.SizeHandler.class);
+    this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeysHandler.class);
+    this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCostHandler.class);
   }
 
   private RelMetadataQuery(
@@ -236,7 +236,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return nodeTypesHandler.getNodeTypes(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        nodeTypesHandler = revise(BuiltInMetadata.NodeTypes.Handler.class);
+        nodeTypesHandler = revise(BuiltInMetadata.NodeTypesHandler.class);
       } catch (CyclicMetadataException e) {
         return null;
       }
@@ -258,7 +258,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         Double result = rowCountHandler.getRowCount(rel, this);
         return RelMdUtil.validateResult(castNonNull(result));
       } catch (MetadataHandlerProvider.NoHandler e) {
-        rowCountHandler = revise(BuiltInMetadata.RowCount.Handler.class);
+        rowCountHandler = revise(BuiltInMetadata.RowCountHandler.class);
       }
     }
   }
@@ -276,7 +276,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return maxRowCountHandler.getMaxRowCount(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        maxRowCountHandler = revise(BuiltInMetadata.MaxRowCount.Handler.class);
+        maxRowCountHandler = revise(BuiltInMetadata.MaxRowCountHandler.class);
       }
     }
   }
@@ -294,7 +294,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return minRowCountHandler.getMinRowCount(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        minRowCountHandler = revise(BuiltInMetadata.MinRowCount.Handler.class);
+        minRowCountHandler = revise(BuiltInMetadata.MinRowCountHandler.class);
       }
     }
   }
@@ -312,7 +312,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return cumulativeCostHandler.getCumulativeCost(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        cumulativeCostHandler = revise(BuiltInMetadata.CumulativeCost.Handler.class);
+        cumulativeCostHandler = revise(BuiltInMetadata.CumulativeCostHandler.class);
       }
     }
   }
@@ -330,7 +330,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return nonCumulativeCostHandler.getNonCumulativeCost(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        nonCumulativeCostHandler = revise(BuiltInMetadata.NonCumulativeCost.Handler.class);
+        nonCumulativeCostHandler = revise(BuiltInMetadata.NonCumulativeCostHandler.class);
       }
     }
   }
@@ -352,7 +352,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return RelMdUtil.validatePercentage(result);
       } catch (MetadataHandlerProvider.NoHandler e) {
         percentageOriginalRowsHandler =
-            revise(BuiltInMetadata.PercentageOriginalRows.Handler.class);
+            revise(BuiltInMetadata.PercentageOriginalRowsHandler.class);
       }
     }
   }
@@ -373,7 +373,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return columnOriginHandler.getColumnOrigins(rel, this, column);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        columnOriginHandler = revise(BuiltInMetadata.ColumnOrigin.Handler.class);
+        columnOriginHandler = revise(BuiltInMetadata.ColumnOriginHandler.class);
       }
     }
   }
@@ -406,7 +406,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return expressionLineageHandler.getExpressionLineage(rel, this, expression);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        expressionLineageHandler = revise(BuiltInMetadata.ExpressionLineage.Handler.class);
+        expressionLineageHandler = revise(BuiltInMetadata.ExpressionLineageHandler.class);
       }
     }
   }
@@ -419,7 +419,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return tableReferencesHandler.getTableReferences(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        tableReferencesHandler = revise(BuiltInMetadata.TableReferences.Handler.class);
+        tableReferencesHandler = revise(BuiltInMetadata.TableReferencesHandler.class);
       }
     }
   }
@@ -463,7 +463,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         Double result = selectivityHandler.getSelectivity(rel, this, predicate);
         return RelMdUtil.validatePercentage(result);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        selectivityHandler = revise(BuiltInMetadata.Selectivity.Handler.class);
+        selectivityHandler = revise(BuiltInMetadata.SelectivityHandler.class);
       }
     }
   }
@@ -499,7 +499,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return uniqueKeysHandler.getUniqueKeys(rel, this, ignoreNulls);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        uniqueKeysHandler = revise(BuiltInMetadata.UniqueKeys.Handler.class);
+        uniqueKeysHandler = revise(BuiltInMetadata.UniqueKeysHandler.class);
       }
     }
   }
@@ -582,7 +582,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return columnUniquenessHandler.areColumnsUnique(rel, this, columns,
             ignoreNulls);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        columnUniquenessHandler = revise(BuiltInMetadata.ColumnUniqueness.Handler.class);
+        columnUniquenessHandler = revise(BuiltInMetadata.ColumnUniquenessHandler.class);
       }
     }
   }
@@ -601,7 +601,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return collationHandler.collations(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        collationHandler = revise(BuiltInMetadata.Collation.Handler.class);
+        collationHandler = revise(BuiltInMetadata.CollationHandler.class);
       }
     }
   }
@@ -625,7 +625,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         }
         return distribution;
       } catch (MetadataHandlerProvider.NoHandler e) {
-        distributionHandler = revise(BuiltInMetadata.Distribution.Handler.class);
+        distributionHandler = revise(BuiltInMetadata.DistributionHandler.class);
       }
     }
   }
@@ -650,7 +650,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
             populationSizeHandler.getPopulationSize(rel, this, groupKey);
         return RelMdUtil.validateResult(result);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        populationSizeHandler = revise(BuiltInMetadata.PopulationSize.Handler.class);
+        populationSizeHandler = revise(BuiltInMetadata.PopulationSizeHandler.class);
       }
     }
   }
@@ -668,7 +668,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return sizeHandler.averageRowSize(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        sizeHandler = revise(BuiltInMetadata.Size.Handler.class);
+        sizeHandler = revise(BuiltInMetadata.SizeHandler.class);
       }
     }
   }
@@ -688,7 +688,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return sizeHandler.averageColumnSizes(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        sizeHandler = revise(BuiltInMetadata.Size.Handler.class);
+        sizeHandler = revise(BuiltInMetadata.SizeHandler.class);
       }
     }
   }
@@ -717,7 +717,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return parallelismHandler.isPhaseTransition(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        parallelismHandler = revise(BuiltInMetadata.Parallelism.Handler.class);
+        parallelismHandler = revise(BuiltInMetadata.ParallelismHandler.class);
       }
     }
   }
@@ -735,7 +735,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return parallelismHandler.splitCount(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        parallelismHandler = revise(BuiltInMetadata.Parallelism.Handler.class);
+        parallelismHandler = revise(BuiltInMetadata.ParallelismHandler.class);
       }
     }
   }
@@ -755,7 +755,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return memoryHandler.memory(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        memoryHandler = revise(BuiltInMetadata.Memory.Handler.class);
+        memoryHandler = revise(BuiltInMetadata.MemoryHandler.class);
       }
     }
   }
@@ -775,7 +775,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return memoryHandler.cumulativeMemoryWithinPhase(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        memoryHandler = revise(BuiltInMetadata.Memory.Handler.class);
+        memoryHandler = revise(BuiltInMetadata.MemoryHandler.class);
       }
     }
   }
@@ -795,7 +795,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return memoryHandler.cumulativeMemoryWithinPhaseSplit(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        memoryHandler = revise(BuiltInMetadata.Memory.Handler.class);
+        memoryHandler = revise(BuiltInMetadata.MemoryHandler.class);
       }
     }
   }
@@ -822,7 +822,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
                 predicate);
         return RelMdUtil.validateResult(result);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        distinctRowCountHandler = revise(BuiltInMetadata.DistinctRowCount.Handler.class);
+        distinctRowCountHandler = revise(BuiltInMetadata.DistinctRowCountHandler.class);
       }
     }
   }
@@ -841,7 +841,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         RelOptPredicateList result = predicatesHandler.getPredicates(rel, this);
         return result != null ? result : RelOptPredicateList.EMPTY;
       } catch (MetadataHandlerProvider.NoHandler e) {
-        predicatesHandler = revise(BuiltInMetadata.Predicates.Handler.class);
+        predicatesHandler = revise(BuiltInMetadata.PredicatesHandler.class);
       }
     }
   }
@@ -859,7 +859,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return allPredicatesHandler.getAllPredicates(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        allPredicatesHandler = revise(BuiltInMetadata.AllPredicates.Handler.class);
+        allPredicatesHandler = revise(BuiltInMetadata.AllPredicatesHandler.class);
       }
     }
   }
@@ -882,7 +882,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
             explainLevel);
         return b == null || b;
       } catch (MetadataHandlerProvider.NoHandler e) {
-        explainVisibilityHandler = revise(BuiltInMetadata.ExplainVisibility.Handler.class);
+        explainVisibilityHandler = revise(BuiltInMetadata.ExplainVisibilityHandler.class);
       }
     }
   }
@@ -902,7 +902,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return distributionHandler.distribution(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        distributionHandler = revise(BuiltInMetadata.Distribution.Handler.class);
+        distributionHandler = revise(BuiltInMetadata.DistributionHandler.class);
       }
     }
   }
@@ -915,7 +915,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       try {
         return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);
       } catch (MetadataHandlerProvider.NoHandler e) {
-        lowerBoundCostHandler = revise(BuiltInMetadata.LowerBoundCost.Handler.class);
+        lowerBoundCostHandler = revise(BuiltInMetadata.LowerBoundCostHandler.class);
       }
     }
   }

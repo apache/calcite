@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_PercentageOriginalRowsHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRowsHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.getPercentageOriginalRows()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double PercentageOriginalRowsHandler.getPercentageOriginalRows()");
   public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdPercentageOriginalRowsHandler provider0;
   public GeneratedMetadata_PercentageOriginalRowsHandler(
       org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdPercentageOriginalRowsHandler provider0) {
@@ -69,7 +69,7 @@ public final class GeneratedMetadata_PercentageOriginalRowsHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getPercentageOriginalRows((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$PercentageOriginalRows$Handler.getPercentageOriginalRows(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$PercentageOriginalRowsHandler.getPercentageOriginalRows(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

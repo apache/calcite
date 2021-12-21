@@ -63,10 +63,10 @@ import java.util.Set;
  * {@link RelMetadataQuery#areColumnsUnique} for the standard logical algebra.
  */
 public class RelMdColumnUniqueness
-    implements MetadataHandler<BuiltInMetadata.ColumnUniqueness> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdColumnUniqueness(), BuiltInMetadata.ColumnUniqueness.Handler.class);
+          new RelMdColumnUniqueness(), BuiltInMetadata.ColumnUniquenessHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -74,6 +74,7 @@ public class RelMdColumnUniqueness
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   @Override public MetadataDef<BuiltInMetadata.ColumnUniqueness> getDef() {
     return BuiltInMetadata.ColumnUniqueness.DEF;
   }

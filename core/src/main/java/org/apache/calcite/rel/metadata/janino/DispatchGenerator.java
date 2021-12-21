@@ -44,15 +44,15 @@ import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.paramList
  * Generates the metadata dispatch to handlers.
  */
 class DispatchGenerator {
-  private final Map<MetadataHandler<?>, String> metadataHandlerToName;
+  private final Map<MetadataHandler, String> metadataHandlerToName;
 
-  DispatchGenerator(Map<MetadataHandler<?>, String> metadataHandlerToName) {
+  DispatchGenerator(Map<MetadataHandler, String> metadataHandlerToName) {
     this.metadataHandlerToName = metadataHandlerToName;
   }
 
   void dispatchMethod(StringBuilder buff, Method method,
-      Collection<? extends MetadataHandler<?>> metadataHandlers) {
-    Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses =
+      Collection<? extends MetadataHandler> metadataHandlers) {
+    Map<MetadataHandler, Set<Class<? extends RelNode>>> handlersToClasses =
         metadataHandlers.stream()
             .distinct()
             .collect(
@@ -98,8 +98,8 @@ class DispatchGenerator {
   }
 
   private StringBuilder ifInstanceThenDispatch(Method method,
-      Collection<? extends MetadataHandler<?>> metadataHandlers,
-      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses,
+      Collection<? extends MetadataHandler> metadataHandlers,
+      Map<MetadataHandler, Set<Class<? extends RelNode>>> handlersToClasses,
       Class<? extends RelNode> clazz) {
     String handlerName = findProvider(metadataHandlers, handlersToClasses, clazz);
     StringBuilder buff = new StringBuilder()
@@ -110,10 +110,10 @@ class DispatchGenerator {
     return buff;
   }
 
-  private String findProvider(Collection<? extends MetadataHandler<?>> metadataHandlers,
-      Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlerToClasses,
+  private String findProvider(Collection<? extends MetadataHandler> metadataHandlers,
+      Map<MetadataHandler, Set<Class<? extends RelNode>>> handlerToClasses,
       Class<? extends RelNode> clazz) {
-    for (MetadataHandler<?> mh : metadataHandlers) {
+    for (MetadataHandler mh : metadataHandlers) {
       if (handlerToClasses.getOrDefault(mh, ImmutableSet.of()).contains(clazz)) {
         return castNonNull(this.metadataHandlerToName.get(mh));
       }
@@ -140,7 +140,7 @@ class DispatchGenerator {
   }
 
   private static Set<Class<? extends RelNode>> methodAndInstanceToImplementingClass(
-      Method method, MetadataHandler<?> handler) {
+      Method method, MetadataHandler handler) {
     Set<Class<? extends RelNode>> set = new HashSet<>();
     for (Method m : handler.getClass().getMethods()) {
       Class<? extends RelNode> aClass = toRelClass(method, m);

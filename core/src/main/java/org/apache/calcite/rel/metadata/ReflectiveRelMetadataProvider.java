@@ -39,6 +39,7 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +48,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -70,8 +72,8 @@ public class ReflectiveRelMetadataProvider
   private final Class<? extends Metadata> metadataClass0;
   @Deprecated // to be removed before 2.0
   private final ImmutableMultimap<Method, MetadataHandler> handlerMap;
-  private final Class<? extends MetadataHandler<?>> handlerClass;
-  private final ImmutableList<MetadataHandler<?>> handlers;
+  private final Class<? extends MetadataHandler> handlerClass;
+  private final ImmutableList<MetadataHandler> handlers;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -85,15 +87,16 @@ public class ReflectiveRelMetadataProvider
   protected ReflectiveRelMetadataProvider(
       ConcurrentMap<Class<RelNode>, UnboundMetadata> map,
       Class<? extends Metadata> metadataClass0,
-      Multimap<Method, MetadataHandler<?>> handlerMap,
-      Class<? extends MetadataHandler<?>> handlerClass) {
-    Preconditions.checkArgument(!map.isEmpty(), "ReflectiveRelMetadataProvider "
-        + "methods map is empty; are your methods named wrong?");
+      Multimap<Method, MetadataHandler> handlerMap,
+      Class<? extends MetadataHandler> handlerClass,
+      MetadataHandler handler) {
+    Preconditions.checkArgument(validate(handlerClass, handler), "ReflectiveRelMetadataProvider "
+        + "handler is unable to find methods.");
     this.map = map;
     this.metadataClass0 = metadataClass0;
     this.handlerMap = ImmutableMultimap.copyOf(handlerMap);
     this.handlerClass = handlerClass;
-    this.handlers = ImmutableList.copyOf(handlerMap.values());
+    this.handlers = ImmutableList.of(handler);
   }
 
   /** Returns an implementation of {@link RelMetadataProvider} that scans for
@@ -129,15 +132,22 @@ public class ReflectiveRelMetadataProvider
 
   @SuppressWarnings("deprecation")
   public static <M extends Metadata> RelMetadataProvider reflectiveSource(
-      MetadataHandler<? extends M> handler, Class<? extends MetadataHandler<M>> handlerClass) {
-    //When deprecated code is removed, handler.getDef().methods will no longer be required
-    return reflectiveSource(handler, handler.getDef().methods, handlerClass);
+      MetadataHandler handler, Class<? extends MetadataHandler> handlerClass) {
+    ImmutableList<Method> methods;
+    try {
+      //When deprecated code is removed, handler.getDef().methods will no longer be required
+      methods = handler.getDef().methods;
+    } catch (UnsupportedOperationException ex) {
+      return new ReflectiveRelMetadataProvider(new ConcurrentHashMap<>(),
+          Metadata.class, ImmutableMultimap.of(), handlerClass, handler);
+    }
+    return reflectiveSource(handler, methods, handlerClass);
   }
 
   @Deprecated // to be removed before 2.0
   private static RelMetadataProvider reflectiveSource(
       final MetadataHandler target, final ImmutableList<Method> methods,
-      final Class<? extends MetadataHandler<?>> handlerClass) {
+      final Class<? extends MetadataHandler> handlerClass) {
     final Space2 space = Space2.create(target, methods);
 
     // This needs to be a concurrent map since RelMetadataProvider are cached in static
@@ -215,26 +225,27 @@ public class ReflectiveRelMetadataProvider
               });
       methodsMap.put(key, function);
     }
+    Preconditions.checkArgument(!methodsMap.isEmpty(), "ReflectiveRelMetadataProvider "
+        + "methods map is empty; are your methods named wrong?");
     return new ReflectiveRelMetadataProvider(methodsMap, space.metadataClass0,
-        space.providerMap, handlerClass);
+        space.providerMap, handlerClass, target);
   }
 
   @Deprecated // to be removed before 2.0
-  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler> handlers(
       MetadataDef<M> def) {
-    final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
+    final ImmutableMultimap.Builder<Method, MetadataHandler> builder =
         ImmutableMultimap.builder();
     for (Map.Entry<Method, MetadataHandler> entry : handlerMap.entries()) {
       if (def.methods.contains(entry.getKey())) {
-        //noinspection unchecked
         builder.put(entry.getKey(), entry.getValue());
       }
     }
     return builder.build();
   }
 
-  @Override public List<MetadataHandler<?>> handlers(
-      Class<? extends MetadataHandler<?>> handlerClass) {
+  @Override public List<MetadataHandler> handlers(
+      Class<? extends MetadataHandler> handlerClass) {
     if (this.handlerClass.isAssignableFrom(handlerClass)) {
       return handlers;
     } else {
@@ -310,16 +321,16 @@ public class ReflectiveRelMetadataProvider
   static class Space {
     final Set<Class<RelNode>> classes = new HashSet<>();
     final Map<Pair<Class<RelNode>, Method>, Method> handlerMap = new HashMap<>();
-    final ImmutableMultimap<Method, MetadataHandler<?>> providerMap;
+    final ImmutableMultimap<Method, MetadataHandler> providerMap;
 
-    Space(Multimap<Method, MetadataHandler<?>> providerMap) {
+    Space(Multimap<Method, MetadataHandler> providerMap) {
       this.providerMap = ImmutableMultimap.copyOf(providerMap);
 
       // Find the distinct set of RelNode classes handled by this provider,
       // ordered base-class first.
-      for (Map.Entry<Method, MetadataHandler<?>> entry : providerMap.entries()) {
+      for (Map.Entry<Method, MetadataHandler> entry : providerMap.entries()) {
         final Method method = entry.getKey();
-        final MetadataHandler<?> provider = entry.getValue();
+        final MetadataHandler provider = entry.getValue();
         for (final Method handlerMethod : provider.getClass().getMethods()) {
           if (couldImplement(handlerMethod, method)) {
             @SuppressWarnings("unchecked") final Class<RelNode> relNodeClass =
@@ -366,14 +377,14 @@ public class ReflectiveRelMetadataProvider
     private Class<Metadata> metadataClass0;
 
     Space2(Class<Metadata> metadataClass0,
-        ImmutableMultimap<Method, MetadataHandler<?>> providerMap) {
+        ImmutableMultimap<Method, MetadataHandler> providerMap) {
       super(providerMap);
       this.metadataClass0 = metadataClass0;
     }
 
     @Deprecated // to be removed before 2.0
     public static Space2 create(
-        MetadataHandler<?> target,
+        MetadataHandler target,
         ImmutableList<Method> methods) {
       assert methods.size() > 0;
       final Method method0 = methods.get(0);
@@ -384,12 +395,41 @@ public class ReflectiveRelMetadataProvider
         assert method.getDeclaringClass() == metadataClass0;
       }
 
-      final ImmutableMultimap.Builder<Method, MetadataHandler<?>> providerBuilder =
+      final ImmutableMultimap.Builder<Method, MetadataHandler> providerBuilder =
           ImmutableMultimap.builder();
       for (final Method method : methods) {
         providerBuilder.put(method, target);
       }
       return new Space2(metadataClass0, providerBuilder.build());
     }
+  }
+
+  private static boolean validate(Class<? extends MetadataHandler> metadataHandlerClass,
+      MetadataHandler metadataHandler) {
+    //all methods with 2 or more arguments and the first two are RelNode + RelMetadataQuery
+    Map<String, List<Method>> handlerClassMethods = Arrays.stream(metadataHandlerClass.getMethods())
+        .filter(m ->{
+          Class<?>[] types = m.getParameterTypes();
+          return m.getParameterCount() >= 2
+              &&  RelNode.class == types[0]
+              && RelMetadataQuery.class == types[1];
+        })
+        .collect(Collectors.groupingBy(Method::getName));
+    return Arrays.stream(metadataHandler.getClass().getMethods())
+        .filter(m ->{
+          Class<?>[] types = m.getParameterTypes();
+          return m.getParameterCount() >= 2
+              && RelNode.class.isAssignableFrom(types[0])
+              && RelMetadataQuery.class == types[1];
+        })
+        .anyMatch(m -> {
+          List<Class<?>> args = ImmutableList.copyOf(m.getParameterTypes())
+              .subList(2, m.getParameterCount());
+          return handlerClassMethods.getOrDefault(m.getName(), Collections.emptyList()).stream()
+              .map(m2 ->
+                  ImmutableList.copyOf(m.getParameterTypes())
+                      .subList(2, m.getParameterCount()))
+              .anyMatch(args::equals);
+        });
   }
 }

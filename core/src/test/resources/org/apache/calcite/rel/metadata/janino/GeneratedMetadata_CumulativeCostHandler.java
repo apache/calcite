@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_CumulativeCostHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCostHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost Handler.getCumulativeCost()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost CumulativeCostHandler.getCumulativeCost()");
   public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdCumulativeCost provider0;
   public GeneratedMetadata_CumulativeCostHandler(
       org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdCumulativeCost provider0) {
@@ -65,7 +65,7 @@ public final class GeneratedMetadata_CumulativeCostHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getCumulativeCost((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptCost org.apache.calcite.rel.metadata.BuiltInMetadata$CumulativeCost$Handler.getCumulativeCost(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptCost org.apache.calcite.rel.metadata.BuiltInMetadata$CumulativeCostHandler.getCumulativeCost(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

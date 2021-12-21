@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_LowerBoundCostHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCostHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost Handler.getLowerBoundCost(RelNode, RelMetadataQuery, VolcanoPlanner)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost LowerBoundCostHandler.getLowerBoundCost(RelNode, RelMetadataQuery, VolcanoPlanner)");
   public final org.apache.calcite.rel.metadata.RelMdLowerBoundCost provider0;
   public GeneratedMetadata_LowerBoundCostHandler(
       org.apache.calcite.rel.metadata.RelMdLowerBoundCost provider0) {
@@ -67,7 +67,7 @@ public final class GeneratedMetadata_LowerBoundCostHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getLowerBoundCost((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptCost org.apache.calcite.rel.metadata.BuiltInMetadata$LowerBoundCost$Handler.getLowerBoundCost(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.plan.volcano.VolcanoPlanner)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptCost org.apache.calcite.rel.metadata.BuiltInMetadata$LowerBoundCostHandler.getLowerBoundCost(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.plan.volcano.VolcanoPlanner)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

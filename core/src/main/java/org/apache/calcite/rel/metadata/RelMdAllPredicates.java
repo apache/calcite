@@ -76,11 +76,12 @@ import java.util.Set;
  *
  */
 public class RelMdAllPredicates
-    implements MetadataHandler<BuiltInMetadata.AllPredicates> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdAllPredicates(), BuiltInMetadata.AllPredicates.Handler.class);
+          new RelMdAllPredicates(), BuiltInMetadata.AllPredicatesHandler.class);
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
     return BuiltInMetadata.AllPredicates.DEF;
   }
@@ -112,8 +113,8 @@ public class RelMdAllPredicates
    * Extracts predicates for a table scan.
    */
   public @Nullable RelOptPredicateList getAllPredicates(TableScan scan, RelMetadataQuery mq) {
-    final BuiltInMetadata.AllPredicates.Handler handler =
-        scan.getTable().unwrap(BuiltInMetadata.AllPredicates.Handler.class);
+    final BuiltInMetadata.AllPredicatesHandler handler =
+        scan.getTable().unwrap(BuiltInMetadata.AllPredicatesHandler.class);
     if (handler != null) {
       return handler.getAllPredicates(scan, mq);
     }

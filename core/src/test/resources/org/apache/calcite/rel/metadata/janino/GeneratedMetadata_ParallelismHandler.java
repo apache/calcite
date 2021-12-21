@@ -17,18 +17,18 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_ParallelismHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.ParallelismHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Boolean Handler.isPhaseTransition()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Boolean ParallelismHandler.isPhaseTransition()");
   private final Object methodKey1 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Integer Handler.splitCount()");
-  public final org.apache.calcite.rel.metadata.RelMdParallelism provider1;
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Integer ParallelismHandler.splitCount()");
+  public final org.apache.calcite.rel.metadata.RelMdParallelism provider0;
   public GeneratedMetadata_ParallelismHandler(
-      org.apache.calcite.rel.metadata.RelMdParallelism provider1) {
-    this.provider1 = provider1;
+      org.apache.calcite.rel.metadata.RelMdParallelism provider0) {
+    this.provider0 = provider0;
   }
   public org.apache.calcite.rel.metadata.MetadataDef getDef() {
-    return provider1.getDef();
+    return provider0.getDef();
   }
   public java.lang.Boolean isPhaseTransition(
       org.apache.calcite.rel.RelNode r,
@@ -63,15 +63,15 @@ public final class GeneratedMetadata_ParallelismHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.rel.core.Exchange) {
-      return provider1.isPhaseTransition((org.apache.calcite.rel.core.Exchange) r, mq);
+      return provider0.isPhaseTransition((org.apache.calcite.rel.core.Exchange) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
-      return provider1.isPhaseTransition((org.apache.calcite.rel.core.TableScan) r, mq);
+      return provider0.isPhaseTransition((org.apache.calcite.rel.core.TableScan) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Values) {
-      return provider1.isPhaseTransition((org.apache.calcite.rel.core.Values) r, mq);
+      return provider0.isPhaseTransition((org.apache.calcite.rel.core.Values) r, mq);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
-      return provider1.isPhaseTransition((org.apache.calcite.rel.RelNode) r, mq);
+      return provider0.isPhaseTransition((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Boolean org.apache.calcite.rel.metadata.BuiltInMetadata$Parallelism$Handler.isPhaseTransition(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Boolean org.apache.calcite.rel.metadata.BuiltInMetadata$ParallelismHandler.isPhaseTransition(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
   public java.lang.Integer splitCount(
@@ -107,9 +107,9 @@ public final class GeneratedMetadata_ParallelismHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.rel.RelNode) {
-      return provider1.splitCount((org.apache.calcite.rel.RelNode) r, mq);
+      return provider0.splitCount((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Integer org.apache.calcite.rel.metadata.BuiltInMetadata$Parallelism$Handler.splitCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Integer org.apache.calcite.rel.metadata.BuiltInMetadata$ParallelismHandler.splitCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

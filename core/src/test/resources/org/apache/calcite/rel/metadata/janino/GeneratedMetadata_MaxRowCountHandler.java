@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_MaxRowCountHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCountHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.getMaxRowCount()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double MaxRowCountHandler.getMaxRowCount()");
   public final org.apache.calcite.rel.metadata.RelMdMaxRowCount provider0;
   public GeneratedMetadata_MaxRowCountHandler(
       org.apache.calcite.rel.metadata.RelMdMaxRowCount provider0) {
@@ -93,7 +93,7 @@ public final class GeneratedMetadata_MaxRowCountHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getMaxRowCount((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$MaxRowCount$Handler.getMaxRowCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$MaxRowCountHandler.getMaxRowCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

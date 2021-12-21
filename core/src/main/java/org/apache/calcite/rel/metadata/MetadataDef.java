@@ -30,18 +30,26 @@ import java.util.List;
  *
  * @param <M> Kind of metadata
  */
+@Deprecated
 public class MetadataDef<M extends Metadata> {
   public final Class<M> metadataClass;
-  public final Class<? extends MetadataHandler<M>> handlerClass;
+  public final Class<? extends MetadataHandler> handlerClass;
   public final ImmutableList<Method> methods;
 
   private MetadataDef(Class<M> metadataClass,
-      Class<? extends MetadataHandler<M>> handlerClass, Method... methods) {
+      Class<? extends MetadataHandler> handlerClass, Method... methods) {
     this.metadataClass = metadataClass;
     this.handlerClass = handlerClass;
     this.methods = ImmutableList.copyOf(methods);
-    final Method[] handlerMethods = Arrays.stream(handlerClass.getDeclaredMethods())
-        .filter(m -> !m.getName().equals("getDef")).toArray(i -> new Method[i]);
+    final Method[] handlerMethods = Arrays.stream(handlerClass.getMethods())
+        .filter(m -> m.getParameterCount() > 1)
+        .filter(m -> {
+          Class<?>[] types = Arrays.copyOfRange(m.getParameterTypes(), 2, m.getParameterCount());
+          return Arrays.stream(methods)
+              .anyMatch(mm -> mm.getName().equals(m.getName())
+                  && Arrays.equals(mm.getParameterTypes(), types));
+        })
+        .toArray(Method[]::new);
 
     // Handler must have the same methods as Metadata, each method having
     // additional "subclass-of-RelNode, RelMetadataQuery" parameters.
@@ -60,7 +68,7 @@ public class MetadataDef<M extends Metadata> {
 
   /** Creates a {@link org.apache.calcite.rel.metadata.MetadataDef}. */
   public static <M extends Metadata> MetadataDef<M> of(Class<M> metadataClass,
-      Class<? extends MetadataHandler<M>> handlerClass, Method... methods) {
+      Class<? extends MetadataHandler> handlerClass, Method... methods) {
     return new MetadataDef<>(metadataClass, handlerClass, methods);
   }
 }

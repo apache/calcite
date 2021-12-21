@@ -107,14 +107,14 @@ public class RelMetadataQueryBase {
   /** Re-generates the handler for a given kind of metadata, adding support for
    * {@code class_} if it is not already present. */
   @Deprecated // to be removed before 2.0
-  protected <M extends Metadata, H extends MetadataHandler<M>> H
+  protected <M extends Metadata, H extends MetadataHandler> H
       revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
     return (H) revise(def.handlerClass);
   }
 
   /** Re-generates the handler for a given kind of metadata, adding support for
    * {@code class_} if it is not already present. */
-  protected <H extends MetadataHandler<?>> H revise(Class<H> def) {
+  protected <H extends MetadataHandler> H revise(Class<H> def) {
     return getMetadataHandlerProvider().revise(def);
   }
 
@@ -129,7 +129,7 @@ public class RelMetadataQueryBase {
    * @param <MH> The metadata type the handler relates to.
    * @return The handler implementation.
    */
-  protected <MH extends MetadataHandler<?>> MH handler(Class<MH> handlerClass) {
+  protected <MH extends MetadataHandler> MH handler(Class<MH> handlerClass) {
     return getMetadataHandlerProvider().handler(handlerClass);
   }
 

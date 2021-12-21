@@ -62,7 +62,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
   /** Cache of pre-generated handlers by provider and kind of metadata.
    * For the cache to be effective, providers should implement identity
    * correctly. */
-  private static final LoadingCache<Key, MetadataHandler<?>> HANDLERS =
+  private static final LoadingCache<Key, MetadataHandler> HANDLERS =
       maxSize(CacheBuilder.newBuilder(),
           CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value())
           .build(
@@ -112,21 +112,21 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
   }
 
   @Deprecated // to be removed before 2.0
-  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler>
       handlers(MetadataDef<M> def) {
     return provider.handlers(def);
   }
 
-  @Override public List<MetadataHandler<?>> handlers(
-      Class<? extends MetadataHandler<?>> handlerClass) {
+  @Override public List<MetadataHandler> handlers(
+      Class<? extends MetadataHandler> handlerClass) {
     return provider.handlers(handlerClass);
   }
 
-  private static <MH extends MetadataHandler<?>> MH generateCompileAndInstantiate(
+  private static <MH extends MetadataHandler> MH generateCompileAndInstantiate(
       Class<MH> handlerClass,
-      List<? extends MetadataHandler<? extends Metadata>> handlers) {
+      List<? extends MetadataHandler> handlers) {
 
-    final List<? extends MetadataHandler<? extends Metadata>> uniqueHandlers = handlers.stream()
+    final List<? extends MetadataHandler> uniqueHandlers = handlers.stream()
         .distinct()
         .collect(Collectors.toList());
     RelMetadataHandlerGeneratorUtil.HandlerNameAndGeneratedCode handlerNameAndGeneratedCode =
@@ -142,7 +142,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
   }
 
 
-  static  <MH extends MetadataHandler<?>> MH compile(String className,
+  static  <MH extends MetadataHandler> MH compile(String className,
       String generatedCode, Class<MH> handlerClass,
       List<? extends Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
@@ -180,7 +180,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
     return handlerClass.cast(o);
   }
 
-  @Override public synchronized <H extends MetadataHandler<?>> H revise(Class<H> handlerClass) {
+  @Override public synchronized <H extends MetadataHandler> H revise(Class<H> handlerClass) {
     try {
       final Key key = new Key(handlerClass, provider);
       //noinspection unchecked
@@ -193,7 +193,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
   /** Registers some classes. Does not flush the providers, but next time we
    * need to generate a provider, it will handle all of these classes. So,
    * calling this method reduces the number of times we need to re-generate. */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public void register(Iterable<Class<? extends RelNode>> classes) {
   }
 
@@ -201,7 +201,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
    * this class but there is not. The action is probably to
    * re-generate the handler class. Use {@link MetadataHandlerProvider.NoHandler} instead.
    * */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public static class NoHandler extends MetadataHandlerProvider.NoHandler {
     public NoHandler(Class<? extends RelNode> relClass) {
       super(relClass);
@@ -210,10 +210,10 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
 
   /** Key for the cache. */
   private static class Key {
-    final Class<? extends MetadataHandler<? extends Metadata>> handlerClass;
+    final Class<? extends MetadataHandler> handlerClass;
     final RelMetadataProvider provider;
 
-    private Key(Class<? extends MetadataHandler<?>> handlerClass,
+    private Key(Class<? extends MetadataHandler> handlerClass,
         RelMetadataProvider provider) {
       this.handlerClass = handlerClass;
       this.provider = provider;
@@ -233,7 +233,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
   }
 
   @SuppressWarnings("deprecation")
-  @Override public <MH extends MetadataHandler<?>> MH handler(final Class<MH> handlerClass) {
+  @Override public <MH extends MetadataHandler> MH handler(final Class<MH> handlerClass) {
     return handlerClass.cast(
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
             new Class[] {handlerClass}, (proxy, method, args) -> {

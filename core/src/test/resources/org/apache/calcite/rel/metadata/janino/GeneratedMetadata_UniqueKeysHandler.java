@@ -17,11 +17,11 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_UniqueKeysHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeysHandler {
   private final Object methodKey0True =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Set Handler.getUniqueKeys(true)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Set UniqueKeysHandler.getUniqueKeys(true)");
   private final Object methodKey0False =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Set Handler.getUniqueKeys(false)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Set UniqueKeysHandler.getUniqueKeys(false)");
   public final org.apache.calcite.rel.metadata.RelMdUniqueKeys provider0;
   public GeneratedMetadata_UniqueKeysHandler(
       org.apache.calcite.rel.metadata.RelMdUniqueKeys provider0) {
@@ -91,7 +91,7 @@ public final class GeneratedMetadata_UniqueKeysHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getUniqueKeys((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.util.Set org.apache.calcite.rel.metadata.BuiltInMetadata$UniqueKeys$Handler.getUniqueKeys(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,boolean)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.util.Set org.apache.calcite.rel.metadata.BuiltInMetadata$UniqueKeysHandler.getUniqueKeys(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,boolean)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 
