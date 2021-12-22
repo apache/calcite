@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
@@ -384,5 +385,39 @@ public abstract class SqlNode implements Cloneable {
     return Collector.<T, ArrayList<@Nullable SqlNode>, SqlNodeList>of(
         ArrayList::new, ArrayList::add, Util::combine,
         (ArrayList<@Nullable SqlNode> list) -> SqlNodeList.of(pos, list));
+  }
+
+  public boolean hasUnderlyingColumnSameAsAlias(String alias) {
+    if (this instanceof SqlBasicCall) {
+      List<SqlNode> operands = ((SqlBasicCall) this).getOperandList();
+      boolean ret = false;
+      for (int i = 0; i < operands.size(); i++) {
+        if (operands.get(i) != null) {
+          ret = ret || operands.get(i).hasUnderlyingColumnSameAsAlias(alias);
+        }
+      }
+      return ret;
+    } else if (this instanceof SqlCase) {
+      List<SqlNode> operandList = ((SqlCase) this).getOperandList();
+      boolean ret = false;
+      for (int i = 0; i < operandList.size(); i++) {
+        if (operandList.get(i) != null) {
+          ret = ret || operandList.get(i).hasUnderlyingColumnSameAsAlias(alias);
+        }
+      }
+      return ret;
+    } else if (this instanceof SqlNodeList) {
+      List<@Nullable SqlNode> list = ((SqlNodeList) this).getList();
+      boolean ret = false;
+      for (int i = 0; i < list.size(); i++) {
+        if (list.get(i) != null) {
+          ret = ret || list.get(i).hasUnderlyingColumnSameAsAlias(alias);
+        }
+      }
+      return ret;
+    } else if (this instanceof SqlIdentifier) {
+      return this.toString().equals(alias);
+    }
+    return false;
   }
 }
