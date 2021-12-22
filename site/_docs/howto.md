@@ -51,7 +51,7 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
+and Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16 or 17) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
