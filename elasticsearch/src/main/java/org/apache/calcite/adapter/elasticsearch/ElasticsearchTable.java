@@ -109,6 +109,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
   private Enumerable<Object> find(List<String> ops,
       List<Map.Entry<String, Class>> fields,
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
+      Map<String, RelFieldCollation.NullDirection> nullsSort,
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
       Map<String, String> mappings,
@@ -127,10 +128,15 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     if (!sort.isEmpty()) {
       ArrayNode sortNode = query.withArray("sort");
-      sort.forEach(e ->
-          sortNode.add(
-              mapper.createObjectNode().put(e.getKey(),
-                  e.getValue().isDescending() ? "desc" : "asc")));
+      sort.forEach(e -> {
+        String field = e.getKey();
+        ObjectNode fieldSortProp = mapper.createObjectNode();
+        String nullsDirection =
+            nullsSort.get(field) == RelFieldCollation.NullDirection.FIRST ? "_first" : "_last";
+        fieldSortProp.put("missing", nullsDirection)
+            .put("order", e.getValue().isDescending() ? "desc" : "asc");
+        sortNode.add(mapper.createObjectNode().set(field, fieldSortProp));
+      });
     }
 
     if (offset != null) {
@@ -358,12 +364,14 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     public Enumerable<Object> find(List<String> ops,
          List<Map.Entry<String, Class>> fields,
          List<Map.Entry<String, RelFieldCollation.Direction>> sort,
+         Map<String, RelFieldCollation.NullDirection> nullsSort,
          List<String> groupBy,
          List<Map.Entry<String, String>> aggregations,
          Map<String, String> mappings,
          Long offset, Long fetch) {
       try {
-        return getTable().find(ops, fields, sort, groupBy, aggregations, mappings, offset, fetch);
+        return getTable().find(ops, fields, sort, nullsSort, groupBy, aggregations, mappings,
+            offset, fetch);
       } catch (IOException e) {
         throw new UncheckedIOException("Failed to query " + getTable().indexName, e);
       }

@@ -400,6 +400,21 @@ class AggregationTest {
             "aggregations:{'v1.max.field': 'val1'",
             "'v2.min.field': 'val2'}"))
         .returnsUnordered("v1=7; v2=5");
+  }
 
+  @Test void testNullsSort() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat2, cat5 from view order by cat2 asc, cat5 desc nulls last")
+        .returns("cat2=g; cat5=1\n"
+                + "cat2=g; cat5=null\n"
+                + "cat2=h; cat5=2\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select cat2, cat5 from view order by cat2 asc, cat5 asc nulls first")
+        .returns("cat2=g; cat5=null\n"
+            + "cat2=g; cat5=1\n"
+            + "cat2=h; cat5=2\n");
   }
 }
