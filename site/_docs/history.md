@@ -54,7 +54,7 @@ the changes concern custom planner rule configurations, in particular
 Two APIs are deprecated and will be [removed in release 1.29](#to-be-removed-in-1-29-0).
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
-using JDK/OpenJDK versions 8 to 15;
+using JDK/OpenJDK versions 8 to 17;
 Guava versions 19.0 to 31.0.1-jre;
 other software versions as specified in gradle.properties.
 
