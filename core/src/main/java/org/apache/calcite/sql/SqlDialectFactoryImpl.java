@@ -54,6 +54,7 @@ import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -68,110 +69,113 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       JethroDataSqlDialect.createCache();
 
   @Override public SqlDialect create(DatabaseMetaData databaseMetaData) {
-    String databaseProductName;
-    int databaseMajorVersion;
-    int databaseMinorVersion;
-    String databaseVersion;
+    SqlDialect.Context context = Utils.context(databaseMetaData);
+    return create(databaseMetaData, context, new AnsiSqlDialect(context));
+  }
+
+  /**
+   * Creates a <code>SqlDialect</code>.
+   *
+   * <p>Does not maintain a reference to the DatabaseMetaData -- or, more
+   * importantly, to its {@link Connection} -- after this call has
+   * returned.
+   *
+   * @param databaseMetaData used to determine which dialect of SQL to
+   *                         generate
+   * @param context          the pre-built {@link SqlDialect.Context}
+   * @param fallback         the default {@link SqlDialect} in case none of the selection rules match
+   *
+   * @throws RuntimeException if there was an error creating the dialect
+   */
+  public SqlDialect create(DatabaseMetaData databaseMetaData,
+                           SqlDialect.Context context,
+                           SqlDialect fallback) {
+    String databaseProductName = context.databaseProductName();
     try {
-      databaseProductName = databaseMetaData.getDatabaseProductName();
-      databaseMajorVersion = databaseMetaData.getDatabaseMajorVersion();
-      databaseMinorVersion = databaseMetaData.getDatabaseMinorVersion();
-      databaseVersion = databaseMetaData.getDatabaseProductVersion();
+      if (databaseProductName == null) {
+        databaseProductName = databaseMetaData.getDatabaseProductName();
+      }
     } catch (SQLException e) {
       throw new RuntimeException("while detecting database product", e);
     }
-    final String upperProductName =
-        databaseProductName.toUpperCase(Locale.ROOT).trim();
-    final String quoteString = getIdentifierQuoteString(databaseMetaData);
-    final NullCollation nullCollation = getNullCollation(databaseMetaData);
-    final Casing unquotedCasing = getCasing(databaseMetaData, false);
-    final Casing quotedCasing = getCasing(databaseMetaData, true);
-    final boolean caseSensitive = isCaseSensitive(databaseMetaData);
-    final SqlDialect.Context c = SqlDialect.EMPTY_CONTEXT
-        .withDatabaseProductName(databaseProductName)
-        .withDatabaseMajorVersion(databaseMajorVersion)
-        .withDatabaseMinorVersion(databaseMinorVersion)
-        .withDatabaseVersion(databaseVersion)
-        .withIdentifierQuoteString(quoteString)
-        .withUnquotedCasing(unquotedCasing)
-        .withQuotedCasing(quotedCasing)
-        .withCaseSensitive(caseSensitive)
-        .withNullCollation(nullCollation);
+
+    String upperProductName = databaseProductName.toUpperCase(Locale.ROOT).trim();
+
     switch (upperProductName) {
     case "ACCESS":
-      return new AccessSqlDialect(c);
+      return new AccessSqlDialect(context);
     case "APACHE DERBY":
-      return new DerbySqlDialect(c);
+      return new DerbySqlDialect(context);
     case "CLICKHOUSE":
-      return new ClickHouseSqlDialect(c);
+      return new ClickHouseSqlDialect(context);
     case "DBMS:CLOUDSCAPE":
-      return new DerbySqlDialect(c);
+      return new DerbySqlDialect(context);
     case "EXASOL":
-      return new ExasolSqlDialect(c);
+      return new ExasolSqlDialect(context);
     case "HIVE":
-      return new HiveSqlDialect(c);
+      return new HiveSqlDialect(context);
     case "INGRES":
-      return new IngresSqlDialect(c);
+      return new IngresSqlDialect(context);
     case "INTERBASE":
-      return new InterbaseSqlDialect(c);
+      return new InterbaseSqlDialect(context);
     case "JETHRODATA":
       return new JethroDataSqlDialect(
-          c.withJethroInfo(jethroCache.get(databaseMetaData)));
+          context.withJethroInfo(jethroCache.get(databaseMetaData)));
     case "LUCIDDB":
-      return new LucidDbSqlDialect(c);
+      return new LucidDbSqlDialect(context);
     case "ORACLE":
-      return new OracleSqlDialect(c);
+      return new OracleSqlDialect(context);
     case "PHOENIX":
-      return new PhoenixSqlDialect(c);
+      return new PhoenixSqlDialect(context);
     case "MYSQL (INFOBRIGHT)":
-      return new InfobrightSqlDialect(c);
+      return new InfobrightSqlDialect(context);
     case "MYSQL":
       return new MysqlSqlDialect(
-          c.withDataTypeSystem(MysqlSqlDialect.MYSQL_TYPE_SYSTEM));
+          context.withDataTypeSystem(MysqlSqlDialect.MYSQL_TYPE_SYSTEM));
     case "REDSHIFT":
       return new RedshiftSqlDialect(
-          c.withDataTypeSystem(RedshiftSqlDialect.TYPE_SYSTEM));
+          context.withDataTypeSystem(RedshiftSqlDialect.TYPE_SYSTEM));
     case "SNOWFLAKE":
-      return new SnowflakeSqlDialect(c);
+      return new SnowflakeSqlDialect(context);
     case "SPARK":
-      return new SparkSqlDialect(c);
+      return new SparkSqlDialect(context);
     default:
       break;
     }
     // Now the fuzzy matches.
     if (databaseProductName.startsWith("DB2")) {
-      return new Db2SqlDialect(c);
+      return new Db2SqlDialect(context);
     } else if (upperProductName.contains("FIREBIRD")) {
-      return new FirebirdSqlDialect(c);
+      return new FirebirdSqlDialect(context);
     } else if (databaseProductName.startsWith("Informix")) {
-      return new InformixSqlDialect(c);
+      return new InformixSqlDialect(context);
     } else if (upperProductName.contains("NETEZZA")) {
-      return new NetezzaSqlDialect(c);
+      return new NetezzaSqlDialect(context);
     } else if (upperProductName.contains("PARACCEL")) {
-      return new ParaccelSqlDialect(c);
+      return new ParaccelSqlDialect(context);
     } else if (databaseProductName.startsWith("HP Neoview")) {
-      return new NeoviewSqlDialect(c);
+      return new NeoviewSqlDialect(context);
     } else if (upperProductName.contains("POSTGRE")) {
       return new PostgresqlSqlDialect(
-          c.withDataTypeSystem(PostgresqlSqlDialect.POSTGRESQL_TYPE_SYSTEM));
+          context.withDataTypeSystem(PostgresqlSqlDialect.POSTGRESQL_TYPE_SYSTEM));
     } else if (upperProductName.contains("SQL SERVER")) {
-      return new MssqlSqlDialect(c);
+      return new MssqlSqlDialect(context);
     } else if (upperProductName.contains("SYBASE")) {
-      return new SybaseSqlDialect(c);
+      return new SybaseSqlDialect(context);
     } else if (upperProductName.contains("TERADATA")) {
-      return new TeradataSqlDialect(c);
+      return new TeradataSqlDialect(context);
     } else if (upperProductName.contains("HSQL")) {
-      return new HsqldbSqlDialect(c);
+      return new HsqldbSqlDialect(context);
     } else if (upperProductName.contains("H2")) {
-      return new H2SqlDialect(c);
+      return new H2SqlDialect(context);
     } else if (upperProductName.contains("VERTICA")) {
-      return new VerticaSqlDialect(c);
+      return new VerticaSqlDialect(context);
     } else if (upperProductName.contains("SNOWFLAKE")) {
-      return new SnowflakeSqlDialect(c);
+      return new SnowflakeSqlDialect(context);
     } else if (upperProductName.contains("SPARK")) {
-      return new SparkSqlDialect(c);
+      return new SparkSqlDialect(context);
     } else {
-      return new AnsiSqlDialect(c);
+      return fallback;
     }
   }
 
@@ -314,4 +318,49 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     }
   }
 
+  /**
+   * Utilities for {@link SqlDialectFactory} to extract information from {@link DatabaseMetaData}.
+   */
+  public static final class Utils {
+    private Utils() {
+      // utility class - not to be instantiated
+    }
+
+    /**
+     * Extracts information from {@link DatabaseMetaData} into {@link SqlDialect.Context}.
+     * @param databaseMetaData the database metadata
+     * @return a context with information populated from the database metadata
+     */
+    public static SqlDialect.Context context(DatabaseMetaData databaseMetaData) {
+      String databaseProductName;
+      int databaseMajorVersion;
+      int databaseMinorVersion;
+      String databaseVersion;
+      try {
+        databaseProductName = databaseMetaData.getDatabaseProductName();
+        databaseMajorVersion = databaseMetaData.getDatabaseMajorVersion();
+        databaseMinorVersion = databaseMetaData.getDatabaseMinorVersion();
+        databaseVersion = databaseMetaData.getDatabaseProductVersion();
+      } catch (SQLException e) {
+        throw new RuntimeException("while detecting database product", e);
+      }
+      final String quoteString = getIdentifierQuoteString(databaseMetaData);
+      final NullCollation nullCollation = getNullCollation(databaseMetaData);
+      final Casing unquotedCasing = getCasing(databaseMetaData, false);
+      final Casing quotedCasing = getCasing(databaseMetaData, true);
+      final boolean caseSensitive = isCaseSensitive(databaseMetaData);
+      final SqlDialect.Context c = SqlDialect.EMPTY_CONTEXT
+          .withDatabaseProductName(databaseProductName)
+          .withDatabaseMajorVersion(databaseMajorVersion)
+          .withDatabaseMinorVersion(databaseMinorVersion)
+          .withDatabaseVersion(databaseVersion)
+          .withIdentifierQuoteString(quoteString)
+          .withUnquotedCasing(unquotedCasing)
+          .withQuotedCasing(quotedCasing)
+          .withCaseSensitive(caseSensitive)
+          .withNullCollation(nullCollation);
+
+      return c;
+    }
+  }
 }
