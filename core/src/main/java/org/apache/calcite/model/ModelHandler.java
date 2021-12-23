@@ -103,7 +103,8 @@ public class ModelHandler {
     } else {
       mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
       if (uri.startsWith("classpath:")) {
-        final URL resourceURL = ModelHandler.class.getResource(uri.substring("classpath:".length()).trim());
+        final URL resourceURL =
+            ModelHandler.class.getResource(uri.substring("classpath:".length()).trim());
         if (resourceURL == null) {
           throw new IOException("Classpath resource not found by '" + uri + "'");
         }
