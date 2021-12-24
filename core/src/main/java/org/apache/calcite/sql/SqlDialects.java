@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.sql;
 
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
+
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 
 /**
  * Utilities related to {@link SqlDialect}.
