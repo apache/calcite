@@ -18,12 +18,12 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -32,7 +32,6 @@ import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -462,24 +461,18 @@ class ElasticSearchAdapterTest {
         .explainContains(explain);
   }
 
-  /**
-   * Range query is not supported currently.
-   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-4645">[CALCITE-4645]
-   * In Elasticsearch adapter, a range predicate should be translated to a range query</a>
-   * <p>Description about translating search call to range query
-   * {@link org.apache.calcite.adapter.elasticsearch.PredicateAnalyzer.Visitor#canBeTranslatedToTermsQuery(RexCall)}
-   */
-  @Disabled
   @Test void testFilterSortDesc() {
     final String sql = "select * from zips\n"
         + "where pop BETWEEN 95000 AND 100000\n"
         + "order by state desc, pop";
-    calciteAssert()
-        .query(sql)
-        .limit(4)
-        .returnsOrdered(
-            "city=LOS ANGELES; longitude=-118.258189; latitude=34.007856; pop=96074; state=CA; id=90011",
-            "city=BELL GARDENS; longitude=-118.17205; latitude=33.969177; pop=99568; state=CA; id=90201");
+    if (Bug.CALCITE_4645_FIXED) {
+      calciteAssert()
+          .query(sql)
+          .limit(4)
+          .returnsOrdered(
+              "city=LOS ANGELES; longitude=-118.258189; latitude=34.007856; pop=96074; state=CA; id=90011",
+              "city=BELL GARDENS; longitude=-118.17205; latitude=33.969177; pop=99568; state=CA; id=90201");
+    }
   }
 
   @Test void testInPlan() {
