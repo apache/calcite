@@ -293,7 +293,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   /** Row converter.
    *
    * @param <E> element type */
-  abstract static class RowConverter<E> {
+  public abstract static class RowConverter<E> {
     abstract E convertRow(@Nullable String[] rows);
 
     @SuppressWarnings("JavaUtilDate")
