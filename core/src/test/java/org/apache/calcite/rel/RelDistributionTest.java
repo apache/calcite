@@ -54,6 +54,24 @@ class RelDistributionTest {
     assertThat(distribution2.compareTo(distribution2), is(0));
   }
 
+  @Test void testHashRandomDistributionSatisfy() {
+    RelDistribution distribution1 = RelDistributions.hashRandom(ImmutableList.of(0), 8);
+    RelDistribution distribution2 = RelDistributions.hashRandom(ImmutableList.of(1), 8);
+    RelDistribution distribution3 = RelDistributions.hashRandom(ImmutableList.of(0), 16);
+
+    assertThat(distribution1.satisfies(distribution2), is(false));
+    assertThat(distribution2.satisfies(distribution1), is(false));
+
+    assertThat(distribution1.satisfies(distribution3), is(false));
+    assertThat(distribution3.satisfies(distribution1), is(false));
+
+    assertThat(distribution1.compareTo(distribution2), is(-1));
+    assertThat(distribution2.compareTo(distribution1), is(1));
+    assertThat(distribution3.compareTo(distribution1), is(1));
+    //noinspection EqualsWithItself
+    assertThat(distribution2.compareTo(distribution2), is(0));
+  }
+
   @Test void testRelDistributionMapping() {
     final int n = 10; // Mapping source count.
 
@@ -85,6 +103,16 @@ class RelDistributionTest {
     assertThat(hash9.apply(mapping(n, 1)), is(ANY));
     assertThat(hash9.apply(mapping(n, 2)), is(ANY));
     assertThat(hash9.apply(mapping(n, n - 1)), is(hash(0)));
+
+    // hash_random[0,1]
+    RelDistribution hashRandom01 = RelDistributions.hashRandom(ImmutableIntList.of(0, 1), 8);
+    assertThat(hashRandom01.apply(mapping(n, 0)), is(ANY));
+    assertThat(hashRandom01.apply(mapping(n, 1)), is(ANY));
+    assertThat(hashRandom01.apply(mapping(n, 0, 1)), is(hashRandom01));
+    assertThat(hashRandom01.apply(mapping(n, 1, 2)), is(ANY));
+    assertThat(hashRandom01.apply(mapping(n, 1, 0)), is(hashRandom01));
+    assertThat(hashRandom01.apply(mapping(n, 2, 1, 0)),
+        is(RelDistributions.hashRandom(ImmutableIntList.of(2, 1), 8)));
   }
 
   private static Mapping mapping(int sourceCount, int... sources) {

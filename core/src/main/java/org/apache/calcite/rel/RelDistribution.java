@@ -19,6 +19,8 @@ package org.apache.calcite.rel;
 import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -46,6 +48,12 @@ public interface RelDistribution extends RelMultipleTrait {
    * SINGLETON) never have keys.
    */
   List<Integer> getKeys();
+
+  /** Returns null for type which is not HASH_RANDOM while returns the number of possible instances
+   *  for a record with same keys could appear on for HASH_RANDOM type. */
+  default @Nullable Integer getHashRandomNumber() {
+    return null;
+  }
 
   /**
    * Applies mapping to this distribution trait.
@@ -76,6 +84,20 @@ public interface RelDistribution extends RelMultipleTrait {
      * records whose keys hash to a particular hash value. Instances are
      * disjoint; a given record appears on exactly one stream. */
     HASH_DISTRIBUTED("hash"),
+
+    /** This distribution type could solve data skew problem exists in hash distribution.
+     *
+     * <p>For hash distribution, all record with same key always appear on the same stream.
+     *
+     * <p>For hash random distribution, records with same key could appear on one of the N streams,
+     * chosen at random.
+     *
+     * <p>For example, there are 128 instances of stream and the hash random number is 6. All
+     * records with the same key  would appear on 6 instances of 128 instances. And which a record
+     * would appear on is chosen at random.
+     * <p>In the example, the type is equivalent with hash distribution if N is 1 while the type
+     * is equivalent with random distribution if N is 128. */
+    HASH_RANDOM_DISTRIBUTED("hash_random"),
 
     /** There are multiple instances of the stream, and each instance contains
      * records whose keys fall into a particular range. Instances are disjoint;

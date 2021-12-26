@@ -1034,7 +1034,7 @@ LogicalProject(MGR=[$0], SUM_SAL=[$2])
   <TestCase name="testAggregateUnionTransposeWithAllInputsUnique">
     <Resource name="sql">
       <![CDATA[select deptno, SUM(t) from (
-select deptno, 1 as t from sales.emp e1
+select distinct deptno, 1 as t from sales.emp e1
 union all
 select distinct deptno, 2 as t from sales.emp e2)
 group by deptno]]>
@@ -4024,6 +4024,26 @@ LogicalProject(EXPR$0=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHashRandomExchangeRemoveConstantKeysRule">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSortExchange(distribution=[hash_random(keys = [0, 1], number = 8)], collation=[[0, 1]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1])
+    LogicalExchange(distribution=[hash[0]])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSortExchange(distribution=[hash_random(keys = [1], number = 8)], collation=[[1]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1])
+    LogicalExchange(distribution=[single])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>

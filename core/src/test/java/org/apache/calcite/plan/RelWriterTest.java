@@ -397,6 +397,38 @@ class RelWriterTest {
       + "  ]\n"
       + "}";
 
+  public static final String XX3_HASH_RANDOM = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalTableScan\",\n"
+      + "      \"table\": [\n"
+      + "        \"scott\",\n"
+      + "        \"EMP\"\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"1\",\n"
+      + "      \"relOp\": \"LogicalSortExchange\",\n"
+      + "      \"distribution\": {\n"
+      + "        \"type\": \"HASH_RANDOM_DISTRIBUTED\",\n"
+      + "        \"keys\": [\n"
+      + "          0\n"
+      + "        ],\n"
+      + "        \"number\": 8\n"
+      + "      },\n"
+      + "      \"collation\": [\n"
+      + "        {\n"
+      + "          \"field\": 0,\n"
+      + "          \"direction\": \"ASCENDING\",\n"
+      + "          \"nulls\": \"LAST\"\n"
+      + "        }\n"
+      + "      ]\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
   public static final String HASH_DIST_WITHOUT_KEYS = "{\n"
       + "  \"rels\": [\n"
       + "    {\n"
@@ -413,6 +445,35 @@ class RelWriterTest {
       + "      \"relOp\": \"LogicalSortExchange\",\n"
       + "      \"distribution\": {\n"
       + "        \"type\": \"HASH_DISTRIBUTED\"\n"
+      + "      },\n"
+      + "      \"collation\": [\n"
+      + "        {\n"
+      + "          \"field\": 0,\n"
+      + "          \"direction\": \"ASCENDING\",\n"
+      + "          \"nulls\": \"LAST\"\n"
+      + "        }\n"
+      + "      ]\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
+  public static final String HASH_RANDOM_DIST_WITHOUT_KEYS = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalTableScan\",\n"
+      + "      \"table\": [\n"
+      + "        \"scott\",\n"
+      + "        \"EMP\"\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"1\",\n"
+      + "      \"relOp\": \"LogicalSortExchange\",\n"
+      + "      \"distribution\": {\n"
+      + "        \"type\": \"HASH_RANDOM_DISTRIBUTED\",\n"
+      + "        \"number\": 8\n"
       + "      },\n"
       + "      \"collation\": [\n"
       + "        {\n"
@@ -618,6 +679,43 @@ class RelWriterTest {
     String plan = deserializeAndDump(cluster, getSchema(rel), relJson, SqlExplainFormat.TEXT);
     final String expected = ""
         + "LogicalExchange(distribution=[hash[0, 1]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(plan, isLinux(expected));
+  }
+
+  @Test public void testHashRandomExchange() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .exchange(RelDistributions.hashRandom(ImmutableList.of(0, 1), 8))
+        .build();
+    final String relJson = RelOptUtil.dumpPlan("", rel,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = ""
+        + "LogicalExchange(distribution=[hash_random(keys = [0, 1], number = 8)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test public void testHashRandomExchangeWithDistributionTraitDef() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .exchange(RelDistributions.hashRandom(ImmutableList.of(0, 1), 8))
+        .build();
+    final String relJson = RelOptUtil.dumpPlan("", rel,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+    RelOptCluster cluster = RelOptCluster.create(planner, builder.getRexBuilder());
+
+    String plan = deserializeAndDump(cluster, getSchema(rel), relJson, SqlExplainFormat.TEXT);
+    final String expected = ""
+        + "LogicalExchange(distribution=[hash_random(keys = [0, 1], number = 8)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(plan, isLinux(expected));
   }
@@ -1193,6 +1291,34 @@ class RelWriterTest {
     final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
     final String expected =
         "LogicalSortExchange(distribution=[hash[0]], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test void testHashRandomDistributionWithoutKeys() {
+    final RelNode root = createSortPlan(RelDistributions.hashRandom(Collections.emptyList(), 8));
+    final RelJsonWriter writer = new RelJsonWriter();
+    root.explain(writer);
+    final String json = writer.asString();
+    assertThat(json, is(HASH_RANDOM_DIST_WITHOUT_KEYS));
+
+    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
+    final String expected =
+        "LogicalSortExchange(distribution=[hash_random(number = 8)], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test void testWriteSortExchangeWithHashRandomDistribution() {
+    final RelNode root = createSortPlan(RelDistributions.hashRandom(Lists.newArrayList(0), 8));
+    final RelJsonWriter writer = new RelJsonWriter();
+    root.explain(writer);
+    final String json = writer.asString();
+    assertThat(json, is(XX3_HASH_RANDOM));
+
+    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
+    final String expected =
+        "LogicalSortExchange(distribution=[hash_random(keys = [0], number = 8)], collation=[[0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }

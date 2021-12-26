@@ -32,6 +32,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelDistribution}.
  */
@@ -40,24 +42,22 @@ public class RelDistributions {
 
   /** The singleton singleton distribution. */
   public static final RelDistribution SINGLETON =
-      new RelDistributionImpl(RelDistribution.Type.SINGLETON, EMPTY);
+      new RelDistributionImpl(RelDistribution.Type.SINGLETON, EMPTY, null);
 
   /** The singleton random distribution. */
   public static final RelDistribution RANDOM_DISTRIBUTED =
-      new RelDistributionImpl(RelDistribution.Type.RANDOM_DISTRIBUTED, EMPTY);
+      new RelDistributionImpl(RelDistribution.Type.RANDOM_DISTRIBUTED, EMPTY, null);
 
   /** The singleton round-robin distribution. */
   public static final RelDistribution ROUND_ROBIN_DISTRIBUTED =
-      new RelDistributionImpl(RelDistribution.Type.ROUND_ROBIN_DISTRIBUTED,
-          EMPTY);
+      new RelDistributionImpl(RelDistribution.Type.ROUND_ROBIN_DISTRIBUTED, EMPTY, null);
 
   /** The singleton broadcast distribution. */
   public static final RelDistribution BROADCAST_DISTRIBUTED =
-      new RelDistributionImpl(RelDistribution.Type.BROADCAST_DISTRIBUTED,
-          EMPTY);
+      new RelDistributionImpl(RelDistribution.Type.BROADCAST_DISTRIBUTED, EMPTY, null);
 
   public static final RelDistribution ANY =
-      new RelDistributionImpl(RelDistribution.Type.ANY, EMPTY);
+      new RelDistributionImpl(RelDistribution.Type.ANY, EMPTY, null);
 
   private RelDistributions() {}
 
@@ -67,6 +67,14 @@ public class RelDistributions {
     return of(RelDistribution.Type.HASH_DISTRIBUTED, list);
   }
 
+  /** Creates a hash random distribution. */
+  public static RelDistribution hashRandom(
+      Collection<? extends Number> numbers,
+      @Nullable Integer hashRandomNumber) {
+    ImmutableIntList list = normalizeKeys(numbers);
+    return of(RelDistribution.Type.HASH_RANDOM_DISTRIBUTED, list, hashRandomNumber);
+  }
+
   /** Creates a range distribution. */
   public static RelDistribution range(Collection<? extends Number> numbers) {
     ImmutableIntList list = ImmutableIntList.copyOf(numbers);
@@ -74,7 +82,14 @@ public class RelDistributions {
   }
 
   public static RelDistribution of(RelDistribution.Type type, ImmutableIntList keys) {
-    RelDistribution distribution = new RelDistributionImpl(type, keys);
+    return of(type, keys, null);
+  }
+
+  public static RelDistribution of(
+      RelDistribution.Type type,
+      ImmutableIntList keys,
+      @Nullable Integer hashRandomNumber) {
+    RelDistribution distribution = new RelDistributionImpl(type, keys, hashRandomNumber);
     return RelDistributionTraitDef.INSTANCE.canonize(distribution);
   }
 
@@ -95,31 +110,57 @@ public class RelDistributions {
     private final Type type;
     private final ImmutableIntList keys;
 
-    private RelDistributionImpl(Type type, ImmutableIntList keys) {
-      this.type = Objects.requireNonNull(type, "type");
+    private final @Nullable Integer hashRandomNumber;
+
+    private RelDistributionImpl(
+        Type type,
+        ImmutableIntList keys,
+        @Nullable Integer hashRandomNumber) {
+      this.type = requireNonNull(type, "type");
       this.keys = ImmutableIntList.copyOf(keys);
+      this.hashRandomNumber = hashRandomNumber;
       assert type != Type.HASH_DISTRIBUTED
           || keys.size() < 2
           || Ordering.natural().isOrdered(keys)
           : "key columns of hash distribution must be in order";
+      assert type != Type.HASH_RANDOM_DISTRIBUTED
+          || keys.size() < 2
+          || Ordering.natural().isOrdered(keys)
+          : "key columns of hash-random distribution must be in order";
+      assert type != Type.HASH_RANDOM_DISTRIBUTED
+          || (hashRandomNumber != null && hashRandomNumber > 1)
+          : "hash random number of hash-random distribution must be greater than 1";
+      assert type == Type.HASH_RANDOM_DISTRIBUTED
+          || hashRandomNumber == null
+          : "hash random number of non hash-random distribution must be null";
       assert type == Type.HASH_DISTRIBUTED
+          || type == Type.HASH_RANDOM_DISTRIBUTED
           || type == Type.RANDOM_DISTRIBUTED
           || keys.isEmpty();
     }
 
     @Override public int hashCode() {
-      return Objects.hash(type, keys);
+      return Objects.hash(type, keys, hashRandomNumber);
     }
 
     @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof RelDistributionImpl
           && type == ((RelDistributionImpl) obj).type
-          && keys.equals(((RelDistributionImpl) obj).keys);
+          && keys.equals(((RelDistributionImpl) obj).keys)
+          && Objects.equals(hashRandomNumber, ((RelDistributionImpl) obj).hashRandomNumber);
     }
 
     @Override public String toString() {
-      if (keys.isEmpty()) {
+      if (type == Type.HASH_RANDOM_DISTRIBUTED) {
+        final StringBuilder b = new StringBuilder(type.shortName);
+        b.append("(");
+        if (!keys.isEmpty()) {
+          b.append("keys = ").append(keys).append(", ");
+        }
+        b.append("number = ").append(hashRandomNumber).append(")");
+        return b.toString();
+      } else if (keys.isEmpty()) {
         return type.shortName;
       } else {
         return type.shortName + keys;
@@ -149,7 +190,7 @@ public class RelDistributions {
       }
       List<Integer> mappedKeys0 = Mappings.apply2((Mapping) mapping, keys);
       ImmutableIntList mappedKeys = normalizeKeys(mappedKeys0);
-      return of(type, mappedKeys);
+      return of(type, mappedKeys, hashRandomNumber);
     }
 
     @Override public boolean satisfies(RelTrait trait) {
@@ -164,6 +205,9 @@ public class RelDistributions {
             // The "leading edge" property of Range does not apply to Hash.
             // Only Hash[x, y] satisfies Hash[x, y].
             return keys.equals(distribution.keys);
+          case HASH_RANDOM_DISTRIBUTED:
+            return keys.equals(distribution.keys)
+                && Objects.equals(hashRandomNumber, distribution.hashRandomNumber);
           case RANGE_DISTRIBUTED:
             // Range[x, y] satisfies Range[x, y, z] but not Range[x]
             return Util.startsWith(distribution.keys, keys);
@@ -173,9 +217,10 @@ public class RelDistributions {
         }
       }
       if (trait == RANDOM_DISTRIBUTED) {
-        // RANDOM is satisfied by HASH, ROUND-ROBIN, RANDOM, RANGE;
+        // RANDOM is satisfied by HASH, HASH-RANDOM, ROUND-ROBIN, RANDOM, RANGE;
         // we've already checked RANDOM
         return type == Type.HASH_DISTRIBUTED
+            || type == Type.HASH_RANDOM_DISTRIBUTED
             || type == Type.ROUND_ROBIN_DISTRIBUTED
             || type == Type.RANGE_DISTRIBUTED;
       }
@@ -191,13 +236,26 @@ public class RelDistributions {
 
     @Override public int compareTo(RelMultipleTrait o) {
       final RelDistribution distribution = (RelDistribution) o;
-      if (type == distribution.getType()
-          && (type == Type.HASH_DISTRIBUTED
-              || type == Type.RANGE_DISTRIBUTED)) {
-        return ORDERING.compare(getKeys(), distribution.getKeys());
+      if (type == distribution.getType()) {
+        if (type == Type.HASH_DISTRIBUTED || type == Type.RANGE_DISTRIBUTED) {
+          return ORDERING.compare(getKeys(), distribution.getKeys());
+        } else if (type == Type.HASH_RANDOM_DISTRIBUTED) {
+          int c = ORDERING.compare(getKeys(), distribution.getKeys());
+          if (c != 0) {
+            return c;
+          } else {
+            final Integer number = requireNonNull(getHashRandomNumber());
+            final Integer otherNumber = requireNonNull(distribution.getHashRandomNumber());
+            return number.compareTo(otherNumber);
+          }
+        }
       }
 
       return type.compareTo(distribution.getType());
+    }
+
+    @Override public @Nullable Integer getHashRandomNumber() {
+      return hashRandomNumber;
     }
   }
 }

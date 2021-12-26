@@ -4144,6 +4144,17 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testExchangeWithHashRandom() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root = builder.scan("EMP")
+        .exchange(RelDistributions.hashRandom(Lists.newArrayList(0), 8))
+        .build();
+    final String expected =
+        "LogicalExchange(distribution=[hash_random(keys = [0], number = 8)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test void testSortExchange() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelNode root =
@@ -4153,6 +4164,19 @@ public class RelBuilderTest {
             .build();
     final String expected =
         "LogicalSortExchange(distribution=[hash[0]], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSortExchangeWithHashRandom() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sortExchange(RelDistributions.hashRandom(Lists.newArrayList(0), 8),
+                RelCollations.of(0))
+            .build();
+    final String expected =
+        "LogicalSortExchange(distribution=[hash_random(keys = [0], number = 8)], collation=[[0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }

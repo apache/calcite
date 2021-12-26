@@ -104,7 +104,11 @@ public class ExchangeRemoveConstantKeysRule
           .push(exchange.getInput())
           .exchange(distributionKeys.isEmpty()
               ? RelDistributions.SINGLETON
-              : RelDistributions.hash(distributionKeys))
+              : exchange.getDistribution().getType() == RelDistribution.Type.HASH_DISTRIBUTED
+                  ? RelDistributions.hash(distributionKeys)
+                  : RelDistributions.hashRandom(
+                      distributionKeys,
+                      exchange.getDistribution().getHashRandomNumber()))
           .build());
       call.getPlanner().prune(exchange);
     }
@@ -134,7 +138,9 @@ public class ExchangeRemoveConstantKeysRule
     List<Integer> distributionKeys = new ArrayList<>();
     boolean distributionSimplified = false;
     boolean hashDistribution = sortExchange.getDistribution().getType()
-        == RelDistribution.Type.HASH_DISTRIBUTED;
+        == RelDistribution.Type.HASH_DISTRIBUTED
+        || sortExchange.getDistribution().getType()
+        == RelDistribution.Type.HASH_RANDOM_DISTRIBUTED;
     if (hashDistribution) {
       distributionKeys = simplifyDistributionKeys(
           sortExchange.getDistribution(), constants);
@@ -156,7 +162,11 @@ public class ExchangeRemoveConstantKeysRule
       RelDistribution distribution = distributionSimplified
           ? (distributionKeys.isEmpty()
           ? RelDistributions.SINGLETON
-          : RelDistributions.hash(distributionKeys))
+          : sortExchange.getDistribution().getType() == RelDistribution.Type.HASH_DISTRIBUTED
+              ? RelDistributions.hash(distributionKeys)
+              : RelDistributions.hashRandom(
+                  distributionKeys,
+                  sortExchange.getDistribution().getHashRandomNumber()))
           : sortExchange.getDistribution();
       RelCollation collation = collationSimplified
           ? RelCollations.of(fieldCollations)
@@ -177,7 +187,9 @@ public class ExchangeRemoveConstantKeysRule
         .of(ExchangeRemoveConstantKeysRule::matchExchange)
         .withOperandFor(LogicalExchange.class,
             exchange -> exchange.getDistribution().getType()
-                == RelDistribution.Type.HASH_DISTRIBUTED);
+                == RelDistribution.Type.HASH_DISTRIBUTED
+                || exchange.getDistribution().getType()
+                == RelDistribution.Type.HASH_RANDOM_DISTRIBUTED);
 
     Config SORT = ImmutableExchangeRemoveConstantKeysRule.Config
         .of(ExchangeRemoveConstantKeysRule::matchSortExchange)
@@ -186,6 +198,8 @@ public class ExchangeRemoveConstantKeysRule
         .withOperandFor(LogicalSortExchange.class,
             sortExchange -> sortExchange.getDistribution().getType()
                 == RelDistribution.Type.HASH_DISTRIBUTED
+                || sortExchange.getDistribution().getType()
+                == RelDistribution.Type.HASH_RANDOM_DISTRIBUTED
                 || !sortExchange.getCollation().getFieldCollations()
                 .isEmpty());
 

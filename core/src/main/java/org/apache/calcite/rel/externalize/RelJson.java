@@ -227,7 +227,8 @@ public class RelJson {
     if (keys != null) {
       list = ImmutableIntList.copyOf(keys);
     }
-    return RelDistributions.of(type, list);
+    Integer hashRandomNumber = (Integer) map.get("number");
+    return RelDistributions.of(type, list, hashRandomNumber);
   }
 
   private Object toJson(RelDistribution relDistribution) {
@@ -235,6 +236,9 @@ public class RelJson {
     map.put("type", relDistribution.getType().name());
     if (!relDistribution.getKeys().isEmpty()) {
       map.put("keys", relDistribution.getKeys());
+    }
+    if (relDistribution.getHashRandomNumber() != null) {
+      map.put("number", relDistribution.getHashRandomNumber());
     }
     return map;
   }

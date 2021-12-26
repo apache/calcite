@@ -6308,6 +6308,30 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testHashRandomExchangeRemoveConstantKeysRule() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(
+            b.call(
+                SqlStdOperatorTable.EQUALS,
+                b.field("EMPNO"),
+                b.literal(10)))
+        .exchange(RelDistributions.hash(ImmutableList.of(0)))
+        .project(
+            b.field(0),
+            b.field(1))
+        .sortExchange(
+            RelDistributions.hashRandom(ImmutableList.of(0, 1), 8),
+            RelCollations.of(new RelFieldCollation(0), new RelFieldCollation(1)))
+        .build();
+
+    relFn(relFn)
+        .withRule(
+            CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS,
+            CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS)
+        .check();
+  }
+
   @Test void testReduceAverageWithNoReduceSum() {
     final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
         .withOperandFor(LogicalAggregate.class)
