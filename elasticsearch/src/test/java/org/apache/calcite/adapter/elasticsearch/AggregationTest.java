@@ -22,6 +22,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
+import org.apache.calcite.util.Bug;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +30,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -120,22 +120,23 @@ class AggregationTest {
    * So disable this test case until the translation from Search in range
    * to rang Query in ES is implemented.
    */
-  @Disabled
   @Test void searchInRange() {
-    CalciteAssert.that()
-        .with(newConnectionFactory())
-        .query("select count(*) from view where val1 >= 10 and val1 <=20")
-        .returns("EXPR$0=1\n");
+    if (Bug.CALCITE_4645_FIXED) {
+      CalciteAssert.that()
+          .with(newConnectionFactory())
+          .query("select count(*) from view where val1 >= 10 and val1 <=20")
+          .returns("EXPR$0=1\n");
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
-        .query("select count(*) from view where val1 <= 10 or val1 >=20")
-        .returns("EXPR$0=2\n");
+      CalciteAssert.that()
+          .with(newConnectionFactory())
+          .query("select count(*) from view where val1 <= 10 or val1 >=20")
+          .returns("EXPR$0=2\n");
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
-        .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
-        .returns("EXPR$0=2\n");
+      CalciteAssert.that()
+          .with(newConnectionFactory())
+          .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
+          .returns("EXPR$0=2\n");
+    }
   }
 
   @Test void countStar() {
