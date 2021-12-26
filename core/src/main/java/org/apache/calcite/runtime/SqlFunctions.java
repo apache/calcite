@@ -77,6 +77,7 @@ import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -2973,6 +2974,22 @@ public class SqlFunctions {
   }
 
   /**
+   * Get real data instead of `object[]` from nested multiset.
+   * Example: List{Object{1}, Object{2}} -> List{1, 2}.
+   */
+  private static Object multisetAccess(Object objectValue) {
+    if (objectValue instanceof Object[]) {
+      return multisetAccess(((Object[]) objectValue)[0]);
+    }
+    if (objectValue instanceof ArrayList) {
+      return ((ArrayList) objectValue).stream()
+          .map(elem -> multisetAccess(elem))
+          .collect(Collectors.toList());
+    }
+    return objectValue;
+  }
+
+  /**
    * Implements the {@code .} (field access) operator on an object
    * whose type is not known until runtime.
    *
@@ -2988,7 +3005,12 @@ public class SqlFunctions {
     }
 
     if (structObject instanceof Object[]) {
-      return ((Object[]) structObject)[index];
+      Object objectValue = ((Object[]) structObject)[index];
+      if (objectValue instanceof List) {
+        // Only list can be multiset
+        return multisetAccess(objectValue);
+      }
+      return objectValue;
     } else if (structObject instanceof List) {
       return ((List) structObject).get(index);
     } else if (structObject instanceof Row) {
