@@ -43,13 +43,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link RelMetadataQuery#getMinRowCount} for the standard logical algebra.
  */
 public class RelMdMinRowCount
-    implements MetadataHandler<BuiltInMetadata.MinRowCount> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdMinRowCount(), BuiltInMetadata.MinRowCount.Handler.class);
+          new RelMdMinRowCount(), BuiltInMetadata.MinRowCountHandler.class);
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.MinRowCount> getDef() {
     return BuiltInMetadata.MinRowCount.DEF;
   }

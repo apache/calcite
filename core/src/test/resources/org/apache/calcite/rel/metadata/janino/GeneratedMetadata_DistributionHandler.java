@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_DistributionHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.DistributionHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelDistribution Handler.distribution()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelDistribution DistributionHandler.distribution()");
   public final org.apache.calcite.rel.metadata.RelMdDistribution provider0;
   public GeneratedMetadata_DistributionHandler(
       org.apache.calcite.rel.metadata.RelMdDistribution provider0) {
@@ -79,7 +79,7 @@ public final class GeneratedMetadata_DistributionHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.distribution((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.rel.RelDistribution org.apache.calcite.rel.metadata.BuiltInMetadata$Distribution$Handler.distribution(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.rel.RelDistribution org.apache.calcite.rel.metadata.BuiltInMetadata$DistributionHandler.distribution(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

@@ -49,10 +49,10 @@ import java.util.Set;
  * {@link RelMetadataQuery#getColumnOrigins} for the standard logical algebra.
  */
 public class RelMdColumnOrigins
-    implements MetadataHandler<BuiltInMetadata.ColumnOrigin> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdColumnOrigins(), BuiltInMetadata.ColumnOrigin.Handler.class);
+          new RelMdColumnOrigins(), BuiltInMetadata.ColumnOriginHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -60,6 +60,7 @@ public class RelMdColumnOrigins
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.ColumnOrigin> getDef() {
     return BuiltInMetadata.ColumnOrigin.DEF;
   }

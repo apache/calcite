@@ -19,7 +19,6 @@ package org.apache.calcite.test.catalog;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.BuiltInMetadata;
-import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -206,7 +205,7 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
     restaurantTable.addColumn("HILBERT", f.bigintType);
     restaurantTable.addMonotonic("HILBERT");
     restaurantTable.addWrap(
-        new BuiltInMetadata.AllPredicates.Handler() {
+        new BuiltInMetadata.AllPredicatesHandler() {
           @Override public RelOptPredicateList getAllPredicates(RelNode r,
               RelMetadataQuery mq) {
             // Return the predicate:
@@ -236,7 +235,9 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
             throw new AssertionError();
           }
 
-          @Override public MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
+          @Deprecated // to be removed before 2.0
+          @Override public
+          org.apache.calcite.rel.metadata.MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
             return BuiltInMetadata.AllPredicates.DEF;
           }
         });

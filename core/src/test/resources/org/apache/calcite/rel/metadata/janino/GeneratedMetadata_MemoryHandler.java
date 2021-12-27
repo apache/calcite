@@ -17,20 +17,20 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_MemoryHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.Memory.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.MemoryHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.cumulativeMemoryWithinPhase()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double MemoryHandler.cumulativeMemoryWithinPhase()");
   private final Object methodKey1 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.cumulativeMemoryWithinPhaseSplit()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double MemoryHandler.cumulativeMemoryWithinPhaseSplit()");
   private final Object methodKey2 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.memory()");
-  public final org.apache.calcite.rel.metadata.RelMdMemory provider1;
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double MemoryHandler.memory()");
+  public final org.apache.calcite.rel.metadata.RelMdMemory provider0;
   public GeneratedMetadata_MemoryHandler(
-      org.apache.calcite.rel.metadata.RelMdMemory provider1) {
-    this.provider1 = provider1;
+      org.apache.calcite.rel.metadata.RelMdMemory provider0) {
+    this.provider0 = provider0;
   }
   public org.apache.calcite.rel.metadata.MetadataDef getDef() {
-    return provider1.getDef();
+    return provider0.getDef();
   }
   public java.lang.Double cumulativeMemoryWithinPhase(
       org.apache.calcite.rel.RelNode r,
@@ -65,9 +65,9 @@ public final class GeneratedMetadata_MemoryHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.rel.RelNode) {
-      return provider1.cumulativeMemoryWithinPhase((org.apache.calcite.rel.RelNode) r, mq);
+      return provider0.cumulativeMemoryWithinPhase((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$Memory$Handler.cumulativeMemoryWithinPhase(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$MemoryHandler.cumulativeMemoryWithinPhase(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
   public java.lang.Double cumulativeMemoryWithinPhaseSplit(
@@ -103,9 +103,9 @@ public final class GeneratedMetadata_MemoryHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.rel.RelNode) {
-      return provider1.cumulativeMemoryWithinPhaseSplit((org.apache.calcite.rel.RelNode) r, mq);
+      return provider0.cumulativeMemoryWithinPhaseSplit((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$Memory$Handler.cumulativeMemoryWithinPhaseSplit(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$MemoryHandler.cumulativeMemoryWithinPhaseSplit(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
   public java.lang.Double memory(
@@ -141,9 +141,9 @@ public final class GeneratedMetadata_MemoryHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.rel.RelNode) {
-      return provider1.memory((org.apache.calcite.rel.RelNode) r, mq);
+      return provider0.memory((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$Memory$Handler.memory(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$MemoryHandler.memory(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

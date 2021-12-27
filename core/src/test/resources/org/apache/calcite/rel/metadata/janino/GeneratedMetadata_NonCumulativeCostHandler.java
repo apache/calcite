@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_NonCumulativeCostHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCostHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost Handler.getNonCumulativeCost()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost NonCumulativeCostHandler.getNonCumulativeCost()");
   public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdNonCumulativeCost provider0;
   public GeneratedMetadata_NonCumulativeCostHandler(
       org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdNonCumulativeCost provider0) {
@@ -63,7 +63,7 @@ public final class GeneratedMetadata_NonCumulativeCostHandler
     if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getNonCumulativeCost((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptCost org.apache.calcite.rel.metadata.BuiltInMetadata$NonCumulativeCost$Handler.getNonCumulativeCost(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract org.apache.calcite.plan.RelOptCost org.apache.calcite.rel.metadata.BuiltInMetadata$NonCumulativeCostHandler.getNonCumulativeCost(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

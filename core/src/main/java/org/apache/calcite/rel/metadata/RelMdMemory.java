@@ -28,12 +28,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @see RelMetadataQuery#isPhaseTransition
  * @see RelMetadataQuery#splitCount
  */
-public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
+public class RelMdMemory implements MetadataHandler {
   /** Source for
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Memory}. */
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(new RelMdMemory(),
-          BuiltInMetadata.Memory.Handler.class);
+          BuiltInMetadata.MemoryHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -41,6 +41,7 @@ public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.Memory> getDef() {
     return BuiltInMetadata.Memory.DEF;
   }

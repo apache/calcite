@@ -41,13 +41,13 @@ public class RelMdPercentageOriginalRows {
           ImmutableList.of(
               ReflectiveRelMetadataProvider.reflectiveSource(
                   new RelMdPercentageOriginalRowsHandler(),
-                  BuiltInMetadata.PercentageOriginalRows.Handler.class),
+                  BuiltInMetadata.PercentageOriginalRowsHandler.class),
               ReflectiveRelMetadataProvider.reflectiveSource(
                   new RelMdCumulativeCost(),
-                  BuiltInMetadata.CumulativeCost.Handler.class),
+                  BuiltInMetadata.CumulativeCostHandler.class),
               ReflectiveRelMetadataProvider.reflectiveSource(
                   new RelMdNonCumulativeCost(),
-                  BuiltInMetadata.NonCumulativeCost.Handler.class
+                  BuiltInMetadata.NonCumulativeCostHandler.class
               )
           ));
 
@@ -196,11 +196,11 @@ public class RelMdPercentageOriginalRows {
   }
 
   /**
-   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.CumulativeCost}.
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.CumulativeCostHandler}.
    */
   private static final class RelMdCumulativeCost
       extends RelMdPercentageOriginalRows
-      implements MetadataHandler<BuiltInMetadata.CumulativeCost> {
+      implements MetadataHandler {
     @Deprecated // to be removed before 2.0
     @Override public MetadataDef<BuiltInMetadata.CumulativeCost> getDef() {
       return BuiltInMetadata.CumulativeCost.DEF;
@@ -208,11 +208,11 @@ public class RelMdPercentageOriginalRows {
   }
 
   /**
-   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.NonCumulativeCost}.
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.NonCumulativeCostHandler}.
    */
   private static final class RelMdNonCumulativeCost
       extends RelMdPercentageOriginalRows
-      implements MetadataHandler<BuiltInMetadata.NonCumulativeCost> {
+      implements MetadataHandler {
 
     @Deprecated // to be removed before 2.0
     @Override public MetadataDef<BuiltInMetadata.NonCumulativeCost> getDef() {
@@ -221,11 +221,12 @@ public class RelMdPercentageOriginalRows {
   }
 
   /**
-   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.PercentageOriginalRows}.
+   * Binds {@link RelMdPercentageOriginalRows} to
+   * {@link BuiltInMetadata.PercentageOriginalRowsHandler}.
    */
   private static final class RelMdPercentageOriginalRowsHandler
       extends RelMdPercentageOriginalRows
-      implements MetadataHandler<BuiltInMetadata.PercentageOriginalRows> {
+      implements MetadataHandler {
     @Deprecated // to be removed before 2.0
     @Override public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
       return BuiltInMetadata.PercentageOriginalRows.DEF;

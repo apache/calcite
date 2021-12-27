@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_ColumnUniquenessHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniquenessHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Boolean Handler.areColumnsUnique(RelNode, RelMetadataQuery, ImmutableBitSet, boolean)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Boolean ColumnUniquenessHandler.areColumnsUnique(RelNode, RelMetadataQuery, ImmutableBitSet, boolean)");
   public final org.apache.calcite.rel.metadata.RelMdColumnUniqueness provider0;
   public GeneratedMetadata_ColumnUniquenessHandler(
       org.apache.calcite.rel.metadata.RelMdColumnUniqueness provider0) {
@@ -99,7 +99,7 @@ public final class GeneratedMetadata_ColumnUniquenessHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.areColumnsUnique((org.apache.calcite.rel.RelNode) r, mq, a2, a3);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Boolean org.apache.calcite.rel.metadata.BuiltInMetadata$ColumnUniqueness$Handler.areColumnsUnique(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util.ImmutableBitSet,boolean)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Boolean org.apache.calcite.rel.metadata.BuiltInMetadata$ColumnUniquenessHandler.areColumnsUnique(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util.ImmutableBitSet,boolean)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

@@ -47,13 +47,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link RelMetadataQuery#getRowCount} for the standard logical algebra.
  */
 public class RelMdRowCount
-    implements MetadataHandler<BuiltInMetadata.RowCount> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdRowCount(), BuiltInMetadata.RowCount.Handler.class);
+          new RelMdRowCount(), BuiltInMetadata.RowCountHandler.class);
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   @Override public MetadataDef<BuiltInMetadata.RowCount> getDef() {
     return BuiltInMetadata.RowCount.DEF;
   }

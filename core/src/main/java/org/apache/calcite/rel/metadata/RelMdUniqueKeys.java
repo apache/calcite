@@ -56,10 +56,10 @@ import static java.util.Objects.requireNonNull;
  * {@link RelMetadataQuery#getUniqueKeys} for the standard logical algebra.
  */
 public class RelMdUniqueKeys
-    implements MetadataHandler<BuiltInMetadata.UniqueKeys> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdUniqueKeys(), BuiltInMetadata.UniqueKeys.Handler.class);
+          new RelMdUniqueKeys(), BuiltInMetadata.UniqueKeysHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -67,6 +67,7 @@ public class RelMdUniqueKeys
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   @Override public MetadataDef<BuiltInMetadata.UniqueKeys> getDef() {
     return BuiltInMetadata.UniqueKeys.DEF;
   }

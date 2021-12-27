@@ -28,5 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 @FunctionalInterface
 public interface UnboundMetadata<M extends @Nullable Metadata> {
+  @Deprecated // to be removed before 2.0
   M bind(RelNode rel, RelMetadataQuery mq);
 }

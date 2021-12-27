@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata.janino;
 
-import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -56,8 +55,8 @@ public class RelMetadataHandlerGeneratorUtil {
   }
 
   public static HandlerNameAndGeneratedCode generateHandler(
-      Class<? extends MetadataHandler<?>> handlerClass,
-      List<? extends MetadataHandler<?>> handlers) {
+      Class<? extends MetadataHandler> handlerClass,
+      List<? extends MetadataHandler> handlers) {
     final String classPackage = castNonNull(RelMetadataHandlerGeneratorUtil.class.getPackage())
         .getName();
     final String name =
@@ -66,8 +65,8 @@ public class RelMetadataHandlerGeneratorUtil {
         .filter(m -> !m.getName().equals("getDef")).toArray(i -> new Method[i]);
     Arrays.sort(declaredMethods, Comparator.comparing(Method::getName));
 
-    final Map<MetadataHandler<?>, String> handlerToName = new LinkedHashMap<>();
-    for (MetadataHandler<?> provider : handlers) {
+    final Map<MetadataHandler, String> handlerToName = new LinkedHashMap<>();
+    for (MetadataHandler provider : handlers) {
       handlerToName.put(provider,
           "provider" + handlerToName.size());
     }
@@ -85,14 +84,14 @@ public class RelMetadataHandlerGeneratorUtil {
     for (int i = 0; i < declaredMethods.length; i++) {
       CacheGeneratorUtil.cacheProperties(buff, declaredMethods[i], i);
     }
-    for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
+    for (Map.Entry<MetadataHandler, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("  public final ").append(handlerAndName.getKey().getClass().getName())
           .append(' ').append(handlerAndName.getValue()).append(";\n");
     }
 
     //CONSTRUCTOR
     buff.append("  public ").append(name).append("(\n");
-    for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
+    for (Map.Entry<MetadataHandler, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("      ")
           .append(handlerAndName.getKey().getClass().getName())
           .append(' ')
@@ -129,9 +128,10 @@ public class RelMetadataHandlerGeneratorUtil {
         .build();
   }
 
+  @SuppressWarnings("deprecation")
   private static void getDefMethod(StringBuilder buff, @Nullable String handlerName) {
     buff.append("  public ")
-        .append(MetadataDef.class.getName())
+        .append(org.apache.calcite.rel.metadata.MetadataDef.class.getName())
         .append(" getDef() {\n");
 
     if (handlerName == null) {
@@ -144,7 +144,7 @@ public class RelMetadataHandlerGeneratorUtil {
     buff.append("  }\n");
   }
 
-  private static String simpleNameForHandler(Class<? extends MetadataHandler<?>> clazz) {
+  private static String simpleNameForHandler(Class<? extends MetadataHandler> clazz) {
     String simpleName = clazz.getSimpleName();
     //Previously the pattern was to have a nested in class named Handler
     //So we need to add the parents class to get a unique name

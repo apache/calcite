@@ -126,12 +126,13 @@ import static java.util.Objects.requireNonNull;
  * </ol>
  */
 public class RelMdPredicates
-    implements MetadataHandler<BuiltInMetadata.Predicates> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
-      .reflectiveSource(new RelMdPredicates(), BuiltInMetadata.Predicates.Handler.class);
+      .reflectiveSource(new RelMdPredicates(), BuiltInMetadata.PredicatesHandler.class);
 
   private static final List<RexNode> EMPTY_LIST = ImmutableList.of();
 
+  @Deprecated // to be removed before 2.0
   @Override public MetadataDef<BuiltInMetadata.Predicates> getDef() {
     return BuiltInMetadata.Predicates.DEF;
   }

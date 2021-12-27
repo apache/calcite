@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_ColumnOriginHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOriginHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Set Handler.getColumnOrigins(RelNode, RelMetadataQuery, int)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Set ColumnOriginHandler.getColumnOrigins(RelNode, RelMetadataQuery, int)");
   private final Object[] methodKey0FlyWeight =
       org.apache.calcite.rel.metadata.janino.CacheUtil.generateRange("java.util.Set getColumnOrigins", -256, 256);
   public final org.apache.calcite.rel.metadata.RelMdColumnOrigins provider0;
@@ -91,7 +91,7 @@ public final class GeneratedMetadata_ColumnOriginHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getColumnOrigins((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.util.Set org.apache.calcite.rel.metadata.BuiltInMetadata$ColumnOrigin$Handler.getColumnOrigins(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,int)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.util.Set org.apache.calcite.rel.metadata.BuiltInMetadata$ColumnOriginHandler.getColumnOrigins(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,int)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

@@ -20,7 +20,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCostHandler;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -29,11 +29,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link BuiltInMetadata.LowerBoundCost}
  * metadata provider for the standard algebra.
  */
-public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
+public class RelMdLowerBoundCost implements MetadataHandler {
 
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdLowerBoundCost(), LowerBoundCost.Handler.class);
+          new RelMdLowerBoundCost(), LowerBoundCostHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -41,7 +41,8 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public MetadataDef<LowerBoundCost> getDef() {
+  @Deprecated
+  @Override public MetadataDef<BuiltInMetadata.LowerBoundCost> getDef() {
     return BuiltInMetadata.LowerBoundCost.DEF;
   }
 

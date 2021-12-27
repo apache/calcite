@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_PopulationSizeHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.PopulationSize.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.PopulationSizeHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.getPopulationSize(RelNode, RelMetadataQuery, ImmutableBitSet)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double PopulationSizeHandler.getPopulationSize(RelNode, RelMetadataQuery, ImmutableBitSet)");
   public final org.apache.calcite.rel.metadata.RelMdPopulationSize provider0;
   public GeneratedMetadata_PopulationSizeHandler(
       org.apache.calcite.rel.metadata.RelMdPopulationSize provider0) {
@@ -83,7 +83,7 @@ public final class GeneratedMetadata_PopulationSizeHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getPopulationSize((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$PopulationSize$Handler.getPopulationSize(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util.ImmutableBitSet)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$PopulationSizeHandler.getPopulationSize(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util.ImmutableBitSet)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

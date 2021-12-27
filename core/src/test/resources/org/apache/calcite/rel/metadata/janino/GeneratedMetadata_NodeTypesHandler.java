@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_NodeTypesHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.NodeTypes.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.NodeTypesHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Multimap Handler.getNodeTypes()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Multimap NodeTypesHandler.getNodeTypes()");
   public final org.apache.calcite.rel.metadata.RelMdNodeTypes provider0;
   public GeneratedMetadata_NodeTypesHandler(
       org.apache.calcite.rel.metadata.RelMdNodeTypes provider0) {
@@ -99,7 +99,7 @@ public final class GeneratedMetadata_NodeTypesHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getNodeTypes((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract com.google.common.collect.Multimap org.apache.calcite.rel.metadata.BuiltInMetadata$NodeTypes$Handler.getNodeTypes(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract com.google.common.collect.Multimap org.apache.calcite.rel.metadata.BuiltInMetadata$NodeTypesHandler.getNodeTypes(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

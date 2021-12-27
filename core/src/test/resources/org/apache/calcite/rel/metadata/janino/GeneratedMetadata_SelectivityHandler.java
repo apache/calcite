@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_SelectivityHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.SelectivityHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.getSelectivity(RelNode, RelMetadataQuery, RexNode)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double SelectivityHandler.getSelectivity(RelNode, RelMetadataQuery, RexNode)");
   public final org.apache.calcite.rel.metadata.RelMdSelectivity provider0;
   public GeneratedMetadata_SelectivityHandler(
       org.apache.calcite.rel.metadata.RelMdSelectivity provider0) {
@@ -81,7 +81,7 @@ public final class GeneratedMetadata_SelectivityHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getSelectivity((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$Selectivity$Handler.getSelectivity(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.rex.RexNode)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$SelectivityHandler.getSelectivity(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.rex.RexNode)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

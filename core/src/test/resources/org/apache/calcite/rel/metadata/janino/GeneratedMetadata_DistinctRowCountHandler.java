@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_DistinctRowCountHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCountHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.getDistinctRowCount(RelNode, RelMetadataQuery, ImmutableBitSet, RexNode)");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double DistinctRowCountHandler.getDistinctRowCount(RelNode, RelMetadataQuery, ImmutableBitSet, RexNode)");
   public final org.apache.calcite.rel.metadata.RelMdDistinctRowCount provider0;
   public GeneratedMetadata_DistinctRowCountHandler(
       org.apache.calcite.rel.metadata.RelMdDistinctRowCount provider0) {
@@ -87,7 +87,7 @@ public final class GeneratedMetadata_DistinctRowCountHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getDistinctRowCount((org.apache.calcite.rel.RelNode) r, mq, a2, a3);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$DistinctRowCount$Handler.getDistinctRowCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util.ImmutableBitSet,org.apache.calcite.rex.RexNode)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$DistinctRowCountHandler.getDistinctRowCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.util.ImmutableBitSet,org.apache.calcite.rex.RexNode)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

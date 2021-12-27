@@ -69,8 +69,6 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
-import org.apache.calcite.rel.metadata.Metadata;
-import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.MetadataHandlerProvider;
 import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
@@ -1020,19 +1018,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
     for (int i = 0; i < iterationCount; i++) {
       RelMetadataProvider wrappedProvider = new RelMetadataProvider() {
         @Deprecated // to be removed before 2.0
-        @Override public @Nullable <M extends @Nullable Metadata> UnboundMetadata<M> apply(
+        @Override public @Nullable <M extends org.apache.calcite.rel.metadata.Metadata>
+        UnboundMetadata<M> apply(
             Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
           return metadataProvider.apply(relClass, metadataClass);
         }
 
         @Deprecated // to be removed before 2.0
-        @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
-            MetadataDef<M> def) {
+        @Override public <M extends org.apache.calcite.rel.metadata.Metadata>
+        Multimap<Method, MetadataHandler> handlers(
+            org.apache.calcite.rel.metadata.MetadataDef<M> def) {
           return metadataProvider.handlers(def);
         }
 
-        @Override public List<MetadataHandler<?>> handlers(
-            Class<? extends MetadataHandler<?>> handlerClass) {
+        @Override public List<MetadataHandler> handlers(
+            Class<? extends MetadataHandler> handlerClass) {
           return metadataProvider.handlers(handlerClass);
         }
       };
@@ -1553,7 +1553,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       fail("expected error");
     } catch (IllegalArgumentException e) {
       final String value = "No handler for method [public abstract "
-          + "java.lang.String org.apache.calcite.test.RelMetadataTest$ColType$Handler.getColType("
+          + "java.lang.String org.apache.calcite.test.RelMetadataTest$ColTypeHandler.getColType("
           + "org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,int)] "
           + "applied to argument of type [class org.apache.calcite.rel.logical.LogicalFilter]; "
           + "we recommend you create a catch-all (RelNode) handler";
@@ -1588,7 +1588,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       fail("expected error");
     } catch (IllegalArgumentException e) {
       final String value = "No handler for method [public abstract java.lang.String "
-          + "org.apache.calcite.test.RelMetadataTest$ColType$Handler.getColType("
+          + "org.apache.calcite.test.RelMetadataTest$ColTypeHandler.getColType("
           + "org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,int)]"
           + " applied to argument of type [class org.apache.calcite.rel.logical.LogicalFilter];"
           + " we recommend you create a catch-all (RelNode) handler";
@@ -1896,7 +1896,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       // Repeat the above tests directly against the handler.
       final RelMdColumnUniqueness handler =
           (RelMdColumnUniqueness) Iterables.getOnlyElement(RelMdColumnUniqueness.SOURCE
-              .handlers(BuiltInMetadata.ColumnUniqueness.Handler.class));
+              .handlers(BuiltInMetadata.ColumnUniquenessHandler.class));
       assertThat(handler.areColumnsUnique(values, mq, col0, false),
           is(true));
       assertThat(handler.areColumnsUnique(values, mq, col1, false),
@@ -3517,28 +3517,39 @@ public class RelMetadataTest extends SqlToRelTestBase {
   //~ Inner classes and interfaces -------------------------------------------
 
   /** Custom metadata interface. */
-  public interface ColType extends Metadata {
+  @Deprecated
+  public interface ColType extends org.apache.calcite.rel.metadata.Metadata {
     Method METHOD = Types.lookupMethod(ColType.class, "getColType", int.class);
 
-    MetadataDef<ColType> DEF =
-        MetadataDef.of(ColType.class, ColType.Handler.class, METHOD);
+    org.apache.calcite.rel.metadata.MetadataDef<ColType> DEF =
+        org.apache.calcite.rel.metadata.MetadataDef.of(ColType.class,
+            ColTypeHandler.class, METHOD);
 
     String getColType(int column);
 
-    /** Handler API. */
-    interface Handler extends MetadataHandler<ColType> {
-      String getColType(RelNode r, RelMetadataQuery mq, int column);
+    /**
+     * Handler API.
+     */
+    interface Handler extends ColTypeHandler {
+      @Override default org.apache.calcite.rel.metadata.MetadataDef<?> getDef() {
+        return ColTypeHandler.super.getDef();
+      }
     }
   }
 
-  /** A provider for {@link org.apache.calcite.test.RelMetadataTest.ColType} via
-   * reflection. */
+  /** Custom metadataHandler interface. */
+  public interface ColTypeHandler extends MetadataHandler {
+    String getColType(RelNode r, RelMetadataQuery mq, int column);
+  }
+
+  /** A provider for {@link org.apache.calcite.test.RelMetadataTest.ColTypeHandler}
+   * via reflection. */
   public abstract static class PartialColTypeImpl
-      implements MetadataHandler<ColType> {
+      implements MetadataHandler {
     static final ThreadLocal<List<String>> THREAD_LIST = new ThreadLocal<>();
 
     @Deprecated
-    public MetadataDef<ColType> getDef() {
+    public org.apache.calcite.rel.metadata.MetadataDef<ColType> getDef() {
       return ColType.DEF;
     }
 
@@ -3554,13 +3565,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
-  /** A provider for {@link org.apache.calcite.test.RelMetadataTest.ColType} via
+  /** A provider for {@link org.apache.calcite.test.RelMetadataTest.ColTypeHandler} via
    * reflection. */
   public static class ColTypeImpl extends PartialColTypeImpl {
     public static final RelMetadataProvider SOURCE =
-        ReflectiveRelMetadataProvider.reflectiveSource(new ColTypeImpl(), ColType.Handler.class);
+        ReflectiveRelMetadataProvider.reflectiveSource(new ColTypeImpl(), ColTypeHandler.class);
 
-    /** Implementation of {@link ColType#getColType(int)} for
+    /** Implementation of {@link ColTypeHandler#getColType(RelNode, RelMetadataQuery, int)} for
      * {@link RelNode}, called via reflection. */
     @SuppressWarnings("UnusedDeclaration")
     public String getColType(RelNode rel, RelMetadataQuery mq, int column) {
@@ -3571,22 +3582,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
-  /** Implementation of {@link ColType} that has no fall-back for {@link RelNode}. */
+  /** Implementation of {@link ColTypeHandler} that has no fall-back for {@link RelNode}. */
   public static class BrokenColTypeImpl extends PartialColTypeImpl {
     public static final RelMetadataProvider SOURCE =
         ReflectiveRelMetadataProvider.reflectiveSource(
-            new BrokenColTypeImpl(), ColType.Handler.class);
+            new BrokenColTypeImpl(), ColTypeHandler.class);
   }
 
-  /** Extension to {@link RelMetadataQuery} to support {@link ColType}.
+  /** Extension to {@link RelMetadataQuery} to support {@link ColTypeHandler}.
    *
    * <p>Illustrates how you would package up a user-defined metadata type. */
   private static class MyRelMetadataQuery extends RelMetadataQuery {
-    private ColType.Handler colTypeHandler;
+    private ColTypeHandler colTypeHandler;
 
 
     MyRelMetadataQuery() {
-      colTypeHandler = handler(ColType.Handler.class);
+      colTypeHandler = handler(ColTypeHandler.class);
     }
 
     public String colType(RelNode rel, int column) {
@@ -3594,7 +3605,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         try {
           return colTypeHandler.getColType(rel, this, column);
         } catch (MetadataHandlerProvider.NoHandler e) {
-          colTypeHandler = revise(ColType.Handler.class);
+          colTypeHandler = revise(ColTypeHandler.class);
         }
       }
     }

@@ -44,10 +44,10 @@ import java.util.List;
  * {@link RelMetadataQuery#getSelectivity} for the standard logical algebra.
  */
 public class RelMdSelectivity
-    implements MetadataHandler<BuiltInMetadata.Selectivity> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdSelectivity(), BuiltInMetadata.Selectivity.Handler.class);
+          new RelMdSelectivity(), BuiltInMetadata.SelectivityHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -56,6 +56,7 @@ public class RelMdSelectivity
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   @Override public MetadataDef<BuiltInMetadata.Selectivity> getDef() {
     return BuiltInMetadata.Selectivity.DEF;
   }

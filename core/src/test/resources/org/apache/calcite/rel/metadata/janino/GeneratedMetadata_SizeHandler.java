@@ -17,18 +17,18 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_SizeHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.Size.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.SizeHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("List Handler.averageColumnSizes()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("List SizeHandler.averageColumnSizes()");
   private final Object methodKey1 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.averageRowSize()");
-  public final org.apache.calcite.rel.metadata.RelMdSize provider1;
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double SizeHandler.averageRowSize()");
+  public final org.apache.calcite.rel.metadata.RelMdSize provider0;
   public GeneratedMetadata_SizeHandler(
-      org.apache.calcite.rel.metadata.RelMdSize provider1) {
-    this.provider1 = provider1;
+      org.apache.calcite.rel.metadata.RelMdSize provider0) {
+    this.provider0 = provider0;
   }
   public org.apache.calcite.rel.metadata.MetadataDef getDef() {
-    return provider1.getDef();
+    return provider0.getDef();
   }
   public java.util.List averageColumnSizes(
       org.apache.calcite.rel.RelNode r,
@@ -63,35 +63,35 @@ public final class GeneratedMetadata_SizeHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.rel.core.Aggregate) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Aggregate) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Aggregate) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Calc) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Calc) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Calc) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Exchange) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Exchange) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Exchange) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Filter) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Filter) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Filter) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Intersect) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Intersect) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Intersect) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Join) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Join) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Join) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Minus) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Minus) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Minus) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Project) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Project) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Project) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Sort) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Sort) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Sort) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableModify) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.TableModify) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.TableModify) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.TableScan) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.TableScan) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Union) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Union) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Union) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Values) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.core.Values) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.core.Values) r, mq);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
-      return provider1.averageColumnSizes((org.apache.calcite.rel.RelNode) r, mq);
+      return provider0.averageColumnSizes((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.util.List org.apache.calcite.rel.metadata.BuiltInMetadata$Size$Handler.averageColumnSizes(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.util.List org.apache.calcite.rel.metadata.BuiltInMetadata$SizeHandler.averageColumnSizes(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
   public java.lang.Double averageRowSize(
@@ -127,9 +127,9 @@ public final class GeneratedMetadata_SizeHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.rel.RelNode) {
-      return provider1.averageRowSize((org.apache.calcite.rel.RelNode) r, mq);
+      return provider0.averageRowSize((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$Size$Handler.averageRowSize(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$SizeHandler.averageRowSize(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 

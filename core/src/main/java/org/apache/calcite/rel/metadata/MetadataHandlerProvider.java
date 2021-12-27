@@ -32,7 +32,7 @@ public interface MetadataHandlerProvider {
    * @param <MH> The metadata type the handler relates to.
    * @return The handler implementation.
    */
-  <MH extends MetadataHandler<?>> MH handler(Class<MH> handlerClass);
+  <MH extends MetadataHandler> MH handler(Class<MH> handlerClass);
 
   /** Re-generates the handler for a given kind of metadata.  */
   /**
@@ -44,7 +44,7 @@ public interface MetadataHandlerProvider {
    * @param <MH> The type metadata the handler provides.
    * @return A new handler that should be used instead of any previous handler provided.
    */
-  default <MH extends MetadataHandler<?>> MH revise(Class<MH> handlerClass) {
+  default <MH extends MetadataHandler> MH revise(Class<MH> handlerClass) {
     throw new UnsupportedOperationException("This provider doesn't support handler revision.");
   }
 

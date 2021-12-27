@@ -80,10 +80,10 @@ import static java.util.Objects.requireNonNull;
  * <p>If the lineage cannot be inferred, we return null.
  */
 public class RelMdExpressionLineage
-    implements MetadataHandler<BuiltInMetadata.ExpressionLineage> {
+    implements MetadataHandler {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          new RelMdExpressionLineage(), BuiltInMetadata.ExpressionLineage.Handler.class);
+          new RelMdExpressionLineage(), BuiltInMetadata.ExpressionLineageHandler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -91,6 +91,7 @@ public class RelMdExpressionLineage
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public MetadataDef<BuiltInMetadata.ExpressionLineage> getDef() {
     return BuiltInMetadata.ExpressionLineage.DEF;
   }

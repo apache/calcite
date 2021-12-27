@@ -17,9 +17,9 @@
 package org.apache.calcite.rel.metadata.janino;
 
 public final class GeneratedMetadata_MinRowCountHandler
-  implements org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCount.Handler {
+  implements org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCountHandler {
   private final Object methodKey0 =
-      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.getMinRowCount()");
+      new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double MinRowCountHandler.getMinRowCount()");
   public final org.apache.calcite.rel.metadata.RelMdMinRowCount provider0;
   public GeneratedMetadata_MinRowCountHandler(
       org.apache.calcite.rel.metadata.RelMdMinRowCount provider0) {
@@ -93,7 +93,7 @@ public final class GeneratedMetadata_MinRowCountHandler
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getMinRowCount((org.apache.calcite.rel.RelNode) r, mq);
     } else {
-            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$MinRowCount$Handler.getMinRowCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
+            throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Double org.apache.calcite.rel.metadata.BuiltInMetadata$MinRowCountHandler.getMinRowCount(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");
     }
   }
 
