@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -109,33 +108,6 @@ class AggregationTest {
         return connection;
       }
     };
-  }
-
-  /**
-   * Currently the patterns like below will be converted to Search in range
-   * which is not supported in elastic search adapter.
-   * (val1 >= 10 and val1 <= 20)
-   * (val1 <= 10 or val1 >=20)
-   * (val1 <= 10) or (val1 > 15 and val1 <= 20)
-   * So disable this test case until the translation from Search in range
-   * to rang Query in ES is implemented.
-   */
-  @Disabled
-  @Test void searchInRange() {
-    CalciteAssert.that()
-        .with(newConnectionFactory())
-        .query("select count(*) from view where val1 >= 10 and val1 <=20")
-        .returns("EXPR$0=1\n");
-
-    CalciteAssert.that()
-        .with(newConnectionFactory())
-        .query("select count(*) from view where val1 <= 10 or val1 >=20")
-        .returns("EXPR$0=2\n");
-
-    CalciteAssert.that()
-        .with(newConnectionFactory())
-        .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
-        .returns("EXPR$0=2\n");
   }
 
   @Test void countStar() {
