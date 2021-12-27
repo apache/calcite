@@ -36,10 +36,15 @@ This release comes two months after [1.28.0](#v1-28-0),
 contains contributions from 23 authors,
 and resolves 47 issues.
 
-This release upgrades log4j2 to 2.17.0 to fixes security vulnerabiities like CVE-2021-45105.
+This release upgrades
+<a href="https://issues.apache.org/jira/browse/CALCITE-4950">log4j2 to 2.17.0</a>
+to fix security vulnerabiities such as
+<a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=2021-44228">CVE-2021-44228</a>
+and
+<a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=2021-45105">CVE-2021-45105</a>.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
-using JDK/OpenJDK versions 8 to 15;
+using JDK/OpenJDK versions 8 to 17;
 Guava versions 19.0 to 31.0.1-jre;
 other software versions as specified in gradle.properties.
 
@@ -47,119 +52,133 @@ Contributors to this release:
 Ada Wong,
 Aleksey Plekhanov,
 Alessandro Solimando,
+Chunwei Lei,
 Francesco Gini,
 Jacques Nadeau,
-Jay,
+Jay Narale,
 Julian Hyde,
+liuyanze,
+Louis Kuang,
 NobiGo,
+Ruben Quesada Lopez,
+Rui Wang (release manager),
+Sergey Nuyanzin,
 Stamatis Zampetakis,
 Thomas Rebele,
 Vladimir Sitnikov,
 Will Noble,
-chunwei.lcw,
-huzhe,
-liuyanze,
-rubenada,
-snuyanzin,
-xwkuang5.
+Zhe Hu.
 
 #### New features
 {: #new-features-1-29-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4822">CALCITE-4822</a>]
+  Add `ARRAY_CONCAT`, `ARRAY_REVERSE`, `ARRAY_LENGTH` functions for BigQuery dialect
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4877">CALCITE-4877</a>]
+  When a plugin class is not found, make the exception more explicit
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4841">CALCITE-4841</a>]
+  Support `decimal` column type in CSV and File adapters
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4925">CALCITE-4925</a>]
+  `AggregateReduceFunctionsRule` should accept arbitrary predicates
 
 #### Bug-fixes, API changes and minor enhancements
 {: #fixes-1-29-0}
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-4822">CALCITE-4822</a>]
-Add `ARRAY_CONCAT`, `ARRAY_REVERSE`, `ARRAY_LENGTH` for BigQuery dialect
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4839">CALCITE-4839</a>]
-Remove remnants of ImmutableBeans post 1.28 release
+  Remove remnants of `ImmutableBeans` post 1.28 release
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4795">CALCITE-4795</a>]
-In class `SqlBasicCall`, make the "operands" field private
+  In class `SqlBasicCall`, make the `operands` field private
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4818">CALCITE-4818</a>]
-AggregateExpandDistinctAggregatesRule must infer correct data type for top aggregate calls
+  `AggregateExpandDistinctAggregatesRule` must infer correct data type for top
+  aggregate calls
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4551">CALCITE-4551</a>]
-Reusing Immutable metadata cache keys
+  Reusing immutable metadata cache keys
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4131">CALCITE-4131</a>]
-the XmlFunctions exception handled by System.out
+  The `XmlFunctions` exception handled by `System.out`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4875">CALCITE-4875</a>]
-`NVL` Function Incorrectly changes nullability field of its operands
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-4877">CALCITE-4877</a>]
-Make the exception information of class not found more explicit
+  `NVL` function incorrectly changes nullability of its operands
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4844">CALCITE-4844</a>]
-IN-list that references columns is wrongly converted to Values, and gives incorrect results
+  `IN`-list that references columns is wrongly converted to `Values`, and gives
+  incorrect results
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4846">CALCITE-4846</a>]
-IN-list that includes NULL converted to Values throws exception
+  `IN`-list that includes `NULL` converted to `Values` throws exception
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4884">CALCITE-4884</a>]
-Provide a new constructor for RelJsonWriter to allow customized JsonBuilder
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-4841">CALCITE-4841</a>]
-Support decimal column type in CSV and File adapter
+  Provide a new constructor for `RelJsonWriter` to allow customized `JsonBuilder`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4876">CALCITE-4876</a>]
-Converting `RelNode` to SQL with `CalciteSqlDialect` gets wrong result while `EnumerableIntersect` is followed by `EnumerableLimit`
+  JDBC adapter generates wrong SQL in Calcite dialect when `EnumerableIntersect`
+  is followed by `EnumerableLimit`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4883">CALCITE-4883</a>]
-The traitset of Exchange operator losses the distribution when externalizing Exchange operator from JSON
+  When `Exchange` is created from externalized JSON, `RelDistribution` is not
+  correctly set in its `traitSet`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4783">CALCITE-4783</a>]
-RelFieldTrimmer incorrectly drops filter condition
+  `RelFieldTrimmer` incorrectly drops filter condition
 * Log plan after physical tweaks in new line
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4927">CALCITE-4927</a>]
-Remove deprecated RelBuilder#groupKey(ImmutableBitSet, ImmutableList) clashing with new replacement API
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-4925">CALCITE-4925</a>]
-AggregateReduceFunctionsRule should accept arbitrary predicates
+  Remove deprecated method `RelBuilder.groupKey(ImmutableBitSet, ImmutableList)`
+  that clashes with newer API method
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4928">CALCITE-4928</a>]
-Decouple Janino from RelMetadataQuery
+  Decouple Janino from `RelMetadataQuery`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4932">CALCITE-4932</a>]
-Deprecate `JdbcCalc` and remove `JdbcCalcRule`
+  Deprecate `JdbcCalc` and remove `JdbcCalcRule`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4894">CALCITE-4894</a>]
-MV rewriting fails for conjunctive top expressions in `SELECT` clause
+  Materialized view rewriting fails for conjunctive top expressions in `SELECT`
+  clause
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4929">CALCITE-4929</a>]
-Add default methods for getDef on metadata handlers
-* Improve debug message in IterativeRuleDriver
-* Remove duplicate entries from `RelOptRules.CALC_RULES` 
+  Add default methods for `getDef` on metadata handlers
+* Improve debug message in `IterativeRuleDriver`
+* Remove duplicate entries from `RelOptRules.CALC_RULES`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4906">CALCITE-4906</a>]
-Wrong result for scalar subquery (single value aggregation) from empty input
+  Wrong result for scalar sub-query (single value aggregation) from empty input
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4941">CALCITE-4941</a>]
-`SemiJoinRule` loses hints
+  `SemiJoinRule` loses hints
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4895">CALCITE-4895</a>]
-MAP type in UDF cannot be externalized from json correctly
+  `MAP` type in user-defined function (UDF) cannot be created from externalized
+  JSON
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4946">CALCITE-4946</a>]
-Add method RelBuilder.size()
-* Finishing up [CALCITE-4937], remove workarounds for [CALCITE-4877]
+  Add method `RelBuilder.size()`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4704">CALCITE-4704</a>]
-Log produced plan after rule application using explain formatting
+  Log produced plan after rule application using explain formatting
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4700">CALCITE-4700</a>]
-AggregateUnionTransposeRule produces wrong group sets for the top Aggregate
+  `AggregateUnionTransposeRule` produces wrong `groupingSets` for the top
+  `Aggregate`
 
 #### Build and test suite
 {: #build-1-29-0}
-* Exclude kotlin-stdlib from :core runtime dependencies
+
+* Exclude kotlin-stdlib from `:core` runtime dependencies
 * Clarify why squash commits option in GitHub PR merge is disabled
-* Keep backslash when autoformatting <<...\n" +>>
+* Keep backslash when autoformatting `...\n" +`
 * Use GitHub Action concurrency feature to cancel stale CI executions
-* Set timeout for running Druid tests in GitHub CI 
+* Set timeout for running Druid tests in GitHub CI
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4917">CALCITE-4917</a>]
-Add test for 'a IS NOT NULL AND a = b' simplification
+  Add test for `a IS NOT NULL AND a = b` simplification
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4851">CALCITE-4851</a>]
-Build gives lots of 'Execution optimizations have been disabled' warnings
+  Build gives lots of '`Execution optimizations have been disabled`' warnings
 
 #### Dependency version upgrade
 {: #dependency-1-29-0}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4847">CALCITE-4847</a>]
+  Support Java 16 and 17
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4858">CALCITE-4858</a>]
-Use Log4j2 instead of unsupported Log4j (1.x) in tests
+  Use Log4j2 instead of unsupported Log4j (1.x) in tests
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4768">CALCITE-4768</a>]
-Upgrade DataStax Driver for Apache Cassandra® version to latest 4.x
-* Bump com.github.vlsi.vlsi-release-plugins to 1.76
+  Upgrade DataStax Driver for Apache Cassandra® version to latest 4.x
+* Bump `com.github.vlsi.vlsi-release-plugins` to 1.76
 * Update Gradle to 7.3
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4937">CALCITE-4937</a>]
-Upgrade Calcite to Avatica 1.20
+  Upgrade Calcite to Avatica 1.20
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4938">CALCITE-4938</a>]
-Upgrade SQLLine to 1.12.0
+  Upgrade SQLLine to 1.12.0
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4948">CALCITE-4948</a>]
-Upgrade Elasticsearch to 7.10.2
+  Upgrade Elasticsearch to 7.10.2
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4950">CALCITE-4950</a>]
-Upgrade log4j2 version 2.17.0
+  Upgrade log4j2 version 2.17.0
 
 
 #### Web site and documentation
 {: #site-1-29-0}
+
 * Site: Add Xiong Duan as committer
 * Site: Fix typo in reference.md
 
@@ -218,7 +237,7 @@ Narayanan Venkateswaran,
 Nick Riasanovsky,
 NobiGo,
 Rafay Qureshi,
-Ruben Q L,
+Ruben Quesada Lopez,
 Sergey Nuyanzin,
 Stamatis Zampetakis,
 Taras Ledkov,
