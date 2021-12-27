@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.dialect.AccessSqlDialect;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
@@ -130,7 +131,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
           c.withDataTypeSystem(MysqlSqlDialect.MYSQL_TYPE_SYSTEM));
     case "REDSHIFT":
       return new RedshiftSqlDialect(
-          c.withDataTypeSystem(RedshiftSqlDialect.TYPE_SYSTEM));
+          c.withDataTypeSystem(RedshiftSqlDialect.TYPE_SYSTEM)
+              .withDatabaseProduct(DatabaseProduct.REDSHIFT));
     case "SNOWFLAKE":
       return new SnowflakeSqlDialect(c);
     case "SPARK":
