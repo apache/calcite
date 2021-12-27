@@ -2122,6 +2122,12 @@ public abstract class SqlOperatorBaseTest {
 
   @Test void testRow() {
     tester.setFor(SqlStdOperatorTable.ROW, VM_FENNEL);
+    tester.checkBoolean("ROW(null, null) IS NULL", Boolean.TRUE);
+    tester.checkBoolean("ROW(null, null) IS NOT NULL", Boolean.FALSE);
+    tester.checkBoolean("ROW(1, null) IS NULL", Boolean.FALSE);
+    tester.checkBoolean("ROW(1, null) IS NOT NULL", Boolean.FALSE);
+    tester.checkBoolean("ROW(1, 2) IS NULL", Boolean.FALSE);
+    tester.checkBoolean("ROW(1, 2) IS NOT NULL", Boolean.TRUE);
   }
 
   @Test void testAndOperator() {
