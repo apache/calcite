@@ -70,9 +70,7 @@ public class ProjectCalcMergeRule
 
     // Don't merge a project which contains windowed aggregates onto a
     // calc. That would effectively be pushing a windowed aggregate down
-    // through a filter. Transform the project into an identical calc,
-    // which we'll have chance to merge later, after the over is
-    // expanded.
+    // through a filter.
     final RelOptCluster cluster = project.getCluster();
     RexProgram program =
         RexProgram.create(
