@@ -29,7 +29,7 @@ services:
     volumes:
       - .:/srv/jekyll
   generate-javadoc:
-    image: maven
+    image: maven:3.8.4-openjdk-17-slim
     working_dir: /usr/src/calcite
     command: sh -c "./gradlew javadocAggregate; rm -rf site/target/javadocAggregate; mkdir -p site/target; mv build/docs/javadocAggregate site/target"
     volumes:
