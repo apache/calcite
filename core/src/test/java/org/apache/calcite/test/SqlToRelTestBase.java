@@ -41,6 +41,7 @@ import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -1078,23 +1079,29 @@ public abstract class SqlToRelTestBase {
     public CustomCorrelate(
         RelOptCluster cluster,
         RelTraitSet traits,
+        List<RelHint> hints,
         RelNode left,
         RelNode right,
         CorrelationId correlationId,
         ImmutableBitSet requiredColumns,
         JoinRelType joinType) {
-      super(cluster, traits, left, right, correlationId, requiredColumns, joinType);
+      super(cluster, traits, hints, left, right, correlationId, requiredColumns, joinType);
     }
 
     @Override public Correlate copy(RelTraitSet traitSet,
         RelNode left, RelNode right, CorrelationId correlationId,
         ImmutableBitSet requiredColumns, JoinRelType joinType) {
-      return new CustomCorrelate(getCluster(), traitSet, left, right,
+      return new CustomCorrelate(getCluster(), traitSet, hints, left, right,
           correlationId, requiredColumns, joinType);
     }
 
     @Override public RelNode accept(RelShuttle shuttle) {
       return shuttle.visit(this);
+    }
+
+    @Override public RelNode withHints(List<RelHint> hintList) {
+      return new CustomCorrelate(getCluster(), traitSet, hintList, left, right,
+          correlationId, requiredColumns, joinType);
     }
   }
 }
