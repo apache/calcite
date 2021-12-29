@@ -1510,9 +1510,9 @@ these details follow the table.
 | SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
 | INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
 | BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
-| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
+| DECIMAL             | x    | x       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
+| FLOAT/REAL          | x    | x       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
+| DOUBLE              | x    | x       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
 | INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x
 | DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x
 | TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x

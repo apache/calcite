@@ -202,7 +202,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
         coerceRules.copyValues(SqlTypeName.BOOLEAN)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
-            .addAll(SqlTypeName.NUMERIC_TYPES)
+            .addAll(SqlTypeName.INT_TYPES)
             .build());
 
     // DATE, TIME, and TIMESTAMP are castable from
