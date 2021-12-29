@@ -39,8 +39,10 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintPredicate;
 import org.apache.calcite.rel.hint.HintPredicates;
@@ -49,6 +51,7 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -75,8 +78,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIn.in;
@@ -142,6 +147,19 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "count(deptno), avg_sal from (\n"
         + "select /*+ AGG_STRATEGY(ONE_PHASE) */ avg(sal) as avg_sal, deptno\n"
         + "from emp group by deptno) group by avg_sal";
+    sql(sql).ok();
+  }
+
+  @Test void testCorrelateHints() {
+    final String sql = "select /*+ use_hash_join (orders, products_temporal) */ stream *\n"
+        + "from orders join products_temporal for system_time as of orders.rowtime\n"
+        + "on orders.productid = products_temporal.productid and orders.orderId is not null";
+    sql(sql).ok();
+  }
+
+  @Test void testCrossCorrelateHints() {
+    final String sql = "select /*+ use_hash_join (orders, products_temporal) */ stream *\n"
+        + "from orders, products_temporal for system_time as of orders.rowtime";
     sql(sql).ok();
   }
 
@@ -693,6 +711,13 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         }
         return super.visit(aggregate);
       }
+
+      @Override public RelNode visit(LogicalCorrelate correlate) {
+        if (correlate.getHints().size() > 0) {
+          this.hintsCollect.add("Correlate:" + correlate.getHints().toString());
+        }
+        return super.visit(correlate);
+      }
     }
   }
 
@@ -771,12 +796,47 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
                         + "allowed options: [ONE_PHASE, TWO_PHASE]",
                     hint.hintName)).build())
         .hintStrategy("use_hash_join",
-          HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
+          HintPredicates.or(
+              HintPredicates.and(HintPredicates.CORRELATE, temporalJoinWithFixedTableName()),
+              HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName())))
         .hintStrategy("use_merge_join",
             HintStrategy.builder(
                 HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
         .build();
+    }
+
+    /** Returns a {@link HintPredicate} for temporal join with specified table references. */
+    private static HintPredicate temporalJoinWithFixedTableName() {
+      return (hint, rel) -> {
+        if (!(rel instanceof LogicalCorrelate)) {
+          return false;
+        }
+        LogicalCorrelate correlate = (LogicalCorrelate) rel;
+        Predicate<RelNode> isScan = r -> r instanceof TableScan;
+        if (!(isScan.test(correlate.getLeft()))) {
+          return false;
+        }
+        RelNode rightInput = correlate.getRight();
+        Predicate<RelNode> isSnapshotOnScan = r -> r instanceof Snapshot
+            && isScan.test(((Snapshot) r).getInput());
+        RelNode rightScan;
+        if (isSnapshotOnScan.test(rightInput)) {
+          rightScan = ((Snapshot) rightInput).getInput();
+        } else if (rightInput instanceof Filter
+            && isSnapshotOnScan.test(((Filter) rightInput).getInput())) {
+          rightScan = ((Snapshot) ((Filter) rightInput).getInput()).getInput();
+        } else {
+          // right child of correlate must be a snapshot on table scan directly or a Filter which
+          // input is snapshot on table scan
+          return false;
+        }
+        final List<String> tableNames = hint.listOptions;
+        final List<String> inputTables = Stream.of(correlate.getLeft(), rightScan)
+            .map(scan -> Util.last(scan.getTable().getQualifiedName()))
+            .collect(Collectors.toList());
+        return equalsStringList(inputTables, tableNames);
+      };
     }
 
     /** Returns a {@link HintPredicate} for join with specified table references. */

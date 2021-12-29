@@ -4403,6 +4403,10 @@ public class RelBuilderTest {
     final RelHint noHashJoinHint = RelHint.builder("NO_HASH_JOIN")
         .inheritPath(0)
         .build();
+    final RelHint hashJoinHint = RelHint.builder("USE_HASH_JOIN")
+        .hintOption("orders")
+        .hintOption("products_temporal")
+        .build();
     final RelBuilder builder = RelBuilder.create(config().build());
     // Equivalent SQL:
     //   SELECT *
@@ -4440,6 +4444,32 @@ public class RelBuilderTest {
         .hints(noHashJoinHint)
         .build();
     assertThat(root2, hasHints("[[NO_HASH_JOIN inheritPath:[0]]]"));
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM orders
+    //   JOIN products_temporal FOR SYSTEM_TIME AS OF orders.rowtime
+    //   ON orders.product = products_temporal.id
+    RelNode left = builder.scan("orders").build();
+    RelNode right = builder.scan("products_temporal").build();
+    RexNode period = builder.getRexBuilder().makeFieldAccess(
+        builder.getRexBuilder().makeCorrel(left.getRowType(), new CorrelationId(0)),
+        0);
+    RelNode root3 =
+        builder
+            .push(left)
+            .push(right)
+            .snapshot(period)
+            .correlate(
+                JoinRelType.INNER,
+                new CorrelationId(0),
+                builder.field(2, 0, "ROWTIME"),
+                builder.field(2, 0, "ID"),
+                builder.field(2, 0, "PRODUCT"))
+            .hints(hashJoinHint)
+            .build();
+    assertThat(root3,
+        hasHints("[[USE_HASH_JOIN inheritPath:[] options:[orders, products_temporal]]]"));
   }
 
   @Test void testHintsOnEmptyStack() {

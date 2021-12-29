@@ -1743,7 +1743,7 @@ class RelOptRulesTest extends RelOptTestBase {
           .project(b.field(0),
               b.getRexBuilder().makeFieldAccess(rexCorrel, 0)).build();
       LogicalCorrelate correlate = new LogicalCorrelate(left.getCluster(),
-          left.getTraitSet(), left, right, correlationId,
+          left.getTraitSet(), ImmutableList.of(), left, right, correlationId,
           ImmutableBitSet.of(0), type);
 
       b.push(correlate);
@@ -4061,6 +4061,7 @@ class RelOptRulesTest extends RelOptTestBase {
     CustomCorrelate customCorrelate = new CustomCorrelate(
         logicalCorrelate.getCluster(),
         logicalCorrelate.getTraitSet(),
+        logicalCorrelate.getHints(),
         logicalCorrelate.getLeft(),
         logicalCorrelate.getRight(),
         logicalCorrelate.getCorrelationId(),

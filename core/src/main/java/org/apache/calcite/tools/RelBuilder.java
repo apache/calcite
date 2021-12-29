@@ -2791,7 +2791,7 @@ public class RelBuilder {
       }
       final ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, right.rel);
       join =
-          struct.correlateFactory.createCorrelate(left.rel, right.rel, id,
+          struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(), id,
               requiredColumns, joinType);
     } else {
       RelNode join0 =
@@ -2836,7 +2836,7 @@ public class RelBuilder {
     Frame left = stack.pop();
 
     final RelNode correlate =
-        struct.correlateFactory.createCorrelate(left.rel, right.rel,
+        struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(),
             correlationId, ImmutableBitSet.of(requiredOrdinals), joinType);
 
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();

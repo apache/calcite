@@ -33,6 +33,32 @@ Project:[[RESOURCE inheritPath:[0, 0, 0, 0] options:{MEM=1024}]]
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelateHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ use_hash_join (orders, products_temporal) */ stream *
+from orders join products_temporal for system_time as of orders.rowtime
+on orders.productid = products_temporal.productid and orders.orderId is not null]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[USE_HASH_JOIN inheritPath:[] options:[ORDERS, PRODUCTS_TEMPORAL]]]
+Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
+]]>
+    </Resource>
+  </TestCase>
+
+  <TestCase name="testCrossCorrelateHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ use_hash_join (orders, products_temporal) */ stream *
+from orders, products_temporal for system_time as of orders.rowtime]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[USE_HASH_JOIN inheritPath:[] options:[ORDERS, PRODUCTS_TEMPORAL]]]
+Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFourLevelNestedQueryHint">
     <Resource name="sql">
       <![CDATA[select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */
