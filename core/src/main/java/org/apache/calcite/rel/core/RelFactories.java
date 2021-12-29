@@ -392,18 +392,28 @@ public class RelFactories {
    * <p>The result is typically a {@link Correlate}.
    */
   public interface CorrelateFactory {
+
     /**
      * Creates a correlate.
      *
      * @param left             Left input
      * @param right            Right input
+     * @param hints            Hints
      * @param correlationId    Variable name for the row of left input
      * @param requiredColumns  Required columns
      * @param joinType         Join type
      */
-    RelNode createCorrelate(RelNode left, RelNode right,
+    RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
         JoinRelType joinType);
+
+    @Deprecated // to be removed before 1.23
+    default RelNode createCorrelate(RelNode left, RelNode right,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns,
+        JoinRelType joinType) {
+      return createCorrelate(left, right, ImmutableList.of(), correlationId,
+          requiredColumns, joinType);
+    }
   }
 
   /**
@@ -411,10 +421,10 @@ public class RelFactories {
    * {@link org.apache.calcite.rel.logical.LogicalCorrelate}.
    */
   private static class CorrelateFactoryImpl implements CorrelateFactory {
-    @Override public RelNode createCorrelate(RelNode left, RelNode right,
-        CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        JoinRelType joinType) {
-      return LogicalCorrelate.create(left, right, correlationId,
+
+    @Override public RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType) {
+      return LogicalCorrelate.create(left, right, hints, correlationId,
           requiredColumns, joinType);
     }
   }

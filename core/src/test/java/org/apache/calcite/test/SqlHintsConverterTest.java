@@ -24,6 +24,7 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
@@ -49,6 +50,7 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -76,7 +78,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIn.in;
@@ -142,6 +143,13 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "count(deptno), avg_sal from (\n"
         + "select /*+ AGG_STRATEGY(ONE_PHASE) */ avg(sal) as avg_sal, deptno\n"
         + "from emp group by deptno) group by avg_sal";
+    sql(sql).ok();
+  }
+
+  @Test void testCorrelateHints() {
+    final String sql = "select /*+ use_hash_join (orders, products_temporal) */ stream *\n"
+        + "from orders join products_temporal for system_time as of orders.rowtime\n"
+        + "on orders.productid = products_temporal.productid and orders.orderId is not null";
     sql(sql).ok();
   }
 
@@ -693,6 +701,13 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         }
         return super.visit(aggregate);
       }
+
+      @Override public RelNode visit(LogicalCorrelate correlate) {
+        if (correlate.getHints().size() > 0) {
+          this.hintsCollect.add("Correlate:" + correlate.getHints().toString());
+        }
+        return super.visit(correlate);
+      }
     }
   }
 
@@ -771,28 +786,47 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
                         + "allowed options: [ONE_PHASE, TWO_PHASE]",
                     hint.hintName)).build())
         .hintStrategy("use_hash_join",
-          HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
+          HintPredicates.or(
+              HintPredicates.and(HintPredicates.CORRELATE, withFixedTableName()),
+              HintPredicates.and(HintPredicates.JOIN, withFixedTableName())))
         .hintStrategy("use_merge_join",
             HintStrategy.builder(
-                HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
+                HintPredicates.and(HintPredicates.JOIN, withFixedTableName()))
                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
         .build();
     }
 
-    /** Returns a {@link HintPredicate} for join with specified table references. */
-    private static HintPredicate joinWithFixedTableName() {
+    /** Returns a {@link HintPredicate} for join or correlate with specified table references. */
+    private static HintPredicate withFixedTableName() {
       return (hint, rel) -> {
-        if (!(rel instanceof LogicalJoin)) {
+        if (!(rel instanceof LogicalJoin || rel instanceof LogicalCorrelate)) {
           return false;
         }
-        LogicalJoin join = (LogicalJoin) rel;
         final List<String> tableNames = hint.listOptions;
-        final List<String> inputTables = join.getInputs().stream()
-            .filter(input -> input instanceof TableScan)
-            .map(scan -> Util.last(scan.getTable().getQualifiedName()))
-            .collect(Collectors.toList());
+        final List<String> inputTables = new TableNameVisitor().run(rel);
         return equalsStringList(tableNames, inputTables);
       };
+    }
+
+    /**
+     * Implementation of RelVisitor to extract input table names.
+     */
+    private static class TableNameVisitor extends RelVisitor {
+      private List<String> names = new ArrayList<>();
+
+      List<String> run(RelNode input) {
+        go(input);
+        return names;
+      }
+
+      @Override public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
+        if (node instanceof TableScan) {
+          RelOptTable table = node.getTable();
+          String tableName = Util.last(table.getQualifiedName());
+          names.add(tableName);
+        }
+        super.visit(node, ordinal, parent);
+      }
     }
 
     /** Format the query with hint {@link #HINT}. */

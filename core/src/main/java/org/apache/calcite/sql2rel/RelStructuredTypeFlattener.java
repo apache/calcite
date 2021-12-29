@@ -482,6 +482,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     LogicalCorrelate newRel =
         LogicalCorrelate.create(getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
+            rel.getHints(),
             rel.getCorrelationId(),
             newPos.build(),
             rel.getJoinType());

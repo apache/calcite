@@ -127,7 +127,7 @@ public class JdbcRules {
       };
 
   static final RelFactories.CorrelateFactory CORRELATE_FACTORY =
-      (left, right, correlationId, requiredColumns, joinType) -> {
+      (left, right, hints, correlationId, requiredColumns, joinType) -> {
         throw new UnsupportedOperationException("JdbcCorrelate");
       };
 
