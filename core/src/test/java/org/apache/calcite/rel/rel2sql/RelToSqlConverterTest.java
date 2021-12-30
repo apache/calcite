@@ -221,6 +221,18 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testOrderByNotInSelectList() {
+    String query = "select count(1) as c\n"
+        + "from \"foodmart\".\"product\"\n"
+        + "group by \"product_id\"\n"
+        + "order by \"product_id\" desc";
+    final String expected = "SELECT COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"\n"
+        + "ORDER BY \"product_id\" DESC";
+    sql(query).ok(expected);
+  }
+
   @Test void testAggregateFilterWhereToSqlFromProductTable() {
     String query = "select\n"
         + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
@@ -1516,7 +1528,7 @@ class RelToSqlConverterTest {
   @Test void testSelectQueryWithOrderByClause() {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\"";
-    final String expected = "SELECT \"product_id\", \"net_weight\"\n"
+    final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\"";
     sql(query).ok(expected);
@@ -1534,8 +1546,7 @@ class RelToSqlConverterTest {
   @Test void testSelectQueryWithTwoOrderByClause() {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\", \"gross_weight\"";
-    final String expected = "SELECT \"product_id\", \"net_weight\","
-        + " \"gross_weight\"\n"
+    final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\", \"gross_weight\"";
     sql(query).ok(expected);
@@ -1545,7 +1556,7 @@ class RelToSqlConverterTest {
     String query = "select \"product_id\" from \"product\" "
         + "order by \"net_weight\" asc, \"gross_weight\" desc, \"low_fat\"";
     final String expected = "SELECT"
-        + " \"product_id\", \"net_weight\", \"gross_weight\", \"low_fat\"\n"
+        + " \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"";
     sql(query).ok(expected);
@@ -2604,13 +2615,13 @@ class RelToSqlConverterTest {
   @Test void testSelectQueryWithLimitOffsetClause() {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\" asc limit 100 offset 10";
-    final String expected = "SELECT \"product_id\", \"net_weight\"\n"
+    final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\"\n"
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
-    final String expectedBigQuery = "SELECT product_id, net_weight\n"
+    final String expectedBigQuery = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY net_weight IS NULL, net_weight\n"
         + "LIMIT 100\n"
@@ -6447,7 +6458,7 @@ class RelToSqlConverterTest {
               getPlanner(null, parserConfig, defaultSchema, config, librarySet, typeSystem);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
-          rel = planner.rel(validate).rel;
+          rel = planner.rel(validate).project();
         }
         for (Function<RelNode, RelNode> transform : transforms) {
           rel = transform.apply(rel);
