@@ -352,7 +352,7 @@ public class RexImpTable {
   @SuppressWarnings("method.invocation.invalid")
   RexImpTable() {
     defineMethod(THROW_UNLESS, BuiltInMethod.THROW_UNLESS.method, NullPolicy.NONE);
-    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ALL);
+    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.NONE);
     defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
     defineMethod(LOWER, BuiltInMethod.LOWER.method, NullPolicy.STRICT);
     defineMethod(INITCAP,  BuiltInMethod.INITCAP.method, NullPolicy.STRICT);
@@ -3107,13 +3107,7 @@ public class RexImpTable {
       if (nullPolicy == NullPolicy.ARG0) {
         return argIsNullList.get(0);
       }
-      // Condition for regular cases: v0 == null || v1 == null
-      Expression condition = Expressions.foldOr(argIsNullList);
-      if (nullPolicy == NullPolicy.ALL) {
-        // Condition for NullPolicy.ALL: v0 == null && v1 == null
-        condition = Expressions.foldAnd(argIsNullList);
-      }
-      return condition;
+      return Expressions.foldOr(argIsNullList);
     }
 
     // E.g., "final Integer xxx_value = (a_isNull || b_isNull) ? null : plus(a, b)"

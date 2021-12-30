@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -56,8 +55,7 @@ public class SqlRowOperator extends SqlSpecialOperator {
     // The type of a ROW(e1,e2) expression is a record with the types
     // {e1type,e2type}.  According to the standard, field names are
     // implementation-defined.
-    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType recordType = typeFactory.createStructType(
+    return opBinding.getTypeFactory().createStructType(
         new AbstractList<Map.Entry<String, RelDataType>>() {
           @Override public Map.Entry<String, RelDataType> get(int index) {
             return Pair.of(
@@ -69,13 +67,6 @@ public class SqlRowOperator extends SqlSpecialOperator {
             return opBinding.getOperandCount();
           }
         });
-
-    // The value of ROW(e1,e2) is considered null if and only all of its
-    // fields (i.e., e1, e2) are null. Otherwise ROW can not be null.
-    final boolean nullable =
-        recordType.getFieldList().stream()
-            .allMatch(f -> f.getType().isNullable());
-    return typeFactory.createTypeWithNullability(recordType, nullable);
   }
 
   @Override public void unparse(

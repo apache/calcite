@@ -127,25 +127,4 @@ WHERE empno < 7600;
 
 !ok
 
-
-# [CALCITE-3627] Null check if all fields of ROW are null
-select
-  ROW(null, null, null) is null AS all_null_is_null,
-  ROW(null, null, null) is not null AS all_null_is_not_null,
-  ROW(null, 1, null) is null AS except_one_all_null_is_null,
-  ROW(null, 1, null) is not null AS except_one_all_null_is_not_null,
-  NOT(ROW(null, 1, null) is null) AS reverse_null_check_except_one_all_null,
-  ROW(null, ROW(null, null), null) is null AS all_null_including_nested_row_is_null,
-  ROW(null, ROW(null, 1), null) is null AS all_null_except_nested_row_is_null;
-+--------+
-| EXPR$0 |
-+--------+
-| true   |
-+--------+
-(1 row)
-
-!ok
-
-
-
 # End struct.iq
