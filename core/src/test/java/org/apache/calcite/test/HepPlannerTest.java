@@ -24,6 +24,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -345,8 +346,9 @@ class HepPlannerTest extends RelOptTestBase {
     HepPlanner planner = new HepPlanner(HepProgram.builder().build());
     RelNode tableRel = tester.convertSqlToRel("select * from dept").rel;
     RelNode queryRel = tableRel;
-    RelOptMaterialization mat1 = new RelOptMaterialization(
-        tableRel, queryRel, null, ImmutableList.of("default", "mv"));
+    RelOptMaterialization mat1 =
+        RelOptMaterialization.create(tableRel, queryRel, null,
+            ImmutableList.of("default", "mv"), RelFactories.LOGICAL_BUILDER);
     planner.addMaterialization(mat1);
     assertEquals(planner.getMaterializations().size(), 1);
     assertEquals(planner.getMaterializations().get(0), mat1);

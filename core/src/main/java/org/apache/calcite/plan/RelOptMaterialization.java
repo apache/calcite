@@ -21,10 +21,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.Table;
@@ -33,6 +35,7 @@ import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -46,6 +49,8 @@ import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Records that a particular query is materialized by a particular table.
  */
@@ -57,23 +62,58 @@ public class RelOptMaterialization {
   public final RelNode queryRel;
 
   /**
-   * Creates a RelOptMaterialization.
+   * Creates a RelOptMaterialization, adding a cast to {@code tableRel} if its
+   * row type does not match that of {@code queryRel}.
+   *
+   * @deprecated Use {@link #create}
    */
+  @Deprecated // to be removed before 2.0
   public RelOptMaterialization(RelNode tableRel, RelNode queryRel,
       @Nullable RelOptTable starRelOptTable, List<String> qualifiedTableName) {
-    this.tableRel =
-        RelOptUtil.createCastRel(
-            Objects.requireNonNull(tableRel, "tableRel"),
-            Objects.requireNonNull(queryRel, "queryRel").getRowType(),
-            false);
+    this(tableRel, queryRel, starRelOptTable, qualifiedTableName,
+        RelFactories.LOGICAL_BUILDER);
+  }
+
+  /** Internal constructor. */
+  private RelOptMaterialization(RelNode tableRel, RelNode queryRel,
+      @Nullable RelOptTable starRelOptTable, List<String> qualifiedTableName,
+      RelBuilderFactory relBuilderFactory) {
+    requireNonNull(queryRel, "queryRel");
+    requireNonNull(tableRel, "tableRel");
+
+    // The 'areRowTypesEqual' check is for performance, but does not affect
+    // correctness. We wish to avoid the cost of creating a RelBuilder if the
+    // row types are already compatible.
+    final RelDataType tableRowType = tableRel.getRowType();
+    final RelDataType queryRowType = queryRel.getRowType();
+    if (!RelOptUtil.areRowTypesEqual(tableRowType, queryRowType, false)) {
+      this.tableRel =
+          relBuilderFactory.create(tableRel.getCluster(), null)
+              .push(tableRel)
+              .convert(queryRowType, false)
+              .build();
+    } else {
+      this.tableRel = tableRel;
+    }
     this.starRelOptTable = starRelOptTable;
     if (starRelOptTable == null) {
       this.starTable = null;
     } else {
       this.starTable = starRelOptTable.unwrapOrThrow(StarTable.class);
     }
-    this.qualifiedTableName = qualifiedTableName;
+    this.qualifiedTableName =
+        requireNonNull(qualifiedTableName, "qualifiedTableName");
     this.queryRel = queryRel;
+  }
+
+  /** Creates a RelOptMaterialization, adding a cast to {@code tableRel} if its
+   * row type is not the same as that of {@code queryRel} (ignoring field
+   * names). */
+  public static RelOptMaterialization create(RelNode tableRel, RelNode queryRel,
+      @Nullable RelOptTable starRelOptTable, List<String> qualifiedTableName,
+      RelBuilderFactory relBuilderFactory) {
+    return new RelOptMaterialization(tableRel, queryRel, starRelOptTable,
+        qualifiedTableName, relBuilderFactory);
   }
 
   /**
@@ -125,7 +165,7 @@ public class RelOptMaterialization {
                   try {
                     match(left, right, join.getCluster());
                   } catch (Util.FoundOne e) {
-                    return (RelNode) Objects.requireNonNull(e.getNode(), "FoundOne.getNode");
+                    return (RelNode) requireNonNull(e.getNode(), "FoundOne.getNode");
                   }
                 }
               }
@@ -222,7 +262,7 @@ public class RelOptMaterialization {
         Mappings.@Nullable TargetMapping mapping, TableScan scan) {
       this.condition = condition;
       this.mapping = mapping;
-      this.scan = Objects.requireNonNull(scan, "scan");
+      this.scan = requireNonNull(scan, "scan");
     }
 
     static @Nullable ProjectFilterTable of(RelNode node) {

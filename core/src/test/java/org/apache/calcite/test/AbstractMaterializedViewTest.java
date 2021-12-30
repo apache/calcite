@@ -163,8 +163,9 @@ public abstract class AbstractMaterializedViewTest {
           final EnumerableTableScan replacement =
               EnumerableTableScan.create(cluster, logicalScan.getTable());
           mvs.add(
-              new RelOptMaterialization(replacement, mvRel, null,
-                  ImmutableList.of(defaultSchema.getName(), pair.right)));
+              RelOptMaterialization.create(replacement, mvRel, null,
+                  ImmutableList.of(defaultSchema.getName(), pair.right),
+                  (cluster2, schema) -> relBuilder));
         }
         return new TestConfig(defaultSchema.getName(), queryRel, mvs);
       } catch (Exception e) {

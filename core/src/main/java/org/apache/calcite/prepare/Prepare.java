@@ -33,6 +33,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -153,11 +154,12 @@ public abstract class Prepare {
     for (Materialization materialization : materializations) {
       List<String> qualifiedTableName = materialization.materializedTable.path();
       materializationList.add(
-          new RelOptMaterialization(
+          RelOptMaterialization.create(
               castNonNull(materialization.tableRel),
               castNonNull(materialization.queryRel),
               materialization.starRelOptTable,
-              qualifiedTableName));
+              qualifiedTableName,
+              RelFactories.LOGICAL_BUILDER));
     }
 
     final List<RelOptLattice> latticeList = new ArrayList<>(lattices.size());
