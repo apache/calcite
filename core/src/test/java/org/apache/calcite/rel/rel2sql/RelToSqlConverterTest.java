@@ -2652,10 +2652,9 @@ class RelToSqlConverterTest {
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
-    final String expectedMssql = "SELECT [product_id]\n"
+    final String expectedMssql = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]\n"
-        + "FETCH NEXT 100 ROWS ONLY";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
@@ -3586,6 +3585,23 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[employee]";
     sql(query)
         .withMssql().ok(expected);
+  }
+
+  @Test void testFetchMssql() {
+    String query = "SELECT * FROM \"employee\" LIMIT 1";
+    String expected = "SELECT TOP (1) *\nFROM [foodmart].[employee]";
+    sql(query)
+        .withMssql().ok(expected);
+  }
+
+  @Test void testFetchOffset() {
+    String query = "SELECT * FROM \"employee\" LIMIT 1 OFFSET 1";
+    String expectedMssql = "SELECT *\nFROM [foodmart].[employee]\nOFFSET 1 ROWS\n"
+        + "FETCH NEXT 1 ROWS ONLY";
+    String expectedSybase = "SELECT TOP (1) START AT 1 *\nFROM foodmart.employee";
+    sql(query)
+        .withMssql().ok(expectedMssql)
+        .withSybase().ok(expectedSybase);
   }
 
   @Test void testFloorMssqlMonth() {
