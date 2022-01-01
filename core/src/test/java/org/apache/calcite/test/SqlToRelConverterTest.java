@@ -72,6 +72,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
+import static org.apache.calcite.test.Matchers.isLinux;
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -2561,6 +2563,25 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     visitor.visit(calc);
     assertThat(rels.size(), is(1));
     assertThat(rels.get(0), isA(LogicalCalc.class));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4803">[CALCITE-4803]
+   * AggregateProjectMergeRule lost alias after remove the Project operator</a>. */
+  @Test void testLoseAliasAggregateProjectMergeRule() {
+    final String sql = "select ename as e, deptno as d, count(distinct empno)\n"
+        + "from emp group by ename, deptno";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final RelNode relOpt = planner.findBestExp();
+    assertThat(
+        RelOptUtil.toString(relOpt), isLinux(""
+        + "LogicalProject(E=[$0], D=[$1], EXPR$2=[$2])\n"
+        + "  LogicalAggregate(group=[{1, 7}], EXPR$2=[COUNT(DISTINCT $0)])\n"
+        + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
   }
 
   @Test void testRelShuttleForLogicalTableModify() {
