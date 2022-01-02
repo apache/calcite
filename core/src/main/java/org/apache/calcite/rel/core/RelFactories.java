@@ -406,14 +406,6 @@ public class RelFactories {
     RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
         JoinRelType joinType);
-
-    @Deprecated // to be removed before 1.23
-    default RelNode createCorrelate(RelNode left, RelNode right,
-        CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        JoinRelType joinType) {
-      return createCorrelate(left, right, ImmutableList.of(), correlationId,
-          requiredColumns, joinType);
-    }
   }
 
   /**

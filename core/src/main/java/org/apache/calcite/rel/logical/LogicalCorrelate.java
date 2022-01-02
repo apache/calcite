@@ -116,7 +116,7 @@ public final class LogicalCorrelate extends Correlate {
         requiredColumns, joinType);
   }
 
-  @Deprecated // to be removed before 1.23
+  @Deprecated // to be removed before 2.0
   public static LogicalCorrelate create(RelNode left, RelNode right,
       CorrelationId correlationId, ImmutableBitSet requiredColumns,
       JoinRelType joinType) {
