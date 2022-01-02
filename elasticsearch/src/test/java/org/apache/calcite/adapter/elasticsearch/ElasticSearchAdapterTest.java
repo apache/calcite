@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
@@ -462,17 +463,16 @@ class ElasticSearchAdapterTest {
   }
 
   @Test void testFilterSortDesc() {
+    Assumptions.assumeTrue(Bug.CALCITE_4645_FIXED, "CALCITE-4645");
     final String sql = "select * from zips\n"
         + "where pop BETWEEN 95000 AND 100000\n"
         + "order by state desc, pop";
-    if (Bug.CALCITE_4645_FIXED) {
-      calciteAssert()
-          .query(sql)
-          .limit(4)
-          .returnsOrdered(
-              "city=LOS ANGELES; longitude=-118.258189; latitude=34.007856; pop=96074; state=CA; id=90011",
-              "city=BELL GARDENS; longitude=-118.17205; latitude=33.969177; pop=99568; state=CA; id=90201");
-    }
+    calciteAssert()
+        .query(sql)
+        .limit(4)
+        .returnsOrdered(
+            "city=LOS ANGELES; longitude=-118.258189; latitude=34.007856; pop=96074; state=CA; id=90011",
+            "city=BELL GARDENS; longitude=-118.17205; latitude=33.969177; pop=99568; state=CA; id=90201");
   }
 
   @Test void testInPlan() {

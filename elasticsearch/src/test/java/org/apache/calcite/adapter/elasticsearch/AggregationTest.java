@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
@@ -121,22 +122,21 @@ class AggregationTest {
    * to rang Query in ES is implemented.
    */
   @Test void searchInRange() {
-    if (Bug.CALCITE_4645_FIXED) {
-      CalciteAssert.that()
-          .with(newConnectionFactory())
-          .query("select count(*) from view where val1 >= 10 and val1 <=20")
-          .returns("EXPR$0=1\n");
+    Assumptions.assumeTrue(Bug.CALCITE_4645_FIXED, "CALCITE-4645");
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 >= 10 and val1 <=20")
+        .returns("EXPR$0=1\n");
 
-      CalciteAssert.that()
-          .with(newConnectionFactory())
-          .query("select count(*) from view where val1 <= 10 or val1 >=20")
-          .returns("EXPR$0=2\n");
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 <= 10 or val1 >=20")
+        .returns("EXPR$0=2\n");
 
-      CalciteAssert.that()
-          .with(newConnectionFactory())
-          .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
-          .returns("EXPR$0=2\n");
-    }
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
+        .returns("EXPR$0=2\n");
   }
 
   @Test void countStar() {
