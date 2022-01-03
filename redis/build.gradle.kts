@@ -23,7 +23,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.apache.commons:commons-lang3")
     implementation("org.apache.commons:commons-pool2")
     implementation("org.slf4j:slf4j-api")
 

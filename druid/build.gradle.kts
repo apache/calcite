@@ -32,7 +32,6 @@ dependencies {
 
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.google.guava:guava")
-    implementation("org.apache.commons:commons-lang3")
 
     testImplementation(project(":testkit"))
     testImplementation("org.mockito:mockito-core")

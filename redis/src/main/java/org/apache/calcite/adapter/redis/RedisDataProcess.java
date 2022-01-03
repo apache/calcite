@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.redis;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +36,7 @@ public class RedisDataProcess {
   RedisDataType dataType = null;
   RedisDataFormat redisDataFormat = null;
   List<LinkedHashMap<String, Object>> fields;
-  private Jedis jedis;
+  private final Jedis jedis;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   public RedisDataProcess(Jedis jedis, RedisTableFieldInfo tableFieldInfo) {
@@ -76,7 +74,7 @@ public class RedisDataProcess {
   }
 
   private Object[] parseJson(String value) {
-    assert StringUtils.isNotEmpty(value);
+    assert value != null && !value.isEmpty();
     Object[] arr = new Object[fields.size()];
     try {
       JsonNode jsonNode = objectMapper.readTree(value);
@@ -96,7 +94,7 @@ public class RedisDataProcess {
   }
 
   private Object[] parseCsv(String value) {
-    assert StringUtils.isNotEmpty(value);
+    assert value != null && !value.isEmpty();
     String[] values = value.split(keyDelimiter);
     Object[] arr = new Object[fields.size()];
     assert values.length == arr.length;

@@ -20,8 +20,6 @@ import org.apache.calcite.model.JsonCustomTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableSet;
@@ -102,7 +100,7 @@ class RedisSchema extends AbstractSchema {
     tableFieldInfo.setTableName(tableName);
     tableFieldInfo.setDataFormat(dataFormat);
     tableFieldInfo.setFields(fields);
-    if (StringUtils.isNotEmpty(keyDelimiter)) {
+    if (keyDelimiter != null && !keyDelimiter.isEmpty()) {
       tableFieldInfo.setKeyDelimiter(keyDelimiter);
     }
     return tableFieldInfo;
