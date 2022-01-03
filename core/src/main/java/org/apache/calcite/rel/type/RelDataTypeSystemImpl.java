@@ -19,6 +19,7 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Glossary;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -243,9 +244,35 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return argumentType;
   }
 
+  /**
+   * <p>The default implementation is SQL:2003 compliant: the declared type of
+   * the result is decimal.
+   *
+   * <p>Rules:
+   *
+   * <ul>
+   * <li>Let p1, s1 be the precision and scale of the first operand</li>
+   * <li>Let p2, s2 be the precision and scale of the second operand</li>
+   * <li>Let p, s be the precision and scale of the result</li>
+   * <li>Then the result type is a decimal with:
+   *   <ul>
+   *   <li>s = max(3, max(s1, s2))</li>
+   *   <li>p = max decimal precision</li>
+   *   </ul>
+   * </li>
+   * </ul>
+   *
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 10.9
+   *
+   * @param typeFactory TypeFactory used to create output type
+   * @param arg0Type       Type of the first operand
+   * @param arg1Type       Type of the second operand
+   * @return Result decimal type
+   */
   @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
       RelDataType arg0Type, RelDataType arg1Type) {
-    return arg0Type;
+    return typeFactory.createSqlType(SqlTypeName.DECIMAL, getMaxPrecision(SqlTypeName.DECIMAL),
+        Math.max(3, Math.max(arg0Type.getScale(), arg1Type.getScale())));
   }
 
   @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {

@@ -9229,8 +9229,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("covar_pop(cast(null as varchar(2)),cast(null as varchar(2)))",
         "DECIMAL(19, 9)");
     tester.checkType("covar_pop(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
-        "INTEGER");
-    checkAggType(tester, "covar_pop(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "DECIMAL(19, 3)");
+    checkAggType(tester, "covar_pop(1.5, 2.5)", "DECIMAL(19, 3) NOT NULL");
     if (!enable) {
       return;
     }
@@ -9251,8 +9251,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("covar_samp(cast(null as varchar(2)),cast(null as varchar(2)))",
         "DECIMAL(19, 9)");
     tester.checkType("covar_samp(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
-        "INTEGER");
-    checkAggType(tester, "covar_samp(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "DECIMAL(19, 3)");
+    checkAggType(tester, "covar_samp(1.5, 2.5)", "DECIMAL(19, 3) NOT NULL");
     if (!enable) {
       return;
     }
@@ -9273,8 +9273,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("regr_sxx(cast(null as varchar(2)), cast(null as varchar(2)))",
         "DECIMAL(19, 9)");
     tester.checkType("regr_sxx(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))",
-        "INTEGER");
-    checkAggType(tester, "regr_sxx(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "DECIMAL(19, 3)");
+    checkAggType(tester, "regr_sxx(1.5, 2.5)", "DECIMAL(19, 3) NOT NULL");
     if (!enable) {
       return;
     }
@@ -9295,8 +9295,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkType("regr_syy(cast(null as varchar(2)), cast(null as varchar(2)))",
         "DECIMAL(19, 9)");
     tester.checkType("regr_syy(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))",
-        "INTEGER");
-    checkAggType(tester, "regr_syy(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "DECIMAL(19, 3)");
+    checkAggType(tester, "regr_syy(1.5, 2.5)", "DECIMAL(19, 3) NOT NULL");
     if (!enable) {
       return;
     }
