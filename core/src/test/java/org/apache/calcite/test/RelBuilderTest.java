@@ -4042,18 +4042,37 @@ public class RelBuilderTest {
   }
 
   /**
-   * Tests {@link RelBuilder#in} would throw exception if types of the ranges are not compatible.
+   * Tests {@link RelBuilder#in} would throw an exception when simplify filter predicates if types
+   * of the ranges are not compatible.
    */
-  @Test void testFilterInWithNotCompatibleArguments() {
+  @Test void testFilterInWithNotCompatibleArgumentsSimplification() {
     try {
       final RelBuilder b = RelBuilder.create(config().build());
       final RelNode root = b.scan("EMP")
           .filter(b.in(b.field(2), b.literal(1), b.literal(true)))
           .build();
       fail("expected error, got " + root);
-    } catch (ClassCastException e) {
-      // good
+    } catch (Exception e) {
+      assertThat(
+          e.getMessage(), is(
+          "Sarg arguments are not compatible with each other!\n"
+              + "Existed ranges are [[1..1]], new range is [true..true]."));
     }
+  }
+
+  /**
+   * Tests {@link RelBuilder#in} would generate a disjunction if types of the ranges are not
+   * compatible.
+   */
+  @Test void testFilterInWithNotCompatibleArgumentsWithoutSimplification() {
+    final RelBuilder b = createBuilder(c -> c.withSimplify(false));
+    final RelNode root = b.scan("EMP")
+        .filter(b.in(b.field(2), b.literal(1), b.literal(true)))
+        .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[OR(=($2, 1), =($2, true))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for

@@ -3027,9 +3027,17 @@ public class RexSimplify {
     }
 
     void addRange(Range<Comparable> range, RelDataType type) {
-      types.add(type);
-      rangeSet.add(range);
-      nullAs = nullAs.or(UNKNOWN);
+      try {
+        types.add(type);
+        rangeSet.add(range);
+        nullAs = nullAs.or(UNKNOWN);
+      } catch (ClassCastException e) {
+        throw new IllegalArgumentException(
+            String.format("Sarg arguments are not compatible with each other!\n"
+                + "Existed ranges are %s, new range is %s.",
+                rangeSet, range),
+            e);
+      }
     }
 
     @SuppressWarnings({"UnstableApiUsage", "rawtypes", "unchecked"})
