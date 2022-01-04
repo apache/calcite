@@ -44,6 +44,12 @@ matrix:
     - jdk: openjdk15
       env:
         - GUAVA=31.0.1-jre # newest supported Guava version
+    - jdk: openjdk16
+      env:
+        - GUAVA=31.0.1-jre
+    - jdk: openjdk17
+      env:
+        - GUAVA=31.0.1-jre
 branches:
   only:
     - master

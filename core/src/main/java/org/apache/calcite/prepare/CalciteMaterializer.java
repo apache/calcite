@@ -27,23 +27,6 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.RelShuttle;
-import org.apache.calcite.rel.core.TableFunctionScan;
-import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalCorrelate;
-import org.apache.calcite.rel.logical.LogicalExchange;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalIntersect;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalMatch;
-import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.StarTable;
@@ -151,62 +134,6 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
       }
     }
     return list;
-  }
-
-  /** Implementation of {@link RelShuttle} that returns each relational
-   * expression unchanged. It does not visit inputs. */
-  static class RelNullShuttle implements RelShuttle {
-    @Override public RelNode visit(TableScan scan) {
-      return scan;
-    }
-    @Override public RelNode visit(TableFunctionScan scan) {
-      return scan;
-    }
-    @Override public RelNode visit(LogicalValues values) {
-      return values;
-    }
-    @Override public RelNode visit(LogicalFilter filter) {
-      return filter;
-    }
-    @Override public RelNode visit(LogicalCalc calc) {
-      return calc;
-    }
-    @Override public RelNode visit(LogicalProject project) {
-      return project;
-    }
-    @Override public RelNode visit(LogicalJoin join) {
-      return join;
-    }
-    @Override public RelNode visit(LogicalCorrelate correlate) {
-      return correlate;
-    }
-    @Override public RelNode visit(LogicalUnion union) {
-      return union;
-    }
-    @Override public RelNode visit(LogicalIntersect intersect) {
-      return intersect;
-    }
-    @Override public RelNode visit(LogicalMinus minus) {
-      return minus;
-    }
-    @Override public RelNode visit(LogicalAggregate aggregate) {
-      return aggregate;
-    }
-    @Override public RelNode visit(LogicalMatch match) {
-      return match;
-    }
-    @Override public RelNode visit(LogicalSort sort) {
-      return sort;
-    }
-    @Override public RelNode visit(LogicalExchange exchange) {
-      return exchange;
-    }
-    @Override public RelNode visit(LogicalTableModify modify) {
-      return modify;
-    }
-    @Override public RelNode visit(RelNode other) {
-      return other;
-    }
   }
 
   /** Called when we discover a star table that matches. */

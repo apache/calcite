@@ -116,21 +116,21 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    if (!top) {
+    if (!top && offset != null) {
       super.unparseOffsetFetch(writer, offset, fetch);
     }
   }
 
   @Override public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    if (top) {
+    if (top || offset == null) {
       // Per Microsoft:
       //   "For backward compatibility, the parentheses are optional in SELECT
       //   statements. We recommend that you always use parentheses for TOP in
       //   SELECT statements. Doing so provides consistency with its required
       //   use in INSERT, UPDATE, MERGE, and DELETE statements."
       //
-      // Note that "fetch" is ignored.
+      // Note that "offset" is ignored.
       writer.keyword("TOP");
       writer.keyword("(");
       requireNonNull(fetch, "fetch");

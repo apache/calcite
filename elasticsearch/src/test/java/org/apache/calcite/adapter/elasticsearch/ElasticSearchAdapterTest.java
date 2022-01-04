@@ -23,6 +23,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,8 +31,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -55,7 +56,6 @@ import java.util.function.Consumer;
  * Set of tests for ES adapter. Uses real instance via {@link EmbeddedElasticsearchPolicy}. Document
  * source is local {@code zips-mini.json} file (located in test classpath).
  */
-@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class ElasticSearchAdapterTest {
 
@@ -463,6 +463,7 @@ class ElasticSearchAdapterTest {
   }
 
   @Test void testFilterSortDesc() {
+    Assumptions.assumeTrue(Bug.CALCITE_4645_FIXED, "CALCITE-4645");
     final String sql = "select * from zips\n"
         + "where pop BETWEEN 95000 AND 100000\n"
         + "order by state desc, pop";
@@ -476,8 +477,8 @@ class ElasticSearchAdapterTest {
 
   @Test void testInPlan() {
     final String[] searches = {
-        "query: {'constant_score':{filter:{bool:{should:"
-            + "[{term:{pop:96074}},{term:{pop:99568}}]}}}}",
+        "query: {'constant_score':{filter:{terms:{pop:"
+            + "[96074, 99568]}}}}",
         "script_fields: {longitude:{script:'params._source.loc[0]'}, "
             +  "latitude:{script:'params._source.loc[1]'}, "
             +  "city:{script: 'params._source.city'}, "

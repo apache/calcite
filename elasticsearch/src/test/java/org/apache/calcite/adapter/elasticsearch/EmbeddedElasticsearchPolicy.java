@@ -197,7 +197,11 @@ class EmbeddedElasticsearchPolicy {
       return client;
     }
 
-    final RestClient client = RestClient.builder(httpHost()).build();
+    final RestClient client = RestClient.builder(httpHost())
+        .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
+            .setConnectTimeout(60 * 1000)  // default 1000
+            .setSocketTimeout(3 * 60 * 1000))  // default 30000
+        .build();
     closer.add(client);
     this.client = client;
     return client;

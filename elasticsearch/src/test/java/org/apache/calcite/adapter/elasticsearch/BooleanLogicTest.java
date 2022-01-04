@@ -21,12 +21,12 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Bug;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -42,7 +42,6 @@ import java.util.Map;
 /**
  * Test of different boolean expressions (some more complex than others).
  */
-@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class BooleanLogicTest {
 
@@ -120,7 +119,10 @@ class BooleanLogicTest {
     assertEmpty("select * from view where num > 42 and num < 42 and num = 42");
     assertEmpty("select * from view where num > 42 or num < 42 and num = 42");
     assertSingle("select * from view where num > 42 and num < 42 or num = 42");
-    assertSingle("select * from view where num > 42 or num < 42 or num = 42");
+    if (Bug.CALCITE_4965_FIXED) {
+      assertSingle("select * from view where num > 42 or num < 42 or num = 42");
+      assertEmpty("select * from view where num is null");
+    }
     assertSingle("select * from view where num >= 42 and num <= 42 and num = 42");
     assertEmpty("select * from view where num >= 42 and num <= 42 and num <> 42");
     assertEmpty("select * from view where num < 42");

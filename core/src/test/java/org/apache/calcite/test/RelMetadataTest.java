@@ -67,12 +67,14 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
+import org.apache.calcite.rel.metadata.CyclicMetadataException;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.MetadataHandlerProvider;
+import org.apache.calcite.rel.metadata.ProxyingMetadataHandlerProvider;
 import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
@@ -125,7 +127,9 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -142,6 +146,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -158,6 +164,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -195,6 +202,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * time. */
   private static final ReentrantLock LOCK = new ReentrantLock();
 
+
+
   //~ Methods ----------------------------------------------------------------
 
   /** Creates a tester. */
@@ -206,122 +215,158 @@ public class RelMetadataTest extends SqlToRelTestBase {
   // Tests for getPercentageOriginalRows
   // ----------------------------------------------------------------------
 
-  private RelNode convertSql(String sql) {
-    return convertSql(tester, sql);
+  private RelNode convertSql(String sql,
+      final MetadataConfig metadataConfig) {
+    return convertSql(tester, sql, metadataConfig);
   }
 
-  private static RelNode convertSql(Tester tester, String sql) {
+  private RelNode convertSql(Tester tester, String sql,
+      final MetadataConfig metadataConfig) {
     final RelRoot root = tester.convertSqlToRel(sql);
-    root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
+    metadataConfig.applyMetadata(root.rel.getCluster());
     return root.rel;
   }
 
-  private RelNode convertSql(String sql, boolean typeCoercion) {
+
+
+  private RelNode convertSql(String sql, boolean typeCoercion,
+      final MetadataConfig metadataConfig) {
     final Tester tester = typeCoercion ? this.tester : this.strictTester;
-    return convertSql(tester, sql);
+    return convertSql(tester, sql, metadataConfig);
   }
 
-  private void checkPercentageOriginalRows(String sql, double expected) {
-    checkPercentageOriginalRows(sql, expected, EPSILON);
+  private RelBuilder builder(
+      final MetadataConfig metadataConfig) {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    metadataConfig.applyMetadata(builder.getCluster());
+    return builder;
+  }
+
+  private void checkPercentageOriginalRows(String sql, double expected,
+      final MetadataConfig metadataConfig) {
+    checkPercentageOriginalRows(sql, expected, EPSILON, metadataConfig);
   }
 
   private void checkPercentageOriginalRows(
       String sql,
       double expected,
-      double epsilon) {
-    RelNode rel = convertSql(sql);
+      double epsilon, final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     Double result = mq.getPercentageOriginalRows(rel);
     assertNotNull(result);
     assertEquals(expected, result, epsilon);
   }
 
-  @Test void testPercentageOriginalRowsTableOnly() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsTableOnly(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows(
         "select * from dept",
-        1.0);
+        1.0, metadataConfig);
   }
 
-  @Test void testPercentageOriginalRowsAgg() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsAgg(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows(
         "select deptno from dept group by deptno",
-        1.0);
+        1.0, metadataConfig);
   }
 
   @Disabled
-  @Test void testPercentageOriginalRowsOneFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsOneFilter(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows(
         "select * from dept where deptno = 20",
-        DEFAULT_EQUAL_SELECTIVITY);
+        DEFAULT_EQUAL_SELECTIVITY, metadataConfig);
   }
 
   @Disabled
-  @Test void testPercentageOriginalRowsTwoFilters() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsTwoFilters(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from dept where name='X')\n"
         + "where deptno = 20",
-        DEFAULT_EQUAL_SELECTIVITY_SQUARED);
+        DEFAULT_EQUAL_SELECTIVITY_SQUARED, metadataConfig);
   }
 
   @Disabled
-  @Test void testPercentageOriginalRowsRedundantFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsRedundantFilter(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from dept where deptno=20)\n"
         + "where deptno = 20",
-        DEFAULT_EQUAL_SELECTIVITY);
+        DEFAULT_EQUAL_SELECTIVITY, metadataConfig);
   }
 
-  @Test void testPercentageOriginalRowsJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsJoin(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows(
         "select * from emp inner join dept on emp.deptno=dept.deptno",
-        1.0);
+        1.0, metadataConfig);
   }
 
   @Disabled
-  @Test void testPercentageOriginalRowsJoinTwoFilters() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsJoinTwoFilters(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows("select * from (\n"
         + "  select * from emp where deptno=10) e\n"
         + "inner join (select * from dept where deptno=10) d\n"
         + "on e.deptno=d.deptno",
-        DEFAULT_EQUAL_SELECTIVITY_SQUARED);
+        DEFAULT_EQUAL_SELECTIVITY_SQUARED, metadataConfig);
   }
 
-  @Test void testPercentageOriginalRowsUnionNoFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsUnionNoFilter(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows(
         "select name from dept union all select ename from emp",
-        1.0);
+        1.0, metadataConfig);
   }
 
   @Disabled
-  @Test void testPercentageOriginalRowsUnionLittleFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsUnionLittleFilter(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows(
         "select name from dept where deptno=20"
             + " union all select ename from emp",
         ((DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY) + EMP_SIZE)
-            / (DEPT_SIZE + EMP_SIZE));
+            / (DEPT_SIZE + EMP_SIZE), metadataConfig);
   }
 
   @Disabled
-  @Test void testPercentageOriginalRowsUnionBigFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPercentageOriginalRowsUnionBigFilter(
+      final MetadataConfig metadataConfig) {
     checkPercentageOriginalRows(
         "select name from dept"
             + " union all select ename from emp where deptno=20",
         ((EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY) + DEPT_SIZE)
-            / (DEPT_SIZE + EMP_SIZE));
+            / (DEPT_SIZE + EMP_SIZE), metadataConfig);
   }
 
   // ----------------------------------------------------------------------
   // Tests for getColumnOrigins
   // ----------------------------------------------------------------------
 
-  private Set<RelColumnOrigin> checkColumnOrigin(String sql) {
-    RelNode rel = convertSql(sql);
+  private Set<RelColumnOrigin> checkColumnOrigin(String sql,
+      final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return mq.getColumnOrigins(rel, 0);
   }
 
-  private void checkNoColumnOrigin(String sql) {
-    Set<RelColumnOrigin> result = checkColumnOrigin(sql);
+  private void checkNoColumnOrigin(String sql,
+      final MetadataConfig metadataConfig) {
+    Set<RelColumnOrigin> result = checkColumnOrigin(sql, metadataConfig);
     assertNotNull(result);
     assertTrue(result.isEmpty());
   }
@@ -349,8 +394,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
       String sql,
       String expectedTableName,
       String expectedColumnName,
-      boolean expectedDerived) {
-    Set<RelColumnOrigin> result = checkColumnOrigin(sql);
+      boolean expectedDerived,
+      final MetadataConfig metadataConfig) {
+    Set<RelColumnOrigin> result = checkColumnOrigin(sql, metadataConfig);
     assertNotNull(result);
     assertThat(result.size(), is(1));
     RelColumnOrigin rco = result.iterator().next();
@@ -365,8 +411,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
       String expectedColumnName1,
       String expectedTableName2,
       String expectedColumnName2,
-      boolean expectedDerived) {
-    Set<RelColumnOrigin> result = checkColumnOrigin(sql);
+      boolean expectedDerived,
+      final MetadataConfig metadataConfig) {
+    Set<RelColumnOrigin> result = checkColumnOrigin(sql, metadataConfig);
     assertNotNull(result);
     assertThat(result.size(), is(2));
     for (RelColumnOrigin rco : result) {
@@ -389,9 +436,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
-  @Test void testCalcColumnOriginsTable() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testCalcColumnOriginsTable(
+      final MetadataConfig metadataConfig) {
     final String sql = "select name,deptno from dept where deptno > 10";
-    final RelNode relNode = convertSql(sql);
+    final RelNode relNode = convertSql(sql, metadataConfig);
     final HepProgram program = new HepProgramBuilder().
         addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
     final HepPlanner planner = new HepPlanner(program);
@@ -404,12 +453,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(deptnoColumn.getOriginColumnOrdinal(), is(0));
   }
 
-  @Test void testDerivedColumnOrigins() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDerivedColumnOrigins(
+      final MetadataConfig metadataConfig) {
     final String sql1 = ""
         + "select empno, sum(sal) as all_sal\n"
         + "from emp\n"
         + "group by empno";
-    final RelNode relNode = convertSql(sql1);
+    final RelNode relNode = convertSql(sql1, metadataConfig);
     final HepProgram program = new HepProgramBuilder().
         addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
     final HepPlanner planner = new HepPlanner(program);
@@ -420,142 +471,178 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(allSal.getOriginColumnOrdinal(), is(5));
   }
 
-  @Test void testColumnOriginsTableOnly() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsTableOnly(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select name as dname from dept",
         "DEPT",
         "NAME",
-        false);
+        false, metadataConfig);
   }
 
-  @Test void testColumnOriginsExpression() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsExpression(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select upper(name) as dname from dept",
         "DEPT",
         "NAME",
-        true);
+        true, metadataConfig);
   }
 
-  @Test void testColumnOriginsDyadicExpression() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsDyadicExpression(
+      final MetadataConfig metadataConfig) {
     checkTwoColumnOrigin(
         "select name||ename from dept,emp",
         "DEPT",
         "NAME",
         "EMP",
         "ENAME",
-        true);
+        true, metadataConfig);
   }
 
-  @Test void testColumnOriginsConstant() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsConstant(
+      final MetadataConfig metadataConfig) {
     checkNoColumnOrigin(
-        "select 'Minstrelsy' as dname from dept");
+        "select 'Minstrelsy' as dname from dept", metadataConfig);
   }
 
-  @Test void testColumnOriginsFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsFilter(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select name as dname from dept where deptno=10",
         "DEPT",
         "NAME",
-        false);
+        false, metadataConfig);
   }
 
-  @Test void testColumnOriginsJoinLeft() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsJoinLeft(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select ename from emp,dept",
         "EMP",
         "ENAME",
-        false);
+        false, metadataConfig);
   }
 
-  @Test void testColumnOriginsJoinRight() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsJoinRight(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select name as dname from emp,dept",
         "DEPT",
         "NAME",
-        false);
+        false, metadataConfig);
   }
 
-  @Test void testColumnOriginsJoinOuter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsJoinOuter(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select name as dname from emp left outer join dept"
             + " on emp.deptno = dept.deptno",
         "DEPT",
         "NAME",
-        true);
+        true, metadataConfig);
   }
 
-  @Test void testColumnOriginsJoinFullOuter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsJoinFullOuter(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select name as dname from emp full outer join dept"
             + " on emp.deptno = dept.deptno",
         "DEPT",
         "NAME",
-        true);
+        true, metadataConfig);
   }
 
-  @Test void testColumnOriginsAggKey() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsAggKey(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select name,count(deptno) from dept group by name",
         "DEPT",
         "NAME",
-        false);
+        false, metadataConfig);
   }
 
-  @Test void testColumnOriginsAggReduced() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsAggReduced(
+      final MetadataConfig metadataConfig) {
     checkNoColumnOrigin(
-        "select count(deptno),name from dept group by name");
+        "select count(deptno),name from dept group by name", metadataConfig);
   }
 
-  @Test void testColumnOriginsAggCountNullable() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsAggCountNullable(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select count(mgr),ename from emp group by ename",
         "EMP",
         "MGR",
-        true);
+        true, metadataConfig);
   }
 
-  @Test void testColumnOriginsAggCountStar() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsAggCountStar(
+      final MetadataConfig metadataConfig) {
     checkNoColumnOrigin(
-        "select count(*),name from dept group by name");
+        "select count(*),name from dept group by name", metadataConfig);
   }
 
-  @Test void testColumnOriginsValues() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsValues(
+      final MetadataConfig metadataConfig) {
     checkNoColumnOrigin(
-        "values(1,2,3)");
+        "values(1,2,3)", metadataConfig);
   }
 
-  @Test void testColumnOriginsUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsUnion(
+      final MetadataConfig metadataConfig) {
     checkTwoColumnOrigin(
         "select name from dept union all select ename from emp",
         "DEPT",
         "NAME",
         "EMP",
         "ENAME",
-        false);
+        false, metadataConfig);
   }
 
-  @Test void testColumnOriginsSelfUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsSelfUnion(
+      final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
         "select ename from emp union all select ename from emp",
         "EMP",
         "ENAME",
-        false);
+        false, metadataConfig);
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4192">[CALCITE-4192]
    * RelMdColumnOrigins get the wrong index of group by columns after RelNode
    * was optimized by AggregateProjectMergeRule rule</a>. */
-  @Test void testColumnOriginAfterAggProjectMergeRule() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginAfterAggProjectMergeRule(
+      MetadataConfig metadataConfig) {
     final String sql = "select count(ename), SAL from emp group by SAL";
     final RelNode rel = tester.convertSqlToRel(sql).rel;
+    metadataConfig.applyMetadata(rel.getCluster());
     final HepProgramBuilder programBuilder = HepProgram.builder();
     programBuilder.addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE);
     final HepPlanner planner = new HepPlanner(programBuilder.build());
     planner.setRoot(rel);
     final RelNode optimizedRel = planner.findBestExp();
 
-    Set<RelColumnOrigin> origins = RelMetadataQuery.instance()
+    Set<RelColumnOrigin> origins =
+        new RelMetadataQuery(metadataConfig.getDefaultHandlerProvider())
         .getColumnOrigins(optimizedRel, 1);
     assertThat(origins.size(), equalTo(1));
 
@@ -570,8 +657,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
   // ----------------------------------------------------------------------
 
   private void checkRowCount(String sql, double expected, double expectedMin,
-      double expectedMax) {
-    RelNode rel = convertSql(sql);
+      double expectedMax,
+      final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Double result = mq.getRowCount(rel);
     assertThat(result, notNullValue());
@@ -598,257 +686,337 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(min, is(expectedMin));
   }
 
-  @Test void testRowCountEmp() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountEmp(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp";
-    checkRowCount(sql, EMP_SIZE, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, EMP_SIZE, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountDept() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountDept(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from dept";
-    checkRowCount(sql, DEPT_SIZE, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, DEPT_SIZE, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountValues() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountValues(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (values (1), (2)) as t(c)";
-    checkRowCount(sql, 2, 2, 2);
+    checkRowCount(sql, 2, 2, 2, metadataConfig);
   }
 
-  @Test void testRowCountCartesian() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountCartesian(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp,dept";
-    checkRowCount(sql, EMP_SIZE * DEPT_SIZE, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, EMP_SIZE * DEPT_SIZE, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountJoin(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp\n"
         + "inner join dept on emp.deptno = dept.deptno";
     checkRowCount(sql, EMP_SIZE * DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY,
-        0D, Double.POSITIVE_INFINITY);
+        0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountJoinFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountJoinFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 14) as emp\n"
         + "inner join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, EMP_SIZE * DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY,
-        0D, 56D); // 4 * 14
+        0D, 56D, metadataConfig); // 4 * 14
   }
 
-  @Test void testRowCountJoinEmptyFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountJoinEmptyFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "inner join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
-        0D, 0D); // 0 * 4
+        0D, 0D, metadataConfig); // 0 * 4
   }
 
-  @Test void testRowCountLeftJoinEmptyFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountLeftJoinEmptyFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "left join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
-        0D, 0D); // 0 * 4
+        0D, 0D, metadataConfig); // 0 * 4
   }
 
-  @Test void testRowCountRightJoinEmptyFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountRightJoinEmptyFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "right join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, 4D,
-        0D, 4D);
+        0D, 4D, metadataConfig);
   }
 
-  @Test void testRowCountJoinFiniteEmpty() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountJoinFiniteEmpty(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 7) as emp\n"
         + "inner join (select * from dept limit 0) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
-        0D, 0D); // 7 * 0
+        0D, 0D, metadataConfig); // 7 * 0
   }
 
-  @Test void testRowCountLeftJoinFiniteEmpty() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountLeftJoinFiniteEmpty(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 4) as emp\n"
         + "left join (select * from dept limit 0) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, 4D,
-        0D, 4D);
+        0D, 4D, metadataConfig);
   }
 
-  @Test void testRowCountRightJoinFiniteEmpty() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountRightJoinFiniteEmpty(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 4) as emp\n"
         + "right join (select * from dept limit 0) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
-        0D, 0D); // 0 * 4
+        0D, 0D, metadataConfig); // 0 * 4
   }
 
-  @Test void testRowCountJoinEmptyEmpty() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountJoinEmptyEmpty(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "inner join (select * from dept limit 0) as dept\n"
         + "on emp.deptno = dept.deptno";
     checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
-        0D, 0D); // 0 * 0
+        0D, 0D, metadataConfig); // 0 * 0
   }
 
-  @Test void testRowCountUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountUnion(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from emp\n"
         + "union all\n"
         + "select name from dept";
-    checkRowCount(sql, EMP_SIZE + DEPT_SIZE, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, EMP_SIZE + DEPT_SIZE, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountUnionOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountUnionOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "union all\n"
         + "select name from (select * from dept limit 40)";
-    checkRowCount(sql, EMP_SIZE + DEPT_SIZE, 0D, 140D);
+    checkRowCount(sql, EMP_SIZE + DEPT_SIZE, 0D, 140D, metadataConfig);
   }
 
-  @Test void testRowCountUnionDistinct() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountUnionDistinct(
+      final MetadataConfig metadataConfig) {
     String sql = "select x from (values 'a', 'b') as t(x)\n"
         + "union\n"
         + "select x from (values 'a', 'b') as t(x)";
-    checkRowCount(sql, 2D, 1D, 4D);
+    checkRowCount(sql, 2D, 1D, 4D, metadataConfig);
 
     sql = "select x from (values 'a', 'a') as t(x)\n"
         + "union\n"
         + "select x from (values 'a', 'a') as t(x)";
-    checkRowCount(sql, 2D, 1D, 4D);
+    checkRowCount(sql, 2D, 1D, 4D, metadataConfig);
   }
 
-  @Test void testRowCountIntersectOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountIntersectOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "intersect\n"
         + "select name from (select * from dept limit 40)";
-    checkRowCount(sql, Math.min(EMP_SIZE, DEPT_SIZE), 0D, 40D);
+    checkRowCount(sql, Math.min(EMP_SIZE, DEPT_SIZE), 0D, 40D, metadataConfig);
   }
 
-  @Test void testRowCountMinusOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountMinusOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "except\n"
         + "select name from (select * from dept limit 40)";
-    checkRowCount(sql, 4D, 0D, 100D);
+    checkRowCount(sql, 4D, 0D, 100D, metadataConfig);
   }
 
-  @Test void testRowCountFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountFilter(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp where ename='Mathilda'";
     checkRowCount(sql, EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY,
-        0D, Double.POSITIVE_INFINITY);
+        0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountFilterOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountFilterOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 10)\n"
         + "where ename='Mathilda'";
-    checkRowCount(sql, 10D * DEFAULT_EQUAL_SELECTIVITY, 0D, 10D);
+    checkRowCount(sql, 10D * DEFAULT_EQUAL_SELECTIVITY, 0D, 10D, metadataConfig);
   }
 
-  @Test void testRowCountFilterFalse() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountFilterFalse(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (values 'a', 'b') as t(x) where false";
-    checkRowCount(sql, 1D, 0D, 0D);
+    checkRowCount(sql, 1D, 0D, 0D, metadataConfig);
   }
 
-  @Test void testRowCountSort() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSort(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename";
-    checkRowCount(sql, EMP_SIZE, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, EMP_SIZE, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountExchange() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountExchange(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 123456";
-    RelNode rel = convertSql(sql);
+    RelNode rel = convertSql(sql, metadataConfig);
     final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
     final LogicalExchange exchange = LogicalExchange.create(rel, dist);
     checkExchangeRowCount(exchange, EMP_SIZE, 0D, 123456D);
   }
 
-  @Test void testRowCountTableModify() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountTableModify(
+      final MetadataConfig metadataConfig) {
     final String sql = "insert into emp select * from emp order by ename limit 123456";
-    checkRowCount(sql, EMP_SIZE, 0D, 123456D);
+    checkRowCount(sql, EMP_SIZE, 0D, 123456D, metadataConfig);
   }
 
-  @Test void testRowCountSortHighLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSortHighLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 123456";
-    checkRowCount(sql, EMP_SIZE, 0D, 123456D);
+    checkRowCount(sql, EMP_SIZE, 0D, 123456D, metadataConfig);
   }
 
-  @Test void testRowCountSortHighOffset() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSortHighOffset(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename offset 123456";
-    checkRowCount(sql, 1D, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, 1D, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountSortHighOffsetLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSortHighOffsetLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 5 offset 123456";
-    checkRowCount(sql, 1D, 0D, 5D);
+    checkRowCount(sql, 1D, 0D, 5D, metadataConfig);
   }
 
-  @Test void testRowCountSortLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSortLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 10";
-    checkRowCount(sql, 10d, 0D, 10d);
+    checkRowCount(sql, 10d, 0D, 10d, metadataConfig);
   }
 
-  @Test void testRowCountSortLimit0() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSortLimit0(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 0";
-    checkRowCount(sql, 1d, 0D, 0d);
+    checkRowCount(sql, 1d, 0D, 0d, metadataConfig);
   }
 
-  @Test void testRowCountSortLimitOffset() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSortLimitOffset(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 10 offset 5";
-    checkRowCount(sql, 9D /* 14 - 5 */, 0D, 10d);
+    checkRowCount(sql, 9D /* 14 - 5 */, 0D, 10d, metadataConfig);
   }
 
-  @Test void testRowCountSortLimitOffsetOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountSortLimitOffsetOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 12)\n"
         + "order by ename limit 20 offset 5";
-    checkRowCount(sql, 7d, 0D, 7d);
+    checkRowCount(sql, 7d, 0D, 7d, metadataConfig);
   }
 
-  @Test void testRowCountAggregate() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountAggregate(
+      final MetadataConfig metadataConfig) {
     final String sql = "select deptno from emp group by deptno";
-    checkRowCount(sql, 1.4D, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, 1.4D, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountAggregateGroupingSets() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountAggregateGroupingSets(
+      final MetadataConfig metadataConfig) {
     final String sql = "select deptno from emp\n"
         + "group by grouping sets ((deptno), (ename, deptno))";
     checkRowCount(sql, 2.8D, // EMP_SIZE / 10 * 2
-        0D, Double.POSITIVE_INFINITY);
+        0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountAggregateGroupingSetsOneEmpty() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountAggregateGroupingSetsOneEmpty(
+      final MetadataConfig metadataConfig) {
     final String sql = "select deptno from emp\n"
         + "group by grouping sets ((deptno), ())";
-    checkRowCount(sql, 2.8D, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, 2.8D, 0D, Double.POSITIVE_INFINITY, metadataConfig);
   }
 
-  @Test void testRowCountAggregateEmptyKey() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountAggregateEmptyKey(
+      final MetadataConfig metadataConfig) {
     final String sql = "select count(*) from emp";
-    checkRowCount(sql, 1D, 1D, 1D);
+    checkRowCount(sql, 1D, 1D, 1D, metadataConfig);
   }
 
-  @Test void testRowCountAggregateConstantKey() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountAggregateConstantKey(
+      final MetadataConfig metadataConfig) {
     final String sql = "select count(*) from emp where deptno=2 and ename='emp1' "
         + "group by deptno, ename";
-    checkRowCount(sql, 1D, 0D, 1D);
+    checkRowCount(sql, 1D, 0D, 1D, metadataConfig);
   }
 
-  @Test void testRowCountAggregateConstantKeys() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountAggregateConstantKeys(
+      final MetadataConfig metadataConfig) {
     final String sql = "select distinct deptno from emp where deptno=4";
-    checkRowCount(sql, 1D, 0D, 1D);
+    checkRowCount(sql, 1D, 0D, 1D, metadataConfig);
   }
 
-  @Test void testRowCountFilterAggregateEmptyKey() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountFilterAggregateEmptyKey(
+      final MetadataConfig metadataConfig) {
     final String sql = "select count(*) from emp where 1 = 0";
-    checkRowCount(sql, 1D, 1D, 1D);
+    checkRowCount(sql, 1D, 1D, 1D, metadataConfig);
   }
 
-  @Test void testRowCountAggregateEmptyKeyOnEmptyTable() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowCountAggregateEmptyKeyOnEmptyTable(
+      final MetadataConfig metadataConfig) {
     final String sql = "select count(*) from (select * from emp limit 0)";
-    checkRowCount(sql, 1D, 1D, 1D);
+    checkRowCount(sql, 1D, 1D, 1D, metadataConfig);
   }
 
   // ----------------------------------------------------------------------
   // Tests for computeSelfCost.cpu
   // ----------------------------------------------------------------------
 
-  @Test void testSortCpuCostOffsetLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSortCpuCostOffsetLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename, deptno from emp\n"
         + "order by ename limit 5 offset 5";
     // inputRows = EMP_SIZE = 14
@@ -858,49 +1026,61 @@ public class RelMetadataTest extends SqlToRelTestBase {
     //   = 20
     double cpuCost = Util.nLogM(EMP_SIZE, 10) * 5 * 4;
     sql(sql).assertCpuCost(is(cpuCost), "offset + fetch smaller than table size "
-        + "=> cpu cost should be: inputRows * log(offset + fetch) * rowBytes");
+        + "=> cpu cost should be: inputRows * log(offset + fetch) * rowBytes", metadataConfig);
   }
 
-  @Test void testSortCpuCostLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSortCpuCostLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename, deptno from emp limit 10";
     final double cpuCost = 10 * 5 * 4;
     sql(sql).assertCpuCost(is(cpuCost), "no order by clause "
-        + "=> cpu cost should be min(fetch + offset, inputRows) * rowBytes");
+        + "=> cpu cost should be min(fetch + offset, inputRows) * rowBytes", metadataConfig);
   }
 
-  @Test void testSortCpuCostOffset() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSortCpuCostOffset(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from emp order by ename offset 10";
     double cpuCost = Util.nLogM(EMP_SIZE, EMP_SIZE) * 4 * 4;
     sql(sql).assertCpuCost(is(cpuCost), "offset smaller than table size "
-        + "=> cpu cost should be: inputRows * log(inputRows) * rowBytes");
+        + "=> cpu cost should be: inputRows * log(inputRows) * rowBytes", metadataConfig);
   }
 
-  @Test void testSortCpuCostLargeOffset() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSortCpuCostLargeOffset(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from emp order by ename offset 100";
     double cpuCost = Util.nLogM(EMP_SIZE, EMP_SIZE) * 4 * 4;
     sql(sql).assertCpuCost(is(cpuCost), "offset larger than table size "
-        + "=> cpu cost should be: inputRows * log(inputRows) * rowBytes");
+        + "=> cpu cost should be: inputRows * log(inputRows) * rowBytes", metadataConfig);
   }
 
-  @Test void testSortCpuCostLimit0() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSortCpuCostLimit0(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from emp order by ename limit 0";
-    sql(sql).assertCpuCost(is(0d), "fetch zero => cpu cost should be 0");
+    sql(sql).assertCpuCost(is(0d), "fetch zero => cpu cost should be 0", metadataConfig);
   }
 
-  @Test void testSortCpuCostLimit1() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSortCpuCostLimit1(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename, deptno from emp\n"
         + "order by ename limit 1";
     double cpuCost = EMP_SIZE * 5 * 4;
     sql(sql).assertCpuCost(is(cpuCost), "fetch 1 "
-        + "=> cpu cost should be inputRows * rowBytes");
+        + "=> cpu cost should be inputRows * rowBytes", metadataConfig);
   }
 
-  @Test void testSortCpuCostLargeLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSortCpuCostLargeLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename, deptno from emp\n"
         + "order by ename limit 10000";
     double cpuCost = Util.nLogM(EMP_SIZE, EMP_SIZE) * 5 * 4;
     sql(sql).assertCpuCost(is(cpuCost), "sort limit exceeds table size "
-        + "=> cpu cost should be dominated by table size");
+        + "=> cpu cost should be dominated by table size", metadataConfig);
   }
 
   // ----------------------------------------------------------------------
@@ -909,48 +1089,60 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   private void checkFilterSelectivity(
       String sql,
-      double expected) {
-    RelNode rel = convertSql(sql);
+      double expected, final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     Double result = mq.getSelectivity(rel, null);
     assertNotNull(result);
     assertEquals(expected, result, EPSILON);
   }
 
-  @Test void testSelectivityIsNotNullFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityIsNotNullFilter(
+      final MetadataConfig metadataConfig) {
     checkFilterSelectivity(
         "select * from emp where mgr is not null",
-        DEFAULT_NOTNULL_SELECTIVITY);
+        DEFAULT_NOTNULL_SELECTIVITY, metadataConfig);
   }
 
-  @Test void testSelectivityIsNotNullFilterOnNotNullColumn() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityIsNotNullFilterOnNotNullColumn(
+      final MetadataConfig metadataConfig) {
     checkFilterSelectivity(
         "select * from emp where deptno is not null",
-        1.0d);
+        1.0d, metadataConfig);
   }
 
-  @Test void testSelectivityComparisonFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityComparisonFilter(
+      final MetadataConfig metadataConfig) {
     checkFilterSelectivity(
         "select * from emp where deptno > 10",
-        DEFAULT_COMP_SELECTIVITY);
+        DEFAULT_COMP_SELECTIVITY, metadataConfig);
   }
 
-  @Test void testSelectivityAndFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityAndFilter(
+      final MetadataConfig metadataConfig) {
     checkFilterSelectivity(
         "select * from emp where ename = 'foo' and deptno = 10",
-        DEFAULT_EQUAL_SELECTIVITY_SQUARED);
+        DEFAULT_EQUAL_SELECTIVITY_SQUARED, metadataConfig);
   }
 
-  @Test void testSelectivityOrFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityOrFilter(
+      final MetadataConfig metadataConfig) {
     checkFilterSelectivity(
         "select * from emp where ename = 'foo' or deptno = 10",
-        DEFAULT_SELECTIVITY);
+        DEFAULT_SELECTIVITY, metadataConfig);
   }
 
-  @Test void testSelectivityJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityJoin(
+      final MetadataConfig metadataConfig) {
     checkFilterSelectivity(
         "select * from emp join dept using (deptno) where ename = 'foo'",
-        DEFAULT_EQUAL_SELECTIVITY);
+        DEFAULT_EQUAL_SELECTIVITY, metadataConfig);
   }
 
   private void checkRelSelectivity(
@@ -962,30 +1154,38 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertEquals(expected, result, EPSILON);
   }
 
-  @Test void testSelectivityRedundantFilter() {
-    RelNode rel = convertSql("select * from emp where deptno = 10");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityRedundantFilter(
+      final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql("select * from emp where deptno = 10", metadataConfig);
     checkRelSelectivity(rel, DEFAULT_EQUAL_SELECTIVITY);
   }
 
-  @Test void testSelectivitySort() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivitySort(
+      final MetadataConfig metadataConfig) {
     RelNode rel =
         convertSql("select * from emp where deptno = 10"
-            + "order by ename");
+            + "order by ename", metadataConfig);
     checkRelSelectivity(rel, DEFAULT_EQUAL_SELECTIVITY);
   }
 
-  @Test void testSelectivityUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityUnion(
+      final MetadataConfig metadataConfig) {
     RelNode rel =
         convertSql("select * from (\n"
             + "  select * from emp union all select * from emp) "
-            + "where deptno = 10");
+            + "where deptno = 10", metadataConfig);
     checkRelSelectivity(rel, DEFAULT_EQUAL_SELECTIVITY);
   }
 
-  @Test void testSelectivityAgg() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityAgg(
+      final MetadataConfig metadataConfig) {
     RelNode rel =
         convertSql("select deptno, count(*) from emp where deptno > 10 "
-            + "group by deptno having count(*) = 0");
+            + "group by deptno having count(*) = 0", metadataConfig);
     checkRelSelectivity(
         rel,
         DEFAULT_COMP_SELECTIVITY * DEFAULT_EQUAL_SELECTIVITY);
@@ -993,10 +1193,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   /** Checks that we can cache a metadata request that includes a null
    * argument. */
-  @Test void testSelectivityAggCached() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSelectivityAggCached(
+      final MetadataConfig metadataConfig) {
     RelNode rel =
         convertSql("select deptno, count(*) from emp where deptno > 10 "
-            + "group by deptno having count(*) = 0");
+            + "group by deptno having count(*) = 0", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     Double result = mq.getSelectivity(rel, null);
     assertThat(result,
@@ -1010,11 +1212,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
    *
    * Too slow to run every day, and it does not reproduce the issue. */
   @Tag("slow")
-  @Test void testMetadataHandlerCacheLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testMetadataHandlerCacheLimit(
+      final MetadataConfig metadataConfig) {
     assumeTrue(CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value() < 10_000,
         "If cache size is too large, this test may fail and the test won't be to blame");
     final int iterationCount = 2_000;
-    final RelNode rel = convertSql("select * from emp");
+    final RelNode rel = convertSql("select * from emp", metadataConfig);
     final RelMetadataProvider metadataProvider =
         rel.getCluster().getMetadataProvider();
     for (int i = 0; i < iterationCount; i++) {
@@ -1036,21 +1240,23 @@ public class RelMetadataTest extends SqlToRelTestBase {
           return metadataProvider.handlers(handlerClass);
         }
       };
-      RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(wrappedProvider));
+      metadataConfig.applyMetadata(rel.getCluster(), wrappedProvider);
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       final Double result = mq.getRowCount(rel);
       assertThat(result, within(14d, 0.1d));
     }
   }
 
-  @Test void testDistinctRowCountTable() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDistinctRowCountTable(
+      final MetadataConfig metadataConfig) {
     // no unique key information is available so return null
     RelNode rel = convertSql("select * from (values "
         + "(1, 2, 3, null), "
         + "(3, 4, 5, 6), "
         + "(3, 4, null, 6), "
         + "(8, 4, 5, null) "
-        + ") t(c1, c2, c3, c4)");
+        + ") t(c1, c2, c3, c4)", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     ImmutableBitSet groupKey = ImmutableBitSet.of(0, 1, 2, 3);
@@ -1074,8 +1280,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result, is(2D));
   }
 
-  @Test void testDistinctRowCountValues() {
-    RelNode rel = convertSql("select * from emp where deptno = 10");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDistinctRowCountValues(
+      final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql("select * from emp where deptno = 10", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     ImmutableBitSet groupKey =
         ImmutableBitSet.of(rel.getRowType().getFieldNames().indexOf("DEPTNO"));
@@ -1083,8 +1291,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result, nullValue());
   }
 
-  @Test void testDistinctRowCountTableEmptyKey() {
-    RelNode rel = convertSql("select * from emp where deptno = 10");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDistinctRowCountTableEmptyKey(
+      final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql("select * from emp where deptno = 10", metadataConfig);
     ImmutableBitSet groupKey = ImmutableBitSet.of(); // empty key
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     Double result = mq.getDistinctRowCount(rel, groupKey, null);
@@ -1114,15 +1324,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * Checks result of getting unique keys for sql, using specific tester.
    */
   private void checkGetUniqueKeys(Tester tester,
-      String sql, Set<ImmutableBitSet> expectedUniqueKeySet) {
-    checkGetUniqueKeys(sql, expectedUniqueKeySet, s -> convertSql(tester, s));
+      String sql, Set<ImmutableBitSet> expectedUniqueKeySet,
+      final MetadataConfig metadataConfig) {
+    checkGetUniqueKeys(sql, expectedUniqueKeySet, s -> convertSql(tester, s, metadataConfig));
   }
 
   /**
    * Checks result of getting unique keys for sql, using default tester.
    */
-  private void checkGetUniqueKeys(String sql, Set<ImmutableBitSet> expectedUniqueKeySet) {
-    checkGetUniqueKeys(tester, sql, expectedUniqueKeySet);
+  private void checkGetUniqueKeys(String sql, Set<ImmutableBitSet> expectedUniqueKeySet,
+      final MetadataConfig metadataConfig) {
+    checkGetUniqueKeys(tester, sql, expectedUniqueKeySet, metadataConfig);
   }
 
   /** Asserts that {@link RelMetadataQuery#getUniqueKeys(RelNode)}
@@ -1156,17 +1368,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-509">[CALCITE-509]
    * "RelMdColumnUniqueness uses ImmutableBitSet.Builder twice, gets
    * NullPointerException"</a>. */
-  @Test void testJoinUniqueKeys() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testJoinUniqueKeys(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select * from emp join bonus using (ename)",
-        ImmutableSet.of());
+        ImmutableSet.of(), metadataConfig);
   }
 
-  @Test void testCorrelateUniqueKeys() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testCorrelateUniqueKeys(
+      final MetadataConfig metadataConfig) {
     final String sql = "select *\n"
         + "from (select distinct deptno from emp) as e,\n"
         + "  lateral (\n"
         + "    select * from dept where dept.deptno = e.deptno)";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     assertThat(rel, isA((Class) Project.class));
@@ -1186,24 +1402,30 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
-  @Test void testGroupByEmptyUniqueKeys() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testGroupByEmptyUniqueKeys(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select count(*) from emp",
-        ImmutableSet.of(ImmutableBitSet.of()));
+        ImmutableSet.of(ImmutableBitSet.of()), metadataConfig);
   }
 
-  @Test void testGroupByEmptyHavingUniqueKeys() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testGroupByEmptyHavingUniqueKeys(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select count(*) from emp where 1 = 1",
-        ImmutableSet.of(ImmutableBitSet.of()));
+        ImmutableSet.of(ImmutableBitSet.of()), metadataConfig);
   }
 
-  @Test void testFullOuterJoinUniqueness1() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testFullOuterJoinUniqueness1(
+      final MetadataConfig metadataConfig) {
     final String sql = "select e.empno, d.deptno\n"
         + "from (select cast(null as int) empno from sales.emp "
         + " where empno = 10 group by cast(null as int)) as e\n"
         + "full outer join (select cast (null as int) deptno from sales.dept "
         + "group by cast(null as int)) as d on e.empno = d.deptno\n"
         + "group by e.empno, d.deptno";
-    RelNode rel = convertSql(sql);
+    RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final ImmutableBitSet allCols =
         ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
@@ -1211,19 +1433,22 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(areGroupByKeysUnique, is(false));
   }
 
-  @Test void testColumnUniquenessForFilterWithConstantColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForFilterWithConstantColumns(
+      final MetadataConfig metadataConfig) {
     checkColumnUniquenessForFilterWithConstantColumns(""
         + "select *\n"
         + "from (select distinct deptno, sal from emp)\n"
-        + "where sal=1000");
+        + "where sal=1000", metadataConfig);
     checkColumnUniquenessForFilterWithConstantColumns(""
         + "select *\n"
         + "from (select distinct deptno, sal from emp)\n"
-        + "where 1000=sal");
+        + "where 1000=sal", metadataConfig);
   }
 
-  private void checkColumnUniquenessForFilterWithConstantColumns(String sql) {
-    final RelNode rel = convertSql(sql);
+  private void checkColumnUniquenessForFilterWithConstantColumns(String sql,
+      final MetadataConfig metadataConfig) {
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(rel.getRowType().getFieldNames().toString(),
         is("[DEPTNO, SAL]"));
@@ -1232,40 +1457,46 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(1)), is(false));
   }
 
-  @Test void testColumnUniquenessForUnionWithConstantColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForUnionWithConstantColumns(
+      final MetadataConfig metadataConfig) {
     final String sql = ""
         + "select deptno, sal from emp where sal=1000\n"
         + "union\n"
         + "select deptno, sal from emp where sal=1000\n";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(rel.getRowType().getFieldNames().toString(),
         is("[DEPTNO, SAL]"));
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0)), is(true));
   }
 
-  @Test void testColumnUniquenessForIntersectWithConstantColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForIntersectWithConstantColumns(
+      final MetadataConfig metadataConfig) {
     final String sql = ""
         + "select deptno, sal\n"
         + "from (select distinct deptno, sal from emp)\n"
         + "where sal=1000\n"
         + "intersect all\n"
         + "select deptno, sal from emp\n";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(rel.getRowType().getFieldNames().toString(),
         is("[DEPTNO, SAL]"));
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1)), is(true));
   }
 
-  @Test void testColumnUniquenessForMinusWithConstantColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForMinusWithConstantColumns(
+      final MetadataConfig metadataConfig) {
     final String sql = ""
         + "select deptno, sal\n"
         + "from (select distinct deptno, sal from emp)\n"
         + "where sal=1000\n"
         + "except all\n"
         + "select deptno, sal from emp\n";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(rel.getRowType().getFieldNames().toString(),
         is("[DEPTNO, SAL]"));
@@ -1273,36 +1504,42 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1)), is(true));
   }
 
-  @Test void testColumnUniquenessForSortWithConstantColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForSortWithConstantColumns(
+      final MetadataConfig metadataConfig) {
     final String sql = ""
         + "select *\n"
         + "from (select distinct deptno, sal from emp)\n"
         + "where sal=1000\n"
         + "order by deptno";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(rel.getRowType().getFieldNames().toString(),
         is("[DEPTNO, SAL]"));
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1)), is(true));
   }
 
-  @Test void testRowUniquenessForSortWithLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowUniquenessForSortWithLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = ""
         + "select sal\n"
         + "from emp\n"
         + "limit 1";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.areRowsUnique(rel), is(true));
   }
 
-  @Test void testColumnUniquenessForJoinWithConstantColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForJoinWithConstantColumns(
+      final MetadataConfig metadataConfig) {
     final String sql = ""
         + "select *\n"
         + "from (select distinct deptno, sal from emp) A\n"
         + "join (select distinct deptno, sal from emp) B\n"
         + "on A.deptno=B.deptno and A.sal=1000 and B.sal=1000";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     assertThat(rel.getRowType().getFieldNames().toString(),
         is("[DEPTNO, SAL, DEPTNO0, SAL0]"));
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
@@ -1312,20 +1549,23 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1)), is(false));
   }
 
-  @Test void testColumnUniquenessForAggregateWithConstantColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForAggregateWithConstantColumns(
+      final MetadataConfig metadataConfig) {
     final String sql = ""
         + "select deptno, ename, sum(sal)\n"
         + "from emp\n"
         + "where deptno=1010\n"
         + "group by deptno, ename";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(1)), is(true));
   }
 
-  @Test void testColumnUniquenessForExchangeWithConstantColumns() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForExchangeWithConstantColumns(
+      final MetadataConfig metadataConfig) {
+    final RelBuilder builder = builder(metadataConfig);
     RelNode exchange = builder.scan("EMP")
         .project(builder.field("DEPTNO"), builder.field("SAL"))
         .distinct()
@@ -1336,9 +1576,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(mq.areColumnsUnique(exchange, ImmutableBitSet.of(0)), is(true));
   }
 
-  @Test void testColumnUniquenessForCorrelateWithConstantColumns() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForCorrelateWithConstantColumns(
+      final MetadataConfig metadataConfig) {
+    final RelBuilder builder = builder(metadataConfig);
     RelNode rel0 = builder.scan("EMP")
         .project(builder.field("DEPTNO"), builder.field("SAL"))
         .distinct()
@@ -1360,49 +1601,62 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(mq.areColumnsUnique(correl, ImmutableBitSet.of(0)), is(true));
   }
 
-  @Test void testGroupBy() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testGroupBy(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select deptno, count(*), sum(sal) from emp group by deptno",
-        ImmutableSet.of(ImmutableBitSet.of(0)));
+        ImmutableSet.of(ImmutableBitSet.of(0)), metadataConfig);
   }
 
-  @Test void testGroupingSets() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testGroupingSets(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select deptno, sal, count(*) from emp\n"
             + "group by GROUPING SETS (deptno, sal)",
-        ImmutableSet.of());
+        ImmutableSet.of(), metadataConfig);
   }
 
-  @Test void testUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testUnion(final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select deptno from emp\n"
         + "union\n"
         + "select deptno from dept",
-        ImmutableSet.of(ImmutableBitSet.of(0)));
+        ImmutableSet.of(ImmutableBitSet.of(0)), metadataConfig);
   }
 
-  @Test void testUniqueKeysMinus() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testUniqueKeysMinus(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select distinct deptno from emp\n"
             + "except all\n"
             + "select deptno from dept",
-        ImmutableSet.of(ImmutableBitSet.of(0)));
+        ImmutableSet.of(ImmutableBitSet.of(0)), metadataConfig);
   }
 
-  @Test void testUniqueKeysIntersect() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testUniqueKeysIntersect(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select distinct deptno from emp\n"
             + "intersect all\n"
             + "select deptno from dept",
-        ImmutableSet.of(ImmutableBitSet.of(0)));
+        ImmutableSet.of(ImmutableBitSet.of(0)), metadataConfig);
   }
 
-  @Test void testSingleKeyTableScanUniqueKeys() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testSingleKeyTableScanUniqueKeys(
+      final MetadataConfig metadataConfig) {
     // select key column
     checkGetUniqueKeys("select empno, ename from emp",
-        ImmutableSet.of(ImmutableBitSet.of(0)));
+        ImmutableSet.of(ImmutableBitSet.of(0)), metadataConfig);
 
     // select non key column
     checkGetUniqueKeys("select ename, deptno from emp",
-        ImmutableSet.of());
+        ImmutableSet.of(), metadataConfig);
   }
 
-  @Test void testCompositeKeysTableScanUniqueKeys() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testCompositeKeysTableScanUniqueKeys(
+      final MetadataConfig metadataConfig) {
     SqlTestFactory.MockCatalogReaderFactory factory = (typeFactory, caseSensitive) -> {
       CompositeKeysCatalogReader catalogReader =
           new CompositeKeysCatalogReader(typeFactory, false);
@@ -1413,51 +1667,61 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     // all columns, contain composite keys
     checkGetUniqueKeys(newTester, "select * from s.composite_keys_table",
-        ImmutableSet.of(ImmutableBitSet.of(0, 1)));
+        ImmutableSet.of(ImmutableBitSet.of(0, 1)), metadataConfig);
 
     // only contain composite keys
     checkGetUniqueKeys(newTester, "select key1, key2 from s.composite_keys_table",
-        ImmutableSet.of(ImmutableBitSet.of(0, 1)));
+        ImmutableSet.of(ImmutableBitSet.of(0, 1)), metadataConfig);
 
     // partial column of composite keys
     checkGetUniqueKeys(newTester, "select key1, value1 from s.composite_keys_table",
-        ImmutableSet.of());
+        ImmutableSet.of(), metadataConfig);
 
     // no column of composite keys
     checkGetUniqueKeys(newTester, "select value1 from s.composite_keys_table",
-        ImmutableSet.of());
+        ImmutableSet.of(), metadataConfig);
   }
 
   private static ImmutableBitSet bitSetOf(int... bits) {
     return ImmutableBitSet.of(bits);
   }
 
-  @Test void calcColumnsAreUniqueSimpleCalc() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void calcColumnsAreUniqueSimpleCalc(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select empno, empno*0 from emp",
         ImmutableSet.of(bitSetOf(0)),
-        this::convertProjectAsCalc);
+        s -> convertProjectAsCalc(s, metadataConfig));
   }
 
-  @Test void calcColumnsAreUniqueCalcWithFirstConstant() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void calcColumnsAreUniqueCalcWithFirstConstant(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select 1, empno, empno*0 from emp",
         ImmutableSet.of(bitSetOf(1)),
-        this::convertProjectAsCalc);
+        s -> convertProjectAsCalc(s, metadataConfig));
   }
 
-  @Test void calcMultipleColumnsAreUniqueCalc() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void calcMultipleColumnsAreUniqueCalc(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select empno, empno from emp",
         ImmutableSet.of(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1)),
-        this::convertProjectAsCalc);
+        s -> convertProjectAsCalc(s, metadataConfig));
   }
 
-  @Test void calcMultipleColumnsAreUniqueCalc2() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void calcMultipleColumnsAreUniqueCalc2(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys(
         "select a1.empno, a2.empno from emp a1 join emp a2 on (a1.empno=a2.empno)",
         ImmutableSet.of(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1)),
-        this::convertProjectAsCalc);
+        s -> convertProjectAsCalc(s, metadataConfig));
   }
 
-  @Test void calcMultipleColumnsAreUniqueCalc3() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void calcMultipleColumnsAreUniqueCalc3(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys(
         "select a1.empno, a2.empno, a2.empno\n"
         + " from emp a1 join emp a2\n"
@@ -1465,17 +1729,20 @@ public class RelMetadataTest extends SqlToRelTestBase {
         ImmutableSet.of(
             bitSetOf(0), bitSetOf(0, 1), bitSetOf(0, 1, 2), bitSetOf(0, 2),
             bitSetOf(1), bitSetOf(1, 2), bitSetOf(2)),
-        this::convertProjectAsCalc);
+        s -> convertProjectAsCalc(s, metadataConfig));
   }
 
-  @Test void calcColumnsAreNonUniqueCalc() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void calcColumnsAreNonUniqueCalc(
+      final MetadataConfig metadataConfig) {
     checkGetUniqueKeys("select empno*0 from emp",
         ImmutableSet.of(),
-        this::convertProjectAsCalc);
+        s -> convertProjectAsCalc(s, metadataConfig));
   }
 
-  private RelNode convertProjectAsCalc(String s) {
-    Project project = (Project) convertSql(s);
+  private RelNode convertProjectAsCalc(String s,
+      final MetadataConfig metadataConfig) {
+    Project project = (Project) convertSql(s, metadataConfig);
     RexProgram program = RexProgram.create(
         project.getInput().getRowType(),
         project.getProjects(),
@@ -1487,48 +1754,52 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   /** Unit test for
    * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#areRowsUnique(RelNode)}. */
-  @Test void testRowsUnique() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testRowsUnique(
+      final MetadataConfig metadataConfig) {
     sql("select * from emp")
-        .assertRowsUnique(is(true), "table has primary key");
+        .assertRowsUnique(is(true), "table has primary key", metadataConfig);
     sql("select deptno from emp")
-        .assertRowsUnique(is(false), "table has primary key");
+        .assertRowsUnique(is(false), "table has primary key", metadataConfig);
     sql("select empno from emp")
-        .assertRowsUnique(is(true), "primary key is unique");
+        .assertRowsUnique(is(true), "primary key is unique", metadataConfig);
     sql("select empno from emp, dept")
-        .assertRowsUnique(is(false), "cartesian product destroys uniqueness");
+        .assertRowsUnique(is(false), "cartesian product destroys uniqueness", metadataConfig);
     sql("select empno from emp join dept using (deptno)")
         .assertRowsUnique(is(true),
-            "many-to-one join does not destroy uniqueness");
+            "many-to-one join does not destroy uniqueness", metadataConfig);
     sql("select empno, job from emp join dept using (deptno) order by job desc")
         .assertRowsUnique(is(true),
-            "project and sort does not destroy uniqueness");
+            "project and sort does not destroy uniqueness", metadataConfig);
     sql("select deptno from emp limit 1")
-        .assertRowsUnique(is(true), "1 row table is always unique");
+        .assertRowsUnique(is(true), "1 row table is always unique", metadataConfig);
     sql("select distinct deptno from emp")
-        .assertRowsUnique(is(true), "distinct table is always unique");
+        .assertRowsUnique(is(true), "distinct table is always unique", metadataConfig);
     sql("select count(*) from emp")
-        .assertRowsUnique(is(true), "grand total is always unique");
+        .assertRowsUnique(is(true), "grand total is always unique", metadataConfig);
     sql("select count(*) from emp group by deptno")
-        .assertRowsUnique(is(false), "several depts may have same count");
+        .assertRowsUnique(is(false), "several depts may have same count", metadataConfig);
     sql("select deptno, count(*) from emp group by deptno")
-        .assertRowsUnique(is(true), "group by keys are unique");
+        .assertRowsUnique(is(true), "group by keys are unique", metadataConfig);
     sql("select deptno, count(*) from emp group by grouping sets ((), (deptno))")
         .assertRowsUnique(true, is(true),
-            "group by keys are unique and not null");
+            "group by keys are unique and not null", metadataConfig);
     sql("select deptno, count(*) from emp group by grouping sets ((), (deptno))")
         .assertRowsUnique(false, nullValue(Boolean.class),
-            "is actually unique; TODO: deduce it");
+            "is actually unique; TODO: deduce it", metadataConfig);
     sql("select distinct deptno from emp join dept using (deptno)")
-        .assertRowsUnique(is(true), "distinct table is always unique");
+        .assertRowsUnique(is(true), "distinct table is always unique", metadataConfig);
     sql("select deptno from emp union select deptno from dept")
-        .assertRowsUnique(is(true), "set query is always unique");
+        .assertRowsUnique(is(true), "set query is always unique", metadataConfig);
     sql("select deptno from emp intersect select deptno from dept")
-        .assertRowsUnique(is(true), "set query is always unique");
+        .assertRowsUnique(is(true), "set query is always unique", metadataConfig);
     sql("select deptno from emp except select deptno from dept")
-        .assertRowsUnique(is(true), "set query is always unique");
+        .assertRowsUnique(is(true), "set query is always unique", metadataConfig);
   }
 
-  @Test void testBrokenCustomProviderWithMetadataFactory() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testBrokenCustomProviderWithMetadataFactory(
+      MetadataConfig metadataConfig) {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
 
@@ -1536,17 +1807,18 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
+          metadataConfig.applyMetadata(
+              cluster, ChainedRelMetadataProvider.of(
+              ImmutableList.of(BrokenColTypeImpl.SOURCE,
+                  cluster.getMetadataProvider())));
           return cluster;
         })
         .convertSqlToRel(sql);
 
     final RelNode rel = root.rel;
     assertThat(rel, instanceOf(LogicalFilter.class));
-    final MyRelMetadataQuery mq = new MyRelMetadataQuery();
+    final MyRelMetadataQuery mq =
+        new MyRelMetadataQuery(metadataConfig.getDefaultHandlerProvider());
 
     try {
       assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
@@ -1561,7 +1833,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
   }
 
-  @Test void testBrokenCustomProviderWithMetadataQuery() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testBrokenCustomProviderWithMetadataQuery(
+      MetadataConfig metadataConfig) {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
 
@@ -1569,18 +1843,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "group by deptno having count(*) = 0";
     final RelRoot root = tester
         .withClusterFactory(cluster -> {
-          cluster.setMetadataProvider(
+          metadataConfig.applyMetadata(
+              cluster,
               ChainedRelMetadataProvider.of(
-                  ImmutableList.of(BrokenColTypeImpl.SOURCE,
-                      cluster.getMetadataProvider())));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+                  ImmutableList.of(BrokenColTypeImpl.SOURCE, cluster.getMetadataProvider())),
+              MyRelMetadataQuery::new
+          );
           return cluster;
         })
         .convertSqlToRel(sql);
 
     final RelNode rel = root.rel;
     assertThat(rel, instanceOf(LogicalFilter.class));
-    assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
+    assertThat(
+        rel.getCluster().getMetadataQuery(), instanceOf(
+        MyRelMetadataQuery.class));
     final MyRelMetadataQuery mq = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
 
     try {
@@ -1606,7 +1883,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Deprecated // to be removed before 2.0
-  @Test void testCustomProviderWithRelMetadataFactory() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testCustomProviderWithRelMetadataFactory(
+      MetadataConfig metadataConfig) {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
 
@@ -1617,10 +1896,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
           // Create a custom provider that includes ColType.
           // Include the same provider twice just to be devious.
           final ImmutableList<RelMetadataProvider> list =
-              ImmutableList.of(ColTypeImpl.SOURCE, ColTypeImpl.SOURCE,
-                  cluster.getMetadataProvider());
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(list));
+              ImmutableList.of(
+                  ColTypeImpl.SOURCE, ColTypeImpl.SOURCE,
+                  DefaultRelMetadataProvider.INSTANCE);
+          metadataConfig.applyMetadata(cluster, ChainedRelMetadataProvider.of(list));
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -1647,7 +1926,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // Now add a cache. Only the first request for each piece of metadata
     // generates a new call to the provider.
     final RelOptPlanner planner = rel.getCluster().getPlanner();
-    rel.getCluster().setMetadataProvider(
+    metadataConfig.applyMetadata(rel.getCluster(),
         new org.apache.calcite.rel.metadata.CachingRelMetadataProvider(
             rel.getCluster().getMetadataProvider(), planner));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
@@ -1671,7 +1950,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(buf.size(), equalTo(7));
   }
 
-  @Test void testCustomProviderWithRelMetadataQuery() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testCustomProviderWithRelMetadataQuery(
+      MetadataConfig metadataConfig) {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
 
@@ -1684,9 +1965,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
           final ImmutableList<RelMetadataProvider> list =
               ImmutableList.of(ColTypeImpl.SOURCE, ColTypeImpl.SOURCE,
                   cluster.getMetadataProvider());
-          cluster.setMetadataProvider(
-              ChainedRelMetadataProvider.of(list));
-          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
+          metadataConfig.applyMetadata(
+              cluster,
+              ChainedRelMetadataProvider.of(list),
+              MyRelMetadataQuery::new);
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -1705,42 +1987,51 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(input, instanceOf(LogicalAggregate.class));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
 
-    // The metadata query is caching, only the first request for each piece of metadata
-    // generates a new call to the provider.
-    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
-    assertThat(buf.size(), equalTo(3));
-    assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
-    assertThat(buf.size(), equalTo(3));
-    assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
-    assertThat(buf.size(), equalTo(3));
-    assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
-    assertThat(buf.size(), equalTo(4));
-    assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
-    assertThat(buf.size(), equalTo(4));
-    assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
-    assertThat(buf.size(), equalTo(4));
+    if (metadataConfig.isCaching()) {
+      // The metadata query is caching, only the first request for each piece of metadata
+      // generates a new call to the provider.
+      assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
+      assertThat(buf.size(), equalTo(3));
+      assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
+      assertThat(buf.size(), equalTo(3));
+      assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
+      assertThat(buf.size(), equalTo(3));
+      assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
+      assertThat(buf.size(), equalTo(4));
+      assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
+      assertThat(buf.size(), equalTo(4));
+      assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
+      assertThat(buf.size(), equalTo(4));
+    }
 
     // Invalidate the metadata query triggers clearing of all the metadata.
     rel.getCluster().invalidateMetadataQuery();
     assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
     final MyRelMetadataQuery mq1 = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
     assertThat(colType(mq1, input, 0), equalTo("DEPTNO-agg"));
-    assertThat(buf.size(), equalTo(5));
+    if (metadataConfig.isCaching()) {
+      assertThat(buf.size(), equalTo(5));
+    }
     assertThat(colType(mq1, input, 0), equalTo("DEPTNO-agg"));
-    assertThat(buf.size(), equalTo(5));
+    if (metadataConfig.isCaching()) {
+      assertThat(buf.size(), equalTo(5));
+    }
     // Resets the RelMetadataQuery to default.
-    rel.getCluster().setMetadataQuerySupplier(RelMetadataQuery::instance);
+    metadataConfig.applyMetadata(rel.getCluster());
   }
 
   /** Unit test for
    * {@link org.apache.calcite.rel.metadata.RelMdCollation#project}
    * and other helper functions for deducing collations. */
-  @Test void testCollation() {
-    final Project rel = (Project) convertSql("select * from emp, dept");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testCollation(
+      final MetadataConfig metadataConfig) {
+    final Project rel = (Project) convertSql("select * from emp, dept", metadataConfig);
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
     final RelOptTable deptTable = join.getInput(1).getTable();
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      metadataConfig.applyMetadata(cluster);
       checkCollation(cluster, empTable, deptTable);
       return null;
     });
@@ -1865,8 +2156,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** Unit test for
    * {@link org.apache.calcite.rel.metadata.RelMdColumnUniqueness#areColumnsUnique}
    * applied to {@link Values}. */
-  @Test void testColumnUniquenessForValues() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testColumnUniquenessForValues(MetadataConfig metadataConfig) {
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      metadataConfig.applyMetadata(cluster);
       final RexBuilder rexBuilder = cluster.getRexBuilder();
       final RelMetadataQuery mq = cluster.getMetadataQuery();
       final RelDataType rowType = cluster.getTypeFactory().builder()
@@ -1933,12 +2226,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** Unit test for
    * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageColumnSizes(org.apache.calcite.rel.RelNode)},
    * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageRowSize(org.apache.calcite.rel.RelNode)}. */
-  @Test void testAverageRowSize() {
-    final Project rel = (Project) convertSql("select * from emp, dept");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAverageRowSize(
+      final MetadataConfig metadataConfig) {
+    final Project rel = (Project) convertSql("select * from emp, dept", metadataConfig);
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
     final RelOptTable deptTable = join.getInput(1).getTable();
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      metadataConfig.applyMetadata(cluster);
       checkAverageRowSize(cluster, empTable, deptTable);
       return null;
     });
@@ -2075,20 +2371,23 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   /** Unit test for
    * {@link org.apache.calcite.rel.metadata.RelMdPredicates#getPredicates(Join, RelMetadataQuery)}. */
-  @Test void testPredicates() {
-    final Project rel = (Project) convertSql("select * from emp, dept");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPredicates(
+      final MetadataConfig metadataConfig) {
+    final Project rel = (Project) convertSql("select * from emp, dept", metadataConfig);
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
     final RelOptTable deptTable = join.getInput(1).getTable();
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-      checkPredicates(cluster, empTable, deptTable);
+      checkPredicates(cluster, empTable, deptTable, metadataConfig);
       return null;
     });
   }
 
   private void checkPredicates(RelOptCluster cluster, RelOptTable empTable,
-      RelOptTable deptTable) {
+      RelOptTable deptTable, MetadataConfig metadataConfig) {
     final RelBuilder relBuilder = RelBuilder.proto().create(cluster, null);
+    metadataConfig.applyMetadata(relBuilder.getCluster());
     final RelMetadataQuery mq = cluster.getMetadataQuery();
 
     final LogicalTableScan empScan = LogicalTableScan.create(cluster, empTable,
@@ -2194,11 +2493,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * Unit test for
    * {@link org.apache.calcite.rel.metadata.RelMdPredicates#getPredicates(Aggregate, RelMetadataQuery)}.
    */
-  @Test void testPullUpPredicatesFromAggregation() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromAggregation(
+      final MetadataConfig metadataConfig) {
     final String sql = "select a, max(b) from (\n"
         + "  select 1 as a, 2 as b from emp)subq\n"
         + "group by a";
-    final Aggregate rel = (Aggregate) convertSql(sql);
+    final Aggregate rel = (Aggregate) convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
@@ -2212,7 +2513,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2205">[CALCITE-2205]</a>.
    * Since this is a performance problem, the test result does not
    * change, but takes over 15 minutes before the fix and 6 seconds after. */
-  @Test void testPullUpPredicatesForExprsItr() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesForExprsItr(
+      final MetadataConfig metadataConfig) {
     final String sql = "select a.EMPNO, a.ENAME\n"
         + "from (select * from sales.emp ) a\n"
         + "join (select * from sales.emp  ) b\n"
@@ -2232,30 +2535,34 @@ public class RelMetadataTest extends SqlToRelTestBase {
     try (JdbcAdapterTest.LockWrapper ignore =
              JdbcAdapterTest.LockWrapper.lock(LOCK)) {
       // FIXME: fix timeout when enable implicit type coercion.
-      final RelNode rel = convertSql(sql, false);
+      final RelNode rel = convertSql(sql, false, metadataConfig);
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
       assertThat(inputSet.pulledUpPredicates.size(), is(11));
     }
   }
 
-  @Test void testPullUpPredicatesOnConstant() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesOnConstant(
+      final MetadataConfig metadataConfig) {
     final String sql = "select deptno, mgr, x, 'y' as y, z from (\n"
         + "  select deptno, mgr, cast(null as integer) as x, cast('1' as int) as z\n"
         + "  from emp\n"
         + "  where mgr is null and deptno < 10)";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     assertThat(list.pulledUpPredicates,
         sortsAs("[<($0, 10), =($3, 'y'), =($4, 1), IS NULL($1), IS NULL($2)]"));
   }
 
-  @Test void testPullUpPredicatesOnNullableConstant() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesOnNullableConstant(
+      final MetadataConfig metadataConfig) {
     final String sql = "select nullif(1, 1) as c\n"
         + "  from emp\n"
         + "  where mgr is null and deptno < 10";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     // Uses "IS NOT DISTINCT FROM" rather than "=" because cannot guarantee not null.
@@ -2263,31 +2570,37 @@ public class RelMetadataTest extends SqlToRelTestBase {
         sortsAs("[IS NULL($0)]"));
   }
 
-  @Test void testPullUpPredicatesFromUnion0() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromUnion0(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno from emp where empno=1\n"
         + "union all\n"
-        + "select empno from emp where empno=1");
+        + "select empno from emp where empno=1", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[=($0, 1)]"));
   }
 
-  @Test void testPullUpPredicatesFromUnion1() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromUnion1(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno, deptno from emp where empno=1 or deptno=2\n"
         + "union all\n"
-        + "select empno, deptno from emp where empno=3 or deptno=4");
+        + "select empno, deptno from emp where empno=3 or deptno=4", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[OR(SEARCH($0, Sarg[1, 3]), SEARCH($1, Sarg[2, 4]))]"));
   }
 
-  @Test void testPullUpPredicatesFromUnion2() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromUnion2(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno, comm, deptno from emp where empno=1 and comm=2 and deptno=3\n"
         + "union all\n"
-        + "select empno, comm, deptno from emp where empno=1 and comm=4");
+        + "select empno, comm, deptno from emp where empno=1 and comm=4", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         // Because the hashCode for
@@ -2300,68 +2613,84 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   }
 
-  @Test void testPullUpPredicatesFromIntersect0() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromIntersect0(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno from emp where empno=1\n"
         + "intersect all\n"
-        + "select empno from emp where empno=1");
+        + "select empno from emp where empno=1", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[=($0, 1)]"));
 
   }
 
-  @Test void testPullUpPredicatesFromIntersect1() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromIntersect1(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno, deptno, comm from emp where empno=1 and deptno=2\n"
         + "intersect all\n"
-        + "select empno, deptno, comm from emp where empno=1 and comm=3");
+        + "select empno, deptno, comm from emp where empno=1 and comm=3", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[=($0, 1), =($1, 2), =($2, 3)]"));
 
   }
 
-  @Test void testPullUpPredicatesFromIntersect2() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromIntersect2(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno, deptno, comm from emp where empno=1 and deptno=2\n"
         + "intersect all\n"
-        + "select empno, deptno, comm from emp where 1=empno and (deptno=2 or comm=3)");
+        + "select empno, deptno, comm from emp where 1=empno and (deptno=2 or comm=3)",
+        metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[=($0, 1), =($1, 2)]"));
 
   }
 
-  @Test void testPullUpPredicatesFromIntersect3() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromIntersect3(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno, deptno, comm from emp where empno=1 or deptno=2\n"
         + "intersect all\n"
-        + "select empno, deptno, comm from emp where deptno=2 or empno=1 or comm=3");
+        + "select empno, deptno, comm from emp where deptno=2 or empno=1 or comm=3",
+        metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[OR(=($0, 1), =($1, 2))]"));
   }
 
-  @Test void testPullUpPredicatesFromMinus() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testPullUpPredicatesFromMinus(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql(""
         + "select empno, deptno, comm from emp where empno=1 and deptno=2\n"
         + "except all\n"
-        + "select empno, deptno, comm from emp where comm=3");
+        + "select empno, deptno, comm from emp where comm=3", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[=($0, 1), =($1, 2)]"));
   }
 
-  @Test void testDistributionSimple() {
-    RelNode rel = convertSql("select * from emp where deptno = 10");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDistributionSimple(
+      final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql("select * from emp where deptno = 10", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelDistribution d = mq.getDistribution(rel);
     assertThat(d, is(RelDistributions.BROADCAST_DISTRIBUTED));
   }
 
-  @Test void testDistributionHash() {
-    final RelNode rel = convertSql("select * from emp");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDistributionHash(
+      final MetadataConfig metadataConfig) {
+    final RelNode rel = convertSql("select * from emp", metadataConfig);
     final RelDistribution dist = RelDistributions.hash(ImmutableList.of(1));
     final LogicalExchange exchange = LogicalExchange.create(rel, dist);
 
@@ -2370,8 +2699,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(d, is(dist));
   }
 
-  @Test void testDistributionHashEmpty() {
-    final RelNode rel = convertSql("select * from emp");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDistributionHashEmpty(
+      final MetadataConfig metadataConfig) {
+    final RelNode rel = convertSql("select * from emp", metadataConfig);
     final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
     final LogicalExchange exchange = LogicalExchange.create(rel, dist);
 
@@ -2380,8 +2711,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(d, is(dist));
   }
 
-  @Test void testDistributionSingleton() {
-    final RelNode rel = convertSql("select * from emp");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testDistributionSingleton(
+      final MetadataConfig metadataConfig) {
+    final RelNode rel = convertSql("select * from emp", metadataConfig);
     final RelDistribution dist = RelDistributions.SINGLETON;
     final LogicalExchange exchange = LogicalExchange.create(rel, dist);
 
@@ -2391,7 +2724,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   /** Unit test for {@link RelMdUtil#linear(int, int, int, double, double)}. */
-  @Test void testLinear() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testLinear() {
     assertThat(RelMdUtil.linear(0, 0, 10, 100, 200), is(100d));
     assertThat(RelMdUtil.linear(5, 0, 10, 100, 200), is(150d));
     assertThat(RelMdUtil.linear(6, 0, 10, 100, 200), is(160d));
@@ -2405,8 +2739,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
   // ----------------------------------------------------------------------
 
   private void assertExpressionLineage(
-      String sql, int columnIndex, String expected, String comment) {
-    RelNode rel = convertSql(sql);
+      String sql, int columnIndex, String expected, String comment,
+      final MetadataConfig metadataConfig) {
+    RelNode rel = convertSql(sql, metadataConfig);
     RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RexNode ref = RexInputRef.of(columnIndex, rel.getRowType().getFieldList());
     Set<RexNode> r = mq.getExpressionLineage(rel, ref);
@@ -2415,9 +2750,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + rel + "'" + " for query '" + sql + "': " + comment);
   }
 
-  @Test void testExpressionLineageStar() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageStar(
+      final MetadataConfig metadataConfig) {
     // All columns in output
-    final RelNode tableRel = convertSql("select * from emp");
+    final RelNode tableRel = convertSql("select * from emp", metadataConfig);
     final RelMetadataQuery mq = tableRel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(4, tableRel.getRowType().getFieldList());
@@ -2429,10 +2766,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(resultString, endsWith(inputRef));
   }
 
-  @Test void testExpressionLineageTwoColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageTwoColumns(
+      final MetadataConfig metadataConfig) {
     // mgr is column 3 in catalog.sales.emp
     // deptno is column 7 in catalog.sales.emp
-    final RelNode rel = convertSql("select mgr, deptno from emp");
+    final RelNode rel = convertSql("select mgr, deptno from emp", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref1 = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2452,10 +2791,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result1.getIdentifier(), is(result2.getIdentifier()));
   }
 
-  @Test void testExpressionLineageTwoColumnsSwapped() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageTwoColumnsSwapped(
+      final MetadataConfig metadataConfig) {
     // deptno is column 7 in catalog.sales.emp
     // mgr is column 3 in catalog.sales.emp
-    final RelNode rel = convertSql("select deptno, mgr from emp");
+    final RelNode rel = convertSql("select deptno, mgr from emp", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref1 = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2475,10 +2816,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result1.getIdentifier(), is(result2.getIdentifier()));
   }
 
-  @Test void testExpressionLineageCombineTwoColumns() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageCombineTwoColumns(
+      final MetadataConfig metadataConfig) {
     // empno is column 0 in catalog.sales.emp
     // deptno is column 7 in catalog.sales.emp
-    final RelNode rel = convertSql("select empno + deptno from emp");
+    final RelNode rel = convertSql("select empno + deptno from emp", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2498,7 +2841,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(inputRef1.getIdentifier(), is(inputRef2.getIdentifier()));
   }
 
-  @Test void testExpressionLineageConjuntiveExpression() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageConjuntiveExpression(
+      final MetadataConfig metadataConfig) {
     String sql = "select (empno = 1 or ename = 'abc') and deptno > 1 from emp";
     String expected = "[AND(OR(=([CATALOG, SALES, EMP].#0.$0, 1), "
         + "=([CATALOG, SALES, EMP].#0.$1, 'abc')), "
@@ -2507,10 +2852,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "'ename' is column 1 in 'catalog.sales.emp', and "
         + "'deptno' is column 7 in 'catalog.sales.emp'";
 
-    assertExpressionLineage(sql, 0, expected, comment);
+    assertExpressionLineage(sql, 0, expected, comment, metadataConfig);
   }
 
-  @Test void testExpressionLineageBetweenExpressionWithJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageBetweenExpressionWithJoin(
+      final MetadataConfig metadataConfig) {
     String sql = "select dept.deptno + empno between 1 and 2"
         + " from emp join dept on emp.deptno = dept.deptno";
     String expected = "[AND(>=(+([CATALOG, SALES, DEPT].#0.$0, [CATALOG, SALES, EMP].#0.$0), 1),"
@@ -2520,12 +2867,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "'dept.deptno + empno between 1 and 2' is translated into "
         + "'dept.deptno + empno >= 1 and dept.deptno + empno <= 2'";
 
-    assertExpressionLineage(sql, 0, expected, comment);
+    assertExpressionLineage(sql, 0, expected, comment, metadataConfig);
   }
 
-  @Test void testExpressionLineageInnerJoinLeft() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageInnerJoinLeft(
+      final MetadataConfig metadataConfig) {
     // ename is column 1 in catalog.sales.emp
-    final RelNode rel = convertSql("select ename from emp,dept");
+    final RelNode rel = convertSql("select ename from emp,dept", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2536,9 +2885,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result.getIndex(), is(1));
   }
 
-  @Test void testExpressionLineageInnerJoinRight() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageInnerJoinRight(
+      final MetadataConfig metadataConfig) {
     // ename is column 0 in catalog.sales.bonus
-    final RelNode rel = convertSql("select bonus.ename from emp join bonus using (ename)");
+    final RelNode rel = convertSql("select bonus.ename from emp join bonus using (ename)",
+        metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2549,9 +2901,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result.getIndex(), is(0));
   }
 
-  @Test void testExpressionLineageLeftJoinLeft() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageLeftJoinLeft(
+      final MetadataConfig metadataConfig) {
     // ename is column 1 in catalog.sales.emp
-    final RelNode rel = convertSql("select ename from emp left join dept using (deptno)");
+    final RelNode rel = convertSql("select ename from emp left join dept using (deptno)",
+        metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2562,9 +2917,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result.getIndex(), is(1));
   }
 
-  @Test void testExpressionLineageRightJoinRight() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageRightJoinRight(
+      final MetadataConfig metadataConfig) {
     // ename is column 0 in catalog.sales.bonus
-    final RelNode rel = convertSql("select bonus.ename from emp right join bonus using (ename)");
+    final RelNode rel = convertSql("select bonus.ename from emp right join bonus using (ename)",
+        metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2575,13 +2933,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(result.getIndex(), is(0));
   }
 
-  @Test void testExpressionLineageSelfJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageSelfJoin(
+      final MetadataConfig metadataConfig) {
     // deptno is column 7 in catalog.sales.emp
     // sal is column 5 in catalog.sales.emp
     final RelNode rel = convertSql("select a.deptno, b.sal from (select * from emp limit 7) as a\n"
         + "inner join (select * from emp limit 2) as b\n"
-        + "on a.deptno = b.deptno");
-    final RelNode tableRel = convertSql("select * from emp");
+        + "on a.deptno = b.deptno", metadataConfig);
+    final RelNode tableRel = convertSql("select * from emp", metadataConfig);
     final RelMetadataQuery mq = tableRel.getCluster().getMetadataQuery();
 
     final RexNode ref1 = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2604,10 +2964,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         not(((RexTableInputRef) r2.iterator().next()).getIdentifier()));
   }
 
-  @Test void testExpressionLineageOuterJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageOuterJoin(
+      final MetadataConfig metadataConfig) {
     // lineage cannot be determined
     final RelNode rel = convertSql("select name as dname from emp left outer join dept"
-        + " on emp.deptno = dept.deptno");
+        + " on emp.deptno = dept.deptno", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2615,10 +2977,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertNull(r);
   }
 
-  @Test void testExpressionLineageFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageFilter(
+      final MetadataConfig metadataConfig) {
     // ename is column 1 in catalog.sales.emp
-    final RelNode rel = convertSql("select ename from emp where deptno = 10");
-    final RelNode tableRel = convertSql("select * from emp");
+    final RelNode rel = convertSql("select ename from emp where deptno = 10", metadataConfig);
+    final RelNode tableRel = convertSql("select * from emp", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2630,11 +2994,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(resultString, endsWith(inputRef));
   }
 
-  @Test void testExpressionLineageAggregateGroupColumn() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageAggregateGroupColumn(
+      final MetadataConfig metadataConfig) {
     // deptno is column 7 in catalog.sales.emp
     final RelNode rel = convertSql("select deptno, count(*) from emp where deptno > 10 "
-        + "group by deptno having count(*) = 0");
-    final RelNode tableRel = convertSql("select * from emp");
+        + "group by deptno having count(*) = 0", metadataConfig);
+    final RelNode tableRel = convertSql("select * from emp", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2646,10 +3012,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(resultString, endsWith(inputRef));
   }
 
-  @Test void testExpressionLineageAggregateAggColumn() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageAggregateAggColumn(
+      final MetadataConfig metadataConfig) {
     // lineage cannot be determined
     final RelNode rel = convertSql("select deptno, count(*) from emp where deptno > 10 "
-        + "group by deptno having count(*) = 0");
+        + "group by deptno having count(*) = 0", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(1, rel.getRowType().getFieldList());
@@ -2657,12 +3025,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertNull(r);
   }
 
-  @Test void testExpressionLineageUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageUnion(
+      final MetadataConfig metadataConfig) {
     // sal is column 5 in catalog.sales.emp
     final RelNode rel = convertSql("select sal from (\n"
         + "  select * from emp union all select * from emp) "
-        + "where deptno = 10");
-    final RelNode tableRel = convertSql("select * from emp");
+        + "where deptno = 10", metadataConfig);
+    final RelNode tableRel = convertSql("select * from emp", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2680,14 +3050,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
         not(((RexTableInputRef) it.next()).getIdentifier()));
   }
 
-  @Test void testExpressionLineageMultiUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageMultiUnion(
+      final MetadataConfig metadataConfig) {
     // empno is column 0 in catalog.sales.emp
     // sal is column 5 in catalog.sales.emp
     final RelNode rel = convertSql("select a.empno + b.sal from\n"
         + " (select empno, ename from emp,dept) a join "
         + " (select * from emp union all select * from emp) b\n"
         + " on a.empno = b.empno\n"
-        + " where b.deptno = 10");
+        + " where b.deptno = 10", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2715,9 +3087,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(set.size(), is(1));
   }
 
-  @Test void testExpressionLineageValues() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageValues(
+      final MetadataConfig metadataConfig) {
     // lineage cannot be determined
-    final RelNode rel = convertSql("select * from (values (1), (2)) as t(c)");
+    final RelNode rel = convertSql("select * from (values (1), (2)) as t(c)", metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
@@ -2725,10 +3099,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertNull(r);
   }
 
-  @Test void testExpressionLineageCalc() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testExpressionLineageCalc(
+      final MetadataConfig metadataConfig) {
     final RelNode rel = convertSql("select sal from (\n"
         + " select deptno, empno, sal + 1 as sal, job from emp) "
-        + "where deptno = 10");
+        + "where deptno = 10", metadataConfig);
     final HepProgramBuilder programBuilder = HepProgram.builder();
     programBuilder.addRuleInstance(CoreRules.PROJECT_TO_CALC);
     programBuilder.addRuleInstance(CoreRules.FILTER_TO_CALC);
@@ -2746,12 +3122,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(resultString, is("+([CATALOG, SALES, EMP].#0.$5, 1)"));
   }
 
-  @Test void testAllPredicates() {
-    final Project rel = (Project) convertSql("select * from emp, dept");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicates(
+      final MetadataConfig metadataConfig) {
+    final Project rel = (Project) convertSql("select * from emp, dept", metadataConfig);
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
     final RelOptTable deptTable = join.getInput(1).getTable();
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      metadataConfig.applyMetadata(cluster);
       checkAllPredicates(cluster, empTable, deptTable);
       return null;
     });
@@ -2813,11 +3192,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(inputRef2.getIndex(), is(0));
   }
 
-  @Test void testAllPredicatesAggregate1() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAggregate1(
+      final MetadataConfig metadataConfig) {
     final String sql = "select a, max(b) from (\n"
         + "  select empno as a, sal as b from emp where empno = 5)subq\n"
         + "group by a";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
@@ -2831,12 +3212,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(constant.toString(), is("5"));
   }
 
-  @Test void testAllPredicatesAggregate2() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAggregate2(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select a, max(b) from (\n"
         + "  select empno as a, sal as b from emp)subq\n"
         + "group by a)\n"
         + "where a = 5";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
@@ -2850,19 +3233,23 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(constant.toString(), is("5"));
   }
 
-  @Test void testAllPredicatesAggregate3() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAggregate3(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select a, max(b) as b from (\n"
         + "  select empno as a, sal as b from emp)subq\n"
         + "group by a)\n"
         + "where b = 5";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     // Filter on aggregate, we cannot infer lineage
     assertNull(inputSet);
   }
 
-  @Test void testAllPredicatesAndTablesJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAndTablesJoin(
+      final MetadataConfig metadataConfig) {
     final String sql = "select x.sal, y.deptno from\n"
         + "(select a.deptno, c.sal from (select * from emp limit 7) as a\n"
         + "cross join (select * from dept limit 1) as b\n"
@@ -2874,7 +3261,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "inner join (select * from emp limit 2) as c\n"
         + "on a.deptno = c.deptno) as y\n"
         + "on x.deptno = y.deptno";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     assertThat(inputSet.pulledUpPredicates,
@@ -2890,9 +3277,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
-  @Test void testAllPredicatesAndTablesCalc() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAndTablesCalc(
+      final MetadataConfig metadataConfig) {
     final String sql = "select empno as a, sal as b from emp where empno > 5";
-    final RelNode relNode = convertSql(sql);
+    final RelNode relNode = convertSql(sql, metadataConfig);
     final HepProgram hepProgram = new HepProgramBuilder()
         .addRuleInstance(CoreRules.PROJECT_TO_CALC)
         .addRuleInstance(CoreRules.FILTER_TO_CALC)
@@ -2909,7 +3298,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
         equalTo("[[CATALOG, SALES, EMP].#0]"));
   }
 
-  @Test void testAllPredicatesAndTableUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAndTableUnion(
+      final MetadataConfig metadataConfig) {
     final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
@@ -2919,10 +3310,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
         + "on a.deptno = c.deptno";
-    checkAllPredicatesAndTableSetOp(sql);
+    checkAllPredicatesAndTableSetOp(sql, metadataConfig);
   }
 
-  @Test void testAllPredicatesAndTableIntersect() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAndTableIntersect(
+      final MetadataConfig metadataConfig) {
     final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
@@ -2932,10 +3325,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
         + "on a.deptno = c.deptno";
-    checkAllPredicatesAndTableSetOp(sql);
+    checkAllPredicatesAndTableSetOp(sql, metadataConfig);
   }
 
-  @Test void testAllPredicatesAndTableMinus() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesAndTableMinus(
+      final MetadataConfig metadataConfig) {
     final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
@@ -2945,11 +3340,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
         + "on a.deptno = c.deptno";
-    checkAllPredicatesAndTableSetOp(sql);
+    checkAllPredicatesAndTableSetOp(sql, metadataConfig);
   }
 
-  public void checkAllPredicatesAndTableSetOp(String sql) {
-    final RelNode rel = convertSql(sql);
+  public void checkAllPredicatesAndTableSetOp(String sql,
+      final MetadataConfig metadataConfig) {
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     assertThat(inputSet.pulledUpPredicates,
@@ -2964,17 +3360,19 @@ public class RelMetadataTest extends SqlToRelTestBase {
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
-  @Test void testTableReferenceForIntersect() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testTableReferenceForIntersect(
+      final MetadataConfig metadataConfig) {
     final String sql1 = "select a.deptno, a.sal from emp a\n"
         + "intersect all select b.deptno, b.sal from emp b where empno = 5";
-    final RelNode rel1 = convertSql(sql1);
+    final RelNode rel1 = convertSql(sql1, metadataConfig);
     final RelMetadataQuery mq1 = rel1.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences1 = Sets.newTreeSet(mq1.getTableReferences(rel1));
     assertThat(tableReferences1.toString(),
         equalTo("[[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
 
     final String sql2 = "select a.deptno from dept a intersect all select b.deptno from emp b";
-    final RelNode rel2 = convertSql(sql2);
+    final RelNode rel2 = convertSql(sql2, metadataConfig);
     final RelMetadataQuery mq2 = rel2.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences2 = Sets.newTreeSet(mq2.getTableReferences(rel2));
     assertThat(tableReferences2.toString(),
@@ -2982,22 +3380,26 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   }
 
-  @Test void testTableReferenceForMinus() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testTableReferenceForMinus(
+      final MetadataConfig metadataConfig) {
     final String sql = "select emp.deptno, emp.sal from emp\n"
         + "except all select emp.deptno, emp.sal from emp where empno = 5";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
     assertThat(tableReferences.toString(),
         equalTo("[[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
   }
 
-  @Test void testAllPredicatesCrossJoinMultiTable() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesCrossJoinMultiTable(
+      final MetadataConfig metadataConfig) {
     final String sql = "select x.sal from\n"
         + "(select a.deptno, c.sal from (select * from emp limit 7) as a\n"
         + "cross join (select * from dept limit 1) as b\n"
         + "cross join (select * from emp where empno = 5 limit 2) as c) as x";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
     assertThat(tableReferences,
@@ -3010,9 +3412,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
         sortsAs("[=([CATALOG, SALES, EMP].#1.$0, 5), true, true]"));
   }
 
-  @Test void testTableReferencesJoinUnknownNode() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testTableReferencesJoinUnknownNode(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp limit 10";
-    final RelNode node = convertSql(sql);
+    final RelNode node = convertSql(sql, metadataConfig);
     final RelNode nodeWithUnknown = new DummyRelNode(
         node.getCluster(), node.getTraitSet(), node);
     final RexBuilder rexBuilder = node.getCluster().getRexBuilder();
@@ -3025,12 +3429,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertNull(tableReferences);
   }
 
-  @Test void testAllPredicatesUnionMultiTable() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testAllPredicatesUnionMultiTable(
+      final MetadataConfig metadataConfig) {
     final String sql = "select x.sal from\n"
         + "(select a.deptno, a.sal from (select * from emp) as a\n"
         + "union all select emp.deptno, emp.sal from emp\n"
         + "union all select emp.deptno, emp.sal from emp where empno = 5) as x";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
     assertThat(tableReferences,
@@ -3044,9 +3450,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
         sortsAs("[=([CATALOG, SALES, EMP].#2.$0, 5)]"));
   }
 
-  @Test void testTableReferencesUnionUnknownNode() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testTableReferencesUnionUnknownNode(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp limit 10";
-    final RelNode node = convertSql(sql);
+    final RelNode node = convertSql(sql, metadataConfig);
     final RelNode nodeWithUnknown = new DummyRelNode(
         node.getCluster(), node.getTraitSet(), node);
     // Union
@@ -3058,8 +3466,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertNull(tableReferences);
   }
 
-  private void checkNodeTypeCount(String sql, Map<Class<? extends RelNode>, Integer> expected) {
-    final RelNode rel = convertSql(sql);
+  private void checkNodeTypeCount(String sql, Map<Class<? extends RelNode>, Integer> expected,
+      final MetadataConfig metadataConfig) {
+    final RelNode rel = convertSql(sql, metadataConfig);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Multimap<Class<? extends RelNode>, RelNode> result = mq.getNodeTypes(rel);
     assertThat(result, notNullValue());
@@ -3070,61 +3479,75 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(resultCount, is(expected));
   }
 
-  @Test void testNodeTypeCountEmp() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountEmp(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountDept() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountDept(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from dept";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountValues() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountValues(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (values (1), (2)) as t(c)";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(Values.class, 1);
     expected.put(Project.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountCartesian() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountCartesian(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp,dept";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 2);
     expected.put(Join.class, 1);
     expected.put(Project.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountJoin() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountJoin(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp\n"
         + "inner join dept on emp.deptno = dept.deptno";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 2);
     expected.put(Join.class, 1);
     expected.put(Project.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountTableModify() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountTableModify(
+      final MetadataConfig metadataConfig) {
     final String sql = "insert into emp select * from emp";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(TableModify.class, 1);
     expected.put(Project.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountExchange() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountExchange(
+      final MetadataConfig metadataConfig) {
 
-    final RelNode rel = convertSql("select * from emp");
+    final RelNode rel = convertSql("select * from emp", metadataConfig);
     final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
     final LogicalExchange exchange = LogicalExchange.create(rel, dist);
 
@@ -3143,17 +3566,21 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(expected, equalTo(resultCount));
   }
 
-  @Test void testNodeTypeCountSample() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountSample(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp tablesample system(50) where empno > 5";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Filter.class, 1);
     expected.put(Project.class, 1);
     expected.put(Sample.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountJoinFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountJoinFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 14) as emp\n"
         + "inner join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
@@ -3162,10 +3589,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Join.class, 1);
     expected.put(Project.class, 3);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountJoinEmptyFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountJoinEmptyFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "inner join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
@@ -3174,10 +3603,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Join.class, 1);
     expected.put(Project.class, 3);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountLeftJoinEmptyFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountLeftJoinEmptyFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "left join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
@@ -3186,10 +3617,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Join.class, 1);
     expected.put(Project.class, 3);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountRightJoinEmptyFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountRightJoinEmptyFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "right join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
@@ -3198,10 +3631,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Join.class, 1);
     expected.put(Project.class, 3);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountJoinFiniteEmpty() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountJoinFiniteEmpty(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 7) as emp\n"
         + "inner join (select * from dept limit 0) as dept\n"
         + "on emp.deptno = dept.deptno";
@@ -3210,10 +3645,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Join.class, 1);
     expected.put(Project.class, 3);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountJoinEmptyEmpty() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountJoinEmptyEmpty(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "inner join (select * from dept limit 0) as dept\n"
         + "on emp.deptno = dept.deptno";
@@ -3222,10 +3659,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Join.class, 1);
     expected.put(Project.class, 3);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountUnion() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountUnion(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from emp\n"
         + "union all\n"
         + "select name from dept";
@@ -3233,10 +3672,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(TableScan.class, 2);
     expected.put(Project.class, 2);
     expected.put(Union.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountUnionOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountUnionOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "union all\n"
         + "select name from (select * from dept limit 40)";
@@ -3245,10 +3686,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Union.class, 1);
     expected.put(Project.class, 4);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountMinusOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountMinusOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "except\n"
         + "select name from (select * from dept limit 40)";
@@ -3257,97 +3700,117 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Minus.class, 1);
     expected.put(Project.class, 4);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountFilter() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountFilter(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp where ename='Mathilda'";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
     expected.put(Filter.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountSort() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountSort(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
     expected.put(Sort.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountSortLimit() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountSortLimit(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 10";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
     expected.put(Sort.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountSortLimitOffset() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountSortLimitOffset(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from emp order by ename limit 10 offset 5";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
     expected.put(Sort.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountSortLimitOffsetOnFinite() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountSortLimitOffsetOnFinite(
+      final MetadataConfig metadataConfig) {
     final String sql = "select * from (select * from emp limit 12)\n"
         + "order by ename limit 20 offset 5";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 2);
     expected.put(Sort.class, 2);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountAggregate() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountAggregate(
+      final MetadataConfig metadataConfig) {
     final String sql = "select deptno from emp group by deptno";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
     expected.put(Aggregate.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountAggregateGroupingSets() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountAggregateGroupingSets(
+      final MetadataConfig metadataConfig) {
     final String sql = "select deptno from emp\n"
         + "group by grouping sets ((deptno), (ename, deptno))";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 2);
     expected.put(Aggregate.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountAggregateEmptyKeyOnEmptyTable() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountAggregateEmptyKeyOnEmptyTable(
+      final MetadataConfig metadataConfig) {
     final String sql = "select count(*) from (select * from emp limit 0)";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 2);
     expected.put(Aggregate.class, 1);
     expected.put(Sort.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testNodeTypeCountFilterAggregateEmptyKey() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testNodeTypeCountFilterAggregateEmptyKey(
+      final MetadataConfig metadataConfig) {
     final String sql = "select count(*) from emp where 1 = 0";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
     expected.put(Project.class, 1);
     expected.put(Filter.class, 1);
     expected.put(Aggregate.class, 1);
-    checkNodeTypeCount(sql, expected);
+    checkNodeTypeCount(sql, expected, metadataConfig);
   }
 
-  @Test void testConstColumnsNdv() {
+  @ParameterizedTest
+  @MethodSource("getArguments") void testConstColumnsNdv(
+      final MetadataConfig metadataConfig) {
     final String sql = "select ename, 100, 200 from emp";
-    final RelNode rel = convertSql(sql);
+    final RelNode rel = convertSql(sql, metadataConfig);
     RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     assertThat(rel, instanceOf(Project.class));
@@ -3399,9 +3862,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   /** Tests calling {@link RelMetadataQuery#getTableOrigin} for
    * an aggregate with no columns. Previously threw. */
-  @Test void testEmptyAggregateTableOrigin() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+  @ParameterizedTest
+  @MethodSource("getArguments") void testEmptyAggregateTableOrigin(
+      final MetadataConfig metadataConfig) {
+    final RelBuilder builder = builder(metadataConfig);
     RelMetadataQuery mq = builder.getCluster().getMetadataQuery();
     RelNode agg = builder
         .scan("EMP")
@@ -3411,9 +3875,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(tableOrigin, nullValue());
   }
 
-  @Test void testGetPredicatesForJoin() throws Exception {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+  @ParameterizedTest
+  @MethodSource("getArguments") void testGetPredicatesForJoin(
+      final MetadataConfig metadataConfig) throws Exception {
+    final RelBuilder builder = builder(metadataConfig);
     RelNode join = builder
         .scan("EMP")
         .scan("DEPT")
@@ -3437,9 +3902,59 @@ public class RelMetadataTest extends SqlToRelTestBase {
         is("=($0, $8)"));
   }
 
-  @Test void testGetPredicatesForFilter() throws Exception {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
+  @ParameterizedTest
+  @MethodSource("getArguments") void testMetadataCycleBreak(final MetadataConfig metadataConfig) {
+    final Project project = (Project) convertSql("select 'empid' from emp where 'empid' > 10",
+        metadataConfig);
+    final Filter filter = (Filter) project.getInput();
+    RelOptCluster cluster = project.getCluster();
+    final ImmutableList<RelMetadataProvider> list =
+        ImmutableList.of(
+            ReflectiveRelMetadataProvider.reflectiveSource(new Looping1(),
+                BuiltInMetadata.Selectivity.Handler.class),
+            ReflectiveRelMetadataProvider.reflectiveSource(new Looping2(),
+                BuiltInMetadata.RowCount.Handler.class),
+            cluster.getMetadataProvider());
+    metadataConfig.applyMetadata(
+        cluster,
+        ChainedRelMetadataProvider.of(list),
+        RelMetadataQuery::new);
+    assertThrows(CyclicMetadataException.class,
+        () -> cluster.getMetadataQuery().getRowCount(filter));
+  }
+
+  /**
+   * A metadata handler that works to create a cyclic loop.
+   */
+  public static class Looping1 implements MetadataHandler<BuiltInMetadata.Selectivity> {
+    @Override public MetadataDef<BuiltInMetadata.Selectivity> getDef() {
+      return BuiltInMetadata.Selectivity.DEF;
+    }
+
+    public @Nullable Double getSelectivity(Filter rel, RelMetadataQuery mq,
+        @Nullable RexNode predicate) {
+      return mq.getRowCount(rel) / mq.getRowCount(rel.getInput());
+    }
+  }
+
+  /**
+   * A metadata handler that works to create a cyclic loop.
+   */
+  public static class Looping2 implements MetadataHandler<BuiltInMetadata.RowCount> {
+    @Override public MetadataDef<BuiltInMetadata.RowCount> getDef() {
+      return BuiltInMetadata.RowCount.DEF;
+    }
+
+    public @Nullable Double getRowCount(Filter rel, RelMetadataQuery mq) {
+      // buggy since it uses rel, instead of the input for selectivity operation, causing loop.
+      return mq.getSelectivity(rel, rel.getCondition()) * mq.getRowCount(rel.getInput());
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("getArguments") void testGetPredicatesForFilter(
+      final MetadataConfig metadataConfig) throws Exception {
+    final RelBuilder builder = builder(metadataConfig);
     RelNode filter = builder
         .scan("EMP")
         .filter(builder.call(NONDETERMINISTIC_OP))
@@ -3464,12 +3979,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4315">[CALCITE-4315]
    * NPE in RelMdUtil#checkInputForCollationAndLimit</a>. */
-  @Test void testCheckInputForCollationAndLimit() {
-    final Project rel = (Project) convertSql("select * from emp, dept");
+  @ParameterizedTest
+  @MethodSource("getArguments") void testCheckInputForCollationAndLimit(
+      final MetadataConfig metadataConfig) {
+    final Project rel = (Project) convertSql("select * from emp, dept", metadataConfig);
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
     final RelOptTable deptTable = join.getInput(1).getTable();
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      metadataConfig.applyMetadata(cluster);
       checkInputForCollationAndLimit(cluster, empTable, deptTable);
       return null;
     });
@@ -3584,8 +4102,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static class MyRelMetadataQuery extends RelMetadataQuery {
     private ColType.Handler colTypeHandler;
 
-
-    MyRelMetadataQuery() {
+    MyRelMetadataQuery(MetadataHandlerProvider provider) {
+      super(provider);
       colTypeHandler = handler(ColType.Handler.class);
     }
 
@@ -3637,7 +4155,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   /** Parameters for a test. */
-  private static class Sql {
+  private class Sql {
     private final Tester tester;
     private final String sql;
 
@@ -3646,8 +4164,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
       this.sql = sql;
     }
 
-    Sql assertCpuCost(Matcher<Double> matcher, String reason) {
-      RelNode rel = convertSql(tester, sql);
+    Sql assertCpuCost(Matcher<Double> matcher, String reason,
+        final MetadataConfig metadataConfig) {
+      RelNode rel = convertSql(tester, sql, metadataConfig);
       RelOptCost cost = computeRelSelfCost(rel);
       assertThat(reason + "\n"
           + "sql:" + sql + "\n"
@@ -3656,24 +4175,25 @@ public class RelMetadataTest extends SqlToRelTestBase {
       return this;
     }
 
-    private static RelOptCost computeRelSelfCost(RelNode rel) {
+    private RelOptCost computeRelSelfCost(RelNode rel) {
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       RelOptPlanner planner = new VolcanoPlanner();
       return rel.computeSelfCost(planner, mq);
     }
 
-    Sql assertRowsUnique(Matcher<Boolean> matcher, String reason) {
-      return assertRowsUnique(new boolean[] {false, true}, matcher, reason);
+    Sql assertRowsUnique(Matcher<Boolean> matcher, String reason,
+        final MetadataConfig metadataConfig) {
+      return assertRowsUnique(new boolean[] {false, true}, matcher, reason, metadataConfig);
     }
 
     Sql assertRowsUnique(boolean ignoreNulls, Matcher<Boolean> matcher,
-        String reason) {
-      return assertRowsUnique(new boolean[] {ignoreNulls}, matcher, reason);
+        String reason, final MetadataConfig metadataConfig) {
+      return assertRowsUnique(new boolean[] {ignoreNulls}, matcher, reason, metadataConfig);
     }
 
     Sql assertRowsUnique(boolean[] ignoreNulls, Matcher<Boolean> matcher,
-        String reason) {
-      RelNode rel = convertSql(tester, sql);
+        String reason, final MetadataConfig metadataConfig) {
+      RelNode rel = convertSql(tester, sql, metadataConfig);
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       for (boolean ignoreNull : ignoreNulls) {
         Boolean rowsUnique = mq.areRowsUnique(rel, ignoreNull);
@@ -3686,4 +4206,75 @@ public class RelMetadataTest extends SqlToRelTestBase {
     }
 
   }
+
+  /**
+   * A configuration that describes how metadata should be configured.
+   */
+  public static class MetadataConfig {
+
+    private final String name;
+    private final Function<RelMetadataProvider, MetadataHandlerProvider> converter;
+    private final Supplier<RelMetadataProvider> defaultProviderSupplier;
+    private final boolean isCaching;
+
+    public MetadataConfig(
+        String name,
+        Function<RelMetadataProvider, MetadataHandlerProvider> converter,
+        Supplier<RelMetadataProvider> defaultProviderSupplier,
+        boolean isCaching) {
+      this.name = name;
+      this.converter = converter;
+      this.defaultProviderSupplier = defaultProviderSupplier;
+      this.isCaching = isCaching;
+    }
+
+    public MetadataHandlerProvider getDefaultHandlerProvider() {
+      return converter.apply(defaultProviderSupplier.get());
+    }
+
+    private void applyMetadata(RelOptCluster cluster) {
+      applyMetadata(cluster, defaultProviderSupplier.get());
+    }
+
+    private void applyMetadata(RelOptCluster cluster, RelMetadataProvider provider) {
+      applyMetadata(cluster, provider, r -> new RelMetadataQuery(r));
+    }
+
+    private void applyMetadata(
+        RelOptCluster cluster,
+        RelMetadataProvider provider,
+        Function<MetadataHandlerProvider, RelMetadataQuery> supplierFactory) {
+      cluster.setMetadataProvider(provider);
+      cluster.setMetadataQuerySupplier(() -> supplierFactory.apply(converter.apply(provider)));
+      cluster.invalidateMetadataQuery();
+    }
+
+    public boolean isCaching() {
+      return isCaching;
+    }
+
+    @Override public String toString() {
+      return name;
+    }
+
+  }
+
+  public static Stream<Arguments> getArguments() {
+    return Stream.of(
+        Arguments.of(
+            new MetadataConfig(
+            "Janino",
+            JaninoRelMetadataProvider::of,
+                () -> RelMetadataQuery.THREAD_PROVIDERS.get(),
+            true),
+            "Janino"),
+        Arguments.of(
+            new MetadataConfig(
+            "Proxying",
+            ProxyingMetadataHandlerProvider::new,
+                () -> DefaultRelMetadataProvider.INSTANCE,
+            false))
+    );
+  }
+
 }
