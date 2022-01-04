@@ -1506,8 +1506,46 @@ public class RexSimplify {
     return simplifyAnd2(terms, notTerms);
   }
 
+  boolean satisfy(Set<RexNode> condition, RexNode term) {
+    List<RexNode> terms = new ArrayList<>();
+    RelOptUtil.decomposeConjunction(term, terms);
+    return condition.containsAll(terms);
+  }
+
+  boolean satisfyForUnknownAsFalse(Set<RexNode> condition, Set<RexNode> notNullOperands,
+      RexNode node) {
+    List<RexNode> terms = new ArrayList<>();
+    RelOptUtil.decomposeConjunction(node, terms);
+    for (RexNode term : terms) {
+      if (!condition.contains(term) && !(term.getKind() == SqlKind.IS_NOT_NULL && notNullOperands
+          .contains(((RexCall) term).getOperands().get(0)))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  boolean containSatisfyTerm(RexNode node, java.util.function.Predicate<RexNode> satisfy) {
+    List<RexNode> terms = new ArrayList<>();
+    RelOptUtil.decomposeDisjunction(node, terms);
+    for (RexNode term : terms) {
+      if (satisfy.test(term)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // package-protected only to support a deprecated method; treat as private
   RexNode simplifyAnd2(List<RexNode> terms, List<RexNode> notTerms) {
+    Set<RexNode> termsSet = new HashSet<>(terms);
+    for (int i = 0; i < terms.size(); i++) {
+      RexNode term = terms.get(i);
+      if (term.getKind() == SqlKind.OR
+          && containSatisfyTerm(term, node -> satisfy(termsSet, node))) {
+        terms.set(i, rexBuilder.makeLiteral(true));
+      }
+    }
     for (RexNode term : terms) {
       if (term.isAlwaysFalse()) {
         return rexBuilder.makeLiteral(false);
@@ -1595,6 +1633,7 @@ public class RexSimplify {
     final Set<RexNode> nullOperands = new HashSet<>();
     final Set<RexNode> notNullOperands = new LinkedHashSet<>();
     final Set<RexNode> comparedOperands = new HashSet<>();
+    final Set<RexNode> orOperands = new HashSet<>();
 
     // Add the predicates from the source to the range terms.
     for (RexNode predicate : predicates.pulledUpPredicates) {
@@ -1726,6 +1765,9 @@ public class RexSimplify {
       case IS_NULL:
         nullOperands.add(((RexCall) term).getOperands().get(0));
         break;
+      case OR:
+        orOperands.add(term);
+        break;
       default:
         break;
       }
@@ -1769,6 +1811,13 @@ public class RexSimplify {
             rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operand));
       }
     }
+    final Set<RexNode> termsSet = new HashSet<>(terms);
+    for (RexNode term : orOperands) {
+      if (containSatisfyTerm(term,
+          node -> satisfyForUnknownAsFalse(termsSet, comparedOperands, node))) {
+        terms.remove(term);
+      }
+    }
     // If one of the not-disjunctions is a disjunction that is wholly
     // contained in the disjunctions list, the expression is not
     // satisfiable.
@@ -1776,7 +1825,6 @@ public class RexSimplify {
     // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
     // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
     // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
-    final Set<RexNode> termsSet = new HashSet<>(terms);
     for (RexNode notDisjunction : notTerms) {
       if (!RexUtil.isDeterministic(notDisjunction)) {
         continue;

@@ -2533,6 +2533,52 @@ class RexProgramTest extends RexProgramTestBase {
         vVarcharNotNull(9), "?0.notNullVarchar9", "VARCHAR NOT NULL");
   }
 
+  @Test public void testSimplifyAndOr() {
+    checkSimplify(
+        and(
+        gt(vInt(), literal(10)),
+        or(gt(vInt(), literal(10)),
+            eq(vInt(1), literal(20)))),
+        ">(?0.int0, 10)");
+    checkSimplify(
+        and(
+        gt(vInt(), literal(10)),
+        gt(vInt(1), literal(10)),
+        or(gt(vInt(), literal(10)),
+            eq(vInt(2), literal(20))),
+        or(gt(vInt(1), literal(10)),
+            eq(vInt(2), literal(30)))),
+        "AND(>(?0.int0, 10), >(?0.int1, 10))");
+    checkSimplify2(
+        and(
+        gt(vInt(), literal(20)),
+        or (gt(vInt(), literal(10)),
+            eq(vInt(1), literal(20)))),
+        "AND(>(?0.int0, 20), OR(>(?0.int0, 10), =(?0.int1, 20)))",
+        ">(?0.int0, 20)");
+    checkSimplify(
+        and(
+        gt(vInt(), literal(10)),
+        gt(vInt(1), literal(10)),
+        or (
+            and(gt(vInt(), literal(10)),
+                gt(vInt(1), literal(10))),
+            eq(vInt(2), literal(20)))),
+        "AND(>(?0.int0, 10), >(?0.int1, 10))");
+    checkSimplify2(
+        and(
+        gt(vInt(), literal(20)),
+        gt(vInt(1), literal(10)),
+        or (
+            and(gt(vInt(), literal(10)),
+                gt(vInt(1), literal(10))),
+            eq(vInt(2), literal(20)))),
+        "AND(>(?0.int0, 20), >(?0.int1, 10), "
+            + "OR(AND(>(?0.int0, 10), >(?0.int1, 10)), "
+            + "=(?0.int2, 20)))",
+        "AND(>(?0.int0, 20), >(?0.int1, 10))");
+  }
+
   private void assertTypeAndToString(
       RexNode rexNode, String representation, String type) {
     assertEquals(representation, rexNode.toString());
