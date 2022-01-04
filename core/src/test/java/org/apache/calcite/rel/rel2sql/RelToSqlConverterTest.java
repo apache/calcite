@@ -9225,6 +9225,16 @@ class RelToSqlConverterTest {
       .ok(expectedBQSql);
   }
 
+  @Test public void testDateMinus() {
+    String query = "SELECT \"birth_date\" - \"birth_date\" from \"foodmart\".\"employee\"";
+    final String expectedBQSql = "SELECT DATE_DIFF(birth_date, birth_date, DAY)\n" +
+        "FROM foodmart.employee";
+
+    sql(query)
+      .withBigQuery()
+      .ok(expectedBQSql);
+  }
+
   @Test public void testhashbucket() {
     final RelBuilder builder = relBuilder();
     final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.HASHBUCKET,
