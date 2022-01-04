@@ -76,9 +76,9 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       .compile("\"decimal\\(([0-9]+),([0-9]+)\\)");
 
   static {
-    TIME_FORMAT_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
-    TIME_FORMAT_TIME = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH);
-    TIME_FORMAT_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+    TIME_FORMAT_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ROOT);
+    TIME_FORMAT_TIME = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT);
+    TIME_FORMAT_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
   }
 
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
