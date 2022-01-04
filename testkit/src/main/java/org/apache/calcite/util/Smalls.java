@@ -509,6 +509,7 @@ public class Smalls {
     private final int initY;
 
     public MyPlusInitFunction(FunctionContext fx) {
+      // it is expected that the FunctionContext has a populated DataContext
       if (fx.getDataContext() == null) {
         throw new IllegalStateException("Data context is not set in function context");
       }
@@ -874,6 +875,10 @@ public class Smalls {
    * The constructor has an initialization parameter. */
   public static class MyTwoParamsSumFunctionFilter1 {
     public MyTwoParamsSumFunctionFilter1(FunctionContext fx) {
+      // it is expected that the FunctionContext has a populated DataContext
+      if (fx.getDataContext() == null) {
+        throw new IllegalStateException("Data context is not set in function context");
+      }
       Objects.requireNonNull(fx, "fx");
       assert fx.getParameterCount() == 2;
     }
