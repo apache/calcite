@@ -609,14 +609,6 @@ code {
   padding: 0 0.5em;
 }
 
-/* Allow code inside tables to wrap when there is no space */ 
-table {
-  pre,
-  code {
-    white-space: pre-wrap;
-  }
-}
-
 @media (min-width: 768px) {
   pre, code { font-size: 16px; }
 }
@@ -713,13 +705,21 @@ blockquote {
 /* Tables */
 
 table {
+  /* Allow code inside tables to wrap when there is no space */
+  pre,
+  code {
+    white-space: pre-wrap;
+  }
   width: 100%;
   background-color: #555;
   margin: .5em 0;
-  display: block;
-  overflow-x: auto;
   @include border-radius(5px);
   @include box-shadow(0 1px 3px rgba(0,0,0,.3));
+}
+
+/* Work with the _plugins/warp_table.rb plugin to add horizontal auto scrolling features */
+.scroll-table-style {
+  overflow-x: auto;
 }
 
 thead {
