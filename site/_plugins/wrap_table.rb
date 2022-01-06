@@ -16,8 +16,7 @@
 require 'nokogiri'
 
 Jekyll::Hooks.register [:pages, :documents], :post_render do |post|
-  if (post.is_a?(Jekyll::Document) && post.path.end_with?(".md")) ||
-    (post.is_a?(Jekyll::Page) && post.name.end_with?(".md"))
+  if post.path.end_with?(".md")
     doc = Nokogiri::HTML(post.output)
     doc.search("table").wrap("<div class=\"scroll-table-style\">")
     post.output = doc.to_html
