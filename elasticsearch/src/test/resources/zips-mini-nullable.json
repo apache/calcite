@@ -1,0 +1,6 @@
+{"age" :  21, "name" : "testName1", "score" : 91, "weight" : 65.0}
+{"age" :  22, "name" : "testName2", "score" : 92, "weight" : 64.0}
+{"age" :  22, "name" : "testName3", "score" : 93}
+{"name" : "testName4", "score" : 90, "weight" : 68.5}
+{"name" : "testName5", "score" : 95, "weight" : 66.5}
+{"name" : "testName6"}

@@ -54,15 +54,50 @@ import java.util.function.Consumer;
 
 /**
  * Set of tests for ES adapter. Uses real instance via {@link EmbeddedElasticsearchPolicy}. Document
- * source is local {@code zips-mini.json} file (located in test classpath).
+ * source is local {@code zips-mini.json} and {@code zips-mini-nullable.json}(including null value)
+ * file (located in test classpath).
  */
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class ElasticSearchAdapterTest {
 
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
-  /** Default index/type name. */
+  /** index/type name and its mappings、corresponding Calcite view. */
   private static final String ZIPS = "zips";
+
+  private static final Map<String, String> ZIPS_MAPPING = ImmutableMap.of("city", "keyword",
+      "state", "keyword", "pop", "long");
+
+  private static final String ZIPS_VIEW = "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
+      + " cast(_MAP['loc'][0] AS float) AS \"longitude\",\n"
+      + " cast(_MAP['loc'][1] AS float) AS \"latitude\",\n"
+      + " cast(_MAP['pop'] AS integer) AS \"pop\", "
+      +  " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
+      +  " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
+      +  "from \"elastic\".\"zips\"";
+
+  private static final String ZIPSWITHNULL = "zipswithnull";
+
+  private static final Map<String, String> ZIPSWITHNULL_MAPPING =
+      ImmutableMap.<String, String>builder()
+            .put("age", "integer")
+            .put("name", "keyword")
+            .put("score", "integer")
+            .put("weight", "double")
+            .build();
+
+  private static final String ZIPSWITHNULL_VIEW = "select cast(_MAP['age'] AS integer) AS \"age\", "
+      + " cast(_MAP['name'] AS varchar(20)) AS \"name\", "
+      +  " cast(_MAP['score'] AS integer) AS \"score\", "
+      +  " cast(_MAP['weight'] AS double) AS \"weight\" "
+      +  "from \"elastic\".\"zipswithnull\"";
+
+  private static final Map<String, String> DOC_SOURCE_LOCATION =
+      ImmutableMap.<String, String>builder()
+      .put(ZIPS, "/zips-mini.json")
+      .put(ZIPSWITHNULL, "/zips-mini-nullable.json")
+      .build();
+
   private static final int ZIPS_SIZE = 149;
 
   /**
@@ -71,67 +106,73 @@ class ElasticSearchAdapterTest {
    */
   @BeforeAll
   public static void setupInstance() throws Exception {
-    final Map<String, String> mapping = ImmutableMap.of("city", "keyword", "state",
-        "keyword", "pop", "long");
-
-    NODE.createIndex(ZIPS, mapping);
+    NODE.createIndex(ZIPS, ZIPS_MAPPING);
+    NODE.createIndex(ZIPSWITHNULL, ZIPSWITHNULL_MAPPING);
 
     // load records from file
-    final List<ObjectNode> bulk = new ArrayList<>();
-    Resources.readLines(ElasticSearchAdapterTest.class.getResource("/zips-mini.json"),
-        StandardCharsets.UTF_8, new LineProcessor<Void>() {
-          @Override public boolean processLine(String line) throws IOException {
-            line = line.replace("_id", "id"); // _id is a reserved attribute in ES
-            bulk.add((ObjectNode) NODE.mapper().readTree(line));
-            return true;
-          }
+    for (Map.Entry<String, String> entry : DOC_SOURCE_LOCATION.entrySet()) {
+      final List<ObjectNode> bulk = new ArrayList<>();
+      Resources.readLines(ElasticSearchAdapterTest.class.getResource(entry.getValue()),
+          StandardCharsets.UTF_8, new LineProcessor<Void>() {
+            @Override public boolean processLine(String line) throws IOException {
+              line = line.replace("_id", "id"); // _id is a reserved attribute in ES
+              bulk.add((ObjectNode) NODE.mapper().readTree(line));
+              return true;
+            }
 
-          @Override public Void getResult() {
-            return null;
-          }
-        });
+            @Override public Void getResult() {
+              return null;
+            }
+          });
 
-    if (bulk.isEmpty()) {
-      throw new IllegalStateException("No records to index. Empty file ?");
+      if (bulk.isEmpty()) {
+        throw new IllegalStateException("No records to index. Empty file ?");
+      }
+
+      NODE.insertBulk(entry.getKey(), bulk);
     }
-
-    NODE.insertBulk(ZIPS, bulk);
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
+  private CalciteAssert.ConnectionFactory newConnectionFactory(String index) {
+    final String viewSql;
+    switch (index) {
+    case ZIPS:
+      viewSql = ZIPS_VIEW;
+      break;
+    case ZIPSWITHNULL:
+      viewSql = ZIPSWITHNULL_VIEW;
+      break;
+    default:
+      throw new IllegalStateException("Index " + index + " doesn't exist!");
+    }
     return new CalciteAssert.ConnectionFactory() {
       @Override public Connection createConnection() throws SQLException {
         final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
         final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), ZIPS));
-
-        // add calcite view programmatically
-        final String viewSql = "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
-            + " cast(_MAP['loc'][0] AS float) AS \"longitude\",\n"
-            + " cast(_MAP['loc'][1] AS float) AS \"latitude\",\n"
-            + " cast(_MAP['pop'] AS integer) AS \"pop\", "
-            +  " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
-            +  " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
-            +  "from \"elastic\".\"zips\"";
-
+        root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), index));
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
             Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
-        root.add("zips", macro);
+        root.add(index, macro);
 
         return connection;
       }
     };
   }
 
-  private CalciteAssert.AssertThat calciteAssert() {
+  private CalciteAssert.AssertThat calciteAssertZips() {
     return CalciteAssert.that()
-        .with(newConnectionFactory());
+        .with(newConnectionFactory(ZIPS));
+  }
+
+  private CalciteAssert.AssertThat calciteAssertZipsWithNull() {
+    return CalciteAssert.that()
+        .with(newConnectionFactory(ZIPSWITHNULL));
   }
 
   /** Tests using a Calcite view. */
   @Test void view() {
-    calciteAssert()
+    calciteAssertZips()
         .query("select * from zips where city = 'BROOKLYN'")
         .returns("city=BROOKLYN; longitude=-73.956985; latitude=40.646694; "
             + "pop=111396; state=NY; id=11226\n")
@@ -139,52 +180,44 @@ class ElasticSearchAdapterTest {
   }
 
   @Test void emptyResult() {
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from zips limit 0")
         .returnsCount(0);
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips where _MAP['Foo'] = '_MISSING_'")
         .returnsCount(0);
   }
 
   @Test void basic() {
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         // by default elastic returns max 10 records
         .query("select * from elastic.zips")
         .runs();
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips where _MAP['city'] = 'BROOKLYN'")
         .returnsCount(1);
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips where"
             + " _MAP['city'] in ('BROOKLYN', 'WASHINGTON')")
         .returnsCount(2);
 
     // lower-case
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips where "
             + "_MAP['city'] in ('brooklyn', 'Brooklyn', 'BROOK') ")
         .returnsCount(0);
 
     // missing field
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips where _MAP['CITY'] = 'BROOKLYN'")
         .returnsCount(0);
 
 
     // limit 0
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips limit 0")
         .returnsCount(0);
   }
@@ -195,7 +228,7 @@ class ElasticSearchAdapterTest {
         + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
         + "      ElasticsearchTableScan(table=[[elastic, zips]])";
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select * from zips order by state")
         .returnsCount(ZIPS_SIZE)
         .returns(sortedResultSetChecker("state", RelFieldCollation.Direction.ASCENDING))
@@ -205,7 +238,7 @@ class ElasticSearchAdapterTest {
   @Test void testSortLimit() {
     final String sql = "select state, pop from zips\n"
         + "order by state, pop offset 2 rows fetch next 3 rows only";
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .returnsUnordered("state=AK; pop=32383",
             "state=AL; pop=42124",
@@ -273,13 +306,11 @@ class ElasticSearchAdapterTest {
    * {@code select _MAP['a'] from elastic order by _MAP['b']}
    */
   @Test void testSortNoSchema() {
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips order by _MAP['city']")
         .returnsCount(ZIPS_SIZE);
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips where _MAP['state'] = 'NY' order by _MAP['city']")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
@@ -291,13 +322,11 @@ class ElasticSearchAdapterTest {
           "_MAP={id=11373, city=JACKSON HEIGHTS, loc=[-73.878551, 40.740388], pop=88241, state=NY}",
           "_MAP={id=10021, city=NEW YORK, loc=[-73.958805, 40.768476], pop=106564, state=NY}");
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select _MAP['state'] from elastic.zips order by _MAP['city']")
         .returnsCount(ZIPS_SIZE);
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select * from elastic.zips where _MAP['state'] = 'NY' or "
             + "_MAP['city'] = 'BROOKLYN'"
             + " order by _MAP['city']")
@@ -309,38 +338,33 @@ class ElasticSearchAdapterTest {
                 String.format(Locale.ROOT, "size:%s",
                     ElasticsearchTransport.DEFAULT_FETCH_SIZE)));
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select _MAP['city'] from elastic.zips where _MAP['state'] = 'NY' "
             + "order by _MAP['city']")
         .returnsOrdered("EXPR$0=BROOKLYN",
             "EXPR$0=JACKSON HEIGHTS",
             "EXPR$0=NEW YORK");
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select _MAP['city'] as city, _MAP['state'] from elastic.zips "
             + "order by _MAP['city'] asc")
         .returns(sortedResultSetChecker("city", RelFieldCollation.Direction.ASCENDING))
         .returnsCount(ZIPS_SIZE);
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select _MAP['city'] as city, _MAP['state'] from elastic.zips "
             + "order by _MAP['city'] desc")
         .returns(sortedResultSetChecker("city", RelFieldCollation.Direction.DESCENDING))
         .returnsCount(ZIPS_SIZE);
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select max(_MAP['pop']), min(_MAP['pop']), _MAP['state'] from elastic.zips "
             + "group by _MAP['state'] order by _MAP['state'] limit 3")
         .returnsOrdered("EXPR$0=32383.0; EXPR$1=23238.0; EXPR$2=AK",
              "EXPR$0=44165.0; EXPR$1=42124.0; EXPR$2=AL",
              "EXPR$0=53532.0; EXPR$1=37428.0; EXPR$2=AR");
 
-    CalciteAssert.that()
-        .with(newConnectionFactory())
+    calciteAssertZips()
         .query("select max(_MAP['pop']), min(_MAP['pop']), _MAP['state'] from elastic.zips "
             + "where _MAP['state'] = 'NY' group by _MAP['state'] order by _MAP['state'] limit 3")
         .returns("EXPR$0=111396.0; EXPR$1=88241.0; EXPR$2=NY\n");
@@ -350,7 +374,7 @@ class ElasticSearchAdapterTest {
   @Test void sortAscDesc() {
     final String sql = "select city, state, pop from zips\n"
         + "order by pop desc, state asc, city desc limit 3";
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .returnsOrdered("city=CHICAGO; state=IL; pop=112047",
               "city=BROOKLYN; state=NY; pop=111396",
@@ -367,7 +391,7 @@ class ElasticSearchAdapterTest {
   @Test void testOffsetLimit() {
     final String sql = "select state, id from zips\n"
         + "offset 2 fetch next 3 rows only";
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .runs()
         .returnsCount(3)
@@ -382,7 +406,7 @@ class ElasticSearchAdapterTest {
     final String sql = "select state, id from zips\n"
         + "fetch next 3 rows only";
 
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .runs()
         .returnsCount(3)
@@ -394,7 +418,7 @@ class ElasticSearchAdapterTest {
 
   @Test void limit2() {
     final String sql = "select id from zips limit 5";
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .runs()
         .returnsCount(5)
@@ -413,7 +437,7 @@ class ElasticSearchAdapterTest {
         + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
         + "      ElasticsearchFilter(condition=[AND(=(CAST(ITEM($0, 'state')):VARCHAR(2), 'CA'), >=(CAST(ITEM($0, 'pop')):INTEGER, 94000))])\n"
         + "        ElasticsearchTableScan(table=[[elastic, zips]])\n\n";
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .returnsOrdered("city=NORWALK; longitude=-118.081767; latitude=33.90564;"
                 + " pop=94188; state=CA; id=90650",
@@ -447,7 +471,7 @@ class ElasticSearchAdapterTest {
         + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
         + "      ElasticsearchFilter(condition=[OR(=(CAST(ITEM($0, 'state')):VARCHAR(2), 'CA'), >=(CAST(ITEM($0, 'pop')):INTEGER, 94000))])\n"
         + "        ElasticsearchTableScan(table=[[elastic, zips]])\n\n";
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'query' : "
@@ -472,7 +496,7 @@ class ElasticSearchAdapterTest {
     final String sql = "select * from zips\n"
         + "where pop BETWEEN 95000 AND 100000\n"
         + "order by state desc, pop";
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .limit(4)
         .returnsOrdered(
@@ -493,7 +517,7 @@ class ElasticSearchAdapterTest {
         String.format(Locale.ROOT, "size:%d", ElasticsearchTransport.DEFAULT_FETCH_SIZE)
     };
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select * from zips where pop in (96074, 99568)")
         .returnsUnordered(
             "city=BELL GARDENS; longitude=-118.17205; latitude=33.969177; pop=99568; state=CA; id=90201",
@@ -502,7 +526,7 @@ class ElasticSearchAdapterTest {
   }
 
   @Test void testZips() {
-    calciteAssert()
+    calciteAssertZips()
         .query("select state, city from zips")
         .returnsCount(ZIPS_SIZE);
   }
@@ -512,7 +536,7 @@ class ElasticSearchAdapterTest {
         + "from zips\n"
         + "order by state, city";
 
-    calciteAssert()
+    calciteAssertZips()
         .query(sql)
         .limit(2)
         .returnsUnordered("state=AK; city=ANCHORAGE; zero=0",
@@ -532,7 +556,7 @@ class ElasticSearchAdapterTest {
         + "    ElasticsearchFilter(condition=[=(CAST(ITEM($0, 'state')):VARCHAR(2), 'CA')])\n"
         + "      ElasticsearchTableScan(table=[[elastic, zips]])";
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select state, city from zips where state = 'CA'")
         .limit(3)
         .returnsUnordered("state=CA; city=BELL GARDENS",
@@ -542,12 +566,12 @@ class ElasticSearchAdapterTest {
   }
 
   @Test void testFilterReversed() {
-    calciteAssert()
+    calciteAssertZips()
         .query("select state, city from zips where 'WI' < state order by city")
         .limit(2)
         .returnsUnordered("state=WV; city=BECKLEY",
             "state=WY; city=CHEYENNE");
-    calciteAssert()
+    calciteAssertZips()
         .query("select state, city from zips where state > 'WI' order by city")
         .limit(2)
         .returnsUnordered("state=WV; city=BECKLEY",
@@ -555,7 +579,7 @@ class ElasticSearchAdapterTest {
   }
 
   @Test void agg1() {
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*) from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
@@ -563,11 +587,11 @@ class ElasticSearchAdapterTest {
         .returns("EXPR$0=149\n");
 
     // check with limit (should still return correct result).
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*) from zips limit 1")
         .returns("EXPR$0=149\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*) as cnt from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
@@ -575,7 +599,7 @@ class ElasticSearchAdapterTest {
             "size:0", "track_total_hits:true"))
         .returns("cnt=149\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select min(pop), max(pop) from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
@@ -586,18 +610,18 @@ class ElasticSearchAdapterTest {
                 + "{field:'pop'}}}"))
         .returns("EXPR$0=21; EXPR$1=112047\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select min(pop) as min1, max(pop) as max1 from zips")
         .returns("min1=21; max1=112047\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*), max(pop), min(pop), sum(pop), avg(pop) from zips")
         .returns("EXPR$0=149; EXPR$1=112047; EXPR$2=21; EXPR$3=7865489; EXPR$4=52788\n");
   }
 
   @Test void groupBy() {
     // distinct
-    calciteAssert()
+    calciteAssertZips()
         .query("select distinct state\n"
             + "from zips\n"
             + "limit 6")
@@ -613,7 +637,7 @@ class ElasticSearchAdapterTest {
             "state=CO");
 
     // without aggregate function
-    calciteAssert()
+    calciteAssertZips()
         .query("select state, city\n"
             + "from zips\n"
             + "group by state, city\n"
@@ -635,7 +659,7 @@ class ElasticSearchAdapterTest {
             "state=OR; city=BEAVERTON");
 
     // ascending
-    calciteAssert()
+    calciteAssertZips()
         .query("select min(pop), max(pop), state\n"
             + "from zips\n"
             + "group by state\n"
@@ -651,7 +675,7 @@ class ElasticSearchAdapterTest {
             "EXPR$0=37428; EXPR$1=53532; state=AR");
 
     // just one aggregation function
-    calciteAssert()
+    calciteAssertZips()
         .query("select min(pop), state\n"
             + "from zips\n"
             + "group by state\n"
@@ -668,7 +692,7 @@ class ElasticSearchAdapterTest {
             "EXPR$0=37428; state=AR");
 
     // group by count
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(city), state\n"
             + "from zips\n"
             + "group by state\n"
@@ -685,7 +709,7 @@ class ElasticSearchAdapterTest {
             "EXPR$0=3; state=AR");
 
     // descending
-    calciteAssert()
+    calciteAssertZips()
         .query("select min(pop), max(pop), state\n"
             + "from zips\n"
             + "group by state\n"
@@ -706,23 +730,23 @@ class ElasticSearchAdapterTest {
   /** Tests the {@code NOT} operator. */
   @Test void notOperator() {
     // largest zips (states) in mini-zip by pop (sorted) : IL, NY, CA, MI
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*), max(pop) from zips where state not in ('IL')")
         .returns("EXPR$0=146; EXPR$1=111396\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*), max(pop) from zips where not state in ('IL')")
         .returns("EXPR$0=146; EXPR$1=111396\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*), max(pop) from zips where not state not in ('IL')")
         .returns("EXPR$0=3; EXPR$1=112047\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*), max(pop) from zips where state not in ('IL', 'NY')")
         .returns("EXPR$0=143; EXPR$1=99568\n");
 
-    calciteAssert()
+    calciteAssertZips()
         .query("select count(*), max(pop) from zips where state not in ('IL', 'NY', 'CA')")
         .returns("EXPR$0=140; EXPR$1=84712\n");
 
@@ -735,7 +759,7 @@ class ElasticSearchAdapterTest {
    * (approximate counts using HyperLogLog++ algorithm).
    */
   @Test void approximateCount() {
-    calciteAssert()
+    calciteAssertZips()
         .query("select state, approx_count_distinct(city), approx_count_distinct(pop) from zips"
             + " group by state order by state limit 3")
         .queryContains(
@@ -749,6 +773,33 @@ class ElasticSearchAdapterTest {
         .returnsOrdered("state=AK; EXPR$1=3; EXPR$2=3",
             "state=AL; EXPR$1=3; EXPR$2=3",
             "state=AR; EXPR$1=3; EXPR$2=3");
+  }
+
+  @Test void testNullsSort() {
+    calciteAssertZipsWithNull()
+        .query("select * from zipswithnull order by age desc nulls last, score asc nulls first")
+        .returns("age=22; name=testName2; score=92; weight=64.0\n"
+                + "age=22; name=testName3; score=93; weight=null\n"
+                + "age=21; name=testName1; score=91; weight=65.0\n"
+                + "age=null; name=testName6; score=null; weight=null\n"
+                + "age=null; name=testName4; score=90; weight=68.5\n"
+                + "age=null; name=testName5; score=95; weight=66.5\n");
+
+    calciteAssertZipsWithNull()
+        .query("select * from zipswithnull order by age desc nulls last, weight asc nulls first")
+        .returns("age=22; name=testName3; score=93; weight=null\n"
+            + "age=22; name=testName2; score=92; weight=64.0\n"
+            + "age=21; name=testName1; score=91; weight=65.0\n"
+            + "age=null; name=testName6; score=null; weight=null\n"
+            + "age=null; name=testName5; score=95; weight=66.5\n"
+            + "age=null; name=testName4; score=90; weight=68.5\n");
+
+    calciteAssertZipsWithNull()
+        .query("select age, count(name) as CNT from zipswithnull group by age "
+            + "order by age asc nulls first")
+        .returns("age=null; CNT=3\n"
+            + "age=21; CNT=1\n"
+            + "age=22; CNT=2\n");
   }
 
 }

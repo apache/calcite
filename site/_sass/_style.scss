@@ -705,11 +705,21 @@ blockquote {
 /* Tables */
 
 table {
+  /* Allow code inside tables to wrap when there is no space */
+  pre,
+  code {
+    white-space: pre-wrap;
+  }
   width: 100%;
   background-color: #555;
   margin: .5em 0;
   @include border-radius(5px);
   @include box-shadow(0 1px 3px rgba(0,0,0,.3));
+}
+
+/* The CSS class is added via _plugins/wrap_table.rb plugin to enable horizontal scrolling */
+.scroll-table-style {
+  overflow-x: auto;
 }
 
 thead {

@@ -77,7 +77,7 @@ To produce a larger number of rewritings, the rule relies on the information exp
 
 Let us illustrate with some examples the coverage of the view rewriting algorithm implemented in `MaterializedViewRule`. The examples are based on the following database schema.
 
-```
+```sql
 CREATE TABLE depts(
   deptno INT NOT NULL,
   deptname VARCHAR(20),
@@ -106,7 +106,7 @@ The rewriting can handle different join orders in the query and the view definit
 
 * Query:
 
-```
+```sql
 SELECT empid
 FROM depts
 JOIN (
@@ -118,7 +118,7 @@ ON depts.deptno = subq.deptno
 
 * Materialized view definition:
 
-```
+```sql
 SELECT empid
 FROM emps
 JOIN depts USING (deptno)
@@ -126,7 +126,7 @@ JOIN depts USING (deptno)
 
 * Rewriting:
 
-```
+```sql
 SELECT empid
 FROM mv
 WHERE empid = 1
@@ -137,7 +137,7 @@ WHERE empid = 1
 
 * Query:
 
-```
+```sql
 SELECT deptno
 FROM emps
 WHERE deptno > 10
@@ -146,7 +146,7 @@ GROUP BY deptno
 
 * Materialized view definition:
 
-```
+```sql
 SELECT empid, deptno
 FROM emps
 WHERE deptno > 5
@@ -155,7 +155,7 @@ GROUP BY empid, deptno
 
 * Rewriting:
 
-```
+```sql
 SELECT deptno
 FROM mv
 WHERE deptno > 10
@@ -167,7 +167,7 @@ GROUP BY deptno
 
 * Query:
 
-```
+```sql
 SELECT deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 GROUP BY deptno
@@ -175,7 +175,7 @@ GROUP BY deptno
 
 * Materialized view definition:
 
-```
+```sql
 SELECT empid, deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 GROUP BY empid, deptno
@@ -183,7 +183,7 @@ GROUP BY empid, deptno
 
 * Rewriting:
 
-```
+```sql
 SELECT deptno, SUM(c), SUM(s)
 FROM mv
 GROUP BY deptno
@@ -196,7 +196,7 @@ Through the declared constraints, the rule can detect joins that only append col
 
 * Query:
 
-```
+```sql
 SELECT deptno, COUNT(*)
 FROM emps
 GROUP BY deptno
@@ -204,7 +204,7 @@ GROUP BY deptno
 
 * Materialized view definition:
 
-```
+```sql
 SELECT empid, depts.deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 JOIN depts USING (deptno)
@@ -213,7 +213,7 @@ GROUP BY empid, depts.deptno
 
 * Rewriting:
 
-```
+```sql
 SELECT deptno, SUM(c)
 FROM mv
 GROUP BY deptno
@@ -224,7 +224,7 @@ GROUP BY deptno
 
 * Query:
 
-```
+```sql
 SELECT deptname, state, SUM(salary) AS s
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
@@ -234,7 +234,7 @@ GROUP BY deptname, state
 
 * Materialized view definition:
 
-```
+```sql
 SELECT empid, deptno, state, SUM(salary) AS s
 FROM emps
 JOIN locations ON emps.locationid = locations.locationid
@@ -243,7 +243,7 @@ GROUP BY empid, deptno, state
 
 * Rewriting:
 
-```
+```sql
 SELECT deptname, state, SUM(s)
 FROM mv
 JOIN depts ON mv.deptno = depts.deptno
@@ -255,7 +255,7 @@ GROUP BY deptname, state
 
 * Query:
 
-```
+```sql
 SELECT empid, deptname
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
@@ -264,7 +264,7 @@ WHERE salary > 10000
 
 * Materialized view definition:
 
-```
+```sql
 SELECT empid, deptname
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
@@ -273,7 +273,7 @@ WHERE salary > 12000
 
 * Rewriting:
 
-```
+```sql
 SELECT empid, deptname
 FROM mv
 UNION ALL
@@ -288,7 +288,7 @@ WHERE salary > 10000 AND salary <= 12000
 
 * Query:
 
-```
+```sql
 SELECT empid, deptname, SUM(salary) AS s
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
@@ -298,7 +298,7 @@ GROUP BY empid, deptname
 
 * Materialized view definition:
 
-```
+```sql
 SELECT empid, deptname, SUM(salary) AS s
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
@@ -308,7 +308,7 @@ GROUP BY empid, deptname
 
 * Rewriting:
 
-```
+```sql
 SELECT empid, deptname, SUM(s)
 FROM (
   SELECT empid, deptname, s
