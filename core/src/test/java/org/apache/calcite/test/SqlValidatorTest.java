@@ -9210,6 +9210,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
                 + " CATALOG.SALES.EMP.HIREDATE,"
                 + " null,"
                 + " null}"));
+
+    sql("select e.empno from dept_nested, unnest(employees) as e")
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.DEPT_NESTED.EMPLOYEES.EMPNO}"));
+
+    sql("select * from UNNEST(ARRAY['a', 'b'])")
+        .assertFieldOrigin(is("{null}"));
+
+    sql("select * from UNNEST(ARRAY['a', 'b'], ARRAY['d', 'e'])")
+        .assertFieldOrigin(is("{null, null}"));
+
+    sql("select dpt.skill.desc from dept_nested as dpt")
+        .assertFieldOrigin(is("{CATALOG.SALES.DEPT_NESTED.SKILL.DESC}"));
   }
 
   @Test void testBrackets() {
