@@ -1076,7 +1076,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       SqlToRelConverter sqlToRelConverter =
           getSqlToRelConverter(validator, catalogReader, config);
       RelRoot root =
-          sqlToRelConverter.convertQuery(sqlNode, true, false);
+          sqlToRelConverter.convertQuery(sqlNode, true, true);
 
       --expansionDepth;
       return root;

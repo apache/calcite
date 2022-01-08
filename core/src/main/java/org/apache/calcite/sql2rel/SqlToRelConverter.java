@@ -683,6 +683,42 @@ public class SqlToRelConverter {
     convertFrom(
         bb,
         select.getFrom());
+
+    // We would like to remove ORDER BY clause from an expanded view, except if
+    // it is top-level or affects semantics.
+    //
+    // Top-level example. Given the view definition
+    //   CREATE VIEW v AS SELECT * FROM t ORDER BY x
+    // we would retain the view's ORDER BY in
+    //   SELECT * FROM v
+    // or
+    //   SELECT * FROM v WHERE y = 5
+    // but remove the view's ORDER BY in
+    //   SELECT * FROM v ORDER BY z
+    // and
+    //   SELECT deptno, COUNT(*) FROM v GROUP BY deptno
+    // because the ORDER BY and GROUP BY mean that the view is not 'top level' in
+    // the query.
+    //
+    // Semantics example. Given the view definition
+    //   CREATE VIEW v2 AS SELECT * FROM t ORDER BY x LIMIT 10
+    // we would never remove the ORDER BY, because "ORDER BY ... LIMIT" is about
+    // semantics. It is not a 'pure order'.
+    if (RelOptUtil.isPureOrder(castNonNull(bb.root))
+        && config.isRemoveSortInSubQuery()) {
+      // Remove the Sort if the view is at the top level. Also remove the Sort
+      // if there are other nodes, which will cause the view to be in the
+      // sub-query.
+      if (!bb.top
+          || validator().isAggregate(select)
+          || select.isDistinct()
+          || select.hasOrderBy()
+          || select.getFetch() != null
+          || select.getOffset() != null) {
+        bb.setRoot(castNonNull(bb.root).getInput(0), true);
+      }
+    }
+
     convertWhere(
         bb,
         select.getWhere());
@@ -2586,14 +2622,19 @@ public class SqlToRelConverter {
               extendedColumns);
       table = table.extend(extendedFields);
     }
-    final RelNode tableRel;
     // Review Danny 2020-01-13: hacky to construct a new table scan
     // in order to apply the hint strategies.
     final List<RelHint> hints = hintStrategies.apply(
         SqlUtil.getRelHint(hintStrategies, tableHints),
         LogicalTableScan.create(cluster, table, ImmutableList.of()));
-    tableRel = toRel(table, hints);
+    final RelNode tableRel = toRel(table, hints);
     bb.setRoot(tableRel, true);
+
+    if (RelOptUtil.isPureOrder(castNonNull(bb.root))
+        && removeSortInSubQuery(bb.top)) {
+      bb.setRoot(castNonNull(bb.root).getInput(0), true);
+    }
+
     if (usedDataset[0]) {
       bb.setDataset(datasetName);
     }
