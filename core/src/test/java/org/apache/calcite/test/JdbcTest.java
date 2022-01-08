@@ -5878,6 +5878,19 @@ public class JdbcTest {
     });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4323">[CALCITE-4323]
+   * View with ORDER BY throws AssertionError during view expansion</a>. */
+  @Test void testSortedView() {
+    final String viewSql = "select * from \"EMPLOYEES\" order by \"deptno\"";
+    final String sql = "select * from \"adhoc\".V";
+    modelWithView(viewSql, null).query(sql)
+        .returnsUnordered("empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
+  }
+
   /** Tests a view with ORDER BY and LIMIT clauses. */
   @Test void testOrderByView() throws Exception {
     final CalciteAssert.AssertThat with =
