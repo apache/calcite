@@ -2144,6 +2144,18 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4982">[CALCITE-4982]
+   * NonNull field shouldn't be pushed down into leaf of outer-join
+   * in 'ProjectJoinTransposeRule'</a>. */
+  @Test void testPushProjectPastOutJoinWithCastNonNullExpr() {
+    final String sql = "select e.empno + 1 as c1, coalesce(d.name, b.job, '') as c2\n"
+        + "from emp e\n"
+        + "left join bonus b on e.ename = b.ename\n"
+        + "left join dept d on e.deptno = d.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
   @Test void testPushProjectPastSetOp() {
     final String sql = "select sal from\n"
         + "(select * from emp e1 union all select * from emp e2)";
