@@ -101,6 +101,10 @@ public class Strong {
    * given whether its arguments are null.
    */
   public static Policy policy(RexNode rexNode) {
+    // If cast not null, return NOT_NULL directly.
+    if (rexNode.getKind() == SqlKind.CAST && !rexNode.getType().isNullable()) {
+      return Policy.NOT_NULL;
+    }
     if (rexNode instanceof RexCall) {
       return policy(((RexCall) rexNode).getOperator());
     }
