@@ -403,4 +403,32 @@ class AggregationTest {
         .returnsUnordered("v1=7; v2=5");
   }
 
+  @Test void testMultiNullsSortInGroup() {
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select val1, cat5, count(1) as CNT from view group by val1, cat5 "
+            + "order by cat5 desc nulls first, val1 asc")
+        .returns("val1=null; cat5=null; CNT=1\n"
+                + "val1=7; cat5=2; CNT=1\n"
+                + "val1=1; cat5=1; CNT=1\n");
+
+    CalciteAssert.that()
+        .with(newConnectionFactory())
+        .query("select val2, cat5 from view group by val2, cat5 "
+            + "order by val2 asc nulls last, cat5 desc nulls last")
+        .returns("val2=5; cat5=null\n"
+            + "val2=42; cat5=2\n"
+            + "val2=null; cat5=1\n")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker(
+                "'_source':false", "size:0", "stored_fields:'_none_'",
+                "aggregations:{g_val2:{terms:{"
+                    + "field:'val2'",
+                "missing:9223372036854775807",
+                "order:{_key:'asc'}}",
+                "aggregations:{g_cat5:{terms:{"
+                    + "field:'cat5'",
+                "missing:-2147483648",
+                "order:{_key:'desc'}}}}}}}"));
+  }
 }

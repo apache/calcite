@@ -88,7 +88,7 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
     final Expression ops = block.append("ops", Expressions.constant(implementor.list));
     final Expression sort = block.append("sort", constantArrayList(implementor.sort, Pair.class));
     final Expression nullsSort = block.append("nullsSort",
-        Expressions.constant(implementor.nullsSort));
+        constantArrayList(implementor.nullsSort, Pair.class));
     final Expression groupBy = block.append("groupBy", Expressions.constant(implementor.groupBy));
     final Expression aggregations = block.append("aggregations",
         constantArrayList(implementor.aggregations, Pair.class));

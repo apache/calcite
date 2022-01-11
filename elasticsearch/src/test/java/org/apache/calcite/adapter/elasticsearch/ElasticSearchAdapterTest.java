@@ -72,25 +72,11 @@ class ElasticSearchAdapterTest {
       + " cast(_MAP['loc'][0] AS float) AS \"longitude\",\n"
       + " cast(_MAP['loc'][1] AS float) AS \"latitude\",\n"
       + " cast(_MAP['pop'] AS integer) AS \"pop\", "
-      +  " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
-      +  " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
-      +  "from \"elastic\".\"zips\"";
+      + " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
+      + " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
+      + " from \"elastic\".\"%s\"";
 
   private static final String ZIPSWITHNULL = "zipswithnull";
-
-  private static final Map<String, String> ZIPSWITHNULL_MAPPING =
-      ImmutableMap.<String, String>builder()
-            .put("age", "integer")
-            .put("name", "keyword")
-            .put("score", "integer")
-            .put("weight", "double")
-            .build();
-
-  private static final String ZIPSWITHNULL_VIEW = "select cast(_MAP['age'] AS integer) AS \"age\", "
-      + " cast(_MAP['name'] AS varchar(20)) AS \"name\", "
-      +  " cast(_MAP['score'] AS integer) AS \"score\", "
-      +  " cast(_MAP['weight'] AS double) AS \"weight\" "
-      +  "from \"elastic\".\"zipswithnull\"";
 
   private static final Map<String, String> DOC_SOURCE_LOCATION =
       ImmutableMap.<String, String>builder()
@@ -107,7 +93,7 @@ class ElasticSearchAdapterTest {
   @BeforeAll
   public static void setupInstance() throws Exception {
     NODE.createIndex(ZIPS, ZIPS_MAPPING);
-    NODE.createIndex(ZIPSWITHNULL, ZIPSWITHNULL_MAPPING);
+    NODE.createIndex(ZIPSWITHNULL, ZIPS_MAPPING);
 
     // load records from file
     for (Map.Entry<String, String> entry : DOC_SOURCE_LOCATION.entrySet()) {
@@ -137,10 +123,8 @@ class ElasticSearchAdapterTest {
     final String viewSql;
     switch (index) {
     case ZIPS:
-      viewSql = ZIPS_VIEW;
-      break;
     case ZIPSWITHNULL:
-      viewSql = ZIPSWITHNULL_VIEW;
+      viewSql = String.format(Locale.ROOT, ZIPS_VIEW, index);
       break;
     default:
       throw new IllegalStateException("Index " + index + " doesn't exist!");
@@ -777,29 +761,38 @@ class ElasticSearchAdapterTest {
 
   @Test void testNullsSort() {
     calciteAssertZipsWithNull()
-        .query("select * from zipswithnull order by age desc nulls last, score asc nulls first")
-        .returns("age=22; name=testName2; score=92; weight=64.0\n"
-                + "age=22; name=testName3; score=93; weight=null\n"
-                + "age=21; name=testName1; score=91; weight=65.0\n"
-                + "age=null; name=testName6; score=null; weight=null\n"
-                + "age=null; name=testName4; score=90; weight=68.5\n"
-                + "age=null; name=testName5; score=95; weight=66.5\n");
+        .query("select id, pop from zipswithnull order by pop desc nulls last")
+        .returns("id=01701; pop=65046\n"
+                + "id=02401; pop=59498\n"
+                + "id=02154; pop=57871\n"
+                + "id=null; pop=47687\n"
+                + "id=null; pop=45442\n"
+                + "id=null; pop=null\n")
+        .queryContains(
+            ElasticsearchChecker.elasticsearchChecker(
+                "_source:[ 'id', 'pop' ]",
+                "sort:[ {pop:{missing:'_last', order:'desc'}} ]",
+                "size:5196"));
 
     calciteAssertZipsWithNull()
-        .query("select * from zipswithnull order by age desc nulls last, weight asc nulls first")
-        .returns("age=22; name=testName3; score=93; weight=null\n"
-            + "age=22; name=testName2; score=92; weight=64.0\n"
-            + "age=21; name=testName1; score=91; weight=65.0\n"
-            + "age=null; name=testName6; score=null; weight=null\n"
-            + "age=null; name=testName5; score=95; weight=66.5\n"
-            + "age=null; name=testName4; score=90; weight=68.5\n");
+        .query("select pop, count(1) as CNT from zipswithnull group by pop "
+            + "order by pop asc nulls last")
+        .returns("pop=45442; CNT=1\n"
+            + "pop=47687; CNT=1\n"
+            + "pop=57871; CNT=1\n"
+            + "pop=59498; CNT=1\n"
+            + "pop=65046; CNT=1\n"
+            + "pop=null; CNT=1\n");
 
     calciteAssertZipsWithNull()
-        .query("select age, count(name) as CNT from zipswithnull group by age "
-            + "order by age asc nulls first")
-        .returns("age=null; CNT=3\n"
-            + "age=21; CNT=1\n"
-            + "age=22; CNT=2\n");
+        .query("select pop, count(1) as CNT from zipswithnull group by pop "
+            + "order by pop desc nulls first")
+        .returns("pop=null; CNT=1\n"
+            + "pop=65046; CNT=1\n"
+            + "pop=59498; CNT=1\n"
+            + "pop=57871; CNT=1\n"
+            + "pop=47687; CNT=1\n"
+            + "pop=45442; CNT=1\n");
   }
 
 }

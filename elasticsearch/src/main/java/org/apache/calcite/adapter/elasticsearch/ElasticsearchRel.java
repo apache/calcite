@@ -24,7 +24,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +58,7 @@ public interface ElasticsearchRel extends RelNode {
      * Sorting missing values.
      * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/sort-search-results.html#_missing_values">Missing Values</a>
      */
-    final Map<String, RelFieldCollation.NullDirection> nullsSort = new HashMap<>();
+    final List<Map.Entry<String, RelFieldCollation.NullDirection>> nullsSort = new ArrayList<>();
 
     /**
      * Elastic aggregation ({@code MIN / MAX / COUNT} etc.) statements (functions).
@@ -113,7 +112,7 @@ public interface ElasticsearchRel extends RelNode {
 
     void addNullsSort(String field, RelFieldCollation.NullDirection nullDirection) {
       Objects.requireNonNull(field, "field");
-      nullsSort.put(field, nullDirection);
+      nullsSort.add(new Pair<>(field, nullDirection));
     }
 
     void addAggregation(String field, String expression) {
