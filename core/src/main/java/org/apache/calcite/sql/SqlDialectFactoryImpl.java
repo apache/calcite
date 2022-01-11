@@ -213,14 +213,16 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return PrestoSqlDialect.DEFAULT;
     case REDSHIFT:
       return RedshiftSqlDialect.DEFAULT;
+    case SNOWFLAKE:
+      return SnowflakeSqlDialect.DEFAULT;
+    case SPARK:
+      return SparkSqlDialect.DEFAULT;
     case SYBASE:
       return SybaseSqlDialect.DEFAULT;
     case TERADATA:
       return TeradataSqlDialect.DEFAULT;
     case VERTICA:
       return VerticaSqlDialect.DEFAULT;
-    case SPARK:
-      return SparkSqlDialect.DEFAULT;
     case SQLSTREAM:
     case UNKNOWN:
     default:

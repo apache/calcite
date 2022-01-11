@@ -6069,6 +6069,25 @@ class RelToSqlConverterTest {
     sql.ok(expected);
   }
 
+  @Test void testSelectApproxCountDistinct() {
+    final String query = "select approx_count_distinct(\"product_id\") from \"product\"";
+    final String expectedExact = "SELECT COUNT(DISTINCT \"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedApprox = "SELECT APPROX_COUNT_DISTINCT(product_id)\n"
+        + "FROM foodmart.product";
+    final String expectedApproxQuota = "SELECT APPROX_COUNT_DISTINCT(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedPrestoSql = "SELECT APPROX_DISTINCT(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expectedExact)
+        .withHive().ok(expectedApprox)
+        .withSpark().ok(expectedApprox)
+        .withBigQuery().ok(expectedApprox)
+        .withOracle().ok(expectedApproxQuota)
+        .withSnowflake().ok(expectedApproxQuota)
+        .withPresto().ok(expectedPrestoSql);
+  }
+
   @Test void testRowValueExpression() {
     String sql = "insert into \"DEPT\"\n"
         + "values ROW(1,'Fred', 'San Francisco'),\n"
