@@ -745,6 +745,11 @@ public class SqlDialect {
     return false;
   }
 
+  /** Returns whether this dialect supports APPROX_COUNT_DISTINCT functions. */
+  public boolean supportsApproxCountDistinct() {
+    return false;
+  }
+
   /** Returns whether this dialect supports the use of FILTER clauses for
    * aggregate functions. e.g. {@code COUNT(*) FILTER (WHERE a = 2)}. */
   public boolean supportsAggregateFunctionFilter() {
