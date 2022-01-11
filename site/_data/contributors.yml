@@ -25,6 +25,11 @@
   githubId: alanfgates
   org: Hortonworks
   role: PMC
+- name: Alessandro Solimando
+  apacheId: asolimando
+  githubId: asolimando
+  org: Cloudera
+  role: Committer
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
