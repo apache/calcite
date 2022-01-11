@@ -49,7 +49,6 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.codehaus.commons.nullanalysis.NotNull;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
