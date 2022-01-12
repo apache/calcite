@@ -546,16 +546,15 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql("select \"empid\", \"deptno\",  sum(\"salary\") as s\n"
             + "from \"emps\" group by  grouping sets ((\"empid\", \"deptno\"),(\"empid\"))",
         "select  \"deptno\"\n, count(distinct \"deptno\") "
-            + "from \"emps\" where \"empid\">'aaa' "
+            + "from \"emps\" where \"empid\">100 "
             + "group by  grouping sets ((\"empid\", \"deptno\"), (\"empid\"))")
         .withChecker(
             resultContains(""
                 + "LogicalCalc(expr#0..2=[{inputs}], deptno=[$t1], EXPR$1=[$t2])\n"
                 + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], "
                 + "EXPR$1=[COUNT(DISTINCT $1)])\n"
-                + "    LogicalCalc(expr#0..2=[{inputs}], expr#3=['aaa'], "
-                + "expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[>($t0, $t4)], "
-                + "proj#0..2=[{exprs}], $condition=[$t5])\n"
+                + "    LogicalCalc(expr#0..2=[{inputs}], expr#3=[100], expr#4=[>($t0, $t3)], "
+                + "proj#0..2=[{exprs}], $condition=[$t4])\n"
                 + "      EnumerableTableScan(table=[[hr, MV0]])"))
         .ok();
   }

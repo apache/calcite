@@ -1937,8 +1937,9 @@ public class SubstitutionVisitor {
             target.rowType, compenProjs, targetCond, query.rowType, rexBuilder);
         result = MutableCalc.of(target, compenRexProgram);
       } else if (targetCond != null && !targetCond.isAlwaysTrue()) {
-        RexProgram compenRexProgram = RexProgram
-            .create(target.rowType, rexBuilder.identityProjects(target.rowType), targetCond, target.rowType, rexBuilder);
+        RexProgram compenRexProgram = RexProgram.create(
+            target.rowType, rexBuilder.identityProjects(target.rowType),
+            targetCond, target.rowType, rexBuilder);
         result = MutableAggregate.of(MutableCalc.of(target, compenRexProgram),
             target.groupSet, target.groupSets, targetGroupGenAggCalls);
       } else {
