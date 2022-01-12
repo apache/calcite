@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.hep;
 
+import org.apache.calcite.plan.CommonRelSubExprRule;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 
@@ -169,6 +170,37 @@ public class HepProgramBuilder {
     return this;
   }
 
+  /**
+   * Adds an instruction to attempt to match instances of
+   * {@link org.apache.calcite.rel.convert.ConverterRule},
+   * but only where a conversion is actually required.
+   *
+   * @param guaranteed if true, use only guaranteed converters; if false, use
+   *                   only non-guaranteed converters
+   */
+  @Deprecated // to be removed before 2.0
+  public HepProgramBuilder addConverters(boolean guaranteed) {
+    assert group == null;
+    HepInstruction.ConverterRules instruction =
+        new HepInstruction.ConverterRules();
+    instruction.guaranteed = guaranteed;
+    instructions.add(instruction);
+    return this;
+  }
+
+  /**
+   * Adds an instruction to attempt to match instances of
+   * {@link CommonRelSubExprRule}, but only in cases where vertices have more
+   * than one parent.
+   */
+  @Deprecated // to be removed before 2.0
+  public HepProgramBuilder addCommonRelSubExprInstruction() {
+    assert group == null;
+    HepInstruction.CommonRelSubExprRules instruction =
+        new HepInstruction.CommonRelSubExprRules();
+    instructions.add(instruction);
+    return this;
+  }
   /**
    * Adds an instruction to change the order of pattern matching for
    * subsequent instructions. The new order will take effect for the rest of
