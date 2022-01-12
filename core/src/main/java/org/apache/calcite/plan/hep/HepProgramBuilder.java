@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan.hep;
 
-import org.apache.calcite.plan.CommonRelSubExprRule;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 
