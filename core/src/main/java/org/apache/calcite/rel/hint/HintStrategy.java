@@ -119,31 +119,6 @@ public class HintStrategy {
       return this;
     }
 
-    /**
-     * Registers an array of desired converter rules during the
-     * {@link org.apache.calcite.plan.RelOptPlanner} planning.
-     *
-     * <p>The desired converter rules work together with the excluded rules.
-     * We have no validation here but they expect to have the same
-     * function(semantic equivalent).
-     *
-     * <p>A rule fire cancels if:
-     *
-     * <ol>
-     *   <li>The registered {@link #excludedRules} contains the rule</li>
-     *   <li>And the desired converter rules conversion is not possible
-     *   for the rule matched root node</li>
-     * </ol>
-     *
-     * <p>If no converter rules are specified, we assume the conversion is possible.
-     *
-     * @param rules desired converter rules
-     */
-    public Builder converterRules(ConverterRule... rules) {
-      this.converterRules = ImmutableSet.copyOf(rules);
-      return this;
-    }
-
     public HintStrategy build() {
       return new HintStrategy(predicate, optionChecker, excludedRules, converterRules);
     }
