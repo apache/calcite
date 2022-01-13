@@ -54,6 +54,7 @@ public class EnumerableRepeatUnionRule extends ConverterRule {
         convert(seedRel, seedRel.getTraitSet().replace(out)),
         convert(iterativeRel, iterativeRel.getTraitSet().replace(out)),
         union.all,
-        union.iterationLimit);
+        union.iterationLimit,
+        union.getTransientTable());
   }
 }
