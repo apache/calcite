@@ -178,7 +178,7 @@ public class HepProgramBuilder {
    * @param guaranteed if true, use only guaranteed converters; if false, use
    *                   only non-guaranteed converters
    */
-  @Deprecated // to be removed before 2.0
+  @SuppressWarnings("unused")
   public HepProgramBuilder addConverters(boolean guaranteed) {
     assert group == null;
     HepInstruction.ConverterRules instruction =
@@ -193,7 +193,7 @@ public class HepProgramBuilder {
    * {@link CommonRelSubExprRule}, but only in cases where vertices have more
    * than one parent.
    */
-  @Deprecated // to be removed before 2.0
+  @SuppressWarnings("unused")
   public HepProgramBuilder addCommonRelSubExprInstruction() {
     assert group == null;
     HepInstruction.CommonRelSubExprRules instruction =

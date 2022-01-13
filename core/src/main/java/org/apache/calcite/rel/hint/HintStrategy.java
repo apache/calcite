@@ -139,7 +139,7 @@ public class HintStrategy {
      *
      * @param rules desired converter rules
      */
-    @Deprecated // to be removed before 2.0
+    @SuppressWarnings("unused")
     public Builder converterRules(ConverterRule... rules) {
       this.converterRules = ImmutableSet.copyOf(rules);
       return this;
