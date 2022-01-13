@@ -17,12 +17,24 @@
 package org.apache.calcite.test.enumerable;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRepeatUnion;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.schemata.hr.HierarchySchema;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 /**
  * Unit tests for {@link EnumerableRepeatUnion}.
@@ -227,4 +239,83 @@ class EnumerableRepeatUnionTest {
         .returnsOrdered("i=1", "i=2", "i=null", "i=3", "i=2", "i=3", "i=3");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4054">[CALCITE-4054]
+   * RepeatUnion containing a Correlate with a transientScan on its RHS causes NPE</a>. */
+  @Test void testRepeatUnionWithCorrelateWithTransientScanOnItsRight() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
+        .withSchema("s", new ReflectiveSchema(new HierarchySchema()))
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(JoinToCorrelateRule.Config.DEFAULT.toRule());
+          planner.removeRule(JoinCommuteRule.Config.DEFAULT.toRule());
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        .withRel(builder -> {
+          builder
+              //   WITH RECURSIVE delta(empid, name) as (
+              //     SELECT empid, name FROM emps WHERE empid = 2
+              //     UNION ALL
+              //     SELECT e.empid, e.name FROM delta d
+              //                            JOIN hierarchies h ON d.empid = h.managerid
+              //                            JOIN emps e        ON h.subordinateid = e.empid
+              //   )
+              //   SELECT empid, name FROM delta
+              .scan("s", "emps")
+              .filter(
+                  builder.equals(
+                      builder.field("empid"),
+                      builder.literal(2)))
+              .project(
+                  builder.field("emps", "empid"),
+                  builder.field("emps", "name"))
+
+              .transientScan("#DELTA#");
+          RelNode transientScan = builder.build(); // pop the transientScan to use it later
+
+          builder
+              .scan("s", "hierarchies")
+              .push(transientScan) // use the transientScan as right input of the join
+              .join(
+                  JoinRelType.INNER,
+                  builder.equals(
+                      builder.field(2, "#DELTA#", "empid"),
+                      builder.field(2, "hierarchies", "managerid")))
+
+              .scan("s", "emps")
+              .join(
+                  JoinRelType.INNER,
+                  builder.equals(
+                      builder.field(2, "hierarchies", "subordinateid"),
+                      builder.field(2, "emps", "empid")))
+              .project(
+                  builder.field("emps", "empid"),
+                  builder.field("emps", "name"))
+              .repeatUnion("#DELTA#", true);
+          return builder.build();
+        })
+        .explainHookMatches(""
+            + "EnumerableRepeatUnion(all=[true])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[#DELTA#]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[2], expr#6=[=($t0, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[#DELTA#]])\n"
+            + "    EnumerableCalc(expr#0..8=[{inputs}], empid=[$t4], name=[$t6])\n"
+            + "      EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])\n"
+            // It is important to have EnumerableCorrelate + #DELTA# table scan on its right
+            // to reproduce the issue CALCITE-4054
+            + "        EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+            + "          EnumerableTableScan(table=[[s, hierarchies]])\n"
+            + "          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.managerid], expr#4=[=($t0, $t3)], proj#0..1=[{exprs}], $condition=[$t4])\n"
+            + "            EnumerableInterpreter\n"
+            + "              BindableTableScan(table=[[#DELTA#]])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.subordinateid], expr#7=[=($t6, $t0)], proj#0..4=[{exprs}], $condition=[$t7])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n")
+        .returnsUnordered(""
+            + "empid=2; name=Emp2\n"
+            + "empid=3; name=Emp3\n"
+            + "empid=5; name=Emp5");
+  }
 }
