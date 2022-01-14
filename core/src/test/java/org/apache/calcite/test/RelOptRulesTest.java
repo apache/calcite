@@ -201,6 +201,17 @@ class RelOptRulesTest extends RelOptTestBase {
           && "item".equalsIgnoreCase(((RexCall) expr).getOperator().getName());
   }
 
+  @Test void testGroupByDateLiteralSimple() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+
+    final String query = "select avg(sal)\n"
+        + "from emp\n"
+        + "group by DATE '2022-01-01'";
+    sql(query).withPlanner(hepPlanner).check();
+  }
+
   @Test void testGroupByBooleanConstantSimple() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
@@ -219,7 +230,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     final String query = "select avg(sal)\n"
         + "from emp\n"
-        + "group by false, deptno, true, true, empno, false";
+        + "group by false, deptno, true, true, empno, false, 'ab', DATE '2022-01-01'";
     sql(query).withPlanner(hepPlanner).check();
   }
 

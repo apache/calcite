@@ -16,6 +16,31 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testGroupByDateLiteralSimple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by DATE '2022-01-01']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[2022-01-01], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject(LTRL0=[$9], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ 2022-01-01 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAddRedundantSemiJoinRule">
     <Resource name="sql">
       <![CDATA[select 1 from emp inner join dept on emp.deptno = dept.deptno]]>
@@ -4042,20 +4067,20 @@ LogicalProject(EXPR$0=[1])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(EXPR$0=[$4])
-  LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$0=[AVG($4)])
-    LogicalProject($f0=[false], DEPTNO=[$7], $f2=[true], EMPNO=[$0], SAL=[$5])
+LogicalProject(EXPR$0=[$6])
+  LogicalAggregate(group=[{0, 1, 2, 3, 4, 5}], EXPR$0=[AVG($6)])
+    LogicalProject($f0=[false], DEPTNO=[$7], $f2=[true], EMPNO=[$0], $f4=['ab'], $f5=[2022-01-01], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=[$4])
-  LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$0=[AVG($4)])
-    LogicalProject(F=[$10], DEPTNO=[$7], T=[$9], EMPNO=[$0], SAL=[$5])
+LogicalProject(EXPR$0=[$6])
+  LogicalAggregate(group=[{0, 1, 2, 3, 4, 5}], EXPR$0=[AVG($6)])
+    LogicalProject(LTRL0=[$9], DEPTNO=[$7], LTRL1=[$10], EMPNO=[$0], LTRL2=[$11], LTRL3=[$12], SAL=[$5])
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalValues(tuples=[[{ true, false }]])
+        LogicalValues(tuples=[[{ false, true, 'ab', 2022-01-01 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -4077,10 +4102,10 @@ LogicalProject(EXPR$0=[$1])
       <![CDATA[
 LogicalProject(EXPR$0=[$1])
   LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-    LogicalProject(T=[$9], SAL=[$5])
+    LogicalProject(LTRL0=[$9], SAL=[$5])
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalValues(tuples=[[{ true, false }]])
+        LogicalValues(tuples=[[{ true }]])
 ]]>
     </Resource>
   </TestCase>

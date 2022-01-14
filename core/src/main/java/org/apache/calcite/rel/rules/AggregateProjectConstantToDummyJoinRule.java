@@ -24,14 +24,15 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Planner rule that recognizes  a {@link org.apache.calcite.rel.core.Aggregate}
@@ -69,8 +70,7 @@ public final class AggregateProjectConstantToDummyJoinRule
         continue;
       }
       RexNode groupKeyProject = project.getProjects().get(groupKey);
-      if (groupKeyProject instanceof RexLiteral
-          && groupKeyProject.getType().getFamily() == SqlTypeFamily.BOOLEAN) {
+      if (groupKeyProject instanceof RexLiteral) {
         return true;
       }
     }
@@ -86,18 +86,29 @@ public final class AggregateProjectConstantToDummyJoinRule
     RexBuilder rexBuilder = builder.getRexBuilder();
 
     builder.push(project.getInput());
-    builder.values(new String[]{"T", "F"}, true, false);
+
+    List<String> fieldNames = new ArrayList<>();
+    List<Object> valueObjects = new ArrayList<>();
+    Map<RexLiteral, String> literalFieldNameMap = new HashMap<>();
+    int literalCounter = 0;
+    String literalPrefix = "LTRL";
+    for (RexNode node: project.getProjects()) {
+      if (node instanceof RexLiteral) {
+        String fieldName = literalPrefix + literalCounter++;
+        fieldNames.add(fieldName);
+        valueObjects.add(node);
+        literalFieldNameMap.put((RexLiteral) node, fieldName);
+      }
+    }
+
+    builder.values(fieldNames.toArray(new String[0]), valueObjects.toArray());
     builder.join(JoinRelType.INNER, rexBuilder.makeLiteral(true));
 
     List<RexNode> newProjects = new ArrayList<>();
 
     for (RexNode exp : project.getProjects()) {
       if (exp instanceof RexLiteral) {
-        if (exp.isAlwaysTrue()) {
-          newProjects.add(builder.field("T"));
-        } else if (exp.isAlwaysFalse()) {
-          newProjects.add(builder.field("F"));
-        }
+        newProjects.add(builder.field(literalFieldNameMap.get((RexLiteral) exp)));
       } else {
         newProjects.add(exp);
       }

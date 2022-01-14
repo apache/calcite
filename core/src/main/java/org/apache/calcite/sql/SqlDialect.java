@@ -712,7 +712,7 @@ public class SqlDialect {
   }
 
   /**
-   * Returns whether the dialect supports group by with boolean constants.
+   * Returns whether the dialect supports GROUP BY literals.
    *
    * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the query below is illegal.</p>
    * <pre>{@code
@@ -721,7 +721,7 @@ public class SqlDialect {
    * group by true
    * }</pre>
    */
-  public boolean supportsGroupByBooleanConstant() {
+  public boolean supportsGroupByLiteral() {
     return true;
   }
 

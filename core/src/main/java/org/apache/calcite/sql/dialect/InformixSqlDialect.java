@@ -32,7 +32,7 @@ public class InformixSqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override public boolean supportsGroupByBooleanConstant() {
+  @Override public boolean supportsGroupByLiteral() {
     return false;
   }
 

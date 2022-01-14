@@ -437,6 +437,8 @@ public class RelBuilder {
     if (value == null) {
       final RelDataType type = getTypeFactory().createSqlType(SqlTypeName.NULL);
       return rexBuilder.makeNullLiteral(type);
+    } else if (value instanceof RexLiteral) {
+      return (RexLiteral) value;
     } else if (value instanceof Boolean) {
       return rexBuilder.makeLiteral((Boolean) value);
     } else if (value instanceof BigDecimal) {
