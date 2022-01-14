@@ -67,7 +67,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -80,9 +79,6 @@ import static java.util.Objects.requireNonNull;
  * interface.
  */
 public class HepPlanner extends AbstractRelOptPlanner {
-  public static final AtomicInteger INSTRUCTION_COUNT = new AtomicInteger();
-  public static final AtomicInteger PROGRAM_COUNT = new AtomicInteger();
-  public static final AtomicInteger GC_COUNT = new AtomicInteger();
   //~ Instance fields --------------------------------------------------------
 
   private final HepProgram mainProgram;
@@ -208,14 +204,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   void executeProgram(HepProgram instruction, HepProgram.State state) {
-    if (PROGRAM_COUNT.incrementAndGet() % 100 == 0) {
-      System.out.println("program count: " + PROGRAM_COUNT.get());
-    }
     state.init();
     state.instructionStates.forEach(instructionState -> {
-      if (INSTRUCTION_COUNT.incrementAndGet() % 100 == 0) {
-        System.out.println("instruction count: " + INSTRUCTION_COUNT.get());
-      }
       instructionState.execute();
       int delta = nTransformations - nTransformationsLastGC;
       if (delta > graphSizeLastGC) {
@@ -971,9 +961,6 @@ public class HepPlanner extends AbstractRelOptPlanner {
       // No modifications have taken place since the last gc,
       // so there can't be any garbage.
       return;
-    }
-    if (GC_COUNT.incrementAndGet() % 100 == 0) {
-      System.out.println("gc count: " + GC_COUNT.get());
     }
     nTransformationsLastGC = nTransformations;
 

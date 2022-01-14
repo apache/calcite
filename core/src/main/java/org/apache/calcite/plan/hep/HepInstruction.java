@@ -28,9 +28,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static java.util.Objects.requireNonNull;
-
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HepInstruction represents one instruction in a HepProgram. The actual
