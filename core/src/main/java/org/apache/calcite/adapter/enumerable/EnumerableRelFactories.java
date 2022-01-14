@@ -72,7 +72,8 @@ public class EnumerableRelFactories {
         List<? extends RexNode> childExprs,
         @Nullable List<? extends @Nullable String> fieldNames,
         Set<CorrelationId> variablesSet) {
-      Preconditions.checkArgument(variablesSet.isEmpty());
+      Preconditions.checkArgument(variablesSet.isEmpty(),
+          "Scalar subqueries is not supported");
       final RelDataType rowType =
           RexUtil.createStructType(input.getCluster().getTypeFactory(), childExprs,
               fieldNames, SqlValidatorUtil.F_SUGGESTER);

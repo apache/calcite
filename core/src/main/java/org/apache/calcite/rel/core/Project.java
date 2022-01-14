@@ -106,6 +106,7 @@ public abstract class Project extends SingleRel implements Hintable {
     assert isValid(Litmus.THROW, null);
   }
 
+  @Deprecated // to be removed before 2.0
   protected Project(RelOptCluster cluster, RelTraitSet traits, List<RelHint> hints,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
     this(cluster, traits, hints, input, projects, rowType, ImmutableSet.of());
