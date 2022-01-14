@@ -16,31 +16,6 @@
   ~ limitations under the License.
   -->
 <Root>
-  <TestCase name="testGroupByDateLiteralSimple">
-    <Resource name="sql">
-      <![CDATA[select avg(sal)
-from emp
-group by DATE '2022-01-01']]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[$1])
-  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-    LogicalProject($f0=[2022-01-01], SAL=[$5])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[$1])
-  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-    LogicalProject(LTRL0=[$9], SAL=[$5])
-      LogicalJoin(condition=[true], joinType=[inner])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalValues(tuples=[[{ 2022-01-01 }]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testAddRedundantSemiJoinRule">
     <Resource name="sql">
       <![CDATA[select 1 from emp inner join dept on emp.deptno = dept.deptno]]>
@@ -4063,7 +4038,9 @@ LogicalProject(EXPR$0=[1])
   </TestCase>
   <TestCase name="testGroupByBooleanConstantMultiple">
     <Resource name="sql">
-      <![CDATA[select avg(sal) from emp group by false, deptno, true, true, empno, false]]>
+      <![CDATA[select avg(sal)
+from emp
+group by false, deptno, true, true, empno, false, 'ab', DATE '2022-01-01']]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4106,6 +4083,31 @@ LogicalProject(EXPR$0=[$1])
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalValues(tuples=[[{ true }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByDateLiteralSimple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by DATE '2022-01-01']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[2022-01-01], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject(LTRL0=[$9], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ 2022-01-01 }]])
 ]]>
     </Resource>
   </TestCase>
