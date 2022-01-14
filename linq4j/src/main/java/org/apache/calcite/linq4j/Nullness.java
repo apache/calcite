@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,5 +54,24 @@ public class Nullness {
       @Nullable T ref) {
     //noinspection ConstantConditions
     return (@NonNull T) ref;
+  }
+
+  /**
+   * Enables to treat an uninitialized object as initialized with no
+   * assertions.
+   *
+   * @param <T>     the type of the reference
+   * @param ref     a reference that was @Uninitialized at some point but is
+   *                now fully initialized
+   *
+   * @return the argument, cast to have type qualifier @Initialized
+   */
+  @SuppressWarnings({"SuspiciousSystemArraycopy", "unchecked"})
+  @Pure
+  public static <T> T castToInitialized(@UnderInitialization T ref) {
+    Object src = new Object[] {ref};
+    Object[] dest = {""};
+    System.arraycopy(src, 0, dest, 0, 1);
+    return (T) dest[0];
   }
 }

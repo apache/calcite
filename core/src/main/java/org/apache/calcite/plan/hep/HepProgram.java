@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.linq4j.Nullness.castToInitialized;
+
 /**
  * HepProgram specifies the order in which rules should be attempted by
  * {@link HepPlanner}. Use {@link HepProgramBuilder} to create a new
@@ -71,13 +74,13 @@ public class HepProgram extends HepInstruction {
   /** State for a {@link HepProgram} instruction. */
   class State extends HepState {
     final ImmutableList<HepState> instructionStates;
-    int matchLimit;
-    @Nullable HepMatchOrder matchOrder;
+    int matchLimit = MATCH_UNTIL_FIXPOINT;
+    HepMatchOrder matchOrder = HepMatchOrder.DEPTH_FIRST;
     HepInstruction.EndGroup.@Nullable State group;
 
     State(PrepareContext px, List<HepInstruction> instructions) {
       super(px);
-      final PrepareContext px2 = px.withProgramState(this);
+      final PrepareContext px2 = px.withProgramState(castToInitialized(this));
       final List<HepState> states = new ArrayList<>();
       final Map<HepInstruction, Consumer<HepState>> actions =
           new IdentityHashMap<>();
@@ -86,14 +89,15 @@ public class HepProgram extends HepInstruction {
         if (instruction instanceof BeginGroup) {
           // The state of a BeginGroup instruction needs the state of the
           // corresponding EndGroup instruction, which we haven't seen yet.
-          // Temporarily put a null State into the list, and add an action
-          // to replace that State. It will be when we see the EndGroup.
+          // Temporarily put a placeholder State into the list, and add an
+          // action to replace that State. The action will be invoked when we
+          // reach the EndGroup.
           final int i = states.size();
           actions.put(((BeginGroup) instruction).endGroup, state2 ->
               states.set(i,
                   instruction.prepare(
                       px2.withEndGroupState((EndGroup.State) state2))));
-          state = null;
+          state = castNonNull(null);
         } else {
           state = instruction.prepare(px2);
           if (actions.containsKey(instruction)) {
@@ -103,7 +107,6 @@ public class HepProgram extends HepInstruction {
         states.add(state);
       }
       this.instructionStates = ImmutableList.copyOf(states);
-      init();
     }
 
     @Override void init() {
