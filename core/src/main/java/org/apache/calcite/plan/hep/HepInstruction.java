@@ -40,6 +40,16 @@ import static java.util.Objects.requireNonNull;
 abstract class HepInstruction {
   //~ Methods ----------------------------------------------------------------
 
+  /** Creates runtime state for this instruction.
+   *
+   * <p>The state is mutable, knows how to execute the instruction, and is
+   * discarded after this execution. See {@link HepState}.
+   *
+   * @param px Preparation context; the state should copy from the context
+   * all information that it will need to execute
+   *
+   * @return Initialized state
+   */
   abstract HepState prepare(PrepareContext px);
 
   //~ Inner Classes ----------------------------------------------------------
@@ -198,8 +208,7 @@ abstract class HepInstruction {
       }
 
       @Override void execute() {
-        planner.executeRuleInstanceByDescription(RuleLookup.this,
-            this);
+        planner.executeRuleLookup(RuleLookup.this, this);
       }
     }
   }
@@ -271,6 +280,10 @@ abstract class HepInstruction {
       State(PrepareContext px) {
         super(px);
         subProgramState = subProgram.prepare(px);
+      }
+
+      @Override void init() {
+        subProgramState.init();
       }
 
       @Override void execute() {

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -57,18 +57,20 @@ public class Nullness {
   }
 
   /**
-   * Enables to treat an uninitialized object as initialized with no
-   * assertions.
+   * Enables to treat an uninitialized or under-initialization object as
+   * initialized with no assertions.
    *
-   * @param <T>     the type of the reference
-   * @param ref     a reference that was @Uninitialized at some point but is
+   * @param <T>     The type of the reference
+   * @param ref     A reference that was @Uninitialized at some point but is
    *                now fully initialized
    *
    * @return the argument, cast to have type qualifier @Initialized
    */
   @SuppressWarnings({"unchecked"})
   @Pure
-  public static <T> T castToInitialized(@UnderInitialization T ref) {
+  public static <T> T castToInitialized(@FBCBottom T ref) {
+    // To throw CheckerFramework off the scent, we put the object into an array,
+    // cast the array to an Object, and cast back to an array.
     Object src = new Object[] {ref};
     Object[] dest = (Object[]) src;
     return (T) dest[0];

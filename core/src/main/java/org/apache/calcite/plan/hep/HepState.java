@@ -21,11 +21,11 @@ package org.apache.calcite.plan.hep;
  *
  * <p>The goal is that programs are re-entrant - they can be used by more than
  * one thread at a time. We achieve this by making instructions and programs
- * immutable. All state is held in the state objects.
+ * immutable. All mutable state is held in the state objects.
  *
  * <p>State objects are allocated, just before the program is executed, by
- * calling {@link HepInstruction#prepare(HepInstruction.PrepareContext)} on the program and
- * recursively on all of its instructions. */
+ * calling {@link HepInstruction#prepare(HepInstruction.PrepareContext)} on the
+ * program and recursively on all of its instructions. */
 abstract class HepState {
   final HepPlanner planner;
   final HepProgram.State programState;
@@ -35,9 +35,11 @@ abstract class HepState {
     this.programState = px.programState;
   }
 
+  /** Executes the instruction. */
   abstract void execute();
 
-  /** Re-initializes the state. */
+  /** Re-initializes the state. (The state was initialized when it was created
+   * via {@link HepInstruction#prepare}.) */
   void init() {
   }
 }

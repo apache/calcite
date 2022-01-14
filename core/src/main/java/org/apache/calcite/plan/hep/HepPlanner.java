@@ -196,6 +196,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return buildFinalPlan(requireNonNull(root, "root"));
   }
 
+  /** Top-level entry point for a program. Initializes state and then invokes
+   * the program. */
   private void executeProgram(HepProgram program) {
     final HepInstruction.PrepareContext px =
         HepInstruction.PrepareContext.create(this);
@@ -241,8 +243,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     applyRules(state.programState, ImmutableList.of(instruction.rule), true);
   }
 
-  void executeRuleInstanceByDescription(
-      HepInstruction.RuleLookup instruction,
+  void executeRuleLookup(HepInstruction.RuleLookup instruction,
       HepInstruction.RuleLookup.State state) {
     if (state.programState.skippingGroup()) {
       return;
@@ -314,7 +315,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   void executeCommonRelSubExprRules(
-      HepInstruction.CommonRelSubExprRules unusedInstruction,
+      HepInstruction.CommonRelSubExprRules instruction,
       HepInstruction.CommonRelSubExprRules.State state) {
     checkArgument(state.programState.group == null);
     Set<RelOptRule> ruleSet = state.ruleSet;
@@ -344,14 +345,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace("Leaving subprogram");
   }
 
-  void executeBeginGroup(HepInstruction.BeginGroup unusedInstruction,
+  void executeBeginGroup(HepInstruction.BeginGroup instruction,
       HepInstruction.BeginGroup.State state) {
     checkArgument(state.programState.group == null);
     state.programState.group = state.endGroup;
     LOGGER.trace("Entering group");
   }
 
-  void executeEndGroup(HepInstruction.EndGroup unusedInstruction,
+  void executeEndGroup(HepInstruction.EndGroup instruction,
       HepInstruction.EndGroup.State state) {
     checkArgument(state.programState.group == state);
     state.programState.group = null;
@@ -378,9 +379,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
         // To the extent possible, pick up where we left
         // off; have to create a new iterator because old
         // one was invalidated by transformation.
-        Iterator<HepRelVertex> depthIter = getGraphIterator(programState, newVertex);
-        nMatches = depthFirstApply(programState, depthIter, rules, forceConversions,
-            nMatches);
+        Iterator<HepRelVertex> depthIter =
+            getGraphIterator(programState, newVertex);
+        nMatches =
+            depthFirstApply(programState, depthIter, rules, forceConversions,
+                nMatches);
         break;
       }
     }
