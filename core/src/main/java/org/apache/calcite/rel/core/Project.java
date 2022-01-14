@@ -142,7 +142,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), exps, getRowType());
+    return copy(traitSet, sole(inputs), exps, getRowType(), variablesSet);
   }
 
   /**
@@ -152,6 +152,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param input Input
    * @param projects Project expressions
    * @param rowType Output row type
+   * @param variablesSet Correlation variables
    * @return New {@code Project} if any parameter differs from the value of this
    *   {@code Project}, or just {@code this} if all the parameters are
    *   the same
@@ -159,7 +160,13 @@ public abstract class Project extends SingleRel implements Hintable {
    * @see #copy(RelTraitSet, List)
    */
   public abstract Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType);
+      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet);
+
+  @Deprecated // to be removed before 2.0
+  public Project copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> projects, RelDataType rowType) {
+    return copy(traitSet, input, projects, rowType, ImmutableSet.of());
+  }
 
   @Deprecated // to be removed before 2.0
   public Project copy(RelTraitSet traitSet, RelNode input,
@@ -184,7 +191,7 @@ public abstract class Project extends SingleRel implements Hintable {
             exps,
             getRowType().getFieldNames(),
             null);
-    return copy(traitSet, getInput(), exps, rowType);
+    return copy(traitSet, getInput(), exps, rowType, variablesSet);
   }
 
   /**

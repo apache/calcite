@@ -2155,7 +2155,8 @@ public class RelBuilder {
         final Frame frame = stack.pop();
         final Project childProject = (Project) frame.rel;
         final Project newInput = childProject.copy(childProject.getTraitSet(),
-            childProject.getInput(), childProject.getProjects(), rowType);
+            childProject.getInput(), childProject.getProjects(), rowType,
+            childProject.getVariablesSet());
         stack.push(new Frame(newInput.attachHints(childProject.getHints()), frame.fields));
       }
       if (input instanceof Values && fieldNameList != null) {
@@ -2415,7 +2416,7 @@ public class RelBuilder {
           builder.add(project.getRowType().getFieldList().get(i));
         }
         r = project.copy(cluster.traitSet(), project.getInput(), newProjects,
-            builder.build());
+            builder.build(), project.getVariablesSet());
       }
     }
 

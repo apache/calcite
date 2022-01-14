@@ -43,6 +43,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -71,7 +72,9 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -82,6 +85,7 @@ import java.sql.DriverManager;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -370,7 +374,7 @@ class TraitPropagationTest {
   private static class PhysProj extends Project implements Phys {
     PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         List<RexNode> exps, RelDataType rowType) {
-      super(cluster, traits, ImmutableList.of(), child, exps, rowType);
+      super(cluster, traits, ImmutableList.of(), child, exps, rowType, ImmutableSet.of());
     }
 
     public static PhysProj create(final RelNode input,
@@ -386,7 +390,9 @@ class TraitPropagationTest {
     }
 
     public PhysProj copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> exps, RelDataType rowType) {
+        List<RexNode> exps, RelDataType rowType, Set<CorrelationId> variablesSet) {
+      Preconditions.checkArgument(variablesSet.isEmpty(),
+          "Scalar subqueries is not supported");
       return new PhysProj(getCluster(), traitSet, input, exps, rowType);
     }
 

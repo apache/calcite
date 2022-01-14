@@ -301,7 +301,8 @@ public class MongoRules {
    */
   private static class MongoProjectRule extends MongoConverterRule {
     static final MongoProjectRule INSTANCE = Config.INSTANCE
-        .withConversion(LogicalProject.class, Convention.NONE,
+        .withConversion(LogicalProject.class, p -> p.getCorrelVariable() == null
+                || p.getVariablesSet().isEmpty(), Convention.NONE,
             MongoRel.CONVENTION, "MongoProjectRule")
         .withRuleFactory(MongoProjectRule::new)
         .toRule(MongoProjectRule.class);

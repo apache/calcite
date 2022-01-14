@@ -32,7 +32,8 @@ class EnumerableProjectRule extends ConverterRule {
   /** Default configuration. */
   static final Config DEFAULT_CONFIG = Config.INSTANCE
       .as(Config.class)
-      .withConversion(LogicalProject.class, p -> !p.containsOver(),
+      .withConversion(LogicalProject.class, p -> !p.containsOver()
+              && (p.getCorrelVariable() == null || p.getVariablesSet().isEmpty()),
           Convention.NONE, EnumerableConvention.INSTANCE,
           "EnumerableProjectRule")
       .withRuleFactory(EnumerableProjectRule::new);

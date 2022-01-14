@@ -258,7 +258,8 @@ public class CassandraRules {
   public static class CassandraProjectRule extends CassandraConverterRule {
     /** Default configuration. */
     private static final Config DEFAULT_CONFIG = Config.INSTANCE
-        .withConversion(LogicalProject.class, Convention.NONE,
+        .withConversion(LogicalProject.class, p -> p.getCorrelVariable() == null
+                || p.getVariablesSet().isEmpty(), Convention.NONE,
             CassandraRel.CONVENTION, "CassandraProjectRule")
         .withRuleFactory(CassandraProjectRule::new);
 

@@ -99,7 +99,8 @@ public class PigRules {
    */
   private static class PigProjectRule extends ConverterRule {
     private static final PigProjectRule INSTANCE = Config.INSTANCE
-        .withConversion(LogicalProject.class, Convention.NONE,
+        .withConversion(LogicalProject.class, p -> p.getCorrelVariable() == null
+                || p.getVariablesSet().isEmpty(), Convention.NONE,
             PigRel.CONVENTION, "PigProjectRule")
         .withRuleFactory(PigProjectRule::new)
         .toRule(PigProjectRule.class);

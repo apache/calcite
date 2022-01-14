@@ -64,7 +64,7 @@ public class ProjectRemoveRule
       Project childProject = (Project) stripped;
       stripped = childProject.copy(childProject.getTraitSet(),
           childProject.getInput(), childProject.getProjects(),
-          project.getRowType());
+          project.getRowType(), childProject.getVariablesSet());
     }
     stripped = convert(stripped, project.getConvention());
     call.transformTo(stripped);

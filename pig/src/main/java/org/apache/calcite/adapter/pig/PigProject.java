@@ -20,13 +20,17 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
+import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Project} in
  * {@link PigRel#CONVENTION Pig calling convention}. */
@@ -35,12 +39,14 @@ public class PigProject extends Project implements PigRel {
   /** Creates a PigProject. */
   public PigProject(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     assert getConvention() == PigRel.CONVENTION;
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input, List<RexNode> projects,
-      RelDataType rowType) {
+      RelDataType rowType, Set<CorrelationId> variablesSet) {
+    Preconditions.checkArgument(variablesSet.isEmpty(),
+        "Scalar subqueries is not supported");
     return new PigProject(input.getCluster(), traitSet, input, projects, rowType);
   }
 

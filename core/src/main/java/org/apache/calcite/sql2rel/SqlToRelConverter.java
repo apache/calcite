@@ -4398,16 +4398,8 @@ public class SqlToRelConverter {
     if (p != null) {
       assert p.r instanceof Project;
       Project proj = (Project) p.r;
-      r = relBuilder.push(proj.getInput())
-          .projectCorrelated(ImmutableSet.of(p.id), proj.getProjects(),
-              proj.getRowType().getFieldNames(), true)
-          .build();
-
-      if (!proj.getHints().isEmpty()) {
-        assert r instanceof Hintable;
-
-        r = ((Hintable) r).withHints(proj.getHints());
-      }
+      r = proj.copy(proj.getTraitSet(), proj.getInput(), proj.getProjects(),
+          proj.getRowType(), ImmutableSet.of(p.id));
     } else {
       r = project;
     }

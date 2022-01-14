@@ -128,7 +128,8 @@ public class GeodeRules {
    */
   private static class GeodeProjectRule extends GeodeConverterRule {
     private static final GeodeProjectRule INSTANCE = Config.INSTANCE
-        .withConversion(LogicalProject.class, Convention.NONE,
+        .withConversion(LogicalProject.class, p -> p.getCorrelVariable() == null
+                || p.getVariablesSet().isEmpty(), Convention.NONE,
             GeodeRel.CONVENTION, "GeodeProjectRule")
         .withRuleFactory(GeodeProjectRule::new)
         .toRule(GeodeProjectRule.class);

@@ -125,7 +125,10 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
@@ -136,6 +139,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -6745,11 +6749,13 @@ class RelOptRulesTest extends RelOptTestBase {
         RelNode input,
         List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     }
 
     public MyProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType) {
+        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
+      Preconditions.checkArgument(variablesSet.isEmpty(),
+          "Scalar subqueries is not supported");
       return new MyProject(getCluster(), traitSet, input, projects, rowType);
     }
   }

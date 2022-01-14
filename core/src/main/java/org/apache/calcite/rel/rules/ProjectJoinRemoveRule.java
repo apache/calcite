@@ -114,14 +114,14 @@ public class ProjectJoinRemoveRule
     if (isLeftJoin) {
       node = project
           .copy(project.getTraitSet(), join.getLeft(), project.getProjects(),
-              project.getRowType());
+              project.getRowType(), project.getVariablesSet());
     } else {
       final int offset = join.getLeft().getRowType().getFieldCount();
       final List<RexNode> newExprs = project.getProjects().stream()
           .map(expr -> RexUtil.shift(expr, -offset))
           .collect(Collectors.toList());
       node = project.copy(project.getTraitSet(), join.getRight(), newExprs,
-          project.getRowType());
+          project.getRowType(), project.getVariablesSet());
     }
     call.transformTo(node);
   }

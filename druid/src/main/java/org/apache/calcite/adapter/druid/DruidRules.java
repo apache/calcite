@@ -58,6 +58,7 @@ import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.immutables.value.Value;
@@ -395,10 +396,11 @@ public class DruidRules {
         }
         builder.add(name, e.getType());
       }
-      final RelNode newProject = project.copy(project.getTraitSet(), input, below, builder.build());
+      final RelNode newProject = project.copy(project.getTraitSet(), input, below, builder.build(),
+          ImmutableSet.of());
       final DruidQuery newQuery = DruidQuery.extendQuery(query, newProject);
       final RelNode newProject2 = project.copy(project.getTraitSet(), newQuery, above,
-              project.getRowType());
+              project.getRowType(), project.getVariablesSet());
       call.transformTo(newProject2);
     }
 
