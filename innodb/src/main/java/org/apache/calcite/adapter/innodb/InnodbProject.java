@@ -54,7 +54,7 @@ public class InnodbProject extends Project implements InnodbRel {
   @Override public Project copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
     Preconditions.checkArgument(variablesSet.isEmpty(),
-        "Scalar subqueries is not supported");
+        "Correlated scalar subqueries is not supported");
     return new InnodbProject(getCluster(), traitSet, input, projects, rowType);
   }
 

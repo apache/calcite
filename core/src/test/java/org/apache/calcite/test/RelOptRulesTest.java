@@ -6755,7 +6755,7 @@ class RelOptRulesTest extends RelOptTestBase {
     public MyProject copy(RelTraitSet traitSet, RelNode input,
         List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
       Preconditions.checkArgument(variablesSet.isEmpty(),
-          "Scalar subqueries is not supported");
+          "Correlated scalar subqueries is not supported");
       return new MyProject(getCluster(), traitSet, input, projects, rowType);
     }
   }

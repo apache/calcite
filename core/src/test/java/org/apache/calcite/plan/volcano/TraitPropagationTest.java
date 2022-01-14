@@ -392,7 +392,7 @@ class TraitPropagationTest {
     public PhysProj copy(RelTraitSet traitSet, RelNode input,
         List<RexNode> exps, RelDataType rowType, Set<CorrelationId> variablesSet) {
       Preconditions.checkArgument(variablesSet.isEmpty(),
-          "Scalar subqueries is not supported");
+          "Correlated scalar subqueries is not supported");
       return new PhysProj(getCluster(), traitSet, input, exps, rowType);
     }
 
