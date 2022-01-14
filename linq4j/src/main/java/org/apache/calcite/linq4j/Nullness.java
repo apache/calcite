@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.checker.initialization.qual.FBCBottom;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -68,7 +68,7 @@ public class Nullness {
    */
   @SuppressWarnings({"unchecked"})
   @Pure
-  public static <T> T castToInitialized(@FBCBottom T ref) {
+  public static <T> T castToInitialized(@UnderInitialization T ref) {
     // To throw CheckerFramework off the scent, we put the object into an array,
     // cast the array to an Object, and cast back to an array.
     Object src = new Object[] {ref};
