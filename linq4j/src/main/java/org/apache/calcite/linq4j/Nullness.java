@@ -66,12 +66,11 @@ public class Nullness {
    *
    * @return the argument, cast to have type qualifier @Initialized
    */
-  @SuppressWarnings({"SuspiciousSystemArraycopy", "unchecked"})
+  @SuppressWarnings({"unchecked"})
   @Pure
   public static <T> T castToInitialized(@UnderInitialization T ref) {
     Object src = new Object[] {ref};
-    Object[] dest = {""};
-    System.arraycopy(src, 0, dest, 0, 1);
+    Object[] dest = (Object[]) src;
     return (T) dest[0];
   }
 }

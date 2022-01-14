@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -82,8 +82,7 @@ public class HepProgram extends HepInstruction {
       super(px);
       final PrepareContext px2 = px.withProgramState(castToInitialized(this));
       final List<HepState> states = new ArrayList<>();
-      final Map<HepInstruction, Consumer<HepState>> actions =
-          new IdentityHashMap<>();
+      final Map<HepInstruction, Consumer<HepState>> actions = new HashMap<>();
       for (HepInstruction instruction : instructions) {
         final HepState state;
         if (instruction instanceof BeginGroup) {
