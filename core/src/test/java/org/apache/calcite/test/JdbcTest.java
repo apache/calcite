@@ -80,12 +80,15 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.test.schemata.hr.Department;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
@@ -5883,12 +5886,76 @@ public class JdbcTest {
    * View with ORDER BY throws AssertionError during view expansion</a>. */
   @Test void testSortedView() {
     final String viewSql = "select * from \"EMPLOYEES\" order by \"deptno\"";
-    final String sql = "select * from \"adhoc\".V";
-    modelWithView(viewSql, null).query(sql)
-        .returnsUnordered("empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
-            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
-            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
-            + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500");
+    final CalciteAssert.AssertThat with = modelWithView(viewSql, null);
+    // Keep sort, because view is top node
+    with.query("select * from \"adhoc\".V")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
+                + "salary=[$3], commission=[$4])\n"
+                + "  LogicalSort(sort0=[$1], dir0=[ASC])\n"
+                + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    // Remove sort, because view not is top node
+    with.query("select * from \"adhoc\".V union all select * from  \"adhoc\".\"EMPLOYEES\"")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalUnion(all=[true])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from "
+            + "(select \"empid\", \"deptno\" from  \"adhoc\".V) where \"deptno\" > 10")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1])\n"
+                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "    LogicalProject(empid=[$0], deptno=[$1])\n"
+                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from \"adhoc\".V order by \"empid\"")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(sort0=[$0], dir0=[ASC])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from \"adhoc\".\"EMPLOYEES\" where exists (select * from \"adhoc\".V)")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
+                + "salary=[$3], commission=[$4])\n"
+                + "  LogicalFilter(condition=[EXISTS({\n"
+                + "LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "})])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from \"adhoc\".V, \"adhoc\".\"EMPLOYEES\"")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
+                + "salary=[$3], commission=[$4], empid0=[$5], deptno0=[$6], name0=[$7], salary0=[$8],"
+                + " commission0=[$9])\n"
+                + "  LogicalJoin(condition=[true], joinType=[inner])\n"
+                + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select \"empid\", count(*) from \"adhoc\".V group by \"empid\"")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
+                + "  LogicalProject(empid=[$0])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from \"adhoc\".V where \"deptno\" > 10")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
+                + "salary=[$3], commission=[$4])\n"
+                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select distinct * from \"adhoc\".V")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalAggregate(group=[{0, 1, 2, 3, 4}])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
   }
 
   /** Tests a view with ORDER BY and LIMIT clauses. */
@@ -5898,6 +5965,9 @@ public class JdbcTest {
             + "order by \"empid\" limit 2", null);
     with
         .query("select \"name\" from \"adhoc\".V order by \"name\"")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
         .returns("name=Bill\n"
             + "name=Theodore\n");
 
@@ -5908,7 +5978,19 @@ public class JdbcTest {
             + "select * from \"adhoc\".\"EMPLOYEES\" where \"deptno\" = 10\n"
             + "order by \"empid\" limit 2)\n"
             + "order by \"name\"")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<SqlToRelConverter.Config>>) configHolder ->
+                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
         .returns("name=Bill\n"
+            + "name=Theodore\n");
+
+    with
+        .query("select \"name\" from (\n"
+            + "select * from \"adhoc\".\"EMPLOYEES\" where \"deptno\" = 10\n"
+            + "order by \"empid\" limit 2)\n"
+            + "order by \"name\"")
+        .returns("name=Bill\n"
+            + "name=Sebastian\n"
             + "name=Theodore\n");
   }
 

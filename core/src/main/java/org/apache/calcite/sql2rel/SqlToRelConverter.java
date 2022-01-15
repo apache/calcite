@@ -683,6 +683,13 @@ public class SqlToRelConverter {
     convertFrom(
         bb,
         select.getFrom());
+    if (RelOptUtil.isOrder(bb.root)
+        && config.isRemoveSortInSubQuery()
+        && (!bb.top || validator().isAggregate(select) || select.isDistinct()
+        || select.hasOrderBy() || select.hasWhere())
+    ) {
+      bb.setRoot(bb.root.getInput(0), true);
+    }
     convertWhere(
         bb,
         select.getWhere());
@@ -2593,7 +2600,11 @@ public class SqlToRelConverter {
         SqlUtil.getRelHint(hintStrategies, tableHints),
         LogicalTableScan.create(cluster, table, ImmutableList.of()));
     tableRel = toRel(table, hints);
-    bb.setRoot(tableRel, true);
+    if (RelOptUtil.isOrder(tableRel) && removeSortInSubQuery(bb.top)) {
+      bb.setRoot(tableRel.getInput(0), true);
+    } else {
+      bb.setRoot(tableRel, true);
+    }
     if (usedDataset[0]) {
       bb.setDataset(datasetName);
     }

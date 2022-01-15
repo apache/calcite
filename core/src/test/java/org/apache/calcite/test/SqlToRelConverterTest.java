@@ -2517,7 +2517,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select count(a.EMPNO)\n"
         + "from (select * from emp order by sal limit 3) a\n"
         + "where a.EMPNO > 10 group by 2";
-    RelNode afterTrim = tester.convertSqlToRel(sql).rel;
+    RelNode afterTrim = tester
+        .withConfig(c -> c.withRemoveSortInSubQuery(false))
+        .convertSqlToRel(sql).rel;
 
     // Get Sort and Filter operators
     final List<RelNode> rels = new ArrayList<>();
