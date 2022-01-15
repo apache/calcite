@@ -563,6 +563,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @ParameterizedTest
+  @MethodSource("getArguments") void testColumnOriginsSnapshot(
+      final MetadataConfig metadataConfig) {
+    checkSingleColumnOrigin(
+        "select productid from products_temporal\n"
+            + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'",
+        "PRODUCTS_TEMPORAL",
+        "PRODUCTID",
+        false, metadataConfig);
+  }
+
+  @ParameterizedTest
   @MethodSource("getArguments") void testColumnOriginsAggKey(
       final MetadataConfig metadataConfig) {
     checkSingleColumnOrigin(
