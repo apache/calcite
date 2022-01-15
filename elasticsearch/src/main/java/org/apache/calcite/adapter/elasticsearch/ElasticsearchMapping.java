@@ -150,7 +150,7 @@ class ElasticsearchMapping {
       case "string": // for ES2
       case "text":
       case "keyword":
-        return FACTORY.textNode("__MISSING__");
+        return FACTORY.textNode("");
       case "long":
         return FACTORY.numberNode(Long.MIN_VALUE);
       case "integer":
@@ -180,7 +180,7 @@ class ElasticsearchMapping {
       case "string": // for ES2
       case "text":
       case "keyword":
-        return FACTORY.textNode("__MISSING__");
+        return FACTORY.textNode("~~~~~~~~");
       case "long":
         return FACTORY.numberNode(Long.MAX_VALUE);
       case "integer":
