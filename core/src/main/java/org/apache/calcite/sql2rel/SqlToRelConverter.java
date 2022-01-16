@@ -683,7 +683,7 @@ public class SqlToRelConverter {
     convertFrom(
         bb,
         select.getFrom());
-    if (RelOptUtil.isOrder(bb.root)
+    if (RelOptUtil.isOrder(castNonNull(bb.root))
         && config.isRemoveSortInSubQuery()
         && (!bb.top || validator().isAggregate(select) || select.isDistinct()
         || select.hasOrderBy() || select.hasWhere())
