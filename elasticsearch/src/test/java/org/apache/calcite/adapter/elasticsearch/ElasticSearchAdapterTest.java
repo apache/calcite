@@ -283,13 +283,13 @@ class ElasticSearchAdapterTest {
         .query("select * from elastic.zips where _MAP['state'] = 'NY' order by _MAP['city']")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
-                "query:{'constant_score':{filter:{term:{state:'NY'}}}}",
-                "sort:[{city:{'missing':'_last', 'order':'asc'}}]",
-                String.format(Locale.ROOT, "size:%s", ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
+            "query:{'constant_score':{filter:{term:{state:'NY'}}}}",
+            "sort:[{city:{'missing':'_last', 'order':'asc'}}]",
+            String.format(Locale.ROOT, "size:%s", ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
         .returnsOrdered(
-            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}",
-            "_MAP={id=11373, city=JACKSON HEIGHTS, loc=[-73.878551, 40.740388], pop=88241, state=NY}",
-            "_MAP={id=10021, city=NEW YORK, loc=[-73.958805, 40.768476], pop=106564, state=NY}");
+          "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}",
+          "_MAP={id=11373, city=JACKSON HEIGHTS, loc=[-73.878551, 40.740388], pop=88241, state=NY}",
+          "_MAP={id=10021, city=NEW YORK, loc=[-73.958805, 40.768476], pop=106564, state=NY}");
 
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -336,8 +336,8 @@ class ElasticSearchAdapterTest {
         .query("select max(_MAP['pop']), min(_MAP['pop']), _MAP['state'] from elastic.zips "
             + "group by _MAP['state'] order by _MAP['state'] limit 3")
         .returnsOrdered("EXPR$0=32383.0; EXPR$1=23238.0; EXPR$2=AK",
-            "EXPR$0=44165.0; EXPR$1=42124.0; EXPR$2=AL",
-            "EXPR$0=53532.0; EXPR$1=37428.0; EXPR$2=AR");
+             "EXPR$0=44165.0; EXPR$1=42124.0; EXPR$2=AL",
+             "EXPR$0=53532.0; EXPR$1=37428.0; EXPR$2=AR");
 
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -353,8 +353,8 @@ class ElasticSearchAdapterTest {
     calciteAssert()
         .query(sql)
         .returnsOrdered("city=CHICAGO; state=IL; pop=112047",
-            "city=BROOKLYN; state=NY; pop=111396",
-            "city=NEW YORK; state=NY; pop=106564")
+             "city=BROOKLYN; state=NY; pop=111396",
+             "city=NEW YORK; state=NY; pop=106564")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
                 "'_source':['city','state','pop']",
@@ -560,7 +560,7 @@ class ElasticSearchAdapterTest {
         .query("select count(*) from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-                "size:0", "'stored_fields': '_none_'", "track_total_hits:true"))
+            "size:0", "'stored_fields': '_none_'", "track_total_hits:true"))
         .returns("EXPR$0=149\n");
 
     // check with limit (should still return correct result).
@@ -572,19 +572,19 @@ class ElasticSearchAdapterTest {
         .query("select count(*) as cnt from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-                "'stored_fields': '_none_'",
-                "size:0", "track_total_hits:true"))
+            "'stored_fields': '_none_'",
+            "size:0", "track_total_hits:true"))
         .returns("cnt=149\n");
 
     calciteAssert()
         .query("select min(pop), max(pop) from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-                "size:0",
-                "track_total_hits:true",
-                "'stored_fields': '_none_'",
-                "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':{max:"
-                    + "{field:'pop'}}}"))
+            "size:0",
+            "track_total_hits:true",
+            "'stored_fields': '_none_'",
+            "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':{max:"
+                + "{field:'pop'}}}"))
         .returns("EXPR$0=21; EXPR$1=112047\n");
 
     calciteAssert()
@@ -741,12 +741,12 @@ class ElasticSearchAdapterTest {
             + " group by state order by state limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-                "size:0", "'stored_fields': '_none_'",
-                "aggregations:{'g_state':{terms:{field:'state', missing:'~~~~~~~~', size:3, "
-                    + "order:{'_key':'asc'}}",
-                "aggregations:{'EXPR$1':{cardinality:{field:'city'}}",
+            "size:0", "'stored_fields': '_none_'",
+            "aggregations:{'g_state':{terms:{field:'state', missing:'~~~~~~~~', size:3, "
+                + "order:{'_key':'asc'}}",
+            "aggregations:{'EXPR$1':{cardinality:{field:'city'}}",
                 "'EXPR$2':{cardinality:{field:'pop'}} "
-                    + " }}}"))
+                + " }}}"))
         .returnsOrdered("state=AK; EXPR$1=3; EXPR$2=3",
             "state=AL; EXPR$1=3; EXPR$2=3",
             "state=AR; EXPR$1=3; EXPR$2=3");
