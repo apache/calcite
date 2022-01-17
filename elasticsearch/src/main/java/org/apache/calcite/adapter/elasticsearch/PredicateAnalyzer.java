@@ -604,6 +604,9 @@ class PredicateAnalyzer {
     public abstract QueryExpression isTrue();
 
     public static QueryExpression create(TerminalExpression expression) {
+      if (expression instanceof CastExpression) {
+        expression = CastExpression.unpack(expression);
+      }
 
       if (expression instanceof NamedFieldExpression) {
         return new SimpleQueryExpression((NamedFieldExpression) expression);
