@@ -205,11 +205,6 @@ public abstract class Bug {
    * In Elasticsearch adapter, a range predicate should be translated to a range query</a> is
    * fixed. */
   public static final boolean CALCITE_4645_FIXED = false;
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4965">[CALCITE-4965]
-   * IS NOT NULL failed in Elasticsearch Adapter</a> is
-   * fixed. */
-  public static final boolean CALCITE_4965_FIXED = false;
 
   /**
    * Use this to flag temporary code.
