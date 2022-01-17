@@ -24,7 +24,6 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
@@ -40,8 +39,10 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintPredicate;
 import org.apache.calcite.rel.hint.HintPredicates;
@@ -78,6 +79,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIn.in;
@@ -787,46 +789,60 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
                     hint.hintName)).build())
         .hintStrategy("use_hash_join",
           HintPredicates.or(
-              HintPredicates.and(HintPredicates.CORRELATE, withFixedTableName()),
-              HintPredicates.and(HintPredicates.JOIN, withFixedTableName())))
+              HintPredicates.and(HintPredicates.CORRELATE, temporalJoinWithFixedTableName()),
+              HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName())))
         .hintStrategy("use_merge_join",
             HintStrategy.builder(
-                HintPredicates.and(HintPredicates.JOIN, withFixedTableName()))
+                HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
         .build();
     }
 
-    /** Returns a {@link HintPredicate} for join or correlate with specified table references. */
-    private static HintPredicate withFixedTableName() {
+    /** Returns a {@link HintPredicate} for temporal join with specified table references. */
+    private static HintPredicate temporalJoinWithFixedTableName() {
       return (hint, rel) -> {
-        if (!(rel instanceof LogicalJoin || rel instanceof LogicalCorrelate)) {
+        if (!(rel instanceof LogicalCorrelate)) {
           return false;
         }
+        LogicalCorrelate correlate = (LogicalCorrelate) rel;
+        RelNode leftInput = correlate.getLeft();
+        if (!(leftInput instanceof TableScan)) {
+          return false;
+        }
+        RelNode rightInput = correlate.getRight();
+        boolean rightIsFilterOnSnapshot = rightInput instanceof Filter
+            && ((Filter) rightInput).getInput() instanceof Snapshot
+            && ((Snapshot) ((Filter) rightInput).getInput()).getInput() instanceof TableScan;
+        if (!rightIsFilterOnSnapshot) {
+          return false;
+        }
+        String leftTableName = getTableNameOfScan(leftInput);
+        String rightTableName = getTableNameOfScan(
+            ((Snapshot) ((Filter) rightInput).getInput()).getInput());
         final List<String> tableNames = hint.listOptions;
-        final List<String> inputTables = new TableNameVisitor().run(rel);
+        return tableNames.contains(leftTableName) && tableNames.contains(rightTableName);
+      };
+    }
+
+    /** Returns a {@link HintPredicate} for join with specified table references. */
+    private static HintPredicate joinWithFixedTableName() {
+      return (hint, rel) -> {
+        if (!(rel instanceof LogicalJoin)) {
+          return false;
+        }
+        LogicalJoin join = (LogicalJoin) rel;
+        final List<String> tableNames = hint.listOptions;
+        final List<String> inputTables = join.getInputs().stream()
+            .filter(input -> input instanceof TableScan)
+            .map(scan -> getTableNameOfScan(scan))
+            .collect(Collectors.toList());
         return equalsStringList(tableNames, inputTables);
       };
     }
 
-    /**
-     * Implementation of RelVisitor to extract input table names.
-     */
-    private static class TableNameVisitor extends RelVisitor {
-      private List<String> names = new ArrayList<>();
-
-      List<String> run(RelNode input) {
-        go(input);
-        return names;
-      }
-
-      @Override public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
-        if (node instanceof TableScan) {
-          RelOptTable table = node.getTable();
-          String tableName = Util.last(table.getQualifiedName());
-          names.add(tableName);
-        }
-        super.visit(node, ordinal, parent);
-      }
+    private static String getTableNameOfScan(RelNode scan) {
+      assert scan instanceof TableScan;
+      return Util.last(scan.getTable().getQualifiedName());
     }
 
     /** Format the query with hint {@link #HINT}. */
