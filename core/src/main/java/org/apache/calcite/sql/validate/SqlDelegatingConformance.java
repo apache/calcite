@@ -27,7 +27,7 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   private final SqlConformance delegate;
 
   /** Creates a SqlDelegatingConformance. */
-  protected SqlDelegatingConformance(SqlConformance delegate) {
+  public SqlDelegatingConformance(SqlConformance delegate) {
     this.delegate = delegate;
   }
 

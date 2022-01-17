@@ -1672,6 +1672,7 @@ public abstract class SqlImplementor {
       if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
         final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
             && dialect.getConformance().isHavingAlias();
+        final boolean orderByFieldRequired = !expectedClauses.contains(Clause.ORDER_BY);
         newContext = new Context(dialect, selectList.size()) {
           @Override public SqlImplementor implementor() {
             return SqlImplementor.this;
@@ -1699,30 +1700,21 @@ public abstract class SqlImplementor {
           }
 
           @Override public SqlNode orderField(int ordinal) {
-            // If the field expression is an unqualified column identifier
-            // and matches a different alias, use an ordinal.
-            // For example, given
-            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno
-            // we generate
-            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
-            // "ORDER BY empno" would give incorrect result;
-            // "ORDER BY x" is acceptable but is not preferred.
-            final SqlNode node = field(ordinal);
-            if (node instanceof SqlIdentifier
-                && ((SqlIdentifier) node).isSimple()) {
-              final String name = ((SqlIdentifier) node).getSimple();
-              for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
-                if (selectItem.i != ordinal) {
-                  final String alias =
-                      SqlValidatorUtil.getAlias(selectItem.e, -1);
-                  if (name.equalsIgnoreCase(alias)) {
-                    return SqlLiteral.createExactNumeric(
-                        Integer.toString(ordinal + 1), SqlParserPos.ZERO);
-                  }
+            if (!orderByFieldRequired && dialect.getConformance().isSortByOrdinal()) {
+              return SqlLiteral.createExactNumeric(
+                  Integer.toString(ordinal + 1), SqlParserPos.ZERO);
+            } else {
+              final SqlNode selectItem = selectList.get(ordinal);
+              if (selectItem.getKind() == SqlKind.AS) {
+                if (!orderByFieldRequired && dialect.getConformance().isSortByAlias()) {
+                  return ((SqlCall) selectItem).operand(1); //alias
+                } else {
+                  return ((SqlCall) selectItem).operand(0); //select item
                 }
+              } else {
+                return selectItem;
               }
             }
-            return node;
           }
         };
       } else {
