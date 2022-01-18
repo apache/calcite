@@ -445,8 +445,8 @@ public class RelToSqlConverter extends SqlImplementor
     final Builder builder = x.builder(e);
     if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
       //The order by ordinal may be greater than size of the new projects.
-      if (inputIsSort && dialect.getConformance().isSortByOrdinal()
-          && builder.select.hasOrderBy()) {
+      if (inputIsSort && builder.select.hasOrderBy()
+          && dialect.getConformance().isSortByOrdinal()) {
         int maxOrderKey = e.getProjects().size();
         SqlNodeList orderList = requireNonNull(builder.select.getOrderList());
         final List<SqlNode> newOrderList = new ArrayList<>();

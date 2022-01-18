@@ -190,7 +190,7 @@ class JdbcAdapterTest {
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"ENAME\", \"EMPNO\"\n"
             + "FROM \"SCOTT\".\"EMP\"\n"
-            + "ORDER BY \"EMPNO\" NULLS LAST");
+            + "ORDER BY 2 NULLS LAST");
   }
 
   /** Test case for
@@ -209,7 +209,7 @@ class JdbcAdapterTest {
     final String sqlHsqldb = "SELECT \"DEPTNO\", \"JOB\", SUM(\"SAL\")\n"
         + "FROM \"SCOTT\".\"EMP\"\n"
         + "GROUP BY \"JOB\", \"DEPTNO\"\n"
-        + "ORDER BY \"DEPTNO\" NULLS LAST, \"JOB\" NULLS LAST";
+        + "ORDER BY 1 NULLS LAST, 2 NULLS LAST";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .with(CalciteConnectionProperty.TOPDOWN_OPT.camelName(), false)
         .query(sql)
