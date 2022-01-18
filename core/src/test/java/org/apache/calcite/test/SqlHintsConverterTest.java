@@ -78,8 +78,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIn.in;
@@ -152,6 +154,12 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     final String sql = "select /*+ use_hash_join (orders, products_temporal) */ stream *\n"
         + "from orders join products_temporal for system_time as of orders.rowtime\n"
         + "on orders.productid = products_temporal.productid and orders.orderId is not null";
+    sql(sql).ok();
+  }
+
+  @Test void testCrossCorrelateHints() {
+    final String sql = "select /*+ use_hash_join (orders, products_temporal) */ stream *\n"
+        + "from orders, products_temporal for system_time as of orders.rowtime";
     sql(sql).ok();
   }
 
@@ -805,22 +813,29 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
           return false;
         }
         LogicalCorrelate correlate = (LogicalCorrelate) rel;
-        RelNode leftInput = correlate.getLeft();
-        if (!(leftInput instanceof TableScan)) {
+        Predicate<RelNode> isScan = r -> r instanceof TableScan;
+        if (!(isScan.test(correlate.getLeft()))) {
           return false;
         }
         RelNode rightInput = correlate.getRight();
-        boolean rightIsFilterOnSnapshot = rightInput instanceof Filter
-            && ((Filter) rightInput).getInput() instanceof Snapshot
-            && ((Snapshot) ((Filter) rightInput).getInput()).getInput() instanceof TableScan;
-        if (!rightIsFilterOnSnapshot) {
+        Predicate<RelNode> isSnapshotOnScan = r -> r instanceof Snapshot
+            && isScan.test(((Snapshot) r).getInput());
+        RelNode rightScan;
+        if (isSnapshotOnScan.test(rightInput)) {
+          rightScan = ((Snapshot) rightInput).getInput();
+        } else if (rightInput instanceof Filter
+            && isSnapshotOnScan.test(((Filter) rightInput).getInput())) {
+          rightScan = ((Snapshot) ((Filter) rightInput).getInput()).getInput();
+        } else {
+          // right child of correlate must be a snapshot on table scan directly or a Filter which
+          // input is snapshot on table scan
           return false;
         }
-        String leftTableName = getTableNameOfScan(leftInput);
-        String rightTableName = getTableNameOfScan(
-            ((Snapshot) ((Filter) rightInput).getInput()).getInput());
         final List<String> tableNames = hint.listOptions;
-        return tableNames.contains(leftTableName) && tableNames.contains(rightTableName);
+        final List<String> inputTables = Stream.of(correlate.getLeft(), rightScan)
+            .map(scan -> Util.last(scan.getTable().getQualifiedName()))
+            .collect(Collectors.toList());
+        return equalsStringList(inputTables, tableNames);
       };
     }
 
@@ -834,15 +849,10 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         final List<String> tableNames = hint.listOptions;
         final List<String> inputTables = join.getInputs().stream()
             .filter(input -> input instanceof TableScan)
-            .map(scan -> getTableNameOfScan(scan))
+            .map(scan -> Util.last(scan.getTable().getQualifiedName()))
             .collect(Collectors.toList());
         return equalsStringList(tableNames, inputTables);
       };
-    }
-
-    private static String getTableNameOfScan(RelNode scan) {
-      assert scan instanceof TableScan;
-      return Util.last(scan.getTable().getQualifiedName());
     }
 
     /** Format the query with hint {@link #HINT}. */
