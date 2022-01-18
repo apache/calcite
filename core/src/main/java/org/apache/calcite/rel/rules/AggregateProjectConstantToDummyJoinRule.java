@@ -108,7 +108,9 @@ public final class AggregateProjectConstantToDummyJoinRule
 
     for (RexNode exp : project.getProjects()) {
       if (exp instanceof RexLiteral) {
-        newProjects.add(builder.field(literalFieldNameMap.get((RexLiteral) exp)));
+        if (literalFieldNameMap.containsKey((RexLiteral) exp)) {
+          newProjects.add(builder.field(literalFieldNameMap.get((RexLiteral) exp)));
+        }
       } else {
         newProjects.add(exp);
       }
