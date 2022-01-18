@@ -62,6 +62,7 @@ class AggregationTest {
         .put("cat3", "keyword")
         .put("cat4", "date")
         .put("cat5", "integer")
+        .put("cat6", "text")
         .put("val1", "long")
         .put("val2", "long")
         .build();
@@ -69,7 +70,7 @@ class AggregationTest {
     NODE.createIndex(NAME, mappings);
 
     String doc1 = "{cat1:'a', cat2:'g', val1:1, cat4:'2018-01-01', cat5:1}";
-    String doc2 = "{cat2:'g', cat3:'y', val2:5, cat4:'2019-12-12'}";
+    String doc2 = "{cat2:'g', cat3:'y', val2:5, cat4:'2019-12-12', cat6:'text1'}";
     String doc3 = "{cat1:'b', cat2:'h', cat3:'z', cat5:2, val1:7, val2:42}";
 
     final ObjectMapper mapper = new ObjectMapper()
@@ -97,10 +98,11 @@ class AggregationTest {
     final String viewSql =
         String.format(Locale.ROOT,
             "select _MAP['cat1'] AS \"cat1\", "
-                + " _MAP['cat2']  AS \"cat2\", "
+                + " _MAP['cat2'] AS \"cat2\", "
                 + " _MAP['cat3'] AS \"cat3\", "
                 + " _MAP['cat4'] AS \"cat4\", "
                 + " _MAP['cat5'] AS \"cat5\", "
+                + " _MAP['cat6'] AS \"cat6\", "
                 + " _MAP['val1'] AS \"val1\", "
                 + " _MAP['val2'] AS \"val2\" "
                 + " from \"elastic\".\"%s\"",
@@ -402,6 +404,24 @@ class AggregationTest {
             "aggregations:{'v1.max.field': 'val1'",
             "'v2.min.field': 'val2'}"))
         .returnsUnordered("v1=7; v2=5");
+  }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4954">[CALCITE-4954]
+   * Group TEXT field failed in Elasticsearch Adapter</a>.
+   */
+  @Test void testGroupTextField() {
+    CalciteAssert.that()
+        .with(AggregationTest::createConnection)
+        .query("select cat6, count(1) as CNT from view group by cat6")
+        .returnsUnordered("cat6=null; CNT=2",
+            "cat6=text1; CNT=1");
+
+    CalciteAssert.that()
+        .with(AggregationTest::createConnection)
+        .query("select cat1, cat6 from view group by cat1, cat6")
+        .returnsUnordered("cat1=a; cat6=null",
+            "cat1=b; cat6=null",
+            "cat1=null; cat6=text1");
   }
 }

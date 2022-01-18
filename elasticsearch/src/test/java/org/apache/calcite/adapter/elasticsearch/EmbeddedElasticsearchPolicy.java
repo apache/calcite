@@ -190,7 +190,12 @@ class EmbeddedElasticsearchPolicy {
             suffix, type);
       }
     } else {
-      parent.withObject("/" + key).put("type", type);
+      if ("text".equalsIgnoreCase(type)) {
+        // aggregations and sorting are disabled by default for text field type
+        parent.withObject("/" + key).put("type", type).put("fielddata", "true");
+      } else {
+        parent.withObject("/" + key).put("type", type);
+      }
     }
   }
 
