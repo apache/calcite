@@ -30,9 +30,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Planner rule that recognizes  a {@link org.apache.calcite.rel.core.Aggregate}
@@ -89,7 +87,6 @@ public final class AggregateProjectConstantToDummyJoinRule
 
     List<String> fieldNames = new ArrayList<>();
     List<Object> valueObjects = new ArrayList<>();
-    Map<RexLiteral, String> literalFieldNameMap = new HashMap<>();
     int literalCounter = 0;
     String literalPrefix = "LTRL";
     for (RexNode node: project.getProjects()) {
@@ -97,7 +94,6 @@ public final class AggregateProjectConstantToDummyJoinRule
         String fieldName = literalPrefix + literalCounter++;
         fieldNames.add(fieldName);
         valueObjects.add(node);
-        literalFieldNameMap.put((RexLiteral) node, fieldName);
       }
     }
 
@@ -106,11 +102,10 @@ public final class AggregateProjectConstantToDummyJoinRule
 
     List<RexNode> newProjects = new ArrayList<>();
 
+    literalCounter = 0;
     for (RexNode exp : project.getProjects()) {
       if (exp instanceof RexLiteral) {
-        if (literalFieldNameMap.containsKey((RexLiteral) exp)) {
-          newProjects.add(builder.field(literalFieldNameMap.get((RexLiteral) exp)));
-        }
+        newProjects.add(builder.field(literalPrefix + literalCounter++));
       } else {
         newProjects.add(exp);
       }
