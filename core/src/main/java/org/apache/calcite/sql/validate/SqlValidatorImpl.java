@@ -6611,7 +6611,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         int n = 0;
         for (SqlNode s : SqlNonNullableAccessors.getSelectList(select)) {
           final String alias = SqlValidatorUtil.getAlias(s, -1);
-          if (alias != null && nameMatcher.matches(alias, name)) {
+          if (alias != null && nameMatcher.matches(alias, name)
+              && s instanceof SqlBasicCall
+              && !((SqlBasicCall) s).getOperandList().get(0)
+              .hasUnderlyingColumnSameAsAlias(alias)) {
+            // only "expr as alias" need expand, but A as A no need
             expr = s;
             n++;
           }
