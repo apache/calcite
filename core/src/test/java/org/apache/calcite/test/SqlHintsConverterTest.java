@@ -187,6 +187,12 @@ class SqlHintsConverterTest {
     sql(sql).ok();
   }
 
+  @Test void testLateralTableWithHints() {
+    final String sql = "select * from emp,\n"
+        + "lateral table(RAMP(emp.deptno))/*+ properties(k1='v1', k2='v2') */";
+    sql(sql).ok();
+  }
+
   @Test void testHintsInSubQueryWithDecorrelation() {
     final String sql = "select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"

@@ -1051,6 +1051,12 @@ public abstract class SqlUtil {
     if (node != null && node.getKind() == SqlKind.AS) {
       return ((SqlCall) node).operand(0);
     }
+    if (node != null && node instanceof SqlCorrelateTableRef) {
+      SqlCall tmp = ((SqlCall) node).operand(0);
+      if (tmp.getKind() == SqlKind.AS) {
+        return tmp.operand(0);
+      }
+    }
     return node;
   }
 

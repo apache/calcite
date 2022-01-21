@@ -47,6 +47,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
+import org.apache.calcite.sql.SqlCorrelateTableRef;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDelete;
@@ -2116,6 +2117,8 @@ SqlNode TableRef2(boolean lateral) :
     int repeatableSeed = 0;
     SqlNodeList columnAliasList = null;
     SqlUnnestOperator unnestOp = SqlStdOperatorTable.UNNEST;
+    final List<SqlNode> hints = new ArrayList<SqlNode>();
+    SqlNodeList hintList;
 }
 {
     (
@@ -2173,10 +2176,23 @@ SqlNode TableRef2(boolean lateral) :
         <TABLE> { s = span(); } <LPAREN>
         tableRef = TableFunctionCall(s.pos())
         <RPAREN>
+        [
+            <HINT_BEG>
+            CommaSeparatedSqlHints(hints)
+            <COMMENT_END>
+        ]
         {
             if (lateral) {
-                tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    s.end(this), tableRef);
+                if (hints.size() > 0) {
+                    hintList = new SqlNodeList(hints, s.addAll(hints).end(this));
+                    SqlNode tmpTableRef = SqlStdOperatorTable.LATERAL.createCall(
+                                        s.end(this), tableRef);
+                    tableRef = new SqlCorrelateTableRef(Span.of(tmpTableRef, hintList).pos(),
+                        tmpTableRef, hintList);
+                } else {
+                    tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                        s.end(this), tableRef);
+                }
             }
         }
     |

@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCorrelateTableRef;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -1225,7 +1226,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return getNamespace(id);
   }
 
-  @Override public @Nullable SqlValidatorNamespace getNamespace(SqlNode node) {
+  @Override public @Nullable SqlValidatorNamespace  getNamespace(SqlNode node) {
     switch (node.getKind()) {
     case AS:
 
@@ -1242,6 +1243,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case ORDER_BY:
     case TABLESAMPLE:
       return getNamespace(((SqlCall) node).operand(0));
+    case LATERAL:
+      if (node instanceof SqlCorrelateTableRef) {
+        return getNamespace(((SqlCall) node).operand(0));
+      }
+      return namespaces.get(node);
     default:
       return namespaces.get(node);
     }
@@ -2441,9 +2447,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               null,
               forceRightNullable,
               lateral);
-      if (newRight != right) {
-        join.setRight(newRight);
-      }
+      // for check style.
+      swapJoinRightNode(join, right, newRight);
       registerSubQueries(joinScope, join.getCondition());
       final JoinNamespace joinNamespace = new JoinNamespace(this, join);
       registerNamespace(null, null, joinNamespace, forceNullable);
@@ -2618,6 +2623,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     default:
       throw Util.unexpected(kind);
+    }
+  }
+
+  /**
+   * Reduce the number of lines for the method to pass the check style.
+   */
+  private void swapJoinRightNode(SqlJoin join, SqlNode right, SqlNode newRight) {
+    if (newRight != right) {
+      if (right instanceof SqlCorrelateTableRef) {
+        join.setRight(
+            new SqlCorrelateTableRef(
+                right.getParserPosition(), newRight, ((SqlCorrelateTableRef) right).operand(1)));
+      } else {
+        join.setRight(newRight);
+      }
     }
   }
 

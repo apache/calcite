@@ -98,6 +98,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCorrelateTableRef;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -2273,6 +2274,12 @@ public class SqlToRelConverter {
       convertCollectionTable(bb, call2);
       return;
 
+    case LATERAL:
+      if (from instanceof SqlCorrelateTableRef) {
+        convertFrom(bb, ((SqlCall) from).operand(0), fieldNames);
+      }
+      return;
+
     default:
       throw new AssertionError("not a join operator " + from);
     }
@@ -2771,7 +2778,8 @@ public class SqlToRelConverter {
       RelNode leftRel,
       RelNode rightRel,
       RexNode joinCond,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      List<RelHint> hints) {
     assert joinCond != null;
 
     final CorrelationUse p = getCorrelationUse(bb, rightRel);
@@ -2797,7 +2805,7 @@ public class SqlToRelConverter {
             .union(p.requiredColumns);
       }
 
-      return LogicalCorrelate.create(leftRel, innerRel, ImmutableList.of(),
+      return LogicalCorrelate.create(leftRel, innerRel, hints,
           p.id, requiredCols, joinType);
     }
 
@@ -3042,12 +3050,20 @@ public class SqlToRelConverter {
         throw Util.unexpected(conditionType);
       }
     }
+
+    final List<RelHint> hints;
+    if (right instanceof SqlCorrelateTableRef) {
+      hints = SqlUtil.getRelHint(hintStrategies, ((SqlCorrelateTableRef) right).operand(1));
+    } else {
+      hints = ImmutableList.of();
+    }
     final RelNode joinRel = createJoin(
         fromBlackboard,
         leftRel,
         rightRel,
         condition,
-        convertJoinType(join.getJoinType()));
+        convertJoinType(join.getJoinType()),
+        hints);
     bb.setRoot(joinRel, false);
   }
 
@@ -4712,7 +4728,8 @@ public class SqlToRelConverter {
               root(),
               rel,
               joinCond,
-              joinType);
+              joinType,
+              ImmutableList.of());
 
       setRoot(join, false);
 
