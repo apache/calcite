@@ -2157,6 +2157,82 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(isNotNull(cast(i2, intType)), "true");
   }
 
+  /**
+   * Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4988">[CALCITE-4988]
+   * ((A IS NOT NULL OR B) AND A IS NOT NULL) can't be simplify to (A IS NOT NULL)
+   * When A is deterministic</a>. */
+  @Test void testSimplifyIsNotNullWithDeterministic() {
+    // "(A IS NOT NULL OR B) AND A IS NOT NULL" when A is deterministic
+    // ==>
+    // "A IS NOT NULL"
+    SqlOperator dc = getDeterministicOperator();
+    checkSimplify2(
+        and(or(isNotNull(rexBuilder.makeCall(dc)), gt(vInt(2), literal(2))),
+            isNotNull(rexBuilder.makeCall(dc))),
+        "AND(OR(IS NOT NULL(DC()), >(?0.int2, 2)), IS NOT NULL(DC()))",
+        "IS NOT NULL(DC())");
+  }
+
+  @Test void testSimplifyIsNotNullWithDeterministic2() {
+    // "(A IS NOT NULL AND B) OR A IS NULL" when A is deterministic
+    // ==>
+    // "A IS NULL OR B"
+    SqlOperator dc = getDeterministicOperator();
+    checkSimplify(
+            or(and(isNotNull(rexBuilder.makeCall(dc)), gt(vInt(2), literal(2))),
+                    isNull(rexBuilder.makeCall(dc))),
+            "OR(IS NULL(DC()), >(?0.int2, 2))");
+  }
+
+  @Test void testSimplifyIsNotNullWithNoDeterministic() {
+    // "(A IS NOT NULL OR B) AND A IS NOT NULL" when A is not deterministic
+    // ==>
+    // "(A IS NOT NULL OR B) AND A IS NOT NULL"
+    SqlOperator ndc = getNoDeterministicOperator();
+    checkSimplifyUnchanged(
+        and(or(isNotNull(rexBuilder.makeCall(ndc)), gt(vInt(2), literal(2))),
+            isNotNull(rexBuilder.makeCall(ndc))));
+  }
+
+  @Test void testSimplifyIsNotNullWithNoDeterministic2() {
+    // "(A IS NOT NULL AND B) OR A IS NOT NULL" when A is not deterministic
+    // ==>
+    // "(A IS NOT NULL AND B) OR A IS NOT NULL"
+    SqlOperator ndc = getNoDeterministicOperator();
+    checkSimplifyUnchanged(
+            and(or(isNotNull(rexBuilder.makeCall(ndc)), gt(vInt(2), literal(2))),
+                    isNotNull(rexBuilder.makeCall(ndc))));
+  }
+
+  private SqlOperator getDeterministicOperator() {
+    return new SqlSpecialOperator(
+            "DC",
+            SqlKind.OTHER_FUNCTION,
+            0,
+            false,
+            ReturnTypes.BOOLEAN_FORCE_NULLABLE,
+            null, null) {
+      @Override public boolean isDeterministic() {
+        return true;
+      }
+    };
+  }
+
+  private SqlOperator getNoDeterministicOperator() {
+    return new SqlSpecialOperator(
+            "NDC",
+            SqlKind.OTHER_FUNCTION,
+            0,
+            false,
+            ReturnTypes.BOOLEAN_FORCE_NULLABLE,
+            null, null) {
+      @Override public boolean isDeterministic() {
+        return false;
+      }
+    };
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2929">[CALCITE-2929]
    * Simplification of IS NULL checks are incorrectly assuming that CAST-s are possible</a>. */
