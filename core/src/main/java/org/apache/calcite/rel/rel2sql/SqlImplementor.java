@@ -83,6 +83,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
@@ -586,11 +587,24 @@ public abstract class SqlImplementor {
 
     /** Creates a reference to a field to be used in an ORDER BY clause.
      *
-     * <p>By default, it returns the same result as {@link #field}.
+     * <p>The return result depends on the target dialect's conformance
+     * and the following solving order.
+     * <ul>
+     *   <li>If the conformance supports {@link SqlConformance#isSortByOrdinal()},
+     *    then ORDER BY ordinal.
+     *   <li>Else if the conformance supports {@link SqlConformance#isSortByAlias()},
+     *    then ORDER BY alias.
+     *   <li>Else ORDER BY SELECT field.
+     * </ul>
      *
-     * <p>If the field has an alias, uses the alias.
-     * If the field is an unqualified column reference which is the same an
-     * alias, switches to a qualified column reference.
+     * <p>For example, given
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno</pre>
+     * we generate the following statements according to the above solving order.
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2</pre>
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY x</pre>
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY empno</pre>
+     * The last "ORDER BY empno" is valid because the target dialect's conformance
+     * doesn't support ORDER BY alias.
      */
     public SqlNode orderField(int ordinal) {
       return field(ordinal);

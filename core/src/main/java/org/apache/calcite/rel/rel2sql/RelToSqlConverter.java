@@ -444,7 +444,12 @@ public class RelToSqlConverter extends SqlImplementor
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
     if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
-      //The order by ordinal may be greater than size of the new projects.
+      //The ORDER BY ordinal may be greater than size of the new projects.
+      //For example, given
+      //    SELECT empno FROM emp ORDER BY 2
+      // we generate
+      //    SELECT empno FROM emp ORDER BY ename
+      // "ORDER BY 2" is incorrect because max ordinal is 1.
       if (inputIsSort && builder.select.hasOrderBy()
           && dialect.getConformance().isSortByOrdinal()) {
         int maxOrderKey = e.getProjects().size();
