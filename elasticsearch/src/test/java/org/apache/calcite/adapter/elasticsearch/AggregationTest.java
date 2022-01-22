@@ -418,9 +418,9 @@ class AggregationTest {
 
     CalciteAssert.that()
         .with(newConnectionFactory())
-        .query("select cat1, cat6 as CNT from view group by cat1, cat6")
-        .returnsUnordered("cat1=a; CNT=null",
-            "cat1=b; CNT=null",
-            "cat1=null; CNT=text1");
+        .query("select cat1, cat6 from view group by cat1, cat6")
+        .returnsUnordered("cat1=a; cat6=null",
+            "cat1=b; cat6=null",
+            "cat1=null; cat6=text1");
   }
 }
