@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -24,28 +25,46 @@ import org.checkerframework.dataflow.qual.Pure;
 /**
  * The methods in this class allow to cast nullable reference to a non-nullable one.
  * This is an internal class, and it is not meant to be used as a public API.
+ *
  * <p>The class enables to remove checker-qual runtime dependency, and helps IDEs to see
- * the resulting types of {@code castNonNull} better</p>
+ * the resulting types of {@code castNonNull} better.
  */
-@SuppressWarnings({"cast.unsafe", "NullableProblems", "contracts.postcondition.not.satisfied"})
+@SuppressWarnings({"cast.unsafe", "RedundantCast", "contracts.postcondition.not.satisfied"})
 public class Nullness {
   private Nullness() {
   }
 
   /**
-   * Enables to threat nullable type as non-nullable with no assertions.
+   * Allows you to treat a nullable type as non-nullable with no assertions.
    *
-   * <p>It is useful in the case you have a nullable lately-initialized field like the following:
-   * {@code class Wrapper<T> { @Nullable T value; }}.
-   * That signature allows to use {@code Wrapper} with both nullable or non-nullable types:
-   * {@code Wrapper<@Nullable Integer>} vs {@code Wrapper<Integer>}. Suppose you need to implement
-   * {@code T get() { return value; }} The issue is checkerframework does not permit that
-   * because {@code T} has unknown nullability, so the following needs to be used:
-   * {@code T get() { return sneakyNull(value); }}</p>
+   * <p>It is useful in the case you have a nullable lately-initialized field
+   * like the following:
+   *
+   * <pre><code>
+   * class Wrapper&lt;T&gt; {
+   *   &#64;Nullable T value;
+   * }
+   * </code></pre>
+   *
+   * <p>That signature allows you to use {@code Wrapper} with both nullable or
+   * non-nullable types: {@code Wrapper<@Nullable Integer>}
+   * vs {@code Wrapper<Integer>}. Suppose you need to implement
+   *
+   * <pre><code>
+   * T get() { return value; }
+   * </code></pre>
+   *
+   * <p>The issue is checkerframework does not permit that because {@code T}
+   * has unknown nullability, so the following needs to be used:
+   *
+   * <pre><code>
+   * T get() { return sneakyNull(value); }
+   * </code></pre>
    *
    * @param <T>     the type of the reference
    * @param ref     a reference of @Nullable type, that is non-null at run time
-   * @return the argument, casted to have the type qualifier @NonNull
+   *
+   * @return the argument, cast to have the type qualifier @NonNull
    */
   @Pure
   public static @EnsuresNonNull("#1")
@@ -53,5 +72,25 @@ public class Nullness {
       @Nullable T ref) {
     //noinspection ConstantConditions
     return (@NonNull T) ref;
+  }
+
+  /**
+   * Allows you to treat an uninitialized or under-initialization object as
+   * initialized with no assertions.
+   *
+   * @param <T>     The type of the reference
+   * @param ref     A reference that was @Uninitialized at some point but is
+   *                now fully initialized
+   *
+   * @return the argument, cast to have type qualifier @Initialized
+   */
+  @SuppressWarnings({"unchecked"})
+  @Pure
+  public static <T> T castToInitialized(@UnderInitialization T ref) {
+    // To throw CheckerFramework off the scent, we put the object into an array,
+    // cast the array to an Object, and cast back to an array.
+    Object src = new Object[] {ref};
+    Object[] dest = (Object[]) src;
+    return (T) dest[0];
   }
 }

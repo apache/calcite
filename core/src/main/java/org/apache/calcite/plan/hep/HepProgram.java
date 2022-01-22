@@ -20,7 +20,14 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.linq4j.Nullness.castToInitialized;
 
 /**
  * HepProgram specifies the order in which rules should be attempted by
@@ -31,7 +38,7 @@ import java.util.List;
  * as read/write during planning, so a program can only be in use by a single
  * planner at a time.
  */
-public class HepProgram {
+public class HepProgram extends HepInstruction {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -42,12 +49,6 @@ public class HepProgram {
   //~ Instance fields --------------------------------------------------------
 
   final ImmutableList<HepInstruction> instructions;
-
-  int matchLimit;
-
-  @Nullable HepMatchOrder matchOrder;
-
-  HepInstruction.@Nullable EndGroup group;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -66,13 +67,65 @@ public class HepProgram {
 
   //~ Methods ----------------------------------------------------------------
 
-  void initialize(boolean clearCache) {
-    matchLimit = MATCH_UNTIL_FIXPOINT;
-    matchOrder = HepMatchOrder.DEPTH_FIRST;
-    group = null;
+  @Override State prepare(PrepareContext px) {
+    return new State(px, instructions);
+  }
 
-    for (HepInstruction instruction : instructions) {
-      instruction.initialize(clearCache);
+  /** State for a {@link HepProgram} instruction. */
+  class State extends HepState {
+    final ImmutableList<HepState> instructionStates;
+    int matchLimit = MATCH_UNTIL_FIXPOINT;
+    HepMatchOrder matchOrder = HepMatchOrder.DEPTH_FIRST;
+    HepInstruction.EndGroup.@Nullable State group;
+
+    State(PrepareContext px, List<HepInstruction> instructions) {
+      super(px);
+      final PrepareContext px2 = px.withProgramState(castToInitialized(this));
+      final List<HepState> states = new ArrayList<>();
+      final Map<HepInstruction, Consumer<HepState>> actions = new HashMap<>();
+      for (HepInstruction instruction : instructions) {
+        final HepState state;
+        if (instruction instanceof BeginGroup) {
+          // The state of a BeginGroup instruction needs the state of the
+          // corresponding EndGroup instruction, which we haven't seen yet.
+          // Temporarily put a placeholder State into the list, and add an
+          // action to replace that State. The action will be invoked when we
+          // reach the EndGroup.
+          final int i = states.size();
+          actions.put(((BeginGroup) instruction).endGroup, state2 ->
+              states.set(i,
+                  instruction.prepare(
+                      px2.withEndGroupState((EndGroup.State) state2))));
+          state = castNonNull(null);
+        } else {
+          state = instruction.prepare(px2);
+          if (actions.containsKey(instruction)) {
+            actions.get(instruction).accept(state);
+          }
+        }
+        states.add(state);
+      }
+      this.instructionStates = ImmutableList.copyOf(states);
+    }
+
+    @Override void init() {
+      matchLimit = MATCH_UNTIL_FIXPOINT;
+      matchOrder = HepMatchOrder.DEPTH_FIRST;
+      group = null;
+    }
+
+    @Override void execute() {
+      planner.executeProgram(HepProgram.this, this);
+    }
+
+    boolean skippingGroup() {
+      if (group != null) {
+        // Skip if we've already collected the ruleset.
+        return !group.collecting;
+      } else {
+        // Not grouping.
+        return false;
+      }
     }
   }
 }
