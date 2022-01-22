@@ -683,12 +683,16 @@ public class SqlToRelConverter {
     convertFrom(
         bb,
         select.getFrom());
-    if (RelOptUtil.isOrder(castNonNull(bb.root))
-        && config.isRemoveSortInSubQuery()
-        && (!bb.top || validator().isAggregate(select) || select.isDistinct()
-        || select.hasOrderBy() || select.hasWhere())
-    ) {
-      bb.setRoot(bb.root.getInput(0), true);
+    // The existence of other nodes will cause the view to be in the subquery
+    boolean hasOtherNodes = select.hasWhere()
+        || validator().isAggregate(select) || select.isDistinct()
+        || select.hasOrderBy() || select.getFetch() != null;
+    // When the query has other nodes, the sort node should be removed
+    // even if the view is at the top level
+    boolean isRemoveSort = config.isRemoveSortInSubQuery() && (!bb.top || hasOtherNodes);
+    //  ORDER BY ... LIMIT is about semantics, so only remove pure order
+    if (RelOptUtil.isPureOrder(castNonNull(bb.root)) && isRemoveSort) {
+      bb.setRoot(castNonNull(bb.root).getInput(0), true);
     }
     convertWhere(
         bb,
@@ -2600,7 +2604,7 @@ public class SqlToRelConverter {
         SqlUtil.getRelHint(hintStrategies, tableHints),
         LogicalTableScan.create(cluster, table, ImmutableList.of()));
     tableRel = toRel(table, hints);
-    if (RelOptUtil.isOrder(tableRel) && removeSortInSubQuery(bb.top)) {
+    if (RelOptUtil.isPureOrder(tableRel) && removeSortInSubQuery(bb.top)) {
       bb.setRoot(tableRel.getInput(0), true);
     } else {
       bb.setRoot(tableRel, true);

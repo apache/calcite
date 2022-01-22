@@ -816,7 +816,6 @@ class Query extends RelOptTestBase {
 
   public void check() {
     SqlToRelTestBase.Tester tester = createTester().withDecorrelation(true)
-        .withConfig(c -> c.withRemoveSortInSubQuery(false))
         .withClusterFactory(cluster -> RelOptCluster.create(planner, cluster.getRexBuilder()));
 
     final Sql sql =

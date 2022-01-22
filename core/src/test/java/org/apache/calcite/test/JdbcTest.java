@@ -80,7 +80,6 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
-import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
@@ -5913,12 +5912,6 @@ public class JdbcTest {
                 + "  LogicalFilter(condition=[>($1, 10)])\n"
                 + "    LogicalProject(empid=[$0], deptno=[$1])\n"
                 + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
-    with.query("select * from \"adhoc\".V order by \"empid\"")
-        .explainMatches(" without implementation ",
-            CalciteAssert.checkResult("PLAN=LogicalSort(sort0=[$0], dir0=[ASC])\n"
-                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
-                + "commission=[$4])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
     with.query("select * from \"adhoc\".\"EMPLOYEES\" where exists (select * from \"adhoc\".V)")
         .explainMatches(" without implementation ",
             CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
@@ -5926,6 +5919,14 @@ public class JdbcTest {
                 + "  LogicalFilter(condition=[EXISTS({\n"
                 + "LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
                 + "})])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    // View is used in a query at top level，but it's not the top plan
+    // Still remove sort
+    with.query("select * from \"adhoc\".V order by \"empid\"")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(sort0=[$0], dir0=[ASC])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
                 + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
     with.query("select * from \"adhoc\".V, \"adhoc\".\"EMPLOYEES\"")
         .explainMatches(" without implementation ",
@@ -5942,6 +5943,18 @@ public class JdbcTest {
             CalciteAssert.checkResult("PLAN=LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
                 + "  LogicalProject(empid=[$0])\n"
                 + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select distinct * from \"adhoc\".V")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalAggregate(group=[{0, 1, 2, 3, 4}])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+  }
+
+  @Test void testCustomRemoveSortInView() {
+    final String viewSql = "select * from \"EMPLOYEES\" order by \"deptno\"";
+    final CalciteAssert.AssertThat with = modelWithView(viewSql, null);
+    // Some cases where we may or may not want to keep the Sort
     with.query("select * from \"adhoc\".V where \"deptno\" > 10")
         .explainMatches(" without implementation ",
             CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
@@ -5950,12 +5963,37 @@ public class JdbcTest {
                 + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
                 + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
-    with.query("select distinct * from \"adhoc\".V")
+    with.query("select * from \"adhoc\".V where \"deptno\" > 10")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
         .explainMatches(" without implementation ",
-            CalciteAssert.checkResult("PLAN=LogicalAggregate(group=[{0, 1, 2, 3, 4}])\n"
+            CalciteAssert.checkResult("PLAN=LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
+                + "salary=[$3], commission=[$4])\n"
+                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
+                + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+
+    with.query("select * from \"adhoc\".V limit 10")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(fetch=[10])\n"
                 + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
                 + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from \"adhoc\".V limit 10")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(fetch=[10])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
+                + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
   }
 
   /** Tests a view with ORDER BY and LIMIT clauses. */
@@ -5965,9 +6003,6 @@ public class JdbcTest {
             + "order by \"empid\" limit 2", null);
     with
         .query("select \"name\" from \"adhoc\".V order by \"name\"")
-        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
-            (Consumer<Holder<Config>>) configHolder ->
-                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
         .returns("name=Bill\n"
             + "name=Theodore\n");
 
@@ -5978,19 +6013,7 @@ public class JdbcTest {
             + "select * from \"adhoc\".\"EMPLOYEES\" where \"deptno\" = 10\n"
             + "order by \"empid\" limit 2)\n"
             + "order by \"name\"")
-        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
-            (Consumer<Holder<SqlToRelConverter.Config>>) configHolder ->
-                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
         .returns("name=Bill\n"
-            + "name=Theodore\n");
-
-    with
-        .query("select \"name\" from (\n"
-            + "select * from \"adhoc\".\"EMPLOYEES\" where \"deptno\" = 10\n"
-            + "order by \"empid\" limit 2)\n"
-            + "order by \"name\"")
-        .returns("name=Bill\n"
-            + "name=Sebastian\n"
             + "name=Theodore\n");
   }
 
