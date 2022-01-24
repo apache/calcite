@@ -1461,13 +1461,13 @@ public class RelBuilder {
         null, ImmutableList.of(), alias, ImmutableList.of(operand));
   }
 
-  /** Creates a call to the {@code MAX} aggregate function,
-   * optionally with an alias. */
+  /** Creates a call to the {@code MAX} aggregate function. */
   public AggCall max(RexNode operand) {
     return max(null, operand);
   }
 
-  /** Creates a call to the {@code MAX} aggregate function. */
+  /** Creates a call to the {@code MAX} aggregate function,
+   * optionally with an alias. */
   public AggCall max(@Nullable String alias, RexNode operand) {
     return aggregateCall(SqlStdOperatorTable.MAX, false, false, false, null,
         null, ImmutableList.of(), alias, ImmutableList.of(operand));
