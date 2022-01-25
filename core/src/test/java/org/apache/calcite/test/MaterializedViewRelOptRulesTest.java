@@ -17,11 +17,13 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
@@ -36,7 +38,32 @@ import java.util.List;
  * sub-classes, in which materialized views are matched to the structure of a
  * plan.
  */
-class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
+class MaterializedViewRelOptRulesTest {
+  static final MaterializedViewTester TESTER =
+      new MaterializedViewTester() {
+        @Override protected List<RelNode> optimize(RelNode queryRel,
+            List<RelOptMaterialization> materializationList) {
+          RelOptPlanner planner = queryRel.getCluster().getPlanner();
+          RelTraitSet traitSet = queryRel.getCluster().traitSet()
+              .replace(EnumerableConvention.INSTANCE);
+          RelOptUtil.registerDefaultRules(planner, true, false);
+          return ImmutableList.of(
+              Programs.standard().run(planner, queryRel, traitSet,
+                  materializationList, ImmutableList.of()));
+        }
+      };
+
+  /** Creates a fixture. */
+  protected MaterializedViewFixture fixture(String query) {
+    return MaterializedViewFixture.create(query, TESTER);
+  }
+
+  /** Creates a fixture with a given query. */
+  protected final MaterializedViewFixture sql(String materialize,
+      String query) {
+    return fixture(query)
+        .withMaterializations(ImmutableList.of(Pair.of(materialize, "MV0")));
+  }
 
   @Test void testSwapJoin() {
     sql("select count(*) as c from \"foodmart\".\"sales_fact_1997\" as s"
@@ -54,11 +81,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
     sql("select \"deptno\", count(*) as c, \"empid\" + 2, sum(\"empid\") as s "
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
             + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -70,10 +96,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
   @Test void testAggregateMaterializationNoAggregateFuncs2() {
     sql("select \"empid\", \"deptno\" from \"emps\" group by \"empid\", \"deptno\"",
         "select \"deptno\" from \"emps\" group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -87,10 +112,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
     sql("select \"empid\", \"deptno\"\n"
             + "from \"emps\" where \"deptno\" = 10 group by \"empid\", \"deptno\"",
         "select \"deptno\" from \"emps\" where \"deptno\" = 10 group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -105,11 +129,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
     sql("select \"empid\", \"deptno\"\n"
             + "from \"emps\" where \"deptno\" > 5 group by \"empid\", \"deptno\"",
         "select \"deptno\" from \"emps\" where \"deptno\" > 10 group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}])\n"
             + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[<($t2, $t1)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -138,10 +161,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select \"deptno\" from \"emps\" group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -150,10 +172,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select \"deptno\", count(*) as c, sum(\"empid\") as s\n"
             + "from \"emps\" group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}], C=[$SUM0($2)], S=[$SUM0($3)])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -162,10 +183,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select \"deptno\", \"empid\", sum(\"empid\") as s, count(*) as c\n"
             + "from \"emps\" group by \"empid\", \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t1], empid=[$t0], S=[$t3], C=[$t2])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -174,12 +194,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
         "select \"deptno\", sum(\"empid\") as s\n"
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
             + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
             + "proj#0..3=[{exprs}], $condition=[$t5])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -188,14 +207,13 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
         "select \"deptno\", sum(\"empid\") + 1 as s\n"
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)],"
             + " deptno=[$t0], S=[$t3])\n"
             + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
             + "proj#0..3=[{exprs}], $condition=[$t5])\n"
-            + "      EnumerableTableScan(table=[[hr, MV0]])"))
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -212,14 +230,13 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
         "select \"deptno\" + 1, sum(\"empid\") + 1 as s\n"
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], "
             + "expr#4=[+($t1, $t2)], EXPR$0=[$t3], S=[$t4])\n"
             + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
             + "proj#0..3=[{exprs}], $condition=[$t5])\n"
-            + "      EnumerableTableScan(table=[[hr, MV0]])"))
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -317,7 +334,7 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"events\" group by \"eventid\", floor(cast(\"ts\" as timestamp) to month)",
         "select floor(cast(\"ts\" as timestamp) to hour), sum(\"eventid\") as s\n"
             + "from \"events\" group by floor(cast(\"ts\" as timestamp) to hour)")
-        .withChecker(resultContains("EnumerableTableScan(table=[[hr, events]])"))
+        .checkingThatResultContains("EnumerableTableScan(table=[[hr, events]])")
         .ok();
   }
 
@@ -343,7 +360,7 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "(select 11 as \"empno\", 22 as \"sal\", count(*)\n"
             + "from \"emps\" group by 11, 22) tmp\n"
             + "where \"sal\" = 33")
-        .withChecker(resultContains("EnumerableValues(tuples=[[]])"))
+        .checkingThatResultContains("EnumerableValues(tuples=[[]])")
         .ok();
   }
 
@@ -354,11 +371,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"empid\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
             + "group by \"empid\", \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
             + "empid=[$t0], $condition=[$t3])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -369,11 +385,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"empid\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
             + "group by \"empid\", \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t0)], "
             + "empid=[$t1], $condition=[$t3])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -395,11 +410,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"empid\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
             + "group by \"empid\", \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
             + "empid=[$t0], $condition=[$t3])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -410,11 +424,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"depts\".\"deptno\" from \"depts\"\n"
             + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 15\n"
             + "group by \"depts\".\"deptno\", \"emps\".\"empid\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
             + "deptno=[$t0], $condition=[$t3])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -425,12 +438,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"depts\".\"deptno\" from \"depts\"\n"
             + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 15\n"
             + "group by \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{0}])\n"
             + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
             + "proj#0..1=[{exprs}], $condition=[$t3])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -449,12 +461,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "where \"depts\".\"deptno\" > 10\n"
             + "group by \"dependents\".\"empid\"")
-        .withChecker(
-            resultContains("EnumerableAggregate(group=[{0}])",
+        .checkingThatResultContains("EnumerableAggregate(group=[{0}])",
                 "EnumerableUnion(all=[true])",
                 "EnumerableAggregate(group=[{2}])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10..11]]], expr#6=[SEARCH($t0, $t5)]"))
+                "expr#5=[Sarg[(10..11]]], expr#6=[SEARCH($t0, $t5)]")
         .ok();
   }
 
@@ -491,12 +502,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
             + "group by \"dependents\".\"empid\"")
-        .withChecker(
-            resultContains("EnumerableAggregate(group=[{0}])",
-                "EnumerableUnion(all=[true])",
-                "EnumerableAggregate(group=[{2}])",
-                "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]"))
+        .checkingThatResultContains("EnumerableAggregate(group=[{0}])",
+            "EnumerableUnion(all=[true])",
+            "EnumerableAggregate(group=[{2}])",
+            "EnumerableTableScan(table=[[hr, MV0]])",
+            "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]")
         .ok();
   }
 
@@ -515,14 +525,13 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "where \"depts\".\"deptno\" > 10\n"
             + "group by \"dependents\".\"empid\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{4}])\n"
             + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t2, $t3)], "
             + "expr#6=[CAST($t1):VARCHAR], "
             + "expr#7=[CAST($t0):VARCHAR], "
             + "expr#8=[=($t6, $t7)], expr#9=[AND($t5, $t8)], proj#0..4=[{exprs}], $condition=[$t9])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -532,10 +541,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\" join \"depts\" using (\"deptno\")\n"
             + "group by \"empid\", \"depts\".\"deptno\"",
         "select \"deptno\" from \"emps\" group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -546,10 +554,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"depts\".\"deptno\", count(*) as c, sum(\"empid\") as s\n"
             + "from \"emps\" join \"depts\" using (\"deptno\")\n"
             + "group by \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}], C=[$SUM0($2)], S=[$SUM0($3)])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -560,10 +567,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         "select \"deptno\", \"empid\", sum(\"empid\") as s, count(*) as c\n"
             + "from \"emps\" group by \"empid\", \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t1], empid=[$t0], S=[$t3], C=[$t2])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -574,12 +580,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"depts\".\"deptno\", sum(\"empid\") as s\n"
             + "from \"emps\" join \"depts\" using (\"deptno\")\n"
             + "where \"emps\".\"deptno\" > 10 group by \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
             + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
             + "proj#0..3=[{exprs}], $condition=[$t5])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -590,14 +595,13 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"depts\".\"deptno\", sum(\"empid\") + 1 as s\n"
             + "from \"emps\" join \"depts\" using (\"deptno\")\n"
             + "where \"depts\".\"deptno\" > 10 group by \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
             + "deptno=[$t0], S=[$t3])\n"
             + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
             + "proj#0..3=[{exprs}], $condition=[$t5])\n"
-            + "      EnumerableTableScan(table=[[hr, MV0]])"))
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -633,12 +637,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
             + "group by \"dependents\".\"empid\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{0}], S=[$SUM0($2)])\n"
             + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "    EnumerableTableScan(table=[[hr, depts]])"))
+            + "    EnumerableTableScan(table=[[hr, depts]])")
         .ok();
   }
 
@@ -652,12 +655,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
             + "group by \"depts\".\"name\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{4}], S=[$SUM0($2)])\n"
             + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "    EnumerableTableScan(table=[[hr, depts]])"))
+            + "    EnumerableTableScan(table=[[hr, depts]])")
         .ok();
   }
 
@@ -670,10 +672,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\"\n"
             + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
             + "group by \"dependents\".\"empid\", \"emps\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..2=[{inputs}], deptno=[$t1], S=[$t2])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -704,15 +705,14 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
             + "group by \"dependents\".\"empid\"")
-        .withChecker(
-            resultContains("EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], "
-                    + "expr#3=[+($t1, $t2)], empid=[$t0], EXPR$1=[$t3])\n"
-                    + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
-                "EnumerableUnion(all=[true])",
-                "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
-                "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
-                "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]"))
+        .checkingThatResultContains("EnumerableCalc(expr#0..1=[{inputs}], "
+                + "expr#2=[1], expr#3=[+($t1, $t2)], empid=[$t0], EXPR$1=[$t3])\n"
+                + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
+            "EnumerableUnion(all=[true])",
+            "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
+            "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
+            "EnumerableTableScan(table=[[hr, MV0]])",
+            "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]")
         .ok();
   }
 
@@ -789,7 +789,7 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         + "      EnumerableTableScan(table=[[hr, MV0]])\n"
         + "      EnumerableTableScan(table=[[hr, depts2]])\n";
     sql(m, q)
-        .withChecker(resultContains(plan))
+        .checkingThatResultContains(plan)
         .ok();
   }
 
@@ -823,11 +823,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"depts\" using (\"deptno\")",
         "select \"empid\" \"deptno\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"empid\" = 1")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], expr#2=[1], "
             + "expr#3=[=($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -836,11 +835,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"depts\" using (\"deptno\")",
         "select \"empid\" \"deptno\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"empid\" > 1")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):JavaType(int) NOT NULL], "
             + "expr#2=[1], expr#3=[<($t2, $t1)], EXPR$0=[$t1], $condition=[$t3])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -849,12 +847,11 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"depts\" using (\"deptno\")",
         "select \"empid\" \"deptno\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"empid\" = 1")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):JavaType(int) NOT NULL], "
             + "expr#2=[1], expr#3=[CAST($t1):INTEGER NOT NULL], expr#4=[=($t2, $t3)], "
             + "EXPR$0=[$t1], $condition=[$t4])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -866,14 +863,13 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\"\n"
             + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t1])\n"
             + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR], name=[$t1])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
             + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR], empid=[$t0], name0=[$t2])\n"
-            + "      EnumerableTableScan(table=[[hr, dependents]])"))
+            + "      EnumerableTableScan(table=[[hr, dependents]])")
         .ok();
   }
 
@@ -885,14 +881,13 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"depts\"\n"
             + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t2])\n"
             + "  EnumerableHashJoin(condition=[=($1, $4)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
             + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR], proj#0..2=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, dependents]])"))
+            + "      EnumerableTableScan(table=[[hr, dependents]])")
         .ok();
   }
 
@@ -919,10 +914,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
             + "where \"depts\".\"deptno\" > 10")
-        .withChecker(
-            resultContains("EnumerableUnion(all=[true])",
+        .checkingThatResultContains("EnumerableUnion(all=[true])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10..30]]], expr#6=[SEARCH($t0, $t5)]"))
+                "expr#5=[Sarg[(10..30]]], expr#6=[SEARCH($t0, $t5)]")
         .ok();
   }
 
@@ -966,10 +960,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"a\".\"empid\" from \n"
             + "(select * from \"emps\" where \"empid\" = 1) \"a\"\n"
             + "join \"dependents\" using (\"empid\")\n")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -1000,10 +993,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"emps\".\"empid\" from \"emps\"\n"
             + "join \"dependents\" using (\"empid\")\n"
             + "where \"emps\".\"empid\" = 1")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -1016,10 +1008,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"emps\".\"empid\" from \"emps\"\n"
             + "join \"dependents\" using (\"empid\")\n"
             + "where \"emps\".\"empid\" = 1")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -1066,11 +1057,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + " from \"foodmart\".\"sales_fact_1997\" as s"
             + " where s.\"store_id\" = 1")
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
-        .withChecker(
-            resultContains(""
-                + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[>=($t1, $t8)],"
-                + " expr#10=[3], expr#11=[<=($t1, $t10)], expr#12=[AND($t9, $t11)], $f0=[$t12])\n"
-                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .checkingThatResultContains(""
+            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[>=($t1, $t8)],"
+            + " expr#10=[3], expr#11=[<=($t1, $t10)], expr#12=[AND($t9, $t11)], $f0=[$t12])\n"
+            + "  EnumerableTableScan(table=[[foodmart, MV0]])")
         .ok();
   }
 
@@ -1084,11 +1074,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + " join \"foodmart\".\"time_by_day\" as t on s.\"time_id\" = t.\"time_id\""
             + " where s.\"store_id\" = 1")
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
-        .withChecker(
-            resultContains(""
-                + "EnumerableCalc(expr#0..17=[{inputs}], expr#18=[1], expr#19=[>=($t8, $t18)], "
-                + "expr#20=[3], expr#21=[<=($t8, $t20)], expr#22=[AND($t19, $t21)], $f0=[$t22])\n"
-                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .checkingThatResultContains(""
+            + "EnumerableCalc(expr#0..17=[{inputs}], expr#18=[1], expr#19=[>=($t8, $t18)], "
+            + "expr#20=[3], expr#21=[<=($t8, $t20)], expr#22=[AND($t19, $t21)], $f0=[$t22])\n"
+            + "  EnumerableTableScan(table=[[foodmart, MV0]])")
         .ok();
   }
 
@@ -1100,10 +1089,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + " from \"foodmart\".\"sales_fact_1997\" as s"
             + " where s.\"store_id\" = 1")
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
-        .withChecker(
-            resultContains(""
-                + "EnumerableCalc(expr#0..1=[{inputs}], time_id=[$t0])\n"
-                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .checkingThatResultContains(""
+            + "EnumerableCalc(expr#0..1=[{inputs}], time_id=[$t0])\n"
+            + "  EnumerableTableScan(table=[[foodmart, MV0]])")
         .ok();
   }
 
@@ -1115,10 +1103,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + " from \"foodmart\".\"sales_fact_1997\" as s"
             + " where s.\"store_id\" = 1")
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
-        .withChecker(
-            resultContains(""
-                + "EnumerableCalc(expr#0..1=[{inputs}], EXPR$1=[$t1])\n"
-                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .checkingThatResultContains(""
+            + "EnumerableCalc(expr#0..1=[{inputs}], EXPR$1=[$t1])\n"
+            + "  EnumerableTableScan(table=[[foodmart, MV0]])")
         .ok();
   }
 
@@ -1133,10 +1120,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + " from \"foodmart\".\"sales_fact_1997\" as s"
             + " where s.\"store_id\" = 1")
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
-        .withChecker(
-            resultContains(""
-                + "EnumerableCalc(expr#0..4=[{inputs}], time_id=[$t0])\n"
-                + "  EnumerableTableScan(table=[[foodmart, MV0]])"))
+        .checkingThatResultContains(""
+            + "EnumerableCalc(expr#0..4=[{inputs}], time_id=[$t0])\n"
+            + "  EnumerableTableScan(table=[[foodmart, MV0]])")
         .ok();
   }
 
@@ -1147,13 +1133,12 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select \"empid\", \"depts\".\"deptno\" "
             + "from \"emps\"\n"
             + "join \"depts\" on \"depts\".\"deptno\" = \"empid\" group by \"empid\", \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0=[{inputs}], empid=[$t0], empid0=[$t0])\n"
             + "  EnumerableAggregate(group=[{1}])\n"
             + "    EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "      EnumerableTableScan(table=[[hr, depts]])"))
+            + "      EnumerableTableScan(table=[[hr, depts]])")
         .ok();
   }
 
@@ -1164,13 +1149,12 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
         "select sum(1) "
             + "from \"emps\"\n"
             + "join \"depts\" on \"depts\".\"deptno\" = \"empid\" group by \"empid\", \"depts\".\"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])\n"
             + "  EnumerableAggregate(group=[{1}], EXPR$0=[$SUM0($3)])\n"
             + "    EnumerableHashJoin(condition=[=($1, $4)], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "      EnumerableTableScan(table=[[hr, depts]])"))
+            + "      EnumerableTableScan(table=[[hr, depts]])")
         .ok();
   }
 
@@ -1185,10 +1169,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\"\n"
             + "group by \"deptno\", \"empid\")\n"
             + "group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]]"))
+            + "  EnumerableTableScan(table=[[hr, MV0]]")
         .ok();
   }
 
@@ -1203,10 +1186,9 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\"\n"
             + "group by \"deptno\", \"empid\")\n"
             + "group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{0}], C=[COUNT($2)])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]]"))
+            + "  EnumerableTableScan(table=[[hr, MV0]]")
         .ok();
   }
 
@@ -1221,11 +1203,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\"\n"
             + "group by \"deptno\", \"salary\")\n"
             + "group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
             + "  EnumerableAggregate(group=[{0, 2}])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]]"))
+            + "    EnumerableTableScan(table=[[hr, MV0]]")
         .ok();
   }
 
@@ -1240,22 +1221,10 @@ class MaterializedViewRelOptRulesTest extends AbstractMaterializedViewTest {
             + "from \"emps\"\n"
             + "group by \"deptno\", \"salary\")\n"
             + "group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
             + "  EnumerableAggregate(group=[{0, 1}])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]]"))
+            + "    EnumerableTableScan(table=[[hr, MV0]]")
         .ok();
-  }
-
-  protected List<RelNode> optimize(TestConfig testConfig) {
-    RelNode queryRel = testConfig.queryRel;
-    RelOptPlanner planner = queryRel.getCluster().getPlanner();
-    RelTraitSet traitSet = queryRel.getCluster().traitSet()
-        .replace(EnumerableConvention.INSTANCE);
-    RelOptUtil.registerDefaultRules(planner, true, false);
-    return ImmutableList.of(
-        Programs.standard().run(
-            planner, queryRel, traitSet, testConfig.materializations, ImmutableList.of()));
   }
 }

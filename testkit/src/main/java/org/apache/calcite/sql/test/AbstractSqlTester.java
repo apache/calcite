@@ -16,23 +16,19 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
-import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -41,58 +37,47 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
-import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorNamespace;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.sql2rel.RelFieldTrimmer;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.test.DiffRepository;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.nio.charset.Charset;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.hamcrest.Matcher;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.function.UnaryOperator;
+import java.util.function.Consumer;
 
-import static org.apache.calcite.sql.SqlUtil.stripAs;
+import static org.apache.calcite.test.Matchers.relIsValid;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
- * Abstract implementation of
- * {@link org.apache.calcite.test.SqlValidatorTestCase.Tester}
+ * Abstract implementation of {@link SqlTester}
  * that talks to a mock catalog.
  *
  * <p>This is to implement the default behavior: testing is only against the
  * {@link SqlValidator}.
  */
 public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
-  protected final SqlTestFactory factory;
-  protected final UnaryOperator<SqlValidator> validatorTransform;
+  private  static final String NL = System.getProperty("line.separator");
 
-  public AbstractSqlTester(SqlTestFactory factory,
-      UnaryOperator<SqlValidator> validatorTransform) {
-    this.factory = Objects.requireNonNull(factory, "factory");
-    this.validatorTransform = Objects.requireNonNull(validatorTransform, "validatorTransform");
-  }
-
-  @Override public final SqlTestFactory getFactory() {
-    return factory;
+  public AbstractSqlTester() {
   }
 
   /**
@@ -104,26 +89,17 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     // no resources to release
   }
 
-  @Override public final SqlConformance getConformance() {
-    return (SqlConformance) factory.get("conformance");
-  }
-
-  @Override public final SqlValidator getValidator() {
-    return factory.getValidator();
-  }
-
-  @Override public void assertExceptionIsThrown(StringAndPos sap,
-      String expectedMsgPattern) {
-    final SqlValidator validator;
+  @Override public void assertExceptionIsThrown(SqlTestFactory factory,
+      StringAndPos sap, @Nullable String expectedMsgPattern) {
     final SqlNode sqlNode;
     try {
-      sqlNode = parseQuery(sap.sql);
-      validator = getValidator();
+      sqlNode = parseQuery(factory, sap.sql);
     } catch (Throwable e) {
       SqlTests.checkEx(e, expectedMsgPattern, sap, SqlTests.Stage.PARSE);
       return;
     }
 
+    final SqlValidator validator = factory.createValidator();
     Throwable thrown = null;
     try {
       validator.validate(sqlNode);
@@ -134,7 +110,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     SqlTests.checkEx(thrown, expectedMsgPattern, sap, SqlTests.Stage.VALIDATE);
   }
 
-  protected void checkParseEx(Throwable e, String expectedMsgPattern,
+  protected void checkParseEx(Throwable e, @Nullable String expectedMsgPattern,
       StringAndPos sap) {
     try {
       throw e;
@@ -153,193 +129,67 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     }
   }
 
-  @Override public RelDataType getColumnType(String sql) {
-    RelDataType rowType = getResultType(sql);
-    final List<RelDataTypeField> fields = rowType.getFieldList();
-    assertEquals(1, fields.size(), "expected query to return 1 field");
-    return fields.get(0).getType();
+  @Override public RelDataType getColumnType(SqlTestFactory factory,
+      String sql) {
+    return validateAndApply(factory, StringAndPos.of(sql),
+        (sql1, validator, n) -> {
+          final RelDataType rowType =
+              validator.getValidatedNodeType(n);
+          final List<RelDataTypeField> fields = rowType.getFieldList();
+          assertThat("expected query to return 1 field", fields.size(), is(1));
+          return fields.get(0).getType();
+        });
   }
 
-  @Override public RelDataType getResultType(String sql) {
-    SqlValidator validator = getValidator();
-    SqlNode n = parseAndValidate(validator, sql);
-
-    return validator.getValidatedNodeType(n);
+  @Override public RelDataType getResultType(SqlTestFactory factory,
+      String sql) {
+    return validateAndApply(factory, StringAndPos.of(sql),
+        (sql1, validator, n) ->
+            validator.getValidatedNodeType(n));
   }
 
-  @Override public SqlNode parseAndValidate(SqlValidator validator, String sql) {
+  Pair<SqlValidator, SqlNode> parseAndValidate(SqlTestFactory factory,
+      String sql) {
     SqlNode sqlNode;
     try {
-      sqlNode = parseQuery(sql);
+      sqlNode = parseQuery(factory, sql);
     } catch (Throwable e) {
       throw new RuntimeException("Error while parsing query: " + sql, e);
     }
-    return validator.validate(sqlNode);
+    SqlValidator validator = factory.createValidator();
+    return Pair.of(validator, validator.validate(sqlNode));
   }
 
-  @Override public SqlNode parseQuery(String sql) throws SqlParseException {
+  @Override public SqlNode parseQuery(SqlTestFactory factory, String sql)
+      throws SqlParseException {
     SqlParser parser = factory.createParser(sql);
     return parser.parseQuery();
   }
 
-  @Override public void checkColumnType(String sql, String expected) {
-    RelDataType actualType = getColumnType(sql);
-    String actual = SqlTests.getTypeString(actualType);
-    assertEquals(expected, actual);
+  @Override public SqlNode parseExpression(SqlTestFactory factory,
+      String expr) throws SqlParseException {
+    SqlParser parser = factory.createParser(expr);
+    return parser.parseExpression();
   }
 
-  @Override public void checkFieldOrigin(String sql, String fieldOriginList) {
-    SqlValidator validator = getValidator();
-    SqlNode n = parseAndValidate(validator, sql);
-    final List<List<String>> list = validator.getFieldOrigins(n);
-    final StringBuilder buf = new StringBuilder("{");
-    int i = 0;
-    for (List<String> strings : list) {
-      if (i++ > 0) {
-        buf.append(", ");
-      }
-      if (strings == null) {
-        buf.append("null");
-      } else {
-        int j = 0;
-        for (String s : strings) {
-          if (j++ > 0) {
-            buf.append('.');
-          }
-          buf.append(s);
-        }
-      }
-    }
-    buf.append("}");
-    assertEquals(fieldOriginList, buf.toString());
+  @Override public void checkColumnType(SqlTestFactory factory, String sql,
+      String expected) {
+    validateAndThen(factory, StringAndPos.of(sql),
+        checkColumnTypeAction(is(expected)));
   }
 
-  @Override public void checkResultType(String sql, String expected) {
-    RelDataType actualType = getResultType(sql);
-    String actual = SqlTests.getTypeString(actualType);
-    assertEquals(expected, actual);
+  private static ValidatedNodeConsumer checkColumnTypeAction(
+      Matcher<String> matcher) {
+    return (sql1, validator, validatedNode) -> {
+      final RelDataType rowType =
+          validator.getValidatedNodeType(validatedNode);
+      final List<RelDataTypeField> fields = rowType.getFieldList();
+      assertEquals(1, fields.size(), "expected query to return 1 field");
+      final RelDataType actualType = fields.get(0).getType();
+      String actual = SqlTests.getTypeString(actualType);
+      assertThat(actual, matcher);
+    };
   }
-
-  @Override public void checkIntervalConv(String sql, String expected) {
-    SqlValidator validator = getValidator();
-    final SqlCall n = (SqlCall) parseAndValidate(validator, sql);
-
-    SqlNode node = null;
-    for (int i = 0; i < n.operandCount(); i++) {
-      node = stripAs(n.operand(i));
-      if (node instanceof SqlCall) {
-        node = ((SqlCall) node).operand(0);
-        break;
-      }
-    }
-
-    assertNotNull(node);
-    SqlIntervalLiteral intervalLiteral = (SqlIntervalLiteral) node;
-    SqlIntervalLiteral.IntervalValue interval =
-        intervalLiteral.getValueAs(SqlIntervalLiteral.IntervalValue.class);
-    long l =
-        interval.getIntervalQualifier().isYearMonth()
-            ? SqlParserUtil.intervalToMonths(interval)
-            : SqlParserUtil.intervalToMillis(interval);
-    String actual = l + "";
-    assertEquals(expected, actual);
-  }
-
-  @Override public void checkType(String expression, String type) {
-    for (String sql : buildQueries(expression)) {
-      checkColumnType(sql, type);
-    }
-  }
-
-  @Override public void checkCollation(
-      String expression,
-      String expectedCollationName,
-      SqlCollation.Coercibility expectedCoercibility) {
-    for (String sql : buildQueries(expression)) {
-      RelDataType actualType = getColumnType(sql);
-      SqlCollation collation = actualType.getCollation();
-
-      assertEquals(
-          expectedCollationName, collation.getCollationName());
-      assertEquals(expectedCoercibility, collation.getCoercibility());
-    }
-  }
-
-  @Override public void checkCharset(
-      String expression,
-      Charset expectedCharset) {
-    for (String sql : buildQueries(expression)) {
-      RelDataType actualType = getColumnType(sql);
-      Charset actualCharset = actualType.getCharset();
-
-      if (!expectedCharset.equals(actualCharset)) {
-        fail("\n"
-            + "Expected=" + expectedCharset.name() + "\n"
-            + "  actual=" + actualCharset.name());
-      }
-    }
-  }
-
-  @Override public SqlTester withQuoting(Quoting quoting) {
-    return with("quoting", quoting);
-  }
-
-  @Override public SqlTester withQuotedCasing(Casing casing) {
-    return with("quotedCasing", casing);
-  }
-
-  @Override public SqlTester withUnquotedCasing(Casing casing) {
-    return with("unquotedCasing", casing);
-  }
-
-  @Override public SqlTester withCaseSensitive(boolean sensitive) {
-    return with("caseSensitive", sensitive);
-  }
-
-  @Override public SqlTester withLenientOperatorLookup(boolean lenient) {
-    return with("lenientOperatorLookup", lenient);
-  }
-
-  @Override public SqlTester withLex(Lex lex) {
-    return withQuoting(lex.quoting)
-        .withCaseSensitive(lex.caseSensitive)
-        .withQuotedCasing(lex.quotedCasing)
-        .withUnquotedCasing(lex.unquotedCasing);
-  }
-
-  @Override public SqlTester withConformance(SqlConformance conformance) {
-    if (conformance == null) {
-      conformance = SqlConformanceEnum.DEFAULT;
-    }
-    final SqlTester tester = with("conformance", conformance);
-    if (conformance instanceof SqlConformanceEnum) {
-      return tester
-          .withConnectionFactory(
-              CalciteAssert.EMPTY_CONNECTION_FACTORY
-                  .with(CalciteConnectionProperty.CONFORMANCE, conformance));
-    } else {
-      return tester;
-    }
-  }
-
-  @Override public SqlTester enableTypeCoercion(boolean enabled) {
-    return with("enableTypeCoercion", enabled);
-  }
-
-  @Override public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {
-    return with("operatorTable", operatorTable);
-  }
-
-  @Override public SqlTester withConnectionFactory(
-      CalciteAssert.ConnectionFactory connectionFactory) {
-    return with("connectionFactory", connectionFactory);
-  }
-
-  protected final SqlTester with(final String name, final Object value) {
-    return with(factory.with(name, value));
-  }
-
-  protected abstract SqlTester with(SqlTestFactory factory);
 
   // SqlTester methods
 
@@ -349,185 +199,87 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     // do nothing
   }
 
-  @Override public void checkAgg(
+  @Override public void checkAgg(SqlTestFactory factory,
       String expr,
       String[] inputValues,
-      Object result,
-      double delta) {
+      ResultChecker resultChecker) {
     String query =
         SqlTests.generateAggQuery(expr, inputValues);
-    check(query, SqlTests.ANY_TYPE_CHECKER, result, delta);
+    check(factory, query, SqlTests.ANY_TYPE_CHECKER, resultChecker);
   }
 
-  @Override public void checkAggWithMultipleArgs(
-      String expr,
-      String[][] inputValues,
-      Object result,
-      double delta) {
-    String query =
-        SqlTests.generateAggQueryWithMultipleArgs(expr, inputValues);
-    check(query, SqlTests.ANY_TYPE_CHECKER, result, delta);
-  }
-
-  @Override public void checkWinAgg(
+  @Override public void checkWinAgg(SqlTestFactory factory,
       String expr,
       String[] inputValues,
       String windowSpec,
       String type,
-      Object result,
-      double delta) {
+      ResultChecker resultChecker) {
     String query =
         SqlTests.generateWinAggQuery(
             expr, windowSpec, inputValues);
-    check(query, SqlTests.ANY_TYPE_CHECKER, result, delta);
+    check(factory, query, SqlTests.ANY_TYPE_CHECKER, resultChecker);
   }
 
-  @Override public void checkScalar(
-      String expression,
-      Object result,
-      String resultType) {
-    checkType(expression, resultType);
-    for (String sql : buildQueries(expression)) {
-      check(sql, SqlTests.ANY_TYPE_CHECKER, result, 0);
-    }
-  }
-
-  @Override public void checkScalarExact(
-      String expression,
-      String result) {
-    for (String sql : buildQueries(expression)) {
-      check(sql, SqlTests.INTEGER_TYPE_CHECKER, result, 0);
-    }
-  }
-
-  @Override public void checkScalarExact(
-      String expression,
-      String expectedType,
-      String result) {
-    for (String sql : buildQueries(expression)) {
-      TypeChecker typeChecker =
-          new SqlTests.StringTypeChecker(expectedType);
-      check(sql, typeChecker, result, 0);
-    }
-  }
-
-  @Override public void checkScalarApprox(
-      String expression,
-      String expectedType,
-      double expectedResult,
-      double delta) {
-    for (String sql : buildQueries(expression)) {
-      TypeChecker typeChecker =
-          new SqlTests.StringTypeChecker(expectedType);
-      check(sql, typeChecker, expectedResult, delta);
-    }
-  }
-
-  @Override public void checkBoolean(
-      String expression,
-      Boolean result) {
-    for (String sql : buildQueries(expression)) {
-      if (null == result) {
-        checkNull(expression);
-      } else {
-        check(
-            sql,
-            SqlTests.BOOLEAN_TYPE_CHECKER,
-            result.toString(),
-            0);
-      }
-    }
-  }
-
-  @Override public void checkString(
-      String expression,
-      String result,
-      String expectedType) {
-    for (String sql : buildQueries(expression)) {
-      TypeChecker typeChecker =
-          new SqlTests.StringTypeChecker(expectedType);
-      check(sql, typeChecker, result, 0);
-    }
-  }
-
-  @Override public void checkNull(String expression) {
-    for (String sql : buildQueries(expression)) {
-      check(sql, SqlTests.ANY_TYPE_CHECKER, null, 0);
-    }
-  }
-
-  @Override public final void check(
-      String query,
-      TypeChecker typeChecker,
-      Object result,
-      double delta) {
-    check(query, typeChecker, SqlTests.ANY_PARAMETER_CHECKER,
-        SqlTests.createChecker(result, delta));
-  }
-
-  @Override public void check(String query, TypeChecker typeChecker,
+  @Override public void check(SqlTestFactory factory,
+      String query, TypeChecker typeChecker,
       ParameterChecker parameterChecker, ResultChecker resultChecker) {
     // This implementation does NOT check the result!
     // All it does is check the return type.
+    requireNonNull(typeChecker, "typeChecker");
+    requireNonNull(parameterChecker, "parameterChecker");
+    requireNonNull(resultChecker, "resultChecker");
 
-    if (typeChecker == null) {
-      // Parse and validate. There should be no errors.
-      Util.discard(getResultType(query));
-    } else {
-      // Parse and validate. There should be no errors.
-      // There must be 1 column. Get its type.
-      RelDataType actualType = getColumnType(query);
+    // Parse and validate. There should be no errors.
+    // There must be 1 column. Get its type.
+    RelDataType actualType = getColumnType(factory, query);
 
-      // Check result type.
-      typeChecker.checkType(actualType);
-    }
+    // Check result type.
+    typeChecker.checkType(actualType);
 
-    SqlValidator validator = getValidator();
-    SqlNode n = parseAndValidate(validator, query);
+    Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, query);
+    SqlValidator validator = requireNonNull(p.left);
+    SqlNode n = requireNonNull(p.right);
     final RelDataType parameterRowType = validator.getParameterRowType(n);
     parameterChecker.checkParameters(parameterRowType);
   }
 
-  @Override public void checkMonotonic(String query,
-      SqlMonotonicity expectedMonotonicity) {
-    SqlValidator validator = getValidator();
-    SqlNode n = parseAndValidate(validator, query);
-    final RelDataType rowType = validator.getValidatedNodeType(n);
-    final SqlValidatorNamespace selectNamespace = validator.getNamespace(n);
-    final String field0 = rowType.getFieldList().get(0).getName();
-    final SqlMonotonicity monotonicity =
-        selectNamespace.getMonotonicity(field0);
-    assertThat(monotonicity, equalTo(expectedMonotonicity));
+  @Override public void validateAndThen(SqlTestFactory factory,
+      StringAndPos sap, ValidatedNodeConsumer consumer) {
+    Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, sap.sql);
+    SqlValidator validator = requireNonNull(p.left);
+    SqlNode rewrittenNode = requireNonNull(p.right);
+    consumer.accept(sap, validator, rewrittenNode);
   }
 
-  @Override public void checkRewrite(String query, String expectedRewrite) {
-    final SqlValidator validator = validatorTransform.apply(getValidator());
-    SqlNode rewrittenNode = parseAndValidate(validator, query);
-    String actualRewrite =
-        rewrittenNode.toSqlString(AnsiSqlDialect.DEFAULT, false).getSql();
-    TestUtil.assertEqualsVerbose(expectedRewrite, Util.toLinux(actualRewrite));
+  @Override public <R> R validateAndApply(SqlTestFactory factory,
+      StringAndPos sap, ValidatedNodeFunction<R> function) {
+    Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, sap.sql);
+    SqlValidator validator = requireNonNull(p.left);
+    SqlNode rewrittenNode = requireNonNull(p.right);
+    return function.apply(sap, validator, rewrittenNode);
   }
 
-  @Override public void checkFails(StringAndPos sap, String expectedError,
-      boolean runtime) {
+  @Override public void checkFails(SqlTestFactory factory, StringAndPos sap,
+      String expectedError, boolean runtime) {
     if (runtime) {
       // We need to test that the expression fails at runtime.
       // Ironically, that means that it must succeed at prepare time.
-      SqlValidator validator = getValidator();
       final String sql = buildQuery(sap.addCarets());
-      SqlNode n = parseAndValidate(validator, sql);
+      Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, sql);
+      SqlNode n = p.right;
       assertNotNull(n);
     } else {
-      checkQueryFails(StringAndPos.of(buildQuery(sap.addCarets())),
-          expectedError);
+      StringAndPos sap1 = StringAndPos.of(buildQuery(sap.addCarets()));
+      checkQueryFails(factory, sap1, expectedError);
     }
   }
 
-  @Override public void checkQueryFails(StringAndPos sap, String expectedError) {
-    assertExceptionIsThrown(sap, expectedError);
+  @Override public void checkQueryFails(SqlTestFactory factory,
+      StringAndPos sap, String expectedError) {
+    assertExceptionIsThrown(factory, sap, expectedError);
   }
 
-  @Override public void checkAggFails(
+  @Override public void checkAggFails(SqlTestFactory factory,
       String expr,
       String[] inputValues,
       String expectedError,
@@ -535,25 +287,12 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     final String sql =
         SqlTests.generateAggQuery(expr, inputValues);
     if (runtime) {
-      SqlValidator validator = getValidator();
-      SqlNode n = parseAndValidate(validator, sql);
+      Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, sql);
+      SqlNode n = p.right;
       assertNotNull(n);
     } else {
-      checkQueryFails(StringAndPos.of(sql), expectedError);
+      checkQueryFails(factory, StringAndPos.of(sql), expectedError);
     }
-  }
-
-  @Override public void checkQuery(String sql) {
-    assertExceptionIsThrown(StringAndPos.of(sql), null);
-  }
-
-  @Override public SqlMonotonicity getMonotonicity(String sql) {
-    final SqlValidator validator = getValidator();
-    final SqlNode node = parseAndValidate(validator, sql);
-    final SqlSelect select = (SqlSelect) node;
-    final SqlNode selectItem0 = select.getSelectList().get(0);
-    final SqlValidatorScope scope = validator.getSelectScope(select);
-    return selectItem0.getMonotonicity(scope);
   }
 
   public static String buildQuery(String expression) {
@@ -581,10 +320,11 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
    * We push down {@code CAST(NULL AS type)} but raw nulls such as
    * {@code CASE 1 WHEN 2 THEN 'a' ELSE NULL END} are left as is.</p>
    *
+   * @param factory Test factory
    * @param expression Scalar expression
    * @return Query that evaluates a scalar expression
    */
-  protected String buildQuery2(String expression) {
+  protected String buildQuery2(SqlTestFactory factory, String expression) {
     if (expression.matches("(?i).*percentile_(cont|disc).*")) {
       // PERCENTILE_CONT requires its argument to be a literal,
       // so converting its argument to a column will cause false errors.
@@ -596,7 +336,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     SqlNode x;
     final String sql = "values (" + expression + ")";
     try {
-      x = parseQuery(sql);
+      x = parseQuery(factory, sql);
     } catch (SqlParseException e) {
       throw TestUtil.rethrow(e);
     }
@@ -693,39 +433,136 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
         + ")";
   }
 
-  /**
-   * Converts a scalar expression into a list of SQL queries that
-   * evaluate it.
-   *
-   * @param expression Scalar expression
-   * @return List of queries that evaluate an expression
-   */
-  private Iterable<String> buildQueries(final String expression) {
-    // Why an explicit iterable rather than a list? If there is
-    // a syntax error in the expression, the calling code discovers it
-    // before we try to parse it to do substitutions on the parse tree.
-    return () -> new Iterator<String>() {
-      int i = 0;
-
-      @Override public void remove() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public String next() {
-        switch (i++) {
-        case 0:
-          return buildQuery(expression);
-        case 1:
-          return buildQuery2(expression);
-        default:
-          throw new NoSuchElementException();
-        }
-      }
-
-      @Override public boolean hasNext() {
-        return i < 2;
-      }
-    };
+  @Override public void forEachQuery(SqlTestFactory factory,
+      String expression, Consumer<String> consumer) {
+    // Why not return a list? If there is a syntax error in the expression, the
+    // consumer will discover it before we try to parse it to do substitutions
+    // on the parse tree.
+    consumer.accept("values (" + expression + ")");
+    consumer.accept(buildQuery2(factory, expression));
   }
 
+  @Override public void assertConvertsTo(SqlTestFactory factory,
+      DiffRepository diffRepos,
+      String sql,
+      String plan,
+      boolean trim,
+      boolean expression,
+      boolean decorrelate) {
+    if (expression) {
+      assertExprConvertsTo(factory, diffRepos, sql, plan);
+    } else {
+      assertSqlConvertsTo(factory, diffRepos, sql, plan, trim, decorrelate);
+    }
+  }
+
+  private void assertExprConvertsTo(SqlTestFactory factory,
+      DiffRepository diffRepos, String expr, String plan) {
+    String expr2 = diffRepos.expand("sql", expr);
+    RexNode rex = convertExprToRex(factory, expr2);
+    assertNotNull(rex);
+    // NOTE jvs 28-Mar-2006:  insert leading newline so
+    // that plans come out nicely stacked instead of first
+    // line immediately after CDATA start
+    String actual = NL + rex + NL;
+    diffRepos.assertEquals("plan", plan, actual);
+  }
+
+  private void assertSqlConvertsTo(SqlTestFactory factory,
+      DiffRepository diffRepos, String sql, String plan,
+      boolean trim,
+      boolean decorrelate) {
+    String sql2 = diffRepos.expand("sql", sql);
+    final Pair<SqlValidator, RelRoot> pair =
+        convertSqlToRel2(factory, sql2, decorrelate, trim);
+    final RelRoot root = requireNonNull(pair.right);
+    final SqlValidator validator = requireNonNull(pair.left);
+    RelNode rel = root.project();
+
+    assertNotNull(rel);
+    assertThat(rel, relIsValid());
+
+    if (trim) {
+      final RelBuilder relBuilder =
+          RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+      final RelFieldTrimmer trimmer =
+          createFieldTrimmer(validator, relBuilder);
+      rel = trimmer.trim(rel);
+      assertNotNull(rel);
+      assertThat(rel, relIsValid());
+    }
+
+    // NOTE jvs 28-Mar-2006:  insert leading newline so
+    // that plans come out nicely stacked instead of first
+    // line immediately after CDATA start
+    String actual = NL + RelOptUtil.toString(rel);
+    diffRepos.assertEquals("plan", plan, actual);
+  }
+
+  private RexNode convertExprToRex(SqlTestFactory factory, String expr) {
+    requireNonNull(expr, "expr");
+    final SqlNode sqlQuery;
+    try {
+      sqlQuery = parseExpression(factory, expr);
+    } catch (RuntimeException | Error e) {
+      throw e;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final SqlToRelConverter converter = factory.createSqlToRelConverter();
+    final SqlValidator validator = requireNonNull(converter.validator);
+    final SqlNode validatedQuery = validator.validate(sqlQuery);
+    return converter.convertExpression(validatedQuery);
+  }
+
+  @Override public Pair<SqlValidator, RelRoot> convertSqlToRel2(
+      SqlTestFactory factory, String sql, boolean decorrelate,
+      boolean trim) {
+    requireNonNull(sql, "sql");
+    final SqlNode sqlQuery;
+    try {
+      sqlQuery = parseQuery(factory, sql);
+    } catch (RuntimeException | Error e) {
+      throw e;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+    final SqlToRelConverter converter = factory.createSqlToRelConverter();
+    final SqlValidator validator = requireNonNull(converter.validator);
+
+    final SqlNode validatedQuery = validator.validate(sqlQuery);
+    RelRoot root =
+        converter.convertQuery(validatedQuery, false, true);
+    requireNonNull(root, "root");
+    if (decorrelate || trim) {
+      root = root.withRel(converter.flattenTypes(root.rel, true));
+    }
+    if (decorrelate) {
+      root = root.withRel(converter.decorrelate(sqlQuery, root.rel));
+    }
+    if (trim) {
+      root = root.withRel(converter.trimUnusedFields(true, root.rel));
+    }
+    return Pair.of(validator, root);
+  }
+
+  @Override public RelNode trimRelNode(SqlTestFactory factory,
+      RelNode relNode) {
+    final SqlToRelConverter converter = factory.createSqlToRelConverter();
+    RelNode r2 = converter.flattenTypes(relNode, true);
+    return converter.trimUnusedFields(true, r2);
+  }
+
+  /**
+   * Creates a RelFieldTrimmer.
+   *
+   * @param validator Validator
+   * @param relBuilder Builder
+   * @return Field trimmer
+   */
+  public RelFieldTrimmer createFieldTrimmer(SqlValidator validator,
+      RelBuilder relBuilder) {
+    return new RelFieldTrimmer(validator, relBuilder);
+  }
 }

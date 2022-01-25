@@ -106,7 +106,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         && ((SqlCallBinding) operatorBinding)
         .getValidator()
         .config()
-        .sqlConformance()
+        .conformance()
         .allowAliasUnnestItems();
   }
 

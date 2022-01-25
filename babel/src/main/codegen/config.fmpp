@@ -545,12 +545,14 @@ data: {
     # Example: "< INFIX_CAST: \"::\" >".
     binaryOperatorsTokens: [
       "< INFIX_CAST: \"::\" >"
+      "< NULL_SAFE_EQUAL: \"<=>\" >"
     ]
 
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [
       "InfixCast"
+      "NullSafeEqual"
     ]
 
     # List of files in @includes directory that have parser method

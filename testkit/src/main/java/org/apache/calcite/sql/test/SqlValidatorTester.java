@@ -16,31 +16,14 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.sql.validate.SqlValidator;
-
-import java.util.function.UnaryOperator;
-
 /**
- * Tester of {@link SqlValidator}.
+ * Implementation of {@link SqlTester} that can parse and validate SQL,
+ * and convert it to relational algebra.
+ *
+ * <p>This tester is therefore suitable for many general-purpose tests,
+ * including SQL parsing, validation, and SQL-to-Rel conversion.
  */
 public class SqlValidatorTester extends AbstractSqlTester {
-
-  public SqlValidatorTester(SqlTestFactory factory) {
-    this(factory, UnaryOperator.identity());
-  }
-
-  SqlValidatorTester(SqlTestFactory factory,
-      UnaryOperator<SqlValidator> validatorTransform) {
-    super(factory, validatorTransform);
-  }
-
-  @Override protected SqlTester with(SqlTestFactory factory) {
-    return new SqlValidatorTester(factory, validatorTransform);
-  }
-
-  @Override public SqlTester withValidatorTransform(
-      UnaryOperator<UnaryOperator<SqlValidator>> transform) {
-    return new SqlValidatorTester(factory,
-        transform.apply(validatorTransform));
-  }
+  /** Default instance of this tester. */
+  public static final SqlValidatorTester DEFAULT = new SqlValidatorTester();
 }

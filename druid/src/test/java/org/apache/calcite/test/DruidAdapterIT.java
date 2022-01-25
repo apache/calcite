@@ -120,17 +120,24 @@ public class DruidAdapterIT {
         .query(sql);
   }
 
+  /** Creates a fixture. */
+  public static CalciteAssert.AssertThat fixture() {
+    return CalciteAssert.that()
+        .enable(enabled());
+  }
+
   /** Creates a query against a data set given by a map. */
   private CalciteAssert.AssertQuery sql(String sql, URL url) {
-    return CalciteAssert.that()
-        .enable(enabled())
+    return fixture()
         .withModel(url)
         .query(sql);
   }
 
   /** Creates a query against the {@link #FOODMART} data set. */
   private CalciteAssert.AssertQuery sql(String sql) {
-    return sql(sql, FOODMART);
+    return fixture()
+        .withModel(FOODMART)
+        .query(sql);
   }
 
   /** Tests a query against the {@link #WIKI} data set.
@@ -1971,7 +1978,8 @@ public class DruidAdapterIT {
   @Test void testPushCastNumeric() {
     String druidQuery = "'filter':{'type':'bound','dimension':'product_id',"
         + "'upper':'10','upperStrict':true,'ordering':'numeric'}";
-    sql("?")
+    fixture()
+        .withModel(FOODMART)
         .withRel(b -> {
           // select product_id
           // from foodmart.foodmart
@@ -1994,7 +2002,8 @@ public class DruidAdapterIT {
   }
 
   @Test void testPushFieldEqualsLiteral() {
-    sql("?")
+    fixture()
+        .withModel(FOODMART)
         .withRel(b -> {
           // select count(*) as c
           // from foodmart.foodmart

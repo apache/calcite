@@ -44,7 +44,6 @@ class EnumerableJoinTest {
    * New AntiJoin relational expression</a>. */
   @Test void equiAntiJoin() {
     tester(false, new HrSchema())
-        .query("?")
         .withRel(
             // Retrieve departments without employees. Equivalent SQL:
             //   SELECT d.deptno, d.name FROM depts d
@@ -70,7 +69,6 @@ class EnumerableJoinTest {
    * New AntiJoin relational expression</a>. */
   @Test void nonEquiAntiJoin() {
     tester(false, new HrSchema())
-        .query("?")
         .withRel(
             // Retrieve employees with the top salary in their department. Equivalent SQL:
             //   SELECT e.name, e.salary FROM emps e
@@ -104,7 +102,6 @@ class EnumerableJoinTest {
   @Test void equiAntiJoinWithNullValues() {
     final Integer salesDeptNo = 10;
     tester(false, new HrSchema())
-        .query("?")
         .withRel(
             // Retrieve employees from any department other than Sales (deptno 10) whose
             // commission is different from any Sales employee commission. Since there
@@ -142,7 +139,7 @@ class EnumerableJoinTest {
    * ANTI join on conditions push down generates wrong plan</a>. */
   @Test void testCanNotPushAntiJoinConditionsToLeft() {
     tester(false, new HrSchema())
-        .query("?").withRel(
+        .withRel(
             // build a rel equivalent to sql:
             // select * from emps
             // where emps.deptno
@@ -172,7 +169,6 @@ class EnumerableJoinTest {
    */
   @Test void testSortMergeJoinWithNonEquiCondition() {
     tester(false, new HrSchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -225,7 +221,6 @@ class EnumerableJoinTest {
    * EnumerableMergeJoin: wrong comparison of composite key with null values</a>. */
   @Test void testMergeJoinWithCompositeKeyAndNullValues() {
     tester(false, new HrSchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -264,7 +259,6 @@ class EnumerableJoinTest {
    * re-initialization</a>. */
   @Test void testRepeatUnionWithMergeJoin() {
     tester(false, new HierarchySchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);

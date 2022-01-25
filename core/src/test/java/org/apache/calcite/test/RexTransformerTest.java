@@ -68,9 +68,7 @@ class RexTransformerTest {
 
   /** Converts a SQL string to a relational expression using mock schema. */
   private static RelNode toRel(String sql) {
-    final SqlToRelTestBase test = new SqlToRelTestBase() {
-    };
-    return test.createTester().convertSqlToRel(sql).rel;
+    return SqlToRelFixture.DEFAULT.withSql(sql).toRel();
   }
 
   @BeforeEach public void setUp() {

@@ -35,7 +35,6 @@ class EnumerableRepeatUnionTest {
 
   @Test void testGenerateNumbers() {
     CalciteAssert.that()
-        .query("?")
         .withRel(
             //   WITH RECURSIVE delta(n) AS (
             //     VALUES (1)
@@ -61,7 +60,6 @@ class EnumerableRepeatUnionTest {
 
   @Test void testGenerateNumbers2() {
     CalciteAssert.that()
-        .query("?")
         .withRel(
             //   WITH RECURSIVE aux(i) AS (
             //     VALUES (0)
@@ -89,7 +87,6 @@ class EnumerableRepeatUnionTest {
 
   @Test void testGenerateNumbers3() {
     CalciteAssert.that()
-        .query("?")
         .withRel(
             //   WITH RECURSIVE aux(i, j) AS (
             //     VALUES (0, 0)
@@ -127,7 +124,6 @@ class EnumerableRepeatUnionTest {
 
   @Test void testFactorial() {
     CalciteAssert.that()
-        .query("?")
         .withRel(
             //   WITH RECURSIVE d(n, fact) AS (
             //     VALUES (0, 1)
@@ -167,7 +163,6 @@ class EnumerableRepeatUnionTest {
 
   @Test void testGenerateNumbersNestedRecursion() {
     CalciteAssert.that()
-        .query("?")
         .withRel(
             //   WITH RECURSIVE t_out(n) AS (
             //     WITH RECURSIVE t_in(n) AS (
@@ -215,7 +210,6 @@ class EnumerableRepeatUnionTest {
    * Prevent NPE in ListTransientTable</a>. */
   @Test void testGenerateNumbersWithNull() {
     CalciteAssert.that()
-        .query("?")
         .withRel(
             builder -> builder
                 .values(new String[] { "i" }, 1, 2, null, 3)

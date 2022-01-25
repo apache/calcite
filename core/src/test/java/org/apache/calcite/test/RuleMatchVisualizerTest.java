@@ -38,8 +38,9 @@ import java.util.regex.Pattern;
  */
 public class RuleMatchVisualizerTest extends RelOptTestBase {
 
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(RuleMatchVisualizerTest.class);
+  @Override RelOptFixture fixture() {
+    return super.fixture()
+        .withDiffRepos(DiffRepository.lookup(RuleMatchVisualizerTest.class));
   }
 
   @Test void testHepPlanner() {
@@ -57,10 +58,11 @@ public class RuleMatchVisualizerTest extends RelOptTestBase {
     RuleMatchVisualizer viz = new RuleMatchVisualizer();
     viz.attachTo(planner);
 
-    sql(sql).with(planner).check();
+    final RelOptFixture fixture = sql(sql).withPlanner(planner);
+    fixture.check();
 
     String result = normalize(viz.getJsonStringResult());
-    getDiffRepos().assertEquals("visualizer", "${visualizer}", result);
+    fixture.diffRepos().assertEquals("visualizer", "${visualizer}", result);
   }
 
   @Test void testVolcanoPlanner() {
@@ -77,15 +79,15 @@ public class RuleMatchVisualizerTest extends RelOptTestBase {
     viz.attachTo(planner);
 
 
-    sql(sql)
-        .with(planner)
-        .withTester(
-            t -> t.withClusterFactory(
-              cluster -> RelOptCluster.create(planner, cluster.getRexBuilder())))
-        .check();
+    final RelOptFixture fixture = sql(sql)
+        .withPlanner(planner)
+        .withFactory(t ->
+            t.withCluster(cluster ->
+                RelOptCluster.create(planner, cluster.getRexBuilder())));
+    fixture.check();
 
     String result = normalize(viz.getJsonStringResult());
-    getDiffRepos().assertEquals("visualizer", "${visualizer}", result);
+    fixture.diffRepos().assertEquals("visualizer", "${visualizer}", result);
   }
 
   /**

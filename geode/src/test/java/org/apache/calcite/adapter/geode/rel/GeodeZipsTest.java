@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.geode.rel;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 
 import org.apache.geode.cache.Cache;
@@ -55,32 +54,31 @@ class GeodeZipsTest extends AbstractGeodeTest {
     new JsonLoader(region).loadClasspathResource("/zips-mini.json");
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static Connection createConnection() throws SQLException {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("geode", new GeodeSchema(POLICY.cache(), Collections.singleton("zips")));
+    root.add("geode", new GeodeSchema(POLICY.cache(), Collections.singleton("zips")));
 
-        // add calcite view programmatically
-        final String viewSql =  "select \"_id\" AS \"id\", \"city\", \"loc\", "
-            + "cast(\"pop\" AS integer) AS \"pop\", cast(\"state\" AS varchar(2)) AS \"state\" "
-            + "from \"geode\".\"zips\"";
+    // add calcite view programmatically
+    final String viewSql = "select \"_id\" AS \"id\", \"city\", \"loc\", "
+        + "cast(\"pop\" AS integer) AS \"pop\", cast(\"state\" AS varchar(2)) AS \"state\" "
+        + "from \"geode\".\"zips\"";
 
 
-        ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("geode"), Arrays.asList("geode", "view"), false);
-        root.add("view", macro);
+    root.add("view",
+        ViewTable.viewMacro(root, viewSql,
+            Collections.singletonList("geode"),
+            Arrays.asList("geode", "view"), false));
 
-        return connection;
-      }
-    };
+    return connection;
   }
 
   private CalciteAssert.AssertThat calciteAssert() {
     return CalciteAssert.that()
-        .with(newConnectionFactory());
+        .with(GeodeZipsTest::createConnection);
   }
 
   @Test void testGroupByView() {

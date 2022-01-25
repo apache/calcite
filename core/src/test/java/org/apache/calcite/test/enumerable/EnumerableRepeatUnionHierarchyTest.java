@@ -127,7 +127,6 @@ class EnumerableRepeatUnionHierarchyTest {
     final Schema schema = new ReflectiveSchema(new HierarchySchema());
     CalciteAssert.that()
         .withSchema("s", schema)
-        .query("?")
         .withRel(buildHierarchy(all, startIds, fromField, toField, maxDepth))
         .returnsOrdered(expected);
   }

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
@@ -46,8 +46,9 @@ import org.junit.jupiter.api.Test;
  */
 class ServerParserTest extends SqlParserTest {
 
-  @Override protected SqlParserImplFactory parserImplFactory() {
-    return SqlDdlParserImpl.FACTORY;
+  @Override public SqlParserFixture fixture() {
+    return super.fixture()
+        .withConfig(c -> c.withParserFactory(SqlDdlParserImpl.FACTORY));
   }
 
   @Test void testCreateSchema() {

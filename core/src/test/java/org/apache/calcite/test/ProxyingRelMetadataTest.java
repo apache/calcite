@@ -14,12 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.testlib.annotations
-
-import org.apache.calcite.config.Lex
+package org.apache.calcite.test;
 
 /**
- * Annotation that indicates that test method should be run with given lex configuration.
+ * As {@link RelMetadataTest} but uses a proxying metadata provider.
+ *
+ * @see RelMetadataFixture.MetadataConfig#PROXYING
  */
-@Target(AnnotationTarget.FUNCTION)
-annotation class WithLex(val value: Lex = Lex.ORACLE)
+public class ProxyingRelMetadataTest extends RelMetadataTest {
+  @Override protected RelMetadataFixture fixture() {
+    return super.fixture()
+        .withMetadataConfig(RelMetadataFixture.MetadataConfig.PROXYING);
+  }
+}

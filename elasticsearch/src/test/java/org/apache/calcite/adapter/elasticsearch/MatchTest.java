@@ -25,7 +25,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -51,7 +50,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -112,31 +110,31 @@ class MatchTest {
     NODE.insertBulk(ZIPS, bulk);
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static CalciteConnection createConnection() throws SQLException {
+    CalciteConnection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA")
+            .unwrap(CalciteConnection.class);
+    final SchemaPlus root = connection.getRootSchema();
 
-        root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), ZIPS));
+    root.add("elastic",
+        new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), ZIPS));
 
-        // add calcite view programmatically
-        final String viewSql = String.format(Locale.ROOT,
-            "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
+    // add calcite view programmatically
+    final String viewSql = String.format(Locale.ROOT,
+        "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
             + " cast(_MAP['loc'][0] AS float) AS \"longitude\",\n"
             + " cast(_MAP['loc'][1] AS float) AS \"latitude\",\n"
             + " cast(_MAP['pop'] AS integer) AS \"pop\", "
-            +  " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
-            +  " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
-            +  "from \"elastic\".\"%s\"", ZIPS);
+            + " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
+            + " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
+            + "from \"elastic\".\"%s\"", ZIPS);
 
-        ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
-        root.add(ZIPS, macro);
+    root.add(ZIPS,
+        ViewTable.viewMacro(root, viewSql,
+            Collections.singletonList("elastic"),
+            Arrays.asList("elastic", "view"), false));
 
-        return connection;
-      }
-    };
+    return connection;
   }
 
   /**
@@ -157,9 +155,7 @@ class MatchTest {
    * </code></blockquote>
    */
   @Test void testMatchQuery() throws Exception {
-
-    CalciteConnection con = (CalciteConnection) newConnectionFactory()
-        .createConnection();
+    CalciteConnection con = createConnection();
     SchemaPlus postSchema = con.getRootSchema().getSubSchema("elastic");
 
     FrameworkConfig postConfig = Frameworks.newConfigBuilder()

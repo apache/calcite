@@ -20,18 +20,14 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.AbstractConverter;
-import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
@@ -58,12 +54,13 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.tools.Program;
-import org.apache.calcite.tools.Programs;
+import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Litmus;
@@ -75,13 +72,15 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.apache.calcite.test.Matchers.relIsValid;
+import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIn.in;
@@ -90,13 +89,38 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
  */
-class SqlHintsConverterTest extends SqlToRelTestBase {
+class SqlHintsConverterTest {
 
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlHintsConverterTest.class);
+  static final Fixture FIXTURE =
+      new Fixture(SqlTestFactory.INSTANCE,
+          DiffRepository.lookup(SqlHintsConverterTest.class),
+          "?", false, false)
+          .withFactory(f ->
+              f.withSqlToRelConfig(c ->
+                  c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE)));
+
+  static final RelOptFixture RULE_FIXTURE =
+      RelOptFixture.DEFAULT
+          .withDiffRepos(DiffRepository.lookup(SqlHintsConverterTest.class))
+          .withConfig(c ->
+              c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE));
+
+  protected Fixture fixture() {
+    return FIXTURE;
+  }
+
+  protected RelOptFixture ruleFixture() {
+    return RULE_FIXTURE;
+  }
+
+  /** Sets the SQL statement for a test. */
+  public final Fixture sql(String sql) {
+    return fixture().sql(sql);
   }
 
   //~ Tests ------------------------------------------------------------------
@@ -169,7 +193,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "where e1.deptno = d1.deptno\n"
         + "and e1.sal> (\n"
         + "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
-    sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
+    sql(sql).withDecorrelate(true).ok();
   }
 
   @Test void testHintsInSubQueryWithDecorrelation2() {
@@ -181,7 +205,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "  avg(e2.sal)\n"
         + "  from emp e2\n"
         + "  where e2.deptno = d1.deptno)";
-    sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
+    sql(sql).withDecorrelate(true).ok();
   }
 
   @Test void testHintsInSubQueryWithDecorrelation3() {
@@ -193,7 +217,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "  avg(e2.sal)\n"
         + "  from emp e2\n"
         + "  where e2.deptno = d1.deptno)";
-    sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
+    sql(sql).withDecorrelate(true).ok();
   }
 
   @Test void testHintsInSubQueryWithoutDecorrelation() {
@@ -223,9 +247,9 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "allowed options: [ONE_PHASE, TWO_PHASE]";
     sql(sql2).warns(error2);
     // Change the error handler to validate again.
-    sql(sql2).withTester(
-        tester -> tester.withConfig(
-            c -> c.withHintStrategyTable(
+    sql(sql2).withFactory(f ->
+        f.withSqlToRelConfig(c ->
+            c.withHintStrategyTable(
                 HintTools.createHintStrategies(
                     HintStrategyTable.builder().errorHandler(Litmus.THROW)))))
         .fails(error2);
@@ -257,7 +281,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
   @Test void testTableHintsInInsert() throws Exception {
     final String sql = HintTools.withHint("insert into dept /*+ %s */ (deptno, name) "
         + "select deptno, name from dept");
-    final SqlInsert insert = (SqlInsert) tester.parseQuery(sql);
+    final SqlInsert insert = (SqlInsert) sql(sql).parseQuery();
     assert insert.getTargetTable() instanceof SqlTableRef;
     final SqlTableRef tableRef = (SqlTableRef) insert.getTargetTable();
     List<RelHint> hints = SqlUtil.getRelHint(HintTools.HINT_STRATEGY_TABLE,
@@ -273,7 +297,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
   @Test void testTableHintsInUpdate() throws Exception {
     final String sql = HintTools.withHint("update emp /*+ %s */ "
         + "set name = 'test' where deptno = 1");
-    final SqlUpdate sqlUpdate = (SqlUpdate) tester.parseQuery(sql);
+    final SqlUpdate sqlUpdate = (SqlUpdate) sql(sql).parseQuery();
     assert sqlUpdate.getTargetTable() instanceof SqlTableRef;
     final SqlTableRef tableRef = (SqlTableRef) sqlUpdate.getTargetTable();
     List<RelHint> hints = SqlUtil.getRelHint(HintTools.HINT_STRATEGY_TABLE,
@@ -288,7 +312,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
 
   @Test void testTableHintsInDelete() throws Exception {
     final String sql = HintTools.withHint("delete from emp /*+ %s */ where deptno = 1");
-    final SqlDelete sqlDelete = (SqlDelete) tester.parseQuery(sql);
+    final SqlDelete sqlDelete = (SqlDelete) sql(sql).parseQuery();
     assert sqlDelete.getTargetTable() instanceof SqlTableRef;
     final SqlTableRef tableRef = (SqlTableRef) sqlDelete.getTargetTable();
     List<RelHint> hints = SqlUtil.getRelHint(HintTools.HINT_STRATEGY_TABLE,
@@ -312,7 +336,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "values(t.name, 10, t.salary * .15)";
     final String sql1 = HintTools.withHint(sql);
 
-    final SqlMerge sqlMerge = (SqlMerge) tester.parseQuery(sql1);
+    final SqlMerge sqlMerge = (SqlMerge) sql(sql1).parseQuery();
     assert sqlMerge.getTargetTable() instanceof SqlTableRef;
     final SqlTableRef tableRef = (SqlTableRef) sqlMerge.getTargetTable();
     List<RelHint> hints = SqlUtil.getRelHint(HintTools.HINT_STRATEGY_TABLE,
@@ -351,7 +375,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
 
   @Test void testHintsForCalc() {
     final String sql = "select /*+ resource(mem='1024MB')*/ ename, sal, deptno from emp";
-    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final RelNode rel = sql(sql).toRel();
     final RelHint hint = RelHint.builder("RESOURCE")
         .hintOption("MEM", "1024MB")
         .build();
@@ -369,7 +393,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";
-    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final RelNode rel = sql(sql).toRel();
     final RelHint hint = RelHint.builder("USE_HASH_JOIN")
         .inheritPath(0)
         .hintOption("EMP")
@@ -389,12 +413,6 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";
-    RelOptPlanner planner = new VolcanoPlanner();
-    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
-    Tester tester1 = tester.withDecorrelation(true)
-        .withClusterFactory(
-          relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
-    final RelNode rel = tester1.convertSqlToRel(sql).rel;
     final RelHint hint = RelHint.builder("USE_HASH_JOIN")
         .inheritPath(0)
         .hintOption("EMP")
@@ -403,28 +421,30 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
         MockEnumerableJoinRule.create(hint), // Rule to validate the hint.
-        CoreRules.FILTER_PROJECT_TRANSPOSE, CoreRules.FILTER_MERGE, CoreRules.PROJECT_MERGE,
+        CoreRules.FILTER_PROJECT_TRANSPOSE,
+        CoreRules.FILTER_MERGE,
+        CoreRules.PROJECT_MERGE,
         EnumerableRules.ENUMERABLE_JOIN_RULE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_FILTER_RULE,
         EnumerableRules.ENUMERABLE_SORT_RULE,
         EnumerableRules.ENUMERABLE_LIMIT_RULE,
         EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
-    Program program = Programs.of(ruleSet);
-    RelTraitSet toTraits = rel
-        .getCluster()
-        .traitSet()
-        .replace(EnumerableConvention.INSTANCE);
-
-    program.run(planner, rel, toTraits,
-        Collections.emptyList(), Collections.emptyList());
+    ruleFixture()
+        .sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+          RelOptUtil.registerDefaultRules(p, false, false);
+          ruleSet.forEach(p::addRule);
+        })
+        .check();
   }
 
   @Test void testHintsPropagateWithDifferentKindOfRels() {
     final String sql = "select /*+ AGG_STRATEGY(TWO_PHASE) */\n"
         + "ename, avg(sal)\n"
         + "from emp group by ename";
-    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final RelNode rel = sql(sql).toRel();
     final RelHint hint = RelHint.builder("AGG_STRATEGY")
         .inheritPath(0)
         .hintOption("TWO_PHASE")
@@ -444,13 +464,6 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     final String sql = "select /*+ use_merge_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";
-    RelOptPlanner planner = new VolcanoPlanner();
-    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
-    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
-    Tester tester1 = tester.withDecorrelation(true)
-        .withClusterFactory(
-            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
-    final RelNode rel = tester1.convertSqlToRel(sql).rel;
     RuleSet ruleSet = RuleSets.ofList(
         EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE,
@@ -458,31 +471,17 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
         EnumerableRules.ENUMERABLE_SORT_RULE,
         AbstractConverter.ExpandConversionRule.INSTANCE);
-    Program program = Programs.of(ruleSet);
-    RelTraitSet toTraits = rel
-        .getCluster()
-        .traitSet()
-        .replace(EnumerableConvention.INSTANCE);
 
-    RelNode relAfter = program.run(planner, rel, toTraits,
-        Collections.emptyList(), Collections.emptyList());
-
-    String planAfter = NL + RelOptUtil.toString(relAfter);
-    getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
+    ruleFixture()
+        .sql(sql)
+        .withVolcanoPlanner(false, planner -> {
+          planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+          ruleSet.forEach(planner::addRule);
+        })
+        .check();
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @Override protected Tester createTester() {
-    return super.createTester()
-        .withConfig(c ->
-            c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE));
-  }
-
-  /** Sets the SQL statement for a test. */
-  public final Sql sql(String sql) {
-    return new Sql(sql, tester);
-  }
 
   private static boolean equalsStringList(List<String> l, List<String> r) {
     if (l.size() != r.size()) {
@@ -613,22 +612,38 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     }
   }
 
-  /** Sql test tool. */
-  private static class Sql {
+  /** Test fixture. */
+  private static class Fixture {
     private final String sql;
-    private final Tester tester;
-    private final List<String> hintsCollect;
+    private final DiffRepository diffRepos;
+    private final SqlTestFactory factory;
+    private final SqlTester tester = SqlToRelFixture.TESTER;
+    private final List<String> hintsCollect = new ArrayList<>();
+    private final boolean decorrelate;
+    private final boolean trim;
 
-    Sql(String sql, Tester tester) {
-      this.sql = sql;
-      this.tester = tester;
-      this.hintsCollect = new ArrayList<>();
+    Fixture(SqlTestFactory factory, DiffRepository diffRepos, String sql,
+        boolean decorrelate, boolean trim) {
+      this.factory = requireNonNull(factory, "factory");
+      this.sql = requireNonNull(sql, "sql");
+      this.diffRepos = requireNonNull(diffRepos, "diffRepos");
+      this.decorrelate = decorrelate;
+      this.trim = trim;
     }
 
-    /** Create a new Sql instance with new tester
-     * applied with the {@code transform}. **/
-    Sql withTester(UnaryOperator<Tester> transform) {
-      return new Sql(this.sql, transform.apply(tester));
+    Fixture sql(String sql) {
+      return new Fixture(factory, diffRepos, sql, decorrelate, trim);
+    }
+
+    /** Creates a new Sql instance with new factory
+     * applied with the {@code transform}. */
+    Fixture withFactory(UnaryOperator<SqlTestFactory> transform) {
+      final SqlTestFactory factory = transform.apply(this.factory);
+      return new Fixture(factory, diffRepos, sql, decorrelate, trim);
+    }
+
+    Fixture withDecorrelate(boolean decorrelate) {
+      return new Fixture(factory, diffRepos, sql, decorrelate, trim);
     }
 
     void ok() {
@@ -638,12 +653,14 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     private void assertHintsEquals(
         String sql,
         String hint) {
-      tester.getDiffRepos().assertEquals("sql", "${sql}", sql);
-      String sql2 = tester.getDiffRepos().expand("sql", sql);
-      final RelNode rel = tester.convertSqlToRel(sql2).project();
+      diffRepos.assertEquals("sql", "${sql}", sql);
+      String sql2 = diffRepos.expand("sql", sql);
+      final RelNode rel =
+          tester.convertSqlToRel(factory, sql2, decorrelate, trim)
+              .project();
 
       assertNotNull(rel);
-      assertValid(rel);
+      assertThat(rel, relIsValid());
 
       final HintCollector collector = new HintCollector(hintsCollect);
       rel.accept(collector);
@@ -651,12 +668,12 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
       for (String hintLine : hintsCollect) {
         builder.append(hintLine).append(NL);
       }
-      tester.getDiffRepos().assertEquals("hints", hint, builder.toString());
+      diffRepos.assertEquals("hints", hint, builder.toString());
     }
 
     void fails(String failedMsg) {
       try {
-        tester.convertSqlToRel(sql);
+        tester.convertSqlToRel(factory, sql, decorrelate, trim);
         fail("Unexpected exception");
       } catch (AssertionError e) {
         assertThat(e.getMessage(), is(failedMsg));
@@ -668,12 +685,20 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
       MockLogger logger = new MockLogger();
       logger.addAppender(appender);
       try {
-        tester.convertSqlToRel(sql);
+        tester.convertSqlToRel(factory, sql, decorrelate, trim);
       } finally {
         logger.removeAppender(appender);
       }
       appender.loggingEvents.add(expectWarning); // TODO: remove
       assertThat(expectWarning, is(in(appender.loggingEvents)));
+    }
+
+    SqlNode parseQuery() throws Exception {
+      return tester.parseQuery(factory, sql);
+    }
+
+    RelNode toRel() {
+      return tester.convertSqlToRel(factory, sql, decorrelate, trim).rel;
     }
 
     /** A shuttle to collect all the hints within the relational expression into a collection. */

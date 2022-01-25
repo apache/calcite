@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.geode.rel;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ConnectionFactory;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
@@ -47,16 +48,19 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
 
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
-        root.add("geode",
-            new GeodeSchema(POLICY.cache(), Arrays.asList("BookMaster", "BookCustomer")));
-        return connection;
-      }
-    };
+  private static Connection createConnection() throws SQLException {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
+    root.add("geode",
+        new GeodeSchema(POLICY.cache(),
+            Arrays.asList("BookMaster", "BookCustomer")));
+    return connection;
+  }
+
+  private ConnectionFactory newConnectionFactory() {
+    return GeodeBookstoreTest::createConnection;
   }
 
   private CalciteAssert.AssertThat calciteAssert() {

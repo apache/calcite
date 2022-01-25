@@ -20,7 +20,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
@@ -28,6 +28,7 @@ import org.apache.calcite.tools.Hoist;
 
 import com.google.common.base.Throwables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -43,8 +44,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 class BabelParserTest extends SqlParserTest {
 
-  @Override protected SqlParserImplFactory parserImplFactory() {
-    return SqlBabelParserImpl.FACTORY;
+  @Override public SqlParserFixture fixture() {
+    return super.fixture()
+        .withTester(new BabelTesterImpl())
+        .withConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY));
   }
 
   @Test void testReservedWords() {
@@ -56,7 +59,7 @@ class BabelParserTest extends SqlParserTest {
    * <p>Copy-pasted from base method, but with some key differences.
    */
   @Override @Test protected void testMetadata() {
-    SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
+    SqlAbstractParserImpl.Metadata metadata = fixture().parser().getMetadata();
     assertThat(metadata.isReservedFunctionName("ABS"), is(true));
     assertThat(metadata.isReservedFunctionName("FOO"), is(false));
 
@@ -195,49 +198,6 @@ class BabelParserTest extends SqlParserTest {
             + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
   }
 
-  /**
-   * Babel parser's global {@code LOOKAHEAD} is larger than the core
-   * parser's. This causes different parse error message between these two
-   * parsers. Here we define a looser error checker for Babel, so that we can
-   * reuse failure testing codes from {@link SqlParserTest}.
-   *
-   * <p>If a test case is written in this file -- that is, not inherited -- it
-   * is still checked by {@link SqlParserTest}'s checker.
-   */
-  @Override protected Tester getTester() {
-    return new TesterImpl() {
-      @Override protected void checkEx(String expectedMsgPattern,
-          StringAndPos sap, Throwable thrown) {
-        if (thrownByBabelTest(thrown)) {
-          super.checkEx(expectedMsgPattern, sap, thrown);
-        } else {
-          checkExNotNull(sap, thrown);
-        }
-      }
-
-      private boolean thrownByBabelTest(Throwable ex) {
-        Throwable rootCause = Throwables.getRootCause(ex);
-        StackTraceElement[] stackTrace = rootCause.getStackTrace();
-        for (StackTraceElement stackTraceElement : stackTrace) {
-          String className = stackTraceElement.getClassName();
-          if (Objects.equals(className, BabelParserTest.class.getName())) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      private void checkExNotNull(StringAndPos sap,
-          Throwable thrown) {
-        if (thrown == null) {
-          throw new AssertionError("Expected query to throw exception, "
-              + "but it did not; query [" + sap.sql
-              + "]");
-        }
-      }
-    };
-  }
-
   /** Tests parsing PostgreSQL-style "::" cast operator. */
   @Test void testParseInfixCast()  {
     checkParseInfixCast("integer");
@@ -259,6 +219,37 @@ class BabelParserTest extends SqlParserTest {
     String expected = "SELECT `X` :: " + sqlType.toUpperCase(Locale.ROOT) + "\n"
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)";
     sql(sql).ok(expected);
+  }
+
+  /** Tests parsing MySQL-style "<=>" equal operator. */
+  @Test void testParseNullSafeEqual()  {
+    // x <=> y
+    final String projectSql = "SELECT x <=> 3 FROM (VALUES (1, 2)) as tbl(x,y)";
+    sql(projectSql).ok("SELECT (`X` <=> 3)\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
+    final String filterSql = "SELECT y FROM (VALUES (1, 2)) as tbl(x,y) WHERE x <=> null";
+    sql(filterSql).ok("SELECT `Y`\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)\n"
+        + "WHERE (`X` <=> NULL)");
+    final String joinConditionSql = "SELECT tbl1.y FROM (VALUES (1, 2)) as tbl1(x,y)\n"
+        + "LEFT JOIN (VALUES (null, 3)) as tbl2(x,y) ON tbl1.x <=> tbl2.x";
+    sql(joinConditionSql).ok("SELECT `TBL1`.`Y`\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL1` (`X`, `Y`)\n"
+        + "LEFT JOIN (VALUES (ROW(NULL, 3))) AS `TBL2` (`X`, `Y`) ON (`TBL1`.`X` <=> `TBL2`.`X`)");
+    // (a, b) <=> (x, y)
+    final String rowComparisonSql = "SELECT y\n"
+        + "FROM (VALUES (1, 2)) as tbl(x,y) WHERE (x,y) <=> (null,2)";
+    sql(rowComparisonSql).ok("SELECT `Y`\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)\n"
+        + "WHERE ((ROW(`X`, `Y`)) <=> (ROW(NULL, 2)))");
+    // the higher precedence
+    final String highPrecedenceSql = "SELECT x <=> 3 + 3 FROM (VALUES (1, 2)) as tbl(x,y)";
+    sql(highPrecedenceSql).ok("SELECT (`X` <=> (3 + 3))\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
+    // the lower precedence
+    final String lowPrecedenceSql = "SELECT NOT x <=> 3 FROM (VALUES (1, 2)) as tbl(x,y)";
+    sql(lowPrecedenceSql).ok("SELECT (NOT (`X` <=> 3))\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
   }
 
   @Test void testCreateTableWithNoCollectionTypeSpecified() {
@@ -319,5 +310,46 @@ class BabelParserTest extends SqlParserTest {
         + "where deptno < [3:DECIMAL:40]\n"
         + "and DATEADD(day, [4:DECIMAL:1], hiredate) > [5:DATE:2010-05-06]";
     assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
+  }
+
+  /**
+   * Babel parser's global {@code LOOKAHEAD} is larger than the core
+   * parser's. This causes different parse error message between these two
+   * parsers. Here we define a looser error checker for Babel, so that we can
+   * reuse failure testing codes from {@link SqlParserTest}.
+   *
+   * <p>If a test case is written in this file -- that is, not inherited -- it
+   * is still checked by {@link SqlParserTest}'s checker.
+   */
+  public static class BabelTesterImpl extends TesterImpl {
+    @Override protected void checkEx(String expectedMsgPattern,
+        StringAndPos sap, @Nullable Throwable thrown) {
+      if (thrown != null && thrownByBabelTest(thrown)) {
+        super.checkEx(expectedMsgPattern, sap, thrown);
+      } else {
+        checkExNotNull(sap, thrown);
+      }
+    }
+
+    private boolean thrownByBabelTest(Throwable ex) {
+      Throwable rootCause = Throwables.getRootCause(ex);
+      StackTraceElement[] stackTrace = rootCause.getStackTrace();
+      for (StackTraceElement stackTraceElement : stackTrace) {
+        String className = stackTraceElement.getClassName();
+        if (Objects.equals(className, BabelParserTest.class.getName())) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private void checkExNotNull(StringAndPos sap,
+        @Nullable Throwable thrown) {
+      if (thrown == null) {
+        throw new AssertionError("Expected query to throw exception, "
+            + "but it did not; query [" + sap.sql
+            + "]");
+      }
+    }
   }
 }

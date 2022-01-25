@@ -23,14 +23,12 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
-import org.apache.calcite.sql.test.SqlTester;
-import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
-import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -40,287 +38,41 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 /**
  * Test cases for implicit type coercion. see {@link TypeCoercion} doc
  * or <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
  * for conversion details.
  */
-class TypeCoercionTest extends SqlValidatorTestCase {
-  private TypeCoercion typeCoercion;
-  private RelDataTypeFactory dataTypeFactory;
-  private SqlTestFactory.MockCatalogReaderFactory catalogReaderFactory;
+class TypeCoercionTest {
 
-  // type category.
-  private ImmutableList<RelDataType> numericTypes;
-  private ImmutableList<RelDataType> atomicTypes;
-  private ImmutableList<RelDataType> allTypes;
-  private ImmutableList<RelDataType> charTypes;
-  private ImmutableList<RelDataType> binaryTypes;
-  private ImmutableList<RelDataType> booleanTypes;
+  public static final Fixture DEFAULT_FIXTURE =
+      Fixture.create(SqlTestFactory.INSTANCE);
 
-  // single types
-  private RelDataType nullType;
-  private RelDataType booleanType;
-  private RelDataType tinyintType;
-  private RelDataType smallintType;
-  private RelDataType intType;
-  private RelDataType bigintType;
-  private RelDataType floatType;
-  private RelDataType doubleType;
-  private RelDataType decimalType;
-  private RelDataType dateType;
-  private RelDataType timeType;
-  private RelDataType timestampType;
-  private RelDataType binaryType;
-  private RelDataType varbinaryType;
-  private RelDataType charType;
-  private RelDataType varcharType;
-  private RelDataType varchar20Type;
+  //~ Helper methods ---------------------------------------------------------
 
-  TypeCoercionTest() {
-    // tool tester impl.
-    SqlTester tester1 = new SqlValidatorTester(SqlTestFactory.INSTANCE);
-    this.typeCoercion = tester1.getValidator().getTypeCoercion();
-    this.dataTypeFactory = tester1.getValidator().getTypeFactory();
-    initializeSingleTypes();
-    initializeCategoryTypes();
-    // sql validator tester.
-    catalogReaderFactory = (factory, caseSensitive) ->
-        new TCatalogReader(this.dataTypeFactory, caseSensitive).init();
-    tester = getTester();
+  public Fixture fixture() {
+    return DEFAULT_FIXTURE;
   }
 
-  //~ fields initialize ------------------------------------------------------
-
-  private void initializeSingleTypes() {
-    nullType = dataTypeFactory.createSqlType(SqlTypeName.NULL);
-    booleanType = dataTypeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    tinyintType = dataTypeFactory.createSqlType(SqlTypeName.TINYINT);
-    smallintType = dataTypeFactory.createSqlType(SqlTypeName.SMALLINT);
-    intType = dataTypeFactory.createSqlType(SqlTypeName.INTEGER);
-    bigintType = dataTypeFactory.createSqlType(SqlTypeName.BIGINT);
-    floatType = dataTypeFactory.createSqlType(SqlTypeName.FLOAT);
-    doubleType = dataTypeFactory.createSqlType(SqlTypeName.DOUBLE);
-    decimalType = dataTypeFactory.createSqlType(SqlTypeName.DECIMAL);
-    dateType = dataTypeFactory.createSqlType(SqlTypeName.DATE);
-    timeType = dataTypeFactory.createSqlType(SqlTypeName.TIME);
-    timestampType = dataTypeFactory.createSqlType(SqlTypeName.TIMESTAMP);
-    binaryType = dataTypeFactory.createSqlType(SqlTypeName.BINARY);
-    varbinaryType = dataTypeFactory.createSqlType(SqlTypeName.VARBINARY);
-    charType = dataTypeFactory.createSqlType(SqlTypeName.CHAR);
-    varcharType = dataTypeFactory.createSqlType(SqlTypeName.VARCHAR);
-    varchar20Type = dataTypeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+  public static SqlValidatorFixture sql(String sql) {
+    return validatorFixture()
+        .withSql(sql);
   }
 
-  private void initializeCategoryTypes() {
-    // INT
-    ImmutableList.Builder<RelDataType> builder = ImmutableList.builder();
-    for (SqlTypeName typeName : SqlTypeName.INT_TYPES) {
-      builder.add(dataTypeFactory.createSqlType(typeName));
-    }
-    numericTypes = builder.build();
-    // ATOMIC
-    ImmutableList.Builder<RelDataType> builder3 = ImmutableList.builder();
-    for (SqlTypeName typeName : SqlTypeName.DATETIME_TYPES) {
-      builder3.add(dataTypeFactory.createSqlType(typeName));
-    }
-    builder3.addAll(numericTypes);
-    for (SqlTypeName typeName : SqlTypeName.STRING_TYPES) {
-      builder3.add(dataTypeFactory.createSqlType(typeName));
-    }
-    for (SqlTypeName typeName : SqlTypeName.BOOLEAN_TYPES) {
-      builder3.add(dataTypeFactory.createSqlType(typeName));
-    }
-    atomicTypes = builder3.build();
-    // COMPLEX
-    ImmutableList.Builder<RelDataType> builder4 = ImmutableList.builder();
-    builder4.add(dataTypeFactory.createArrayType(intType, -1));
-    builder4.add(dataTypeFactory.createArrayType(varcharType, -1));
-    builder4.add(dataTypeFactory.createMapType(varcharType, varcharType));
-    builder4.add(dataTypeFactory.createStructType(ImmutableList.of(Pair.of("a1", varcharType))));
-    List<? extends Map.Entry<String, RelDataType>> ll =
-        ImmutableList.of(Pair.of("a1", varbinaryType), Pair.of("a2", intType));
-    builder4.add(dataTypeFactory.createStructType(ll));
-    ImmutableList<RelDataType> complexTypes = builder4.build();
-    // ALL
-    SqlIntervalQualifier intervalQualifier =
-        new SqlIntervalQualifier(TimeUnit.DAY, TimeUnit.MINUTE, SqlParserPos.ZERO);
-    allTypes = combine(atomicTypes, complexTypes,
-        ImmutableList.of(nullType, dataTypeFactory.createSqlIntervalType(intervalQualifier)));
-
-    // CHARACTERS
-    ImmutableList.Builder<RelDataType> builder6 = ImmutableList.builder();
-    for (SqlTypeName typeName : SqlTypeName.CHAR_TYPES) {
-      builder6.add(dataTypeFactory.createSqlType(typeName));
-    }
-    charTypes = builder6.build();
-    // BINARY
-    ImmutableList.Builder<RelDataType> builder7 = ImmutableList.builder();
-    for (SqlTypeName typeName : SqlTypeName.BINARY_TYPES) {
-      builder7.add(dataTypeFactory.createSqlType(typeName));
-    }
-    binaryTypes = builder7.build();
-    // BOOLEAN
-    ImmutableList.Builder<RelDataType> builder8 = ImmutableList.builder();
-    for (SqlTypeName typeName : SqlTypeName.BOOLEAN_TYPES) {
-      builder8.add(dataTypeFactory.createSqlType(typeName));
-    }
-    booleanTypes = builder8.build();
+  public static SqlValidatorFixture expr(String sql) {
+    return validatorFixture()
+        .withExpr(sql);
   }
 
-  //~ Tool methods -----------------------------------------------------------
-
-  private RelDataType arrayType(RelDataType type) {
-    return dataTypeFactory.createArrayType(type, -1);
-  }
-
-  private RelDataType mapType(RelDataType keyType, RelDataType valType) {
-    return dataTypeFactory.createMapType(keyType, valType);
-  }
-
-  private RelDataType recordType(String name, RelDataType type) {
-    return dataTypeFactory.createStructType(ImmutableList.of(Pair.of(name, type)));
-  }
-
-  private RelDataType recordType(List<? extends Map.Entry<String, RelDataType>> pairs) {
-    return dataTypeFactory.createStructType(pairs);
-  }
-
-  private RelDataType decimalType(int precision, int scale) {
-    return dataTypeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
-  }
-
-  /** Decision method for {@link AbstractTypeCoercion#implicitCast}. */
-  private void shouldCast(
-      RelDataType from,
-      SqlTypeFamily family,
-      RelDataType expected) {
-    if (family == null) {
-      // ROW type do not have a family.
-      return;
-    }
-    RelDataType castedType = ((AbstractTypeCoercion) typeCoercion).implicitCast(from, family);
-    boolean equals = castedType != null
-        && (from.equals(castedType)
-        || SqlTypeUtil.equalSansNullability(dataTypeFactory, castedType, expected)
-        || expected.getSqlTypeName().getFamily().contains(castedType));
-    assert equals
-        : "Failed to cast from "
-        + from.getSqlTypeName()
-        + " to "
-        + family;
-  }
-
-  private void shouldNotCast(
-      RelDataType from,
-      SqlTypeFamily family) {
-    if (family == null) {
-      // ROW type do not have a family.
-      return;
-    }
-    RelDataType castedType = ((AbstractTypeCoercion) typeCoercion).implicitCast(from, family);
-    assert castedType == null
-        : "Should not be able to cast from "
-        + from.getSqlTypeName()
-        + " to "
-        + family;
-  }
-
-  private void checkShouldCast(RelDataType checked, List<RelDataType> types) {
-    for (RelDataType type : allTypes) {
-      if (contains(types, type)) {
-        shouldCast(checked, type.getSqlTypeName().getFamily(), type);
-      } else {
-        shouldNotCast(checked, type.getSqlTypeName().getFamily());
-      }
-    }
-  }
-
-  // some data types has the same type family, i.e. TIMESTAMP and
-  // TIMESTAMP_WITH_LOCAL_TIME_ZONE all have TIMESTAMP family.
-  private static boolean contains(List<RelDataType> types, RelDataType type) {
-    for (RelDataType type1 : types) {
-      if (type1.equals(type)
-          || type1.getSqlTypeName().getFamily() == type.getSqlTypeName().getFamily()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private boolean equals(Object o1, Object o2) {
-    if (o1 == null && o2 != null
-        || o1 != null && o2 == null) {
-      return false;
-    }
-    return o1 == o2;
-  }
-
-  private String toStringNullable(Object o1) {
-    if (o1 == null) {
-      return "NULL";
-    }
-    return o1.toString();
-  }
-
-  /** Decision method for finding a common type. */
-  private void checkCommonType(
-      RelDataType type1,
-      RelDataType type2,
-      RelDataType expected,
-      boolean isSymmetric) {
-    RelDataType result = typeCoercion.getTightestCommonType(type1, type2);
-    assert equals(result, expected)
-        : "Expected "
-        + toStringNullable(expected)
-        + " as common type for "
-        + type1.toString()
-        + " and "
-        + type2.toString()
-        + ", but found "
-        + toStringNullable(result);
-    if (isSymmetric) {
-      RelDataType result1 = typeCoercion.getTightestCommonType(type2, type1);
-      assert equals(result1, expected)
-          : "Expected "
-          + toStringNullable(expected)
-          + " as common type for "
-          + type2.toString()
-          + " and "
-          + type1.toString()
-          + ", but found "
-          + toStringNullable(result1);
-    }
-  }
-
-  /** Decision method for finding a wider type. */
-  private void checkWiderType(
-      RelDataType type1,
-      RelDataType type2,
-      RelDataType expected,
-      boolean stringPromotion,
-      boolean isSymmetric) {
-    RelDataType result = typeCoercion.getWiderTypeForTwo(type1, type2, stringPromotion);
-    assert equals(result, expected)
-        : "Expected "
-        + toStringNullable(expected)
-        + " as common type for " + type1.toString()
-        + " and " + type2.toString()
-        + ", but found " + toStringNullable(result);
-    if (isSymmetric) {
-      RelDataType result1 = typeCoercion.getWiderTypeForTwo(type2, type1, stringPromotion);
-      assert equals(result1, expected)
-          : "Expected "
-          + toStringNullable(expected)
-          + " as common type for " + type2.toString()
-          + " and " + type1.toString()
-          + ", but found " + toStringNullable(result1);
-    }
-  }
-
-  @Override public SqlTester getTester() {
-    return new SqlValidatorTester(SqlTestFactory.INSTANCE
-        .withCatalogReader(getCatalogReaderFactory()));
+  private static SqlValidatorFixture validatorFixture() {
+    return SqlValidatorTestCase.FIXTURE
+        .withCatalogReader(TCatalogReader::create);
   }
 
   private static ImmutableList<RelDataType> combine(
@@ -343,10 +95,6 @@ class TypeCoercionTest extends SqlValidatorTestCase {
         .build();
   }
 
-  SqlTestFactory.MockCatalogReaderFactory getCatalogReaderFactory() {
-    return catalogReaderFactory;
-  }
-
   //~ Tests ------------------------------------------------------------------
 
   /**
@@ -354,91 +102,105 @@ class TypeCoercionTest extends SqlValidatorTestCase {
    */
   @Test void testGetTightestCommonType() {
     // NULL
-    checkCommonType(nullType, nullType, nullType, true);
+    final Fixture f = fixture();
+    f.checkCommonType(f.nullType, f.nullType, f.nullType, true);
     // BOOLEAN
-    checkCommonType(nullType, booleanType, booleanType, true);
-    checkCommonType(booleanType, booleanType, booleanType, true);
-    checkCommonType(intType, booleanType, null, true);
-    checkCommonType(bigintType, booleanType, null, true);
+    f.checkCommonType(f.nullType, f.booleanType, f.booleanType, true);
+    f.checkCommonType(f.booleanType, f.booleanType, f.booleanType, true);
+    f.checkCommonType(f.intType, f.booleanType, null, true);
+    f.checkCommonType(f.bigintType, f.booleanType, null, true);
     // INT
-    checkCommonType(nullType, tinyintType, tinyintType, true);
-    checkCommonType(nullType, intType, intType, true);
-    checkCommonType(nullType, bigintType, bigintType, true);
-    checkCommonType(smallintType, intType, intType, true);
-    checkCommonType(smallintType, bigintType, bigintType, true);
-    checkCommonType(intType, bigintType, bigintType, true);
-    checkCommonType(bigintType, bigintType, bigintType, true);
+    f.checkCommonType(f.nullType, f.tinyintType, f.tinyintType, true);
+    f.checkCommonType(f.nullType, f.intType, f.intType, true);
+    f.checkCommonType(f.nullType, f.bigintType, f.bigintType, true);
+    f.checkCommonType(f.smallintType, f.intType, f.intType, true);
+    f.checkCommonType(f.smallintType, f.bigintType, f.bigintType, true);
+    f.checkCommonType(f.intType, f.bigintType, f.bigintType, true);
+    f.checkCommonType(f.bigintType, f.bigintType, f.bigintType, true);
     // FLOAT/DOUBLE
-    checkCommonType(nullType, floatType, floatType, true);
-    checkCommonType(nullType, doubleType, doubleType, true);
-    // Use RelDataTypeFactory#leastRestrictive to find the common type, it's not symmetric but
-    // it's ok because precision does not become lower.
-    checkCommonType(floatType, doubleType, floatType, false);
-    checkCommonType(floatType, floatType, floatType, true);
-    checkCommonType(doubleType, doubleType, doubleType, true);
+    f.checkCommonType(f.nullType, f.floatType, f.floatType, true);
+    f.checkCommonType(f.nullType, f.doubleType, f.doubleType, true);
+    // Use RelDataTypeFactory#leastRestrictive to find the common type; it's not
+    // symmetric but it's ok because precision does not become lower.
+    f.checkCommonType(f.floatType, f.doubleType, f.floatType, false);
+    f.checkCommonType(f.floatType, f.floatType, f.floatType, true);
+    f.checkCommonType(f.doubleType, f.doubleType, f.doubleType, true);
     // EXACT + FRACTIONAL
-    checkCommonType(intType, floatType, floatType, true);
-    checkCommonType(intType, doubleType, doubleType, true);
-    checkCommonType(bigintType, floatType, floatType, true);
-    checkCommonType(bigintType, doubleType, doubleType, true);
+    f.checkCommonType(f.intType, f.floatType, f.floatType, true);
+    f.checkCommonType(f.intType, f.doubleType, f.doubleType, true);
+    f.checkCommonType(f.bigintType, f.floatType, f.floatType, true);
+    f.checkCommonType(f.bigintType, f.doubleType, f.doubleType, true);
     // Fixed precision decimal
-    RelDataType decimal54 = dataTypeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 4);
-    RelDataType decimal71 = dataTypeFactory.createSqlType(SqlTypeName.DECIMAL, 7, 1);
-    checkCommonType(decimal54, decimal71, null, true);
-    checkCommonType(decimal54, doubleType, null, true);
-    checkCommonType(decimal54, intType, null, true);
+    RelDataType decimal54 =
+        f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 4);
+    RelDataType decimal71 =
+        f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 7, 1);
+    f.checkCommonType(decimal54, decimal71, null, true);
+    f.checkCommonType(decimal54, f.doubleType, null, true);
+    f.checkCommonType(decimal54, f.intType, null, true);
     // CHAR/VARCHAR
-    checkCommonType(nullType, charType, charType, true);
-    checkCommonType(charType, varcharType, varcharType, true);
-    checkCommonType(intType, charType, null, true);
-    checkCommonType(doubleType, charType, null, true);
+    f.checkCommonType(f.nullType, f.charType, f.charType, true);
+    f.checkCommonType(f.charType, f.varcharType, f.varcharType, true);
+    f.checkCommonType(f.intType, f.charType, null, true);
+    f.checkCommonType(f.doubleType, f.charType, null, true);
     // TIMESTAMP
-    checkCommonType(nullType, timestampType, timestampType, true);
-    checkCommonType(timestampType, timestampType, timestampType, true);
-    checkCommonType(dateType, timestampType, timestampType, true);
-    checkCommonType(intType, timestampType, null, true);
-    checkCommonType(varcharType, timestampType, null, true);
+    f.checkCommonType(f.nullType, f.timestampType, f.timestampType, true);
+    f.checkCommonType(f.timestampType, f.timestampType, f.timestampType, true);
+    f.checkCommonType(f.dateType, f.timestampType, f.timestampType, true);
+    f.checkCommonType(f.intType, f.timestampType, null, true);
+    f.checkCommonType(f.varcharType, f.timestampType, null, true);
     // STRUCT
-    checkCommonType(nullType, mapType(intType, charType), mapType(intType, charType), true);
-    checkCommonType(nullType, recordType(ImmutableList.of()), recordType(ImmutableList.of()),
-        true);
-    checkCommonType(charType, mapType(intType, charType), null, true);
-    checkCommonType(arrayType(intType), recordType(ImmutableList.of()), null, true);
+    f.checkCommonType(f.nullType, f.mapType(f.intType, f.charType),
+        f.mapType(f.intType, f.charType), true);
+    f.checkCommonType(f.nullType, f.recordType(ImmutableList.of()),
+        f.recordType(ImmutableList.of()), true);
+    f.checkCommonType(f.charType, f.mapType(f.intType, f.charType), null, true);
+    f.checkCommonType(f.arrayType(f.intType), f.recordType(ImmutableList.of()),
+        null, true);
 
-    checkCommonType(recordType("a", intType), recordType("b", intType), null, true);
-    checkCommonType(recordType("a", intType), recordType("a", intType),
-        recordType("a", intType), true);
-    checkCommonType(recordType("a", arrayType(intType)), recordType("a", arrayType(intType)),
-        recordType("a", arrayType(intType)), true);
+    f.checkCommonType(f.recordType("a", f.intType),
+        f.recordType("b", f.intType), null, true);
+    f.checkCommonType(f.recordType("a", f.intType),
+        f.recordType("a", f.intType), f.recordType("a", f.intType), true);
+    f.checkCommonType(f.recordType("a", f.arrayType(f.intType)),
+        f.recordType("a", f.arrayType(f.intType)),
+        f.recordType("a", f.arrayType(f.intType)), true);
   }
 
   /** Test case for {@link TypeCoercion#getWiderTypeForTwo}
    * and {@link TypeCoercion#getWiderTypeFor}. */
   @Test void testWiderTypeFor() {
+    final Fixture f = fixture();
     // DECIMAL please see details in SqlTypeFactoryImpl#leastRestrictiveSqlType.
-    checkWiderType(decimalType(5, 4), decimalType(7, 1), decimalType(10, 4), true, true);
-    checkWiderType(decimalType(5, 4), doubleType, doubleType, true, true);
-    checkWiderType(decimalType(5, 4), intType, decimalType(14, 4), true, true);
-    checkWiderType(decimalType(5, 4), bigintType, decimalType(19, 0), true, true);
+    f.checkWiderType(f.decimalType(5, 4), f.decimalType(7, 1),
+        f.decimalType(10, 4), true, true);
+    f.checkWiderType(f.decimalType(5, 4), f.doubleType, f.doubleType, true,
+        true);
+    f.checkWiderType(f.decimalType(5, 4), f.intType, f.decimalType(14, 4), true,
+        true);
+    f.checkWiderType(f.decimalType(5, 4), f.bigintType, f.decimalType(19, 0),
+        true, true);
     // Array
-    checkWiderType(arrayType(smallintType), arrayType(doubleType), arrayType(doubleType),
-        true, true);
-    checkWiderType(arrayType(timestampType), arrayType(varcharType), arrayType(varcharType),
-        true, true);
-    checkWiderType(arrayType(intType), arrayType(bigintType), arrayType(bigintType),
-        true, true);
+    f.checkWiderType(f.arrayType(f.smallintType), f.arrayType(f.doubleType),
+        f.arrayType(f.doubleType), true, true);
+    f.checkWiderType(f.arrayType(f.timestampType), f.arrayType(f.varcharType),
+        f.arrayType(f.varcharType), true, true);
+    f.checkWiderType(f.arrayType(f.intType), f.arrayType(f.bigintType),
+        f.arrayType(f.bigintType), true, true);
     // No string promotion
-    checkWiderType(intType, charType, null, false, true);
-    checkWiderType(timestampType, charType, null, false, true);
-    checkWiderType(arrayType(bigintType), arrayType(charType), null, false, true);
-    checkWiderType(arrayType(charType), arrayType(timestampType), null, false, true);
+    f.checkWiderType(f.intType, f.charType, null, false, true);
+    f.checkWiderType(f.timestampType, f.charType, null, false, true);
+    f.checkWiderType(f.arrayType(f.bigintType), f.arrayType(f.charType), null,
+        false, true);
+    f.checkWiderType(f.arrayType(f.charType), f.arrayType(f.timestampType), null,
+        false, true);
     // String promotion
-    checkWiderType(intType, charType, varcharType, true, true);
-    checkWiderType(timestampType, charType, varcharType, true, true);
-    checkWiderType(arrayType(bigintType), arrayType(varcharType), arrayType(varcharType),
-        true, true);
-    checkWiderType(arrayType(charType), arrayType(timestampType), arrayType(varcharType),
-        true, true);
+    f.checkWiderType(f.intType, f.charType, f.varcharType, true, true);
+    f.checkWiderType(f.timestampType, f.charType, f.varcharType, true, true);
+    f.checkWiderType(f.arrayType(f.bigintType), f.arrayType(f.varcharType),
+        f.arrayType(f.varcharType), true, true);
+    f.checkWiderType(f.arrayType(f.charType), f.arrayType(f.timestampType),
+        f.arrayType(f.varcharType), true, true);
   }
 
   /** Test set operations: UNION, INTERSECT, EXCEPT type coercion. */
@@ -507,6 +269,7 @@ class TypeCoercionTest extends SqlValidatorTestCase {
 
   /** Test arithmetic expressions with string type arguments. */
   @Test void testArithmeticExpressionsWithStrings() {
+    SqlValidatorFixture f = validatorFixture();
     // for null type in binary arithmetic.
     expr("1 + null").ok();
     expr("1 - null").ok();
@@ -525,14 +288,15 @@ class TypeCoercionTest extends SqlValidatorTestCase {
     expr("select abs(t1_varchar20) from t1").ok();
     expr("select sum(t1_varchar20) from t1").ok();
     expr("select avg(t1_varchar20) from t1").ok();
-    tester.setFor(SqlStdOperatorTable.STDDEV_POP);
-    tester.setFor(SqlStdOperatorTable.STDDEV_SAMP);
+
+    f.setFor(SqlStdOperatorTable.STDDEV_POP);
+    f.setFor(SqlStdOperatorTable.STDDEV_SAMP);
     expr("select STDDEV_POP(t1_varchar20) from t1").ok();
     expr("select STDDEV_SAMP(t1_varchar20) from t1").ok();
     expr("select -(t1_varchar20) from t1").ok();
     expr("select +(t1_varchar20) from t1").ok();
-    tester.setFor(SqlStdOperatorTable.VAR_POP);
-    tester.setFor(SqlStdOperatorTable.VAR_SAMP);
+    f.setFor(SqlStdOperatorTable.VAR_POP);
+    f.setFor(SqlStdOperatorTable.VAR_SAMP);
     expr("select VAR_POP(t1_varchar20) from t1").ok();
     expr("select VAR_SAMP(t1_varchar20) from t1").ok();
     // test divide with strings
@@ -652,149 +416,151 @@ class TypeCoercionTest extends SqlValidatorTestCase {
 
   /** Test for {@link AbstractTypeCoercion#implicitCast}. */
   @Test void testImplicitCasts() {
+    final Fixture f = fixture();
     // TINYINT
-    RelDataType checkedType1 = dataTypeFactory.createSqlType(SqlTypeName.TINYINT);
-    checkShouldCast(checkedType1, combine(numericTypes, charTypes));
-    shouldCast(checkedType1, SqlTypeFamily.DECIMAL,
-        dataTypeFactory.decimalOf(checkedType1));
-    shouldCast(checkedType1, SqlTypeFamily.NUMERIC, checkedType1);
-    shouldCast(checkedType1, SqlTypeFamily.INTEGER, checkedType1);
-    shouldCast(checkedType1, SqlTypeFamily.EXACT_NUMERIC, checkedType1);
-    shouldNotCast(checkedType1, SqlTypeFamily.APPROXIMATE_NUMERIC);
+    ImmutableList<RelDataType> charTypes = f.charTypes;
+    RelDataType checkedType1 = f.typeFactory.createSqlType(SqlTypeName.TINYINT);
+    f.checkShouldCast(checkedType1, combine(f.numericTypes, charTypes));
+    f.shouldCast(checkedType1, SqlTypeFamily.DECIMAL,
+        f.typeFactory.decimalOf(checkedType1));
+    f.shouldCast(checkedType1, SqlTypeFamily.NUMERIC, checkedType1);
+    f.shouldCast(checkedType1, SqlTypeFamily.INTEGER, checkedType1);
+    f.shouldCast(checkedType1, SqlTypeFamily.EXACT_NUMERIC, checkedType1);
+    f.shouldNotCast(checkedType1, SqlTypeFamily.APPROXIMATE_NUMERIC);
 
     // SMALLINT
-    RelDataType checkedType2 = smallintType;
-    checkShouldCast(checkedType2, combine(numericTypes, charTypes));
-    shouldCast(checkedType2, SqlTypeFamily.DECIMAL,
-        dataTypeFactory.decimalOf(checkedType2));
-    shouldCast(checkedType2, SqlTypeFamily.NUMERIC, checkedType2);
-    shouldCast(checkedType2, SqlTypeFamily.INTEGER, checkedType2);
-    shouldCast(checkedType2, SqlTypeFamily.EXACT_NUMERIC, checkedType2);
-    shouldNotCast(checkedType2, SqlTypeFamily.APPROXIMATE_NUMERIC);
+    RelDataType checkedType2 = f.smallintType;
+    f.checkShouldCast(checkedType2, combine(f.numericTypes, charTypes));
+    f.shouldCast(checkedType2, SqlTypeFamily.DECIMAL,
+        f.typeFactory.decimalOf(checkedType2));
+    f.shouldCast(checkedType2, SqlTypeFamily.NUMERIC, checkedType2);
+    f.shouldCast(checkedType2, SqlTypeFamily.INTEGER, checkedType2);
+    f.shouldCast(checkedType2, SqlTypeFamily.EXACT_NUMERIC, checkedType2);
+    f.shouldNotCast(checkedType2, SqlTypeFamily.APPROXIMATE_NUMERIC);
 
     // INT
-    RelDataType checkedType3 = intType;
-    checkShouldCast(checkedType3, combine(numericTypes, charTypes));
-    shouldCast(checkedType3, SqlTypeFamily.DECIMAL,
-        dataTypeFactory.decimalOf(checkedType3));
-    shouldCast(checkedType3, SqlTypeFamily.NUMERIC, checkedType3);
-    shouldCast(checkedType3, SqlTypeFamily.INTEGER, checkedType3);
-    shouldCast(checkedType3, SqlTypeFamily.EXACT_NUMERIC, checkedType3);
-    shouldNotCast(checkedType3, SqlTypeFamily.APPROXIMATE_NUMERIC);
+    RelDataType checkedType3 = f.intType;
+    f.checkShouldCast(checkedType3, combine(f.numericTypes, charTypes));
+    f.shouldCast(checkedType3, SqlTypeFamily.DECIMAL,
+        f.typeFactory.decimalOf(checkedType3));
+    f.shouldCast(checkedType3, SqlTypeFamily.NUMERIC, checkedType3);
+    f.shouldCast(checkedType3, SqlTypeFamily.INTEGER, checkedType3);
+    f.shouldCast(checkedType3, SqlTypeFamily.EXACT_NUMERIC, checkedType3);
+    f.shouldNotCast(checkedType3, SqlTypeFamily.APPROXIMATE_NUMERIC);
 
     // BIGINT
-    RelDataType checkedType4 = bigintType;
-    checkShouldCast(checkedType4, combine(numericTypes, charTypes));
-    shouldCast(checkedType4, SqlTypeFamily.DECIMAL,
-        dataTypeFactory.decimalOf(checkedType4));
-    shouldCast(checkedType4, SqlTypeFamily.NUMERIC, checkedType4);
-    shouldCast(checkedType4, SqlTypeFamily.INTEGER, checkedType4);
-    shouldCast(checkedType4, SqlTypeFamily.EXACT_NUMERIC, checkedType4);
-    shouldNotCast(checkedType4, SqlTypeFamily.APPROXIMATE_NUMERIC);
+    RelDataType checkedType4 = f.bigintType;
+    f.checkShouldCast(checkedType4, combine(f.numericTypes, charTypes));
+    f.shouldCast(checkedType4, SqlTypeFamily.DECIMAL,
+        f.typeFactory.decimalOf(checkedType4));
+    f.shouldCast(checkedType4, SqlTypeFamily.NUMERIC, checkedType4);
+    f.shouldCast(checkedType4, SqlTypeFamily.INTEGER, checkedType4);
+    f.shouldCast(checkedType4, SqlTypeFamily.EXACT_NUMERIC, checkedType4);
+    f.shouldNotCast(checkedType4, SqlTypeFamily.APPROXIMATE_NUMERIC);
 
     // FLOAT/REAL
-    RelDataType checkedType5 = floatType;
-    checkShouldCast(checkedType5, combine(numericTypes, charTypes));
-    shouldCast(checkedType5, SqlTypeFamily.DECIMAL,
-        dataTypeFactory.decimalOf(checkedType5));
-    shouldCast(checkedType5, SqlTypeFamily.NUMERIC, checkedType5);
-    shouldNotCast(checkedType5, SqlTypeFamily.INTEGER);
-    shouldCast(checkedType5, SqlTypeFamily.EXACT_NUMERIC,
-        dataTypeFactory.decimalOf(checkedType5));
-    shouldCast(checkedType5, SqlTypeFamily.APPROXIMATE_NUMERIC, checkedType5);
+    RelDataType checkedType5 = f.floatType;
+    f.checkShouldCast(checkedType5, combine(f.numericTypes, charTypes));
+    f.shouldCast(checkedType5, SqlTypeFamily.DECIMAL,
+        f.typeFactory.decimalOf(checkedType5));
+    f.shouldCast(checkedType5, SqlTypeFamily.NUMERIC, checkedType5);
+    f.shouldNotCast(checkedType5, SqlTypeFamily.INTEGER);
+    f.shouldCast(checkedType5, SqlTypeFamily.EXACT_NUMERIC,
+        f.typeFactory.decimalOf(checkedType5));
+    f.shouldCast(checkedType5, SqlTypeFamily.APPROXIMATE_NUMERIC, checkedType5);
 
     // DOUBLE
-    RelDataType checkedType6 = doubleType;
-    checkShouldCast(checkedType6, combine(numericTypes, charTypes));
-    shouldCast(checkedType6, SqlTypeFamily.DECIMAL,
-        dataTypeFactory.decimalOf(checkedType6));
-    shouldCast(checkedType6, SqlTypeFamily.NUMERIC, checkedType6);
-    shouldNotCast(checkedType6, SqlTypeFamily.INTEGER);
-    shouldCast(checkedType6, SqlTypeFamily.EXACT_NUMERIC,
-        dataTypeFactory.decimalOf(checkedType5));
-    shouldCast(checkedType6, SqlTypeFamily.APPROXIMATE_NUMERIC, checkedType6);
+    RelDataType checkedType6 = f.doubleType;
+    f.checkShouldCast(checkedType6, combine(f.numericTypes, charTypes));
+    f.shouldCast(checkedType6, SqlTypeFamily.DECIMAL,
+        f.typeFactory.decimalOf(checkedType6));
+    f.shouldCast(checkedType6, SqlTypeFamily.NUMERIC, checkedType6);
+    f.shouldNotCast(checkedType6, SqlTypeFamily.INTEGER);
+    f.shouldCast(checkedType6, SqlTypeFamily.EXACT_NUMERIC,
+        f.typeFactory.decimalOf(checkedType5));
+    f.shouldCast(checkedType6, SqlTypeFamily.APPROXIMATE_NUMERIC, checkedType6);
 
     // DECIMAL(10, 2)
-    RelDataType checkedType7 = decimalType(10, 2);
-    checkShouldCast(checkedType7, combine(numericTypes, charTypes));
-    shouldCast(checkedType7, SqlTypeFamily.DECIMAL,
-        dataTypeFactory.decimalOf(checkedType7));
-    shouldCast(checkedType7, SqlTypeFamily.NUMERIC, checkedType7);
-    shouldNotCast(checkedType7, SqlTypeFamily.INTEGER);
-    shouldCast(checkedType7, SqlTypeFamily.EXACT_NUMERIC, checkedType7);
-    shouldNotCast(checkedType7, SqlTypeFamily.APPROXIMATE_NUMERIC);
+    RelDataType checkedType7 = f.decimalType(10, 2);
+    f.checkShouldCast(checkedType7, combine(f.numericTypes, charTypes));
+    f.shouldCast(checkedType7, SqlTypeFamily.DECIMAL,
+        f.typeFactory.decimalOf(checkedType7));
+    f.shouldCast(checkedType7, SqlTypeFamily.NUMERIC, checkedType7);
+    f.shouldNotCast(checkedType7, SqlTypeFamily.INTEGER);
+    f.shouldCast(checkedType7, SqlTypeFamily.EXACT_NUMERIC, checkedType7);
+    f.shouldNotCast(checkedType7, SqlTypeFamily.APPROXIMATE_NUMERIC);
 
     // BINARY
-    RelDataType checkedType8 = binaryType;
-    checkShouldCast(checkedType8, combine(binaryTypes, charTypes));
-    shouldNotCast(checkedType8, SqlTypeFamily.DECIMAL);
-    shouldNotCast(checkedType8, SqlTypeFamily.NUMERIC);
-    shouldNotCast(checkedType8, SqlTypeFamily.INTEGER);
+    RelDataType checkedType8 = f.binaryType;
+    f.checkShouldCast(checkedType8, combine(f.binaryTypes, charTypes));
+    f.shouldNotCast(checkedType8, SqlTypeFamily.DECIMAL);
+    f.shouldNotCast(checkedType8, SqlTypeFamily.NUMERIC);
+    f.shouldNotCast(checkedType8, SqlTypeFamily.INTEGER);
 
     // BOOLEAN
-    RelDataType checkedType9 = booleanType;
-    checkShouldCast(checkedType9, combine(booleanTypes, charTypes));
-    shouldNotCast(checkedType9, SqlTypeFamily.DECIMAL);
-    shouldNotCast(checkedType9, SqlTypeFamily.NUMERIC);
-    shouldNotCast(checkedType9, SqlTypeFamily.INTEGER);
+    RelDataType checkedType9 = f.booleanType;
+    f.checkShouldCast(checkedType9, combine(f.booleanTypes, charTypes));
+    f.shouldNotCast(checkedType9, SqlTypeFamily.DECIMAL);
+    f.shouldNotCast(checkedType9, SqlTypeFamily.NUMERIC);
+    f.shouldNotCast(checkedType9, SqlTypeFamily.INTEGER);
 
     // CHARACTER
-    RelDataType checkedType10 = varcharType;
+    RelDataType checkedType10 = f.varcharType;
     ImmutableList.Builder<RelDataType> builder = ImmutableList.builder();
-    for (RelDataType type : atomicTypes) {
+    for (RelDataType type : f.atomicTypes) {
       if (!SqlTypeUtil.isBoolean(type)) {
         builder.add(type);
       }
     }
-    checkShouldCast(checkedType10, builder.build());
-    shouldCast(checkedType10, SqlTypeFamily.DECIMAL,
-        SqlTypeUtil.getMaxPrecisionScaleDecimal(dataTypeFactory));
-    shouldCast(checkedType10, SqlTypeFamily.NUMERIC,
-        SqlTypeUtil.getMaxPrecisionScaleDecimal(dataTypeFactory));
-    shouldNotCast(checkedType10, SqlTypeFamily.BOOLEAN);
+    f.checkShouldCast(checkedType10, builder.build());
+    f.shouldCast(checkedType10, SqlTypeFamily.DECIMAL,
+        SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory));
+    f.shouldCast(checkedType10, SqlTypeFamily.NUMERIC,
+        SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory));
+    f.shouldNotCast(checkedType10, SqlTypeFamily.BOOLEAN);
 
     // DATE
-    RelDataType checkedType11 = dateType;
-    checkShouldCast(
+    RelDataType checkedType11 = f.dateType;
+    f.checkShouldCast(
         checkedType11,
-        combine(ImmutableList.of(timestampType, checkedType11),
+        combine(ImmutableList.of(f.timestampType, checkedType11),
             charTypes));
-    shouldNotCast(checkedType11, SqlTypeFamily.DECIMAL);
-    shouldNotCast(checkedType11, SqlTypeFamily.NUMERIC);
-    shouldNotCast(checkedType11, SqlTypeFamily.INTEGER);
+    f.shouldNotCast(checkedType11, SqlTypeFamily.DECIMAL);
+    f.shouldNotCast(checkedType11, SqlTypeFamily.NUMERIC);
+    f.shouldNotCast(checkedType11, SqlTypeFamily.INTEGER);
 
     // TIME
-    RelDataType checkedType12 = timeType;
-    checkShouldCast(
+    RelDataType checkedType12 = f.timeType;
+    f.checkShouldCast(
         checkedType12,
         combine(ImmutableList.of(checkedType12), charTypes));
-    shouldNotCast(checkedType12, SqlTypeFamily.DECIMAL);
-    shouldNotCast(checkedType12, SqlTypeFamily.NUMERIC);
-    shouldNotCast(checkedType12, SqlTypeFamily.INTEGER);
+    f.shouldNotCast(checkedType12, SqlTypeFamily.DECIMAL);
+    f.shouldNotCast(checkedType12, SqlTypeFamily.NUMERIC);
+    f.shouldNotCast(checkedType12, SqlTypeFamily.INTEGER);
 
     // TIMESTAMP
-    RelDataType checkedType13 = timestampType;
-    checkShouldCast(
+    RelDataType checkedType13 = f.timestampType;
+    f.checkShouldCast(
         checkedType13,
-        combine(ImmutableList.of(dateType, checkedType13),
+        combine(ImmutableList.of(f.dateType, checkedType13),
             charTypes));
-    shouldNotCast(checkedType13, SqlTypeFamily.DECIMAL);
-    shouldNotCast(checkedType13, SqlTypeFamily.NUMERIC);
-    shouldNotCast(checkedType13, SqlTypeFamily.INTEGER);
+    f.shouldNotCast(checkedType13, SqlTypeFamily.DECIMAL);
+    f.shouldNotCast(checkedType13, SqlTypeFamily.NUMERIC);
+    f.shouldNotCast(checkedType13, SqlTypeFamily.INTEGER);
 
     // NULL
-    RelDataType checkedType14 = nullType;
-    checkShouldCast(checkedType14, allTypes);
-    shouldCast(checkedType14, SqlTypeFamily.DECIMAL, decimalType);
-    shouldCast(checkedType14, SqlTypeFamily.NUMERIC, intType);
+    RelDataType checkedType14 = f.nullType;
+    f.checkShouldCast(checkedType14, f.allTypes);
+    f.shouldCast(checkedType14, SqlTypeFamily.DECIMAL, f.decimalType);
+    f.shouldCast(checkedType14, SqlTypeFamily.NUMERIC, f.intType);
 
     // INTERVAL
-    RelDataType checkedType15 = dataTypeFactory.createSqlIntervalType(
+    RelDataType checkedType15 = f.typeFactory.createSqlIntervalType(
         new SqlIntervalQualifier(TimeUnit.YEAR, TimeUnit.MONTH, SqlParserPos.ZERO));
-    checkShouldCast(checkedType15, ImmutableList.of(checkedType15));
-    shouldNotCast(checkedType15, SqlTypeFamily.DECIMAL);
-    shouldNotCast(checkedType15, SqlTypeFamily.NUMERIC);
-    shouldNotCast(checkedType15, SqlTypeFamily.INTEGER);
+    f.checkShouldCast(checkedType15, ImmutableList.of(checkedType15));
+    f.shouldNotCast(checkedType15, SqlTypeFamily.DECIMAL);
+    f.shouldNotCast(checkedType15, SqlTypeFamily.NUMERIC);
+    f.shouldNotCast(checkedType15, SqlTypeFamily.INTEGER);
   }
 
   /** Test case for {@link TypeCoercion#builtinFunctionCoercion}. */
@@ -852,54 +618,262 @@ class TypeCoercionTest extends SqlValidatorTestCase {
 
   //~ Inner Class ------------------------------------------------------------
 
-  /** A catalog reader with table t1 and t2 whose schema contains all the test data types. */
-  public class TCatalogReader extends MockCatalogReader {
-    private boolean isCaseSensitive;
+  /** Everything you need to run a test. */
+  static class Fixture {
+    final TypeCoercion typeCoercion;
+    final RelDataTypeFactory typeFactory;
 
-    TCatalogReader(RelDataTypeFactory typeFactory, boolean isCaseSensitive) {
-      super(typeFactory, false);
-      this.isCaseSensitive = isCaseSensitive;
+    // type category.
+    final ImmutableList<RelDataType> numericTypes;
+    final ImmutableList<RelDataType> atomicTypes;
+    final ImmutableList<RelDataType> allTypes;
+    final ImmutableList<RelDataType> charTypes;
+    final ImmutableList<RelDataType> binaryTypes;
+    final ImmutableList<RelDataType> booleanTypes;
+
+    // single types
+    final RelDataType nullType;
+    final RelDataType booleanType;
+    final RelDataType tinyintType;
+    final RelDataType smallintType;
+    final RelDataType intType;
+    final RelDataType bigintType;
+    final RelDataType floatType;
+    final RelDataType doubleType;
+    final RelDataType decimalType;
+    final RelDataType dateType;
+    final RelDataType timeType;
+    final RelDataType timestampType;
+    final RelDataType binaryType;
+    final RelDataType varbinaryType;
+    final RelDataType charType;
+    final RelDataType varcharType;
+    final RelDataType varchar20Type;
+
+    /** Creates a Fixture. */
+    public static Fixture create(SqlTestFactory testFactory) {
+      final SqlValidator validator = testFactory.createValidator();
+      return new Fixture(validator.getTypeFactory(), validator.getTypeCoercion());
     }
 
-    public MockCatalogReader init() {
-      MockSchema tSchema = new MockSchema("SALES");
-      registerSchema(tSchema);
-      // Register "T1" table.
-      final MockTable t1 =
-          MockTable.create(this, tSchema, "T1", false, 7.0, null);
-      t1.addColumn("t1_varchar20", varchar20Type, true);
-      t1.addColumn("t1_smallint", smallintType);
-      t1.addColumn("t1_int", intType);
-      t1.addColumn("t1_bigint", bigintType);
-      t1.addColumn("t1_float", floatType);
-      t1.addColumn("t1_double", doubleType);
-      t1.addColumn("t1_decimal", decimalType);
-      t1.addColumn("t1_timestamp", timestampType);
-      t1.addColumn("t1_date", dateType);
-      t1.addColumn("t1_binary", binaryType);
-      t1.addColumn("t1_boolean", booleanType);
-      registerTable(t1);
+    protected Fixture(RelDataTypeFactory typeFactory,
+        TypeCoercion typeCoercion) {
+      this.typeFactory = typeFactory;
+      this.typeCoercion = typeCoercion;
 
-      final MockTable t2 =
-          MockTable.create(this, tSchema, "T2", false, 7.0, null);
-      t2.addColumn("t2_varchar20", varchar20Type, true);
-      t2.addColumn("t2_smallint", smallintType);
-      t2.addColumn("t2_int", intType);
-      t2.addColumn("t2_bigint", bigintType);
-      t2.addColumn("t2_float", floatType);
-      t2.addColumn("t2_double", doubleType);
-      t2.addColumn("t2_decimal", decimalType);
-      t2.addColumn("t2_timestamp", timestampType);
-      t2.addColumn("t2_date", dateType);
-      t2.addColumn("t2_binary", binaryType);
-      t2.addColumn("t2_boolean", booleanType);
-      registerTable(t2);
-      return this;
+      // Initialize single types
+      nullType = this.typeFactory.createSqlType(SqlTypeName.NULL);
+      booleanType = this.typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+      tinyintType = this.typeFactory.createSqlType(SqlTypeName.TINYINT);
+      smallintType = this.typeFactory.createSqlType(SqlTypeName.SMALLINT);
+      intType = this.typeFactory.createSqlType(SqlTypeName.INTEGER);
+      bigintType = this.typeFactory.createSqlType(SqlTypeName.BIGINT);
+      floatType = this.typeFactory.createSqlType(SqlTypeName.FLOAT);
+      doubleType = this.typeFactory.createSqlType(SqlTypeName.DOUBLE);
+      decimalType = this.typeFactory.createSqlType(SqlTypeName.DECIMAL);
+      dateType = this.typeFactory.createSqlType(SqlTypeName.DATE);
+      timeType = this.typeFactory.createSqlType(SqlTypeName.TIME);
+      timestampType = this.typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+      binaryType = this.typeFactory.createSqlType(SqlTypeName.BINARY);
+      varbinaryType = this.typeFactory.createSqlType(SqlTypeName.VARBINARY);
+      charType = this.typeFactory.createSqlType(SqlTypeName.CHAR);
+      varcharType = this.typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      varchar20Type = this.typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+
+      // Initialize category types
+
+      // INT
+      ImmutableList.Builder<RelDataType> builder = ImmutableList.builder();
+      for (SqlTypeName typeName : SqlTypeName.INT_TYPES) {
+        builder.add(this.typeFactory.createSqlType(typeName));
+      }
+      numericTypes = builder.build();
+      // ATOMIC
+      ImmutableList.Builder<RelDataType> builder3 = ImmutableList.builder();
+      for (SqlTypeName typeName : SqlTypeName.DATETIME_TYPES) {
+        builder3.add(this.typeFactory.createSqlType(typeName));
+      }
+      builder3.addAll(numericTypes);
+      for (SqlTypeName typeName : SqlTypeName.STRING_TYPES) {
+        builder3.add(this.typeFactory.createSqlType(typeName));
+      }
+      for (SqlTypeName typeName : SqlTypeName.BOOLEAN_TYPES) {
+        builder3.add(this.typeFactory.createSqlType(typeName));
+      }
+      atomicTypes = builder3.build();
+      // COMPLEX
+      ImmutableList.Builder<RelDataType> builder4 = ImmutableList.builder();
+      builder4.add(this.typeFactory.createArrayType(intType, -1));
+      builder4.add(this.typeFactory.createArrayType(varcharType, -1));
+      builder4.add(this.typeFactory.createMapType(varcharType, varcharType));
+      builder4.add(this.typeFactory.createStructType(ImmutableList.of(Pair.of("a1", varcharType))));
+      List<? extends Map.Entry<String, RelDataType>> ll =
+          ImmutableList.of(Pair.of("a1", varbinaryType), Pair.of("a2", intType));
+      builder4.add(this.typeFactory.createStructType(ll));
+      ImmutableList<RelDataType> complexTypes = builder4.build();
+      // ALL
+      SqlIntervalQualifier intervalQualifier =
+          new SqlIntervalQualifier(TimeUnit.DAY, TimeUnit.MINUTE, SqlParserPos.ZERO);
+      allTypes = combine(atomicTypes, complexTypes,
+          ImmutableList.of(nullType, this.typeFactory.createSqlIntervalType(intervalQualifier)));
+
+      // CHARACTERS
+      ImmutableList.Builder<RelDataType> builder6 = ImmutableList.builder();
+      for (SqlTypeName typeName : SqlTypeName.CHAR_TYPES) {
+        builder6.add(this.typeFactory.createSqlType(typeName));
+      }
+      charTypes = builder6.build();
+      // BINARY
+      ImmutableList.Builder<RelDataType> builder7 = ImmutableList.builder();
+      for (SqlTypeName typeName : SqlTypeName.BINARY_TYPES) {
+        builder7.add(this.typeFactory.createSqlType(typeName));
+      }
+      binaryTypes = builder7.build();
+      // BOOLEAN
+      ImmutableList.Builder<RelDataType> builder8 = ImmutableList.builder();
+      for (SqlTypeName typeName : SqlTypeName.BOOLEAN_TYPES) {
+        builder8.add(this.typeFactory.createSqlType(typeName));
+      }
+      booleanTypes = builder8.build();
     }
 
-    @Override public boolean isCaseSensitive() {
-      return isCaseSensitive;
+    public Fixture withTypeFactory(RelDataTypeFactory typeFactory) {
+      return new Fixture(typeFactory, typeCoercion);
+    }
+
+    //~ Tool methods -----------------------------------------------------------
+
+    RelDataType arrayType(RelDataType type) {
+      return typeFactory.createArrayType(type, -1);
+    }
+
+    RelDataType mapType(RelDataType keyType, RelDataType valType) {
+      return typeFactory.createMapType(keyType, valType);
+    }
+
+    RelDataType recordType(String name, RelDataType type) {
+      return typeFactory.createStructType(ImmutableList.of(Pair.of(name, type)));
+    }
+
+    RelDataType recordType(List<? extends Map.Entry<String, RelDataType>> pairs) {
+      return typeFactory.createStructType(pairs);
+    }
+
+    RelDataType decimalType(int precision, int scale) {
+      return typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
+    }
+
+    /** Decision method for {@link AbstractTypeCoercion#implicitCast}. */
+    private void shouldCast(
+        RelDataType from,
+        SqlTypeFamily family,
+        RelDataType expected) {
+      if (family == null) {
+        // ROW type do not have a family.
+        return;
+      }
+      RelDataType castedType =
+          ((AbstractTypeCoercion) typeCoercion).implicitCast(from, family);
+      String reason = "Failed to cast from " + from.getSqlTypeName()
+          + " to " + family;
+      assertThat(reason, castedType, notNullValue());
+      assertThat(reason,
+          from.equals(castedType)
+              || SqlTypeUtil.equalSansNullability(typeFactory, castedType, expected)
+              || expected.getSqlTypeName().getFamily().contains(castedType),
+          is(true));
+    }
+
+    private void shouldNotCast(
+        RelDataType from,
+        SqlTypeFamily family) {
+      if (family == null) {
+        // ROW type do not have a family.
+        return;
+      }
+      RelDataType castedType =
+          ((AbstractTypeCoercion) typeCoercion).implicitCast(from, family);
+      assertThat("Should not be able to cast from " + from.getSqlTypeName()
+          + " to " + family,
+          castedType, nullValue());
+    }
+
+    private void checkShouldCast(RelDataType checked, List<RelDataType> types) {
+      for (RelDataType type : allTypes) {
+        if (contains(types, type)) {
+          shouldCast(checked, type.getSqlTypeName().getFamily(), type);
+        } else {
+          shouldNotCast(checked, type.getSqlTypeName().getFamily());
+        }
+      }
+    }
+
+    // some data types has the same type family, i.e. TIMESTAMP and
+    // TIMESTAMP_WITH_LOCAL_TIME_ZONE all have TIMESTAMP family.
+    private static boolean contains(List<RelDataType> types, RelDataType type) {
+      for (RelDataType type1 : types) {
+        if (type1.equals(type)
+            || type1.getSqlTypeName().getFamily() == type.getSqlTypeName().getFamily()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private String toStringNullable(Object o1) {
+      if (o1 == null) {
+        return "NULL";
+      }
+      return o1.toString();
+    }
+
+    /** Decision method for finding a common type. */
+    private void checkCommonType(
+        RelDataType type1,
+        RelDataType type2,
+        RelDataType expected,
+        boolean isSymmetric) {
+      RelDataType result = typeCoercion.getTightestCommonType(type1, type2);
+      assertThat("Expected " + toStringNullable(expected)
+          + " as common type for " + type1.toString()
+          + " and " + type2.toString()
+          + ", but found " + toStringNullable(result),
+          result,
+          sameInstance(expected));
+      if (isSymmetric) {
+        RelDataType result1 = typeCoercion.getTightestCommonType(type2, type1);
+        assertThat("Expected " + toStringNullable(expected)
+            + " as common type for " + type2
+            + " and " + type1
+            + ", but found " + toStringNullable(result1),
+            result1, sameInstance(expected));
+      }
+    }
+
+    /** Decision method for finding a wider type. */
+    private void checkWiderType(
+        RelDataType type1,
+        RelDataType type2,
+        RelDataType expected,
+        boolean stringPromotion,
+        boolean symmetric) {
+      RelDataType result =
+          typeCoercion.getWiderTypeForTwo(type1, type2, stringPromotion);
+      assertThat("Expected "
+          + toStringNullable(expected)
+          + " as common type for " + type1.toString()
+          + " and " + type2.toString()
+          + ", but found " + toStringNullable(result),
+          result, sameInstance(expected));
+      if (symmetric) {
+        RelDataType result1 =
+            typeCoercion.getWiderTypeForTwo(type2, type1, stringPromotion);
+        assertThat("Expected " + toStringNullable(expected)
+            + " as common type for " + type2
+            + " and " + type1
+            + ", but found " + toStringNullable(result1),
+            result1, sameInstance(expected));
+      }
     }
   }
-
 }

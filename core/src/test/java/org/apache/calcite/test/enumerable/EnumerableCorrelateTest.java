@@ -173,7 +173,6 @@ class EnumerableCorrelateTest {
    * RelBuilder: new method to create an anti-join</a>. */
   @Test void antiJoinCorrelate() {
     tester(false, new HrSchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the antijoin to run via EnumerableCorrelate
           // instead of EnumerableHashJoin(ANTI)
@@ -202,7 +201,6 @@ class EnumerableCorrelateTest {
 
   @Test void nonEquiAntiJoinCorrelate() {
     tester(false, new HrSchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the antijoin to run via EnumerableCorrelate
           // instead of EnumerableNestedLoopJoin
@@ -242,7 +240,6 @@ class EnumerableCorrelateTest {
   @Test void antiJoinCorrelateWithNullValues() {
     final Integer salesDeptNo = 10;
     tester(false, new HrSchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           // force the antijoin to run via EnumerableCorrelate
           // instead of EnumerableHashJoin(ANTI)

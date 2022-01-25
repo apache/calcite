@@ -62,13 +62,11 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
   }
 
-  // implement RelOptPlanner
-  public void setRoot(RelNode rel) {
+  @Override public void setRoot(RelNode rel) {
     this.root = rel;
   }
 
-  // implement RelOptPlanner
-  public @Nullable RelNode getRoot() {
+  @Override public @Nullable RelNode getRoot() {
     return root;
   }
 
@@ -77,12 +75,12 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     this.rule = null;
   }
 
-  public List<RelOptRule> getRules() {
+  @Override public List<RelOptRule> getRules() {
     return rule == null
         ? ImmutableList.of() : ImmutableList.of(rule);
   }
 
-  public boolean addRule(RelOptRule rule) {
+  @Override public boolean addRule(RelOptRule rule) {
     assert this.rule == null
         : "MockRelOptPlanner only supports a single rule";
     this.rule = rule;
@@ -90,17 +88,15 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     return false;
   }
 
-  public boolean removeRule(RelOptRule rule) {
+  @Override public boolean removeRule(RelOptRule rule) {
     return false;
   }
 
-  // implement RelOptPlanner
-  public RelNode changeTraits(RelNode rel, RelTraitSet toTraits) {
+  @Override public RelNode changeTraits(RelNode rel, RelTraitSet toTraits) {
     return rel;
   }
 
-  // implement RelOptPlanner
-  public RelNode findBestExp() {
+  @Override public RelNode findBestExp() {
     if (rule != null) {
       matchRecursive(root, null, -1);
     }
@@ -161,9 +157,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
    * @param bindings Bindings, populated on successful match
    * @return whether relational expression matched rule
    */
-  private boolean match(
-      RelOptRuleOperand operand,
-      RelNode rel,
+  private static boolean match(RelOptRuleOperand operand, RelNode rel,
       List<RelNode> bindings) {
     if (!operand.matches(rel)) {
       return false;
@@ -172,6 +166,8 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     switch (operand.childPolicy) {
     case ANY:
       return true;
+    default:
+      // fall through
     }
     List<RelOptRuleOperand> childOperands = operand.getChildOperands();
     List<? extends RelNode> childRels = rel.getInputs();
@@ -187,20 +183,15 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     return true;
   }
 
-  // implement RelOptPlanner
-  public RelNode register(
-      RelNode rel,
-      @Nullable RelNode equivRel) {
+  @Override public RelNode register(RelNode rel, @Nullable RelNode equivRel) {
     return rel;
   }
 
-  // implement RelOptPlanner
-  public RelNode ensureRegistered(RelNode rel, RelNode equivRel) {
+  @Override public RelNode ensureRegistered(RelNode rel, RelNode equivRel) {
     return rel;
   }
 
-  // implement RelOptPlanner
-  public boolean isRegistered(RelNode rel) {
+  @Override public boolean isRegistered(RelNode rel) {
     return true;
   }
 

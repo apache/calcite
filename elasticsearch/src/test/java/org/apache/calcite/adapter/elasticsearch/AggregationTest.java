@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.elasticsearch;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ElasticsearchChecker;
 import org.apache.calcite.util.Bug;
@@ -67,7 +66,7 @@ class AggregationTest {
         .put("val1", "long")
         .put("val2", "long")
         .build();
-
+    
     NODE.createIndex(NAME, mappings);
 
     String doc1 = "{cat1:'a', cat2:'g', val1:1, cat4:'2018-01-01', cat5:1}";
@@ -86,32 +85,31 @@ class AggregationTest {
     NODE.insertBulk(NAME, docs);
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static Connection createConnection() throws SQLException {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME));
+    root.add("elastic",
+        new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME));
 
-        // add calcite view programmatically
-        final String viewSql = String.format(Locale.ROOT,
-            "select _MAP['cat1'] AS \"cat1\", "
-                + " _MAP['cat2']  AS \"cat2\", "
-                +  " _MAP['cat3'] AS \"cat3\", "
-                +  " _MAP['cat4'] AS \"cat4\", "
-                +  " _MAP['cat5'] AS \"cat5\", "
-                +  " _MAP['cat6'] AS \"cat6\", "
-                +  " _MAP['val1'] AS \"val1\", "
-                +  " _MAP['val2'] AS \"val2\" "
-                +  " from \"elastic\".\"%s\"", NAME);
+    // add calcite view programmatically
+    final String viewSql = String.format(Locale.ROOT,
+        "select _MAP['cat1'] AS \"cat1\", "
+            + " _MAP['cat2']  AS \"cat2\", "
+            + " _MAP['cat3'] AS \"cat3\", "
+            + " _MAP['cat4'] AS \"cat4\", "
+            + " _MAP['cat5'] AS \"cat5\", "
+            + " _MAP['val1'] AS \"val1\", "
+            + " _MAP['val2'] AS \"val2\" "
+            + " from \"elastic\".\"%s\"", NAME);
 
-        ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
-        root.add("view", macro);
-        return connection;
-      }
-    };
+    root.add("view",
+        ViewTable.viewMacro(root, viewSql,
+            Collections.singletonList("elastic"),
+            Arrays.asList("elastic", "view"), false));
+    return connection;
   }
 
   /**
@@ -126,24 +124,24 @@ class AggregationTest {
   @Test void searchInRange() {
     Assumptions.assumeTrue(Bug.CALCITE_4645_FIXED, "CALCITE-4645");
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where val1 >= 10 and val1 <=20")
         .returns("EXPR$0=1\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where val1 <= 10 or val1 >=20")
         .returns("EXPR$0=2\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where val1 <= 10 or (val1 > 15 and val1 <= 20)")
         .returns("EXPR$0=2\n");
   }
 
   @Test void countStar() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
@@ -151,34 +149,34 @@ class AggregationTest {
         .returns("EXPR$0=3\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where cat1 = 'a'")
         .returns("EXPR$0=1\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where cat1 in ('a', 'b')")
         .returns("EXPR$0=2\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where val1 in (10, 20)")
         .returns("EXPR$0=0\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where cat4 in ('2018-01-01', '2019-12-12')")
         .returns("EXPR$0=2\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*) from view where cat4 not in ('2018-01-01', '2019-12-12')")
         .returns("EXPR$0=1\n");
   }
 
   @Test void all() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*), sum(val1), sum(val2) from view")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
@@ -189,7 +187,7 @@ class AggregationTest {
         .returns("EXPR$0=3; EXPR$1=8.0; EXPR$2=47.0\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select min(val1), max(val2), count(*) from view")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
@@ -202,14 +200,14 @@ class AggregationTest {
 
   @Test void cat1() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, sum(val1), sum(val2) from view group by cat1")
         .returnsUnordered("cat1=null; EXPR$1=0.0; EXPR$2=5.0",
                         "cat1=a; EXPR$1=1.0; EXPR$2=0.0",
                         "cat1=b; EXPR$1=7.0; EXPR$2=42.0");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, count(*) from view group by cat1")
         .returnsUnordered("cat1=null; EXPR$1=1",
             "cat1=a; EXPR$1=1",
@@ -217,14 +215,14 @@ class AggregationTest {
 
     // different order for agg functions
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select count(*), cat1 from view group by cat1")
         .returnsUnordered("EXPR$0=1; cat1=a",
             "EXPR$0=1; cat1=b",
             "EXPR$0=1; cat1=null");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, count(*), sum(val1), sum(val2) from view group by cat1")
         .returnsUnordered("cat1=a; EXPR$1=1; EXPR$2=1.0; EXPR$3=0.0",
                 "cat1=b; EXPR$1=1; EXPR$2=7.0; EXPR$3=42.0",
@@ -233,19 +231,19 @@ class AggregationTest {
 
   @Test void cat2() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat2, min(val1), max(val1), min(val2), max(val2) from view group by cat2")
         .returnsUnordered("cat2=g; EXPR$1=1.0; EXPR$2=1.0; EXPR$3=5.0; EXPR$4=5.0",
             "cat2=h; EXPR$1=7.0; EXPR$2=7.0; EXPR$3=42.0; EXPR$4=42.0");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat2, sum(val1), sum(val2) from view group by cat2")
         .returnsUnordered("cat2=g; EXPR$1=1.0; EXPR$2=5.0",
                   "cat2=h; EXPR$1=7.0; EXPR$2=42.0");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat2, count(*) from view group by cat2")
         .returnsUnordered("cat2=g; EXPR$1=2",
                   "cat2=h; EXPR$1=1");
@@ -253,14 +251,14 @@ class AggregationTest {
 
   @Test void cat1Cat2() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, cat2, sum(val1), sum(val2) from view group by cat1, cat2")
         .returnsUnordered("cat1=a; cat2=g; EXPR$2=1.0; EXPR$3=0.0",
             "cat1=null; cat2=g; EXPR$2=0.0; EXPR$3=5.0",
             "cat1=b; cat2=h; EXPR$2=7.0; EXPR$3=42.0");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, cat2, count(*) from view group by cat1, cat2")
         .returnsUnordered("cat1=a; cat2=g; EXPR$2=1",
             "cat1=null; cat2=g; EXPR$2=1",
@@ -269,7 +267,7 @@ class AggregationTest {
 
   @Test void cat1Cat3() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, cat3, sum(val1), sum(val2) from view group by cat1, cat3")
         .returnsUnordered("cat1=a; cat3=null; EXPR$2=1.0; EXPR$3=0.0",
             "cat1=null; cat3=y; EXPR$2=0.0; EXPR$3=5.0",
@@ -280,20 +278,20 @@ class AggregationTest {
    * function. */
   @Test void anyValue() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, any_value(cat2) from view group by cat1")
         .returnsUnordered("cat1=a; EXPR$1=g",
             "cat1=null; EXPR$1=g",
             "cat1=b; EXPR$1=h");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat2, any_value(cat1) from view group by cat2")
         .returnsUnordered("cat2=g; EXPR$1=a", // EXPR$1=null is also valid
             "cat2=h; EXPR$1=b");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat2, any_value(cat3) from view group by cat2")
         .returnsUnordered("cat2=g; EXPR$1=y", // EXPR$1=null is also valid
             "cat2=h; EXPR$1=z");
@@ -301,21 +299,21 @@ class AggregationTest {
 
   @Test void anyValueWithOtherAgg() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, any_value(cat2), max(val1) from view group by cat1")
         .returnsUnordered("cat1=a; EXPR$1=g; EXPR$2=1.0",
             "cat1=null; EXPR$1=g; EXPR$2=null",
             "cat1=b; EXPR$1=h; EXPR$2=7.0");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select max(val1), cat1, any_value(cat2) from view group by cat1")
         .returnsUnordered("EXPR$0=1.0; cat1=a; EXPR$2=g",
             "EXPR$0=null; cat1=null; EXPR$2=g",
             "EXPR$0=7.0; cat1=b; EXPR$2=h");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select any_value(cat2), cat1, max(val1) from view group by cat1")
         .returnsUnordered("EXPR$0=g; cat1=a; EXPR$2=1.0",
             "EXPR$0=g; cat1=null; EXPR$2=null",
@@ -324,7 +322,7 @@ class AggregationTest {
 
   @Test void cat1Cat2Cat3() {
     CalciteAssert.that()
-            .with(newConnectionFactory())
+            .with(AggregationTest::createConnection)
             .query("select cat1, cat2, cat3, count(*), sum(val1), sum(val2) from view "
                 + "group by cat1, cat2, cat3")
             .returnsUnordered("cat1=a; cat2=g; cat3=null; EXPR$3=1; EXPR$4=1.0; EXPR$5=0.0",
@@ -339,7 +337,7 @@ class AggregationTest {
    */
   @Test void dateCat() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat4, sum(val1) from view group by cat4")
         .returnsUnordered("cat4=1514764800000; EXPR$1=1.0",
             "cat4=1576108800000; EXPR$1=0.0",
@@ -353,7 +351,7 @@ class AggregationTest {
    */
   @Test void integerCat() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat5, sum(val1) from view group by cat5")
         .returnsUnordered("cat5=1; EXPR$1=1.0",
             "cat5=null; EXPR$1=0.0",
@@ -366,23 +364,23 @@ class AggregationTest {
   @Test void approximateCountDistinct() {
     // approx_count_distinct counts distinct *non-null* values
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select approx_count_distinct(cat1) from view")
         .returnsUnordered("EXPR$0=2");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select approx_count_distinct(cat2) from view")
         .returnsUnordered("EXPR$0=2");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, approx_count_distinct(val1) from view group by cat1")
         .returnsUnordered("cat1=a; EXPR$1=1",
                           "cat1=b; EXPR$1=1",
                           "cat1=null; EXPR$1=0");
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, approx_count_distinct(val2) from view group by cat1")
         .returnsUnordered("cat1=a; EXPR$1=0",
                           "cat1=b; EXPR$1=1",
@@ -393,7 +391,7 @@ class AggregationTest {
    * {@code select max(cast(_MAP['foo'] as integer)) from tbl}. */
   @Test void aggregationWithCast() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query(
             String.format(Locale.ROOT, "select max(cast(_MAP['val1'] as integer)) as v1, "
                 + "min(cast(_MAP['val2'] as integer)) as v2 from elastic.%s", NAME))

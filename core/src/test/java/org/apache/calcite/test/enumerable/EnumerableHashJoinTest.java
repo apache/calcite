@@ -42,7 +42,7 @@ class EnumerableHashJoinTest {
             "select e.empid, e.name, d.name as dept from emps e join depts "
                 + "d on e.deptno=d.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
-        planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE))
+            planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE))
         .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
             + "name=[$t2], dept=[$t4])\n"
             + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
@@ -174,7 +174,6 @@ class EnumerableHashJoinTest {
 
   @Test void semiJoinWithPredicate() {
     tester(false, new HrSchema())
-        .query("?")
         .withRel(
             // Retrieve employees with the top salary in their department. Equivalent SQL:
             //   SELECT e.name, e.salary FROM emps e
