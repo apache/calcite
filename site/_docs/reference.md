@@ -1203,13 +1203,13 @@ The operator precedence and associativity, highest to lowest.
 | * / % &#124;&#124;                                | left
 | + -                                               | left
 | BETWEEN, IN, LIKE, SIMILAR, OVERLAPS, CONTAINS etc. | -
-| < > = <= >= <> !=                                 | left
+| < > = <= >= <> != <=>                             | left
 | IS NULL, IS FALSE, IS NOT TRUE etc.               | -
 | NOT                                               | right
 | AND                                               | left
 | OR                                                | left
 
-Note that `::` is dialect-specific, but is shown in this table for
+Note that `::`,`<=>` is dialect-specific, but is shown in this table for
 completeness.
 
 ### Comparison operators
@@ -1223,6 +1223,7 @@ completeness.
 | value1 >= value2                                  | Greater than or equal
 | value1 < value2                                   | Less than
 | value1 <= value2                                  | Less than or equal
+| value1 <=> value2                                 | Whether two values are equal, treating null values as the same
 | value IS NULL                                     | Whether *value* is null
 | value IS NOT NULL                                 | Whether *value* is not null
 | value1 IS DISTINCT FROM value2                    | Whether two values are not equal, treating null values as the same
@@ -1251,6 +1252,7 @@ comp:
   |   >=
   |   <
   |   <=
+  |   <=>
 {% endhighlight %}
 
 ### Logical operators
@@ -2513,6 +2515,7 @@ semantics.
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
+| m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
