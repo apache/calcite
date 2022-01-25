@@ -66,7 +66,7 @@ class AggregationTest {
         .put("val1", "long")
         .put("val2", "long")
         .build();
-    
+
     NODE.createIndex(NAME, mappings);
 
     String doc1 = "{cat1:'a', cat2:'g', val1:1, cat4:'2018-01-01', cat5:1}";
@@ -101,6 +101,7 @@ class AggregationTest {
             + " _MAP['cat3'] AS \"cat3\", "
             + " _MAP['cat4'] AS \"cat4\", "
             + " _MAP['cat5'] AS \"cat5\", "
+            + " _MAP['cat6'] AS \"cat6\", "
             + " _MAP['val1'] AS \"val1\", "
             + " _MAP['val2'] AS \"val2\" "
             + " from \"elastic\".\"%s\"", NAME);
@@ -409,13 +410,13 @@ class AggregationTest {
    */
   @Test void testGroupTextField() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat6, count(1) as CNT from view group by cat6")
         .returnsUnordered("cat6=null; CNT=2",
             "cat6=text1; CNT=1");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(AggregationTest::createConnection)
         .query("select cat1, cat6 from view group by cat1, cat6")
         .returnsUnordered("cat1=a; cat6=null",
             "cat1=b; cat6=null",
