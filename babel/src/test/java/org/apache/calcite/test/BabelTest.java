@@ -129,4 +129,35 @@ class BabelTest {
     p.sql("select 1 ^:^: integer as x")
         .fails("(?s).*Encountered \":\" at .*");
   }
+
+  @Test void testNullSafeEqual() {
+    // x <=> y
+    checkSqlResult("mysql", "SELECT 1 <=> NULL", "EXPR$0=false\n");
+    checkSqlResult("mysql", "SELECT NULL <=> NULL", "EXPR$0=true\n");
+    // (a, b) <=> (x, y)
+    checkSqlResult("mysql",
+        "SELECT (CAST(NULL AS Integer), 1) <=> (1, CAST(NULL AS Integer))",
+        "EXPR$0=false\n");
+    checkSqlResult("mysql",
+        "SELECT (CAST(NULL AS Integer), CAST(NULL AS Integer))\n"
+            + "<=> (CAST(NULL AS Integer), CAST(NULL AS Integer))",
+        "EXPR$0=true\n");
+    // the higher precedence
+    checkSqlResult("mysql",
+        "SELECT x <=> 1 + 3 FROM (VALUES (1, 2)) as tbl(x,y)",
+        "EXPR$0=false\n");
+    // the lower precedence
+    checkSqlResult("mysql",
+        "SELECT NOT x <=> 1 FROM (VALUES (1, 2)) as tbl(x,y)",
+        "EXPR$0=false\n");
+  }
+
+  private void checkSqlResult(String funLibrary, String query, String result) {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.PARSER_FACTORY,
+            SqlBabelParserImpl.class.getName() + "#FACTORY")
+        .with(CalciteConnectionProperty.FUN, funLibrary)
+        .query(query)
+        .returns(result);
+  }
 }

@@ -221,6 +221,37 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Tests parsing MySQL-style "<=>" equal operator. */
+  @Test void testParseNullSafeEqual()  {
+    // x <=> y
+    final String projectSql = "SELECT x <=> 3 FROM (VALUES (1, 2)) as tbl(x,y)";
+    sql(projectSql).ok("SELECT (`X` <=> 3)\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
+    final String filterSql = "SELECT y FROM (VALUES (1, 2)) as tbl(x,y) WHERE x <=> null";
+    sql(filterSql).ok("SELECT `Y`\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)\n"
+        + "WHERE (`X` <=> NULL)");
+    final String joinConditionSql = "SELECT tbl1.y FROM (VALUES (1, 2)) as tbl1(x,y)\n"
+        + "LEFT JOIN (VALUES (null, 3)) as tbl2(x,y) ON tbl1.x <=> tbl2.x";
+    sql(joinConditionSql).ok("SELECT `TBL1`.`Y`\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL1` (`X`, `Y`)\n"
+        + "LEFT JOIN (VALUES (ROW(NULL, 3))) AS `TBL2` (`X`, `Y`) ON (`TBL1`.`X` <=> `TBL2`.`X`)");
+    // (a, b) <=> (x, y)
+    final String rowComparisonSql = "SELECT y\n"
+        + "FROM (VALUES (1, 2)) as tbl(x,y) WHERE (x,y) <=> (null,2)";
+    sql(rowComparisonSql).ok("SELECT `Y`\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)\n"
+        + "WHERE ((ROW(`X`, `Y`)) <=> (ROW(NULL, 2)))");
+    // the higher precedence
+    final String highPrecedenceSql = "SELECT x <=> 3 + 3 FROM (VALUES (1, 2)) as tbl(x,y)";
+    sql(highPrecedenceSql).ok("SELECT (`X` <=> (3 + 3))\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
+    // the lower precedence
+    final String lowPrecedenceSql = "SELECT NOT x <=> 3 FROM (VALUES (1, 2)) as tbl(x,y)";
+    sql(lowPrecedenceSql).ok("SELECT (NOT (`X` <=> 3))\n"
+        + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
+  }
+
   @Test void testCreateTableWithNoCollectionTypeSpecified() {
     final String sql = "create table foo (bar integer not null, baz varchar(30))";
     final String expected = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
