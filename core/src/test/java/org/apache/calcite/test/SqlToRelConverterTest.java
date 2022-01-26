@@ -3612,6 +3612,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4683">[CALCITE-4683]
+   * IN-list converted to JOIN throws type mismatch exception</a>. */
+  @Test void testInToSemiJoinWithNewProject() {
+    final String sql = "SELECT * FROM (\n"
+        + "SELECT '20210101' AS dt, deptno\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno\n"
+        + ") t\n"
+        + "WHERE cast(deptno as varchar) in ('1')";
+    sql(sql).withConfig(c -> c.withInSubQueryThreshold(0)).ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1944">[CALCITE-1944]
    * Window function applied to sub-query with dynamic star gets wrong
    * plan</a>. */

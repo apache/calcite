@@ -2425,6 +2425,28 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInToSemiJoinWithNewProject">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (
+SELECT '20210101' AS dt, deptno
+FROM emp
+GROUP BY deptno
+) t
+WHERE cast(deptno as varchar) in ('1')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DT=[$0], DEPTNO=[$1])
+  LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+    LogicalProject(DT=['20210101'], DEPTNO=[$0], DEPTNO0=[CAST($0):VARCHAR NOT NULL])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalValues(tuples=[[{ '1' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInUncorrelatedSubQuery">
     <Resource name="sql">
       <![CDATA[select empno from emp where deptno in (select deptno from dept)]]>
