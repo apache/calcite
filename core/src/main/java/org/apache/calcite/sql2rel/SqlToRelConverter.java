@@ -4651,7 +4651,9 @@ public class SqlToRelConverter {
               currentProjection);
         }
 
-        setRoot(newLeftInput, false);
+        // if the original root rel is a leaf rel, the new root should be a leaf.
+        // otherwise the field offset will be wrong.
+        setRoot(newLeftInput, leaves.remove(root()) != null);
 
         // right fields appear after the LHS fields.
         final int rightOffset = root().getRowType().getFieldCount()
