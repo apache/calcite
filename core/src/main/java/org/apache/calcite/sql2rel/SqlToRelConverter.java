@@ -98,7 +98,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlCorrelateTableRef;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -125,6 +124,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSnapshot;
+import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
@@ -2274,10 +2274,8 @@ public class SqlToRelConverter {
       convertCollectionTable(bb, call2);
       return;
 
-    case LATERAL:
-      if (from instanceof SqlCorrelateTableRef) {
-        convertFrom(bb, ((SqlCall) from).operand(0), fieldNames);
-      }
+    case LATERAL_TABLE_REF:
+      convertFrom(bb, ((SqlCall) from).operand(0), fieldNames);
       return;
 
     default:
@@ -3052,8 +3050,8 @@ public class SqlToRelConverter {
     }
 
     final List<RelHint> hints;
-    if (right instanceof SqlCorrelateTableRef) {
-      hints = SqlUtil.getRelHint(hintStrategies, ((SqlCorrelateTableRef) right).operand(1));
+    if (right.getKind() == SqlKind.LATERAL_TABLE_REF) {
+      hints = SqlUtil.getRelHint(hintStrategies, ((SqlTableRef) right).operand(1));
     } else {
       hints = ImmutableList.of();
     }

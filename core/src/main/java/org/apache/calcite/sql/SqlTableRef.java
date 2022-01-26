@@ -36,8 +36,9 @@ public class SqlTableRef extends SqlCall {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlIdentifier tableName;
+  private final SqlNode tableRef;
   private final SqlNodeList hints;
+  private final boolean isLateralTable;
 
   //~ Static fields/initializers ---------------------------------------------
 
@@ -47,31 +48,55 @@ public class SqlTableRef extends SqlCall {
             @Nullable SqlLiteral functionQualifier,
             SqlParserPos pos, @Nullable SqlNode... operands) {
           return new SqlTableRef(pos,
-              (SqlIdentifier) requireNonNull(operands[0], "tableName"),
+              requireNonNull(operands[0], "tableRef"),
               (SqlNodeList) requireNonNull(operands[1], "hints"));
+        }
+      };
+
+  private static final SqlOperator LATERAL_OPERATOR =
+      new SqlSpecialOperator("LATERAL_TABLE_REF", SqlKind.LATERAL_TABLE_REF) {
+        @Override public SqlCall createCall(
+            @Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlTableRef(pos,
+              requireNonNull(operands[0], "tableRef"),
+              (SqlNodeList) requireNonNull(operands[1], "hints"),
+              true);
         }
       };
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlTableRef(SqlParserPos pos, SqlIdentifier tableName, SqlNodeList hints) {
+  public SqlTableRef(SqlParserPos pos, SqlNode tableRef, SqlNodeList hints) {
+    this(pos, tableRef, hints, false);
+  }
+
+  public SqlTableRef(
+      SqlParserPos pos,
+      SqlNode tableRef,
+      SqlNodeList hints,
+      boolean isLateralTable) {
     super(pos);
-    this.tableName = tableName;
+    this.tableRef = tableRef;
     this.hints = hints;
+    this.isLateralTable = isLateralTable;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlOperator getOperator() {
+    if (isLateralTable) {
+      return LATERAL_OPERATOR;
+    }
     return OPERATOR;
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(tableName, hints);
+    return ImmutableList.of(tableRef, hints);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    tableName.unparse(writer, leftPrec, rightPrec);
+    tableRef.unparse(writer, leftPrec, rightPrec);
     if (this.hints != null && this.hints.size() > 0) {
       writer.getDialect().unparseTableScanHints(writer, this.hints, leftPrec, rightPrec);
     }
