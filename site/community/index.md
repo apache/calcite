@@ -197,3 +197,28 @@ As Hadoop Summit, Dublin, 2016
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
 * <a href="https://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)
+
+# External resources
+This is a list of external resources to learn calcite.
+Please do not hesitate to email [dev@calcite.apache.org](mailto:dev@calcite.apache.org) if you have more to share with the community.
+
+## Querify Lab Blogs
+
+* <a href="https://www.querifylabs.com/blog/cross-product-suppression-in-join-order-planning">Cross-Product Suppression in Join Order Planning</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/metadata-management-in-apache-calcite">Metadata Management in Apache Calcite</a> (Roman Kondakov, 2021)
+* <a href="https://www.querifylabs.com/blog/relational-operators-in-apache-calcite">Relational Operators in Apache Calcite</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/introduction-to-the-join-ordering-problem">Introduction to the Join Ordering Problem</a> (Alexey Goncharuk, 2021)
+* <a href="https://www.querifylabs.com/blog/what-is-cost-based-optimization">What is Cost-based Optimization?</a> (Alexey Goncharuk, 2021)
+* <a href="https://www.querifylabs.com/blog/memoization-in-cost-based-optimizers">Memoization in Cost-based Optimizers</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/rule-based-query-optimization">Rule-based Query Optimization</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/custom-traits-in-apache-calcite">Custom traits in Apache Calcite</a> (Vladimir Ozerov, 2020)
+* <a href="https://www.querifylabs.com/blog/assembling-a-query-optimizer-with-apache-calcite">Assembling a query optimizer with Apache Calcite</a> (Vladimir Ozerov, 2020)
+
+## Calcite Tutorial - Building a new Frontend (GraphQL)
+
+The article introduces how to build a new query language frontend for Calcite. It uses GraphQL queries as an example.
+[[blog](https://datalore.jetbrains.com/view/notebook/JYTVfn90xYSmv6U5f2NIQR)]
+
+## Awesome database learning
+
+* <a href="https://github.com/pingcap/awesome-database-learning">Learning materials to understand databases</a>
