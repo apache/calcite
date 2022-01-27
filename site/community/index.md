@@ -204,3 +204,25 @@ As Hadoop Summit, Dublin, 2016
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
 * <a href="https://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)
+
+# External resources
+
+A collection of articles, blogs, presentations, and interesting projects related to Apache Calcite.
+
+If you have something interesting to share with the community drop us an email on the dev list or
+consider creating a pull request on GitHub. If you just finished a cool project using Calcite
+consider writing a short article about it for our [news section]({{ site.baseurl }}/news/index.html).
+
+* <a href="https://datalore.jetbrains.com/view/notebook/JYTVfn90xYSmv6U5f2NIQR">Building a new Calcite frontend (GraphQL)</a> (Gavin Ray, 2022)
+* <a href="https://github.com/ieugen/calcite-clj">Write Calcite adapters in Clojure</a> (Ioan Eugen Stan, 2022)
+* <a href="https://www.querifylabs.com/blog/cross-product-suppression-in-join-order-planning">Cross-Product Suppression in Join Order Planning</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/metadata-management-in-apache-calcite">Metadata Management in Apache Calcite</a> (Roman Kondakov, 2021)
+* <a href="https://www.querifylabs.com/blog/relational-operators-in-apache-calcite">Relational Operators in Apache Calcite</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/introduction-to-the-join-ordering-problem">Introduction to the Join Ordering Problem</a> (Alexey Goncharuk, 2021)
+* <a href="https://www.querifylabs.com/blog/what-is-cost-based-optimization">What is Cost-based Optimization?</a> (Alexey Goncharuk, 2021)
+* <a href="https://www.querifylabs.com/blog/memoization-in-cost-based-optimizers">Memoization in Cost-based Optimizers</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/rule-based-query-optimization">Rule-based Query Optimization</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/custom-traits-in-apache-calcite">Custom traits in Apache Calcite</a> (Vladimir Ozerov, 2020)
+* <a href="https://www.querifylabs.com/blog/assembling-a-query-optimizer-with-apache-calcite">Assembling a query optimizer with Apache Calcite</a> (Vladimir Ozerov, 2020)
+* <a href="https://github.com/michaelmior/calcite-notebooks">A series of Jupyter notebooks to demonstrate the functionality of Apache Calcite</a> (Michael Mior)
+* <a href="https://github.com/pingcap/awesome-database-learning">A curated collection of resources about databases</a>
