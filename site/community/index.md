@@ -87,6 +87,13 @@ Want to learn more about Calcite?
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
 
+## calcite-clj - Use Calcite with Clojure
+
+At [Apache Calcite Online Meetup January 2022](https://www.meetup.com/Apache-Calcite/events/282836907/)
+[[slides]](https://ieugen.github.io/calcite-clj/)
+[[video]](https://www.youtube.com/watch?v=9CUWX8JHA90)
+[[code]](https://github.com/ieugen/calcite-clj)
+
 ## Morel, a functional query language (Julian Hyde)
 
 At [Strange Loop 2021](https://thestrangeloop.com/2021/morel-a-functional-query-language.html),
