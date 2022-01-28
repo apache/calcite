@@ -1290,9 +1290,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testCorrelatedScalarSubQueryInSelectList() {
     Consumer<String> fn = sql -> {
-      sql(sql).expand(true).decorrelate(false)
+      sql(sql).withExpand(true).withDecorrelate(false)
           .convertsTo("${planExpanded}");
-      sql(sql).expand(false).decorrelate(false)
+      sql(sql).withExpand(false).withDecorrelate(false)
           .convertsTo("${planNotExpanded}");
     };
     fn.accept("select e.deptno,\n"
