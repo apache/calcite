@@ -28,6 +28,7 @@ A schema adapter allows Calcite to read particular kind of data,
 presenting the data as tables within a schema.
 
 * [Cassandra adapter](cassandra_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/package-summary.html">calcite-cassandra</a>)
+* Clojure integration library (<a href="https://github.com/ieugen/calcite-clj">calcite-clj</a>). Write adapters in Clojure / expose Clojure data structures
 * CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * [Druid adapter](druid_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/druid/package-summary.html">calcite-druid</a>)
 * [Elasticsearch adapter](elasticsearch_adapter.html)
