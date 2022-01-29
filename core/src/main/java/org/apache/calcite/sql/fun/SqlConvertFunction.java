@@ -40,8 +40,13 @@ import java.util.List;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Common base for the <code>CONVERT</code> and <code>TRANSLATE</code>
- * functions.
+ * Common base for the <code>CONVERT</code> function.
+ * <p>The SQL syntax is
+ *
+ * <blockquote>
+ * <code>CONVERT(<i>character String</i>, <i>sourceCharset</i>,
+ * <i>destCharset</i>)</code>
+ * </blockquote>
  */
 public class SqlConvertFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
@@ -128,11 +133,10 @@ public class SqlConvertFunction extends SqlFunction {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep(",");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.sep(",");
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    for (SqlNode node : call.getOperandList()) {
+      writer.sep(",");
+      node.unparse(writer, leftPrec, rightPrec);
+    }
     writer.endFunCall(frame);
   }
 
