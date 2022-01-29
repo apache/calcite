@@ -6694,13 +6694,6 @@ public class JdbcTest {
         "select * from \"employee\" where \"full_name\" = _UTF16'\u82f1\u56fd'")
         .throws_(
             "Cannot apply = to the two different charsets ISO-8859-1 and UTF-16LE");
-
-    // The CONVERT function (what SQL:2011 calls "character transliteration") is
-    // not implemented yet. See
-    // https://issues.apache.org/jira/browse/CALCITE-111.
-    with.query("select * from \"employee\"\n"
-        + "where convert(\"full_name\" using UTF16) = _UTF16'\u82f1\u56fd'")
-        .throws_("Column 'UTF16' not found in any table");
   }
 
   /** Tests metadata for the MySQL lexical scheme. */

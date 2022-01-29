@@ -6044,36 +6044,42 @@ SqlNode BuiltinFunctionCall() :
         <CONVERT> { s = span(); }
         <LPAREN>
         (
-          // CONVERT in the form of CONVERT(x USING y)
+            // CONVERT in the form of CONVERT(x USING y)
 
-          // "AddExpression" matches INTERVAL,
-          // which can also be 1st token in args of MSSQL CONVERT
-          // So lookahead another token (to match <USING> vs. <COMMA>)
-          LOOKAHEAD(2)
-          AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
-          <USING> name = SimpleIdentifier() { args.add(name); }
-          <RPAREN> {
-              return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
-          }
-        | // mssql CONVERT(type, val [,style])
-          (
-            dt = DataType() { args.add(dt); }
-            |
-            <INTERVAL> e = IntervalQualifier() { args.add(e); }
-          )
-          <COMMA>
-          AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
-          [
-            <COMMA>
+            // "AddExpression" matches INTERVAL,
+            // which can also be 1st token in args of MSSQL CONVERT
+            // So lookahead another token (to match <USING> vs. <COMMA>)
+            LOOKAHEAD(2)
+            AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
             (
-              style = UnsignedNumericLiteral() { args.add(style); }
-              |
-              <NULL> { args.add(SqlLiteral.createNull(getPos())); }
+                <USING> name = SimpleIdentifier() { args.add(name); }
+            |
+                <COMMA> e = SimpleIdentifier() { args.add(e); }
+                <COMMA> e = SimpleIdentifier() { args.add(e); }
             )
-          ]
-          <RPAREN> {
-            return SqlLibraryOperators.MSSQL_CONVERT.createCall(s.end(this), args);
-          }
+            <RPAREN> {
+                return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
+            }
+        |
+            // MSSql CONVERT(type, val [,style])
+            (
+                dt = DataType() { args.add(dt); }
+            |
+                <INTERVAL> e = IntervalQualifier() { args.add(e); }
+            )
+            <COMMA>
+            AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+            [
+                <COMMA>
+                (
+                    style = UnsignedNumericLiteral() { args.add(style); }
+                |
+                    <NULL> { args.add(SqlLiteral.createNull(getPos())); }
+                )
+            ]
+            <RPAREN> {
+                return SqlLibraryOperators.MSSQL_CONVERT.createCall(s.end(this), args);
+            }
         )
     |
         <TRANSLATE> { s = span(); }

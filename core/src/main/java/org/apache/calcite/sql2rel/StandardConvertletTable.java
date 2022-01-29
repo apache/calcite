@@ -264,6 +264,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // "AS" has no effect, so expand "x AS id" into "x".
     registerOp(SqlStdOperatorTable.AS,
         (cx, call) -> cx.convertExpression(call.operand(0)));
+    registerOp(SqlStdOperatorTable.CONVERT, this::convertCharset);
     // "SQRT(x)" is equivalent to "POWER(x, .5)"
     registerOp(SqlStdOperatorTable.SQRT,
         (cx, call) -> cx.convertExpression(
@@ -739,6 +740,19 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // normal floor, ceil function
     return convertFunction(cx, (SqlFunction) call.getOperator(), call);
+  }
+
+  protected RexNode convertCharset(
+      @UnknownInitialization StandardConvertletTable this,
+      SqlRexContext cx, SqlCall call) {
+    final SqlNode expr = call.operand(0);
+    final String srcCharset = call.operand(1).toString();
+    final String destCharset = call.operand(2).toString();
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    return rexBuilder.makeCall(SqlStdOperatorTable.CONVERT,
+        cx.convertExpression(expr),
+        rexBuilder.makeLiteral(srcCharset),
+        rexBuilder.makeLiteral(destCharset));
   }
 
   /**

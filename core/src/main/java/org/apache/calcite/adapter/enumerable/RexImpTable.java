@@ -224,6 +224,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CLASSIFIER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONVERT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COUNT;
@@ -674,6 +675,7 @@ public class RexImpTable {
       map.put(TRY_CAST, new CastImplementor());
 
       map.put(REINTERPRET, new ReinterpretImplementor());
+      map.put(CONVERT, new ConvertImplementor());
 
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
@@ -3723,6 +3725,26 @@ public class RexImpTable {
       default:
         throw new AssertionError("Operator not found: " + call.getOperator());
       }
+    }
+  }
+
+  /**
+   * Implementor for the {@code CONVERT} function.
+   *
+   * <p>If argument[0] is null, result is null.
+   */
+  private static class ConvertImplementor extends AbstractRexCallImplementor {
+    ConvertImplementor() {
+      super("convert", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+      final RexNode arg0 = call.getOperands().get(0);
+      if (SqlTypeUtil.isNull(arg0.getType())) {
+        return argValueList.get(0);
+      }
+      return Expressions.call(BuiltInMethod.CONVERT.method, argValueList);
     }
   }
 

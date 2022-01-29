@@ -695,6 +695,18 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testConvertFunc">
+    <Resource name="sql">
+      <![CDATA[select convert(ename, latin1, utf8) as new_ename
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NEW_ENAME=[CONVERT($1, 'LATIN1', 'UTF8')])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelateSortWithLimit">
     <Resource name="sql">
       <![CDATA[SELECT deptno, ename

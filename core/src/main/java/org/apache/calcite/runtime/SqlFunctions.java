@@ -35,6 +35,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.TimeFrame;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
@@ -59,6 +60,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
@@ -746,6 +751,21 @@ public class SqlFunctions {
   /** SQL {@code CONCAT(arg0, arg1, arg2, ...)} function. */
   public static String concatMulti(String... args) {
     return String.join("", args);
+  }
+
+  /** SQL {@code CONVERT(s, src_charset, dest_charset)} function. */
+  public static String convertWithCharset(String s, String srcCharset,
+      String destCharset) {
+    final Charset src = SqlUtil.getCharset(srcCharset);
+    final Charset dest = SqlUtil.getCharset(destCharset);
+    byte[] bytes = s.getBytes(src);
+    final CharsetDecoder decoder = dest.newDecoder();
+    final ByteBuffer buffer = ByteBuffer.wrap(bytes);
+    try {
+      return decoder.decode(buffer).toString();
+    } catch (CharacterCodingException ex) {
+      throw RESOURCE.charsetEncoding(s, dest.name()).ex();
+    }
   }
 
   /** SQL {@code RTRIM} function applied to string. */

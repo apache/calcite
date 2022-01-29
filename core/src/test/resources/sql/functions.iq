@@ -90,6 +90,61 @@ SELECT COMPRESS('sample');
 
 !ok
 
+# -----------------------------------------------------------------------------
+# The standard CONVERT function, for changing character sets.
+# (The MSSQL CONVERT function, equivalent to CAST, appears later in this file.)
+
+select convert('abcd', latin1, utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select convert(null, latin1, utf8);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+!use foodmart
+select convert(cast("employee_id" as varchar), utf8, latin1) as alia
+from "employee"
+limit 3;
++------+
+| ALIA |
++------+
+| 1    |
+| 2    |
+| 4    |
++------+
+(3 rows)
+
+!ok
+
+select "employee_id"
+from "employee"
+where convert(cast("employee_id" as varchar), utf8, latin1) <> 1
+limit 3;
++-------------+
+| employee_id |
++-------------+
+|           2 |
+|           4 |
+|           5 |
++-------------+
+(3 rows)
+
+!ok
+
+# -----------------------------------------------------------------------------
 
 !use oraclefunc
 
@@ -219,6 +274,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t2)], expr#6=[CAST($t2
 
 !ok
 
+# -----------------------------------------------------------------------------
 # [CALCITE-5548] - Add support for MSSQL CONVERT function
 !use mssqlfunc
 select CONVERT(INTEGER, 45.4);
@@ -300,7 +356,9 @@ select CONVERT(INTEGER, NULL, NULL);
 # below not executed due to huge stack trace quidem insists on generating
 # unsupported format test for documentation (dd/mm/yyyy) (need MSSQL "style" operand support in enumerable)
 # however CONVERT right now is simply a wrapper around CAST
-# select CONVERT(DATE, '05/01/2000', 103);
-
+!if (false) {
+select CONVERT(DATE, '05/01/2000', 103);
+!ok
+!}
 
 # End functions.iq

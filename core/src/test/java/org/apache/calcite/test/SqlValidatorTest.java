@@ -7292,6 +7292,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "'BOOL_OR\\(<VARCHAR\\(20\\)>\\)'.*");
   }
 
+  @Test void testConvertFunction() {
+    sql("select convert(ename, utf16, utf8) from emp").ok();
+    sql("select convert(cast(deptno as varchar), utf16, utf8) from emp");
+    sql("select convert(null, gbk, utf8) from emp");
+    sql("select ^convert(deptno, utf8, latin1)^ from emp")
+        .fails("Invalid type 'INTEGER NOT NULL' in 'CONVERT' function\\. "
+            + "Only 'CHARACTER' type is supported");
+    sql("select convert(ename, utf8, utf9) from emp").fails("UTF9");
+  }
+
   @Test void testFunctionalDistinct() {
     sql("select count(distinct sal) from emp").ok();
     sql("select COALESCE(^distinct^ sal) from emp")

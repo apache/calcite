@@ -502,6 +502,9 @@ public interface CalciteResource {
   @BaseMessage("Invalid type ''{0}'' in ORDER BY clause of ''{1}'' function. Only NUMERIC types are supported")
   ExInst<SqlValidatorException> unsupportedTypeInOrderBy(String a0, String a1);
 
+  @BaseMessage("Invalid type ''{0}'' in ''{1}'' function. Only ''{2}'' type is supported")
+  ExInst<SqlValidatorException> unsupportedTypeInConvertFunc(String a0, String a1, String a2);
+
   @BaseMessage("''{0}'' requires precisely one ORDER BY key")
   ExInst<SqlValidatorException> orderByRequiresOneKey(String a0);
 

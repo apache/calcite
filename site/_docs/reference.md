@@ -27,7 +27,6 @@ here to appease testAllFunctionsAreDocumented:
 |:-------------- |:---------------------
 | CALL           | TODO: document
 | CLASSIFIER()   | Documented with MATCH_RECOGNIZE
-| CONVERT()      | In SqlStdOperatorTable, but not fully implemented
 | CUME_DIST()    | In SqlStdOperatorTable, but not fully implemented
 | DESC           | Described as part of ORDER BY syntax
 | EQUALS         | Documented as an period operator
@@ -1463,9 +1462,10 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 
 #### Explicit Type Conversion
 
-| Operator syntax | Description
-|:--------------- | :----------
-| CAST(value AS type) | Converts a value to a given type.
+| Operator syntax                     | Description
+|:------------------------------------| :----------
+| CAST(value AS type)                 | Converts a value to a given type
+| CONVERT(string, charSet1, charSet2) | Converts *string* from *charSet1* to *charSet2*
 
 Supported data types syntax:
 
