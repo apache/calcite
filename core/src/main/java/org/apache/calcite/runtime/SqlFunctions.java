@@ -507,7 +507,7 @@ public class SqlFunctions {
     try {
       return decoder.decode(buffer).toString();
     } catch (CharacterCodingException ex) {
-      throw RESOURCE.charsetEncoding(bytes.toString(), dest.name()).ex();
+      throw RESOURCE.charsetEncoding(s, dest.name()).ex();
     }
   }
 

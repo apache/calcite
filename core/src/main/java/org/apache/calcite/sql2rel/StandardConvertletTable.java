@@ -671,7 +671,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return convertFunction(cx, (SqlFunction) call.getOperator(), call);
   }
 
-  protected RexNode convertCharset(SqlRexContext cx, SqlCall call) {
+  protected RexNode convertCharset(
+          @UnknownInitialization StandardConvertletTable this,
+          SqlRexContext cx,
+          SqlCall call) {
     final SqlNode expr = call.operand(0);
     final String src_charset = call.operand(1).toString();
     final String dest_charset = call.operand(2).toString();
