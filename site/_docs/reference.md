@@ -27,7 +27,7 @@ here to appease testAllFunctionsAreDocumented:
 |:-------------- |:---------------------
 | CALL           | TODO: document
 | CLASSIFIER()   | Documented with MATCH_RECOGNIZE
-| CONVERT()      | In SqlStdOperatorTable, but not fully implemented
+| CONVERT()      | In SqlStdOperatorTable
 | CUME_DIST()    | In SqlStdOperatorTable, but not fully implemented
 | DESC           | Described as part of ORDER BY syntax
 | EQUALS         | Documented as an period operator

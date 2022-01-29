@@ -3430,6 +3430,20 @@ public class SqlOperatorTest {
   @Test void testConvertFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CONVERT, VM_FENNEL, VM_JAVA);
+    f.checkFails("convert('a', utf8, utf10)", "UTF10", false);
+    f.checkFails("select ^convert(col, latin1, utf8)^\n"
+                    + "from (select 1 as col\n"
+                    + " from (values(true)))",
+            "Invalid type 'INTEGER NOT NULL' in 'CONVERT' function\\. Only 'CHARACTER' type is supported",
+            false);
+    f.check("select convert(col, latin1, utf8)\n"
+                    + "from (select 'a' as col\n"
+                    + " from (values(true)))",
+            SqlTests.ANY_TYPE_CHECKER, 'a');
+
+    f.checkType("convert('a', utf16, gbk)", "CHAR(1) NOT NULL");
+    f.checkType("convert(null, utf16, gbk)", "NULL");
+    f.checkType("convert(cast(1 as varchar(2)), utf8, latin1)", "VARCHAR(2) NOT NULL");
   }
 
   @Test void testTranslateFunc() {

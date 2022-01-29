@@ -3728,8 +3728,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode stripDot = requireNonNull(stripDot(current), "stripDot(current)");
       List<? extends @Nullable SqlNode> children =
           ((SqlCall) stripAs(stripDot)).getOperandList();
-      for (SqlNode child : children) {
-        checkRollUp(parent, current, child, scope, optionalClause);
+      if (stripDot.getKind() == SqlKind.CONVERT) {
+        // operand[1] doesn't need to be checked for CONVERT
+        checkRollUp(parent, current, children.get(0), scope, optionalClause);
+      } else {
+        for (SqlNode child : children) {
+          checkRollUp(parent, current, child, scope, optionalClause);
+        }
       }
     } else if (current instanceof SqlIdentifier) {
       SqlIdentifier id = (SqlIdentifier) current;

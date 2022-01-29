@@ -79,6 +79,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
@@ -1147,6 +1148,29 @@ public class JdbcTest {
         .query(sql)
         .explainMatches("including all attributes ",
             CalciteAssert.checkResultContains("EnumerableCorrelate"));
+  }
+
+  @Test void testConvertFunc() {
+//    CalciteAssert.that()
+//        .with(CalciteAssert.Config.FOODMART_CLONE)
+//        .query("select convert(cast(\"employee_id\" as varchar), utf8, latin1) as alia\n"
+//            + "from \"employee\"\n"
+//            + "limit 3")
+//        .returns("ALIA=1\n"
+//            + "ALIA=2\n"
+//            + "ALIA=4\n");
+//
+//    CalciteAssert.that()
+//            .with(CalciteAssert.Config.FOODMART_CLONE)
+//            .query("select \"employee_id\"\n"
+//                    + "from \"employee\"\n"
+//                    + "where convert(cast(\"employee_id\" as varchar), utf8, latin1) <> 1"
+//                    + "limit 3")
+//            .returns("employee_id=2\n"
+//                    + "employee_id=4\n"
+//                    + "employee_id=5\n");
+    new SqlParserTest().testConvertAndTranslate();
+//    new SqlParserTest().testTimestampAdd();
   }
 
   /** Just short of bushy. */
@@ -6438,13 +6462,6 @@ public class JdbcTest {
         "select * from \"employee\" where \"full_name\" = _UTF16'\u82f1\u56fd'")
         .throws_(
             "Cannot apply = to the two different charsets ISO-8859-1 and UTF-16LE");
-
-    // The CONVERT function (what SQL:2011 calls "character transliteration") is
-    // not implemented yet. See
-    // https://issues.apache.org/jira/browse/CALCITE-111.
-    with.query("select * from \"employee\"\n"
-        + "where convert(\"full_name\" using UTF16) = _UTF16'\u82f1\u56fd'")
-        .throws_("Column 'UTF16' not found in any table");
   }
 
   /** Tests metadata for the MySQL lexical scheme. */

@@ -184,6 +184,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CLASSIFIER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONVERT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COUNT;
@@ -386,6 +387,7 @@ public class RexImpTable {
     defineMethod(SOUNDEX, BuiltInMethod.SOUNDEX.method, NullPolicy.STRICT);
     defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
     defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
+    defineMethod(CONVERT, BuiltInMethod.CONVERT.method, NullPolicy.STRICT);
 
     map.put(TRIM, new TrimImplementor());
 
@@ -393,6 +395,8 @@ public class RexImpTable {
     map.put(AND, new LogicalAndImplementor());
     map.put(OR, new LogicalOrImplementor());
     map.put(NOT, new LogicalNotImplementor());
+
+    map.put(CONVERT, new ConvertImplementor());
 
     // comparisons
     defineBinary(LESS_THAN, LessThan, NullPolicy.STRICT, "lt");
@@ -3389,6 +3393,30 @@ public class RexImpTable {
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
       return Expressions.call(BuiltInMethod.NOT.method, argValueList);
+    }
+  }
+
+  /**
+   * Implementor for the {@code CONVERT} function.
+   *
+   * <p>If argument[0] is null, result is null.
+   */
+  private static class ConvertImplementor extends AbstractRexCallImplementor {
+    ConvertImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "convert";
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+                                       List<Expression> argValueList) {
+      final RexNode arg0 = call.getOperands().get(0);
+      if (SqlTypeUtil.isNull(arg0.getType())) {
+        return argValueList.get(0);
+      }
+      return Expressions.call(BuiltInMethod.CONVERT.method, argValueList);
     }
   }
 

@@ -5798,8 +5798,11 @@ SqlNode BuiltinFunctionCall() :
         e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
             args = startList(e);
         }
-        <USING> name = SimpleIdentifier() {
-            args.add(name);
+        <COMMA> e = SimpleIdentifier() {
+            args.add(e);
+        }
+        <COMMA> e = SimpleIdentifier() {
+            args.add(e);
         }
         <RPAREN> {
             return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);

@@ -4830,9 +4830,15 @@ public class SqlParserTest {
         .fails("(?s).*'FROM' without operands preceding it is illegal.*");
   }
 
-  @Test void testConvertAndTranslate() {
+  @Test public void testConvertAndTranslate() {
+    expr("convert('abc', utf8, utf16)")
+        .ok("CONVERT('abc', `UTF8`, `UTF16`)");
+
+    // CONVERT function in Mysql
     expr("convert('abc' using conversion)")
-        .ok("CONVERT('abc' USING `CONVERSION`)");
+            .ok("CONVERT('abc' USING `CONVERSION`)");
+
+    // TRANSLATE need to be implemented
     expr("translate('abc' using lazy_translation)")
         .ok("TRANSLATE('abc' USING `LAZY_TRANSLATION`)");
   }
@@ -7693,7 +7699,9 @@ public class SqlParserTest {
         .fails("(?s).*Was expecting one of.*");
   }
 
-  @Test void testTimestampAdd() {
+  @Test public void testTimestampAdd() {
+    expr("timestampadd(sql_tsi_month, 5, hiredate)")
+            .ok("a");
     final String sql = "select * from t\n"
         + "where timestampadd(sql_tsi_month, 5, hiredate) < curdate";
     final String expected = "SELECT *\n"
