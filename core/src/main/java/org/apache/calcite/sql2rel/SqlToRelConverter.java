@@ -4106,8 +4106,9 @@ public class SqlToRelConverter {
     } else {
       qualified = SqlQualified.create(null, 1, null, identifier);
     }
-    final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 =
-        bb.lookupExp(qualified);
+    final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 = requireNonNull(
+        bb.lookupExp(qualified),
+        () -> "no expression found for " + qualified);
     RexNode e = e0.left;
     for (String name : qualified.suffix()) {
       if (e == e0.left && e0.right != null) {
@@ -4781,7 +4782,7 @@ public class SqlToRelConverter {
      * @return a {@link RexFieldAccess} or {@link RexRangeRef}, or null if
      * not found
      */
-    Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> lookupExp(
+    @Nullable Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> lookupExp(
         SqlQualified qualified) {
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
         RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
