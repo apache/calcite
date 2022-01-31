@@ -70,5 +70,5 @@ case and link them here:
   [3836](https://issues.apache.org/jira/browse/CALCITE-3836)
 * ReflectVisitorDispatcherTest:
   [3873](https://issues.apache.org/jira/browse/CALCITE-3873)
-* RelConversionBenchmark:
+* RelNodeConversionBenchmark:
   [4994](https://issues.apache.org/jira/browse/CALCITE-4994)

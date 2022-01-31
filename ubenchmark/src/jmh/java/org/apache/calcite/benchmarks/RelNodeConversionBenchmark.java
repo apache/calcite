@@ -62,7 +62,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Benchmarks Conversion of Sql To Rel.
+ * Benchmarks Conversion of Sql To RelNode and conversion of SqlNode to RelNode
  */
 @Fork(value = 1, jvmArgsPrepend = "-Xmx2048m")
 @Measurement(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
@@ -71,13 +71,13 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Threads(1)
-public class RelConversionBenchmark {
+public class RelNodeConversionBenchmark {
 
   /**
    * A state holding information needed to parse.
    */
   @State(Scope.Thread)
-  public static class SqlToRelBenchmarkState {
+  public static class SqlToRelNodeBenchmarkState {
     @Param({"10000"})
     int length;
 
@@ -148,7 +148,7 @@ public class RelConversionBenchmark {
   }
 
   @Benchmark
-  public RelNode parse(SqlToRelBenchmarkState state) throws Exception {
+  public RelNode parse(SqlToRelNodeBenchmarkState state) throws Exception {
     return state.parse();
   }
 
@@ -156,7 +156,7 @@ public class RelConversionBenchmark {
    * A state holding information needed to convert To Rel.
    */
   @State(Scope.Thread)
-  public static class SqlNodeToRelBenchmarkState {
+  public static class SqlNodeToRelNodeBenchmarkState {
     @Param({"10000"})
     int length;
 
@@ -230,13 +230,13 @@ public class RelConversionBenchmark {
   }
 
   @Benchmark
-  public RelNode convertToRel(SqlNodeToRelBenchmarkState state) throws Exception {
+  public RelNode convertToRel(SqlNodeToRelNodeBenchmarkState state) throws Exception {
     return state.convertToRel();
   }
 
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-        .include(RelConversionBenchmark.class.getSimpleName())
+        .include(RelNodeConversionBenchmark.class.getSimpleName())
         .addProfiler(GCProfiler.class)
         .addProfiler(FlightRecorderProfiler.class)
         .detectJvmArgs()
