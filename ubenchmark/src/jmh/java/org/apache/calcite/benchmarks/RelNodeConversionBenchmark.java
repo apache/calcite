@@ -62,7 +62,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Benchmarks Conversion of Sql To RelNode and conversion of SqlNode to RelNode
+ * Benchmarks Conversion of Sql To RelNode and conversion of SqlNode to RelNode.
  */
 @Fork(value = 1, jvmArgsPrepend = "-Xmx2048m")
 @Measurement(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
@@ -74,20 +74,13 @@ import java.util.concurrent.TimeUnit;
 public class RelNodeConversionBenchmark {
 
   /**
-   * A state holding information needed to parse.
+   * A common state needed for this benchmark.
    */
-  @State(Scope.Thread)
-  public static class SqlToRelNodeBenchmarkState {
-    @Param({"10000"})
-    int length;
-
-    @Param({"10", "100", "1000"})
-    int columnLength;
+  public abstract static class RelNodeConversionBenchmarkState {
     String sql;
     Planner p;
 
-    @Setup(Level.Iteration)
-    public void setUp() {
+    public void setup(int length, int columnLength) {
       // Create Sql
       StringBuilder sb = new StringBuilder();
       sb.append("select 1 ");
@@ -135,6 +128,23 @@ public class RelNodeConversionBenchmark {
           .programs(Programs.ofRules(Programs.RULE_SET))
           .build();
       p = Frameworks.getPlanner(config);
+    }
+  }
+
+  /**
+   * A state holding information needed to parse.
+   */
+  @State(Scope.Thread)
+  public static class SqlToRelNodeBenchmarkState extends RelNodeConversionBenchmarkState {
+    @Param({"10000"})
+    int length;
+
+    @Param({"10", "100", "1000"})
+    int columnLength;
+
+    @Setup(Level.Iteration)
+    public void setUp() {
+      super.setup(length, columnLength);
     }
 
     public RelNode parse() throws Exception {
@@ -156,72 +166,22 @@ public class RelNodeConversionBenchmark {
    * A state holding information needed to convert To Rel.
    */
   @State(Scope.Thread)
-  public static class SqlNodeToRelNodeBenchmarkState {
+  public static class SqlNodeToRelNodeBenchmarkState extends RelNodeConversionBenchmarkState {
     @Param({"10000"})
     int length;
 
     @Param({"10", "100", "1000"})
     int columnLength;
     SqlNode sqlNode;
-    Planner p;
 
     @Setup(Level.Iteration)
     public void setUp() {
-      String sql;
-      // Create Sql
-      StringBuilder sb = new StringBuilder();
-      sb.append("select 1 ");
-      Random rnd = new Random();
-      rnd.setSeed(424242);
-      for (int i = 0; i < length; i++) {
-        sb.append(", ");
-        sb.append(
-            String.format(Locale.ROOT, "c%s / CASE WHEN c%s > %d THEN c%s ELSE c%s END ",
-                String.valueOf(rnd.nextInt(columnLength)), String.valueOf(i % columnLength),
-                rnd.nextInt(columnLength), String.valueOf(rnd.nextInt(columnLength)),
-                String.valueOf(rnd.nextInt(columnLength)))
-        );
-      }
-      sb.append(" FROM test1");
-      sql = sb.toString();
-
-      // Create Schema and Table
-
-      AbstractTable t = new AbstractQueryableTable(Integer.class) {
-        List<Integer> items = ImmutableList.of();
-        final Enumerable<Integer> enumerable = Linq4j.asEnumerable(items);
-
-        @Override public <E> Queryable<E> asQueryable(
-            QueryProvider queryProvider, SchemaPlus schema, String tableName) {
-          return (Queryable<E>) enumerable.asQueryable();
-        }
-
-        @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-          RelDataTypeFactory.Builder builder = typeFactory.builder();
-          for (int i = 0; i < columnLength; i++) {
-            builder.add(String.format(Locale.ROOT, "c%d", i), SqlTypeName.INTEGER);
-          }
-          return builder.build();
-        }
-      };
-
-      // Create Planner
-      final SchemaPlus schema = Frameworks.createRootSchema(true);
-      schema.add("test1", t);
-
-      final FrameworkConfig config = Frameworks.newConfigBuilder()
-          .parserConfig(SqlParser.config().withLex(Lex.MYSQL))
-          .defaultSchema(schema)
-          .programs(Programs.ofRules(Programs.RULE_SET))
-          .build();
-      p = Frameworks.getPlanner(config);
-
+      super.setup(length, columnLength);
       try {
         sqlNode = p.validate(p.parse(sql));
       } catch (Exception e) {
         e.printStackTrace();
       }
-
     }
 
     public RelNode convertToRel() throws Exception {
