@@ -484,4 +484,36 @@ class RelFieldTrimmerTest {
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4995">[CALCITE-4995]
+   * AssertionError caused by RelFieldTrimmer on SEMI/ANTI join</a>. */
+  @Test void testSemiJoinAntiJoinFieldTrimmer() {
+    for (final JoinRelType joinType : new JoinRelType[]{JoinRelType.ANTI, JoinRelType.SEMI}) {
+      final RelBuilder builder = RelBuilder.create(config().build());
+      final RelNode root = builder
+          .values(new String[]{"id"}, 1, 2).as("a")
+          .values(new String[]{"id"}, 2, 3).as("b")
+          .join(joinType,
+              builder.equals(
+                  builder.field(2, "a", "id"),
+                  builder.field(2, "b", "id")))
+          .values(new String[]{"id"}, 0, 2).as("c")
+          .join(joinType,
+              builder.equals(
+                  builder.field(2, "a", "id"),
+                  builder.field(2, "c", "id")))
+          .build();
+
+      final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+      final RelNode trimmed = fieldTrimmer.trim(root);
+      final String expected = ""
+          + "LogicalJoin(condition=[=($0, $1)], joinType=[" + joinType.lowerName + "])\n"
+          + "  LogicalJoin(condition=[=($0, $1)], joinType=[" + joinType.lowerName + "])\n"
+          + "    LogicalValues(tuples=[[{ 1 }, { 2 }]])\n"
+          + "    LogicalValues(tuples=[[{ 2 }, { 3 }]])\n"
+          + "  LogicalValues(tuples=[[{ 0 }, { 2 }]])\n";
+      assertThat(trimmed, hasTree(expected));
+    }
+  }
 }

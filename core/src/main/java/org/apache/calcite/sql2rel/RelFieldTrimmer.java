@@ -854,7 +854,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     if (changeCount == 0
         && mapping.isIdentity()) {
-      return result(join, Mappings.createIdentity(fieldCount));
+      return result(join, Mappings.createIdentity(join.getRowType().getFieldCount()));
     }
 
     // Build new join.
