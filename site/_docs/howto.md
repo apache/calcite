@@ -694,8 +694,7 @@ Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
 * Make sure `master` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
-  been applied also to `master`.
-  This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
+  been applied also to `master`. If you spot missing commits then port them to `master`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -949,7 +948,9 @@ Add a release announcement by copying
 Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Ensure the announcement,
 javadoc, and release note appear correctly and then publish the site following the instructions
-in the same file.
+in the same file. Rebase the `site` branch with `master` (e.g., `git checkout site && git rebase master`);
+at this point there shouldn't be any commits in `site` that are not in `master`, so the rebase is
+essentially a noop.
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
