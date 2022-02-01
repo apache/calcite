@@ -223,9 +223,9 @@ class RelToSqlConverterTest {
     String query = "select avg(\"salary\") from \"employee\" group by true";
     String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
         + "FROM \"foodmart\".\"employee\",\n"
-        + "(SELECT TRUE AS \"LTRL0\") AS \"t\"\nGROUP BY \"t\".\"LTRL0\"";
+        + "(SELECT TRUE AS \"$f0\") AS \"t\"\nGROUP BY \"t\".\"$f0\"";
     String expectedInformix = "SELECT AVG(employee.salary)\nFROM foodmart.employee,"
-        + "\n(SELECT TRUE AS LTRL0) AS t\nGROUP BY t.LTRL0";
+        + "\n(SELECT TRUE AS $f0) AS t\nGROUP BY t.$f0";
     sql(query)
         .withRedshift().ok(expectedRedshift)
         .withInformix().ok(expectedInformix);

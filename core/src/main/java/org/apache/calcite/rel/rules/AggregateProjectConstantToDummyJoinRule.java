@@ -21,11 +21,14 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
 
@@ -84,28 +87,31 @@ public final class AggregateProjectConstantToDummyJoinRule
     RexBuilder rexBuilder = builder.getRexBuilder();
 
     builder.push(project.getInput());
+    int offset = project.getInput().getRowType().getFieldCount();
 
-    List<String> fieldNames = new ArrayList<>();
-    List<Object> valueObjects = new ArrayList<>();
-    int literalCounter = 0;
-    String literalPrefix = "LTRL";
-    for (RexNode node: project.getProjects()) {
+    final ImmutableList.Builder<ImmutableList<RexLiteral>> tuples =
+        ImmutableList.builder();
+    ImmutableList.Builder<RexLiteral> b = ImmutableList.builder();
+    RelDataTypeFactory.Builder relDataTypeBuilder = rexBuilder.getTypeFactory().builder();
+
+    List<RexNode> projects = project.getProjects();
+    for (int i = 0; i < projects.size(); i++) {
+      RexNode node = projects.get(i);
       if (node instanceof RexLiteral) {
-        String fieldName = literalPrefix + literalCounter++;
-        fieldNames.add(fieldName);
-        valueObjects.add(node);
+        b.add((RexLiteral) node);
+        relDataTypeBuilder.add(project.getRowType().getFieldList().get(i));
       }
     }
-
-    builder.values(fieldNames.toArray(new String[0]), valueObjects.toArray());
+    tuples.add(b.build());
+    builder.values(tuples.build(), relDataTypeBuilder.build());
     builder.join(JoinRelType.INNER, rexBuilder.makeLiteral(true));
 
     List<RexNode> newProjects = new ArrayList<>();
 
-    literalCounter = 0;
+    int literalCounter = 0;
     for (RexNode exp : project.getProjects()) {
       if (exp instanceof RexLiteral) {
-        newProjects.add(builder.field(literalPrefix + literalCounter++));
+        newProjects.add(builder.field(offset + literalCounter++));
       } else {
         newProjects.add(exp);
       }
