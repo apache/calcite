@@ -106,4 +106,9 @@ public class RedshiftSqlDialect extends SqlDialect {
         new SqlUserDefinedTypeNameSpec(castSpec, SqlParserPos.ZERO),
         SqlParserPos.ZERO);
   }
+
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return false;
+  }
+
 }

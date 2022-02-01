@@ -251,7 +251,7 @@ class RelToSqlConverterTest {
         + "where \"product_id\" > 0\n"
         + "group by \"product_id\"";
     final String expected = "SELECT"
-        + " SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE),"
+        + " SUM(\"shelf_width\") FILTER (WHERE (\"net_weight\" > 0) IS TRUE),"
         + " SUM(\"shelf_width\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" > 0\n"
@@ -266,13 +266,29 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"product\"\n"
         + "where \"product_id\" > 0\n"
         + "group by \"product_id\"";
-    final String expected = "SELECT SUM(CASE WHEN net_weight > 0 IS TRUE"
+    final String expected = "SELECT SUM(CASE WHEN (net_weight > 0) IS TRUE"
         + " THEN shelf_width ELSE NULL END), "
         + "SUM(shelf_width)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id > 0\n"
         + "GROUP BY product_id";
     sql(query).withBigQuery().ok(expected);
+  }
+
+  @Test void testAggregateFilterWhereToRedshiftSqlFromProductTable() {
+    String query = "select\n"
+        + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
+        + "  sum(\"shelf_width\")\n"
+        + "from \"foodmart\".\"product\"\n"
+        + "where \"product_id\" > 0\n"
+        + "group by \"product_id\"";
+    final String expected = "SELECT SUM(CASE WHEN (\"net_weight\" > 0) IS TRUE"
+        + " THEN \"shelf_width\" ELSE NULL END), "
+        + "SUM(\"shelf_width\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" > 0\n"
+        + "GROUP BY \"product_id\"";
+    sql(query).withRedshift().ok(expected);
   }
 
   @Test void testPivotToSqlFromProductTable() {
@@ -301,6 +317,33 @@ class RelToSqlConverterTest {
         + "GROUP BY net_weight";
     sql(query).ok(expected)
         .withBigQuery().ok(expectedBigQuery);
+  }
+
+  @Test void testPivotToSqlWhenFilterIsNotSupported() {
+    String query = "select * from (\n"
+        + "  select \"brand_name\", \"net_weight\", \"product_id\"\n"
+        + "  from \"foodmart\".\"product\")\n"
+        + "  pivot (sum(\"net_weight\") as w, count(*) as c\n"
+        + "    for (\"brand_name\") in ('a', 'b'))";
+    final String expected = "SELECT \"product_id\","
+        + " SUM(\"net_weight\") FILTER (WHERE (\"brand_name\" = 'a') IS TRUE) AS \"'a'_W\","
+        + " COUNT(*) FILTER (WHERE (\"brand_name\" = 'a') IS TRUE) AS \"'a'_C\","
+        + " SUM(\"net_weight\") FILTER (WHERE (\"brand_name\" = 'b') IS TRUE) AS \"'b'_W\","
+        + " COUNT(*) FILTER (WHERE (\"brand_name\" = 'b') IS TRUE) AS \"'b'_C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"";
+    // Redshift does not support FILTER
+    final String expectedRedshiftSql = "SELECT \"product_id\","
+        + " SUM(CASE WHEN (\"brand_name\" = 'a') IS TRUE "
+        + "THEN \"net_weight\" ELSE NULL END) AS \"'a'_W\","
+        + " COUNT(CASE WHEN (\"brand_name\" = 'a') IS TRUE THEN 1 ELSE NULL END) AS \"'a'_C\","
+        + " SUM(CASE WHEN (\"brand_name\" = 'b') IS TRUE "
+        + "THEN \"net_weight\" ELSE NULL END) AS \"'b'_W\","
+        + " COUNT(CASE WHEN (\"brand_name\" = 'b') IS TRUE THEN 1 ELSE NULL END) AS \"'b'_C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"";
+    sql(query).ok(expected)
+        .withRedshift().ok(expectedRedshiftSql);
   }
 
   @Test void testSimpleSelectQueryFromProductTable() {
@@ -5393,7 +5436,7 @@ class RelToSqlConverterTest {
         + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
         + "from \"product\" group by \"product_class_id\"";
     final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
-        + "FILTER (WHERE \"net_weight\" > 0 IS TRUE) "
+        + "FILTER (WHERE (\"net_weight\" > 0) IS TRUE) "
         + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";

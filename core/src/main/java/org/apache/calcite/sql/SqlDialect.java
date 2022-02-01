@@ -455,10 +455,34 @@ public class SqlDialect {
           operator = SqlInternalOperators.ANONYMOUS_ROW;
         }
       }
-      // fall through
+      operator.unparse(writer, call, leftPrec, rightPrec);
+      break;
+    case IS_TRUE:
+    case IS_NOT_FALSE:
+    case IS_FALSE:
+    case IS_NOT_TRUE:
+      if (call.operand(0) instanceof SqlBasicCall
+          && !isOperandParensCandidate(writer, call.operand(0), operator)) {
+        // Wrap in parentheses the operand associated to any of the above functions
+        // if the operand is a SqlBasicCall and will not have parenthesis applied when unparsed
+        final SqlWriter.Frame frame = writer.startList("(", ")");
+        call.operand(0).unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
+        writer.endList(frame);
+        writer.keyword(operator.getName());
+        break;
+      }
+      operator.unparse(writer, call, leftPrec, rightPrec);
+      break;
     default:
       operator.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private boolean isOperandParensCandidate(SqlWriter writer, SqlBasicCall operand,
+      SqlOperator operator) {
+    return operator.getLeftPrec() > operand.getOperator().getLeftPrec()
+        || operator.getRightPrec() >= operand.getOperator().getRightPrec()
+        || writer.isAlwaysUseParentheses() && operand.isA(SqlKind.EXPRESSION);
   }
 
   public void unparseDateTimeLiteral(SqlWriter writer,

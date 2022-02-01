@@ -688,10 +688,6 @@ public class JdbcRules {
           throw new InvalidRelException("cannot implement aggregate function "
               + aggCall);
         }
-        if (aggCall.hasFilter() && !dialect.supportsAggregateFunctionFilter()) {
-          throw new InvalidRelException("dialect does not support aggregate "
-              + "functions FILTER clauses");
-        }
       }
     }
 
