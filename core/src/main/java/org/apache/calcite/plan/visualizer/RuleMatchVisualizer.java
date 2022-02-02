@@ -46,7 +46,6 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -173,7 +172,7 @@ public class RuleMatchVisualizer implements RelOptListener {
    * Get the inputs for a node, unwrapping {@link HepRelVertex} nodes.
    * (Workaround for HepPlanner)
    */
-  private Collection<RelNode> getInputs(final RelNode node) {
+  private static List<RelNode> getInputs(final RelNode node) {
     return node.getInputs().stream().map(n -> {
       if (n instanceof HepRelVertex) {
         return ((HepRelVertex) n).getCurrentRel();
