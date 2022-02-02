@@ -554,7 +554,7 @@ public class RelJson {
 
   /**
    * Transforms a RexNode tree defined in a map (from a JSON) into a RexNode
-   * @param cluster: The optimization Environment
+   * @param cluster The optimization Environment
    * @param o the map derived from a RexNode transformed into a JSON
    * @param inputMapToRex is a BiFunction that transform the map representing input references into RexNode.
    *        it has two parameters: the map of the references and the RexBuilder
