@@ -689,15 +689,19 @@ public class RelJson {
     BiFunction<Map, RexBuilder, RexNode> inputMapToRex = (map, rexBuilder) -> {
       final Integer input = (Integer) map.get("input");
       int i = input;
-      for (RelNode inputNode : inputNodes) {
-        final RelDataType rowType = inputNode.getRowType();
-        if (i < rowType.getFieldCount()) {
-          final RelDataTypeField field = rowType.getFieldList().get(i);
-          return rexBuilder.makeInputRef(field.getType(), input);
+      if (input != null) {
+        for (RelNode inputNode : inputNodes) {
+          final RelDataType rowType = inputNode.getRowType();
+          if (i < rowType.getFieldCount()) {
+            final RelDataTypeField field = rowType.getFieldList().get(i);
+            return rexBuilder.makeInputRef(field.getType(), input);
+          }
+          i -= rowType.getFieldCount();
         }
-        i -= rowType.getFieldCount();
+        throw new RuntimeException("input field " + input + " is out of range");
+      } else {
+        throw new RuntimeException("input not defined");
       }
-      throw new RuntimeException("input field " + input + " is out of range");
     };
     return toRex(cluster, o, inputMapToRex);
   }
