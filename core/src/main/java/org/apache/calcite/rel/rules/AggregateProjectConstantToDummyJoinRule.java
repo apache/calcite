@@ -38,19 +38,19 @@ import java.util.List;
 /**
  * Planner rule that recognizes  a {@link org.apache.calcite.rel.core.Aggregate}
  * on top of a {@link org.apache.calcite.rel.core.Project} where the aggregate's group set
- * contains boolean literals (true, false), and removes the literals from the group keys by joining
- * with a dummy table of boolean literals.
+ * contains literals (true, false, DATE, chars, etc), and removes the literals from the
+ * group keys by joining with a dummy table of literals.
  *
  * <pre>{@code
  * select avg(sal)
  * from emp
- * group by true;
+ * group by true, DATE '2022-01-01';
  * }</pre>
  * becomes
  * <pre>{@code
  * select avg(sal)
- * from emp, (select true x) dummy
- * group by dummy.x;
+ * from emp, (select true x, DATE '2022-01-01' d) dummy
+ * group by dummy.x, dummy.d;
  * }</pre>
  */
 @Value.Enclosing
@@ -89,25 +89,21 @@ public final class AggregateProjectConstantToDummyJoinRule
     builder.push(project.getInput());
     int offset = project.getInput().getRowType().getFieldCount();
 
-    final ImmutableList.Builder<ImmutableList<RexLiteral>> tuples =
-        ImmutableList.builder();
-    ImmutableList.Builder<RexLiteral> b = ImmutableList.builder();
-    RelDataTypeFactory.Builder relDataTypeBuilder = rexBuilder.getTypeFactory().builder();
-
+    RelDataTypeFactory.Builder valuesType = rexBuilder.getTypeFactory().builder();
+    List<RexLiteral> literals = new ArrayList<>();
     List<RexNode> projects = project.getProjects();
     for (int i = 0; i < projects.size(); i++) {
       RexNode node = projects.get(i);
       if (node instanceof RexLiteral) {
-        b.add((RexLiteral) node);
-        relDataTypeBuilder.add(project.getRowType().getFieldList().get(i));
+        literals.add((RexLiteral) node);
+        valuesType.add(project.getRowType().getFieldList().get(i));
       }
     }
-    tuples.add(b.build());
-    builder.values(tuples.build(), relDataTypeBuilder.build());
+    builder.values(ImmutableList.of(literals), valuesType.build());
+
     builder.join(JoinRelType.INNER, rexBuilder.makeLiteral(true));
 
     List<RexNode> newProjects = new ArrayList<>();
-
     int literalCounter = 0;
     for (RexNode exp : project.getProjects()) {
       if (exp instanceof RexLiteral) {
@@ -120,8 +116,8 @@ public final class AggregateProjectConstantToDummyJoinRule
     builder.project(newProjects);
     builder.aggregate(
         builder.groupKey(
-            aggregate.getGroupSet(), (Iterable<ImmutableBitSet>) aggregate.getGroupSets()),
-        aggregate.getAggCallList());
+            aggregate.getGroupSet(), aggregate.getGroupSets()), aggregate.getAggCallList()
+    );
 
     call.transformTo(builder.build());
   }

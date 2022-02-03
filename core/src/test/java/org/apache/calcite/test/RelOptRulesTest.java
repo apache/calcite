@@ -202,36 +202,30 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testGroupByDateLiteralSimple() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-
     final String query = "select avg(sal)\n"
         + "from emp\n"
         + "group by DATE '2022-01-01'";
-    sql(query).withPlanner(hepPlanner).check();
+    sql(query)
+        .withRule(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule())
+        .check();
   }
 
-  @Test void testGroupByBooleanConstantSimple() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-
+  @Test void testGroupByBooleanLiteralSimple() {
     final String query = "select avg(sal)\n"
         + "from emp\n"
         + "group by true";
-    sql(query).withPlanner(hepPlanner).check();
+    sql(query)
+        .withRule(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule())
+        .check();
   }
 
-  @Test void testGroupByBooleanConstantMultiple() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleInstance(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-
+  @Test void testGroupByMultipleLiterals() {
     final String query = "select avg(sal)\n"
         + "from emp\n"
         + "group by false, deptno, true, true, empno, false, 'ab', DATE '2022-01-01'";
-    sql(query).withPlanner(hepPlanner).check();
+    sql(query)
+        .withRule(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule())
+        .check();
   }
 
   @Test void testReduceNot() {
