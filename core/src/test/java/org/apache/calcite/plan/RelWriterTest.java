@@ -69,6 +69,10 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -83,7 +87,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -429,6 +435,11 @@ class RelWriterTest {
     return Stream.of(SqlExplainFormat.TEXT, SqlExplainFormat.DOT);
   }
 
+  private static RexNode apply(Map<String, Object> map, RexBuilder rexBuilder, List<RelNode> inputs) {
+    int input = (int) map.get("input");
+    return rexBuilder.makeExactLiteral(BigDecimal.valueOf(input));
+  }
+
   /** Unit test for {@link RelJson#toJson(Object)} for an object of type
    * {@link RelDataType}. */
   @Test void testTypeJson() {
@@ -704,6 +715,51 @@ class RelWriterTest {
         isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
             + "  LogicalFilter(condition=[=($1, null:INTEGER)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
+  }
+
+  @Test void testJsonToRex() throws JsonProcessingException {
+    // Test simple literal without inputs
+    final String jsonString1 = "{\n"
+        + "            \"literal\": 10,\n"
+        + "            \"type\": {\n"
+        + "              \"type\": \"INTEGER\",\n"
+        + "              \"nullable\": false\n"
+        + "            }\n"
+        + "          }\n";
+
+    assertReadRex(jsonString1, "10");
+
+    // Test Binary with an input
+    final String jsonString2 = "{ \"op\": \n"
+        + "      { \"name\": \"+\",\n"
+        + "        \"kind\": \"PLUS\",\n"
+        + "        \"syntax\": \"BINARY\"\n"
+        + "      },\n"
+        + "      \"operands\": [\n"
+        + "        {\n"
+        + "          \"input\": 1,\n"
+        + "          \"sql\": \"column + 1\"\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"literal\": 1,\n"
+        + "          \"type\": { \"type\": \"INTEGER\", \"nullable\": false }\n"
+        + "        }\n"
+        + "      ]\n"
+        + "    }";
+    assertReadRex(jsonString2, "+(1, 1)");
+  }
+
+  private void assertReadRex(String jsonString1, String expected)
+      throws JsonProcessingException {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelOptCluster cluster = builder.getCluster();
+    final ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> o = mapper
+        .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+        .readValue(jsonString1, new TypeReference<LinkedHashMap<String, Object>>() {});
+    RexNode resRex = RelJson.readExpression(cluster, RelWriterTest::apply, o);
+    assertThat(resRex.toString(), is(expected));
   }
 
   @Test void testTrim() {
