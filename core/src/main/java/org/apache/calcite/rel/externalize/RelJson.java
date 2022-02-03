@@ -105,11 +105,13 @@ public class RelJson {
     this(jsonBuilder, RelJson::inputTranslatorImpl);
   }
 
-  private static RexNode inputTranslatorImpl(Map<String, Object> stringObjectMap, RexBuilder rexBuilder,
+  private static RexNode inputTranslatorImpl(
+      Map<String, Object> stringObjectMap,
+      RexBuilder rexBuilder,
       List<RelNode> relNodes) {
     final Integer input = (Integer) stringObjectMap.get("input");
-    int i = input;
     if (input != null) {
+      int i = input;
       for (RelNode inputNode : relNodes) {
         final RelDataType rowType = inputNode.getRowType();
         if (i < rowType.getFieldCount()) {
@@ -122,24 +124,26 @@ public class RelJson {
     } else {
       throw new RuntimeException("input not defined");
     }
-
   }
 
-  public RelJson(@Nullable JsonBuilder jsonBuilder, InputTranslator inputTranslator){
+  public RelJson(@Nullable JsonBuilder jsonBuilder, InputTranslator inputTranslator) {
     this.jsonBuilder = jsonBuilder;
     this.inputTranslator = inputTranslator;
   }
 
   /**
-   * Transforms a RexNode tree defined in a map (from a JSON) into a RexNode
-   * Applying a special method to inputs instead of transforming them into inputRef
+   * Transforms a RexNode tree defined in a map (from a JSON) into a RexNode,
+   * applying a special method to inputs instead of transforming them into inputRef.
    * @param cluster The optimization environment
    * @param apply is a InputTranslator lambda that transforms the map representing input
    *               references into a RexNode
    * @param o the map derived from a RexNode transformed into a JSON
    * @return the transformed RexNode
    */
-  public static RexNode readExpression(RelOptCluster cluster, InputTranslator apply, Map<String, Object> o) {
+  public static RexNode readExpression(
+      RelOptCluster cluster,
+      InputTranslator apply,
+      Map<String, Object> o) {
     RelInput relInput = new RelInput() {
       @Override public RelOptCluster getCluster() {
         return cluster;
@@ -904,17 +908,17 @@ public class RelJson {
 
   /**
    *  Functional interface for the "apply" lamdba,
-   *  that defines how to transform the input reference map into RexNode
+   *  that defines how to transform the input reference map into RexNode.
    */
   @FunctionalInterface
-   public interface InputTranslator {
+  public interface InputTranslator {
 
     /**
      * Lambda that defines how to transform the input reference map into RexNode.
      * @param stringObjectMap map representing input references
-     * @param rexBuilder
+     * @param rexBuilder the current builder
      * @param inputs the list of RelNode inputs
-     * @return
+     * @return the new input RexNode
      */
     RexNode apply(Map<String, Object> stringObjectMap,
         RexBuilder rexBuilder, List<RelNode> inputs);
