@@ -131,116 +131,6 @@ public class RelJson {
     this.inputTranslator = inputTranslator;
   }
 
-  /**
-   * Transforms a RexNode tree defined in a map (from a JSON) into a RexNode,
-   * applying a special method to inputs instead of transforming them into inputRef.
-   * @param cluster The optimization environment
-   * @param apply is a InputTranslator lambda that transforms the map representing input
-   *               references into a RexNode
-   * @param o the map derived from a RexNode transformed into a JSON
-   * @return the transformed RexNode
-   */
-  public static RexNode readExpression(
-      RelOptCluster cluster,
-      InputTranslator apply,
-      Map<String, Object> o) {
-    RelInput relInput = new RelInput() {
-      @Override public RelOptCluster getCluster() {
-        return cluster;
-      }
-
-      @Override public RelTraitSet getTraitSet() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public RelOptTable getTable(String table) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public RelNode getInput() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public List<RelNode> getInputs() {
-        return ImmutableList.of();
-      }
-
-      @Override public @Nullable RexNode getExpression(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public ImmutableBitSet getBitSet(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public @Nullable List<ImmutableBitSet> getBitSetList(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public List<AggregateCall> getAggregateCalls(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public @Nullable Object get(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public @Nullable String getString(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public float getFloat(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public <E extends Enum<E>> @Nullable E getEnum(
-          String tag, Class<E> enumClass) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public @Nullable List<RexNode> getExpressionList(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public @Nullable List<String> getStringList(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public @Nullable List<Integer> getIntegerList(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public @Nullable List<List<Integer>> getIntegerListList(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public RelDataType getRowType(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public RelDataType getRowType(String expressionsTag, String fieldsTag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public RelCollation getCollation() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public RelDistribution getDistribution() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override public boolean getBoolean(String tag, boolean default_) {
-        throw new UnsupportedOperationException();
-      }
-    };
-    return new RelJson(null, apply).toRex(relInput, o);
-  }
-
   private JsonBuilder jsonBuilder() {
     return requireNonNull(jsonBuilder, "jsonBuilder");
   }
@@ -763,7 +653,7 @@ public class RelJson {
           final RelDataType type = toType(typeFactory, map.get("type"));
           return rexBuilder.makeLocalRef(type, input);
         }
-        return inputTranslator.apply(map, rexBuilder, relInput.getInputs());
+        return inputTranslator.translate(map, rexBuilder, relInput.getInputs());
 
       }
       final String field = (String) map.get("field");
@@ -907,20 +797,142 @@ public class RelJson {
   }
 
   /**
-   *  Functional interface for the "apply" lamdba,
-   *  that defines how to transform the input reference map into RexNode.
+   * Translates a JSON expression into a RexNode,
+   * applying a special method to inputs instead of transforming them into inputRef.
+   * @param cluster The optimization environment
+   * @param translator is a InputTranslator lambda transforming the JSON representing input
+   *               references into a RexNode
+   * @param o the map derived from a RexNode transformed into a JSON
+   * @return the transformed RexNode
+   */
+  public static RexNode readExpression(
+      RelOptCluster cluster,
+      InputTranslator translator,
+      Map<String, Object> o) {
+
+    RelInput relInput = new RelInputForCluster(cluster);
+    return new RelJson(null, translator).toRex(relInput, o);
+  }
+
+  /**
+   * Special context from which a relational expression can be initialized,
+   * reading from a serialized form of the relational expression.
+   * Containing only a cluster and an empty list of inputs.
+   */
+  private static class RelInputForCluster implements RelInput {
+    private final @Nullable RelOptCluster cluster;
+
+    RelInputForCluster(RelOptCluster cluster) {
+      this.cluster = cluster;
+    }
+    @Override public RelOptCluster getCluster() {
+      return cluster;
+    }
+
+    @Override public RelTraitSet getTraitSet() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelOptTable getTable(String table) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelNode getInput() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public List<RelNode> getInputs() {
+      return ImmutableList.of();
+    }
+
+    @Override public @Nullable RexNode getExpression(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public ImmutableBitSet getBitSet(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<ImmutableBitSet> getBitSetList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public List<AggregateCall> getAggregateCalls(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable Object get(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable String getString(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public float getFloat(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public <E extends Enum<E>> @Nullable E getEnum(
+        String tag, Class<E> enumClass) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<RexNode> getExpressionList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<String> getStringList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<Integer> getIntegerList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<List<Integer>> getIntegerListList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelDataType getRowType(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelDataType getRowType(String expressionsTag, String fieldsTag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelCollation getCollation() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelDistribution getDistribution() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public boolean getBoolean(String tag, boolean default_) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  /**
+   *  Translates a JSON expression representing an input reference into a RexNode.
    */
   @FunctionalInterface
   public interface InputTranslator {
 
     /**
-     * Lambda that defines how to transform the input reference map into RexNode.
-     * @param stringObjectMap map representing input references
+     * Transforms an input reference map into RexNode.
+     * @param map map representing input references
      * @param rexBuilder the current builder
      * @param inputs the list of RelNode inputs
      * @return the new input RexNode
      */
-    RexNode apply(Map<String, Object> stringObjectMap,
+    RexNode translate(Map<String, Object> map,
         RexBuilder rexBuilder, List<RelNode> inputs);
   }
 }

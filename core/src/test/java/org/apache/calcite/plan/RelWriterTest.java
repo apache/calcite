@@ -78,6 +78,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -435,11 +436,6 @@ class RelWriterTest {
     return Stream.of(SqlExplainFormat.TEXT, SqlExplainFormat.DOT);
   }
 
-  private static RexNode apply(Map<String, Object> map, RexBuilder rexBuilder, List<RelNode> inputs) {
-    int input = (int) map.get("input");
-    return rexBuilder.makeExactLiteral(BigDecimal.valueOf(input));
-  }
-
   /** Unit test for {@link RelJson#toJson(Object)} for an object of type
    * {@link RelDataType}. */
   @Test void testTypeJson() {
@@ -727,7 +723,7 @@ class RelWriterTest {
         + "            }\n"
         + "          }\n";
 
-    assertReadRex(jsonString1, "10");
+    assertThatReadExpressionResult(jsonString1, is("10"));
 
     // Test Binary with an input
     final String jsonString2 = "{ \"op\": \n"
@@ -746,10 +742,10 @@ class RelWriterTest {
         + "        }\n"
         + "      ]\n"
         + "    }";
-    assertReadRex(jsonString2, "+(1, 1)");
+    assertThatReadExpressionResult(jsonString2, is("+(1, 1)"));
   }
 
-  private void assertReadRex(String jsonString1, String expected)
+  private void assertThatReadExpressionResult(String jsonString1, Matcher<String> expected)
       throws JsonProcessingException {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
@@ -757,9 +753,21 @@ class RelWriterTest {
     final ObjectMapper mapper = new ObjectMapper();
     Map<String, Object> o = mapper
         .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
-        .readValue(jsonString1, new TypeReference<LinkedHashMap<String, Object>>() {});
-    RexNode resRex = RelJson.readExpression(cluster, RelWriterTest::apply, o);
+        .readValue(jsonString1, new TypeReference<LinkedHashMap<String, Object>>() { } );
+    RexNode resRex = RelJson.readExpression(cluster, RelWriterTest::translateInput, o);
     assertThat(resRex.toString(), is(expected));
+  }
+
+  /**
+   * Intended as an instance of {@link RelJson.InputTranslator}.
+   * @returns a Int Literal of the input
+   */
+  private static RexNode translateInput(
+      Map<String, Object> map,
+      RexBuilder rexBuilder,
+      List<RelNode> inputs) {
+    int input = (int) map.get("input");
+    return rexBuilder.makeExactLiteral(BigDecimal.valueOf(input));
   }
 
   @Test void testTrim() {
