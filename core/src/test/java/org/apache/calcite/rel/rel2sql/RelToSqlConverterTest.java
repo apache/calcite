@@ -9227,8 +9227,8 @@ class RelToSqlConverterTest {
 
   @Test public void testDateMinus() {
     String query = "SELECT \"birth_date\" - \"birth_date\" from \"foodmart\".\"employee\"";
-    final String expectedBQSql = "SELECT DATE_DIFF(birth_date, birth_date, DAY)\n" +
-        "FROM foodmart.employee";
+    final String expectedBQSql = "SELECT DATE_DIFF(birth_date, birth_date, DAY)\n"
+        + "FROM foodmart.employee";
 
     sql(query)
       .withBigQuery()
