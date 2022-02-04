@@ -820,7 +820,7 @@ public class RelJson {
    * Containing only a cluster and an empty list of inputs.
    */
   private static class RelInputForCluster implements RelInput {
-    private final @Nullable RelOptCluster cluster;
+    private final RelOptCluster cluster;
 
     RelInputForCluster(RelOptCluster cluster) {
       this.cluster = cluster;

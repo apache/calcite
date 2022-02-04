@@ -753,7 +753,8 @@ class RelWriterTest {
     final ObjectMapper mapper = new ObjectMapper();
     Map<String, Object> o = mapper
         .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
-        .readValue(jsonString1, new TypeReference<LinkedHashMap<String, Object>>() { } );
+        .readValue(jsonString1, new TypeReference<LinkedHashMap<String, Object>>() {
+        });
     RexNode resRex = RelJson.readExpression(cluster, RelWriterTest::translateInput, o);
     assertThat(resRex.toString(), is(expected));
   }
