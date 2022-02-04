@@ -61,6 +61,8 @@ public enum SqlTypeName {
       Types.DECIMAL, SqlTypeFamily.NUMERIC),
   FLOAT(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
   REAL(PrecScale.NO_NO, false, Types.REAL, SqlTypeFamily.NUMERIC),
+  REAL_PRECISION(PrecScale.NO_NO, false, Types.REAL, SqlTypeFamily.REAL_PRECISION),
+  DECIMAL_PRECISION(PrecScale.NO_NO, false, Types.REAL, SqlTypeFamily.DECIMAL_PRECISION),
   DOUBLE(PrecScale.NO_NO, false, Types.DOUBLE, SqlTypeFamily.NUMERIC),
   DATE(PrecScale.NO_NO, false, Types.DATE, SqlTypeFamily.DATE),
   TIME(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIME,

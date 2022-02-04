@@ -632,6 +632,10 @@ public class SparkSqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("INT", typeName);
       case TIMESTAMP:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
+      case DECIMAL_PRECISION:
+        return createSqlDataTypeSpecByName("NUMERIC(18,0)", typeName);
+      case REAL_PRECISION:
+        return createSqlDataTypeSpecByName("NUMERIC(6,0)", typeName);
       default:
         break;
       }
