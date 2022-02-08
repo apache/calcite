@@ -734,7 +734,7 @@ class RelWriterTest {
         + "      \"operands\": [\n"
         + "        {\n"
         + "          \"input\": 1,\n"
-        + "          \"sql\": \"column + 1\"\n"
+        + "          \"name\": \"$1\"\n"
         + "        },\n"
         + "        {\n"
         + "          \"literal\": 1,\n"
