@@ -450,6 +450,25 @@ public class MaterializedViewSubstitutionVisitorTest {
   }
 
   /**
+   * It's need be matched, unused project on aggregate in the mv, and query's rel-root is aggregate.
+   */
+  @Test void testAggregate7() {
+    String mv = ""
+        + "select \"deptno\", sum(\"salary\"), sum(\"commission\") + 1, sum(\"k\")\n"
+        + "from\n"
+        + "  (select \"deptno\", \"salary\", \"commission\", 100 as \"k\"\n"
+        + "  from \"emps\")\n"
+        + "group by \"deptno\"";
+    String query = ""
+        + "select \"deptno\", sum(\"salary\"), sum(\"k\")\n"
+        + "from\n"
+        + "  (select \"deptno\", \"salary\", 100 as \"k\"\n"
+        + "  from \"emps\")\n"
+        + "group by \"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /**
    * There will be a compensating Project added after matching of the Aggregate.
    * This rule targets to test if the Calc can be handled.
    */
