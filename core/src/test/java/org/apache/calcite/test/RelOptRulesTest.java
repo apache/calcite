@@ -6370,6 +6370,18 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(rule).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5000">[CALCITE-5000]
+   * Expand rule of `AGGREGATE_REDUCE_FUNCTIONS`, when arg of agg-call exist in the agg's group</a>.
+   */
+  @Test void testReduceAggregateFunctionsByGroup() {
+    final String sql = "select sal, max(sal) as sal_max, min(sal) as sal_min,\n"
+        + "avg(sal) sal_avg, any_value(sal) as sal_val, first_value(sal) as sal_first,\n"
+        + "last_value(sal) as sal_last\n"
+        + "from emp group by sal, deptno";
+    sql(sql).withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS, CoreRules.PROJECT_MERGE).check();
+  }
+
   @Test void testReduceAllAggregateFunctions() {
     // configure rule to reduce all used functions
     final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
