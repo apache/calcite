@@ -9925,6 +9925,30 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testReduceAggregateFunctionsByGroup">
+    <Resource name="sql">
+      <![CDATA[select sal, max(sal) as sal_max, min(sal) as sal_min,
+avg(sal) sal_avg, any_value(sal) as sal_val, first_value(sal) as sal_first,
+last_value(sal) as sal_last
+from emp group by sal, deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$0], SAL_MAX=[$2], SAL_MIN=[$3], SAL_AVG=[$4], SAL_VAL=[$5], SAL_FIRST=[$6], SAL_LAST=[$7])
+  LogicalAggregate(group=[{0, 1}], SAL_MAX=[MAX($0)], SAL_MIN=[MIN($0)], SAL_AVG=[AVG($0)], SAL_VAL=[ANY_VALUE($0)], SAL_FIRST=[FIRST_VALUE($0)], SAL_LAST=[LAST_VALUE($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0], SAL_MAX=[$0], SAL_MIN=[$0], SAL_AVG=[$0], SAL_VAL=[$0], SAL_FIRST=[$0], SAL_LAST=[$0])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceAllAggregateFunctions">
     <Resource name="sql">
       <![CDATA[select name, stddev_pop(deptno), avg(deptno), stddev_samp(deptno), var_pop(deptno), var_samp(deptno)
@@ -9961,8 +9985,8 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(NAME=[$0], EXPR$1=[$1], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[$4])
-  LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], agg#1=[$SUM0($1)], agg#2=[COUNT()], EXPR$3=[MIN($0)])
+LogicalProject(NAME=[$0], EXPR$1=[$0], EXPR$2=[CAST(/($1, $2)):INTEGER NOT NULL], EXPR$3=[$0])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($1)], agg#1=[COUNT()])
     LogicalProject(NAME=[$1], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -10025,8 +10049,8 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(NAME=[$0], EXPR$1=[$1], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[$4])
-  LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], agg#1=[SUM($1)], agg#2=[COUNT()], EXPR$3=[MIN($0)])
+LogicalProject(NAME=[$0], EXPR$1=[$0], EXPR$2=[CAST(/($1, $2)):INTEGER NOT NULL], EXPR$3=[$0])
+  LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[COUNT()])
     LogicalProject(NAME=[$1], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
