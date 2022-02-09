@@ -34,6 +34,10 @@ val integrationTestConfig: (Configuration.() -> Unit) = {
     extendsFrom(configurations.testRuntimeClasspath.get())
 }
 
+// The custom configurations below allow to include dependencies (and jars) in the classpath only
+// when IT tests are running. In the future it may make sense to include the JDBC driver
+// dependencies using the default 'testRuntimeOnly' configuration to simplify the build but at the
+// moment they can remain as is.
 val testH2 by configurations.creating(integrationTestConfig)
 val testOracle by configurations.creating(integrationTestConfig)
 val testPostgresql by configurations.creating(integrationTestConfig)
@@ -258,8 +262,6 @@ val integTestAll by tasks.registering() {
     description = "Executes integration JDBC tests for all DBs"
 }
 
-val coreTestClasses = sourceSets.main.get().output
-val coreClasses = sourceSets.main.get().output + coreTestClasses
 for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
     val task = tasks.register("integTest" + db.capitalize(), Test::class) {
         group = LifecycleBasePlugin.VERIFICATION_GROUP
@@ -267,8 +269,9 @@ for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
         include("org/apache/calcite/test/JdbcAdapterTest.class")
         include("org/apache/calcite/test/JdbcTest.class")
         systemProperty("calcite.test.db", db)
-        testClassesDirs = coreTestClasses.classesDirs
-        classpath = coreClasses + configurations.getAt("test" + db.capitalize())
+        // Include the jars from the custom configuration to the classpath
+        // otherwise the JDBC drivers for each DBMS will be missing
+        classpath = classpath + configurations.getAt("test" + db.capitalize())
     }
     integTestAll {
         dependsOn(task)
