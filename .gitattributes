@@ -4,8 +4,8 @@
 *.cs     text diff=csharp
 *.java   text diff=java
 *.html   text diff=html
-*.kt     text diff=kotlin
-*.kts    text diff=kotlin
+*.kt     text diff=kotlin eol=crlf
+*.kts    text diff=kotlin eol=crlf
 *.md     text diff=markdown
 *.py     text diff=python executable
 *.pl     text diff=perl executable
