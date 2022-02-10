@@ -1523,6 +1523,82 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
+  @Override public @Nullable SqlNode getCastSpecWithPrecision(final RelDataType type,
+      final boolean isColumnLengthPresent) {
+    if (type instanceof BasicSqlType) {
+      final SqlTypeName typeName = type.getSqlTypeName();
+      final int precision = type.getPrecision();
+      final int scale = type.getScale();
+      boolean isContainsPrecision = type.toString().matches("^.*[\\(\\)].*");
+      boolean isContainsScale = type.toString().contains(",");
+      boolean isContainsNegativePrecisionOrScale = type.toString().contains("-");
+      String typeAlias;
+      switch (typeName) {
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+      case BIGINT:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_HOUR:
+        return createSqlDataTypeSpecByName("INT64", typeName);
+      case FLOAT:
+      case DOUBLE:
+        return createSqlDataTypeSpecByName("FLOAT64", typeName);
+      case DECIMAL:
+        if (isContainsPrecision) {
+          String dataType = getDataTypeBasedOnPrecision(precision, scale);
+          if (!isContainsNegativePrecisionOrScale) {
+            typeAlias = precision > 0 ? isContainsScale ? dataType + "(" + precision + ","
+                + scale + ")" : dataType + "(" + precision + ")" : dataType;
+          } else {
+            typeAlias = dataType;
+          }
+        } else {
+          typeAlias = "NUMERIC";
+        }
+        return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case BOOLEAN:
+        return createSqlDataTypeSpecByName("BOOL", typeName);
+      case CHAR:
+      case VARCHAR:
+        if (isColumnLengthPresent) {
+          typeAlias =  precision > 0 ? "STRING(" + precision + ")" : "STRING";
+        } else {
+          typeAlias = "STRING";
+        }
+        return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case BINARY:
+      case VARBINARY:
+        if (isContainsPrecision) {
+          typeAlias =  precision > 0 ? "BYTES(" + precision + ")" : "BYTES";
+        } else {
+          typeAlias = "BYTES";
+        }
+        return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case DATE:
+        return createSqlDataTypeSpecByName("DATE", typeName);
+      case TIME:
+        return createSqlDataTypeSpecByName("TIME", typeName);
+      case TIMESTAMP:
+        return createSqlDataTypeSpecByName("DATETIME", typeName);
+      default:
+        break;
+      }
+    }
+    return super.getCastSpec(type);
+  }
+
+  private String getDataTypeBasedOnPrecision(int precision, int scale)  {
+    if (scale > 0) {
+      return scale <= 9 ? scale + precision > 38 ? "BIGNUMERIC" : "NUMERIC" : "BIGNUMERIC";
+    } else {
+      return precision > 29 ? "BIGNUMERIC" : "NUMERIC";
+    }
+  }
+
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
