@@ -16,30 +16,8 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-
 /**
- * Marker interface for a handler of metadata.
- *
- * @param <M> Kind of metadata
+ * A test {@link Metadata} interface.
  */
-public interface MetadataHandler<M extends Metadata> {
-  MetadataDef<M> getDef();
-
-  /**
-   * Finds handler methods defined by a {@link MetadataHandler}. Static and synthetic methods
-   * are ignored.
-   *
-   * @param handlerClass the handler class to inspect
-   * @return handler methods
-   */
-  static Method[] handlerMethods(Class<? extends MetadataHandler<?>> handlerClass) {
-    return Arrays.stream(handlerClass.getDeclaredMethods())
-        .filter(m -> !m.getName().equals("getDef"))
-        .filter(m -> !m.isSynthetic())
-        .filter(m -> !Modifier.isStatic(m.getModifiers()))
-        .toArray(Method[]::new);
-  }
+interface TestMetadata extends Metadata {
 }
