@@ -16,30 +16,24 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
- * Marker interface for a handler of metadata.
- *
- * @param <M> Kind of metadata
+ * Test cases for {@link MetadataDef}.
  */
-public interface MetadataHandler<M extends Metadata> {
-  MetadataDef<M> getDef();
+class MetadataDefTest {
+  @Test void staticMethodInHandlerIsIgnored() {
+    assertDoesNotThrow(
+        () -> MetadataDef.of(TestMetadata.class, MetadataHandlerWithStaticMethod.class)
+    );
+  }
 
-  /**
-   * Finds handler methods defined by a {@link MetadataHandler}. Static and synthetic methods
-   * are ignored.
-   *
-   * @param handlerClass the handler class to inspect
-   * @return handler methods
-   */
-  static Method[] handlerMethods(Class<? extends MetadataHandler<?>> handlerClass) {
-    return Arrays.stream(handlerClass.getDeclaredMethods())
-        .filter(m -> !m.getName().equals("getDef"))
-        .filter(m -> !m.isSynthetic())
-        .filter(m -> !Modifier.isStatic(m.getModifiers()))
-        .toArray(Method[]::new);
+  @Test void synthenticMethodInHandlerIsIgnored() {
+    assertDoesNotThrow(
+        () -> MetadataDef.of(TestMetadata.class,
+            TestMetadataHandlers.handlerClassWithSyntheticMethod())
+    );
   }
 }
