@@ -25,6 +25,7 @@ import org.apache.calcite.sql.dialect.Db2SqlDialect;
 import org.apache.calcite.sql.dialect.DerbySqlDialect;
 import org.apache.calcite.sql.dialect.ExasolSqlDialect;
 import org.apache.calcite.sql.dialect.FirebirdSqlDialect;
+import org.apache.calcite.sql.dialect.FireboltSqlDialect;
 import org.apache.calcite.sql.dialect.H2SqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.HsqldbSqlDialect;
@@ -89,6 +90,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new DerbySqlDialect(c);
     case "EXASOL":
       return new ExasolSqlDialect(c);
+    case "FIREBOLT":
+      return new FireboltSqlDialect(c);
     case "HIVE":
       return new HiveSqlDialect(c);
     case "INGRES":
@@ -124,6 +127,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new Db2SqlDialect(c);
     } else if (upperProductName.contains("FIREBIRD")) {
       return new FirebirdSqlDialect(c);
+    } else if (upperProductName.contains("FIREBOLT")) {
+      return new FireboltSqlDialect(c);
     } else if (upperProductName.contains("GOOGLE BIGQUERY")
         || upperProductName.contains("GOOGLE BIG QUERY")) {
       return new BigQuerySqlDialect(c);
@@ -178,6 +183,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return ExasolSqlDialect.DEFAULT;
     case FIREBIRD:
       return FirebirdSqlDialect.DEFAULT;
+    case FIREBOLT:
+      return FireboltSqlDialect.DEFAULT;
     case H2:
       return H2SqlDialect.DEFAULT;
     case HIVE:
