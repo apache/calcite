@@ -3669,8 +3669,10 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     String expectedPresto = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\n"
         + "FROM \"foodmart\".\"employee\"";
+    String expectedFirebolt = expectedPostgresql;
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
+        .withFirebolt().ok(expectedFirebolt)
         .withHsqldb().ok(expectedHsqldb)
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
@@ -3914,8 +3916,10 @@ class RelToSqlConverterTest {
         + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
         + "FROM `foodmart`.`employee`\n"
         + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')";
+    final String expectedFirebolt = expectedPostgresql;
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
+        .withFirebolt().ok(expectedFirebolt)
         .withHsqldb().ok(expected)
         .withMysql().ok(expectedMysql)
         .withOracle().ok(expectedOracle)
@@ -3935,10 +3939,12 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
+    final String expectedFirebolt = expectedPresto;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
         + "FROM `foodmart`.`product`";
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
+        .withFirebolt().ok(expectedFirebolt)
         .withMssql()
         // mssql does not support this syntax and so should fail
         .throws_("MSSQL SUBSTRING requires FROM and FOR arguments")
@@ -3963,12 +3969,14 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
+    final String expectedFirebolt = expectedPresto;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
+        .withFirebolt().ok(expectedFirebolt)
         .withMysql().ok(expectedMysql)
         .withMssql().ok(expectedMssql)
         .withOracle().ok(expectedOracle)
@@ -5161,12 +5169,14 @@ class RelToSqlConverterTest {
         + "FROM (SELECT 1 AS a, 'x ' AS b\n"
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
+    final String expectedFirebolt = expectedPostgresql;
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = "SELECT \"a\"\n"
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
         + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
     sql(sql)
         .withClickHouse().ok(expectedClickHouse)
+        .withFirebolt().ok(expectedFirebolt)
         .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expectedHive)
         .withHsqldb().ok(expectedHsqldb)
@@ -6404,6 +6414,10 @@ class RelToSqlConverterTest {
 
     Sql withExasol() {
       return dialect(DatabaseProduct.EXASOL.getDialect());
+    }
+
+    Sql withFirebolt() {
+      return dialect(DatabaseProduct.FIREBOLT.getDialect());
     }
 
     Sql withHive() {
