@@ -2184,10 +2184,10 @@ SqlNode TableRef2(boolean lateral) :
             if (lateral) {
                 if (hints.size() > 0) {
                     hintList = new SqlNodeList(hints, s.addAll(hints).end(this));
-                    SqlNode lateralCall = SqlStdOperatorTable.LATERAL.createCall(
-                                        s.end(this), tableRef);
-                    tableRef = new SqlTableRef(Span.of(lateralCall, hintList).pos(),
-                        lateralCall, hintList, true);
+                    SqlNode lateralCall = new SqlTableRef(Span.of(tableRef, hintList).pos(),
+                        tableRef, hintList, true);
+                    tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                        s.end(this), lateralCall);
                 } else {
                     tableRef = SqlStdOperatorTable.LATERAL.createCall(
                         s.end(this), tableRef);
