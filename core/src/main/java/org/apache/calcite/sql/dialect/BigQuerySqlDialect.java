@@ -1534,19 +1534,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       boolean isContainsNegativePrecisionOrScale = type.toString().contains("-");
       String typeAlias;
       switch (typeName) {
-      case TINYINT:
-      case SMALLINT:
-      case INTEGER:
-      case BIGINT:
-      case INTERVAL_HOUR_SECOND:
-      case INTERVAL_HOUR_MINUTE:
-      case INTERVAL_DAY_SECOND:
-      case INTERVAL_DAY_MINUTE:
-      case INTERVAL_DAY_HOUR:
-        return createSqlDataTypeSpecByName("INT64", typeName);
-      case FLOAT:
-      case DOUBLE:
-        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case DECIMAL:
         if (isContainsPrecision) {
           String dataType = getDataTypeBasedOnPrecision(precision, scale);
@@ -1560,8 +1547,6 @@ public class BigQuerySqlDialect extends SqlDialect {
           typeAlias = "NUMERIC";
         }
         return createSqlDataTypeSpecByName(typeAlias, typeName);
-      case BOOLEAN:
-        return createSqlDataTypeSpecByName("BOOL", typeName);
       case CHAR:
       case VARCHAR:
         if (isColumnLengthPresent) {
@@ -1578,17 +1563,11 @@ public class BigQuerySqlDialect extends SqlDialect {
           typeAlias = "BYTES";
         }
         return createSqlDataTypeSpecByName(typeAlias, typeName);
-      case DATE:
-        return createSqlDataTypeSpecByName("DATE", typeName);
-      case TIME:
-        return createSqlDataTypeSpecByName("TIME", typeName);
-      case TIMESTAMP:
-        return createSqlDataTypeSpecByName("DATETIME", typeName);
       default:
         break;
       }
     }
-    return super.getCastSpec(type);
+    return this.getCastSpec(type);
   }
 
   private String getDataTypeBasedOnPrecision(int precision, int scale)  {

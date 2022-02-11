@@ -947,7 +947,7 @@ public class SqlDialect {
 
   public @Nullable SqlNode getCastSpecWithPrecision(RelDataType type,
       boolean isColumnLengthPresent) {
-    return getCastSpec(type);
+    return this.getCastSpec(type);
   }
 
   public SqlNode getCastCall(SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
