@@ -131,6 +131,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MI;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISS;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISSMS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHHMISS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
@@ -260,6 +261,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(TWENTYFOURHOURMIN, "%H%M");
         put(TWENTYFOURHOURMINSEC, "%H%M%S");
         put(YYYYMMDDHH24MISS, "%Y%m%d%H%M%S");
+        put(YYYYMMDDHH24MISSMS, "%G%m%d%H%M%E3S");
         put(YYYYMMDDHH24MI, "%Y%m%d%H%M");
         put(YYYYMMDDHH24, "%Y%m%d%H");
         put(YYYYMMDDHHMISS, "%Y%m%d%I%M%S");
