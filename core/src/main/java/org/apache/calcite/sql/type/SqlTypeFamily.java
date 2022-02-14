@@ -75,8 +75,6 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   CURSOR,
   COLUMN_LIST,
   GEO,
-  REAL_PRECISION,
-  DECIMAL_PRECISION,
   /** Like ANY, but do not even validate the operand. It may not be an
    * expression. */
   IGNORE;
