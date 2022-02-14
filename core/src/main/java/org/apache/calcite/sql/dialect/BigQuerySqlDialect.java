@@ -1523,6 +1523,61 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
+  @Override public @Nullable SqlNode getCastSpecWithPrecision(final RelDataType type,
+      final boolean isColumnLengthPresent) {
+    if (type instanceof BasicSqlType) {
+      final SqlTypeName typeName = type.getSqlTypeName();
+      final int precision = type.getPrecision();
+      final int scale = type.getScale();
+      boolean isContainsPrecision = type.toString().matches("^.*[\\(\\)].*");
+      boolean isContainsScale = type.toString().contains(",");
+      boolean isContainsNegativePrecisionOrScale = type.toString().contains("-");
+      String typeAlias;
+      switch (typeName) {
+      case DECIMAL:
+        if (isContainsPrecision) {
+          String dataType = getDataTypeBasedOnPrecision(precision, scale);
+          if (!isContainsNegativePrecisionOrScale) {
+            typeAlias = precision > 0 ? isContainsScale ? dataType + "(" + precision + ","
+                + scale + ")" : dataType + "(" + precision + ")" : dataType;
+          } else {
+            typeAlias = dataType;
+          }
+        } else {
+          typeAlias = "NUMERIC";
+        }
+        return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case CHAR:
+      case VARCHAR:
+        if (isColumnLengthPresent) {
+          typeAlias =  precision > 0 ? "STRING(" + precision + ")" : "STRING";
+        } else {
+          typeAlias = "STRING";
+        }
+        return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case BINARY:
+      case VARBINARY:
+        if (isContainsPrecision) {
+          typeAlias =  precision > 0 ? "BYTES(" + precision + ")" : "BYTES";
+        } else {
+          typeAlias = "BYTES";
+        }
+        return createSqlDataTypeSpecByName(typeAlias, typeName);
+      default:
+        break;
+      }
+    }
+    return this.getCastSpec(type);
+  }
+
+  private String getDataTypeBasedOnPrecision(int precision, int scale)  {
+    if (scale > 0) {
+      return scale <= 9 ? scale + precision > 38 ? "BIGNUMERIC" : "NUMERIC" : "BIGNUMERIC";
+    } else {
+      return precision > 29 ? "BIGNUMERIC" : "NUMERIC";
+    }
+  }
+
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
