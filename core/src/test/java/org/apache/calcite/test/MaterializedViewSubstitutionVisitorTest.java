@@ -19,18 +19,22 @@ package org.apache.calcite.test;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -80,9 +84,20 @@ public class MaterializedViewSubstitutionVisitorTest {
         @Override protected List<RelNode> optimize(RelNode queryRel,
             List<RelOptMaterialization> materializationList) {
           RelOptMaterialization materialization = materializationList.get(0);
+          RelNode materializedRel = canonicalize(materialization.queryRel);
+          RelNode normalQueryRel = canonicalize(queryRel);
+          if (!(normalQueryRel instanceof LogicalCalc) && materializedRel instanceof LogicalCalc) {
+            final RelDataType rowType = normalQueryRel.getRowType();
+            final RexProgramBuilder programBuilder =
+                new RexProgramBuilder(rowType, normalQueryRel.getCluster().getRexBuilder());
+            final List<RelDataTypeField> queryFields = rowType.getFieldList();
+            for (int i = 0; i < queryFields.size(); i++) {
+              programBuilder.addProject(RexInputRef.of(i, rowType), queryFields.get(i).getName());
+            }
+            normalQueryRel = LogicalCalc.create(normalQueryRel, programBuilder.getProgram());
+          }
           SubstitutionVisitor substitutionVisitor =
-              new SubstitutionVisitor(canonicalize(materialization.queryRel),
-                  canonicalize(queryRel));
+              new SubstitutionVisitor(materializedRel, normalQueryRel);
           return substitutionVisitor
               .go(materialization.tableRel);
         }
@@ -456,6 +471,24 @@ public class MaterializedViewSubstitutionVisitorTest {
   @Test void testAggregateWithCalcTopInMv() {
     String mv = ""
         + "select \"deptno\", sum(\"salary\"), sum(\"commission\") + 1, sum(\"k\")\n"
+        + "from\n"
+        + "  (select \"deptno\", \"salary\", \"commission\", 100 as \"k\"\n"
+        + "  from \"emps\")\n"
+        + "group by \"deptno\"";
+    String query = ""
+        + "select \"deptno\", sum(\"salary\"), sum(\"k\")\n"
+        + "from\n"
+        + "  (select \"deptno\", \"salary\", 100 as \"k\"\n"
+        + "  from \"emps\")\n"
+        + "group by \"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Similar with {@link #testAggregateWithCalcTopInMv()},
+   * but target's fields have no-equal sequence. */
+  @Test void testAggregateWithCalcTopInMv2() {
+    String mv = ""
+        + "select \"deptno\", sum(\"commission\") + 1, sum(\"k\"), sum(\"salary\")\n"
         + "from\n"
         + "  (select \"deptno\", \"salary\", \"commission\", 100 as \"k\"\n"
         + "  from \"emps\")\n"

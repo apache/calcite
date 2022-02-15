@@ -195,20 +195,8 @@ public class SubstitutionVisitor {
     this.simplify =
         new RexSimplify(cluster.getRexBuilder(), predicates, executor);
     this.rules = rules;
-    MutableRel queryMutableRel = MutableRels.toMutable(query_);
-    final MutableRel targetMutableRel = MutableRels.toMutable(target_);
-    if (!(queryMutableRel instanceof MutableCalc) && targetMutableRel instanceof MutableCalc) {
-      final RelDataType rowType = queryMutableRel.rowType;
-      final RexProgramBuilder programBuilder =
-          new RexProgramBuilder(rowType, cluster.getRexBuilder());
-      final List<RelDataTypeField> queryFields = rowType.getFieldList();
-      for (int i = 0; i < queryFields.size(); i++) {
-        programBuilder.addProject(RexInputRef.of(i, rowType), queryFields.get(i).getName());
-      }
-      queryMutableRel = MutableCalc.of(queryMutableRel, programBuilder.getProgram());
-    }
-    this.query = Holder.of(queryMutableRel);
-    this.target = targetMutableRel;
+    this.query = Holder.of(MutableRels.toMutable(query_));
+    this.target = MutableRels.toMutable(target_);
     this.relBuilder = relBuilderFactory.create(cluster, null);
     final Set<@Nullable MutableRel> parents = Sets.newIdentityHashSet();
     final List<MutableRel> allNodes = new ArrayList<>();
