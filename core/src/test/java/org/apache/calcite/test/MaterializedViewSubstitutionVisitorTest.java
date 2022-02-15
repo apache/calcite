@@ -450,9 +450,10 @@ public class MaterializedViewSubstitutionVisitorTest {
   }
 
   /**
-   * It's need be matched, unused project on aggregate in the mv, and query's rel-root is aggregate.
+   * Need matching because query could be expressed by mv, using trim mv's unused field,
+   * which is the top of Aggregate.
    */
-  @Test void testAggregate7() {
+  @Test void testAggregateWithCalcTopInMv() {
     String mv = ""
         + "select \"deptno\", sum(\"salary\"), sum(\"commission\") + 1, sum(\"k\")\n"
         + "from\n"
@@ -465,6 +466,28 @@ public class MaterializedViewSubstitutionVisitorTest {
         + "  (select \"deptno\", \"salary\", 100 as \"k\"\n"
         + "  from \"emps\")\n"
         + "group by \"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /**
+   * Need matching because query could be expressed by mv, using trim mv's unused field,
+   * which is the top of Union.
+   */
+  @Test void testUnionWithCalcTopInMv() {
+    String mv = ""
+        + "select \"deptno\", \"salary\", 'hello' as \"k\"\n"
+        + "from ("
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\"\n"
+        + "union\n"
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\")";
+    String query = ""
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\"\n"
+        + "union\n"
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\"";
     sql(mv, query).ok();
   }
 
@@ -880,11 +903,14 @@ public class MaterializedViewSubstitutionVisitorTest {
     String m = "select * from \"emps\" where \"empid\" < 500";
     sql(m, q)
         .checkingThatResultContains(""
-            + "LogicalUnion(all=[true])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[>($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "    LogicalTableScan(table=[[hr, emps]])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])")
+            + "LogicalCalc(expr#0..4=[{inputs}], proj#0..4=[{exprs}])\n"
+            + "  LogicalUnion(all=[true])\n"
+            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[>($t0, $t5)], proj#0."
+            + ".4=[{exprs}], $condition=[$t6])\n"
+            + "      LogicalTableScan(table=[[hr, emps]])\n"
+            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0."
+            + ".4=[{exprs}], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
