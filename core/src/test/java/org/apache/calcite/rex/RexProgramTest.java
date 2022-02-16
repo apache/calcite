@@ -1003,6 +1003,10 @@ class RexProgramTest extends RexProgramTestBase {
         "false", "IS NULL(?0.i)");
     checkSimplifyUnchanged(gt(iRef, hRef));
 
+    // "x = 1 or not x = 1 or x is null" simplifies to "true"
+    checkSimplify(or(eq(hRef, literal(1)), not(eq(hRef, literal(1))), isNull(hRef)), "true");
+    checkSimplify(or(eq(iRef, literal(1)), not(eq(iRef, literal(1))), isNull(iRef)), "true");
+
     // "(not x) is null" to "x is null"
     checkSimplify(isNull(not(vBool())), "IS NULL(?0.bool0)");
     checkSimplify(isNull(not(vBoolNotNull())), "false");
@@ -1130,7 +1134,7 @@ class RexProgramTest extends RexProgramTestBase {
     // condition with null value for range
     checkSimplifyFilter(and(gt(aRef, nullBool), ge(bRef, literal(1))), "false");
 
-    // condition "1 < a && 5 < x" yields "5 < x"
+    // condition "1 < a && 5 < a" yields "5 < a"
     checkSimplifyFilter(
         and(lt(literal(1), aRef), lt(literal(5), aRef)),
         RelOptPredicateList.EMPTY,
@@ -1142,7 +1146,7 @@ class RexProgramTest extends RexProgramTestBase {
         RelOptPredicateList.EMPTY,
         "SEARCH(?0.a, Sarg[(1..5)])");
 
-    // condition "1 > a && 5 > x" yields "1 > a"
+    // condition "1 > a && 5 > a" yields "1 > a"
     checkSimplifyFilter(
         and(gt(literal(1), aRef), gt(literal(5), aRef)),
         RelOptPredicateList.EMPTY,
