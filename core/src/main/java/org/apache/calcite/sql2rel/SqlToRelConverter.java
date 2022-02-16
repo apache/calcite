@@ -686,7 +686,7 @@ public class SqlToRelConverter {
     // The existence of other nodes will cause the view to be in the subquery
     boolean hasOtherNodes = select.hasWhere()
         || validator().isAggregate(select) || select.isDistinct()
-        || select.hasOrderBy() || select.getFetch() != null;
+        || select.hasOrderBy() || select.getFetch() != null || select.getOffset() != null;
     // When the query has other nodes, the sort node should be removed
     // even if the view is at the top level
     boolean isRemoveSort = config.isRemoveSortInSubQuery() && (!bb.top || hasOtherNodes);

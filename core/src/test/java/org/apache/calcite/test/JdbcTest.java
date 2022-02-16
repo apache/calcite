@@ -5994,6 +5994,45 @@ public class JdbcTest {
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
                 + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+
+    with.query("select * from \"adhoc\".V offset 10")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(offset=[10])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from \"adhoc\".V offset 10")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(offset=[10])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
+                + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+
+
+    with.query("select * from \"adhoc\".V limit 5 offset 5")
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(offset=[5], fetch=[5])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+    with.query("select * from \"adhoc\".V limit 5 offset 5")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+                configHolder.set(configHolder.get().withRemoveSortInSubQuery(false)))
+        .explainMatches(" without implementation ",
+            CalciteAssert.checkResult("PLAN=LogicalSort(offset=[5], fetch=[5])\n"
+                + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
+                + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
+                + "commission=[$4])\n"
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
   }
 
   /** Tests a view with ORDER BY and LIMIT clauses. */
