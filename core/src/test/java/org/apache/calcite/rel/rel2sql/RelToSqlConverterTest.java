@@ -9516,15 +9516,4 @@ class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBQSql);
   }
-
-  @Test public void testdateFormat() {
-    String query =
-        "CREATE TABLE ABCD( SALD real, SAL decimal)";
-    final String expectedBQSql =
-        "SELECT test.test\n"
-            + "FROM foodmart.test AS test";
-    sqlTest(query)
-        .withBigQuery()
-        .ok(expectedBQSql);
-  }
 }
