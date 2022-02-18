@@ -1469,8 +1469,14 @@ public abstract class SqlImplementor {
       return dialect.getTimeLiteral(castNonNull(literal.getValueAs(TimeString.class)),
         literal.getType().getPrecision(), POS);
     case TIMESTAMP:
-      return dialect.getTimestampLiteral(castNonNull(literal.getValueAs(TimestampString.class)),
-          literal.getType().getPrecision(), POS);
+      TimestampString timestampString = literal.getValueAs(TimestampString.class);
+      int precision = literal.getType().getPrecision();
+
+      if (typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        return SqlLiteral.createTimestamp(timestampString, precision, POS);
+      }
+
+      return dialect.getTimestampLiteral(castNonNull(timestampString), precision, POS);
     case ANY:
     case NULL:
       switch (typeName) {
