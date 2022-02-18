@@ -6474,7 +6474,8 @@ class RelToSqlConverterTest {
                             .project(minusCall)
                             .build();
 
-    final String expectedBigQuery = "SELECT TIMESTAMP_SUB(CAST('2022-02-18 08:23:45' AS DATETIME), INTERVAL 1 MICROSECOND) AS `$f0`";
+    final String expectedBigQuery = "SELECT TIMESTAMP_SUB(CAST('2022-02-18 08:23:45'" +
+        " AS DATETIME), INTERVAL 1 MICROSECOND) AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
@@ -6498,7 +6499,8 @@ class RelToSqlConverterTest {
         .project(plusCall)
         .build();
 
-    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST('2022-02-18 08:23:45' AS DATETIME), INTERVAL 1 MICROSECOND) AS `$f0`";
+    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST('2022-02-18 08:23:45'" +
+        " AS DATETIME), INTERVAL 1 MICROSECOND) AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
