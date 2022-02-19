@@ -2617,6 +2617,101 @@ public class SqlParserTest {
         .fails("(?s).*Encountered \"union\" at .*");
   }
 
+  @Test void testLimitUnion2() {
+    // LIMIT is allowed in a parenthesized sub-query inside UNION;
+    // the result probably has more parentheses than strictly necessary.
+    final String sql = "(select a from t limit 10)\n"
+        + "union all\n"
+        + "(select b from t offset 20)";
+    final String expected = "((SELECT `A`\n"
+        + "FROM `T`\n"
+        + "FETCH NEXT 10 ROWS ONLY)\n"
+        + "UNION ALL\n"
+        + "(SELECT `B`\n"
+        + "FROM `T`\n"
+        + "OFFSET 20 ROWS))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testUnionOffset() {
+    // Note that the second sub-query has parentheses, to ensure that ORDER BY,
+    // OFFSET, FETCH are associated with just that sub-query, not the UNION.
+    final String sql = "select a from t\n"
+        + "union all\n"
+        + "(select b from t order by b offset 3 fetch next 5 rows only)";
+    final String expected = "(SELECT `A`\n"
+        + "FROM `T`\n"
+        + "UNION ALL\n"
+        + "(SELECT `B`\n"
+        + "FROM `T`\n"
+        + "ORDER BY `B`\n"
+        + "OFFSET 3 ROWS\n"
+        + "FETCH NEXT 5 ROWS ONLY))";
+    sql(sql).ok(expected);
+
+    // as above, just ORDER BY
+    final String sql2 = "select a from t\n"
+        + "union all\n"
+        + "(select b from t order by b)";
+    final String expected2 = "(SELECT `A`\n"
+        + "FROM `T`\n"
+        + "UNION ALL\n"
+        + "(SELECT `B`\n"
+        + "FROM `T`\n"
+        + "ORDER BY `B`))";
+    sql(sql2).ok(expected2);
+
+    // as above, just OFFSET
+    final String sql3 = "select a from t\n"
+        + "union all\n"
+        + "(select b from t offset 3)";
+    final String expected3 = "(SELECT `A`\n"
+        + "FROM `T`\n"
+        + "UNION ALL\n"
+        + "(SELECT `B`\n"
+        + "FROM `T`\n"
+        + "OFFSET 3 ROWS))";
+    sql(sql3).ok(expected3);
+
+    // as above, just FETCH
+    final String sql4 = "select a from t\n"
+        + "union all\n"
+        + "(select b from t fetch next 5 rows only)";
+    final String expected4 = "(SELECT `A`\n"
+        + "FROM `T`\n"
+        + "UNION ALL\n"
+        + "(SELECT `B`\n"
+        + "FROM `T`\n"
+        + "FETCH NEXT 5 ROWS ONLY))";
+    sql(sql4).ok(expected4);
+
+    // as above, just FETCH and OFFSET
+    final String sql5 = "select a from t\n"
+        + "union all\n"
+        + "(select b from t offset 3 fetch next 5 rows only)";
+    final String expected5 = "(SELECT `A`\n"
+        + "FROM `T`\n"
+        + "UNION ALL\n"
+        + "(SELECT `B`\n"
+        + "FROM `T`\n"
+        + "OFFSET 3 ROWS\n"
+        + "FETCH NEXT 5 ROWS ONLY))";
+    sql(sql5).ok(expected5);
+
+    // as previous, INTERSECT
+    final String sql6 = "select a from t\n"
+        + "intersect\n"
+        + "(select b from t offset 3 fetch next 5 rows only)";
+    final String expected6 = "(SELECT `A`\n"
+        + "FROM `T`\n"
+        + "INTERSECT\n"
+        + "(SELECT `B`\n"
+        + "FROM `T`\n"
+        + "OFFSET 3 ROWS\n"
+        + "FETCH NEXT 5 ROWS ONLY))";
+    sql(sql6).ok(expected6);
+  }
+
   @Test void testUnionOfNonQueryFails() {
     sql("select 1 from emp union ^2^ + 5")
         .fails("Non-query expression encountered in illegal context");
