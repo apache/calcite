@@ -55,7 +55,7 @@ import static java.util.Objects.requireNonNull;
  *     f.lte(g) returns true, then e.lte(g) must return true.</li>
  * </ul>
  *
- * <p>Note that not all pairs of elements are related. If is OK if e.lte(f)
+ * <p>Note that not all pairs of elements are related. It is OK if e.lte(f)
  * returns false and f.lte(e) returns false also.</p>
  *
  * <p>In addition to the usual set methods, there are methods to determine the
