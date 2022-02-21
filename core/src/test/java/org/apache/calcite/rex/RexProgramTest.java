@@ -1726,6 +1726,37 @@ class RexProgramTest extends RexProgramTestBase {
         "=(?0.notNullInt0, ?0.int1)");
   }
 
+  @Test void testSimplifyEqualityAndNotEqualityWithOverlapping() {
+    final RexLiteral literal3 = literal(3);
+    final RexLiteral literal5 = literal(5);
+    final RexNode intExpr = vInt(0);
+    final RelDataType intType = literal3.getType();
+
+    // "AND(<>(?0.int0, 3), =(?0.int0, 5))" => "=(?0.int0, 5)"
+    checkSimplify(and(ne(intExpr, literal3), eq(intExpr, literal5)), "=(?0.int0, 5)");
+    // "AND(=(?0.int0, 5), <>(?0.int0, 3))" => "=(?0.int0, 5)"
+    checkSimplify(and(eq(intExpr, literal5), ne(intExpr, literal3)), "=(?0.int0, 5)");
+    // "AND(=(CAST(?0.int0):INTEGER NOT NULL, 5), <>(CAST(?0.int0):INTEGER NOT NULL, 3))"
+    // =>
+    // "=(CAST(?0.int0):INTEGER NOT NULL, 5)"
+    checkSimplify(
+        and(ne(rexBuilder.makeCast(intType, intExpr, true), literal3),
+                    eq(rexBuilder.makeCast(intType, intExpr, true), literal5)),
+            "=(CAST(?0.int0):INTEGER NOT NULL, 5)");
+    // "AND(<>(CAST(?0.int0):INTEGER NOT NULL, 3), =(CAST(?0.int0):INTEGER NOT NULL, 5))"
+    // =>
+    // "=(CAST(?0.int0):INTEGER NOT NULL, 5)"
+    checkSimplify(
+        and(ne(rexBuilder.makeCast(intType, intExpr, true), literal3),
+                    eq(rexBuilder.makeCast(intType, intExpr, true), literal5)),
+            "=(CAST(?0.int0):INTEGER NOT NULL, 5)");
+    // "AND(<>(CAST(?0.int0):INTEGER NOT NULL, 3), =(?0.int0, 5))"
+    // =>
+    // "AND(<>(CAST(?0.int0):INTEGER NOT NULL, 3), =(?0.int0, 5))"
+    checkSimplifyUnchanged(
+        and(ne(rexBuilder.makeCast(intType, intExpr, true), literal3), eq(intExpr, literal5)));
+  }
+
   @Test void testSimplifyAndIsNull() {
     final RexNode aRef = input(tInt(true), 0);
     final RexNode bRef = input(tInt(true), 1);

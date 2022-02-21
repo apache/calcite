@@ -116,8 +116,7 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
         .returnsUnordered("author=Jim Heavisides", "author=Daisy Mae West")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(author=[$4])\n"
-            + "    GeodeFilter(condition=[OR(=(CAST($0):INTEGER, 123), "
-            + "=(CAST($0):INTEGER, 789))])\n"
+            + "    GeodeFilter(condition=[SEARCH(CAST($0):INTEGER, Sarg[123, 789])])\n"
             + "      GeodeTableScan(table=[[geode, BookMaster]])\n")
         .queryContains(
             GeodeAssertions.query(expectedQuery));
@@ -455,7 +454,7 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
 
   @Test void testSqlDisjunction() {
     String expectedQuery = "SELECT author AS author FROM /BookMaster "
-        + "WHERE itemNumber IN SET(789, 123)";
+        + "WHERE itemNumber IN SET(123, 789)";
 
     calciteAssert().query("SELECT author FROM geode.BookMaster "
         + "WHERE itemNumber = 789 OR itemNumber = 123").runs()

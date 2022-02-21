@@ -2806,6 +2806,7 @@ public class RexSimplify {
       switch (left.getKind()) {
       case INPUT_REF:
       case FIELD_ACCESS:
+      case CAST:
         switch (right.getKind()) {
         case LITERAL:
           return accept2b(left, kind, (RexLiteral) right, newTerms);
@@ -2817,6 +2818,7 @@ public class RexSimplify {
         switch (right.getKind()) {
         case INPUT_REF:
         case FIELD_ACCESS:
+        case CAST:
           return accept2b(right, kind.reverse(), (RexLiteral) left, newTerms);
         default:
           break;
