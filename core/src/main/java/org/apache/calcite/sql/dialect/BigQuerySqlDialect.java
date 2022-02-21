@@ -233,7 +233,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(YYYYMMDD, "%Y%m%d");
         put(YYMMDD, "%y%m%d");
         put(DAYOFWEEK, "%A");
-        put(YYYYMMDD_HH24_MI_SS_MS, "%Y%m%d %H:%M");
+        put(YYYYMMDD_HH24_MI_SS_MS, "%Y%m%d %H:%M:%E*S");
         put(MILISECOND, "*S");
         put(ABBREVIATEDDAYOFWEEK, "%a");
         put(TWENTYFOURHOUR, "%H");
