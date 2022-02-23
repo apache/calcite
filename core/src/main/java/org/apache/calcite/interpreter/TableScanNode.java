@@ -200,8 +200,6 @@ public class TableScanNode implements Node {
       } else {
         projectInts = projects.toIntArray();
       }
-      final Enumerable<@Nullable Object[]> enumerable1 =
-          pfTable.scan(root, mutableFilters, projectInts);
       for (RexNode filter : mutableFilters) {
         if (!filters.contains(filter)) {
           throw RESOURCE.filterableTableInventedFilter(filter.toString())
@@ -227,6 +225,8 @@ public class TableScanNode implements Node {
           continue;
         }
       }
+      final Enumerable<@Nullable Object[]> enumerable1 =
+          pfTable.scan(root, mutableFilters, projectInts);
       final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable1);
       final ImmutableIntList rejectedProjects;
       if (originalProjects == null || originalProjects.equals(projects)) {
