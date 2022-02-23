@@ -155,7 +155,7 @@ public class ScannableTableTest {
             "j=Paul");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>, projects=[1]"));
+    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>, projects=[1, 0]"));
   }
 
   @Test void testProjectableFilterableNonCooperative() throws Exception {
@@ -188,7 +188,7 @@ public class ScannableTableTest {
         .returnsUnordered("k=1940; j=John",
             "k=1942; j=Paul");
     assertThat(buf.toString(),
-        is("returnCount=2, filter=<0, 4>, projects=[2, 1]"));
+        is("returnCount=2, filter=<0, 4>, projects=[2, 1, 0]"));
   }
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
@@ -397,6 +397,25 @@ public class ScannableTableTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5019">[CALCITE-5019]
+   * Avoid multiple scans when table is ProjectableFilterableTable</a>.*/
+  @Test void testProjectableFilterableWithScanCounter() throws Exception {
+    final StringBuilder buf = new StringBuilder();
+    final BeatlesProjectableFilterableTable table =
+        new BeatlesProjectableFilterableTable(buf, false);
+    final String explain = "PLAN="
+        + "EnumerableInterpreter\n"
+        + "  BindableTableScan(table=[[s, beatles]], filters=[[=($0, 4)]], projects=[[1]]";
+    CalciteAssert.that()
+        .with(newSchema("s", Pair.of("beatles", table)))
+        .query("select \"j\" from \"s\".\"beatles\" where \"i\" = 4")
+        .explainContains(explain)
+        .returnsUnordered("j=John", "j=Paul");
+    assertThat(table.getScanCount(), is(1));
+    assertThat(buf.toString(), is("returnCount=4, projects=[1, 0]"));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-1031]
    * In prepared statement, CsvScannableTable.scan is called twice</a>. */
   @Test void testPrepared2() throws SQLException {
@@ -558,6 +577,7 @@ public class ScannableTableTest {
    * interface. */
   public static class BeatlesProjectableFilterableTable
       extends AbstractTable implements ProjectableFilterableTable {
+    private final AtomicInteger scanCounter = new AtomicInteger();
     private final StringBuilder buf;
     private final boolean cooperative;
 
@@ -577,12 +597,17 @@ public class ScannableTableTest {
 
     public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
         final int @Nullable [] projects) {
+      scanCounter.incrementAndGet();
       final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return beatles(buf, filter, projects);
         }
       };
+    }
+
+    public int getScanCount() {
+      return this.scanCounter.get();
     }
   }
 
