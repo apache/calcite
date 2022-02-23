@@ -40,6 +40,8 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.runtime.FlatLists;
@@ -83,6 +85,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -6451,6 +6454,56 @@ class RelToSqlConverterTest {
     sql(query)
         .withBigQuery()
         .ok(expectedBQ);
+  }
+
+  @Test public void testUnparseMinusCallWithReturnTypeOfTimestampWithZoneToTimestampSub() {
+    final RelBuilder relBuilder = relBuilder();
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexLiteral literalTimestampLTZ =
+        rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
+            new TimestampString(2022, 2, 18, 8, 23, 45), 0);
+
+    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
+        new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
+
+    final RexNode minusCall =
+        relBuilder.call(SqlStdOperatorTable.MINUS, literalTimestampLTZ, intervalLiteral);
+
+    final RelNode root = relBuilder
+                            .values(new String[] {"c"}, 1)
+                            .project(minusCall)
+                            .build();
+
+    final String expectedBigQuery = "SELECT TIMESTAMP_SUB(TIMESTAMP '2022-02-18 08:23:45'"
+        + ", INTERVAL 1 MICROSECOND) AS `$f0`";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testUnparsePlusCallWithReturnTypeOfTimestampWithZoneToTimestampAdd() {
+    final RelBuilder relBuilder = relBuilder();
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexLiteral literalTimestampLTZ =
+        rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
+            new TimestampString(2022, 2, 18, 8, 23, 45), 0);
+
+    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
+        new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
+
+    final RexNode plusCall =
+        relBuilder.call(SqlStdOperatorTable.PLUS, literalTimestampLTZ, intervalLiteral);
+
+    final RelNode root = relBuilder
+        .values(new String[] {"c"}, 1)
+        .project(plusCall)
+        .build();
+
+    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(TIMESTAMP '2022-02-18 08:23:45',"
+        + " INTERVAL 1 MICROSECOND) AS `$f0`";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
   @Test public void truncateFunctionEmulationForBigQuery() {
