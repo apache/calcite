@@ -29,6 +29,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.FilterExtractInnerJoinRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
@@ -3209,13 +3210,13 @@ class RelToSqlConverterTest {
     sql(query).withDb2().ok(expected);
   }
 
-  @Test void testCartesianProductWithCommaSyntax() {
+  /*@Test void testCartesianProductWithCommaSyntax() {
     String query = "select * from \"department\" , \"employee\"";
     String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
-  }
+  }*/
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2652">[CALCITE-2652]
@@ -3253,14 +3254,14 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expectedSql);
   }
 
-  @Test void testCartesianProductWithInnerJoinSyntax() {
+  /*@Test void testCartesianProductWithInnerJoinSyntax() {
     String query = "select * from \"department\"\n"
         + "INNER JOIN \"employee\" ON TRUE";
     String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
-  }
+  }*/
 
   @Test void testFullJoinOnTrueCondition() {
     String query = "select * from \"department\"\n"
@@ -5753,21 +5754,21 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test void testCrossJoinEmulationForSpark() {
+  /*@Test void testCrossJoinEmulationForSpark() {
     String query = "select * from \"employee\", \"department\"";
     final String expected = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
     sql(query).withSpark().ok(expected);
-  }
+  }*/
 
-  @Test void testCrossJoinEmulationForBigQuery() {
+  /*@Test void testCrossJoinEmulationForBigQuery() {
     String query = "select * from \"employee\", \"department\"";
     final String expected = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
     sql(query).withBigQuery().ok(expected);
-  }
+  }*/
 
   @Test void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
@@ -9510,5 +9511,62 @@ class RelToSqlConverterTest {
     sqlTest(query)
         .withBigQuery()
         .ok(expectedBQSql);
+  }
+
+  @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoin() {
+    String query =
+        "select *\n"
+            + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"department\" as \"d\"\n"
+            + " where \"e\".\"department_id\" = \"d\".\"department_id\" "
+            + "and \"e\".\"employee_id\" > 2";
+
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "WHERE employee.employee_id > 2";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoinWithOneConditionInFilter() {
+    String query =
+        "select *\n"
+            + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"department\" as \"d\"\n"
+            + " where \"e\".\"department_id\" = \"d\".\"department_id\"";
+
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testConversionOfFilterWithThreeCrossJoinToFilterWithInnerJoin() {
+    String query = "select *\n"
+        + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"department\" as \"d\", \n"
+        + " \"foodmart\".\"reserve_employee\" as \"re\"\n"
+        + " where \"e\".\"department_id\" = \"d\".\"department_id\" and \"e\".\"employee_id\" > 2\n"
+        + " and \"re\".\"employee_id\" = \"e\".\"employee_id\"";
+
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "INNER JOIN foodmart.reserve_employee "
+        + "ON employee.employee_id = reserve_employee.employee_id\n"
+        + "WHERE employee.employee_id > 2";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
   }
 }
