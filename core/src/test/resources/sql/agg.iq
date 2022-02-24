@@ -3017,6 +3017,25 @@ EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], E
   EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
+select JSON_OBJECT(
+    KEY 'level1'
+    VALUE JSON_OBJECT(
+        KEY 'level2'
+        VALUE JSON_OBJECT(
+            KEY 'level3'
+            VALUE 'val3'
+        )
+    )
+) as nested_json_not_incorrectly_formatted;
++-----------------------------------------+
+|   NESTED_JSON_NOT_INCORRECTLY_ESCAPED   |
++-----------------------------------------+
+| {"level1":{"level2":{"level3":"val3"}}} |
++-----------------------------------------+
+(1 row)
+
+!ok
+
 select listagg(ename) as combined_name from emp;
 +------------------------------------------------+
 | COMBINED_NAME                                  |
