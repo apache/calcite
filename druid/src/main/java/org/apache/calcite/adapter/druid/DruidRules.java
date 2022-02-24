@@ -54,9 +54,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.apache.commons.lang3.tuple.ImmutableTriple;
-import org.apache.commons.lang3.tuple.Triple;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -217,29 +214,29 @@ public class DruidRules {
           query.getRowType().getFieldNames()
               .indexOf(query.druidTable.timestampFieldName);
       RelNode newDruidQuery = query;
-      final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
+      final DruidFilters druidFilters =
           splitFilters(validPreds, nonValidPreds, timestampFieldIdx);
-      if (triple.getLeft().isEmpty() && triple.getMiddle().isEmpty()) {
+      if (druidFilters.getTimeRangeNodes().isEmpty() && druidFilters.getPushableNodes().isEmpty()) {
         // it sucks, nothing to push
         return;
       }
-      final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
+      final List<RexNode> residualPreds = new ArrayList<>(druidFilters.getNonPushableNodes());
       List<Interval> intervals = null;
-      if (!triple.getLeft().isEmpty()) {
+      if (!druidFilters.getTimeRangeNodes().isEmpty()) {
         final String timeZone = cluster.getPlanner().getContext()
             .unwrap(CalciteConnectionConfig.class).timeZone();
         assert timeZone != null;
         intervals = DruidDateTimeUtils.createInterval(
-            RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
+            RexUtil.composeConjunction(rexBuilder, druidFilters.getTimeRangeNodes()));
         if (intervals == null || intervals.isEmpty()) {
           // Case we have a filter with extract that can not be written as interval push down
-          triple.getMiddle().addAll(triple.getLeft());
+          druidFilters.getPushableNodes().addAll(druidFilters.getTimeRangeNodes());
         }
       }
 
-      if (!triple.getMiddle().isEmpty()) {
+      if (!druidFilters.getPushableNodes().isEmpty()) {
         final RelNode newFilter = filter.copy(filter.getTraitSet(), Util.last(query.rels),
-            RexUtil.composeConjunction(rexBuilder, triple.getMiddle()));
+            RexUtil.composeConjunction(rexBuilder, druidFilters.getPushableNodes()));
         newDruidQuery = DruidQuery.extendQuery(query, newFilter);
       }
       if (intervals != null && !intervals.isEmpty()) {
@@ -258,12 +255,12 @@ public class DruidRules {
      * Given a list of conditions that contain Druid valid operations and
      * a list that contains those that contain any non-supported operation,
      * it outputs a triple with three different categories:
-     * 1-l) condition filters on the timestamp column,
-     * 2-m) condition filters that can be pushed to Druid,
-     * 3-r) condition filters that cannot be pushed to Druid.
+     * 1) condition filters on the timestamp column,
+     * 2) condition filters that can be pushed to Druid,
+     * 3) condition filters that cannot be pushed to Druid.
      */
     @SuppressWarnings("BetaApi")
-    private static Triple<List<RexNode>, List<RexNode>, List<RexNode>> splitFilters(
+    private static DruidFilters splitFilters(
         final List<RexNode> validPreds,
         final List<RexNode> nonValidPreds, final int timestampFieldIdx) {
       final List<RexNode> timeRangeNodes = new ArrayList<>();
@@ -280,7 +277,7 @@ public class DruidRules {
           pushableNodes.add(conj);
         }
       }
-      return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
+      return new DruidFilters(timeRangeNodes, pushableNodes, nonPushableNodes);
     }
 
     /** Rule configuration. */
@@ -852,6 +849,35 @@ public class DruidRules {
       @Override default DruidSortRule toRule() {
         return new DruidSortRule(this);
       }
+    }
+  }
+
+  /**
+   * Describes some filters to be applied to Druid.
+   */
+  private static class DruidFilters {
+
+    private final List<RexNode> timeRangeNodes;
+    private final List<RexNode> pushableNodes;
+    private final List<RexNode> nonPushableNodes;
+
+    private DruidFilters(List<RexNode> timeRangeNodes, List<RexNode> pushableNodes,
+        List<RexNode> nonPushableNodes) {
+      this.timeRangeNodes = timeRangeNodes;
+      this.pushableNodes = pushableNodes;
+      this.nonPushableNodes = nonPushableNodes;
+    }
+
+    public List<RexNode> getTimeRangeNodes() {
+      return timeRangeNodes;
+    }
+
+    public List<RexNode> getPushableNodes() {
+      return pushableNodes;
+    }
+
+    public List<RexNode> getNonPushableNodes() {
+      return nonPushableNodes;
     }
   }
 }

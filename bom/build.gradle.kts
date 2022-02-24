@@ -94,7 +94,6 @@ dependencies {
         apiv("org.apache.calcite.avatica:avatica-server", "calcite.avatica")
         apiv("org.apache.cassandra:cassandra-all")
         apiv("org.apache.commons:commons-dbcp2")
-        apiv("org.apache.commons:commons-lang3")
         apiv("org.apache.commons:commons-pool2")
         apiv("org.apache.geode:geode-core")
         apiv("org.apache.hadoop:hadoop-client", "hadoop")

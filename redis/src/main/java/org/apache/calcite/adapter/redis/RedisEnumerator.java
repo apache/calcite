@@ -19,8 +19,6 @@ package org.apache.calcite.adapter.redis;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +38,7 @@ class RedisEnumerator implements Enumerator<Object[]> {
         redisConfig.getPort(), redisConfig.getDatabase(), redisConfig.getPassword());
 
     try (Jedis jedis = redisManager.getResource()) {
-      if (StringUtils.isNotEmpty(redisConfig.getPassword())) {
+      if (redisConfig.getPassword() != null && !redisConfig.getPassword().isEmpty()) {
         jedis.auth(redisConfig.getPassword());
       }
       RedisDataProcess dataProcess = new RedisDataProcess(jedis, tableFieldInfo);

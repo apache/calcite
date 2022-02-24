@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.redis;
 
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import com.google.common.cache.CacheBuilder;
@@ -80,7 +79,7 @@ public class RedisJedisManager implements AutoCloseable {
 
   private JedisPool createConsumer() {
     String pwd = password;
-    if (StringUtils.isEmpty(pwd)) {
+    if (pwd != null && pwd.isEmpty()) {
       pwd = null;
     }
     return new JedisPool(jedisPoolConfig, host, port, timeout, pwd, database);

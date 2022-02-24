@@ -31,7 +31,6 @@ dependencies {
     implementation("net.sf.opencsv:opencsv")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("commons-io:commons-io")
-    implementation("org.apache.commons:commons-lang3")
     implementation("org.jsoup:jsoup")
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")

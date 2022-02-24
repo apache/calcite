@@ -128,8 +128,6 @@ import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
 
-import static org.apache.commons.lang3.StringUtils.countMatches;
-
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -451,7 +449,15 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        assertEquals(count, countMatches(actual, expected),
+
+        Pattern pattern = Pattern.compile(expected);
+        java.util.regex.Matcher matcher = pattern.matcher(actual);
+        int actualCount = 0;
+        while (matcher.find()) {
+          actualCount++;
+        }
+
+        assertEquals(count, actualCount,
             () -> actual + " should have " + count + " occurrence of " + expected);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
