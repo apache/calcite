@@ -204,8 +204,8 @@ public class RexSimplify {
    *
    * <p>In particular:</p>
    * <ul>
-   * <li>{@code simplify(x = 1 AND y = 2 AND NOT x = 1)}
-   * returns {@code y = 2}</li>
+   * <li>{@code simplify(x = 1 OR NOT x = 1 OR x IS NULL)}
+   * returns {@code TRUE}</li>
    * <li>{@code simplify(x = 1 AND FALSE)}
    * returns {@code FALSE}</li>
    * </ul>
@@ -865,7 +865,7 @@ public class RexSimplify {
   }
 
   private @Nullable RexNode simplifyIsPredicate(SqlKind kind, RexNode a) {
-    if (!RexUtil.isReferenceOrAccess(a, true)) {
+    if (!(RexUtil.isReferenceOrAccess(a, true) || RexUtil.isDeterministic(a))) {
       return null;
     }
 
@@ -2664,7 +2664,7 @@ public class RexSimplify {
       case IS_NULL:
       case IS_NOT_NULL:
         RexNode pA = ((RexCall) e).getOperands().get(0);
-        if (!RexUtil.isReferenceOrAccess(pA, true)) {
+        if (!(RexUtil.isReferenceOrAccess(pA, true) || RexUtil.isDeterministic(pA))) {
           return null;
         }
         return new IsPredicate(pA, e.getKind());

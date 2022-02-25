@@ -711,6 +711,26 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether the dialect supports GROUP BY literals.
+   *
+   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the following queries are illegal.</p>
+   * <pre>{@code
+   * select avg(salary)
+   * from emp
+   * group by true
+   * }</pre>
+   *
+   *  <pre>{@code
+   * select avg(salary)
+   * from emp
+   * group by 'a', DATE '2022-01-01'
+   * }</pre>
+   */
+  public boolean supportsGroupByLiteral() {
+    return true;
+  }
+
   public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case COUNT:
@@ -722,6 +742,11 @@ public class SqlDialect {
     default:
       break;
     }
+    return false;
+  }
+
+  /** Returns whether this dialect supports APPROX_COUNT_DISTINCT functions. */
+  public boolean supportsApproxCountDistinct() {
     return false;
   }
 

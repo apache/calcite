@@ -683,6 +683,42 @@ public class SqlToRelConverter {
     convertFrom(
         bb,
         select.getFrom());
+
+    // We would like to remove ORDER BY clause from an expanded view, except if
+    // it is top-level or affects semantics.
+    //
+    // Top-level example. Given the view definition
+    //   CREATE VIEW v AS SELECT * FROM t ORDER BY x
+    // we would retain the view's ORDER BY in
+    //   SELECT * FROM v
+    // or
+    //   SELECT * FROM v WHERE y = 5
+    // but remove the view's ORDER BY in
+    //   SELECT * FROM v ORDER BY z
+    // and
+    //   SELECT deptno, COUNT(*) FROM v GROUP BY deptno
+    // because the ORDER BY and GROUP BY mean that the view is not 'top level' in
+    // the query.
+    //
+    // Semantics example. Given the view definition
+    //   CREATE VIEW v2 AS SELECT * FROM t ORDER BY x LIMIT 10
+    // we would never remove the ORDER BY, because "ORDER BY ... LIMIT" is about
+    // semantics. It is not a 'pure order'.
+    if (RelOptUtil.isPureOrder(castNonNull(bb.root))
+        && config.isRemoveSortInSubQuery()) {
+      // Remove the Sort if the view is at the top level. Also remove the Sort
+      // if there are other nodes, which will cause the view to be in the
+      // sub-query.
+      if (!bb.top
+          || validator().isAggregate(select)
+          || select.isDistinct()
+          || select.hasOrderBy()
+          || select.getFetch() != null
+          || select.getOffset() != null) {
+        bb.setRoot(castNonNull(bb.root).getInput(0), true);
+      }
+    }
+
     convertWhere(
         bb,
         select.getWhere());
@@ -2586,14 +2622,19 @@ public class SqlToRelConverter {
               extendedColumns);
       table = table.extend(extendedFields);
     }
-    final RelNode tableRel;
     // Review Danny 2020-01-13: hacky to construct a new table scan
     // in order to apply the hint strategies.
     final List<RelHint> hints = hintStrategies.apply(
         SqlUtil.getRelHint(hintStrategies, tableHints),
         LogicalTableScan.create(cluster, table, ImmutableList.of()));
-    tableRel = toRel(table, hints);
+    final RelNode tableRel = toRel(table, hints);
     bb.setRoot(tableRel, true);
+
+    if (RelOptUtil.isPureOrder(castNonNull(bb.root))
+        && removeSortInSubQuery(bb.top)) {
+      bb.setRoot(castNonNull(bb.root).getInput(0), true);
+    }
+
     if (usedDataset[0]) {
       bb.setDataset(datasetName);
     }
@@ -4106,16 +4147,12 @@ public class SqlToRelConverter {
     } else {
       qualified = SqlQualified.create(null, 1, null, identifier);
     }
-    final Pair<RexNode, @Nullable Map<String, Integer>> e0 = requireNonNull(
-        bb.lookupExp(qualified),
-        () -> "no expression found for " + qualified);
+    final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 =
+        bb.lookupExp(qualified);
     RexNode e = e0.left;
     for (String name : qualified.suffix()) {
       if (e == e0.left && e0.right != null) {
-        Integer i = requireNonNull(
-            e0.right.get(name),
-            () -> "e0.right.get(name) produced null for " + name);
-        e = rexBuilder.makeFieldAccess(e, i);
+        e = e0.right.apply(e, name);
       } else {
         final boolean caseSensitive = true; // name already fully-qualified
         if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
@@ -4651,7 +4688,9 @@ public class SqlToRelConverter {
               currentProjection);
         }
 
-        setRoot(newLeftInput, false);
+        // if the original root rel is a leaf rel, the new root should be a leaf.
+        // otherwise the field offset will be wrong.
+        setRoot(newLeftInput, leaves.remove(root()) != null);
 
         // right fields appear after the LHS fields.
         final int rightOffset = root().getRowType().getFieldCount()
@@ -4779,13 +4818,14 @@ public class SqlToRelConverter {
     }
 
     /**
-     * Returns an expression with which to reference a from-list item.
+     * Returns an expression with which to reference a from-list item;
+     * throws if not found.
      *
-     * @param qualified the alias of the from item
-     * @return a {@link RexFieldAccess} or {@link RexRangeRef}, or null if
-     * not found
+     * @param qualified The alias of the FROM item
+     * @return a {@link RexFieldAccess} or {@link RexRangeRef}, never null
      */
-    @Nullable Pair<RexNode, @Nullable Map<String, Integer>> lookupExp(SqlQualified qualified) {
+    Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> lookupExp(
+        SqlQualified qualified) {
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
         RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
         if (node == null) {
@@ -4799,8 +4839,9 @@ public class SqlToRelConverter {
       final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
       scope().resolve(qualified.prefix(), nameMatcher, false, resolved);
-      if (!(resolved.count() == 1)) {
-        return null;
+      if (resolved.count() != 1) {
+        throw new AssertionError("no unique expression found for " + qualified
+            + "; count is " + resolved.count());
       }
       final SqlValidatorScope.Resolve resolve = resolved.only();
       final RelDataType rowType = resolve.rowType();
@@ -4814,18 +4855,13 @@ public class SqlToRelConverter {
         final LookupContext rels =
             new LookupContext(this, inputs, systemFieldList.size());
         final RexNode node = lookup(resolve.path.steps().get(0).i, rels);
-        if (node == null) {
-          return null;
-        } else {
-          final Map<String, Integer> fieldOffsets = new HashMap<>();
-          for (RelDataTypeField f : resolve.rowType().getFieldList()) {
-            if (!fieldOffsets.containsKey(f.getName())) {
-              fieldOffsets.put(f.getName(), f.getIndex());
-            }
-          }
-          final Map<String, Integer> map = ImmutableMap.copyOf(fieldOffsets);
-          return Pair.of(node, map);
-        }
+        assert node != null;
+        return Pair.of(node, (e, fieldName) -> {
+          final RelDataTypeField field =
+              requireNonNull(rowType.getField(fieldName, true, false),
+                  () -> "field " + fieldName);
+          return rexBuilder.makeFieldAccess(e, field.getIndex());
+        });
       } else {
         // We're referencing a relational expression which has not been
         // converted yet. This occurs when from items are correlated,
@@ -4857,7 +4893,11 @@ public class SqlToRelConverter {
           }
           final RexNode c =
               rexBuilder.makeCorrel(builder.uniquify().build(), correlId);
-          return Pair.of(c, fields.build());
+          final ImmutableMap<String, Integer> fieldMap = fields.build();
+          return Pair.of(c, (e, fieldName) -> {
+            final int j = requireNonNull(fieldMap.get(fieldName), "field " + fieldName);
+            return rexBuilder.makeFieldAccess(e, j);
+          });
         }
       }
     }

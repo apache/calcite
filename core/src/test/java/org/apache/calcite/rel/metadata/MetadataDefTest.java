@@ -14,29 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.dialect;
+package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.sql.SqlDialect;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
- * A <code>SqlDialect</code> implementation for the Snowflake database.
+ * Test cases for {@link MetadataDef}.
  */
-public class SnowflakeSqlDialect extends SqlDialect {
-  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
-      .withDatabaseProduct(SqlDialect.DatabaseProduct.SNOWFLAKE)
-      .withIdentifierQuoteString("\"")
-      .withUnquotedCasing(Casing.TO_UPPER);
-
-  public static final SqlDialect DEFAULT =
-      new SnowflakeSqlDialect(DEFAULT_CONTEXT);
-
-  /** Creates a SnowflakeSqlDialect. */
-  public SnowflakeSqlDialect(Context context) {
-    super(context);
+class MetadataDefTest {
+  @Test void staticMethodInHandlerIsIgnored() {
+    assertDoesNotThrow(
+        () -> MetadataDef.of(TestMetadata.class, MetadataHandlerWithStaticMethod.class)
+    );
   }
 
-  @Override public boolean supportsApproxCountDistinct() {
-    return true;
+  @Test void synthenticMethodInHandlerIsIgnored() {
+    assertDoesNotThrow(
+        () -> MetadataDef.of(TestMetadata.class,
+            TestMetadataHandlers.handlerClassWithSyntheticMethod())
+    );
   }
 }
