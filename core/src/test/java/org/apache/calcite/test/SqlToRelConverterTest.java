@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
@@ -38,6 +39,8 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -4431,5 +4434,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
                 config.withIdentifierExpansion(false)))
         .withTrim(false)
         .ok();
+  }
+
+  @Test void testBigIntervalHourPrecision() {
+    String expr = "interval '1000000' hour";
+    expr(expr).withFactory(
+        t -> t.withTypeFactoryFactory(
+          f -> new JavaTypeFactoryImpl() {
+            @Override public RelDataTypeSystem getTypeSystem() {
+              return new RelDataTypeSystemImpl() {
+                @Override public int getDefaultPrecision(SqlTypeName typeName) {
+                  switch (typeName) {
+                  case INTERVAL_HOUR:
+                    return SqlTypeName.MAX_INTERVAL_START_PRECISION;
+                  default:
+                    break;
+                  }
+                  return super.getDefaultPrecision(typeName);
+                }
+              };
+            }
+          }
+    )).ok();
   }
 }

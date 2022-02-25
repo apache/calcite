@@ -1088,6 +1088,545 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
+  //------------------no validation version of evaluateIntervalLiteralAsXXX-----------------------
+  /**
+   * Evaluates an INTERVAL literal against a YEAR interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsYear(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal year;
+
+    // validate as YEAR(startPrecision), e.g. 'YY'
+    String intervalPattern = "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        year = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+      // package values up for return
+      return fillIntervalValueArray(sign, year, ZERO);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against a YEAR TO MONTH interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsYearToMonth(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal year;
+    BigDecimal month;
+
+    // validate as YEAR(startPrecision) TO MONTH, e.g. 'YY-DD'
+    String intervalPattern = "(\\d+)-(\\d{1,2})";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        year = parseField(m, 1);
+        month = parseField(m, 2);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      if (!isSecondaryFieldInRange(month, TimeUnit.MONTH)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, year, month);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against a MONTH interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsMonth(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal month;
+
+    // validate as MONTH(startPrecision), e.g. 'MM'
+    String intervalPattern = "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        month = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, ZERO, month);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against a DAY interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsDay(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal day;
+
+    // validate as DAY(startPrecision), e.g. 'DD'
+    String intervalPattern = "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        day = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, day, ZERO, ZERO, ZERO, ZERO);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against a DAY TO HOUR interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsDayToHour(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal day;
+    BigDecimal hour;
+
+    // validate as DAY(startPrecision) TO HOUR, e.g. 'DD HH'
+    String intervalPattern = "(\\d+) (\\d{1,2})";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        day = parseField(m, 1);
+        hour = parseField(m, 2);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+      if (!isSecondaryFieldInRange(hour, TimeUnit.HOUR)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, day, hour, ZERO, ZERO, ZERO);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against a DAY TO MINUTE interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsDayToMinute(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal day;
+    BigDecimal hour;
+    BigDecimal minute;
+
+    // validate as DAY(startPrecision) TO MINUTE, e.g. 'DD HH:MM'
+    String intervalPattern = "(\\d+) (\\d{1,2}):(\\d{1,2})";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        day = parseField(m, 1);
+        hour = parseField(m, 2);
+        minute = parseField(m, 3);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+      if (!isSecondaryFieldInRange(hour, TimeUnit.HOUR)
+          || !isSecondaryFieldInRange(minute, TimeUnit.MINUTE)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, day, hour, minute, ZERO, ZERO);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against a DAY TO SECOND interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsDayToSecond(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal day;
+    BigDecimal hour;
+    BigDecimal minute;
+    BigDecimal second;
+    BigDecimal secondFrac;
+    boolean hasFractionalSecond;
+
+    String intervalPatternWithFracSec =
+        "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})\\.(\\d+)";
+    String intervalPatternWithoutFracSec =
+        "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})";
+
+    Matcher m = Pattern.compile(intervalPatternWithFracSec).matcher(value);
+    if (m.matches()) {
+      hasFractionalSecond = true;
+    } else {
+      m = Pattern.compile(intervalPatternWithoutFracSec).matcher(value);
+      hasFractionalSecond = false;
+    }
+
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        day = parseField(m, 1);
+        hour = parseField(m, 2);
+        minute = parseField(m, 3);
+        second = parseField(m, 4);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      if (hasFractionalSecond) {
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(5)));
+      } else {
+        secondFrac = ZERO;
+      }
+
+      if (!isSecondaryFieldInRange(hour, TimeUnit.HOUR)
+          || !isSecondaryFieldInRange(minute, TimeUnit.MINUTE)
+          || !isSecondaryFieldInRange(second, TimeUnit.SECOND)
+          || !isFractionalSecondFieldInRange(secondFrac)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(
+          sign,
+          day,
+          hour,
+          minute,
+          second,
+          secondFrac);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against an HOUR interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsHour(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal hour;
+
+    // validate as HOUR(startPrecision), e.g. 'HH'
+    String intervalPattern = "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        hour = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, ZERO, hour, ZERO, ZERO, ZERO);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against an HOUR TO MINUTE interval
+   * qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsHourToMinute(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal hour;
+    BigDecimal minute;
+
+    // validate as HOUR(startPrecision) TO MINUTE, e.g. 'HH:MM'
+    String intervalPattern = "(\\d+):(\\d{1,2})";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        hour = parseField(m, 1);
+        minute = parseField(m, 2);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      if (!isSecondaryFieldInRange(minute, TimeUnit.MINUTE)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, ZERO, hour, minute, ZERO, ZERO);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against an HOUR TO SECOND interval
+   * qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsHourToSecond(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal hour;
+    BigDecimal minute;
+    BigDecimal second;
+    BigDecimal secondFrac;
+    boolean hasFractionalSecond;
+
+    String intervalPatternWithFracSec =
+        "(\\d+):(\\d{1,2}):(\\d{1,2})\\.(\\d+)";
+    String intervalPatternWithoutFracSec =
+        "(\\d+):(\\d{1,2}):(\\d{1,2})";
+
+    Matcher m = Pattern.compile(intervalPatternWithFracSec).matcher(value);
+    if (m.matches()) {
+      hasFractionalSecond = true;
+    } else {
+      m = Pattern.compile(intervalPatternWithoutFracSec).matcher(value);
+      hasFractionalSecond = false;
+    }
+
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        hour = parseField(m, 1);
+        minute = parseField(m, 2);
+        second = parseField(m, 3);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      if (hasFractionalSecond) {
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(4)));
+      } else {
+        secondFrac = ZERO;
+      }
+
+      if (!isSecondaryFieldInRange(minute, TimeUnit.MINUTE)
+          || !isSecondaryFieldInRange(second, TimeUnit.SECOND)
+          || !isFractionalSecondFieldInRange(secondFrac)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(
+          sign,
+          ZERO,
+          hour,
+          minute,
+          second,
+          secondFrac);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against an MINUTE interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsMinute(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal minute;
+
+    // validate as MINUTE(startPrecision), e.g. 'MM'
+    String intervalPattern = "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        minute = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(sign, ZERO, ZERO, minute, ZERO, ZERO);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against an MINUTE TO SECOND interval
+   * qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsMinuteToSecond(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal minute;
+    BigDecimal second;
+    BigDecimal secondFrac;
+    boolean hasFractionalSecond;
+
+    String intervalPatternWithFracSec =
+        "(\\d+):(\\d{1,2})\\.(\\d+)";
+    String intervalPatternWithoutFracSec =
+        "(\\d+):(\\d{1,2})";
+
+    Matcher m = Pattern.compile(intervalPatternWithFracSec).matcher(value);
+    if (m.matches()) {
+      hasFractionalSecond = true;
+    } else {
+      m = Pattern.compile(intervalPatternWithoutFracSec).matcher(value);
+      hasFractionalSecond = false;
+    }
+
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        minute = parseField(m, 1);
+        second = parseField(m, 2);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      if (hasFractionalSecond) {
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(3)));
+      } else {
+        secondFrac = ZERO;
+      }
+
+      if (!isSecondaryFieldInRange(second, TimeUnit.SECOND)
+          || !isFractionalSecondFieldInRange(secondFrac)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(
+          sign,
+          ZERO,
+          ZERO,
+          minute,
+          second,
+          secondFrac);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Evaluates an INTERVAL literal against an SECOND interval qualifier.
+   *
+   */
+  private int[] evaluateIntervalLiteralAsSecond(
+      int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal second;
+    BigDecimal secondFrac;
+    boolean hasFractionalSecond;
+
+    String intervalPatternWithFracSec =
+        "(\\d+)\\.(\\d+)";
+    String intervalPatternWithoutFracSec =
+        "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPatternWithFracSec).matcher(value);
+    if (m.matches()) {
+      hasFractionalSecond = true;
+    } else {
+      m = Pattern.compile(intervalPatternWithoutFracSec).matcher(value);
+      hasFractionalSecond = false;
+    }
+
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        second = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      if (hasFractionalSecond) {
+        secondFrac = normalizeSecondFraction(castNonNull(m.group(2)));
+      } else {
+        secondFrac = ZERO;
+      }
+
+      if (!isFractionalSecondFieldInRange(secondFrac)) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // package values up for return
+      return fillIntervalValueArray(
+          sign, ZERO, ZERO, ZERO, second, secondFrac);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
   /**
    * Validates an INTERVAL literal according to the rules specified by the
    * interval qualifier. The assumption is made that the interval qualifier has
@@ -1160,6 +1699,81 @@ public class SqlIntervalQualifier extends SqlNode {
           value0, pos);
     case SECOND:
       return evaluateIntervalLiteralAsSecond(typeSystem, sign, value, value0,
+          pos);
+    default:
+      throw invalidValueException(pos, value0);
+    }
+  }
+
+  /**
+   * Evaluates INTERVAL literal according to the rules specified by the
+   * interval qualifier. This is a overloaded version of
+   * {@link #evaluateIntervalLiteral(String, SqlParserPos, RelDataTypeSystem)}
+   * but no validating.
+   *
+   * @return field values, never null
+   *
+   */
+  public int[] evaluateIntervalLiteral(String value, SqlParserPos pos) {
+    // save original value for if we have to throw
+    final String value0 = value;
+
+    // First strip off any leading whitespace
+    value = value.trim();
+
+    // check if the sign was explicitly specified.  Record
+    // the explicit or implicit sign, and strip it off to
+    // simplify pattern matching later.
+    final int sign = getIntervalSign(value);
+    value = stripLeadingSign(value);
+
+    // If we have an empty or null literal at this point,
+    // it's illegal.  Complain and bail out.
+    if (Util.isNullOrEmpty(value)) {
+      throw invalidValueException(pos, value0);
+    }
+
+    // Validate remaining string according to the pattern
+    // that corresponds to the start and end units as
+    // well as explicit or implicit precision and range.
+    switch (timeUnitRange) {
+    case YEAR:
+      return evaluateIntervalLiteralAsYear(sign, value, value0,
+          pos);
+    case YEAR_TO_MONTH:
+      return evaluateIntervalLiteralAsYearToMonth(sign, value,
+          value0, pos);
+    case MONTH:
+      return evaluateIntervalLiteralAsMonth(sign, value, value0,
+          pos);
+    case DAY:
+      return evaluateIntervalLiteralAsDay(sign, value, value0, pos);
+    case DAY_TO_HOUR:
+      return evaluateIntervalLiteralAsDayToHour(sign, value, value0,
+          pos);
+    case DAY_TO_MINUTE:
+      return evaluateIntervalLiteralAsDayToMinute(sign, value,
+          value0, pos);
+    case DAY_TO_SECOND:
+      return evaluateIntervalLiteralAsDayToSecond(sign, value,
+          value0, pos);
+    case HOUR:
+      return evaluateIntervalLiteralAsHour(sign, value, value0,
+          pos);
+    case HOUR_TO_MINUTE:
+      return evaluateIntervalLiteralAsHourToMinute(sign, value,
+          value0, pos);
+    case HOUR_TO_SECOND:
+      return evaluateIntervalLiteralAsHourToSecond(sign, value,
+          value0, pos);
+    case MINUTE:
+      return evaluateIntervalLiteralAsMinute(sign, value, value0,
+          pos);
+    case MINUTE_TO_SECOND:
+      return evaluateIntervalLiteralAsMinuteToSecond(sign, value,
+          value0, pos);
+    case SECOND:
+      return evaluateIntervalLiteralAsSecond(sign, value, value0,
           pos);
     default:
       throw invalidValueException(pos, value0);

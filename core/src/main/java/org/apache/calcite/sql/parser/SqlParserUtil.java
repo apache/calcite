@@ -237,7 +237,7 @@ public final class SqlParserUtil {
     int[] ret;
     try {
       ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
+          intervalQualifier.getParserPosition());
       assert ret != null;
     } catch (CalciteContextException e) {
       throw new RuntimeException("while parsing day-to-second interval "
