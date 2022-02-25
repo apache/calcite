@@ -1397,15 +1397,16 @@ public class SqlToRelConverter {
       //
       // The first two lists contain the same number of fields.
       final int k = (fieldCount - 1) / 2;
+      ImmutableList.Builder<RexNode> rexNodeBuilder = ImmutableList.builder();
+      rexNodeBuilder.add(rexNode);
       for (int i = 0; i < k; i++) {
-        rexNode =
+        rexNodeBuilder.add(
             rexBuilder.makeCall(
-                SqlStdOperatorTable.AND,
-                rexNode,
-                rexBuilder.makeCall(
-                    SqlStdOperatorTable.IS_NOT_NULL,
-                    rexBuilder.makeFieldAccess(rex, i)));
+                SqlStdOperatorTable.IS_NOT_NULL,
+                rexBuilder.makeFieldAccess(rex, i)));
       }
+      rexNode = rexBuilder.makeCall(rexNode.getType(), SqlStdOperatorTable.AND,
+              RexUtil.flatten(rexNodeBuilder.build(), SqlStdOperatorTable.AND));
       return rexNode;
 
     case TRUE_FALSE_UNKNOWN:
@@ -1717,15 +1718,9 @@ public class SqlToRelConverter {
     final RelDataType rowType;
     if (targetRowType != null) {
       rowType =
-          typeFactory.createTypeWithNullability(
-              targetRowType,
-              SqlTypeUtil.containsNullable(listType));
+              SqlTypeUtil.keepSourceTypeAndTargetNullability(targetRowType, listType, typeFactory);
     } else {
-      rowType =
-          SqlTypeUtil.promoteToRowType(
-              typeFactory,
-              listType,
-              null);
+      rowType = SqlTypeUtil.promoteToRowType(typeFactory, listType, null);
     }
 
     final List<RelNode> unionInputs = new ArrayList<>();
