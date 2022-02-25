@@ -3345,11 +3345,42 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0:BIGINT], expr#16=[=($t8, $t15)]
       EnumerableCalc(expr#0..9=[{inputs}], proj#0..9=[{exprs}], EMPNO0=[$t0], DEPTNO0=[$t7])
         EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
           EnumerableTableScan(table=[[scott, EMP]])
-          EnumerableAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0, $1)])
+          EnumerableAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($1)])
             EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }]])
     EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }]])
+!plan
+
+select * from "scott".emp where (empno, deptno) not in ((7369, 20), (7499, 30));
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(12 rows)
+
+!ok
+
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[IS NOT TRUE($t12)], expr#14=[IS NULL($t9)], expr#15=[OR($t13, $t14)], proj#0..7=[{exprs}], $condition=[$t15])
+  EnumerableMergeJoin(condition=[AND(=($8, $10), =($9, $11))], joinType=[left])
+    EnumerableSort(sort0=[$8], sort1=[$9], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..7=[{inputs}], proj#0..7=[{exprs}], EMPNO0=[$t0], DEPTNO0=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
+        EnumerableValues(tuples=[[{ 7369, 20 }, { 7499, 30 }]])
 !plan
 
 # End sub-query.iq
