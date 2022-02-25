@@ -103,6 +103,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -440,7 +441,10 @@ public class RelToSqlConverter extends SqlImplementor
     }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
+    // If a non-semi join's left and right have same field names, we don't
+    // generate SELECT *, because it can't be used in CTAS in some dialects.
+    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
+        || joinBothSidesHaveSameFields(e.getInput())) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
@@ -455,6 +459,23 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setSelect(new SqlNodeList(selectList, POS));
     }
     return builder.result();
+  }
+
+  /** Checks if a RelNode is a Non-Semi Join and the Join inputs have same field names projected.
+   *
+   * @param relNode rel to check
+   * @return true if relNode is a Non-Semi Join and input row types have same field names.
+   */
+  private boolean joinBothSidesHaveSameFields(RelNode relNode) {
+    if (relNode instanceof Join && ((Join) relNode).getJoinType() != JoinRelType.SEMI) {
+      List<String> leftFieldNames = ((Join) relNode).getLeft().getRowType().getFieldNames();
+      List<String> rightFieldNames = ((Join) relNode).getRight().getRowType().getFieldNames();
+      Set<String> leftFieldNameSet = new HashSet<>(leftFieldNames);
+      if (leftFieldNameSet.removeAll(rightFieldNames)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Wraps a NULL literal in a CAST operator to a target type.

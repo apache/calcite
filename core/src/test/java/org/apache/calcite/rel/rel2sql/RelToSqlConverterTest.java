@@ -2844,7 +2844,7 @@ class RelToSqlConverterTest {
         + "from (select \"customer_id\" from \"sales_fact_1997\") as t1\n"
         + "inner join (select \"customer_id\" from \"sales_fact_1997\") t2\n"
         + "on t1.\"customer_id\" = t2.\"customer_id\"";
-    final String expected = "SELECT *\n"
+    final String expected = "SELECT t.customer_id, t0.customer_id AS customer_id0\n"
         + "FROM (SELECT sales_fact_1997.customer_id\n"
         + "FROM foodmart.sales_fact_1997 AS sales_fact_1997) AS t\n"
         + "INNER JOIN (SELECT sales_fact_19970.customer_id\n"
@@ -2854,8 +2854,11 @@ class RelToSqlConverterTest {
   }
 
   @Test void testCartesianProductWithCommaSyntax() {
-    String query = "select * from \"department\" , \"employee\"";
-    String expected = "SELECT *\n"
+    String query = "select \"employee\".\"position_id\", "
+        + "\"department\".\"department_description\"\n"
+        + "from \"department\" , \"employee\"";
+    String expected = "SELECT \"employee\".\"position_id\", "
+        + "\"department\".\"department_description\"\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
@@ -2898,18 +2901,24 @@ class RelToSqlConverterTest {
   }
 
   @Test void testCartesianProductWithInnerJoinSyntax() {
-    String query = "select * from \"department\"\n"
+    String query = "select \"employee\".\"position_id\", "
+        + "\"department\".\"department_description\"\n"
+        + "from \"department\"\n"
         + "INNER JOIN \"employee\" ON TRUE";
-    String expected = "SELECT *\n"
+    String expected = "SELECT \"employee\".\"position_id\", "
+        + "\"department\".\"department_description\"\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
   }
 
   @Test void testFullJoinOnTrueCondition() {
-    String query = "select * from \"department\"\n"
+    String query = "select \"employee\".\"position_id\", "
+        + "\"department\".\"department_description\"\n"
+        + "from \"department\"\n"
         + "FULL JOIN \"employee\" ON TRUE";
-    String expected = "SELECT *\n"
+    String expected = "SELECT \"employee\".\"position_id\", "
+        + "\"department\".\"department_description\"\n"
         + "FROM \"foodmart\".\"department\"\n"
         + "FULL JOIN \"foodmart\".\"employee\" ON TRUE";
     sql(query).ok(expected);
@@ -2950,11 +2959,12 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1332">[CALCITE-1332]
    * DB2 should always use aliases for tables: x.y.z AS z</a>. */
   @Test void testDb2DialectJoinStar() {
-    String query = "select * "
+    String query = "select \"position_id\", \"department_description\"\n"
         + "from \"foodmart\".\"employee\" A "
         + "join \"foodmart\".\"department\" B\n"
         + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT *\n"
+    final String expected = "SELECT employee.position_id, "
+        + "department.department_description\n"
         + "FROM foodmart.employee AS employee\n"
         + "INNER JOIN foodmart.department AS department "
         + "ON employee.department_id = department.department_id";
@@ -2962,10 +2972,11 @@ class RelToSqlConverterTest {
   }
 
   @Test void testDb2DialectSelfJoinStar() {
-    String query = "select * "
+    String query = "select \"A\".\"position_id\", \"B\".\"position_id\"\n"
         + "from \"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
         + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT *\n"
+    final String expected = "SELECT employee.position_id, "
+        + "employee0.position_id AS position_id0\n"
         + "FROM foodmart.employee AS employee\n"
         + "INNER JOIN foodmart.employee AS employee0 "
         + "ON employee.department_id = employee0.department_id";
@@ -3164,7 +3175,8 @@ class RelToSqlConverterTest {
    * In JDBC adapter, allow IS NULL and IS NOT NULL operators in generated SQL
    * join condition</a>. */
   @Test void testSimpleJoinConditionWithIsNullOperators() {
-    String query = "select *\n"
+    String query = "select \"t1\".\"time_id\", \"t2\".\"birthdate\", "
+        + "\"t3\".\"product_name\"\n"
         + "from \"foodmart\".\"sales_fact_1997\" as \"t1\"\n"
         + "inner join \"foodmart\".\"customer\" as \"t2\"\n"
         + "on \"t1\".\"customer_id\" = \"t2\".\"customer_id\" or "
@@ -3175,7 +3187,8 @@ class RelToSqlConverterTest {
         + "on \"t1\".\"product_id\" = \"t3\".\"product_id\" or "
         + "(\"t1\".\"product_id\" is not null or "
         + "\"t3\".\"product_id\" is not null)";
-    String expected = "SELECT *\n"
+    String expected = "SELECT \"sales_fact_1997\".\"time_id\", \"customer\".\"birthdate\", "
+        + "\"product\".\"product_name\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "INNER JOIN \"foodmart\".\"customer\" "
         + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
@@ -5584,19 +5597,23 @@ class RelToSqlConverterTest {
    * @see SqlDialect#emulateJoinTypeForCrossJoin()
    */
   @Test void testCrossJoinEmulation() {
-    final String expectedSpark = "SELECT *\n"
+    final String expectedSpark = "SELECT employee.position_id, department.department_description\n"
         + "FROM foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `employee`.`position_id`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`employee`,\n"
         + "`foodmart`.`department`";
     Consumer<String> fn = sql ->
         sql(sql)
             .withSpark().ok(expectedSpark)
             .withMysql().ok(expectedMysql);
-    fn.accept("select * from \"employee\", \"department\"");
-    fn.accept("select * from \"employee\" cross join \"department\"");
-    fn.accept("select * from \"employee\" join \"department\" on true");
+    fn.accept("select \"position_id\", \"department_description\"\n"
+        + "FROM \"employee\", \"department\"");
+    fn.accept("select \"position_id\", \"department_description\"\n "
+        + "FROM \"employee\" cross join \"department\"");
+    fn.accept("select \"position_id\", \"department_description\"\n "
+        + "FROM \"employee\" join \"department\" on true");
   }
 
   /** Similar to {@link #testCommaCrossJoin()} (but uses SQL)
@@ -5604,15 +5621,17 @@ class RelToSqlConverterTest {
    * join if the only joins are {@code CROSS JOIN} or
    * {@code INNER JOIN ... ON TRUE}, and if we're not on Spark. */
   @Test void testCommaCrossJoin3way() {
-    String sql = "select *\n"
+    String sql = "select \"store_type\", \"position_id\", \"department_description\"\n"
         + "from \"store\" as s\n"
         + "inner join \"employee\" as e on true\n"
         + "cross join \"department\" as d";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_type`, `employee`.`position_id`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`,\n"
         + "`foodmart`.`employee`,\n"
         + "`foodmart`.`department`";
-    final String expectedSpark = "SELECT *\n"
+    final String expectedSpark = "SELECT store.store_type, employee.position_id, "
+        + "department.department_description\n"
         + "FROM foodmart.store\n"
         + "CROSS JOIN foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
@@ -5624,11 +5643,12 @@ class RelToSqlConverterTest {
   /** As {@link #testCommaCrossJoin3way()}, but shows that if there is a
    * {@code LEFT JOIN} in the FROM clause, we can't use comma-join. */
   @Test void testLeftJoinPreventsCommaJoin() {
-    String sql = "select *\n"
+    String sql = "select \"store_type\", \"position_id\", \"department_description\"\n"
         + "from \"store\" as s\n"
         + "left join \"employee\" as e on true\n"
         + "cross join \"department\" as d";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_type`, `employee`.`position_id`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`\n"
         + "LEFT JOIN `foodmart`.`employee` ON TRUE\n"
         + "CROSS JOIN `foodmart`.`department`";
@@ -5638,11 +5658,12 @@ class RelToSqlConverterTest {
   /** As {@link #testLeftJoinPreventsCommaJoin()}, but the non-cross-join
    * occurs later in the FROM clause. */
   @Test void testRightJoinPreventsCommaJoin() {
-    String sql = "select *\n"
+    String sql = "select \"store_type\", \"position_id\", \"department_description\"\n"
         + "from \"store\" as s\n"
         + "cross join \"employee\" as e\n"
         + "right join \"department\" as d on true";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_type`, `employee`.`position_id`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`\n"
         + "CROSS JOIN `foodmart`.`employee`\n"
         + "RIGHT JOIN `foodmart`.`department` ON TRUE";
@@ -5652,11 +5673,12 @@ class RelToSqlConverterTest {
   /** As {@link #testLeftJoinPreventsCommaJoin()}, but the impediment is a
    * {@code JOIN} whose condition is not {@code TRUE}. */
   @Test void testOnConditionPreventsCommaJoin() {
-    String sql = "select *\n"
+    String sql = "select \"store_type\", \"position_id\", \"department_description\"\n"
         + "from \"store\" as s\n"
         + "join \"employee\" as e on s.\"store_id\" = e.\"store_id\"\n"
         + "cross join \"department\" as d";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_type`, `employee`.`position_id`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`\n"
         + "INNER JOIN `foodmart`.`employee`"
         + " ON `store`.`store_id` = `employee`.`store_id`\n"
@@ -6289,6 +6311,18 @@ class RelToSqlConverterTest {
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withBigQuery().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5023">[CALCITE-5023]
+   * JOIN whose inputs projecting same field names shouldn't generate SELECT STAR
+   * when converting rel to sql</a>. */
+  @Test void testJoinInputsProjectingSameFieldName() {
+    final String query = "SELECT \"t\".\"id\", \"t0\".\"id\" AS \"id0\"\n"
+        + "FROM (VALUES (NULL)) AS \"t\" (\"id\"),\n"
+        + "(VALUES (NULL)) AS \"t0\" (\"id\")";
+    final String expected = query;
+    sql(query).ok(expected);
   }
 
   /** Fluid interface to run tests. */
