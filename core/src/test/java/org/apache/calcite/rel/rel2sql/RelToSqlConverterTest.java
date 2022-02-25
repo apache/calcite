@@ -9564,6 +9564,7 @@ class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBQSql);
   }
+
   @Test public void testTimeOfDayFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
