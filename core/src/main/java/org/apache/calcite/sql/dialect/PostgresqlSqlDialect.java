@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlJsonObjectFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -131,6 +132,25 @@ public class PostgresqlSqlDialect extends SqlDialect {
       SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
           timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
+      break;
+
+    case OTHER_FUNCTION:
+      SqlOperator operator = call.getOperator();
+      if (operator instanceof SqlJsonObjectFunction) {
+        assert call.operandCount() % 2 == 1;
+        final SqlWriter.Frame frame = writer.startFunCall("JSON_BUILD_OBJECT");
+        SqlWriter.Frame listFrame = writer.startList("", "");
+        for (int i = 1; i < call.operandCount(); i += 2) {
+          call.operand(i).unparse(writer, leftPrec, rightPrec);
+          writer.sep(",", true);
+          call.operand(i + 1).unparse(writer, leftPrec, rightPrec);
+          if (i < call.operandCount() - 2) {
+            writer.sep(",", true);
+          }
+        }
+        writer.endList(listFrame);
+        writer.endFunCall(frame);
+      }
       break;
 
     default:
