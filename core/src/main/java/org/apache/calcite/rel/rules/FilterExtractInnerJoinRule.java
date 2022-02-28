@@ -28,6 +28,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -85,7 +86,7 @@ public class FilterExtractInnerJoinRule
     List<RexNode> allConditions = new ArrayList<>();
     populateStackWithEndIndexesForTables(join, stackForTablesWithEndIndexes, allConditions);
     if (((RexCall) filter.getCondition()).getOperands().stream().allMatch(operand ->
-        operand instanceof RexCall)) {
+        operand instanceof RexCall && ((RexCall) operand).operands.size() > 1)) {
       allConditions.addAll(((RexCall) filter.getCondition()).getOperands());
     } else {
       allConditions.add(filter.getCondition());
@@ -128,13 +129,7 @@ public class FilterExtractInnerJoinRule
     while (!stack.isEmpty()) {
       rightEntry = stack.pop();
       List<RexNode> joinConditions = getConditionsForEndIndex(allConditions, rightEntry.getValue());
-      RexNode joinPredicate;
-      if (joinConditions.size() == 2
-          && joinConditions.stream().allMatch(condition -> condition instanceof RexInputRef)) {
-        joinPredicate = builder.equals(joinConditions.get(0), joinConditions.get(1));
-      } else {
-        joinPredicate = builder.and(joinConditions);
-      }
+      RexNode joinPredicate = builder.and(joinConditions);
       allConditions.removeAll(joinConditions);
       left = LogicalJoin.create(left, rightEntry.getKey(), ImmutableList.of(),
           joinPredicate, ImmutableSet.of(), JoinRelType.INNER);
@@ -145,30 +140,32 @@ public class FilterExtractInnerJoinRule
   }
 
   private List<RexNode> getConditionsForEndIndex(List<RexNode> conditions, int endIndex) {
-    if (conditions.stream().allMatch(condition -> condition instanceof RexInputRef
-        && ((RexInputRef) condition).getIndex() <= endIndex)) {
-      return conditions;
-    }
     return conditions.stream()
         .filter(
             condition ->
                 ((RexCall) condition).operands.stream().noneMatch(
                     operand -> operand instanceof RexLiteral)
-                    && ((RexCall) condition).operands.size() > 1
-                    && checkEndIndex((RexCall) condition, endIndex)
+                    && isConditionPartOfCurrentJoin((RexCall) condition, endIndex)
         )
         .collect(Collectors.toList());
   }
 
-  private boolean checkEndIndex(RexCall condition, int endIndex) {
-    if (condition.operands.stream().allMatch(operand -> operand instanceof RexCall)) {
-      return condition.operands.stream().allMatch(
-          op -> ((RexCall) op).operands.get(0) instanceof RexInputRef
-              && ((RexInputRef) ((RexCall) op).operands.get(0)).getIndex() <= endIndex
-      );
+  private boolean isOperandIndexLessThanEndIndex(RexNode operand, int endIndex) {
+    if (operand instanceof RexCall) {
+      return isOperandIndexLessThanEndIndex(((RexCall) operand).operands.get(0), endIndex);
     }
-    return ((RexInputRef) condition.operands.get(0)).getIndex() <= endIndex
-        && ((RexInputRef) condition.operands.get(1)).getIndex() <= endIndex;
+    if (operand instanceof RexInputRef) {
+      return ((RexInputRef) operand).getIndex() <= endIndex;
+    }
+    return false;
+  }
+
+  private boolean isConditionPartOfCurrentJoin(RexCall condition, int endIndex) {
+    if (condition instanceof RexSubQuery) {
+      return false;
+    }
+    return isOperandIndexLessThanEndIndex(condition.operands.get(0), endIndex)
+        && isOperandIndexLessThanEndIndex(condition.operands.get(1), endIndex);
   }
 
   /** Rule configuration. */
