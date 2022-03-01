@@ -111,8 +111,12 @@ public class FilterExtractInnerJoinRule
       return true;
     }
     if (((RexCall) condition).operands.stream().allMatch(operand -> operand instanceof RexCall)) {
-      return isFilterWithCompositeLogicalConditions(((RexCall) condition).operands.get(0))
-          || isFilterWithCompositeLogicalConditions(((RexCall) condition).operands.get(1));
+      if (((RexCall) condition).operands.size() > 1) {
+        return isFilterWithCompositeLogicalConditions(((RexCall) condition).operands.get(0))
+            || isFilterWithCompositeLogicalConditions(((RexCall) condition).operands.get(1));
+      } else {
+        return isFilterWithCompositeLogicalConditions(((RexCall) condition).operands.get(0));
+      }
     }
     return false;
   }
