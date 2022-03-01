@@ -9607,14 +9607,36 @@ class RelToSqlConverterTest {
         + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"department\" as \"d\", \n"
         + " \"foodmart\".\"reserve_employee\" as \"re\"\n"
         + " where \"e\".\"department_id\" = \"d\".\"department_id\" and \"e\".\"employee_id\" > 2\n"
-        + " and \"re\".\"employee_id\" = \"e\".\"employee_id\"";
+        + " and \"re\".\"employee_id\" = \"e\".\"employee_id\"\n"
+        + " and \"e\".\"department_id\" > 5";
 
     String expect = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
         + "INNER JOIN foodmart.reserve_employee "
         + "ON employee.employee_id = reserve_employee.employee_id\n"
-        + "WHERE employee.employee_id > 2";
+        + "WHERE employee.employee_id > 2 AND employee.department_id > 5";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testConversionOfFilterWithCompositeConditionWithThreeCrossJoinToFilterWithInnerJoin() {
+    String query = "select *\n"
+        + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"department\" as \"d\", \n"
+        + " \"foodmart\".\"reserve_employee\" as \"re\"\n"
+        + " where (\"e\".\"department_id\" = \"d\".\"department_id\"\n"
+        + " or \"re\".\"employee_id\" = \"e\".\"employee_id\")\n"
+        + " and \"re\".\"employee_id\" = \"d\".\"department_id\"\n";
+
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON TRUE\n"
+        + "INNER JOIN foodmart.reserve_employee ON TRUE\n"
+        + "WHERE (employee.department_id = department.department_id OR reserve_employee.employee_id = employee.employee_id) AND reserve_employee.employee_id = department.department_id";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterExtractInnerJoinRule.class);

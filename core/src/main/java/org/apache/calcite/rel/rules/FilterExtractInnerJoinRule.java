@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -78,7 +79,8 @@ public class FilterExtractInnerJoinRule
     final Join join = call.rel(1);
     RelBuilder builder = call.builder();
 
-    if (!isCrossJoin(join, builder)) {
+    if (!isCrossJoin(join, builder)
+        || isFilterWithCompositeLogicalConditions(filter.getCondition())) {
       return;
     }
 
@@ -103,6 +105,18 @@ public class FilterExtractInnerJoinRule
     return join.getJoinType().equals(JoinRelType.INNER)
         && builder.literal(true).equals(join.getCondition());
   }
+
+  private static boolean isFilterWithCompositeLogicalConditions(RexNode condition) {
+    if (((RexCall) condition).op.kind == SqlKind.OR) {
+      return true;
+    }
+    if (((RexCall) condition).operands.stream().allMatch(operand -> operand instanceof RexCall)) {
+      return isFilterWithCompositeLogicalConditions(((RexCall) condition).operands.get(0))
+          || isFilterWithCompositeLogicalConditions(((RexCall) condition).operands.get(1));
+    }
+    return false;
+  }
+
   private void populateStackWithEndIndexesForTables(
       Join join, Stack<Map.Entry<RelNode, Integer>> stack, List<RexNode> joinConditions) {
     RelNode left = ((HepRelVertex) join.getLeft()).getCurrentRel();
