@@ -9573,11 +9573,11 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode2, "FD2"))
         .build();
-    final String expectedSql = "SELECT FORMAT_TIMESTAMP('TIMEOFDAY', CURRENT_TIMESTAMP) AS " +
-        "\"FD2\"\n" +
-        "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n" +
-        "FROM scott.EMP";
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('TIMEOFDAY', CURRENT_TIMESTAMP) AS "
+        + "\"FD2\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
