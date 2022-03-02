@@ -9568,7 +9568,7 @@ class RelToSqlConverterTest {
   @Test public void testTimeOfDayFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-          builder.literal("TIMEOFDAY"),  builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+          builder.literal("TIMEOFDAY"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode2, "FD2"))
