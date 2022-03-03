@@ -2570,6 +2570,13 @@ class RexProgramTest extends RexProgramTestBase {
             + "OR(AND(>(?0.int0, 10), >(?0.int1, 10)), "
             + "=(?0.int2, 20)))",
         "AND(>(?0.int0, 20), >(?0.int1, 10))");
+    checkSimplify(
+        and(or(gt(vInt(), literal(10)),
+            gt(vInt(1), literal(20))),
+            or(gt(vInt(), literal(10)),
+                gt(vInt(2), literal(20)),
+                gt(vInt(1), literal(20)))),
+        "OR(>(?0.int0, 10), >(?0.int1, 20))");
   }
 
   private void assertTypeAndToString(

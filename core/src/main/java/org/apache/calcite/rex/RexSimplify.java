@@ -1535,7 +1535,14 @@ public class RexSimplify {
         return true;
       }
     }
-    return false;
+    return condition.stream().anyMatch(c -> {
+      if (!c.equals(node)) {
+        List<RexNode> conditions = new ArrayList<>();
+        RelOptUtil.decomposeDisjunction(c, conditions);
+        return terms.containsAll(conditions);
+      }
+      return false;
+    });
   }
 
   // package-protected only to support a deprecated method; treat as private
@@ -1813,6 +1820,12 @@ public class RexSimplify {
             rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operand));
       }
     }
+    final Set<RexNode> termsSet = new HashSet<>(terms);
+    for (RexNode term : orOperands) {
+      if (containSatisfyTerm(term, termsSet)) {
+        terms.remove(term);
+      }
+    }
     // If one of the not-disjunctions is a disjunction that is wholly
     // contained in the disjunctions list, the expression is not
     // satisfiable.
@@ -1820,7 +1833,6 @@ public class RexSimplify {
     // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
     // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
     // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
-    final Set<RexNode> termsSet = new HashSet<>(terms);
     for (RexNode notDisjunction : notTerms) {
       if (!RexUtil.isDeterministic(notDisjunction)) {
         continue;
