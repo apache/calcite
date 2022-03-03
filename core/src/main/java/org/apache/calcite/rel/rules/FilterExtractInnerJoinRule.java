@@ -42,29 +42,27 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 
 /**
- * Planner rule that matches an {@link org.apache.calcite.rel.core.Aggregate}
- * on a {@link org.apache.calcite.rel.core.Join} and removes the left input
- * of the join provided that the left input is also a left join if possible.
+ * Planner rule that matches an {@link org.apache.calcite.rel.core.Filter}
+ * on a {@link org.apache.calcite.rel.core.Join} and removes the join
+ * predicates from the filter conditions and put them on Join if possible.
  *
  * <p>For instance,
  *
  * <blockquote>
- * <pre>select distinct s.product_id, pc.product_id
- * from sales as s
- * left join product as p
- *   on s.product_id = p.product_id
- * left join product_class pc
- *   on s.product_id = pc.product_id</pre></blockquote>
+ * <pre>select e.employee_id, e.name
+ * from employee as e, department as d
+ * where e.department_id = d.department_id and d.department_id > 5</pre></blockquote>
  *
  * <p>becomes
  *
  * <blockquote>
- * <pre>select distinct s.product_id, pc.product_id
- * from sales as s
- * left join product_class pc
- *   on s.product_id = pc.product_id</pre></blockquote>
+ * <pre>select e.employee_id, e.name
+ * from employee as e
+ * INNER JOIN department as d
+ * ON e.department_id = d.department_id
+ * WHERE d.department_id > 5</pre></blockquote>
  *
- * @see CoreRules#AGGREGATE_JOIN_JOIN_REMOVE
+ * @see CoreRules#FILTER_EXTRACT_INNER_JOIN_RULE
  */
 public class FilterExtractInnerJoinRule
     extends RelRule<FilterExtractInnerJoinRule.Config>
@@ -106,6 +104,7 @@ public class FilterExtractInnerJoinRule
         && builder.literal(true).equals(join.getCondition());
   }
 
+  /** This method checks whether filter conditions have both AND & OR in it.*/
   private static boolean isFilterWithCompositeLogicalConditions(RexNode condition) {
     if (((RexCall) condition).op.kind == SqlKind.OR) {
       return true;
@@ -118,6 +117,8 @@ public class FilterExtractInnerJoinRule
     return false;
   }
 
+  /** This method populates the stack, Stack<RelNode, Integer>, with
+   * TableScan of a table along with its columns end index.*/
   private void populateStackWithEndIndexesForTables(
       Join join, Stack<Map.Entry<RelNode, Integer>> stack, List<RexNode> joinConditions) {
     RelNode left = ((HepRelVertex) join.getLeft()).getCurrentRel();
@@ -135,6 +136,8 @@ public class FilterExtractInnerJoinRule
     }
   }
 
+  /** This method identifies Join Predicates from filter conditions and put them on Joins as
+   * ON conditions.*/
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(
       List<RexNode> allConditions, Stack<Map.Entry<RelNode, Integer>> stack, RelBuilder builder) {
     Map.Entry<RelNode, Integer> leftEntry = stack.pop();
@@ -154,6 +157,7 @@ public class FilterExtractInnerJoinRule
         .build();
   }
 
+  /** Gets all the conditions that are part of the current join*/
   private List<RexNode> getConditionsForEndIndex(List<RexNode> conditions, int endIndex) {
     return conditions.stream()
         .filter(
@@ -165,6 +169,7 @@ public class FilterExtractInnerJoinRule
         .collect(Collectors.toList());
   }
 
+  /** Helper function for isConditionPartOfCurrentJoin method.*/
   private boolean isOperandIndexLessThanEndIndex(RexNode operand, int endIndex) {
     if (operand instanceof RexCall) {
       return isOperandIndexLessThanEndIndex(((RexCall) operand).operands.get(0), endIndex);
@@ -175,6 +180,8 @@ public class FilterExtractInnerJoinRule
     return false;
   }
 
+  /** Checks whether the given condition is part of the current join by matching the column
+   * reference with endIndex of the table on which the join is being performed.*/
   private boolean isConditionPartOfCurrentJoin(RexCall condition, int endIndex) {
     if (condition instanceof RexSubQuery) {
       return false;
