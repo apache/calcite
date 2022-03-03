@@ -109,6 +109,13 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testIdentifierStartWithNumber() {
+    final String sql = "select 1 as 1_c1 from t";
+    final String expected = "SELECT 1 AS `1_C1`\n"
+        + "FROM `T`";
+    sql(sql).ok(expected);
+  }
+
   /** Tests that there are no reserved keywords. */
   @Disabled
   @Test void testKeywords() {

@@ -8323,7 +8323,11 @@ MORE :
 
 <DEFAULT, DQID, BTID, BQID> TOKEN :
 {
-    < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+    <#if parser.customIdentifierToken??>
+        ${parser.customIdentifierToken}
+    <#else>
+        < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+    </#if>
 }
 
 <DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :

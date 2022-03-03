@@ -548,6 +548,10 @@ data: {
       "< NULL_SAFE_EQUAL: \"<=>\" >"
     ]
 
+    # Custom identifier token.
+    # Example: "< IDENTIFIER: (<LETTER>|<DIGIT>)+ >".
+    customIdentifierToken: "< IDENTIFIER: (<LETTER>|<DIGIT>)+ >"
+
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [
