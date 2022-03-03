@@ -1338,7 +1338,7 @@ public class DruidAdapter2IT {
         + "1998-01-01T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}";
     sql(sql)
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1997-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z]], filter=[AND(>=(CAST($11):INTEGER, 8), <=(CAST($11):INTEGER, 10), <(CAST($10):INTEGER, 15))], projects=[[$90]], groups=[{}], aggs=[[SUM($0)]])")
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1997-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z]], filter=[AND(SEARCH(CAST($11):INTEGER, Sarg[[8..10]]), <(CAST($10):INTEGER, 15))], projects=[[$90]], groups=[{}], aggs=[[SUM($0)]])")
         .returnsUnordered("EXPR$0=75364.1")
         .queryContains(new DruidChecker(druidQuery));
   }
@@ -3026,9 +3026,9 @@ public class DruidAdapter2IT {
             + "CAST(FLOOR(CAST(\"timestamp\" AS DATE) to MONTH) AS DATE) = "
             + " CAST('1997-01-01' as DATE) GROUP BY  floor(\"timestamp\" to DAY) order by d limit 3";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], filter=[=(FLOOR(CAST($0):DATE NOT NULL, FLAG(MONTH)), "
-        + "1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], sort0=[0], "
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1997-01-01T00:00:00.000Z/1997-02-01T00:00:00.000Z]], "
+        + "projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], sort0=[0], "
         + "dir0=[ASC], fetch=[3])";
     sql(sql)
         .explainContains(plan)
