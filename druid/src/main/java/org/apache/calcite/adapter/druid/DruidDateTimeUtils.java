@@ -260,6 +260,10 @@ public class DruidDateTimeUtils {
       TimestampString timestampString = (TimestampString) comparable;
       return timestampString.getMillisSinceEpoch();
     }
+    if (comparable instanceof DateString) {
+      DateString dataString = (DateString) comparable;
+      return dataString.getMillisSinceEpoch();
+    }
     throw new AssertionError("unsupported type: " + comparable.getClass());
   }
 
