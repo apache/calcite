@@ -1055,6 +1055,8 @@ public abstract class SqlUtil {
       SqlCall lateralTableRef = ((SqlCall) node).operand(0);
       if (lateralTableRef.getKind() == SqlKind.AS) {
         return lateralTableRef.operand(0);
+      } else {
+        return lateralTableRef;
       }
     }
     return node;
