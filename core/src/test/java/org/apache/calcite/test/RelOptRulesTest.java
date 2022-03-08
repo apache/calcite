@@ -5530,6 +5530,58 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
+   * Pull up constant project under sort</a>. */
+  @Test void testSortProjectPullUpConstants1() {
+    // The constant's count is more than sort's field, and without any fetch or offset
+    final String sql = "select e.empno, e.ename, e.deptno from sales.emp e\n"
+        + "where e.deptno = 123\n"
+        + "order by e.deptno, e.empno";
+    sql(sql)
+        .withRule(CoreRules.SORT_ANY_PULL_UP_CONSTANTS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
+   * Pull up constant project under sort</a>. */
+  @Test void testSortProjectPullUpConstants2() {
+    // Sort with some fetch and offset
+    final String sql = "select e.empno, e.ename, e.deptno from sales.emp e\n"
+        + "where e.deptno = 123\n"
+        + "order by e.deptno, e.empno offset 10";
+    sql(sql)
+        .withRule(CoreRules.SORT_ANY_PULL_UP_CONSTANTS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
+   * Pull up constant project under sort</a>. */
+  @Test void testSortProjectPullUpConstants3() {
+    // The constant's count is equal to sort's field
+    final String sql = "select e.empno, e.ename, e.deptno from sales.emp e\n"
+        + "where e.deptno = 123\n"
+        + "order by e.deptno offset 10";
+    sql(sql)
+        .withRule(CoreRules.SORT_ANY_PULL_UP_CONSTANTS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
+   * Pull up constant project under sort</a>. */
+  @Test void testSortProjectPullUpConstants4() {
+    // The constant's count is equal to sort's field, and without any fetch or offset
+    final String sql = "select e.empno, e.ename, e.deptno from sales.emp e\n"
+        + "where e.deptno = 123\n"
+        + "order by e.deptno";
+    sql(sql)
+        .withRule(CoreRules.SORT_ANY_PULL_UP_CONSTANTS)
+        .check();
+  }
+
   @Test void testSortProjectTranspose1() {
     // This one can be pushed down
     final String sql = "select d.deptno from sales.dept d\n"

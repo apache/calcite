@@ -712,6 +712,10 @@ public class CoreRules {
   public static final SortProjectTransposeRule SORT_PROJECT_TRANSPOSE =
       SortProjectTransposeRule.Config.DEFAULT.toRule();
 
+  /** Rule that pulles up constant literal under an {@link Sort}. */
+  public static final SortProjectPullUpConstantsRule SORT_ANY_PULL_UP_CONSTANTS =
+      SortProjectPullUpConstantsRule.Config.DEFAULT.toRule();
+
   /** Rule that flattens a {@link Union} on a {@code Union}
    * into a single {@code Union}. */
   public static final UnionMergeRule UNION_MERGE =
