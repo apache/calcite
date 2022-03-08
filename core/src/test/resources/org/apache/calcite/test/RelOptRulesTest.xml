@@ -12222,9 +12222,33 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testSortProjectPullUpConstants1">
+  <TestCase name="testSortProjectPullUpConstantsNoFetchLimitAndSortEqualFields">
     <Resource name="sql">
-      <![CDATA[select e.empno, e.ename, e.deptno from sales.emp e
+      <![CDATA[select e.empno, e.ename, e.deptno
+from sales.emp e
+where e.deptno = 123
+order by e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$2], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+    LogicalFilter(condition=[=($7, 123)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[123])
+  LogicalFilter(condition=[=($7, 123)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortProjectPullUpConstantsNoFetchLimitAndSortMoreFields">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, e.deptno
+from sales.emp e
 where e.deptno = 123
 order by e.deptno, e.empno]]>
     </Resource>
@@ -12246,33 +12270,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[123])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testSortProjectPullUpConstants2">
+  <TestCase name="testSortProjectPullUpConstantsWithFetchLimitAndSortEqualFields">
     <Resource name="sql">
-      <![CDATA[select e.empno, e.ename, e.deptno from sales.emp e
-where e.deptno = 123
-order by e.deptno, e.empno offset 10]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC], offset=[10])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
-    LogicalFilter(condition=[=($7, 123)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[123])
-  LogicalSort(sort0=[$0], dir0=[ASC], offset=[10])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
-      LogicalFilter(condition=[=($7, 123)])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortProjectPullUpConstants3">
-    <Resource name="sql">
-      <![CDATA[select e.empno, e.ename, e.deptno from sales.emp e
+      <![CDATA[select e.empno, e.ename, e.deptno
+from sales.emp e
 where e.deptno = 123
 order by e.deptno offset 10]]>
     </Resource>
@@ -12294,15 +12295,16 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[123])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testSortProjectPullUpConstants4">
+  <TestCase name="testSortProjectPullUpConstantsWithFetchLimitAndSortMoreFields">
     <Resource name="sql">
-      <![CDATA[select e.empno, e.ename, e.deptno from sales.emp e
+      <![CDATA[select e.empno, e.ename, e.deptno
+from sales.emp e
 where e.deptno = 123
-order by e.deptno]]>
+order by e.deptno, e.empno offset 10]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$2], dir0=[ASC])
+LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC], offset=[10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
     LogicalFilter(condition=[=($7, 123)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -12311,8 +12313,10 @@ LogicalSort(sort0=[$2], dir0=[ASC])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[123])
-  LogicalFilter(condition=[=($7, 123)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[10])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, 123)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

@@ -59,7 +59,6 @@ public class SortProjectPullUpConstantsRule
     extends RelRule<SortProjectPullUpConstantsRule.Config>
     implements TransformationRule {
 
-  /** Creates an SortProjectPullUpConstantsRule. */
   protected SortProjectPullUpConstantsRule(Config config) {
     super(config);
   }
@@ -75,7 +74,7 @@ public class SortProjectPullUpConstantsRule
         .stream()
         .map(RelFieldCollation::getFieldIndex)
         .collect(Collectors.toList());
-    if (fieldCollationIndexes.size() <= 0) {
+    if (fieldCollationIndexes.isEmpty()) {
       return;
     }
 
@@ -96,7 +95,7 @@ public class SortProjectPullUpConstantsRule
       }
     }
 
-    // None of the sort field expressions are constant. Nothing to do.
+    // None of the sort field expressions is constant. Nothing to do.
     if (map.isEmpty()) {
       return;
     }
@@ -150,10 +149,9 @@ public class SortProjectPullUpConstantsRule
       }
       projects.add(Pair.of(newExpr, field.getName()));
     }
-    relBuilder.project(Pair.left(projects), Pair.right(projects)); // inverse
-
-    final RelNode newRelNode = relBuilder.build();
-    call.transformTo(newRelNode);
+    // Create a top equal project for origin sort.
+    relBuilder.project(Pair.left(projects), Pair.right(projects));
+    call.transformTo(relBuilder.build());
   }
 
 
