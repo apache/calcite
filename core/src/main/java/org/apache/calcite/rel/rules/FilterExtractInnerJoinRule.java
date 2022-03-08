@@ -35,6 +35,9 @@ import org.apache.calcite.tools.RelBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -73,30 +76,34 @@ public class FilterExtractInnerJoinRule
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    final Filter filter = call.rel(0);
-    final Join join = call.rel(1);
-    RelBuilder builder = call.builder();
+    try {
+      final Filter filter = call.rel(0);
+      final Join join = call.rel(1);
+      RelBuilder builder = call.builder();
 
-    if (!isCrossJoin(join, builder)
-        || isFilterWithCompositeLogicalConditions(filter.getCondition())) {
-      return;
+      if (!isCrossJoin(join, builder)
+          || isFilterWithCompositeLogicalConditions(filter.getCondition())) {
+        return;
+      }
+
+      Stack<Map.Entry<RelNode, Integer>> stackRelToRowEndIndexPair = new Stack<>();
+      List<RexNode> allConditions = new ArrayList<>();
+      populateStackWithEndIndexesForTables(join, stackRelToRowEndIndexPair, allConditions);
+      if (((RexCall) filter.getCondition()).getOperands().stream().allMatch(operand ->
+          operand instanceof RexCall && ((RexCall) operand).operands.size() > 1)) {
+        allConditions.addAll(((RexCall) filter.getCondition()).getOperands());
+      } else {
+        allConditions.add(filter.getCondition());
+      }
+
+      final RelNode modifiedJoinClauseWithWhereClause =
+          moveConditionsFromWhereClauseToJoinOnClause(
+              allConditions, stackRelToRowEndIndexPair, builder);
+
+      call.transformTo(modifiedJoinClauseWithWhereClause);
+    } catch (Exception exception) {
+      Logger.getLogger(FilterExtractInnerJoinRule.class).log(Level.ERROR, exception);
     }
-
-    Stack<Map.Entry<RelNode, Integer>> stackForTablesWithEndIndexes = new Stack<>();
-    List<RexNode> allConditions = new ArrayList<>();
-    populateStackWithEndIndexesForTables(join, stackForTablesWithEndIndexes, allConditions);
-    if (((RexCall) filter.getCondition()).getOperands().stream().allMatch(operand ->
-        operand instanceof RexCall && ((RexCall) operand).operands.size() > 1)) {
-      allConditions.addAll(((RexCall) filter.getCondition()).getOperands());
-    } else {
-      allConditions.add(filter.getCondition());
-    }
-
-    final RelNode modifiedJoinClauseWithWhereClause =
-        moveConditionsFromWhereClauseToJoinOnClause(
-            allConditions, stackForTablesWithEndIndexes, builder);
-
-    call.transformTo(modifiedJoinClauseWithWhereClause);
   }
 
   private static boolean isCrossJoin(Join join, RelBuilder builder) {
@@ -106,11 +113,12 @@ public class FilterExtractInnerJoinRule
 
   /** This method checks whether filter conditions have both AND & OR in it.*/
   private static boolean isFilterWithCompositeLogicalConditions(RexNode condition) {
-    if (((RexCall) condition).op.kind == SqlKind.OR) {
+    RexCall cond = (RexCall) condition;
+    if (cond.op.kind == SqlKind.OR) {
       return true;
     }
-    if (((RexCall) condition).operands.stream().allMatch(operand -> operand instanceof RexCall)) {
-      return ((RexCall) condition).operands.stream().anyMatch(
+    if (cond.operands.stream().allMatch(operand -> operand instanceof RexCall)) {
+      return cond.operands.stream().anyMatch(
           FilterExtractInnerJoinRule::isFilterWithCompositeLogicalConditions
       );
     }

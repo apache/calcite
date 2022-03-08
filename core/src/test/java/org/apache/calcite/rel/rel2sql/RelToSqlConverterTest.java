@@ -9607,14 +9607,14 @@ class RelToSqlConverterTest {
         + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"department\" as \"d\", \n"
         + " \"foodmart\".\"reserve_employee\" as \"re\"\n"
         + " where \"e\".\"department_id\" = \"d\".\"department_id\" and \"e\".\"employee_id\" > 2\n"
-        + " and \"re\".\"employee_id\" = \"e\".\"employee_id\"\n"
+        + " and \"re\".\"employee_id\" > \"e\".\"employee_id\"\n"
         + " and \"e\".\"department_id\" > 5";
 
     String expect = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
         + "INNER JOIN foodmart.reserve_employee "
-        + "ON employee.employee_id = reserve_employee.employee_id\n"
+        + "ON employee.employee_id < reserve_employee.employee_id\n"
         + "WHERE employee.employee_id > 2 AND employee.department_id > 5";
 
     HepProgramBuilder builder = new HepProgramBuilder();
@@ -9653,7 +9653,7 @@ class RelToSqlConverterTest {
         + " \"foodmart\".\"reserve_employee\" as \"re\"\n"
         + " where \"e\".\"department_id\" = \"d\".\"department_id\"\n"
         + " and \"re\".\"employee_id\" = \"d\".\"department_id\"\n"
-        + " and (\"re\".\"employee_id\" = \"d\".\"department_id\"\n"
+        + " and (\"re\".\"department_id\" < \"d\".\"department_id\"\n"
         + " or \"d\".\"department_id\" = \"re\".\"department_id\")\n";
 
     String expect = "SELECT *\n"
@@ -9662,7 +9662,7 @@ class RelToSqlConverterTest {
         + "INNER JOIN foodmart.reserve_employee ON TRUE\n"
         + "WHERE employee.department_id = department.department_id "
         + "AND reserve_employee.employee_id = department.department_id "
-        + "AND (reserve_employee.employee_id = department.department_id "
+        + "AND (reserve_employee.department_id < department.department_id "
         + "OR department.department_id = reserve_employee.department_id)";
 
     HepProgramBuilder builder = new HepProgramBuilder();
