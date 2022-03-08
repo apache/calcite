@@ -89,9 +89,9 @@ public class FilterExtractInnerJoinRule
       Stack<Map.Entry<RelNode, Integer>> stackRelToRowEndIndexPair = new Stack<>();
       List<RexNode> allConditions = new ArrayList<>();
       populateStackWithEndIndexesForTables(join, stackRelToRowEndIndexPair, allConditions);
-      if (((RexCall) filter.getCondition()).getOperands().stream().allMatch(operand ->
-          operand instanceof RexCall && ((RexCall) operand).operands.size() > 1)) {
-        allConditions.addAll(((RexCall) filter.getCondition()).getOperands());
+      RexNode conditions = filter.getCondition();
+      if (isConditionComposedOfMultipleConditions((RexCall) conditions)) {
+        allConditions.addAll(((RexCall) conditions).getOperands());
       } else {
         allConditions.add(filter.getCondition());
       }
@@ -125,7 +125,7 @@ public class FilterExtractInnerJoinRule
     return false;
   }
 
-  /** This method populates the stack, Stack<RelNode, Integer>, with
+  /** This method populates the stack, Stack< RelNode, Integer >, with
    * TableScan of a table along with its columns end index.*/
   private void populateStackWithEndIndexesForTables(
       Join join, Stack<Map.Entry<RelNode, Integer>> stack, List<RexNode> joinConditions) {
@@ -165,7 +165,7 @@ public class FilterExtractInnerJoinRule
         .build();
   }
 
-  /** Gets all the conditions that are part of the current join*/
+  /** Gets all the conditions that are part of the current join.*/
   private List<RexNode> getConditionsForEndIndex(List<RexNode> conditions, int endIndex) {
     return conditions.stream()
         .filter(
@@ -196,6 +196,11 @@ public class FilterExtractInnerJoinRule
     }
     return isOperandIndexLessThanEndIndex(condition.operands.get(0), endIndex)
         && isOperandIndexLessThanEndIndex(condition.operands.get(1), endIndex);
+  }
+
+  private boolean isConditionComposedOfMultipleConditions(RexCall conditions) {
+    return conditions.getOperands().stream().allMatch(operand ->
+        operand instanceof RexCall && ((RexCall) operand).operands.size() > 1);
   }
 
   /** Rule configuration. */
