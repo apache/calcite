@@ -36,9 +36,9 @@ import org.apache.calcite.util.Pair;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -86,7 +86,7 @@ public class SortProjectPullUpConstantsRule
       return;
     }
 
-    final NavigableMap<Integer, RexNode> map = new TreeMap<>();
+    final Map<Integer, RexNode> map = new HashMap<>();
     for (int fieldCollationIndex : fieldCollationIndexes) {
       final RexInputRef ref =
           rexBuilder.makeInputRef(input, fieldCollationIndex);
@@ -105,15 +105,14 @@ public class SortProjectPullUpConstantsRule
     if (map.size() == fieldCollationIndexes.size()) {
       // All field collations are constants.
       if (sort.offset == null && sort.fetch == null) {
-        // No any offset or fetch in current sort.
-        // Remove current sort.
+        // Neither offset nor fetch in current sort, drop it.
         newInputRel = input;
       } else {
         // Some offset or fetch exist in current sort.
         newInputRel = sort.copy(sort.getTraitSet(), input, RelCollations.EMPTY);
       }
     } else {
-      // All field collations are not all constants.
+      // Some field collations are not constants.
       final List<RelFieldCollation> newFieldCollations = new ArrayList<>();
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
         final int fieldIndex = fieldCollation.getFieldIndex();
@@ -139,12 +138,11 @@ public class SortProjectPullUpConstantsRule
         newExpr = rexBuilder.makeInputRef(newInputRel, index);
       } else {
         // Re-generate the constant expression in the project.
-        RelDataType originalType =
-            sort.getRowType().getFieldList().get(projects.size()).getType();
-        if (!originalType.equals(constantNode.getType())) {
-          newExpr = rexBuilder.makeCast(originalType, constantNode, true);
-        } else {
+        RelDataType originalType = field.getType();
+        if (originalType.equals(constantNode.getType())) {
           newExpr = constantNode;
+        } else {
+          newExpr = rexBuilder.makeCast(originalType, constantNode, true);
         }
       }
       projects.add(Pair.of(newExpr, field.getName()));
