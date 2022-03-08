@@ -5534,7 +5534,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
    * Pull up constant project under sort</a>. */
   @Test void testSortProjectPullUpConstantsNoFetchLimitAndSortEqualFields() {
-    // The count of sort's field is more than constant's, and without any fetch or offset
     final String sql = "select e.empno, e.ename, e.deptno\n"
         + "from sales.emp e\n"
         + "where e.deptno = 123\n"
@@ -5548,7 +5547,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
    * Pull up constant project under sort</a>. */
   @Test void testSortProjectPullUpConstantsNoFetchLimitAndSortMoreFields() {
-    // The count of sort's field is more than constant's, and without any fetch or offset
     final String sql = "select e.empno, e.ename, e.deptno\n"
         + "from sales.emp e\n"
         + "where e.deptno = 123\n"
@@ -5562,7 +5560,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
    * Pull up constant project under sort</a>. */
   @Test void testSortProjectPullUpConstantsWithFetchLimitAndSortEqualFields() {
-    // The constant's count is equal to sort's field, and sort with some fetch and offset
     final String sql = "select e.empno, e.ename, e.deptno\n"
         + "from sales.emp e\n"
         + "where e.deptno = 123\n"
@@ -5576,7 +5573,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5035">[CALCITE-5035]
    * Pull up constant project under sort</a>. */
   @Test void testSortProjectPullUpConstantsWithFetchLimitAndSortMoreFields() {
-    // The count of sort's field is more than constant's, and sort with some fetch and offset
     final String sql = "select e.empno, e.ename, e.deptno\n"
         + "from sales.emp e\n"
         + "where e.deptno = 123\n"
