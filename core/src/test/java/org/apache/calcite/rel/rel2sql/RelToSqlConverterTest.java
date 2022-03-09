@@ -3213,13 +3213,13 @@ class RelToSqlConverterTest {
     sql(query).withDb2().ok(expected);
   }
 
-  /*@Test void testCartesianProductWithCommaSyntax() {
+  @Test void testCartesianProductWithCommaSyntax() {
     String query = "select * from \"department\" , \"employee\"";
     String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
-  }*/
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2652">[CALCITE-2652]
@@ -3257,14 +3257,14 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expectedSql);
   }
 
-  /*@Test void testCartesianProductWithInnerJoinSyntax() {
+  @Test void testCartesianProductWithInnerJoinSyntax() {
     String query = "select * from \"department\"\n"
         + "INNER JOIN \"employee\" ON TRUE";
     String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
-  }*/
+  }
 
   @Test void testFullJoinOnTrueCondition() {
     String query = "select * from \"department\"\n"
@@ -5757,21 +5757,21 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  /*@Test void testCrossJoinEmulationForSpark() {
+  @Test void testCrossJoinEmulationForSpark() {
     String query = "select * from \"employee\", \"department\"";
     final String expected = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
     sql(query).withSpark().ok(expected);
-  }*/
+  }
 
-  /*@Test void testCrossJoinEmulationForBigQuery() {
+  @Test void testCrossJoinEmulationForBigQuery() {
     String query = "select * from \"employee\", \"department\"";
     final String expected = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
     sql(query).withBigQuery().ok(expected);
-  }*/
+  }
 
   @Test void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
@@ -9568,6 +9568,23 @@ class RelToSqlConverterTest {
     sqlTest(query)
         .withBigQuery()
         .ok(expectedBQSql);
+  }
+
+  @Test public void testTimeOfDayFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+          builder.literal("TIMEOFDAY"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode2, "FD2"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('TIMEOFDAY', CURRENT_TIMESTAMP) AS "
+        + "\"FD2\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoin() {
