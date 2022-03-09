@@ -5769,7 +5769,7 @@ class RelToSqlConverterTest {
     String query = "select * from \"employee\", \"department\"";
     final String expected = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "CROSS JOIN foodmart.department";
+        + "INNER JOIN foodmart.department ON TRUE";
     sql(query).withBigQuery().ok(expected);
   }
 
