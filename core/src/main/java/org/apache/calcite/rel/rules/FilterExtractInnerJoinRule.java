@@ -82,9 +82,9 @@ public class FilterExtractInnerJoinRule
       return;
     }
 
-    Stack<Map.Entry<RelNode, Integer>> stackRelToRowEndIndexPair = new Stack<>();
+    Stack<Map.Entry<RelNode, Integer>> stackForTableScanWithEndColumnIndex = new Stack<>();
     List<RexNode> allConditions = new ArrayList<>();
-    populateStackWithEndIndexesForTables(join, stackRelToRowEndIndexPair, allConditions);
+    populateStackWithEndIndexesForTables(join, stackForTableScanWithEndColumnIndex, allConditions);
     RexNode conditions = filter.getCondition();
     if (isConditionComposedOfMultipleConditions((RexCall) conditions)) {
       allConditions.addAll(((RexCall) conditions).getOperands());
@@ -94,7 +94,7 @@ public class FilterExtractInnerJoinRule
 
     final RelNode modifiedJoinClauseWithWhereClause =
         moveConditionsFromWhereClauseToJoinOnClause(
-            allConditions, stackRelToRowEndIndexPair, builder);
+            allConditions, stackForTableScanWithEndColumnIndex, builder);
 
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
@@ -170,7 +170,10 @@ public class FilterExtractInnerJoinRule
         .collect(Collectors.toList());
   }
 
-  /** Helper function for isConditionPartOfCurrentJoin method.*/
+  /** Helper function for isConditionPartOfCurrentJoin method.
+   * Checks index of the given operand(column) if it's less than endIndex.
+   * If an operand(column) is wrapped in a function, for example TRIM(col), CAST(col) etc.,
+   * we call the method recursively.*/
   private boolean isOperandIndexLessThanEndIndex(RexNode operand, int endIndex) {
     if (operand instanceof RexCall) {
       return isOperandIndexLessThanEndIndex(((RexCall) operand).operands.get(0), endIndex);
