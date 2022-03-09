@@ -80,7 +80,8 @@ public enum SqlDateTimeFormat {
   NUMERIC_TIME_ZONE("ZZ"),
   QUARTER("QUARTER"),
   WEEK_OF_YEAR("WW"),
-  WEEK_OF_MONTH("W");
+  WEEK_OF_MONTH("W"),
+  TIMEOFDAY("TIMEOFDAY");
 
   public final String value;
 
