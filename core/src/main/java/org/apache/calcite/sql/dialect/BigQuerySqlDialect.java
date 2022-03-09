@@ -118,6 +118,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.QUARTER;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.SECONDS_PRECISION;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SEC_FROM_MIDNIGHT;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
@@ -236,6 +237,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(HOURMINSEC, "%I%M%S");
         put(MINUTE, "%M");
         put(SECOND, "%S");
+        put(SECONDS_PRECISION, "%E");
         put(FRACTIONONE, "1S");
         put(FRACTIONTWO, "2S");
         put(FRACTIONTHREE, "3S");
