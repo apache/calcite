@@ -5582,8 +5582,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testAggregateConstantKeyRule3() {
     final String sql = "select job\n"
         + "from sales.emp\n"
-        + "where sal is null and job = 'Clerk'\n"
-        + "group by sal, job\n"
+        + "where mgr is null and job = 'Clerk'\n"
+        + "group by mgr, job\n"
         + "having count(*) > 3";
     sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
         .check();
@@ -5596,8 +5596,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testAggregateDynamicFunction() {
     final String sql = "select hiredate\n"
         + "from sales.emp\n"
-        + "where sal is null and hiredate = current_timestamp\n"
-        + "group by sal, hiredate\n"
+        + "where mgr is null and hiredate = current_timestamp\n"
+        + "group by mgr, hiredate\n"
         + "having count(*) > 3";
     sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
         .check();

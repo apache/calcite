@@ -130,8 +130,8 @@ LogicalProject(C=[$1])
     <Resource name="sql">
       <![CDATA[select job
 from sales.emp
-where sal is null and job = 'Clerk'
-group by sal, job
+where mgr is null and job = 'Clerk'
+group by mgr, job
 having count(*) > 3]]>
     </Resource>
     <Resource name="planBefore">
@@ -139,8 +139,8 @@ having count(*) > 3]]>
 LogicalProject(JOB=[$1])
   LogicalFilter(condition=[>($2, 3)])
     LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
-      LogicalProject(SAL=[$5], JOB=[$2])
-        LogicalFilter(condition=[AND(IS NULL($5), =($2, 'Clerk'))])
+      LogicalProject(MGR=[$3], JOB=[$2])
+        LogicalFilter(condition=[AND(IS NULL($3), =($2, 'Clerk'))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -148,10 +148,10 @@ LogicalProject(JOB=[$1])
       <![CDATA[
 LogicalProject(JOB=[$1])
   LogicalFilter(condition=[>($2, 3)])
-    LogicalProject(SAL=[$0], JOB=['Clerk':VARCHAR(10)], $f2=[$1])
+    LogicalProject(MGR=[$0], JOB=['Clerk':VARCHAR(10)], $f2=[$1])
       LogicalAggregate(group=[{0}], agg#0=[COUNT()])
-        LogicalProject(SAL=[$5])
-          LogicalFilter(condition=[AND(IS NULL($5), =($2, 'Clerk'))])
+        LogicalProject(MGR=[$3])
+          LogicalFilter(condition=[AND(IS NULL($3), =($2, 'Clerk'))])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -160,8 +160,8 @@ LogicalProject(JOB=[$1])
     <Resource name="sql">
       <![CDATA[select hiredate
 from sales.emp
-where sal is null and hiredate = current_timestamp
-group by sal, hiredate
+where mgr is null and hiredate = current_timestamp
+group by mgr, hiredate
 having count(*) > 3]]>
     </Resource>
     <Resource name="planBefore">
@@ -169,8 +169,8 @@ having count(*) > 3]]>
 LogicalProject(HIREDATE=[$1])
   LogicalFilter(condition=[>($2, 3)])
     LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
-      LogicalProject(SAL=[$5], HIREDATE=[$4])
-        LogicalFilter(condition=[AND(IS NULL($5), =($4, CURRENT_TIMESTAMP))])
+      LogicalProject(MGR=[$3], HIREDATE=[$4])
+        LogicalFilter(condition=[AND(IS NULL($3), =($4, CURRENT_TIMESTAMP))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -178,10 +178,10 @@ LogicalProject(HIREDATE=[$1])
       <![CDATA[
 LogicalProject(HIREDATE=[$1])
   LogicalFilter(condition=[>($2, 3)])
-    LogicalProject(SAL=[$0], HIREDATE=[CURRENT_TIMESTAMP], $f2=[$1])
+    LogicalProject(MGR=[$0], HIREDATE=[CURRENT_TIMESTAMP], $f2=[$1])
       LogicalAggregate(group=[{0}], agg#0=[COUNT()])
-        LogicalProject(SAL=[$5])
-          LogicalFilter(condition=[AND(IS NULL($5), =($4, CURRENT_TIMESTAMP))])
+        LogicalProject(MGR=[$3])
+          LogicalFilter(condition=[AND(IS NULL($3), =($4, CURRENT_TIMESTAMP))])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
