@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
  * <blockquote>
  * <pre>select e.employee_id, e.name
  * from employee as e, department as d
- * where e.department_id = d.department_id and d.department_id > 5</pre></blockquote>
+ * where e.department_id = d.department_id and d.department_id = 5</pre></blockquote>
  *
  * <p>becomes
  *
@@ -60,7 +60,7 @@ import java.util.stream.Collectors;
  * from employee as e
  * INNER JOIN department as d
  * ON e.department_id = d.department_id
- * WHERE d.department_id > 5</pre></blockquote>
+ * WHERE d.department_id = 5</pre></blockquote>
  *
  * @see CoreRules#FILTER_EXTRACT_INNER_JOIN_RULE
  */
