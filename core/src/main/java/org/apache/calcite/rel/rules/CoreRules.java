@@ -755,4 +755,10 @@ public class CoreRules {
   public static final ReduceExpressionsRule.WindowReduceExpressionsRule
       WINDOW_REDUCE_EXPRESSIONS =
       ReduceExpressionsRule.WindowReduceExpressionsRule.Config.DEFAULT.toRule();
+
+  /** Rule to move
+   * Join Predicates from {@link Filter} to
+   * {@link Join} as ON condition. */
+  public static final FilterExtractInnerJoinRule FILTER_EXTRACT_INNER_JOIN_RULE =
+      FilterExtractInnerJoinRule.Config.DEFAULT.toRule();
 }

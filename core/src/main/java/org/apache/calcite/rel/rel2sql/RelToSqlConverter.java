@@ -229,8 +229,9 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode sqlCondition = null;
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
-    if (isCrossJoin(e)) {
-      joinType = dialect.emulateJoinTypeForCrossJoin();
+    JoinType currentDialectJoinType = dialect.emulateJoinTypeForCrossJoin();
+    if (isCrossJoin(e) && currentDialectJoinType != JoinType.INNER) {
+      joinType = currentDialectJoinType;
       condType = JoinConditionType.NONE.symbol(POS);
     } else {
       sqlCondition = convertConditionToSqlNode(e.getCondition(),

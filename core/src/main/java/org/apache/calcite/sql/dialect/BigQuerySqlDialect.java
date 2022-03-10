@@ -352,7 +352,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public JoinType emulateJoinTypeForCrossJoin() {
-    return JoinType.CROSS;
+    return JoinType.INNER;
   }
 
   @Override public boolean castRequiredForStringOperand(RexCall node) {
