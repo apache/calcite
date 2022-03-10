@@ -31,13 +31,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
@@ -82,7 +82,7 @@ public class FilterExtractInnerJoinRule
       return;
     }
 
-    Stack<Map.Entry<RelNode, Integer>> stackForTableScanWithEndColumnIndex = new Stack<>();
+    Stack<Pair<RelNode, Integer>> stackForTableScanWithEndColumnIndex = new Stack<>();
     List<RexNode> allConditions = new ArrayList<>();
     populateStackWithEndIndexesForTables(join, stackForTableScanWithEndColumnIndex, allConditions);
     RexNode conditions = filter.getCondition();
@@ -121,36 +121,36 @@ public class FilterExtractInnerJoinRule
   /** This method populates the stack, Stack< RelNode, Integer >, with
    * TableScan of a table along with its columns end index.*/
   private void populateStackWithEndIndexesForTables(
-      Join join, Stack<Map.Entry<RelNode, Integer>> stack, List<RexNode> joinConditions) {
+      Join join, Stack<Pair<RelNode, Integer>> stack, List<RexNode> joinConditions) {
     RelNode left = ((HepRelVertex) join.getLeft()).getCurrentRel();
     RelNode right = ((HepRelVertex) join.getRight()).getCurrentRel();
     int leftTableColumnSize = join.getLeft().getRowType().getFieldCount();
     int rightTableColumnSize = join.getRight().getRowType().getFieldCount();
-    stack.push(Map.entry(right, leftTableColumnSize + rightTableColumnSize - 1));
+    stack.push(new Pair<>(right, leftTableColumnSize + rightTableColumnSize - 1));
     if (!(join.getCondition() instanceof RexLiteral)) {
       joinConditions.add(join.getCondition());
     }
     if (left instanceof Join) {
       populateStackWithEndIndexesForTables((Join) left, stack, joinConditions);
     } else {
-      stack.push(Map.entry(left, leftTableColumnSize - 1));
+      stack.push(new Pair<>(left, leftTableColumnSize - 1));
     }
   }
 
   /** This method identifies Join Predicates from filter conditions and put them on Joins as
    * ON conditions.*/
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(
-      List<RexNode> allConditions, Stack<Map.Entry<RelNode, Integer>> stack, RelBuilder builder) {
-    Map.Entry<RelNode, Integer> leftEntry = stack.pop();
-    Map.Entry<RelNode, Integer> rightEntry;
+      List<RexNode> allConditions, Stack<Pair<RelNode, Integer>> stack, RelBuilder builder) {
+    Pair<RelNode, Integer> leftEntry = stack.pop();
+    Pair<RelNode, Integer> rightEntry;
     RelNode left = leftEntry.getKey();
 
     while (!stack.isEmpty()) {
       rightEntry = stack.pop();
-      List<RexNode> joinConditions = getConditionsForEndIndex(allConditions, rightEntry.getValue());
+      List<RexNode> joinConditions = getConditionsForEndIndex(allConditions, rightEntry.right);
       RexNode joinPredicate = builder.and(joinConditions);
       allConditions.removeAll(joinConditions);
-      left = LogicalJoin.create(left, rightEntry.getKey(), ImmutableList.of(),
+      left = LogicalJoin.create(left, rightEntry.left, ImmutableList.of(),
           joinPredicate, ImmutableSet.of(), JoinRelType.INNER);
     }
     return builder.push(left)
