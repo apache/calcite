@@ -95,6 +95,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayDeque;
@@ -113,6 +114,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.rex.RexLiteral.stringValue;
+import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static java.util.Objects.requireNonNull;
 
@@ -433,7 +435,8 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Project e) {
     // If the input is a Sort, wrap SELECT is not required.
     final Result x;
-    if (e.getInput() instanceof Sort) {
+    boolean inputIsSort = e.getInput() instanceof Sort;
+    if (inputIsSort) {
       x = visitInput(e, 0);
     } else {
       x = visitInput(e, 0, Clause.SELECT);
@@ -441,6 +444,37 @@ public class RelToSqlConverter extends SqlImplementor
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
     if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
+      //The ORDER BY ordinal may be greater than size of the new projects.
+      //For example, given
+      //    SELECT empno FROM emp ORDER BY 2
+      // we generate
+      //    SELECT empno FROM emp ORDER BY ename
+      // "ORDER BY 2" is incorrect because max ordinal is 1.
+      if (inputIsSort && builder.select.hasOrderBy()
+          && dialect.getConformance().isSortByOrdinal()) {
+        int maxOrderKey = e.getProjects().size();
+        SqlNodeList orderList = requireNonNull(builder.select.getOrderList());
+        final List<SqlNode> newOrderList = new ArrayList<>();
+        for (@NonNull SqlNode orderItem : orderList) {
+          int i = SqlUtil.getOrderByOrdinal(orderItem);
+          if (i > maxOrderKey) {
+            SqlNode orderField = stripAs(builder.select.getSelectList().get(i - 1));
+            SqlNode newOrderItem = orderItem.accept(new SqlShuttle() {
+              @Override public @Nullable SqlNode visit(SqlLiteral literal) {
+                if (SqlUtil.getOrderByOrdinal(literal) == i) {
+                  return orderField;
+                }
+                return super.visit(literal);
+              }
+            });
+            newOrderList.add(requireNonNull(newOrderItem, "newOrderItem"));
+          } else {
+            newOrderList.add(orderItem);
+          }
+        }
+        builder.setOrderBy(new SqlNodeList(newOrderList, POS));
+      }
+
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);

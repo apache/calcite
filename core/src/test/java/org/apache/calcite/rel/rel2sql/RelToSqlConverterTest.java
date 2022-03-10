@@ -66,6 +66,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
@@ -89,6 +91,7 @@ import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -486,7 +489,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY GROUPING SETS((\"product_class_id\", \"brand_name\"),"
         + " \"product_class_id\")\n"
-        + "ORDER BY \"brand_name\", \"product_class_id\"";
+        + "ORDER BY 2, 1";
     sql(query)
         .withPostgresql().ok(expected);
   }
@@ -620,7 +623,7 @@ class RelToSqlConverterTest {
         + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
         + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
         + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0\n"
-        + "ORDER BY COUNT(*)";
+        + "ORDER BY 4";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -665,14 +668,14 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"product_class_id\", \"brand_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
-        + "ORDER BY \"product_class_id\", \"brand_name\"";
+        + "ORDER BY 1, 2";
     final String expectedMysql = "SELECT `product_class_id`, `brand_name`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP";
     final String expectedMysql8 = "SELECT `product_class_id`, `brand_name`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
-        + "ORDER BY `product_class_id` NULLS LAST, `brand_name` NULLS LAST";
+        + "ORDER BY 1 NULLS LAST, 2 NULLS LAST";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
@@ -689,7 +692,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"product_class_id\", \"brand_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
-        + "ORDER BY \"brand_name\", \"product_class_id\"";
+        + "ORDER BY 2, 1";
     final String expectedMysql = "SELECT `product_class_id`, `brand_name`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `brand_name`, `product_class_id` WITH ROLLUP";
@@ -753,17 +756,17 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\", COUNT(*)";
+        + "ORDER BY 1, 2";
     final String expectedMysql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
-        + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
-        + " COUNT(*) IS NULL, COUNT(*)";
+        + "ORDER BY `product_class_id` IS NULL, 1,"
+        + " COUNT(*) IS NULL, 2";
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\" IS NULL, \"product_class_id\", "
-        + "COUNT(*) IS NULL, COUNT(*)";
+        + "ORDER BY \"product_class_id\" IS NULL, 1, "
+        + "COUNT(*) IS NULL, 2";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
@@ -803,14 +806,14 @@ class RelToSqlConverterTest {
         + " COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
-        + "ORDER BY \"product_class_id\", \"brand_name\", COUNT(*)";
+        + "ORDER BY 1, 2, 3";
     final String expectedMysql = "SELECT `product_class_id`, `brand_name`,"
         + " COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP\n"
-        + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
-        + " `brand_name` IS NULL, `brand_name`,"
-        + " COUNT(*) IS NULL, COUNT(*)";
+        + "ORDER BY `product_class_id` IS NULL, 1,"
+        + " `brand_name` IS NULL, 2,"
+        + " COUNT(*) IS NULL, 3";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql);
@@ -1573,7 +1576,7 @@ class RelToSqlConverterTest {
         "select \"product_id\", \"net_weight\" from \"product\" order by \"net_weight\"";
     final String expected = "SELECT \"product_id\", \"net_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\"";
+        + "ORDER BY 2";
     sql(query).ok(expected);
   }
 
@@ -2074,10 +2077,10 @@ class RelToSqlConverterTest {
     // Hive and MSSQL do not support NULLS FIRST, so need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id IS NULL DESC, product_id DESC";
+        + "ORDER BY product_id IS NULL DESC, 1 DESC";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, 1 DESC";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2089,10 +2092,10 @@ class RelToSqlConverterTest {
     // Hive and MSSQL do not support NULLS LAST, so need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id IS NULL, product_id";
+        + "ORDER BY product_id IS NULL, 1";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, 1";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2105,10 +2108,10 @@ class RelToSqlConverterTest {
     // need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id";
+        + "ORDER BY 1";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id]";
+        + "ORDER BY 1";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2121,10 +2124,10 @@ class RelToSqlConverterTest {
     // need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id DESC";
+        + "ORDER BY 1 DESC";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id] DESC";
+        + "ORDER BY 1 DESC";
     sql(query)
         .dialect(HiveSqlDialect.DEFAULT).ok(expected)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
@@ -2232,7 +2235,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id DESC NULLS FIRST";
+        + "ORDER BY 1 DESC NULLS FIRST";
     sql(query).dialect(hive2_1Dialect).ok(expected);
     sql(query).dialect(hive2_2_Dialect).ok(expected);
   }
@@ -2268,7 +2271,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id IS NULL DESC, product_id DESC";
+        + "ORDER BY product_id IS NULL DESC, 1 DESC";
     sql(query).dialect(hive2_1_0_Dialect).ok(expected);
   }
 
@@ -2292,7 +2295,7 @@ class RelToSqlConverterTest {
 
     final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"product_id\", \"product_id\" DESC";
+        + "ORDER BY \"product_id\", 1 DESC";
     sql(query).dialect(jethroDataSqlDialect()).ok(expected);
   }
 
@@ -2311,7 +2314,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
+        + "ORDER BY `product_id` IS NULL DESC, 1 DESC";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -2329,7 +2332,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL, `product_id`";
+        + "ORDER BY `product_id` IS NULL, 1";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -2347,7 +2350,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id`";
+        + "ORDER BY 1";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -2364,7 +2367,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` DESC";
+        + "ORDER BY 1 DESC";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -2407,7 +2410,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id`";
+        + "ORDER BY 1";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -2424,7 +2427,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL DESC, `product_id`";
+        + "ORDER BY `product_id` IS NULL DESC, 1";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -2442,7 +2445,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` DESC";
+        + "ORDER BY 1 DESC";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -2459,7 +2462,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL, `product_id` DESC";
+        + "ORDER BY `product_id` IS NULL, 1 DESC";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -2477,7 +2480,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` DESC";
+        + "ORDER BY 1 DESC";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -2494,7 +2497,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id`";
+        + "ORDER BY 1";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -2511,7 +2514,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL, `product_id` DESC";
+        + "ORDER BY `product_id` IS NULL, 1 DESC";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -2529,7 +2532,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL, `product_id`";
+        + "ORDER BY `product_id` IS NULL, 1";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -2547,7 +2550,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
+        + "ORDER BY `product_id` IS NULL DESC, 1 DESC";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
@@ -2565,7 +2568,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL DESC, `product_id`";
+        + "ORDER BY `product_id` IS NULL DESC, 1";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
@@ -2583,7 +2586,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` DESC";
+        + "ORDER BY 1 DESC";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
@@ -2600,7 +2603,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id`";
+        + "ORDER BY 1";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
@@ -2679,7 +2682,7 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" offset 10 rows fetch next 100 rows only";
     final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"product_id\"\n"
+        + "ORDER BY 1\n"
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
     sql(query).ok(expected);
@@ -2691,17 +2694,17 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" fetch next 100 rows only";
     final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"product_id\"\n"
+        + "ORDER BY 1\n"
         + "FETCH NEXT 100 ROWS ONLY";
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, 1";
     final String expectedMssql = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, 1";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id";
+        + "ORDER BY 1";
     sql(query).ok(expected)
         .withMssql(10).ok(expectedMssql10)
         .withMssql(11).ok(expectedMssql)
@@ -2717,7 +2720,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"cases_per_pallet\" > 100\n"
         + "GROUP BY \"product_id\", \"units_per_case\"\n"
-        + "ORDER BY \"units_per_case\" DESC";
+        + "ORDER BY 2 DESC";
     sql(query).ok(expected);
   }
 
@@ -3063,7 +3066,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product AS product\n"
         + "WHERE product.cases_per_pallet > 100\n"
         + "GROUP BY product.product_id, product.units_per_case\n"
-        + "ORDER BY product.units_per_case DESC";
+        + "ORDER BY 2 DESC";
     sql(query).withDb2().ok(expected);
   }
 
@@ -3077,14 +3080,14 @@ class RelToSqlConverterTest {
         + "  from \"product\")\n"
         + "where \"cases_per_pallet\" > 100\n"
         + "group by \"product_id\", \"units_per_case\"\n"
-        + "order by \"units_per_case\" desc";
+        + "order by 2 desc";
     final String expected = "SELECT COUNT(*), t.units_per_case\n"
         + "FROM (SELECT product.units_per_case, product.cases_per_pallet, "
         + "product.product_id, 1 AS FOO\n"
         + "FROM foodmart.product AS product) AS t\n"
         + "WHERE t.cases_per_pallet > 100\n"
         + "GROUP BY t.product_id, t.units_per_case\n"
-        + "ORDER BY t.units_per_case DESC";
+        + "ORDER BY 2 DESC";
     sql(query).withDb2().ok(expected);
   }
 
@@ -3114,7 +3117,7 @@ class RelToSqlConverterTest {
         + "WHERE product0.cases_per_pallet < 100) AS t3\n"
         + "WHERE t3.cases_per_pallet > 100\n"
         + "GROUP BY t3.product_id, t3.units_per_case\n"
-        + "ORDER BY t3.units_per_case DESC";
+        + "ORDER BY 2 DESC";
     sql(query).withDb2().ok(expected);
   }
 
@@ -6282,13 +6285,93 @@ class RelToSqlConverterTest {
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
         + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
-        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, COUNT(DISTINCT EMPNO) DESC";
+        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, 2 DESC";
 
     // Convert rel node to SQL with BigQuery dialect,
     // in which "isHavingAlias" is true.
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withBigQuery().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4987">[CALCITE-4987]
+   * JDBC adapter generates incorrect query when ORDER BY alias collides with field
+   * in SELECT ITEM</a>. <br>
+   * Also cover <a href="https://issues.apache.org/jira/browse/CALCITE-2552">[CALCITE-2552]
+   * JDBC adapter generates Non-Dialect Specific Order By Field Identifier</a>. <br/>*/
+  @Test void testOrderByClauseWithDialectConformance() {
+    List<String[]> tests = prepareOrderByClauseWithDialectConformanceTests();
+    for (String[] test : tests) {
+      String queryWithAlias = test[0];
+      String expectedWithOrdinal = test[1];
+      String expectedWithSelectItem = test[2];
+      //isSortByOrdinal = true, isSortByAlias = true, resolve to order by ordinal.
+      sql(queryWithAlias).ok(expectedWithOrdinal);
+      //isSortByOrdinal = false, isSortByAlias = true, resolve to order by alias.
+      sql(queryWithAlias)
+          .dialect(new CalciteSqlDialect(CalciteSqlDialect.DEFAULT_CONTEXT) {
+            @Override public SqlConformance getConformance() {
+              return new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+                @Override public boolean isSortByOrdinal() {
+                  return false;
+                }
+              };
+            }
+          })
+          .ok(queryWithAlias);
+      //isSortByOrdinal = false, isSortByAlias = false, resolve to order by select item.
+      sql(queryWithAlias)
+          .dialect(new CalciteSqlDialect(CalciteSqlDialect.DEFAULT_CONTEXT) {
+            @Override public SqlConformance getConformance() {
+              return new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+                @Override public boolean isSortByOrdinal() {
+                  return false;
+                }
+
+                @Override public boolean isSortByAlias() {
+                  return false;
+                }
+              };
+            }
+          })
+          .ok(expectedWithSelectItem);
+    }
+  }
+
+  private List<String[]> prepareOrderByClauseWithDialectConformanceTests() {
+    List<String[]> tests = new ArrayList<>();
+    // Before 4987 was fixed, the generated query would prefer "SUM(shelf_width)" in its
+    // ORDER BY clause.Now ORDER BY clause depends on dialect's conformance.
+    // See SqlConformance#isSortByOrdinal, SqlConformance#isSortByAlias
+    //testOrderByAliasCollidingWithFieldInSelect
+    String queryWithAlias = "SELECT SUM(\"shelf_width\") AS \"shelf_width\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"shelf_width\"";
+    String expectedWithOrdinal = "SELECT SUM(\"shelf_width\") AS \"shelf_width\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY 1";
+    String expectedWithSelectItem = "SELECT SUM(\"shelf_width\") AS \"shelf_width\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY SUM(\"shelf_width\")";
+    tests.add(new String[]{queryWithAlias, expectedWithOrdinal, expectedWithSelectItem});
+
+    // Before 2552 was fixed, the generated query would prefer "shelf_width" in its
+    // ORDER BY clause.Now ORDER BY clause depends on dialect's conformance.
+    // See SqlConformance#isSortByOrdinal, SqlConformance#isSortByAlias
+    //testOrderByAlias
+    queryWithAlias = "SELECT \"net_weight\" AS \"shelf_width\", \"shelf_width\" AS \"x\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"x\""; //equals ORDER BY "product"."shelf_width"
+    expectedWithOrdinal = "SELECT \"net_weight\" AS \"shelf_width\", \"shelf_width\" AS \"x\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY 2";
+    expectedWithSelectItem = "SELECT \"net_weight\" AS \"shelf_width\", \"shelf_width\" AS \"x\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"shelf_width\""; //shelf_width doesn't collide because the dialect doesn't
+    // support order by alias.
+    tests.add(new String[]{queryWithAlias, expectedWithOrdinal, expectedWithSelectItem});
+    return tests;
   }
 
   /** Fluid interface to run tests. */

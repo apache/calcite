@@ -86,6 +86,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
@@ -601,11 +602,24 @@ public abstract class SqlImplementor {
 
     /** Creates a reference to a field to be used in an ORDER BY clause.
      *
-     * <p>By default, it returns the same result as {@link #field}.
+     * <p>The return result depends on the target dialect's conformance
+     * and the following solving order.
+     * <ul>
+     *   <li>If the conformance supports {@link SqlConformance#isSortByOrdinal()},
+     *    then ORDER BY ordinal.
+     *   <li>Else if the conformance supports {@link SqlConformance#isSortByAlias()},
+     *    then ORDER BY alias.
+     *   <li>Else ORDER BY SELECT field.
+     * </ul>
      *
-     * <p>If the field has an alias, uses the alias.
-     * If the field is an unqualified column reference which is the same an
-     * alias, switches to a qualified column reference.
+     * <p>For example, given
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno</pre>
+     * we generate the following statements according to the above solving order.
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2</pre>
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY x</pre>
+     * <pre>SELECT deptno AS empno, empno AS x FROM emp ORDER BY empno</pre>
+     * The last "ORDER BY empno" is valid because the target dialect's conformance
+     * doesn't support ORDER BY alias.
      */
     public SqlNode orderField(int ordinal) {
       return field(ordinal);
@@ -1694,6 +1708,7 @@ public abstract class SqlImplementor {
       if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
         final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
             && dialect.getConformance().isHavingAlias();
+        final boolean orderByFieldRequired = !expectedClauses.contains(Clause.ORDER_BY);
         newContext = new Context(dialect, selectList.size()) {
           @Override public SqlImplementor implementor() {
             return SqlImplementor.this;
@@ -1721,30 +1736,21 @@ public abstract class SqlImplementor {
           }
 
           @Override public SqlNode orderField(int ordinal) {
-            // If the field expression is an unqualified column identifier
-            // and matches a different alias, use an ordinal.
-            // For example, given
-            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno
-            // we generate
-            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
-            // "ORDER BY empno" would give incorrect result;
-            // "ORDER BY x" is acceptable but is not preferred.
-            final SqlNode node = field(ordinal);
-            if (node instanceof SqlIdentifier
-                && ((SqlIdentifier) node).isSimple()) {
-              final String name = ((SqlIdentifier) node).getSimple();
-              for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
-                if (selectItem.i != ordinal) {
-                  final String alias =
-                      SqlValidatorUtil.getAlias(selectItem.e, -1);
-                  if (name.equalsIgnoreCase(alias)) {
-                    return SqlLiteral.createExactNumeric(
-                        Integer.toString(ordinal + 1), SqlParserPos.ZERO);
-                  }
+            if (!orderByFieldRequired && dialect.getConformance().isSortByOrdinal()) {
+              return SqlLiteral.createExactNumeric(
+                  Integer.toString(ordinal + 1), SqlParserPos.ZERO);
+            } else {
+              final SqlNode selectItem = selectList.get(ordinal);
+              if (selectItem.getKind() == SqlKind.AS) {
+                if (!orderByFieldRequired && dialect.getConformance().isSortByAlias()) {
+                  return ((SqlCall) selectItem).operand(1); //alias
+                } else {
+                  return ((SqlCall) selectItem).operand(0); //select item
                 }
+              } else {
+                return selectItem;
               }
             }
-            return node;
           }
         };
       } else {

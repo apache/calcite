@@ -49,6 +49,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Predicates;
 import com.google.common.base.Utf8;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -68,6 +69,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -82,6 +84,10 @@ public abstract class SqlUtil {
   /** Prefix for generated column aliases. Ends with '$' so that human-written
    * queries are unlikely to accidentally reference the generated name. */
   public static final String GENERATED_EXPR_ALIAS_PREFIX = "EXPR$";
+
+  /** The possible sql kinds that an ORDER BY Ordinal sql node may be. */
+  public static final Set<SqlKind> ORDER_BY_ORDINAL_SQL_KINDS = ImmutableSet.of(
+      SqlKind.DESCENDING, SqlKind.NULLS_FIRST, SqlKind.NULLS_LAST);
 
   //~ Methods ----------------------------------------------------------------
 
@@ -1184,6 +1190,23 @@ public abstract class SqlUtil {
       return createLeftCall(op, pos, operands);
     }
     return op.createCall(pos, operands);
+  }
+
+  /**
+   * Get the ordinal literal value of the ORDER BY ordinal item.
+   *
+   * @param sqlNode the ORDER BY ordinal item
+   * @return -1 if the sqlNode is not an ordinal, otherwise return ordinal
+   */
+  public static int getOrderByOrdinal(SqlNode sqlNode) {
+    while (ORDER_BY_ORDINAL_SQL_KINDS.contains(sqlNode.getKind())) {
+      sqlNode = ((SqlCall) sqlNode).operand(0);
+    }
+    if (sqlNode instanceof SqlNumericLiteral
+        && ((SqlNumericLiteral) sqlNode).isExact()) {
+      return ((SqlNumericLiteral) sqlNode).intValue(true);
+    }
+    return -1;
   }
 
   private static SqlNode createLeftCall(SqlOperator op, SqlParserPos pos,
