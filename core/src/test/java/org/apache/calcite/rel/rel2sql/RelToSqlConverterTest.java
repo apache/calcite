@@ -9693,7 +9693,7 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
   }
 
-  @Test void translateTimestampWithLocalTimeToDateTimeInBq() {
+  @Test void translateCastOfTimestampWithLocalTimeToimestampInBq() {
     final RelBuilder relBuilder = relBuilder();
 
     final RexNode castTZcall =
