@@ -9692,4 +9692,21 @@ class RelToSqlConverterTest {
     RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
   }
+
+  @Test void translateCastOfTimestampWithLocalTimeToTimestampInBq() {
+    final RelBuilder relBuilder = relBuilder();
+
+    final RexNode castTimestampTimeZoneCall =
+        relBuilder.cast(relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+            SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+    final RelNode root = relBuilder
+        .values(new String[] {"c"}, 1)
+        .project(castTimestampTimeZoneCall)
+        .build();
+
+    final String expectedBigQuery = "SELECT CAST(CURRENT_DATETIME() AS TIMESTAMP) AS `$f0`";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
 }
