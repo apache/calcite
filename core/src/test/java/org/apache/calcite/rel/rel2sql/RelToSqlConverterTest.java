@@ -9693,16 +9693,16 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
   }
 
-  @Test void translateCastOfTimestampWithLocalTimeToimestampInBq() {
+  @Test void translateCastOfTimestampWithLocalTimeToTimestampInBq() {
     final RelBuilder relBuilder = relBuilder();
 
-    final RexNode castTZcall =
+    final RexNode castTimestampTimeZoneCall =
         relBuilder.cast(relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
             SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
 
     final RelNode root = relBuilder
         .values(new String[] {"c"}, 1)
-        .project(castTZcall)
+        .project(castTimestampTimeZoneCall)
         .build();
 
     final String expectedBigQuery = "SELECT CAST(CURRENT_DATETIME() AS TIMESTAMP) AS `$f0`";
