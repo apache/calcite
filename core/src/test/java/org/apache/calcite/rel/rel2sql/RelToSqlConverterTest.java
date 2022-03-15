@@ -22,6 +22,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.HintPredicates;
@@ -66,6 +68,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
@@ -1593,6 +1596,119 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"";
     sql(query).ok(expected);
+  }
+
+  @Test void testRewriteOrderByWithAllConstants() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.literal(1), b.field(1), b.field(2))
+        .sort(
+            RelCollations.of(
+                ImmutableList.of(
+            new RelFieldCollation(0))))
+        .project(b.field(2), b.field(1))
+        .build();
+    // Default dialect rewrite numeric constant keys to string literal in the order-by.
+    relFn(relFn).ok("SELECT \"JOB\", \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY '1'");
+    // Define a tested dialect doesn't remove constant keys in the order-by.
+    final SqlDialect testDialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
+      @Override
+      public SqlConformance getConformance() {
+        return SqlConformanceEnum.STRICT_99;
+      }
+    };
+    relFn(relFn).dialect(testDialect).ok("SELECT JOB, ENAME\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1");
+  }
+
+  @Test void testRewriteOrderByWithNotAllConstants() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.literal(1), b.field(1), b.field(2))
+        .sort(
+            RelCollations.of(
+                ImmutableList.of(
+            new RelFieldCollation(0), new RelFieldCollation(1))))
+        .project(b.field(2), b.field(1))
+        .build();
+    // Default dialect rewrite numeric constant keys to string literal in the order-by.
+    relFn(relFn).ok("SELECT \"JOB\", \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY '1', \"ENAME\"");
+    // Define a tested dialect doesn't remove constant keys in the order-by.
+    final SqlDialect testDialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
+      @Override
+      public SqlConformance getConformance() {
+        return SqlConformanceEnum.STRICT_99;
+      }
+    };
+    relFn(relFn).dialect(testDialect).ok("SELECT JOB, ENAME\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1, ENAME");
+  }
+
+  @Test void testRewriteOrderByConstantsWithAlias() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.alias(b.literal(1), "col"), b.field(1), b.field(2))
+        .sort(
+            RelCollations.of(
+                ImmutableList.of(
+                    new RelFieldCollation(0), new RelFieldCollation(1))))
+        .project(b.field(2), b.field(1))
+        .build();
+    // Default dialect rewrite numeric constant keys to string literal in the order-by.
+    relFn(relFn).ok("SELECT \"JOB\", \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY '1', \"ENAME\"");
+    // Define a tested dialect doesn't remove constant keys in the order-by.
+    final SqlDialect testDialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
+      @Override
+      public SqlConformance getConformance() {
+        return SqlConformanceEnum.STRICT_99;
+      }
+    };
+    relFn(relFn).dialect(testDialect).ok("SELECT JOB, ENAME\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1, ENAME");
+  }
+
+  @Test void testNoNeedRewriteOrderByConstantsForOtherType() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.literal("12"), b.field(1), b.field(2))
+        .sort(
+            RelCollations.of(
+                ImmutableList.of(
+            new RelFieldCollation(0), new RelFieldCollation(1))))
+        .project(b.field(2), b.field(1))
+        .build();
+    // Default dialect rewrite numeric constant keys to string literal in the order-by,
+    // and string constant will not be written.
+    relFn(relFn).ok("SELECT \"JOB\", \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "ORDER BY '12', \"ENAME\"");
+    // Define a tested dialect doesn't remove constant keys in the order-by.
+    final SqlDialect testDialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
+      @Override
+      public SqlConformance getConformance() {
+        return SqlConformanceEnum.STRICT_99;
+      }
+    };
+    relFn(relFn).dialect(testDialect).ok("SELECT JOB, ENAME\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY '12', ENAME");
+  }
+
+  @Test void testNoNeedRewriteOrderByConstantsForOver() {
+    final String query = "select row_number() over "
+        + "(order by 1 nulls last) from \"employee\"";
+    // Define dialect not remove constant keys in the over of order-by.
+    sql(query).ok("SELECT ROW_NUMBER() OVER (ORDER BY 1)\n"
+        + "FROM \"foodmart\".\"employee\"");
   }
 
   /** Test case for

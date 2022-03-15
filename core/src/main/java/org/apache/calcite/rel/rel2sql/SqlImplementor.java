@@ -1104,6 +1104,16 @@ public abstract class SqlImplementor {
     }
 
     void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field) {
+      if (dialect.getConformance().isSortByOrdinal()) {
+        final SqlNode orderByNode = field(field.getFieldIndex());
+        if (orderByNode instanceof SqlNumericLiteral) {
+          // We rewrite the current node for StringLiteral, when it's numeric constant.
+          final SqlNumericLiteral numericLiteralOrderBy = (SqlNumericLiteral) orderByNode;
+          final String strValue = numericLiteralOrderBy.toValue();
+          orderByList.add(SqlLiteral.createCharString(strValue, orderByNode.getParserPosition()));
+          return;
+        }
+      }
       if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
