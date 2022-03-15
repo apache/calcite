@@ -285,7 +285,7 @@ class ElasticsearchRules {
   private static class ElasticsearchProjectRule extends ElasticsearchConverterRule {
     private static final ElasticsearchProjectRule INSTANCE = Config.INSTANCE
         .withConversion(LogicalProject.class, p -> p.getCorrelVariable() == null
-                || p.getVariablesSet().isEmpty(), Convention.NONE,
+                && p.getVariablesSet().isEmpty(), Convention.NONE,
             ElasticsearchRel.CONVENTION, "ElasticsearchProjectRule")
         .withRuleFactory(ElasticsearchProjectRule::new)
         .toRule(ElasticsearchProjectRule.class);

@@ -378,7 +378,7 @@ public class Bindables {
     /** Default configuration. */
     public static final Config DEFAULT_CONFIG = Config.INSTANCE
         .withConversion(LogicalProject.class, p -> !p.containsOver()
-            && (p.getCorrelVariable() == null || p.getVariablesSet().isEmpty()),
+            && p.getCorrelVariable() == null && p.getVariablesSet().isEmpty(),
             Convention.NONE, BindableConvention.INSTANCE,
             "BindableProjectRule")
         .withRuleFactory(BindableProjectRule::new);
