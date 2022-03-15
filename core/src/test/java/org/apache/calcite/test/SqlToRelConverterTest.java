@@ -4441,9 +4441,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    */
   @Test void testGroupByExprArgFieldSameWithAlias() {
     final String sql = "SELECT floor(deptno / 2) AS deptno\n"
-        + "FROM dept\n"
-        + "GROUP BY floor(deptno / 2)\n"
-        + "HAVING floor(deptno / 2) > 1";
+        + "FROM emp\n"
+        + "GROUP BY floor(deptno / 2)";
     sql(sql)
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok();

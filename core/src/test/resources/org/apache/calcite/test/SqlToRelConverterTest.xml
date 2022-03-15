@@ -1921,16 +1921,14 @@ group by
   <TestCase name="testGroupByExprArgFieldSameWithAlias">
     <Resource name="sql">
       <![CDATA[SELECT floor(deptno / 2) AS deptno
-FROM dept
-GROUP BY floor(deptno / 2)
-HAVING floor(deptno / 2) > 1]]>
+FROM emp
+GROUP BY floor(deptno / 2)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalFilter(condition=[>($0, 1)])
-  LogicalAggregate(group=[{0}])
-    LogicalProject(DEPTNO=[FLOOR(/($0, 2))])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalAggregate(group=[{0}])
+  LogicalProject(DEPTNO=[FLOOR(/($7, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

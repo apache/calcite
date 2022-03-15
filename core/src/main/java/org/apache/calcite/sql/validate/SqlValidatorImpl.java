@@ -6601,15 +6601,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       this.select = select;
       this.root = root;
       this.havingExpr = havingExpr;
-      addExpandableExpressions();
+      if (!havingExpr) {
+        addExpandableExpressions();
+      }
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
       if (id.isSimple()
-          && aliasOrdinalExpandSet.contains(id)
           && (havingExpr
               ? validator.config().conformance().isHavingAlias()
-              : validator.config().conformance().isGroupByAlias())) {
+              : (validator.config().conformance().isGroupByAlias()
+                  && aliasOrdinalExpandSet.contains(id)))) {
         String name = id.getSimple();
         SqlNode expr = null;
         final SqlNameMatcher nameMatcher =
@@ -6687,6 +6689,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     private void addExpandableExpressions(@UnknownInitialization ExtendedExpander this) {
       switch (root.getKind()) {
       case IDENTIFIER:
+      case LITERAL:
         aliasOrdinalExpandSet.add(root);
         break;
       case GROUPING_SETS:
