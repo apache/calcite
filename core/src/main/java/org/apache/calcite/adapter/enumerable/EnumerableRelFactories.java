@@ -73,7 +73,7 @@ public class EnumerableRelFactories {
         @Nullable List<? extends @Nullable String> fieldNames,
         Set<CorrelationId> variablesSet) {
       Preconditions.checkArgument(variablesSet.isEmpty(),
-          "Correlated scalar subqueries is not supported");
+          "Correlated scalar subqueries are not supported");
       final RelDataType rowType =
           RexUtil.createStructType(input.getCluster().getTypeFactory(), childExprs,
               fieldNames, SqlValidatorUtil.F_SUGGESTER);

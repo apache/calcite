@@ -86,7 +86,7 @@ public class EnumerableProject extends Project implements EnumerableRel {
   @Override public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
     Preconditions.checkArgument(variablesSet.isEmpty(),
-        "Correlated scalar subqueries is not supported");
+        "Correlated scalar subqueries are not supported");
     return new EnumerableProject(getCluster(), traitSet, input,
         projects, rowType);
   }

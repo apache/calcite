@@ -55,7 +55,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
   @Override public Project copy(RelTraitSet relTraitSet, RelNode input, List<RexNode> projects,
       RelDataType relDataType, Set<CorrelationId> variablesSet) {
     Preconditions.checkArgument(variablesSet.isEmpty(),
-        "Correlated scalar subqueries is not supported");
+        "Correlated scalar subqueries are not supported");
     return new ElasticsearchProject(getCluster(), traitSet, input, projects, relDataType);
   }
 
