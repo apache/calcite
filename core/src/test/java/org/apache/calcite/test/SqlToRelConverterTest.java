@@ -4432,4 +4432,36 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withTrim(false)
         .ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4512">[CALCITE-4512]
+   * GROUP BY expression with argument name same with SELECT field and alias causes
+   * validation error</a>.
+   */
+  @Test void testGroupByExprArgFieldSameWithAlias() {
+    final String sql = "SELECT floor(deptno / 2) AS deptno\n"
+        + "FROM dept\n"
+        + "GROUP BY floor(deptno / 2)\n"
+        + "HAVING floor(deptno / 2) > 1";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4512">[CALCITE-4512]
+   * GROUP BY expression with argument name same with SELECT field and alias causes
+   * validation error</a>.
+   */
+  @Test void testGroupByExprArgFieldSameWithAlias2() {
+    final String sql = ""
+        + "SELECT deptno / 2 AS deptno, deptno / 2 as empno, sum(sal)\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS ((deptno), (empno, deptno / 2), (2, 1))";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
 }

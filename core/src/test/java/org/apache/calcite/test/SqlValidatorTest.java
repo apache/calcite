@@ -6937,6 +6937,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno from emp group by ^100^, deptno")
         .withConformance(lenient).fails("Ordinal out of range")
         .withConformance(strict).ok();
+    sql("select floor(e.deptno / 2) AS deptno from emp as e\n"
+        + "join dept as d on e.deptno = d.deptno group by ^deptno^")
+        .withConformance(strict).fails("Column 'DEPTNO' is ambiguous")
+        .withConformance(lenient).ok();
   }
 
   /**
