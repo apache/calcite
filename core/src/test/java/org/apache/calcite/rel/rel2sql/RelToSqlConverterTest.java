@@ -22,6 +22,10 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.HintPredicates;
@@ -66,6 +70,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
@@ -1593,6 +1598,56 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"";
     sql(query).ok(expected);
+  }
+
+  /** A dialect that doesn't treat integer literals in the ORDER BY as field
+   * references. */
+  private SqlDialect nonOrdinalDialect() {
+    return new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
+      @Override public SqlConformance getConformance() {
+        return SqlConformanceEnum.STRICT_99;
+      }
+    };
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5044">[CALCITE-5044]
+   * JDBC adapter generates integer literal in ORDER BY, which some dialects
+   * wrongly interpret as a reference to a field</a>. */
+  @Test void testRewriteOrderByWithNumericConstants() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.literal(1), b.field(1), b.field(2), b.literal("23"),
+            b.alias(b.literal(12), "col1"), b.literal(34))
+        .sort(
+            RelCollations.of(
+                ImmutableList.of(
+                    new RelFieldCollation(0), new RelFieldCollation(3), new RelFieldCollation(4),
+                    new RelFieldCollation(1),
+                    new RelFieldCollation(5, Direction.DESCENDING, NullDirection.LAST))))
+        .project(b.field(2), b.field(1))
+        .build();
+    // Default dialect rewrite numeric constant keys to string literal in the order-by.
+    // case1: numeric constant - rewrite it.
+    // case2: string constant - no need rewrite it.
+    // case3: wrap alias to numeric constant - rewrite it.
+    // case4: wrap collation's info to numeric constant - rewrite it.
+    relFn(relFn)
+        .ok("SELECT \"JOB\", \"ENAME\"\n"
+            + "FROM \"scott\".\"EMP\"\n"
+            + "ORDER BY '1', '23', '12', \"ENAME\", '34' DESC NULLS LAST")
+        .dialect(nonOrdinalDialect())
+        .ok("SELECT JOB, ENAME\n"
+            + "FROM scott.EMP\n"
+            + "ORDER BY 1, '23', 12, ENAME, 34 DESC NULLS LAST");
+  }
+
+  @Test void testNoNeedRewriteOrderByConstantsForOver() {
+    final String query = "select row_number() over "
+        + "(order by 1 nulls last) from \"employee\"";
+    // Default dialect keep numeric constant keys in the over of order-by.
+    sql(query).ok("SELECT ROW_NUMBER() OVER (ORDER BY 1)\n"
+        + "FROM \"foodmart\".\"employee\"");
   }
 
   /** Test case for

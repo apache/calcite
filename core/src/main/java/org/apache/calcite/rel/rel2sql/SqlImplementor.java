@@ -608,7 +608,15 @@ public abstract class SqlImplementor {
      * alias, switches to a qualified column reference.
      */
     public SqlNode orderField(int ordinal) {
-      return field(ordinal);
+      final SqlNode node = field(ordinal);
+      if (node instanceof SqlNumericLiteral
+          && dialect.getConformance().isSortByOrdinal()) {
+        // An integer literal will be wrongly interpreted as a field ordinal.
+        // Convert it to a character literal, which will have the same effect.
+        final String strValue = ((SqlNumericLiteral) node).toValue();
+        return SqlLiteral.createCharString(strValue, node.getParserPosition());
+      }
+      return node;
     }
 
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
@@ -1729,7 +1737,7 @@ public abstract class SqlImplementor {
             //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
             // "ORDER BY empno" would give incorrect result;
             // "ORDER BY x" is acceptable but is not preferred.
-            final SqlNode node = field(ordinal);
+            final SqlNode node = super.orderField(ordinal);
             if (node instanceof SqlIdentifier
                 && ((SqlIdentifier) node).isSimple()) {
               final String name = ((SqlIdentifier) node).getSimple();
