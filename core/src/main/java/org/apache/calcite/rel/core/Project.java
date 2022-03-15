@@ -54,6 +54,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
@@ -71,6 +72,12 @@ public abstract class Project extends SingleRel implements Hintable {
 
   protected final ImmutableList<RelHint> hints;
 
+  /**
+   * Correlation variables set by this relational expression to be used by
+   * nested expressions. It's expected to be used in the following way:
+   * first read the row from input, set it to the appropriate correlation
+   * variables in the context, then execute the Rex expressions.
+   */
   protected final ImmutableSet<CorrelationId> variablesSet;
 
   //~ Constructors -----------------------------------------------------------
@@ -135,7 +142,13 @@ public abstract class Project extends SingleRel implements Hintable {
         input.getInput(),
         requireNonNull(input.getExpressionList("exprs"), "exprs"),
         input.getRowType("exprs", "fields"),
-        ImmutableSet.of());
+        ImmutableSet.copyOf(
+            Util.transform(
+                Optional.ofNullable(input.getIntegerList("correlation"))
+                    .orElse(ImmutableList.of()),
+                CorrelationId::new
+            )
+        ));
   }
 
   //~ Methods ----------------------------------------------------------------

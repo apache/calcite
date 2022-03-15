@@ -402,6 +402,12 @@ public class RelJson {
         list.add(toJson(o));
       }
       return list;
+    } else if (value instanceof Set) {
+      final List<@Nullable Object> list = jsonBuilder().list();
+      for (Object o : (Set<?>) value) {
+        list.add(toJson(o));
+      }
+      return list;
     } else if (value instanceof ImmutableBitSet) {
       final List<@Nullable Object> list = jsonBuilder().list();
       for (Integer integer : (ImmutableBitSet) value) {

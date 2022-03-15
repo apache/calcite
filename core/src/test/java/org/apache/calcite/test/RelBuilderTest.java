@@ -1191,6 +1191,66 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testConvertCorrelatedProject() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    CorrelationId cor1 = builder.getCluster().createCorrel();
+    CorrelationId cor2 = builder.getCluster().createCorrel();
+
+    RelDataType rowType =
+        builder.getTypeFactory().builder()
+            .add("a", SqlTypeName.BIGINT)
+            .add("b", SqlTypeName.BIGINT)
+            .build();
+
+    RelNode root =
+        builder
+            .scan("DEPT")
+            .projectCorrelated(
+                ImmutableSet.of(cor1, cor2),
+                builder.getRexBuilder().makeCorrel(builder.getTypeFactory()
+                    .createSqlType(SqlTypeName.INTEGER), cor1),
+                builder.getRexBuilder().makeCorrel(builder.getTypeFactory()
+                    .createSqlType(SqlTypeName.INTEGER), cor2)
+            )
+            .convert(rowType, false)
+            .build();
+    final String expected = ""
+        + "LogicalProject(correlation=[[$cor0, $cor1]], $f0=[CAST($cor0):BIGINT NOT NULL], $f1=[CAST($cor1):BIGINT NOT NULL])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testConvertCorrelatedProjectWithRename() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    CorrelationId cor1 = builder.getCluster().createCorrel();
+    CorrelationId cor2 = builder.getCluster().createCorrel();
+
+    RelDataType rowType =
+        builder.getTypeFactory().builder()
+            .add("a", SqlTypeName.BIGINT)
+            .add("b", SqlTypeName.BIGINT)
+            .build();
+
+    RelNode root =
+        builder
+            .scan("DEPT")
+            .projectCorrelated(
+                ImmutableSet.of(cor1, cor2),
+                builder.getRexBuilder().makeCorrel(builder.getTypeFactory()
+                    .createSqlType(SqlTypeName.INTEGER), cor1),
+                builder.getRexBuilder().makeCorrel(builder.getTypeFactory()
+                    .createSqlType(SqlTypeName.INTEGER), cor2)
+            )
+            .convert(rowType, true)
+            .build();
+    final String expected = ""
+        + "LogicalProject(correlation=[[$cor0, $cor1]], a=[CAST($cor0):BIGINT NOT NULL], b=[CAST($cor1):BIGINT NOT NULL])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4429">[CALCITE-4429]
    * RelOptUtil#createCastRel should throw an exception when the desired row type

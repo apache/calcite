@@ -885,6 +885,7 @@ public abstract class RelOptUtil {
     List<RexNode> castExps;
     RelNode input;
     List<RelHint> hints = ImmutableList.of();
+    Set<CorrelationId> variablesSet = ImmutableSet.of();
     if (rel instanceof Project) {
       // No need to create another project node if the rel
       // is already a project.
@@ -894,6 +895,7 @@ public abstract class RelOptUtil {
           castRowType,
           ((Project) rel).getProjects());
       input = rel.getInput(0);
+      variablesSet = project.getVariablesSet();
       hints = project.getHints();
     } else {
       castExps = RexUtil.generateCastExpressions(
@@ -905,11 +907,11 @@ public abstract class RelOptUtil {
     if (rename) {
       // Use names and types from castRowType.
       return projectFactory.createProject(input, hints, castExps,
-          castRowType.getFieldNames(), ImmutableSet.of());
+          castRowType.getFieldNames(), variablesSet);
     } else {
       // Use names from rowType, types from castRowType.
       return projectFactory.createProject(input, hints, castExps,
-          rowType.getFieldNames(), ImmutableSet.of());
+          rowType.getFieldNames(), variablesSet);
     }
   }
 

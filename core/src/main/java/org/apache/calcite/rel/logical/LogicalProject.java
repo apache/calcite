@@ -77,6 +77,17 @@ public final class LogicalProject extends Project {
   }
 
   @Deprecated // to be removed before 2.0
+  public LogicalProject(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelNode input,
+      List<? extends RexNode> projects,
+      RelDataType rowType) {
+    this(cluster, traitSet, hints, input, projects, rowType, ImmutableSet.of());
+  }
+
+  @Deprecated // to be removed before 2.0
   public LogicalProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
     this(cluster, traitSet, ImmutableList.of(), input, projects, rowType,
