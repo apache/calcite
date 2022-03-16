@@ -29,6 +29,157 @@ Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
 
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.30.0">1.30.0</a> / 2022-03-20
+{: #v1-30-0}
+
+This release comes over two months after [1.29.0](#v1-29-0),
+contains contributions from 29 authors,
+and resolves 36 issues.
+
+Among others, it is worth highlighting the following.
+
+* [Babel parser support MySQL NULL-safe equal operator '<=>'](https://issues.apache.org/jira/browse/CALCITE-4980)
+* [Support SQL hints for temporal table join](https://issues.apache.org/jira/browse/CALCITE-4967)
+* [Fluent test fixtures so that dependent projects can write parser, validator and rules tests](https://issues.apache.org/jira/browse/CALCITE-4885)
+* [Vulnerability issue CVE-2021-27568 fixed](https://issues.apache.org/jira/browse/CALCITE-5030)
+
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 17;
+Guava versions 19.0 to 31.0.1-jre;
+other software versions as specified in gradle.properties.
+
+Contributors to this release:
+
+Alessandro Solimando,
+Bill Neil,
+Chen Kai,
+Eugen Stan,
+Feng Zhu,
+Jacques Nadeau,
+Jake Xie,
+Jay Narale,
+Jiatao Tao,
+Jing Zhang,
+Julian Hyde,
+LM Kang,
+Liya Fan (release manager),
+Marco Jorge,
+Marieke Gueye,
+NobiGo,
+Roman Puchkovskiy,
+Ruben Quesada Lopez,
+Scott Reynolds,
+Soumyakanti Das,
+Stamatis Zampetakis,
+Vova Vysotskyi,
+Will Noble,
+Xiong Duan,
+Yanjing Wang,
+Yiqun Zhang,
+Xurenhe,
+Zhe Hu,
+mans2singh.
+
+#### New features
+{: #new-features-1-30-0}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4980">CALCITE-4980</a>]
+  Babel parser support MySQL NULL-safe equal operator '<=>'
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4967">CALCITE-4967</a>]
+  Support SQL hints for temporal table join
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4885">CALCITE-4885</a>]
+  Fluent test fixtures so that dependent projects can write parser, validator and rules tests
+
+#### Bug-fixes, API changes and minor enhancements
+{: #fixes-1-30-0}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5040">CALCITE-5040</a>]
+  `SqlTypeFactoryTest.testUnknownCreateWithNullabilityTypeConsistency` fails
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5019">CALCITE-5019</a>]
+  Avoid multiple scans when table is `ProjectableFilterableTable` and projections and filters act on different columns
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5011">CALCITE-5011</a>]
+  `CassandraAdapterDataTypesTest` fails with initialization error
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5008">CALCITE-5008</a>]
+  Ignore synthetic and static methods in `MetadataDef`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4997">CALCITE-4997</a>]
+  Keep `APPROX_COUNT_DISTINCT` in some `SqlDialect`s
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4996">CALCITE-4996</a>]
+  In `RelJson`, add a `readExpression` method that converts JSON to a `RexNode` expression
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4995">CALCITE-4995</a>]
+  `AssertionError` caused by `RelFieldTrimmer` on `SEMI/ANTI` join
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4994">CALCITE-4994</a>]
+  SQL-to-RelNode conversion is slow if table contains hundreds of fields
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4991">CALCITE-4991</a>]
+  Improve `RuleEventLogger` to also print input rels in `FULL_PLAN` mode
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4988">CALCITE-4988</a>]
+  `((A IS NOT NULL OR B) AND A IS NOT NULL)` can't be simplify to `(A IS NOT NULL)` When `A` is deterministic
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4986">CALCITE-4986</a>]
+  Make `HepProgram` thread-safe
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4968">CALCITE-4968</a>]
+  Use `TOP N` for MsSQL instead of `FETCH` without `OFFSET`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4965">CALCITE-4965</a>]
+  `IS NOT NULL` failed in Elasticsearch Adapter
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4963">CALCITE-4963</a>]
+  Make it easier to implement interface `SqlDialectFactory`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4953">CALCITE-4953</a>]
+  Deprecate `TableAccessMap` class
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4952">CALCITE-4952</a>]
+  Introduce a simplistic `RelMetadataQuery` option
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4912">CALCITE-4912</a>]
+  Confusing javadoc of `RexSimplify.simplify`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4901">CALCITE-4901</a>]
+  JDBC adapter incorrectly adds `ORDER BY` columns to the `SELECT` list of generated SQL query
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4877">CALCITE-4877</a>]
+  Support Snapshot in `RelMdColumnOrigins`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4872">CALCITE-4872</a>]
+  Add `UNKNOWN` value to enum `SqlTypeName`, distinct from the `NULL` type
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4702">CALCITE-4702</a>]
+  Error when executing query with `GROUP BY` constant via JDBC adapter
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4683">CALCITE-4683</a>]
+  IN-list converted to JOIN throws type mismatch exception
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4323">CALCITE-4323</a>]
+  If a view definition has an `ORDER BY` clause, retain the sort if the view is used in a query at top level
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4054">CALCITE-4054</a>]
+  `RepeatUnion` containing a `Correlate` with a `transientScan` on its RHS causes NPE
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3673">CALCITE-3673</a>]
+  `ListTransientTable` should not leave tables in the schema
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3627">CALCITE-3627</a>]
+  Incorrect null semantic for `ROW` function
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1794">CALCITE-1794</a>]
+  Expressions with numeric comparisons are not simplified when `CAST` is present
+
+#### Build and test suite
+{: #build-1-30-0}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5006">CALCITE-5006</a>]
+  Gradle tasks for launching JDBC integration tests are not working
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4960">CALCITE-4960</a>]
+  Enable unit tests in Elasticsearch Adapter
+
+#### Dependency version upgrade
+{: #dependency-1-30-0}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5030">CALCITE-5030</a>]
+  Upgrade jsonpath version from 2.4.0 to 2.7.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5025">CALCITE-5025</a>]
+  Upgrade commons-io version from 2.4 to 2.11.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5007">CALCITE-5007</a>]
+  Upgrade H2 database version to 2.1.210
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4973">CALCITE-4973</a>]
+  Upgrade log4j2 version to 2.17.1
+
+#### Web site and documentation
+{: #site-1-30-0}
+
+* Site: Update PMC Chair
+* Site: Add external resources section in the community page
+* Site: Add "calcite-clj - Use Calcite with Clojure" in talks section
+* Site: Add Alessandro Solimando as committer
+* Site: Change the javadoc title to Apache Calcite API
+* Site: For tables that display results, center the content horizontally
+* Site: Add syntax highlighting to SQL statements
+* Site: Improve HTML tables display & update CSV tutorial
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.29.0">1.29.0</a> / 2021-12-26
 {: #v1-29-0}
 
