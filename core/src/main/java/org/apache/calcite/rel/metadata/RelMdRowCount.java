@@ -199,7 +199,10 @@ public class RelMdRowCount
 
   public Double getRowCount(Aggregate rel, RelMetadataQuery mq) {
     ImmutableBitSet groupKey = rel.getGroupSet();
-
+    if (groupKey.isEmpty()) {
+      // Aggregate with no GROUP BY always returns 1 row (even on empty table).
+      return 1D;
+    }
     // rowCount is the cardinality of the group by columns
     Double distinctRowCount =
         mq.getDistinctRowCount(rel.getInput(), groupKey, null);

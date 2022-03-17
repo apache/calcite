@@ -674,6 +674,35 @@ public class RelMetadataTest {
     sql(sql).assertThatRowCount(is(1D), is(1D), is(1D));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5050">[CALCITE-5050]
+   * Aggregate with no GROUP BY always returns 1 row. </a>. */
+  @Test void testRowCountAggregateEmptyGroupKey() {
+    fixture()
+        .withRelFn(b ->
+            b.scan("EMP")
+                .aggregate(
+                    b.groupKey(),
+                    b.count(false, "C"))
+                .build())
+        .assertThatRowCount(is(1D), is(1D), is(1D));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5050">[CALCITE-5050]
+   * Aggregate with no GROUP BY always returns 1 row (even on empty table). </a>. */
+  @Test void testRowCountAggregateEmptyGroupKeyWithEmptyTable() {
+    fixture()
+        .withRelFn(b ->
+            b.scan("EMP")
+                .filter(b.literal(false))
+                .aggregate(
+                    b.groupKey(),
+                    b.count(false, "C"))
+                .build())
+        .assertThatRowCount(is(1D), is(1D), is(1D));
+  }
+
   @Test void testRowCountAggregateConstantKey() {
     final String sql = "select count(*) from emp where deptno=2 and ename='emp1' "
         + "group by deptno, ename";
