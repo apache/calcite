@@ -31,6 +31,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -41,6 +45,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -52,6 +59,24 @@ import java.util.stream.Collectors;
 public class ElasticsearchSchemaFactory implements SchemaFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchSchemaFactory.class);
+
+  // RestClient objects allocate system resources and are thread safe. Here, we
+  // cache them using a key derived from the hashCode()s of the parameters that
+  // define a RestClient.
+  private static Cache<Integer, RestClient> REST_CLIENTS = CacheBuilder.newBuilder()
+      .maximumSize(1000)
+      .expireAfterAccess(1, TimeUnit.HOURS)
+      .removalListener(new RemovalListener<Integer, RestClient>() {
+        public void onRemoval(RemovalNotification<Integer, RestClient> notice) {
+          try {
+            // Free resources allocated by this RestClient
+            notice.getValue().close();
+          } catch (IOException ex) {
+            LOGGER.warn("Could not close RestClient %s", notice.getValue());
+          }
+        }
+      })
+      .build();
 
   public ElasticsearchSchemaFactory() {
   }
@@ -110,7 +135,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
    * @param hosts list of ES HTTP Hosts to connect to
    * @param username the username of ES
    * @param password the password of ES
-   * @return newly initialized low-level rest http client for ES
+   * @return new or cached low-level rest http client for ES
    */
   private static RestClient connect(List<HttpHost> hosts, String pathPrefix,
                                     String username, String password) {
@@ -118,20 +143,29 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
     Objects.requireNonNull(hosts, "hosts or coordinates");
     Preconditions.checkArgument(!hosts.isEmpty(), "no ES hosts specified");
 
-    RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
+    Integer cacheKey = Objects.hash(hosts, pathPrefix, username, password);
 
-    if (!Strings.isNullOrEmpty(username) && !Strings.isNullOrEmpty(password)) {
-      CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-      credentialsProvider.setCredentials(AuthScope.ANY,
-          new UsernamePasswordCredentials(username, password));
-      builder.setHttpClientConfigCallback(httpClientBuilder ->
-          httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
-    }
+    try {
+      return REST_CLIENTS.get(cacheKey, new Callable<RestClient>() {
+        @Override public RestClient call() {
+          RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
 
-    if (pathPrefix != null && !pathPrefix.isEmpty()) {
-      builder.setPathPrefix(pathPrefix);
+          if (!Strings.isNullOrEmpty(username) && !Strings.isNullOrEmpty(password)) {
+            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY,
+                new UsernamePasswordCredentials(username, password));
+            builder.setHttpClientConfigCallback(httpClientBuilder ->
+                httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+          }
+
+          if (pathPrefix != null && !pathPrefix.isEmpty()) {
+            builder.setPathPrefix(pathPrefix);
+          }
+          return builder.build();
+        }
+      });
+    } catch (ExecutionException ex) {
+      throw new RuntimeException("Cannot return a cached RestClient", ex);
     }
-    return builder.build();
   }
-
 }
