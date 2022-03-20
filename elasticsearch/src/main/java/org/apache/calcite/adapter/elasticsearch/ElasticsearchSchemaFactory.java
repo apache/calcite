@@ -63,7 +63,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
   // RestClient objects allocate system resources and are thread safe. Here, we
   // cache them using a key derived from the hashCode()s of the parameters that
   // define a RestClient.
-  private static Cache<Integer, RestClient> REST_CLIENTS = CacheBuilder.newBuilder()
+  private static Cache<Integer, RestClient> restClients = CacheBuilder.newBuilder()
       .maximumSize(1000)
       .expireAfterAccess(1, TimeUnit.HOURS)
       .removalListener(new RemovalListener<Integer, RestClient>() {
@@ -146,7 +146,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
     Integer cacheKey = Objects.hash(hosts, pathPrefix, username, password);
 
     try {
-      return REST_CLIENTS.get(cacheKey, new Callable<RestClient>() {
+      return restClients.get(cacheKey, new Callable<RestClient>() {
         @Override public RestClient call() {
           RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
 
