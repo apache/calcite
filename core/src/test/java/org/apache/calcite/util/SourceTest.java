@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -120,6 +121,21 @@ class SourceTest {
     assertEquals(absoluteFile.getAbsolutePath(), url.toURI().getSchemeSpecificPart(),
         () -> "Sources.of(Sources.of(file(" + path + ").absolutePath).url()).file().getPath()");
   }
+
+  /**
+   * Resources created with the JAR protocol should also work.
+   * This will enable the Fixture test to work under Bazel.
+   */
+  @Test void testJarFileUrl() throws  MalformedURLException {
+    // mock jar file
+    String jarPath = "jar:file:/D://sources!/abcdef.txt";
+    URL url = new URL(jarPath);
+    assertNotNull(Sources.of(url).file(),
+        () -> "No file retrieved for Sources.of(file " + jarPath + ")");
+    assertEquals("/D:/sources!/abcdef.txt", slashify(Sources.of(url).file().getPath()),
+        () -> "Sources.of(Sources.of(file " + jarPath + ").url()).file().getPath()");
+  }
+
 
   @Test void testAppendWithSpaces() {
     String fooRelative = "fo o+";

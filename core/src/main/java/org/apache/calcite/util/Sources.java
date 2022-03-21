@@ -183,7 +183,13 @@ public abstract class Sources {
     }
 
     private static @Nullable File urlToFile(URL url) {
-      if (!"file".equals(url.getProtocol())) {
+      if ("jar".equals(url.getProtocol())) {
+        try {
+          return urlToFile(new URL(url.getFile()));
+        } catch (MalformedURLException e) {
+          return null;
+        }
+      } else if (!"file".equals(url.getProtocol())) {
         return null;
       }
       URI uri;
