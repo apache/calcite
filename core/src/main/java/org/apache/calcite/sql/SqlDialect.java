@@ -303,6 +303,8 @@ public class SqlDialect {
       return DatabaseProduct.DB2;
     } else if (upperProductName.contains("FIREBIRD")) {
       return DatabaseProduct.FIREBIRD;
+    } else if (upperProductName.contains("FIREBOLT")) {
+      return DatabaseProduct.FIREBOLT;
     } else if (productName.startsWith("Informix")) {
       return DatabaseProduct.INFORMIX;
     } else if (upperProductName.contains("NETEZZA")) {
@@ -1305,6 +1307,8 @@ public class SqlDialect {
     PARACCEL("Paraccel", "\"", NullCollation.HIGH),
     REDSHIFT("Redshift", "\"", NullCollation.HIGH),
     SNOWFLAKE("Snowflake", "\"", NullCollation.HIGH),
+    FIREBOLT("Firebolt", "\"", NullCollation.HIGH),
+
 
     /**
      * Placeholder for the unknown database.
