@@ -24,11 +24,9 @@ import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidPathException;
@@ -93,23 +91,6 @@ public class JsonFunctions {
   }
 
   public static String jsonize(@Nullable Object input) {
-    if (input instanceof Map) {
-      Map<String, Object> map = (Map<String, Object>) input;
-      // For each key, if the value is a valid JSON object, then parse to Map
-      for (Map.Entry<String, Object> entry : map.entrySet()) {
-        String valueStr = entry.getValue().toString();
-        try {
-          JsonNode node = JSON_PATH_JSON_PROVIDER.getObjectMapper().readTree(valueStr);
-          if (node.isObject()) {
-            entry.setValue(node);
-          } else {
-            entry.setValue(valueStr);
-          }
-        } catch (JsonProcessingException e) {
-          // Ignore
-        }
-      }
-    }
     return JSON_PATH_JSON_PROVIDER.toJson(input);
   }
 
