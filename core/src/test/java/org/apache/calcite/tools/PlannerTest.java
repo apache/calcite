@@ -18,16 +18,22 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.adapter.enumerable.EnumerableUnion;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcImplementor;
 import org.apache.calcite.adapter.jdbc.JdbcRel;
 import org.apache.calcite.adapter.jdbc.JdbcRules;
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
@@ -37,13 +43,18 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -55,7 +66,12 @@ import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -81,22 +97,29 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.test.schemata.tpch.TpchSchema;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.immutables.value.Value;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static org.apache.calcite.test.Matchers.hasTree;
 import static org.apache.calcite.test.Matchers.sortsAs;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -543,6 +566,72 @@ class PlannerTest {
         equalTo("EnumerableUnion(all=[true])\n"
             + "  EnumerableValues(tuples=[[{ 1 }]])\n"
             + "  EnumerableValues(tuples=[[{ 2 }]])\n"));
+  }
+
+  /**
+   * Except for the {@link EnumerableUnion#all} parameter's value,
+   * the UNION and UNION ALL plans should otherwise match.
+   */
+  @Test void testUnionPlanMatchesUnionAllPlan() {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("MySchema", new MySchema()
+        .add("t1", new MyTable(50))
+        .add("t2", new MyTable(100, true))
+        .add("t3", new MyTable(150)));
+
+    final Frameworks.ConfigBuilder configBuilder = Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT
+            .withQuotedCasing(Casing.UNCHANGED)
+            .withCaseSensitive(false)
+            .withUnquotedCasing(Casing.UNCHANGED))
+        .defaultSchema(rootSchema)
+        .traitDefs(RelCollationTraitDef.INSTANCE, ConventionTraitDef.INSTANCE);
+
+    final FrameworkConfig config = configBuilder.build();
+    final RelBuilder builder = RelBuilder.create(config);
+    PlannerImpl frameworkPlanner = (PlannerImpl) Frameworks.getPlanner(config);
+
+    final String sql =  ""
+        + "SELECT Id FROM MySchema.t1\n"
+        + "UNION\n"
+        + "SELECT t3.Id FROM MySchema.t2 JOIN MySchema.t3 ON (t3.Id = t2.t3_Id)";
+    RelNode root;
+    try {
+      SqlNode sqlRoot = frameworkPlanner.parse(sql);
+      sqlRoot = frameworkPlanner.validate(sqlRoot);
+      root = frameworkPlanner.rel(sqlRoot).rel;
+    } catch (ValidationException e) {
+      e.printStackTrace();
+      root = null;
+    } catch (SqlParseException e) {
+      e.printStackTrace();
+      root = null;
+    }
+    VolcanoPlanner planner = (VolcanoPlanner) root.getCluster().getPlanner();
+    planner.addRule(MyTableScanRule.create());
+
+    RelTraitSet desiredTraits =
+        root.getTraitSet().replace(EnumerableConvention.INSTANCE);
+
+    RelNode plan = Programs.standard().run(planner, root, desiredTraits,
+        ImmutableList.of(), ImmutableList.of());
+
+    final String expected = ""
+        + "EnumerableUnion(all=[false])\n"
+        + "  MyEnumerableConverter\n"
+        + "    MyProject(Id=[$0])\n"
+        + "      MyTableScan(table=[[MySchema, t1]])\n"
+        + "  EnumerableCalc(expr#0..1=[{inputs}], Id=[$t1])\n"
+        + "    EnumerableMergeJoin(condition=[=($0, $1)], joinType=[inner])\n"
+        + "      EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "        EnumerableCalc(expr#0..100=[{inputs}], expr#101=[CAST($t1):BIGINT NOT NULL], t3_Id0=[$t101])\n"
+        + "          MyEnumerableConverter\n"
+        + "            MyTableScan(table=[[MySchema, t2]])\n"
+        + "      EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "        MyEnumerableConverter\n"
+        + "          MyProject(Id=[$0])\n"
+        + "            MyTableScan(table=[[MySchema, t3]])\n";
+    assertThat(plan, hasTree(expected));
   }
 
   /** Unit test that parses, validates, converts and
@@ -1168,6 +1257,220 @@ class PlannerTest {
         .replace(EnumerableConvention.INSTANCE);
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform), containsString(expected));
+  }
+
+  /** Dummy relational convention. */
+  public interface MyRel extends RelNode {
+    Convention CONVENTION = new Convention.Impl("MY", MyRel.class);
+  }
+
+  /** Schema class for the MY test Convention. */
+  public static class MySchema extends AbstractSchema {
+    Map<String, Table> tableMap;
+
+    MySchema() {
+      tableMap = new HashMap<>();
+    }
+
+    public MySchema add(String name, Table table) {
+      tableMap.put(name, table);
+      return this;
+    }
+
+    @Override protected Map<String, Table> getTableMap() {
+      return ImmutableMap.copyOf(tableMap);
+    }
+  }
+
+  /** Table class for the MY test Convention. */
+  public static class MyTable extends AbstractTable implements TranslatableTable {
+    private final int fieldCount;
+    private boolean addFKField;
+
+    MyTable(int fieldCount) {
+      this.fieldCount = fieldCount;
+      this.addFKField = false;
+    }
+
+    MyTable(int fieldCount, boolean addFKField) {
+      this.fieldCount = fieldCount;
+      this.addFKField = addFKField;
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return addFKField
+          ? generateRowType(typeFactory, fieldCount, Pair.of("t3_Id", SqlTypeName.INTEGER))
+          : generateRowType(typeFactory, fieldCount);
+    }
+
+    @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+      final RelOptCluster cluster = context.getCluster();
+      return new MyTableScan(
+          cluster,
+          cluster.traitSetOf(MyRel.CONVENTION),
+          ImmutableList.of(),
+          relOptTable);
+    }
+  }
+
+  @NotNull
+  private static RelDataType generateRowType(RelDataTypeFactory typeFactory, int maxFields) {
+    return generateRowType(typeFactory, maxFields, null);
+  }
+  @NotNull
+  private static RelDataType generateRowType(RelDataTypeFactory typeFactory,
+      int maxFields, Pair<String, SqlTypeName> customField) {
+    RelDataTypeFactory.Builder rowType = typeFactory.builder()
+        .add("Id", SqlTypeName.BIGINT);
+    if (customField != null) {
+      rowType.add(customField.left, customField.right);
+    }
+    for (int i = 0; i < maxFields - 1; i++) {
+      rowType.add(String.valueOf(i), SqlTypeName.VARCHAR);
+    }
+    return rowType.build();
+  }
+
+
+  /** TableScan class for the MY test Convention. */
+  public static class MyTableScan extends TableScan implements MyRel {
+
+    protected MyTableScan(RelOptCluster cluster, RelTraitSet traitSet, List<RelHint> hints,
+        RelOptTable table) {
+      super(cluster, traitSet, hints, table);
+    }
+
+    @Override public void register(RelOptPlanner planner) {
+      planner.addRule(MyEnumerableConverterRule.create());
+      planner.addRule(MyProjectRule.create());
+    }
+
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return planner.getCostFactory().makeZeroCost();
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new MyTableScan(getCluster(), traitSet, hints, table);
+    }
+  }
+
+  /** TableScan converter rule for the MY test Convention. */
+  public static class MyTableScanRule extends ConverterRule {
+
+    public static RelOptRule create() {
+      return Config.INSTANCE
+          .withConversion(EnumerableTableScan.class, EnumerableConvention.INSTANCE,
+              MyRel.CONVENTION, "MyTableScanRule")
+          .withRuleFactory(MyTableScanRule::new)
+          .toRule();
+    }
+
+    MyTableScanRule(Config config) {
+      super(config);
+    }
+
+    @Override public @Nullable RelNode convert(RelNode rel) {
+      final EnumerableTableScan scan =
+          (EnumerableTableScan) rel;
+      return new MyTableScan(
+          scan.getCluster(),
+          scan.getCluster().traitSetOf(MyRel.CONVENTION),
+          scan.getHints(),
+          scan.getTable());
+    }
+  }
+
+  /** TableScan class for the MY test Convention. */
+  static class MyProject extends Project implements MyRel {
+    MyProject(RelOptCluster cluster, RelTraitSet traits, RelNode convert,
+        List<RexNode> projects, RelDataType rowType) {
+      super(cluster, traits, ImmutableList.of(), convert, projects, rowType);
+    }
+
+    @Override public Project copy(RelTraitSet traitSet, RelNode input, List<RexNode> projects,
+        RelDataType rowType) {
+      return new MyProject(getCluster(), traitSet, input, projects, rowType);
+    }
+
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return planner.getCostFactory().makeZeroCost();
+    }
+  }
+
+  /** TableScan converter rule for the MY test Convention. */
+  static class MyProjectRule
+      extends ConverterRule {
+
+    static RelOptRule create() {
+      return Config.INSTANCE
+          .withConversion(LogicalProject.class, Convention.NONE, MyRel.CONVENTION, "MyProjectRule")
+          .withRuleFactory(MyProjectRule::new)
+          .toRule();
+    }
+
+    MyProjectRule(ConverterRule.Config config) {
+      super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      LogicalProject project = call.rel(0);
+      return project.getMapping() != null;
+    }
+
+    @Override public @Nullable RelNode convert(RelNode rel) {
+      LogicalProject project = (LogicalProject) rel;
+      RelTraitSet traits = project.getTraitSet().replace(out);
+      return new MyProject(
+          project.getCluster(),
+          traits,
+          convert(project.getInput(), project.getTraitSet().replace(out)),
+          project.getProjects(),
+          project.getRowType());
+    }
+  }
+
+  /** Enumerable converter for the MY test Convention. */
+  static class MyEnumerableConverter extends ConverterImpl implements EnumerableRel {
+
+    MyEnumerableConverter(RelOptCluster cluster, RelTraitSet traitSet, RelNode sole) {
+      super(cluster, ConventionTraitDef.INSTANCE, traitSet, sole);
+    }
+
+    @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+      return null;
+    }
+
+    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+      return new MyEnumerableConverter(getCluster(), traitSet, sole(inputs));
+    }
+
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return planner.getCostFactory().makeZeroCost();
+    }
+  }
+
+  /** Enumerable converter rule for the MY test Convention. */
+  static class MyEnumerableConverterRule extends ConverterRule {
+
+    public static RelOptRule create() {
+      return ConverterRule.Config.INSTANCE
+          .withConversion(RelNode.class, MyRel.CONVENTION, EnumerableConvention.INSTANCE,
+              "MyEnumerableConverterRule")
+          .withRuleFactory(MyEnumerableConverterRule::new)
+          .toRule();
+    }
+
+    MyEnumerableConverterRule(Config config) {
+      super(config);
+    }
+
+    @Override public @Nullable RelNode convert(RelNode rel) {
+      RelTraitSet newTraitSet = rel.getTraitSet().replace(getOutConvention());
+      return new MyEnumerableConverter(rel.getCluster(), newTraitSet, rel);
+    }
   }
 
   /** Rule that matches a Project on a Filter. */
