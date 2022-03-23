@@ -1336,8 +1336,16 @@ GROUP BY deptno;
 # As above, but with correlation
 !if (fixed.calcite1045) {
 SELECT SUM(
-  (select char_length(dname) from "scott".dept where dept.deptno = emp.empno)) as s
+  (select char_length(dname) from "scott".dept where dept.deptno = emp.deptno)) as s
 FROM "scott".emp;
+
++-----+
+| S   |
++-----+
+| 100 |
++-----+
+(1 row)
+
 !ok
 !}
 

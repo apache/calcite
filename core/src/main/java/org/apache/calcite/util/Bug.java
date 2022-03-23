@@ -150,7 +150,7 @@ public abstract class Bug {
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1045">[CALCITE-1045]
    * Decorrelate sub-queries in Project and Join</a> is fixed. */
-  public static final boolean CALCITE_1045_FIXED = false;
+  public static final boolean CALCITE_1045_FIXED = true;
 
   /**
    * Whether

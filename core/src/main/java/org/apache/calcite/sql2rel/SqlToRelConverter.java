@@ -6479,7 +6479,8 @@ public class SqlToRelConverter {
           newInput,
           project.getHints(),
           newProjections.build(),
-          project.getRowType().getFieldNames());
+          project.getRowType().getFieldNames(),
+          project.getVariablesSet());
     }
 
     private Set<Integer> requiredJsonOutputFromParent(RelNode relNode) {

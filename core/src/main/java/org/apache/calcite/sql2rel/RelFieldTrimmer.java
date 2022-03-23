@@ -531,8 +531,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             mapping);
 
     relBuilder.push(newInput);
-    relBuilder.project(newProjects, newRowType.getFieldNames());
-    final RelNode newProject = RelOptUtil.propagateRelHints(project, relBuilder.build());
+    relBuilder.projectCorrelated(project.getVariablesSet(),
+        newProjects, newRowType.getFieldNames());
+    final RelNode newProject = ChangeTypeOfCorrelateVariables.go(
+        project.getCluster().getRexBuilder(),
+        project.getVariablesSet(),
+        newInput.getRowType(),
+        RelOptUtil.propagateRelHints(project, relBuilder.build())
+    );
     return result(newProject, mapping);
   }
 
