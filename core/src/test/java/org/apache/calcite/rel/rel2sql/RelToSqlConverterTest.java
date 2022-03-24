@@ -23,6 +23,9 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
+import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.HintPredicates;
@@ -40,7 +43,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -82,7 +84,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -91,7 +92,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -1610,78 +1610,42 @@ class RelToSqlConverterTest {
     };
   }
 
-  @NotNull private RelNode scanProjectSort(RelBuilder b, RexNode node,
-      ImmutableIntList sortFields) {
-    return b.scan("EMP")
-        .project(node, b.field(1), b.field(2))
-        .sort(RelCollations.of(sortFields))
-        .project(b.field(2), b.field(1))
-        .build();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5044">[CALCITE-5044]
    * JDBC adapter generates integer literal in ORDER BY, which some dialects
    * wrongly interpret as a reference to a field</a>. */
-  @Test void testRewriteOrderByWithAllConstants() {
-    // Default dialect rewrite numeric constant keys to string literal in the
-    // ORDER BY.
-    relFn(b -> scanProjectSort(b, b.literal(1), ImmutableIntList.of(0)))
+  @Test void testRewriteOrderByWithNumericConstants() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.literal(1), b.field(1), b.field(2), b.literal("23"),
+            b.alias(b.literal(12), "col1"), b.literal(34))
+        .sort(
+            RelCollations.of(
+                ImmutableList.of(
+                    new RelFieldCollation(0), new RelFieldCollation(3), new RelFieldCollation(4),
+                    new RelFieldCollation(1),
+                    new RelFieldCollation(5, Direction.DESCENDING, NullDirection.LAST))))
+        .project(b.field(2), b.field(1))
+        .build();
+    // Default dialect rewrite numeric constant keys to string literal in the order-by.
+    // case1: numeric constant - rewrite it.
+    // case2: string constant - no need rewrite it.
+    // case3: wrap alias to numeric constant - rewrite it.
+    // case4: wrap collation's info to numeric constant - rewrite it.
+    relFn(relFn)
         .ok("SELECT \"JOB\", \"ENAME\"\n"
             + "FROM \"scott\".\"EMP\"\n"
-            + "ORDER BY '1'")
+            + "ORDER BY '1', '23', '12', \"ENAME\", '34' DESC NULLS LAST")
         .dialect(nonOrdinalDialect())
         .ok("SELECT JOB, ENAME\n"
             + "FROM scott.EMP\n"
-            + "ORDER BY 1");
-  }
-
-  @Test void testRewriteOrderByWithNotAllConstants() {
-    // Default dialect rewrite numeric constant keys to string literal in the
-    // ORDER BY.
-    relFn(b -> scanProjectSort(b, b.literal(1), ImmutableIntList.of(0, 1)))
-        .ok("SELECT \"JOB\", \"ENAME\"\n"
-            + "FROM \"scott\".\"EMP\"\n"
-            + "ORDER BY '1', \"ENAME\"")
-        .dialect(nonOrdinalDialect())
-        .ok("SELECT JOB, ENAME\n"
-            + "FROM scott.EMP\n"
-            + "ORDER BY 1, ENAME");
-  }
-
-  @Test void testRewriteOrderByConstantsWithAlias() {
-    // Default dialect rewrite numeric constant keys to string literal in the
-    // ORDER BY.
-    relFn(b ->
-        scanProjectSort(b, b.alias(b.literal(1), "col"),
-            ImmutableIntList.of(0, 1)))
-        .ok("SELECT \"JOB\", \"ENAME\"\n"
-            + "FROM \"scott\".\"EMP\"\n"
-            + "ORDER BY '1', \"ENAME\"")
-        .dialect(nonOrdinalDialect())
-        .ok("SELECT JOB, ENAME\n"
-            + "FROM scott.EMP\n"
-            + "ORDER BY 1, ENAME");
-  }
-
-  @Test void testNoNeedRewriteOrderByConstantsForOtherType() {
-    // Default dialect rewrite numeric constant keys to string literal in the
-    // ORDER BY, and string constant will not be written.
-    relFn(b ->
-        scanProjectSort(b, b.literal("12"), ImmutableIntList.of(0, 1)))
-        .ok("SELECT \"JOB\", \"ENAME\"\n"
-            + "FROM \"scott\".\"EMP\"\n"
-            + "ORDER BY '12', \"ENAME\"")
-        .dialect(nonOrdinalDialect())
-        .ok("SELECT JOB, ENAME\n"
-            + "FROM scott.EMP\n"
-            + "ORDER BY '12', ENAME");
+            + "ORDER BY 1, '23', 12, ENAME, 34 DESC NULLS LAST");
   }
 
   @Test void testNoNeedRewriteOrderByConstantsForOver() {
     final String query = "select row_number() over "
         + "(order by 1 nulls last) from \"employee\"";
-    // Define dialect not remove constant keys in the over of order-by.
+    // Default dialect keep numeric constant keys in the over of order-by.
     sql(query).ok("SELECT ROW_NUMBER() OVER (ORDER BY 1)\n"
         + "FROM \"foodmart\".\"employee\"");
   }
