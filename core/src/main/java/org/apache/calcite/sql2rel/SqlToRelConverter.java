@@ -6443,7 +6443,7 @@ public class SqlToRelConverter {
     @Override public RelNode visit(LogicalProject project) {
       final Set<Integer> jsonInputFields = findJsonInputs(project.getInput());
       final Set<Integer> requiredJsonFieldsFromParent = stack.size() > 0
-          ? requiredJsonOutputFromParent(stack.peek()) : Collections.emptySet();
+          ? requiredJsonOutputFromParent(stack.getLast()) : Collections.emptySet();
 
       final List<RexNode> originalProjections = project.getProjects();
       final ImmutableList.Builder<RexNode> newProjections = ImmutableList.builder();
