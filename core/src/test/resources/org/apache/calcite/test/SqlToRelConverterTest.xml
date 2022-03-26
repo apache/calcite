@@ -3534,6 +3534,90 @@ LogicalProject(EXPR$0=[JSON_LENGTH($1, 'strict $')])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJsonNestedJsonArrayAggConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_object(
+  'k2' :
+  json_arrayagg(
+    json_object(
+      ename :
+      deptno)))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'k2', JSON_TYPE($0))])
+  LogicalAggregate(group=[{}], agg#0=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)])
+    LogicalProject($f0=[JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), $1, $7))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJsonNestedJsonArrayConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_array(
+  json_object(
+    'key1' :
+    json_object(
+      'key2' :
+       ename)),
+  json_array(12, 'hello', deptno))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_ARRAY(FLAG(ABSENT_ON_NULL), JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'key1', JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'key2', $1)))), JSON_TYPE(JSON_ARRAY(FLAG(ABSENT_ON_NULL), 12, 'hello', $7)))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJsonNestedJsonObjectAggConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_object(
+  'k2' :
+  json_objectagg(
+    ename :
+    json_object(
+      'k1' :
+      deptno)))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'k2', JSON_TYPE($0))])
+  LogicalAggregate(group=[{}], agg#0=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)])
+    LogicalProject(ENAME=[$1], $f1=[JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'k1', $7))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJsonNestedJsonObjectConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_object(
+  'key1' :
+  json_object(
+    'key2' :
+    ename)),
+  json_object(
+    'key3' :
+    json_array(12, 'hello', deptno))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'key1', JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'key2', $1)))], EXPR$1=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'key3', JSON_TYPE(JSON_ARRAY(FLAG(ABSENT_ON_NULL), 12, 'hello', $7)))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJsonObject">
     <Resource name="sql">
       <![CDATA[select json_object(ename: deptno, ename: deptno)
