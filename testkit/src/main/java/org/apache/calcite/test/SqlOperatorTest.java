@@ -4394,7 +4394,7 @@ public class SqlOperatorTest {
     f.checkString("json_object('foo': 100)",
         "{\"foo\":100}", "VARCHAR(2000) NOT NULL");
     f.checkString("json_object('foo': json_object('foo': 'bar'))",
-        "{\"foo\":\"{\\\"foo\\\":\\\"bar\\\"}\"}", "VARCHAR(2000) NOT NULL");
+        "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
     f.checkString("json_object('foo': json_object('foo': 'bar') format json)",
         "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
   }
@@ -4425,7 +4425,7 @@ public class SqlOperatorTest {
   @Test void testJsonValueExpressionOperator() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("'{}' format json", "{}", "ANY NOT NULL");
-    f.checkScalar("'[1, 2, 3]' format json", "[1, 2, 3]", "ANY NOT NULL");
+    f.checkScalar("'[1, 2, 3]' format json", "[1,2,3]", "ANY NOT NULL");
     f.checkNull("cast(null as varchar) format json");
     f.checkScalar("'null' format json", "null", "ANY NOT NULL");
     f.enableTypeCoercion(false)
@@ -4449,7 +4449,7 @@ public class SqlOperatorTest {
     f.checkString("json_array(100)",
         "[100]", "VARCHAR(2000) NOT NULL");
     f.checkString("json_array(json_array('foo'))",
-        "[\"[\\\"foo\\\"]\"]", "VARCHAR(2000) NOT NULL");
+        "[[\"foo\"]]", "VARCHAR(2000) NOT NULL");
     f.checkString("json_array(json_array('foo') format json)",
         "[[\"foo\"]]", "VARCHAR(2000) NOT NULL");
   }
