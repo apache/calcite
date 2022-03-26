@@ -4019,6 +4019,58 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testJsonNestedJsonObjectConstructor() {
+    final String sql = "select\n"
+        + "json_object(\n"
+        + "  'key1' :\n"
+        + "  json_object(\n"
+        + "    'key2' :\n"
+        + "    ename)),\n"
+        + "  json_object(\n"
+        + "    'key3' :\n"
+        + "    json_array(12, 'hello', deptno))\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testJsonNestedJsonArrayConstructor() {
+    final String sql = "select\n"
+        + "json_array(\n"
+        + "  json_object(\n"
+        + "    'key1' :\n"
+        + "    json_object(\n"
+        + "      'key2' :\n"
+        + "       ename)),\n"
+        + "  json_array(12, 'hello', deptno))\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testJsonNestedJsonObjectAggConstructor() {
+    final String sql = "select\n"
+        + "json_object(\n"
+        + "  'k2' :\n"
+        + "  json_objectagg(\n"
+        + "    ename :\n"
+        + "    json_object(\n"
+        + "      'k1' :\n"
+        + "      deptno)))\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testJsonNestedJsonArrayAggConstructor() {
+    final String sql = "select\n"
+        + "json_object(\n"
+        + "  'k2' :\n"
+        + "  json_arrayagg(\n"
+        + "    json_object(\n"
+        + "      ename :\n"
+        + "      deptno)))\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   @Test void testWithinGroup1() {
     final String sql = "select deptno,\n"
         + " collect(empno) within group (order by deptno, hiredate desc)\n"

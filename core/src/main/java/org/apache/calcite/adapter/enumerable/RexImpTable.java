@@ -241,6 +241,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_TYPE_OPERATOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
@@ -576,6 +577,8 @@ public class RexImpTable {
 
     // Json Operators
     defineMethod(JSON_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_TYPE_OPERATOR,
         BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
     defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.ARG0);
     map.put(JSON_VALUE,
