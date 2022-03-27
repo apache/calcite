@@ -56,6 +56,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -283,6 +284,27 @@ class RelOptUtilTest {
         Collections.singletonList(rightJoinIndex),
         Collections.singletonList(true),
         relBuilder.literal(true));
+  }
+
+  @Test void testSplitJoinConditionWithoutEqualCondition() {
+    final List<RelDataTypeField> sysFieldList = Collections.emptyList();
+    final List<List<RexNode>> joinKeys = Arrays.asList(new ArrayList<>(), new ArrayList<>());
+    final RexNode joinCondition = relBuilder.equals(
+        RexInputRef.of(0, empDeptJoinRelFields),
+        relBuilder.literal(1));
+    final RexNode result = RelOptUtil.splitJoinCondition(
+        sysFieldList,
+        Arrays.asList(empScan, deptScan),
+        joinCondition,
+        joinKeys,
+        null,
+        null
+    );
+    final List<List<RexNode>> expectedJoinKeys = Arrays.asList(
+        Collections.emptyList(),
+        Collections.emptyList());
+    assertEquals(joinKeys, expectedJoinKeys);
+    assertEquals(result, joinCondition);
   }
 
   /**
