@@ -102,13 +102,16 @@ public class FilterExtractInnerJoinRule
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
 
+  /** This method will return TRUE if it encounters at least one INNER JOIN ON TRUE in RelNode.*/
   private static boolean isCrossJoin(Join join, RelBuilder builder) {
-    if (((HepRelVertex) join.getLeft()).getCurrentRel() instanceof LogicalJoin) {
-      return isCrossJoin((Join) ((HepRelVertex) join.getLeft()).getCurrentRel(), builder)
-          || builder.literal(true).equals(join.getCondition());
+    if (join.getJoinType().equals(JoinRelType.INNER)
+        && builder.literal(true).equals(join.getCondition())) {
+      return true;
     }
-    return join.getJoinType().equals(JoinRelType.INNER)
-        && builder.literal(true).equals(join.getCondition());
+    if (((HepRelVertex) join.getLeft()).getCurrentRel() instanceof LogicalJoin) {
+      return isCrossJoin((Join) ((HepRelVertex) join.getLeft()).getCurrentRel(), builder);
+    }
+    return false;
   }
 
   /** This method checks whether filter conditions have both AND & OR in it.*/
@@ -126,7 +129,7 @@ public class FilterExtractInnerJoinRule
   }
 
   /** This method populates the stack, Stack< Triple< RelNode, Integer, JoinRelType > >, with
-   * TableScan of a table along with its columns end index and JoinType.*/
+   * TableScan of a table along with its column's end index and JoinType.*/
   private void populateStackWithEndIndexesForTables(
       Join join, Stack<Triple<RelNode, Integer, JoinRelType>> stack, List<RexNode> joinConditions) {
     RelNode left = ((HepRelVertex) join.getLeft()).getCurrentRel();
@@ -205,8 +208,8 @@ public class FilterExtractInnerJoinRule
   }
 
   private boolean isConditionComposedOfMultipleConditions(RexCall conditions) {
-    return conditions.getOperands().stream().allMatch(operand ->
-        operand instanceof RexCall && ((RexCall) operand).operands.size() > 1);
+    return conditions.getOperands().stream().allMatch(operand -> operand instanceof RexSubQuery
+        || operand instanceof RexCall && ((RexCall) operand).operands.size() > 1);
   }
 
   /** Rule configuration. */
