@@ -31,7 +31,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.Pair;
+
+import org.apache.commons.lang3.tuple.ImmutableTriple;
+import org.apache.commons.lang3.tuple.Triple;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -82,7 +84,8 @@ public class FilterExtractInnerJoinRule
       return;
     }
 
-    Stack<Pair<RelNode, Integer>> stackForTableScanWithEndColumnIndex = new Stack<>();
+    Stack<Triple<RelNode, Integer, JoinRelType>> stackForTableScanWithEndColumnIndex =
+        new Stack<>();
     List<RexNode> allConditions = new ArrayList<>();
     populateStackWithEndIndexesForTables(join, stackForTableScanWithEndColumnIndex, allConditions);
     RexNode conditions = filter.getCondition();
@@ -99,9 +102,16 @@ public class FilterExtractInnerJoinRule
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
 
+  /** This method will return TRUE if it encounters at least one INNER JOIN ON TRUE in RelNode.*/
   private static boolean isCrossJoin(Join join, RelBuilder builder) {
-    return join.getJoinType().equals(JoinRelType.INNER)
-        && builder.literal(true).equals(join.getCondition());
+    if (join.getJoinType().equals(JoinRelType.INNER)
+        && builder.literal(true).equals(join.getCondition())) {
+      return true;
+    }
+    if (((HepRelVertex) join.getLeft()).getCurrentRel() instanceof LogicalJoin) {
+      return isCrossJoin((Join) ((HepRelVertex) join.getLeft()).getCurrentRel(), builder);
+    }
+    return false;
   }
 
   /** This method checks whether filter conditions have both AND & OR in it.*/
@@ -118,40 +128,43 @@ public class FilterExtractInnerJoinRule
     return false;
   }
 
-  /** This method populates the stack, Stack< RelNode, Integer >, with
-   * TableScan of a table along with its columns end index.*/
+  /** This method populates the stack, Stack< Triple< RelNode, Integer, JoinRelType > >, with
+   * TableScan of a table along with its column's end index and JoinType.*/
   private void populateStackWithEndIndexesForTables(
-      Join join, Stack<Pair<RelNode, Integer>> stack, List<RexNode> joinConditions) {
+      Join join, Stack<Triple<RelNode, Integer, JoinRelType>> stack, List<RexNode> joinConditions) {
     RelNode left = ((HepRelVertex) join.getLeft()).getCurrentRel();
     RelNode right = ((HepRelVertex) join.getRight()).getCurrentRel();
     int leftTableColumnSize = join.getLeft().getRowType().getFieldCount();
     int rightTableColumnSize = join.getRight().getRowType().getFieldCount();
-    stack.push(new Pair<>(right, leftTableColumnSize + rightTableColumnSize - 1));
+    stack.push(
+        new ImmutableTriple<>(right, leftTableColumnSize + rightTableColumnSize - 1,
+        join.getJoinType()));
     if (!(join.getCondition() instanceof RexLiteral)) {
       joinConditions.add(join.getCondition());
     }
     if (left instanceof Join) {
       populateStackWithEndIndexesForTables((Join) left, stack, joinConditions);
     } else {
-      stack.push(new Pair<>(left, leftTableColumnSize - 1));
+      stack.push(new ImmutableTriple<>(left, leftTableColumnSize - 1, join.getJoinType()));
     }
   }
 
   /** This method identifies Join Predicates from filter conditions and put them on Joins as
    * ON conditions.*/
-  private RelNode moveConditionsFromWhereClauseToJoinOnClause(
-      List<RexNode> allConditions, Stack<Pair<RelNode, Integer>> stack, RelBuilder builder) {
-    Pair<RelNode, Integer> leftEntry = stack.pop();
-    Pair<RelNode, Integer> rightEntry;
-    RelNode left = leftEntry.getKey();
+  private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
+      Stack<Triple<RelNode, Integer, JoinRelType>> stack, RelBuilder builder) {
+    Triple<RelNode, Integer, JoinRelType> leftEntry = stack.pop();
+    Triple<RelNode, Integer, JoinRelType> rightEntry;
+    RelNode left = leftEntry.getLeft();
 
     while (!stack.isEmpty()) {
       rightEntry = stack.pop();
-      List<RexNode> joinConditions = getConditionsForEndIndex(allConditions, rightEntry.right);
+      List<RexNode> joinConditions =
+          getConditionsForEndIndex(allConditions, rightEntry.getMiddle());
       RexNode joinPredicate = builder.and(joinConditions);
       allConditions.removeAll(joinConditions);
-      left = LogicalJoin.create(left, rightEntry.left, ImmutableList.of(),
-          joinPredicate, ImmutableSet.of(), JoinRelType.INNER);
+      left = LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
+          joinPredicate, ImmutableSet.of(), rightEntry.getRight());
     }
     return builder.push(left)
         .filter(builder.and(allConditions))
@@ -195,8 +208,8 @@ public class FilterExtractInnerJoinRule
   }
 
   private boolean isConditionComposedOfMultipleConditions(RexCall conditions) {
-    return conditions.getOperands().stream().allMatch(operand ->
-        operand instanceof RexCall && ((RexCall) operand).operands.size() > 1);
+    return conditions.getOperands().stream().allMatch(operand -> operand instanceof RexSubQuery
+        || operand instanceof RexCall && ((RexCall) operand).operands.size() > 1);
   }
 
   /** Rule configuration. */
@@ -215,7 +228,9 @@ public class FilterExtractInnerJoinRule
       return withOperandSupplier(b0 ->
           b0.operand(filterClass).inputs(b1 ->
               b1.operand(joinClass)
-                  .predicate(join -> join.getJoinType() == JoinRelType.INNER)
+                  .predicate(join -> join.getJoinType() == JoinRelType.INNER
+                      || join.getJoinType() == JoinRelType.LEFT
+                      || join.getJoinType() == JoinRelType.RIGHT)
                   .anyInputs())).as(FilterExtractInnerJoinRule.Config.class);
     }
   }
