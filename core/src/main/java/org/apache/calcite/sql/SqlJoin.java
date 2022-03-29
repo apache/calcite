@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
@@ -26,6 +27,7 @@ import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -258,5 +260,13 @@ public class SqlJoin extends SqlCall {
         }
       }
     }
+  }
+
+  @Override public SqlString toSqlString(UnaryOperator<SqlWriterConfig> transform) {
+    SqlNode selectWrapper =
+        new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
+            SqlNodeList.SINGLETON_STAR, this, null, null, null,
+            SqlNodeList.EMPTY, null, null, null, SqlNodeList.EMPTY);
+    return selectWrapper.toSqlString(transform);
   }
 }
