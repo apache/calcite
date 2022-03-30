@@ -90,9 +90,9 @@ public class FilterExtractInnerJoinRule
     populateStackWithEndIndexesForTables(join, stackForTableScanWithEndColumnIndex, allConditions);
     RexNode conditions = filter.getCondition();
     if (isConditionComposedOfMultipleConditions((RexCall) conditions)) {
-      allConditions.addAll(((RexCall) conditions).getOperands());
-    } else {
       allConditions.add(filter.getCondition());
+    } else {
+      allConditions.addAll(((RexCall) conditions).getOperands());
     }
 
     final RelNode modifiedJoinClauseWithWhereClause =
@@ -203,13 +203,17 @@ public class FilterExtractInnerJoinRule
     if (condition instanceof RexSubQuery) {
       return false;
     }
-    return isOperandIndexLessThanEndIndex(condition.operands.get(0), endIndex)
-        && isOperandIndexLessThanEndIndex(condition.operands.get(1), endIndex);
+    return condition.operands.stream().allMatch(predicate ->
+        isOperandIndexLessThanEndIndex(predicate, endIndex));
   }
 
   private boolean isConditionComposedOfMultipleConditions(RexCall conditions) {
-    return conditions.getOperands().stream().allMatch(operand -> operand instanceof RexSubQuery
-        || operand instanceof RexCall && ((RexCall) operand).operands.size() > 1);
+    return conditions.getOperands().size() <= 2
+        && conditions.getOperands().stream().allMatch(
+            operand -> operand instanceof RexInputRef
+                || operand instanceof RexLiteral
+                || (operand instanceof RexCall
+                && ((RexCall) operand).getOperands().size() == 1));
   }
 
   /** Rule configuration. */
