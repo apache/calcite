@@ -89,7 +89,7 @@ public class FilterExtractInnerJoinRule
     List<RexNode> allConditions = new ArrayList<>();
     populateStackWithEndIndexesForTables(join, stackForTableScanWithEndColumnIndex, allConditions);
     RexNode conditions = filter.getCondition();
-    if (isConditionComposedOfMultipleConditions((RexCall) conditions)) {
+    if (isConditionComposedOfSingleCondition((RexCall) conditions)) {
       allConditions.add(filter.getCondition());
     } else {
       allConditions.addAll(((RexCall) conditions).getOperands());
@@ -203,17 +203,24 @@ public class FilterExtractInnerJoinRule
     if (condition instanceof RexSubQuery) {
       return false;
     }
-    return condition.operands.stream().allMatch(predicate ->
-        isOperandIndexLessThanEndIndex(predicate, endIndex));
+    return condition.operands.stream().allMatch(operand ->
+        isOperandIndexLessThanEndIndex(operand, endIndex));
   }
 
-  private boolean isConditionComposedOfMultipleConditions(RexCall conditions) {
+  /** Checks whether a given condition is composed of a single condition.
+   * Eg.
+   * 1. In case of, =($7, $12), it will return true.
+   * 2. In case of, =(lower($7), LOWER($12)), it will return true.
+   * 3. In case of, =(CONCAT($1, $2), CONCAT($4, $7), it will return true.
+   * 4. In case of, =(lower(TRIM($7)), LOWER(TRIM($12))), it will return true.
+   * 5. In case of AND(=($7, $9), =($14, $19), it will return false.*/
+  private boolean isConditionComposedOfSingleCondition(RexCall conditions) {
     return conditions.getOperands().size() <= 2
         && conditions.getOperands().stream().allMatch(
             operand -> operand instanceof RexInputRef
                 || operand instanceof RexLiteral
                 || (operand instanceof RexCall
-                && ((RexCall) operand).getOperands().size() == 1));
+                && conditions.op.kind != SqlKind.AND && conditions.op.kind != SqlKind.OR));
   }
 
   /** Rule configuration. */
