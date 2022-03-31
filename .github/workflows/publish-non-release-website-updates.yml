@@ -8,7 +8,7 @@ on:
       - 'site/**'                     # Trigger only for changes to files in the site/ folder
       - '!site/_docs/**'              # except for files in the site/_docs/ folder
       - 'site/_docs/history.md'       # unless the file is site/_docs/history.md
-      - 'site/_docs/howto.md'         # or site/_docs/history.md
+      - 'site/_docs/howto.md'         # or site/_docs/howto.md
       - 'site/_docs/powered_by.md'    # or site/_docs/powered_by.md
 
 jobs:
