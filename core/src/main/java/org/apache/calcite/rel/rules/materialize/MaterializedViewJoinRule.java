@@ -260,17 +260,21 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
         : topProject.getProjects();
     List<RexNode> exprsLineage = new ArrayList<>(exprs.size());
     for (RexNode expr : exprs) {
-      Set<RexNode> s = mq.getExpressionLineage(node, expr);
-      if (s == null) {
+      Set<RexNode> lineages = mq.getExpressionLineage(node, expr);
+      if (lineages == null) {
         // Bail out
         return null;
       }
-      assert s.size() == 1;
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: '"
+            + lineages + "' for expr '" + expr + "' in node '" + node + "'");
+      }
       // Rewrite expr. Take first element from the corresponding equivalence class
       // (no need to swap the table references following the table mapping)
       exprsLineage.add(
           RexUtil.swapColumnReferences(rexBuilder,
-              s.iterator().next(), queryEC.getEquivalenceClassesMap()));
+              lineages.iterator().next(), queryEC.getEquivalenceClassesMap()));
     }
     List<RexNode> viewExprs = topViewProject == null
         ? extractReferences(rexBuilder, viewNode)

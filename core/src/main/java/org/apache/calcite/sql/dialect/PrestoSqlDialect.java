@@ -52,6 +52,10 @@ public class PrestoSqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }
@@ -118,6 +122,9 @@ public class PrestoSqlDialect extends SqlDialect {
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       RelToSqlConverterUtil.specialOperatorByName("SUBSTR")
+          .unparse(writer, call, 0, 0);
+    } else if (call.getOperator() == SqlStdOperatorTable.APPROX_COUNT_DISTINCT) {
+      RelToSqlConverterUtil.specialOperatorByName("APPROX_DISTINCT")
           .unparse(writer, call, 0, 0);
     } else {
       // Current impl is same with Postgresql.

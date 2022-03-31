@@ -1034,7 +1034,7 @@ LogicalProject(MGR=[$0], SUM_SAL=[$2])
   <TestCase name="testAggregateUnionTransposeWithAllInputsUnique">
     <Resource name="sql">
       <![CDATA[select deptno, SUM(t) from (
-select deptno, 1 as t from sales.emp e1
+select distinct deptno, 1 as t from sales.emp e1
 union all
 select distinct deptno, 2 as t from sales.emp e2)
 group by deptno]]>
@@ -1093,6 +1093,39 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
     LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
       LogicalAggregate(group=[{0, 1}])
         LogicalProject(DEPTNO=[$7], T=[2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateUnionTransposeWithTopLevelGroupSetRemapping">
+    <Resource name="sql">
+      <![CDATA[select count(t1), t2 from (
+select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from sales.emp e1
+union all
+select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from sales.emp e2)
+group by t2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1], T2=[$0])
+  LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+    LogicalUnion(all=[true])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1], T2=[$0])
+  LogicalAggregate(group=[{0}], EXPR$0=[$SUM0($1)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -1756,6 +1789,12 @@ LogicalProject(EMPNO=[$0])
         LogicalProject(EMPNO=[$0], SAL=[$5])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT e1.empno
+FROM emp e1, dept d1 where e1.deptno = d1.deptno
+and e1.deptno < 10 and d1.deptno < 15
+and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
     </Resource>
   </TestCase>
   <TestCase name="testDecorrelateAggWithConstantGroupKey">
@@ -2724,7 +2763,8 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT(
   </TestCase>
   <TestCase name="testDynamicStarWithUnion">
     <Resource name="sql">
-      <![CDATA[(select n_nationkey from SALES.CUSTOMER) union all (select n_name from CUSTOMER_MODIFIABLEVIEW)]]>
+      <![CDATA[(select n_nationkey from SALES.CUSTOMER) union all
+(select n_name from CUSTOMER_MODIFIABLEVIEW)]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -3021,7 +3061,9 @@ LogicalValues(tuples=[[]])
   </TestCase>
   <TestCase name="testEnumerableCalcRule">
     <Resource name="sql">
-      <![CDATA[select ename from emp where sal > 10.0]]]>
+      <![CDATA[select FNAME, LNAME
+from SALES.CUSTOMER
+where CONTACTNO > 10]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -3991,6 +4033,81 @@ LogicalProject(EXPR$0=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByBooleanLiteralSimple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by true]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[true], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[$9], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ true }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByDateLiteralSimple">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by DATE '2022-01-01']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[2022-01-01], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+    LogicalProject($f0=[$9], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ 2022-01-01 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByMultipleLiterals">
+    <Resource name="sql">
+      <![CDATA[select avg(sal)
+from emp
+group by false, deptno, true, true, empno, false, 'ab', DATE '2022-01-01']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$6])
+  LogicalAggregate(group=[{0, 1, 2, 3, 4, 5}], EXPR$0=[AVG($6)])
+    LogicalProject($f0=[false], DEPTNO=[$7], $f2=[true], EMPNO=[$0], $f4=['ab'], $f5=[2022-01-01], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$6])
+  LogicalAggregate(group=[{0, 1, 2, 3, 4, 5}], EXPR$0=[AVG($6)])
+    LogicalProject($f0=[$9], DEPTNO=[$7], $f2=[$10], EMPNO=[$0], $f4=[$11], $f5=[$12], SAL=[$5])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalValues(tuples=[[{ false, true, 'ab', 2022-01-01 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -6192,6 +6309,28 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
     <Resource name="finalPlan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{}], DUMMY=[COUNT()])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{}], DUMMY=[COUNT()])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
       <![CDATA[
 LogicalProject(DEPTNO=[$0])
   LogicalJoin(condition=[true], joinType=[inner])
@@ -10877,6 +11016,28 @@ LogicalValues(tuples=[[{ 11, 1, 10 }, { 23, 3, 20 }]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testReduceWithNonTypePredicate">
+    <Resource name="sql">
+      <![CDATA[select avg(sal), avg(sal) within distinct (deptno)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], EXPR$1=[AVG($0) WITHIN DISTINCT ($1)])
+  LogicalProject(SAL=[$5], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0], EXPR$1=[CAST(/($1, $2)):INTEGER])
+  LogicalProject(EXPR$0=[$0], $f1=[CASE(=($2, 0), null:INTEGER, $1)], $f2=[$2])
+    LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], agg#1=[$SUM0($0) WITHIN DISTINCT ($1)], agg#2=[COUNT() WITHIN DISTINCT ($1)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testRemoveDistinctOnAgg">
     <Resource name="sql">
       <![CDATA[SELECT empno, SUM(distinct sal), MIN(sal), MIN(distinct sal), MAX(distinct sal), bit_and(distinct sal), bit_or(sal), count(distinct sal) from sales.emp group by empno, deptno
@@ -11428,12 +11589,37 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSemiJoinRuleWithHint">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[semi])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSemiJoinTrim">
     <Resource name="sql">
-      <![CDATA[select s.deptno from (select * from dept where exists (
-  select * from emp
-  where emp.deptno = dept.deptno
-  and emp.sal > 100)) s join customer.account on s.deptno = account.acctno]]>
+      <![CDATA[select s.deptno
+from (select *
+  from dept
+  where exists (
+    select * from emp
+    where emp.deptno = dept.deptno
+    and emp.sal > 100)) s
+join customer.account on s.deptno = account.acctno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -12426,8 +12612,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5
   </TestCase>
   <TestCase name="testSubQueryWithDynamicStarHang">
     <Resource name="sql">
-      <![CDATA[select n.n_regionkey from (select * from
-(select * from sales.customer) t) n where n.n_nationkey >1]]>
+      <![CDATA[select n.n_regionkey from (select * from (select * from sales.customer) t) n where n.n_nationkey >1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -12442,6 +12627,27 @@ LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
 EnumerableProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
   EnumerableFilter(condition=[>(ITEM($0, 'N_NATIONKEY'), 1)])
     EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSumAndDistinctSumWithExpandSumType">
+    <Resource name="sql">
+      <![CDATA[SELECT SUM(comm), SUM(DISTINCT comm) FROM emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[SUM(DISTINCT $0)])
+  LogicalProject(COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST($0):BIGINT], EXPR$1=[$1])
+  LogicalAggregate(group=[{}], EXPR$0=[SUM($1)], EXPR$1=[SUM($0)])
+    LogicalAggregate(group=[{0}], EXPR$0=[SUM($0)])
+      LogicalProject(COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

@@ -1437,9 +1437,7 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7),
-                    (Iterable<ImmutableBitSet>)
-                        ImmutableList.of(ImmutableBitSet.of(7),
-                            ImmutableBitSet.of())),
+                    ImmutableList.of(ImmutableBitSet.of(7), ImmutableBitSet.of())),
                 builder.count()
                     .filter(
                         builder.greaterThan(builder.field("EMPNO"),
@@ -1669,9 +1667,7 @@ public class RelBuilderTest {
           builder.scan("EMP")
               .aggregate(
                   builder.groupKey(ImmutableBitSet.of(7),
-                      (Iterable<ImmutableBitSet>)
-                          ImmutableList.of(ImmutableBitSet.of(4),
-                              ImmutableBitSet.of())))
+                      ImmutableList.of(ImmutableBitSet.of(4), ImmutableBitSet.of())))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -1689,8 +1685,7 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7, 6),
-                    (Iterable<ImmutableBitSet>)
-                        ImmutableList.of(ImmutableBitSet.of(7),
+                    ImmutableList.of(ImmutableBitSet.of(7),
                             ImmutableBitSet.of(6),
                             ImmutableBitSet.of(7))))
             .build();
@@ -1712,8 +1707,7 @@ public class RelBuilderTest {
         .aggregate(
             builder.groupKey(
                 ImmutableBitSet.of(0, 1, 2),
-                (Iterable<ImmutableBitSet>)
-                    ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
+                ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             builder.count(false, "C"),
             builder.sum(false, "S", builder.field("SAL")))
         .filter(
@@ -2200,6 +2194,8 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Tests building a simple join. Also checks {@link RelBuilder#size()}
+   * at every step. */
   @Test void testJoin() {
     // Equivalent SQL:
     //   SELECT *
@@ -2207,21 +2203,33 @@ public class RelBuilderTest {
     //   JOIN dept ON emp.deptno = dept.deptno
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
-        builder.scan("EMP")
+        builder.let(b -> assertSize(b, is(0)))
+            .scan("EMP")
+            .let(b -> assertSize(b, is(1)))
             .filter(
                 builder.call(SqlStdOperatorTable.IS_NULL,
                     builder.field("COMM")))
+            .let(b -> assertSize(b, is(1)))
             .scan("DEPT")
+            .let(b -> assertSize(b, is(2)))
             .join(JoinRelType.INNER,
                 builder.equals(builder.field(2, 0, "DEPTNO"),
                     builder.field(2, 1, "DEPTNO")))
+            .let(b -> assertSize(b, is(1)))
             .build();
+    assertThat(builder.size(), is(0));
     final String expected = ""
         + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  private static RelBuilder assertSize(RelBuilder b,
+      Matcher<Integer> sizeMatcher) {
+    assertThat(b.size(), sizeMatcher);
+    return b;
   }
 
   /** Same as {@link #testJoin} using USING. */
@@ -4395,6 +4403,10 @@ public class RelBuilderTest {
     final RelHint noHashJoinHint = RelHint.builder("NO_HASH_JOIN")
         .inheritPath(0)
         .build();
+    final RelHint hashJoinHint = RelHint.builder("USE_HASH_JOIN")
+        .hintOption("orders")
+        .hintOption("products_temporal")
+        .build();
     final RelBuilder builder = RelBuilder.create(config().build());
     // Equivalent SQL:
     //   SELECT *
@@ -4432,6 +4444,32 @@ public class RelBuilderTest {
         .hints(noHashJoinHint)
         .build();
     assertThat(root2, hasHints("[[NO_HASH_JOIN inheritPath:[0]]]"));
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM orders
+    //   JOIN products_temporal FOR SYSTEM_TIME AS OF orders.rowtime
+    //   ON orders.product = products_temporal.id
+    RelNode left = builder.scan("orders").build();
+    RelNode right = builder.scan("products_temporal").build();
+    RexNode period = builder.getRexBuilder().makeFieldAccess(
+        builder.getRexBuilder().makeCorrel(left.getRowType(), new CorrelationId(0)),
+        0);
+    RelNode root3 =
+        builder
+            .push(left)
+            .push(right)
+            .snapshot(period)
+            .correlate(
+                JoinRelType.INNER,
+                new CorrelationId(0),
+                builder.field(2, 0, "ROWTIME"),
+                builder.field(2, 0, "ID"),
+                builder.field(2, 0, "PRODUCT"))
+            .hints(hashJoinHint)
+            .build();
+    assertThat(root3,
+        hasHints("[[USE_HASH_JOIN inheritPath:[] options:[orders, products_temporal]]]"));
   }
 
   @Test void testHintsOnEmptyStack() {
@@ -4632,7 +4670,6 @@ public class RelBuilderTest {
   @Test void testExecuteNotLike() {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new HrSchema()))
-        .query("?")
         .withRel(
             builder -> builder
                 .scan("s", "emps")

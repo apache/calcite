@@ -16,14 +16,18 @@
  */
 package org.apache.calcite.rel.metadata.janino;
 
+import org.apiguardian.api.API;
+
 /**
  * A key used in caching with descriptive to string.  Note the key uses
  * reference equality for performance.
  */
+@API(status = API.Status.INTERNAL)
 public final class DescriptiveCacheKey {
 
   private final String description;
 
+  @API(status = API.Status.INTERNAL)
   public DescriptiveCacheKey(String description) {
     this.description = description;
   }

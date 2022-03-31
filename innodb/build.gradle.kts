@@ -24,7 +24,10 @@ plugins {
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    api("com.alibaba.database:innodb-java-reader")
+    api("com.alibaba.database:innodb-java-reader") {
+        exclude("org.slf4j", "slf4j-log4j12")
+                .because("creates conflict with log4j-slf4j-impl")
+    }
     api("com.google.guava:guava")
 
     implementation("commons-collections:commons-collections")
@@ -33,7 +36,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":testkit"))
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")

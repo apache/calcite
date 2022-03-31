@@ -28,6 +28,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,14 +43,14 @@ import static org.apache.calcite.rel.metadata.janino.CodeGeneratorUtil.paramList
 /**
  * Generates the metadata dispatch to handlers.
  */
-public class DispatchGenerator {
+class DispatchGenerator {
   private final Map<MetadataHandler<?>, String> metadataHandlerToName;
 
-  public DispatchGenerator(Map<MetadataHandler<?>, String> metadataHandlerToName) {
+  DispatchGenerator(Map<MetadataHandler<?>, String> metadataHandlerToName) {
     this.metadataHandlerToName = metadataHandlerToName;
   }
 
-  public void dispatchMethod(StringBuilder buff, Method method,
+  void dispatchMethod(StringBuilder buff, Method method,
       Collection<? extends MetadataHandler<?>> metadataHandlers) {
     Map<MetadataHandler<?>, Set<Class<? extends RelNode>>> handlersToClasses =
         metadataHandlers.stream()
@@ -176,7 +177,9 @@ public class DispatchGenerator {
   private static List<Class<? extends RelNode>> topologicalSort(
       Collection<Class<? extends RelNode>> list) {
     List<Class<? extends RelNode>> l = new ArrayList<>();
-    ArrayDeque<Class<? extends RelNode>> s = new ArrayDeque<>(list);
+    ArrayDeque<Class<? extends RelNode>> s = list.stream()
+        .sorted(Comparator.comparing(Class::getName))
+        .collect(Collectors.toCollection(ArrayDeque::new));
 
     while (!s.isEmpty()) {
       Class<? extends RelNode> n = s.remove();

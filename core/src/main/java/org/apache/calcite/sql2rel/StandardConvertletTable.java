@@ -117,6 +117,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         SqlStdOperatorTable.IS_NULL);
     addAlias(SqlStdOperatorTable.IS_NOT_UNKNOWN,
         SqlStdOperatorTable.IS_NOT_NULL);
+    addAlias(SqlLibraryOperators.NULL_SAFE_EQUAL, SqlStdOperatorTable.IS_NOT_DISTINCT_FROM);
     addAlias(SqlStdOperatorTable.PERCENT_REMAINDER, SqlStdOperatorTable.MOD);
 
     // Register convertlets for specific objects.
@@ -308,12 +309,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         cx.convertExpression(call.getOperandList().get(1));
     final RelDataType type =
         cx.getValidator().getValidatedNodeType(call);
+    // Preserve Operand Nullability
     return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE,
         ImmutableList.of(
             rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
                 operand0),
-            rexBuilder.makeCast(type, operand0),
-            rexBuilder.makeCast(type, operand1)));
+            rexBuilder.makeCast(
+                cx.getTypeFactory()
+                    .createTypeWithNullability(type, operand0.getType().isNullable()),
+                operand0),
+            rexBuilder.makeCast(
+                cx.getTypeFactory()
+                    .createTypeWithNullability(type, operand1.getType().isNullable()),
+                operand1)
+        ));
   }
 
   /** Converts a call to the DECODE function. */
@@ -1135,7 +1144,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlSubstringFunction op,
       SqlCall call) {
     final SqlLibrary library =
-        cx.getValidator().config().sqlConformance().semantics();
+        cx.getValidator().config().conformance().semantics();
     final SqlBasicCall basicCall = (SqlBasicCall) call;
     switch (library) {
     case BIG_QUERY:

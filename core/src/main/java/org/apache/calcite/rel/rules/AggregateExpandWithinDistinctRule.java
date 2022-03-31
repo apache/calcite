@@ -366,9 +366,7 @@ public class AggregateExpandWithinDistinctRule
                     SqlStdOperatorTable.GROUPING,
                     b.fields(fullGroupList)))
             : -1;
-    b.aggregate(
-        b.groupKey(fullGroupSet,
-            (Iterable<ImmutableBitSet>) groupSets), aggCalls);
+    b.aggregate(b.groupKey(fullGroupSet, groupSets), aggCalls);
 
     // Build the outer query
     //
@@ -449,8 +447,7 @@ public class AggregateExpandWithinDistinctRule
     b.aggregate(
         b.groupKey(
             remap(fullGroupSet, aggregate.getGroupSet()),
-            (Iterable<ImmutableBitSet>)
-                remap(fullGroupSet, aggregate.getGroupSets())),
+            remap(fullGroupSet, aggregate.getGroupSets())),
         aggCalls);
     b.convert(aggregate.getRowType(), false);
     call.transformTo(b.build());

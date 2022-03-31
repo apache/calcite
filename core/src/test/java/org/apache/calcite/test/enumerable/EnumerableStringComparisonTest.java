@@ -99,7 +99,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testSortStringDefault() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 builder.getTypeFactory().builder()
@@ -121,7 +120,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testSortStringSpecialCollation() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 createRecordVarcharSpecialCollation(builder),
@@ -141,7 +139,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testMergeJoinOnStringSpecialCollation() {
     tester()
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -265,7 +262,6 @@ class EnumerableStringComparisonTest {
                                     SqlOperator operator, SqlCollation col,
                                     boolean expectedResult) {
     tester()
-        .query("?")
         .withRel(builder -> {
           final RexBuilder rexBuilder = builder.getRexBuilder();
           final RelDataType varcharSpecialCollation = createVarcharSpecialCollation(builder, col);

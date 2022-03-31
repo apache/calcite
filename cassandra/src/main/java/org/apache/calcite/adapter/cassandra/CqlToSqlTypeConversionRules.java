@@ -18,7 +18,8 @@ package org.apache.calcite.adapter.cassandra;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import com.datastax.driver.core.DataType;
+import com.datastax.oss.driver.api.core.type.DataType;
+import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -35,40 +36,34 @@ public class CqlToSqlTypeConversionRules {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final Map<DataType.Name, SqlTypeName> rules =
-      ImmutableMap.<DataType.Name, SqlTypeName>builder()
-          .put(DataType.Name.UUID, SqlTypeName.CHAR)
-          .put(DataType.Name.TIMEUUID, SqlTypeName.CHAR)
+  private final Map<DataType, SqlTypeName> rules =
+      ImmutableMap.<DataType, SqlTypeName>builder()
+          .put(DataTypes.UUID, SqlTypeName.CHAR)
+          .put(DataTypes.TIMEUUID, SqlTypeName.CHAR)
 
-          .put(DataType.Name.ASCII, SqlTypeName.VARCHAR)
-          .put(DataType.Name.TEXT, SqlTypeName.VARCHAR)
-          .put(DataType.Name.VARCHAR, SqlTypeName.VARCHAR)
+          .put(DataTypes.ASCII, SqlTypeName.VARCHAR)
+          .put(DataTypes.TEXT, SqlTypeName.VARCHAR)
 
-          .put(DataType.Name.INT, SqlTypeName.INTEGER)
-          .put(DataType.Name.VARINT, SqlTypeName.INTEGER)
-          .put(DataType.Name.BIGINT, SqlTypeName.BIGINT)
-          .put(DataType.Name.TINYINT, SqlTypeName.TINYINT)
-          .put(DataType.Name.SMALLINT, SqlTypeName.SMALLINT)
+          .put(DataTypes.INT, SqlTypeName.INTEGER)
+          .put(DataTypes.VARINT, SqlTypeName.INTEGER)
+          .put(DataTypes.BIGINT, SqlTypeName.BIGINT)
+          .put(DataTypes.TINYINT, SqlTypeName.TINYINT)
+          .put(DataTypes.SMALLINT, SqlTypeName.SMALLINT)
 
-          .put(DataType.Name.DOUBLE, SqlTypeName.DOUBLE)
-          .put(DataType.Name.FLOAT, SqlTypeName.REAL)
-          .put(DataType.Name.DECIMAL, SqlTypeName.DOUBLE)
+          .put(DataTypes.DOUBLE, SqlTypeName.DOUBLE)
+          .put(DataTypes.FLOAT, SqlTypeName.REAL)
+          .put(DataTypes.DECIMAL, SqlTypeName.DOUBLE)
 
-          .put(DataType.Name.BLOB, SqlTypeName.VARBINARY)
+          .put(DataTypes.BLOB, SqlTypeName.VARBINARY)
 
-          .put(DataType.Name.BOOLEAN, SqlTypeName.BOOLEAN)
+          .put(DataTypes.BOOLEAN, SqlTypeName.BOOLEAN)
 
-          .put(DataType.Name.COUNTER, SqlTypeName.BIGINT)
+          .put(DataTypes.COUNTER, SqlTypeName.BIGINT)
 
           // number of nanoseconds since midnight
-          .put(DataType.Name.TIME, SqlTypeName.BIGINT)
-          .put(DataType.Name.DATE, SqlTypeName.DATE)
-          .put(DataType.Name.TIMESTAMP, SqlTypeName.TIMESTAMP)
-
-          .put(DataType.Name.MAP, SqlTypeName.MAP)
-          .put(DataType.Name.LIST, SqlTypeName.ARRAY)
-          .put(DataType.Name.SET, SqlTypeName.MULTISET)
-          .put(DataType.Name.TUPLE, SqlTypeName.STRUCTURED)
+          .put(DataTypes.TIME, SqlTypeName.BIGINT)
+          .put(DataTypes.DATE, SqlTypeName.DATE)
+          .put(DataTypes.TIMESTAMP, SqlTypeName.TIMESTAMP)
           .build();
 
   //~ Methods ----------------------------------------------------------------
@@ -88,7 +83,7 @@ public class CqlToSqlTypeConversionRules {
    * @param name the CQL type name to lookup
    * @return a corresponding SqlTypeName if found, ANY otherwise
    */
-  public SqlTypeName lookup(DataType.Name name) {
+  public SqlTypeName lookup(DataType name) {
     return rules.getOrDefault(name, SqlTypeName.ANY);
   }
 }

@@ -114,11 +114,13 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   /**
    * Creates a MockCatalogReader.
    *
-   * <p>Caller must then call {@link #init} to populate with data.</p>
+   * <p>Caller must then call {@link #init} to populate with data;
+   * constructor is protected to encourage you to define a {@code create}
+   * method in each concrete sub-class.
    *
    * @param typeFactory Type factory
    */
-  public MockCatalogReader(RelDataTypeFactory typeFactory,
+  protected MockCatalogReader(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
     super(CalciteSchema.createRootSchema(false, false, DEFAULT_CATALOG),
         SqlNameMatchers.withCaseSensitive(caseSensitive),

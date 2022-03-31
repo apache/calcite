@@ -824,6 +824,9 @@ public abstract class SqlTypeUtil {
 
     final SqlTypeName fromTypeName = fromType.getSqlTypeName();
     final SqlTypeName toTypeName = toType.getSqlTypeName();
+    if (toTypeName == SqlTypeName.UNKNOWN) {
+      return true;
+    }
     if (toType.isStruct() || fromType.isStruct()) {
       if (toTypeName == SqlTypeName.DISTINCT) {
         if (fromTypeName == SqlTypeName.DISTINCT) {
@@ -1033,7 +1036,7 @@ public abstract class SqlTypeUtil {
     assert typeName != null;
 
     final SqlTypeNameSpec typeNameSpec;
-    if (isAtomic(type) || isNull(type)) {
+    if (isAtomic(type) || isNull(type) || type.getSqlTypeName() == SqlTypeName.UNKNOWN) {
       int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {
@@ -1114,6 +1117,17 @@ public abstract class SqlTypeUtil {
       boolean nullable) {
     RelDataType ret = typeFactory.createMapType(keyType, valueType);
     return typeFactory.createTypeWithNullability(ret, nullable);
+  }
+
+  /** Creates a MAP type from a record type. The record type must have exactly
+   * two fields. */
+  public static RelDataType createMapTypeFromRecord(
+      RelDataTypeFactory typeFactory, RelDataType type) {
+    Preconditions.checkArgument(type.getFieldCount() == 2,
+        "MAP requires exactly two fields, got %s; row type %s",
+        type.getFieldCount(), type);
+    return createMapType(typeFactory, type.getFieldList().get(0).getType(),
+        type.getFieldList().get(1).getType(), false);
   }
 
   /**

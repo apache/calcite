@@ -17,7 +17,7 @@
 !set outputformat mysql
 
 # count returns number of rows in table
-SELECT COUNT(*) as C1 FROM chinook.album;
+SELECT COUNT(*) as C1 FROM `chinook`.`Album`;
 +-----+
 | C1  |
 +-----+
@@ -27,11 +27,11 @@ SELECT COUNT(*) as C1 FROM chinook.album;
 
 !ok
 
-SELECT ar.name as NAME, COUNT(tr.trackid) AS TRACKS_COUNT, SUM(tr.milliseconds) AS MS_TOTAL
-FROM chinook.artist AS ar
-JOIN chinook.album AS al ON ar.artistid = al.artistid
-JOIN chinook.track as tr ON al.albumid = tr.albumid
-GROUP BY ar.name;
+SELECT ar.`Name` as NAME, COUNT(tr.`TrackId`) AS TRACKS_COUNT, SUM(tr.`Milliseconds`) AS MS_TOTAL
+FROM `chinook`.`Artist` AS ar
+JOIN `chinook`.`Album` AS al ON ar.`ArtistId` = al.`ArtistId`
+JOIN `chinook`.`Track` as tr ON al.`AlbumId` = tr.`AlbumId`
+GROUP BY ar.`Name`;
 
 +---------------------------------------------------------------------------------------+--------------+-----------+
 | NAME                                                                                  | TRACKS_COUNT | MS_TOTAL  |

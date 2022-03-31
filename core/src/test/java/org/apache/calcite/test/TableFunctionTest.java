@@ -122,7 +122,7 @@ class TableFunctionTest {
           + "from (values (2), (4)) as t (x)";
       ResultSet resultSet = connection.createStatement().executeQuery(sql);
       assertThat(CalciteAssert.toString(resultSet),
-          equalTo("X=2; EXPR$1=0\nX=4; EXPR$1=0\n"));
+          equalTo("X=2; EXPR$1=null\nX=4; EXPR$1=null\n"));
     }
   }
 

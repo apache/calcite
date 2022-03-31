@@ -109,7 +109,10 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
@@ -238,6 +241,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_TYPE_OPERATOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
@@ -349,7 +353,7 @@ public class RexImpTable {
   @SuppressWarnings("method.invocation.invalid")
   RexImpTable() {
     defineMethod(THROW_UNLESS, BuiltInMethod.THROW_UNLESS.method, NullPolicy.NONE);
-    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.NONE);
+    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ALL);
     defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
     defineMethod(LOWER, BuiltInMethod.LOWER.method, NullPolicy.STRICT);
     defineMethod(INITCAP,  BuiltInMethod.INITCAP.method, NullPolicy.STRICT);
@@ -510,10 +514,14 @@ public class RexImpTable {
     // Multisets & arrays
     defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
         NullPolicy.STRICT);
+    defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method,
+        NullPolicy.STRICT);
     defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
     defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
     defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
+    defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
+    map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
     final MethodImplementor isEmptyImplementor =
         new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
             false);
@@ -569,6 +577,8 @@ public class RexImpTable {
 
     // Json Operators
     defineMethod(JSON_VALUE_EXPRESSION,
+        BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
+    defineMethod(JSON_TYPE_OPERATOR,
         BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
     defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.ARG0);
     map.put(JSON_VALUE,
@@ -2657,6 +2667,38 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for a array concat. */
+  private static class ArrayConcatImplementor extends AbstractRexCallImplementor {
+
+    ArrayConcatImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "array_concat";
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      final BlockBuilder blockBuilder = translator.getBlockBuilder();
+      final Expression list =
+          blockBuilder.append("list", Expressions.new_(ArrayList.class), false);
+      final Expression nullValue = Expressions.constant(null);
+      for (Expression expression : argValueList) {
+        blockBuilder.add(
+            Expressions.ifThenElse(
+                Expressions.or(
+                    Expressions.equal(nullValue, list),
+                    Expressions.equal(nullValue, expression)),
+                Expressions.assign(list, nullValue),
+                Expressions.statement(
+                    Expressions.call(list, BuiltInMethod.COLLECTION_ADDALL.method, expression)))
+        );
+      }
+      return list;
+    }
+  }
+
   /** Implementor for a value-constructor. */
   private static class ValueConstructorImplementor
       extends AbstractRexCallImplementor {
@@ -3068,6 +3110,13 @@ public class RexImpTable {
       if (nullPolicy == NullPolicy.ARG0) {
         return argIsNullList.get(0);
       }
+
+      if (nullPolicy == NullPolicy.ALL) {
+        // Condition for NullPolicy.ALL: v0 == null && v1 == null
+        return Expressions.foldAnd(argIsNullList);
+      }
+
+      // Condition for regular cases: v0 == null || v1 == null
       return Expressions.foldOr(argIsNullList);
     }
 

@@ -446,7 +446,7 @@ class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1382">[CALCITE-1382]
    * ClassCastException in JDBC adapter</a>. */
-  @Test public void testJoinPlan3() {
+  @Test void testJoinPlan3() {
     final String sql = "SELECT count(*) AS c FROM (\n"
         + "  SELECT count(emp.empno) `Count Emp`,\n"
         + "      dept.dname `Department Name`\n"
@@ -544,8 +544,13 @@ class JdbcAdapterTest {
   }
 
   @Test void testTablesNoCatalogSchema() {
+    // Switch from "FOODMART" user, whose default schema is 'foodmart',
+    // to "sa", whose default schema is the root, and therefore cannot
+    // see the table unless directed to look in a particular schema.
     final String model =
         FoodmartSchema.FOODMART_MODEL
+            .replace("jdbcUser: 'FOODMART'", "jdbcUser: 'sa'")
+            .replace("jdbcPassword: 'FOODMART'", "jdbcPassword: ''")
             .replace("jdbcCatalog: 'foodmart'", "jdbcCatalog: null")
             .replace("jdbcSchema: 'foodmart'", "jdbcSchema: null");
     // Since Calcite uses PostgreSQL JDBC driver version >= 4.1,

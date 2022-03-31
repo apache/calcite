@@ -117,6 +117,10 @@ public class BigQuerySqlDialect extends SqlDialect {
             && !SqlTypeUtil.isNumeric(call.type);
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsNestedAggregations() {
     return false;
   }

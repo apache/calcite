@@ -54,7 +54,7 @@ dependencies {
         apiv("com.alibaba.database:innodb-java-reader")
         apiv("com.beust:jcommander")
         apiv("org.checkerframework:checker-qual", "checkerframework")
-        apiv("com.datastax.cassandra:cassandra-driver-core")
+        apiv("com.datastax.oss:java-driver-core", "cassandra-java-driver-core")
         apiv("com.esri.geometry:esri-geometry-api")
         apiv("com.fasterxml.jackson.core:jackson-databind")
         apiv("com.github.kstyrc:embedded-redis")
@@ -114,10 +114,12 @@ dependencies {
         apiv("org.apiguardian:apiguardian-api")
         apiv("org.bouncycastle:bcpkix-jdk15on", "bouncycastle")
         apiv("org.bouncycastle:bcprov-jdk15on", "bouncycastle")
+        apiv("net.bytebuddy:byte-buddy")
         apiv("org.cassandraunit:cassandra-unit")
         apiv("org.codehaus.janino:commons-compiler", "janino")
         apiv("org.codehaus.janino:janino")
         apiv("org.codelibs.elasticsearch.module:lang-painless", "elasticsearch")
+        apiv("org.codelibs.elasticsearch.module:scripting-painless-spi", "elasticsearch")
         apiv("org.eclipse.jetty:jetty-http", "jetty")
         apiv("org.eclipse.jetty:jetty-security", "jetty")
         apiv("org.eclipse.jetty:jetty-server", "jetty")
@@ -147,7 +149,10 @@ dependencies {
         apiv("org.postgresql:postgresql")
         apiv("org.scala-lang:scala-library")
         apiv("org.slf4j:slf4j-api", "slf4j")
-        apiv("org.slf4j:slf4j-log4j12", "slf4j")
+        // TODO: https://issues.apache.org/jira/browse/CALCITE-4862
+        // Eventually we should get rid of slf4j-log4j12 dependency but currently it is not possible
+        // since certain modules (Pig, Piglet) have dependencies using directly Log4j 1.x APIs
+        runtimev("org.slf4j:slf4j-log4j12", "slf4j")
         apiv("org.testcontainers:testcontainers")
         apiv("redis.clients:jedis")
         apiv("sqlline:sqlline")

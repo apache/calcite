@@ -46,6 +46,8 @@ dependencies {
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
+
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
 fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {

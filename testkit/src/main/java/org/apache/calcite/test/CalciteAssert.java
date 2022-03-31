@@ -42,7 +42,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.runtime.CalciteException;
-import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
@@ -87,12 +86,7 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
-import org.apache.commons.dbcp2.PoolableConnectionFactory;
-import org.apache.commons.dbcp2.PoolingDataSource;
-import org.apache.commons.pool2.impl.GenericObjectPool;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -109,7 +103,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -122,14 +115,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 
@@ -149,9 +140,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Fluid DSL for testing Calcite connections and queries.
  */
+@SuppressWarnings("rawtypes")
 public class CalciteAssert {
   private CalciteAssert() {}
 
@@ -163,12 +157,9 @@ public class CalciteAssert {
   public static final DatabaseInstance DB =
       DatabaseInstance.valueOf(CalciteSystemProperty.TEST_DB.value());
 
-  public static final ConnectionFactory EMPTY_CONNECTION_FACTORY =
-      new MapConnectionFactory(ImmutableMap.of(), ImmutableList.of());
-
   /** Implementation of {@link AssertThat} that does nothing. */
   private static final AssertThat DISABLED =
-      new AssertThat(EMPTY_CONNECTION_FACTORY) {
+      new AssertThat(ConnectionFactories.empty(), ImmutableList.of()) {
         @Override public AssertThat with(Config config) {
           return this;
         }
@@ -195,8 +186,7 @@ public class CalciteAssert {
         }
 
         @Override public <T> AssertThat doWithConnection(
-            Function<CalciteConnection, T> fn)
-            throws Exception {
+            Function<CalciteConnection, T> fn) {
           return this;
         }
 
@@ -247,6 +237,15 @@ public class CalciteAssert {
   /** Short-hand for {@code CalciteAssert.that().with(Config.REGULAR)}. */
   public static AssertThat hr() {
     return that(Config.REGULAR);
+  }
+
+  /** Adds a Pair to a List. */
+  private static <K, V> ImmutableList<Pair<K, V>> addPair(List<Pair<K, V>> list,
+      K k, V v) {
+    return ImmutableList.<Pair<K, V>>builder()
+        .addAll(list)
+        .add(Pair.of(k, v))
+        .build();
   }
 
   static Consumer<RelNode> checkRel(final String expected,
@@ -347,9 +346,7 @@ public class CalciteAssert {
   }
 
   public static Consumer<Integer> checkUpdateCount(final int expected) {
-    return updateCount -> {
-      assertThat(updateCount, is(expected));
-    };
+    return updateCount -> assertThat(updateCount, is(expected));
   }
 
   /** Checks that the result of the second and subsequent executions is the same
@@ -367,7 +364,7 @@ public class CalciteAssert {
         try {
           final Collection result =
               CalciteAssert.toStringList(resultSet,
-                  ordered ? new ArrayList<String>() : new TreeSet<String>());
+                  ordered ? new ArrayList<>() : new TreeSet<>());
           if (executeCount == 1) {
             expected = result;
           } else {
@@ -534,7 +531,7 @@ public class CalciteAssert {
         closer.add(hook.left.addThread(hook.right));
       }
       Statement statement = connection.createStatement();
-      statement.setMaxRows(limit <= 0 ? limit : Math.max(limit, 1));
+      statement.setMaxRows(Math.max(limit, 0));
       ResultSet resultSet = null;
       Integer updateCount = null;
       try {
@@ -609,7 +606,7 @@ public class CalciteAssert {
         closer.add(hook.left.addThread(hook.right));
       }
       PreparedStatement statement = connection.prepareStatement(sql);
-      statement.setMaxRows(limit <= 0 ? limit : Math.max(limit, 1));
+      statement.setMaxRows(Math.max(limit, 0));
       ResultSet resultSet = null;
       Integer updateCount = null;
       try {
@@ -936,7 +933,7 @@ public class CalciteAssert {
                 + "    ('ACME', '2017-12-19', 23),\n"
                 + "    ('ACME', '2017-12-20', 22))\n"
                 + " as t(SYMBOL, tstamp, price)",
-            ImmutableList.<String>of(), ImmutableList.of("POST", "TICKER"),
+            ImmutableList.of(), ImmutableList.of("POST", "TICKER"),
             null));
       return post;
     case FAKE_FOODMART:
@@ -1056,12 +1053,16 @@ public class CalciteAssert {
    */
   public static class AssertThat {
     private final ConnectionFactory connectionFactory;
+    private final ImmutableList<Pair<Hook, Consumer>> hooks;
 
     private static final AssertThat EMPTY =
-        new AssertThat(EMPTY_CONNECTION_FACTORY);
+        new AssertThat(ConnectionFactories.empty(), ImmutableList.of());
 
-    private AssertThat(ConnectionFactory connectionFactory) {
-      this.connectionFactory = Objects.requireNonNull(connectionFactory, "connectionFactory");
+    private AssertThat(ConnectionFactory connectionFactory,
+        ImmutableList<Pair<Hook, Consumer>> hooks) {
+      this.connectionFactory =
+          requireNonNull(connectionFactory, "connectionFactory");
+      this.hooks = requireNonNull(hooks, "hooks");
     }
 
     public AssertThat with(Config config) {
@@ -1102,14 +1103,22 @@ public class CalciteAssert {
     public AssertThat with(SchemaSpec... specs) {
       AssertThat next = this;
       for (SchemaSpec spec : specs) {
-        next = next.with(new AddSchemaSpecPostProcessor(spec));
+        next = next.with(ConnectionFactories.add(spec));
       }
       return next;
     }
 
     /** Creates a copy of this AssertThat, overriding the connection factory. */
     public AssertThat with(ConnectionFactory connectionFactory) {
-      return new AssertThat(connectionFactory);
+      return new AssertThat(connectionFactory, hooks);
+    }
+
+    /** Adds a hook and a handler for that hook. Calcite will create a thread
+     * hook (by calling {@link Hook#addThread(Consumer)})
+     * just before running the query, and remove the hook afterwards. */
+    public <T> AssertThat withHook(Hook hook, Consumer<T> handler) {
+      return new AssertThat(connectionFactory,
+          addPair(this.hooks, hook, handler));
     }
 
     public final AssertThat with(final Map<String, String> map) {
@@ -1121,14 +1130,14 @@ public class CalciteAssert {
     }
 
     public AssertThat with(String property, Object value) {
-      return new AssertThat(connectionFactory.with(property, value));
+      return with(connectionFactory.with(property, value));
     }
 
     public AssertThat with(ConnectionProperty property, Object value) {
       if (!property.type().valid(value, property.valueClass())) {
         throw new IllegalArgumentException();
       }
-      return new AssertThat(connectionFactory.with(property, value));
+      return with(connectionFactory.with(property, value));
     }
 
     /** Sets the Lex property. **/
@@ -1138,18 +1147,16 @@ public class CalciteAssert {
 
     /** Sets the default schema to a given schema. */
     public AssertThat withSchema(String name, Schema schema) {
-      return new AssertThat(
-          connectionFactory.with(new AddSchemaPostProcessor(name, schema)));
+      return with(ConnectionFactories.add(name, schema));
     }
 
     /** Sets the default schema of the connection. Schema name may be null. */
     public AssertThat withDefaultSchema(String schema) {
-      return new AssertThat(
-          connectionFactory.with(new DefaultSchemaPostProcessor(schema)));
+      return with(ConnectionFactories.setDefault(schema));
     }
 
     public AssertThat with(ConnectionPostProcessor postProcessor) {
-      return new AssertThat(connectionFactory.with(postProcessor));
+      return with(connectionFactory.with(postProcessor));
     }
 
     public final AssertThat withModel(String model) {
@@ -1215,7 +1222,42 @@ public class CalciteAssert {
     }
 
     public AssertQuery query(String sql) {
-      return new AssertQuery(connectionFactory, sql);
+      return new AssertQuery(connectionFactory, sql, hooks, -1, false, null);
+    }
+
+    /** Adds a factory to create a {@link RelNode} query. This {@code RelNode}
+     * will be used instead of the SQL string.
+     *
+     * <p>Note: if you want to assert the optimized plan, consider using
+     * {@code explainHook...} methods such as
+     * {@link AssertQuery#explainHookMatches(String)}
+     *
+     * @param relFn a custom factory that creates a RelNode instead of regular sql to rel
+     * @return updated AssertQuery
+     * @see AssertQuery#explainHookContains(String)
+     * @see AssertQuery#explainHookMatches(String)
+     */
+    @SuppressWarnings("DanglingJavadoc")
+    public AssertQuery withRel(final Function<RelBuilder, RelNode> relFn) {
+      /** Method-local handler for the hook. */
+      class Handler {
+        void accept(Pair<FrameworkConfig, Holder<CalcitePrepare.Query>> pair) {
+          FrameworkConfig frameworkConfig = requireNonNull(pair.left);
+          Holder<CalcitePrepare.Query> queryHolder = requireNonNull(pair.right);
+          final FrameworkConfig config =
+              Frameworks.newConfigBuilder(frameworkConfig)
+                  .context(
+                      Contexts.of(CalciteConnectionConfig.DEFAULT
+                          .set(CalciteConnectionProperty.FORCE_DECORRELATE,
+                              Boolean.toString(false))))
+                  .build();
+          final RelBuilder b = RelBuilder.create(config);
+          queryHolder.set(CalcitePrepare.Query.of(relFn.apply(b)));
+        }
+      }
+
+      return withHook(Hook.STRING_TO_QUERY, new Handler()::accept)
+          .query("?");
     }
 
     /** Asserts that there is an exception with the given message while
@@ -1288,40 +1330,11 @@ public class CalciteAssert {
     /** Returns a version that uses a single connection, as opposed to creating
      * a new one each time a test method is invoked. */
     public AssertThat pooled() {
-      if (connectionFactory instanceof PoolingConnectionFactory) {
-        return this;
-      } else {
-        return new AssertThat(new PoolingConnectionFactory(connectionFactory));
-      }
+      return with(ConnectionFactories.pool(connectionFactory));
     }
 
     public AssertMetaData metaData(Function<Connection, ResultSet> function) {
       return new AssertMetaData(connectionFactory, function);
-    }
-  }
-
-  /**
-   * Abstract implementation of connection factory whose {@code with}
-   * methods throw.
-   *
-   * <p>Avoid creating new sub-classes otherwise it would be hard to support
-   * {@code .with(property, value).with(...)} kind of chains.
-   *
-   * <p>If you want augment the connection, use {@link ConnectionPostProcessor}.
-   **/
-  public abstract static class ConnectionFactory {
-    public abstract Connection createConnection() throws SQLException;
-
-    public ConnectionFactory with(String property, Object value) {
-      throw new UnsupportedOperationException();
-    }
-
-    public ConnectionFactory with(ConnectionProperty property, Object value) {
-      throw new UnsupportedOperationException();
-    }
-
-    public ConnectionFactory with(ConnectionPostProcessor postProcessor) {
-      throw new UnsupportedOperationException();
     }
   }
 
@@ -1331,158 +1344,28 @@ public class CalciteAssert {
     Connection apply(Connection connection) throws SQLException;
   }
 
-  /** Adds {@link Schema} and sets it as default. */
-  public static class AddSchemaPostProcessor
-      implements ConnectionPostProcessor {
-    private final String name;
-    private final Schema schema;
-
-    public AddSchemaPostProcessor(String name, Schema schema) {
-      this.name = Objects.requireNonNull(name, "name");
-      this.schema = Objects.requireNonNull(schema, "schema");
-    }
-
-    @Override public Connection apply(Connection connection) throws SQLException {
-      if (schema != null) {
-        CalciteConnection con = connection.unwrap(CalciteConnection.class);
-        SchemaPlus rootSchema = con.getRootSchema();
-        rootSchema.add(name, schema);
-      }
-      connection.setSchema(name);
-      return connection;
-    }
-  }
-
-  /** Sets a default schema name. */
-  public static class DefaultSchemaPostProcessor
-      implements ConnectionPostProcessor {
-    private final String name;
-
-    public DefaultSchemaPostProcessor(String name) {
-      this.name = name;
-    }
-
-    @Override public Connection apply(Connection connection) throws SQLException {
-      connection.setSchema(name);
-      return connection;
-    }
-  }
-
-  /** Adds {@link SchemaSpec} (set of schemes) to a connection. */
-  public static class AddSchemaSpecPostProcessor
-      implements ConnectionPostProcessor {
-    private final SchemaSpec schemaSpec;
-
-    public AddSchemaSpecPostProcessor(SchemaSpec schemaSpec) {
-      this.schemaSpec = schemaSpec;
-    }
-
-    @Override public Connection apply(Connection connection) throws SQLException {
-      CalciteConnection con = connection.unwrap(CalciteConnection.class);
-      SchemaPlus rootSchema = con.getRootSchema();
-      switch (schemaSpec) {
-      case CLONE_FOODMART:
-      case JDBC_FOODMART_WITH_LATTICE:
-        addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
-        /* fall through */
-      default:
-        addSchema(rootSchema, schemaSpec);
-      }
-      con.setSchema(schemaSpec.schemaName);
-      return connection;
-    }
-  }
-
-  /** Connection factory that uses the same instance of connections. */
-  private static class PoolingConnectionFactory
-      extends ConnectionFactory {
-    private final PoolingDataSource dataSource;
-
-    PoolingConnectionFactory(final ConnectionFactory factory) {
-      final PoolableConnectionFactory connectionFactory =
-          new PoolableConnectionFactory(factory::createConnection, null);
-      connectionFactory.setRollbackOnReturn(false);
-      this.dataSource = new PoolingDataSource<>(
-          new GenericObjectPool<>(connectionFactory));
-    }
-
-    @Override public Connection createConnection() throws SQLException {
-      return dataSource.getConnection();
-    }
-  }
-
-  /** Connection factory that uses a given map of (name, value) pairs and
-   * optionally an initial schema. */
-  private static class MapConnectionFactory extends ConnectionFactory {
-    private final ImmutableMap<String, String> map;
-    private final ImmutableList<ConnectionPostProcessor> postProcessors;
-
-    private MapConnectionFactory(ImmutableMap<String, String> map,
-        ImmutableList<ConnectionPostProcessor> postProcessors) {
-      this.map = Objects.requireNonNull(map, "map");
-      this.postProcessors = Objects.requireNonNull(postProcessors, "postProcessors");
-    }
-
-    @Override public boolean equals(Object obj) {
-      return this == obj
-          || obj.getClass() == MapConnectionFactory.class
-          && ((MapConnectionFactory) obj).map.equals(map)
-          && ((MapConnectionFactory) obj).postProcessors.equals(postProcessors);
-    }
-
-    @Override public int hashCode() {
-      return Objects.hash(map, postProcessors);
-    }
-
-    @Override public Connection createConnection() throws SQLException {
-      final Properties info = new Properties();
-      for (Map.Entry<String, String> entry : map.entrySet()) {
-        info.setProperty(entry.getKey(), entry.getValue());
-      }
-      Connection connection =
-          DriverManager.getConnection("jdbc:calcite:", info);
-      for (ConnectionPostProcessor postProcessor : postProcessors) {
-        connection = postProcessor.apply(connection);
-      }
-      return connection;
-    }
-
-    @Override public ConnectionFactory with(String property, Object value) {
-      return new MapConnectionFactory(
-          FlatLists.append(this.map, property, value.toString()),
-          postProcessors);
-    }
-
-    @Override public ConnectionFactory with(ConnectionProperty property, Object value) {
-      if (!property.type().valid(value, property.valueClass())) {
-        throw new IllegalArgumentException();
-      }
-      return with(property.camelName(), value.toString());
-    }
-
-    @Override public ConnectionFactory with(
-        ConnectionPostProcessor postProcessor) {
-      ImmutableList.Builder<ConnectionPostProcessor> builder =
-          ImmutableList.builder();
-      builder.addAll(postProcessors);
-      builder.add(postProcessor);
-      return new MapConnectionFactory(map, builder.build());
-    }
-  }
-
   /** Fluent interface for building a query to be tested. */
   public static class AssertQuery {
     private final String sql;
-    private ConnectionFactory connectionFactory;
-    private String plan;
-    private int limit;
-    private boolean materializationsEnabled = false;
-    private final List<Pair<Hook, Consumer>> hooks = new ArrayList<>();
-    private PreparedStatementConsumer consumer;
+    private final ConnectionFactory connectionFactory;
+    private final int limit;
+    private final boolean materializationsEnabled;
+    private final ImmutableList<Pair<Hook, Consumer>> hooks;
+    private final @Nullable PreparedStatementConsumer consumer;
 
-    private AssertQuery(ConnectionFactory connectionFactory, String sql) {
-      this.sql = sql;
-      this.connectionFactory = connectionFactory;
+    private String plan;
+
+    private AssertQuery(ConnectionFactory connectionFactory, String sql,
+        ImmutableList<Pair<Hook, Consumer>> hooks, int limit,
+        boolean materializationsEnabled,
+        @Nullable PreparedStatementConsumer consumer) {
+      this.sql = requireNonNull(sql, "sql");
+      this.connectionFactory =
+          requireNonNull(connectionFactory, "connectionFactory");
+      this.hooks = requireNonNull(hooks, "hooks");
+      this.limit = limit;
+      this.materializationsEnabled = materializationsEnabled;
+      this.consumer = consumer;
     }
 
     protected Connection createConnection() {
@@ -1629,9 +1512,13 @@ public class CalciteAssert {
       return convertMatches(checkRel(expected, null));
     }
 
-    public final AssertQuery consumesPreparedStatement(PreparedStatementConsumer consumer) {
-      this.consumer =  consumer;
-      return this;
+    public AssertQuery consumesPreparedStatement(
+        PreparedStatementConsumer consumer) {
+      if (consumer == this.consumer) {
+        return this;
+      }
+      return new AssertQuery(connectionFactory, sql, hooks, limit,
+          materializationsEnabled, consumer);
     }
 
     public AssertQuery convertMatches(final Consumer<RelNode> checker) {
@@ -1653,7 +1540,7 @@ public class CalciteAssert {
     /**
      * This enables to assert the optimized plan without issuing a separate {@code explain ...}
      * command. This is especially useful when {@code RelNode} is provided via
-     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     * {@link Hook#STRING_TO_QUERY} or {@link AssertThat#withRel(Function)}.
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
@@ -1673,7 +1560,7 @@ public class CalciteAssert {
     /**
      * This enables to assert the optimized plan without issuing a separate {@code explain ...}
      * command. This is especially useful when {@code RelNode} is provided via
-     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     * {@link Hook#STRING_TO_QUERY} or {@link AssertThat#withRel(Function)}.
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
@@ -1694,7 +1581,7 @@ public class CalciteAssert {
     /**
      * This enables to assert the optimized plan without issuing a separate {@code explain ...}
      * command. This is especially useful when {@code RelNode} is provided via
-     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     * {@link Hook#STRING_TO_QUERY} or {@link AssertThat#withRel(Function)}.
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
@@ -1711,7 +1598,7 @@ public class CalciteAssert {
     /**
      * This enables to assert the optimized plan without issuing a separate {@code explain ...}
      * command. This is especially useful when {@code RelNode} is provided via
-     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     * {@link Hook#STRING_TO_QUERY} or {@link AssertThat#withRel(Function)}.
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
@@ -1728,7 +1615,7 @@ public class CalciteAssert {
     /**
      * This enables to assert the optimized plan without issuing a separate {@code explain ...}
      * command. This is especially useful when {@code RelNode} is provided via
-     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     * {@link Hook#STRING_TO_QUERY} or {@link AssertThat#withRel(Function)}.
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
@@ -1788,10 +1675,11 @@ public class CalciteAssert {
       if (plan != null) {
         return;
       }
-      addHook(Hook.JAVA_PLAN, this::setPlan);
+      final List<Pair<Hook, Consumer>> newHooks =
+          addPair(hooks, Hook.JAVA_PLAN, (Consumer<String>) this::setPlan);
       withConnection(connection -> {
         assertQuery(connection, sql, limit, materializationsEnabled,
-            hooks, null, checkUpdate, null);
+            newHooks, null, checkUpdate, null);
         assertNotNull(plan);
       });
     }
@@ -1806,10 +1694,11 @@ public class CalciteAssert {
      * MongoDB or SQL query is generated, for instance. */
     public AssertQuery queryContains(Consumer<List> predicate1) {
       final List<Object> list = new ArrayList<>();
-      addHook(Hook.QUERY_PLAN, list::add);
+      final List<Pair<Hook, Consumer>> newHooks =
+          addPair(hooks, Hook.QUERY_PLAN, list::add);
       return withConnection(connection -> {
         assertQuery(connection, sql, limit, materializationsEnabled,
-            hooks, null, null, null);
+            newHooks, null, null, null);
         predicate1.accept(list);
       });
     }
@@ -1825,71 +1714,42 @@ public class CalciteAssert {
 
     /** Sets a limit on the number of rows returned. -1 means no limit. */
     public AssertQuery limit(int limit) {
-      this.limit = limit;
-      return this;
+      if (limit == this.limit) {
+        return this;
+      }
+      return new AssertQuery(connectionFactory, sql, hooks, limit,
+          materializationsEnabled, consumer);
     }
 
     public void sameResultWithMaterializationsDisabled() {
-      boolean save = materializationsEnabled;
-      try {
-        materializationsEnabled = false;
-        final boolean ordered =
-            sql.toUpperCase(Locale.ROOT).contains("ORDER BY");
-        final Consumer<ResultSet> checker = consistentResult(ordered);
-        returns(checker);
-        materializationsEnabled = true;
-        returns(checker);
-      } finally {
-        materializationsEnabled = save;
-      }
+      final boolean ordered =
+          sql.toUpperCase(Locale.ROOT).contains("ORDER BY");
+      final Consumer<ResultSet> checker = consistentResult(ordered);
+      enableMaterializations(false).returns(checker);
+      returns(checker);
     }
 
-    public AssertQuery enableMaterializations(boolean enable) {
-      this.materializationsEnabled = enable;
-      return this;
+    public AssertQuery enableMaterializations(boolean materializationsEnabled) {
+      if (materializationsEnabled == this.materializationsEnabled) {
+        return this;
+      }
+      return new AssertQuery(connectionFactory, sql, hooks, limit,
+          materializationsEnabled, consumer);
     }
 
     /** Adds a hook and a handler for that hook. Calcite will create a thread
      * hook (by calling {@link Hook#addThread(Consumer)})
      * just before running the query, and remove the hook afterwards. */
     public <T> AssertQuery withHook(Hook hook, Consumer<T> handler) {
-      addHook(hook, handler);
-      return this;
-    }
-
-    private <T> void addHook(Hook hook, Consumer<T> handler) {
-      hooks.add(Pair.of(hook, handler));
+      final ImmutableList<Pair<Hook, Consumer>> hooks =
+          addPair(this.hooks, hook, handler);
+      return new AssertQuery(connectionFactory, sql, hooks, limit,
+          materializationsEnabled, consumer);
     }
 
     /** Adds a property hook. */
     public <V> AssertQuery withProperty(Hook hook, V value) {
       return withHook(hook, Hook.propertyJ(value));
-    }
-
-    /** Adds a factory to create a {@link RelNode} query. This {@code RelNode}
-     * will be used instead of the SQL string.
-     *
-     * <p>Note: if you want to assert the optimized plan, consider using {@code explainHook...}
-     * methods like {@link #explainHookMatches(String)}</p>
-     *
-     * @param relFn a custom factory that creates a RelNode instead of regular sql to rel
-     * @return updated AssertQuery
-     * @see #explainHookContains(String)
-     * @see #explainHookMatches(String)
-     **/
-    public AssertQuery withRel(final Function<RelBuilder, RelNode> relFn) {
-      return withHook(Hook.STRING_TO_QUERY,
-          (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)
-          pair -> {
-            final FrameworkConfig config = Frameworks.newConfigBuilder(pair.left)
-                .context(
-                    Contexts.of(CalciteConnectionConfig.DEFAULT
-                        .set(CalciteConnectionProperty.FORCE_DECORRELATE,
-                            Boolean.toString(false))))
-                .build();
-            final RelBuilder b = RelBuilder.create(config);
-            pair.right.set(CalcitePrepare.Query.of(relFn.apply(b)));
-          });
     }
   }
 
@@ -1983,7 +1843,11 @@ public class CalciteAssert {
   /** Implementation of {@link AssertQuery} that does nothing. */
   private static class NopAssertQuery extends AssertQuery {
     private NopAssertQuery(String sql) {
-      super(null, sql);
+      super(new ConnectionFactory() {
+        @Override public Connection createConnection() {
+          throw new UnsupportedOperationException();
+        }
+      }, sql, ImmutableList.of(), 0, false, null);
     }
 
     /** Returns an implementation of {@link AssertQuery} that does nothing. */
@@ -2129,9 +1993,6 @@ public class CalciteAssert {
       return this;
     }
 
-    static final Pattern TRAILING_ZERO_PATTERN =
-        Pattern.compile("\\.[0-9]*[1-9]\\(0000*[1-9]\\)$");
-
     protected String adjustValue(String string) {
       if (string != null) {
         string = TestUtil.correctRoundedFloat(string);
@@ -2189,7 +2050,7 @@ public class CalciteAssert {
     private final String sql;
 
     JavaSql(String java, String sql) {
-      this.java = Objects.requireNonNull(java, "java");
+      this.java = requireNonNull(java, "java");
       this.sql = sql;
     }
 

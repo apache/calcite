@@ -565,7 +565,7 @@ class VolcanoPlannerTest {
         isLinux(plan));
   }
 
-  @Test public void testPruneNode() {
+  @Test void testPruneNode() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
