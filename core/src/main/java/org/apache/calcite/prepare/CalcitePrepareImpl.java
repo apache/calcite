@@ -195,7 +195,19 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             context.getDefaultSchemaPath(),
             typeFactory,
             context.config());
-    SqlParser parser = createParser(sql);
+    final CalciteConnectionConfig config = context.config();
+    SqlParser.Config parserConfig = parserConfig()
+            .withQuotedCasing(config.quotedCasing())
+            .withUnquotedCasing(config.unquotedCasing())
+            .withQuoting(config.quoting())
+            .withConformance(config.conformance())
+            .withCaseSensitive(config.caseSensitive());
+    final SqlParserImplFactory parserFactory =
+            config.parserFactory(SqlParserImplFactory.class, null);
+    if (parserFactory != null) {
+      parserConfig = parserConfig.withParserFactory(parserFactory);
+    }
+    SqlParser parser = createParser(sql, parserConfig);
     SqlNode sqlNode;
     try {
       sqlNode = parser.parseStmt();
@@ -1060,7 +1072,19 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         List<String> schemaPath, @Nullable List<String> viewPath) {
       expansionDepth++;
 
-      SqlParser parser = prepare.createParser(queryString);
+      final CalciteConnectionConfig connConfig = context.config();
+      SqlParser.Config parserConfig = prepare.parserConfig()
+              .withQuotedCasing(connConfig.quotedCasing())
+              .withUnquotedCasing(connConfig.unquotedCasing())
+              .withQuoting(connConfig.quoting())
+              .withConformance(connConfig.conformance())
+              .withCaseSensitive(connConfig.caseSensitive());
+      final SqlParserImplFactory parserFactory =
+              connConfig.parserFactory(SqlParserImplFactory.class, null);
+      if (parserFactory != null) {
+        parserConfig = parserConfig.withParserFactory(parserFactory);
+      }
+      SqlParser parser = prepare.createParser(queryString, parserConfig);
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseQuery();
