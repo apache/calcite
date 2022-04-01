@@ -67,7 +67,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
       .maximumSize(1000)
       .expireAfterAccess(1, TimeUnit.HOURS)
       .removalListener(new RemovalListener<Integer, RestClient>() {
-        public void onRemoval(RemovalNotification<Integer, RestClient> notice) {
+        @Override public void onRemoval(RemovalNotification<Integer, RestClient> notice) {
           try {
             // Free resources allocated by this RestClient
             notice.getValue().close();
