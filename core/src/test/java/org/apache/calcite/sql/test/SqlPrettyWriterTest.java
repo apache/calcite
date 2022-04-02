@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
@@ -26,9 +25,12 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Unit test for {@link SqlPrettyWriter}.
@@ -372,6 +374,31 @@ class SqlPrettyWriterTest {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4401">[CALCITE-4401]
+   * SqlJoin toString throws RuntimeException</a>. */
+  @Test void testJoinClauseToString() {
+    final String sql = "SELECT t.region_name, t0.o_totalprice\n"
+        + "FROM (SELECT c_custkey, region_name\n"
+        + "FROM tpch.out_tpch_vw__customer) AS t\n"
+        + "INNER JOIN (SELECT o_custkey, o_totalprice\n"
+        + "FROM tpch.out_tpch_vw__orders) AS t0 ON t.c_custkey = t0.o_custkey";
+
+    final String expectedJoinString = "SELECT *\r\n"
+        + "FROM (SELECT `C_CUSTKEY`, `REGION_NAME`\r\n"
+        + "FROM `TPCH`.`OUT_TPCH_VW__CUSTOMER`) AS `T`\r\n"
+        + "INNER JOIN (SELECT `O_CUSTKEY`, `O_TOTALPRICE`\r\n"
+        + "FROM `TPCH`.`OUT_TPCH_VW__ORDERS`) AS `T0` ON `T`.`C_CUSTKEY` = `T0`.`O_CUSTKEY`";
+
+    sql(sql)
+        .checkTransformedNode(root -> {
+          assertThat(root, instanceOf(SqlSelect.class));
+          SqlNode from = ((SqlSelect) root).getFrom();
+          assertThat(from.toString(), is(expectedJoinString));
+          return from;
+        });
+  }
+
   @Test void testWhereListItemsOnSeparateLinesOr() {
     final String sql = "select x"
         + " from y"
@@ -439,30 +466,6 @@ class SqlPrettyWriterTest {
         .withWriter(w -> w.withUpdateSetListNewline(false)
             .withClauseStartsLine(false))
         .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4401">[CALCITE-4401]
-   * SqlJoin toString throws RuntimeException</a>. */
-  @Test void testJoinClauseToString() throws SqlParseException {
-    final String sql = "SELECT t.region_name, t0.o_totalprice\n"
-        + "FROM (SELECT c_custkey, region_name\n"
-        + "FROM tpch.out_tpch_vw__customer) AS t\n"
-        + "INNER JOIN (SELECT o_custkey, o_totalprice\n"
-        + "FROM tpch.out_tpch_vw__orders) AS t0 ON t.c_custkey = t0.o_custkey";
-
-    final SqlNode node = SqlParser.create(sql).parseQuery();
-    final SqlSelect select = (SqlSelect) node;
-    final SqlJoin join = (SqlJoin) select.getFrom();
-
-    final String expectedJoinString = "SELECT *\r\n"
-        + "FROM (SELECT `C_CUSTKEY`, `REGION_NAME`\r\n"
-        + "FROM `TPCH`.`OUT_TPCH_VW__CUSTOMER`) AS `T`\r\n"
-        + "INNER JOIN (SELECT `O_CUSTKEY`, `O_TOTALPRICE`\r\n"
-        + "FROM `TPCH`.`OUT_TPCH_VW__ORDERS`) AS `T0` ON `T`.`C_CUSTKEY` = `T0`.`O_CUSTKEY`";
-
-    assert join != null;
-    Assertions.assertEquals(join.toString(), expectedJoinString);
   }
 
   public static void main(String[] args) throws SqlParseException {

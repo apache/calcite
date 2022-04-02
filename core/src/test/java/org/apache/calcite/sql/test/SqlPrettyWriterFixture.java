@@ -182,4 +182,28 @@ class SqlPrettyWriterFixture {
     return this;
   }
 
+  SqlPrettyWriterFixture checkTransformedNode(UnaryOperator<SqlNode> nodeTransformer) {
+    final SqlNode root1 = parseQuery(sql);
+    final SqlNode transformedNode1 =  nodeTransformer.apply(root1);
+
+    final SqlWriterConfig config =
+        transform.apply(SqlPrettyWriter.config()
+            .withDialect(AnsiSqlDialect.DEFAULT));
+    final SqlPrettyWriter prettyWriter = new SqlPrettyWriter(config);
+
+    // Format the original sql instead of the transformedNode1 since direct call of some
+    // overridden unparse method can throw exception (SqlJoin).
+    final String formattedRootToString = prettyWriter.format(root1);
+
+    // Now parse formatted root1's string and get transformedNode2 from the
+    // unary operation, nodeTransformer.
+    final String actual = formattedRootToString.replace("`", "\"");
+    final SqlNode root2 = parseQuery(actual);
+    final SqlNode transformedNode2 = nodeTransformer.apply(root2);
+
+    // Then make sure subtree1 and subtree2 are structurally equivalent.
+    assertTrue(transformedNode1.equalsDeep(transformedNode2, Litmus.THROW));
+
+    return this;
+  }
 }
