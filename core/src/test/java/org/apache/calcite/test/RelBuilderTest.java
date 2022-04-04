@@ -3060,6 +3060,24 @@ public class RelBuilderTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5083">[CALCITE-5083]
+   * In RelBuilder.project_, do not unwrap SARGs</a>. */
+  @Test void testProjectWithSarg() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(
+                builder.between(
+                    builder.field("DEPTNO"),
+                    builder.literal(20),
+                    builder.literal(30)))
+            .build();
+    final String expected = "LogicalProject($f0=[SEARCH($7, Sarg[[20..30]])])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4409">[CALCITE-4409]
    * Improve exception when RelBuilder tries to create a field on a non-struct expression</a>. */
   @Test void testFieldOnNonStructExpression() {
