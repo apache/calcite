@@ -140,7 +140,12 @@ public class FilterExtractInnerJoinRule
         new ImmutableTriple<>(right, leftTableColumnSize + rightTableColumnSize - 1,
         join.getJoinType()));
     if (!(join.getCondition() instanceof RexLiteral)) {
-      joinConditions.add(join.getCondition());
+      RexNode conditions = join.getCondition();
+      if (isConditionComposedOfSingleCondition((RexCall) conditions)) {
+        joinConditions.add(conditions);
+      } else {
+        joinConditions.addAll(((RexCall) conditions).getOperands());
+      }
     }
     if (left instanceof Join) {
       populateStackWithEndIndexesForTables((Join) left, stack, joinConditions);
