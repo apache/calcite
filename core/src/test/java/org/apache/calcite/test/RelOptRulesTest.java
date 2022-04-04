@@ -87,6 +87,7 @@ import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule.ProjectReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SpatialRules;
+import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -5936,6 +5937,16 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select * from emp e2 where (e1.deptno+30) = e2.deptno)";
     sql(sql).withDecorrelate(false)
         .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
+        .checkUnchanged();
+  }
+
+  @Test void testFilterSubQueryRemove() {
+    final String sql = "select count(1)\n"
+        + "from struct.t t1 left join emp on t1.c0 = emp.deptno\n"
+        + "where c0 = 1 or c0 in (\n"
+        + "select deptno from emp where deptno = 1)";
+    sql(sql).withDecorrelation(false)
+        .withRule(SubQueryRemoveRule.Config.FILTER.toRule())
         .checkUnchanged();
   }
 

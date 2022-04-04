@@ -1096,7 +1096,7 @@ public class SqlToRelConverter {
       return;
     }
     SqlNode newWhere = pushDownNotForIn(bb.scope(), where);
-    replaceSubQueries(bb, newWhere, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+    replaceSubQueries(bb, newWhere, RelOptUtil.Logic.UNKNOWN_AS_FALSE, true);
     final RexNode convertedWhere = bb.convertExpression(newWhere);
     final RexNode convertedWhere2 =
         RexUtil.removeNullabilityCast(typeFactory, convertedWhere);
@@ -1128,13 +1128,21 @@ public class SqlToRelConverter {
       final Blackboard bb,
       final SqlNode expr,
       RelOptUtil.Logic logic) {
+    replaceSubQueries(bb, expr, logic, false);
+  }
+
+  private void replaceSubQueries(
+      final Blackboard bb,
+      final SqlNode expr,
+      RelOptUtil.Logic logic,
+      boolean isSubQueriesOnFilter) {
     findSubQueries(bb, expr, logic, false);
     for (SubQuery node : bb.subQueryList) {
-      substituteSubQuery(bb, node);
+      substituteSubQuery(bb, node, isSubQueriesOnFilter);
     }
   }
 
-  private void substituteSubQuery(Blackboard bb, SubQuery subQuery) {
+  private void substituteSubQuery(Blackboard bb, SubQuery subQuery, boolean isSubQueriesOnFilter) {
     final RexNode expr = subQuery.expr;
     if (expr != null) {
       // Already done.
@@ -1244,7 +1252,7 @@ public class SqlToRelConverter {
       converted =
           convertExists(query, RelOptUtil.SubQueryType.IN, subQuery.logic,
               notIn, targetRowType);
-      if (converted.indicator) {
+      if (converted.indicator && !isSubQueriesOnFilter) {
         // Generate
         //    emp CROSS JOIN (SELECT COUNT(*) AS c,
         //                       COUNT(deptno) AS ck FROM dept)
@@ -1383,30 +1391,7 @@ public class SqlToRelConverter {
 
     case TRUE_FALSE:
     case UNKNOWN_AS_FALSE:
-      assert rex instanceof RexRangeRef;
-      final int fieldCount = rex.getType().getFieldCount();
-      RexNode rexNode = rexBuilder.makeFieldAccess(rex, fieldCount - 1);
-      rexNode = rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, rexNode);
-
-      // Then append the IS NOT NULL(leftKeysForIn).
-      //
-      // RexRangeRef contains the following fields:
-      //   leftKeysForIn,
-      //   rightKeysForIn (the original sub-query select list),
-      //   nullIndicator
-      //
-      // The first two lists contain the same number of fields.
-      final int k = (fieldCount - 1) / 2;
-      for (int i = 0; i < k; i++) {
-        rexNode =
-            rexBuilder.makeCall(
-                SqlStdOperatorTable.AND,
-                rexNode,
-                rexBuilder.makeCall(
-                    SqlStdOperatorTable.IS_NOT_NULL,
-                    rexBuilder.makeFieldAccess(rex, i)));
-      }
-      return rexNode;
+      return translateIn(rex);
 
     case TRUE_FALSE_UNKNOWN:
     case UNKNOWN_AS_TRUE:
@@ -1424,6 +1409,9 @@ public class SqlToRelConverter {
       //   on e.deptno = dt.deptno
       final Join join = (Join) requireNonNull(root, "root");
       final Project left = (Project) join.getLeft();
+      if (!(left.getInput() instanceof Join)) {
+        return translateIn(rex);
+      }
       final RelNode leftLeft = ((Join) left.getInput()).getLeft();
       final int leftLeftCount = leftLeft.getRowType().getFieldCount();
       final RelDataType longType =
@@ -1460,6 +1448,32 @@ public class SqlToRelConverter {
     default:
       throw new AssertionError(logic);
     }
+  }
+
+  private RexNode translateIn(RexNode rex) {
+    assert rex instanceof RexRangeRef;
+    final int fieldCount = rex.getType().getFieldCount();
+    RexNode rexNode = rexBuilder.makeFieldAccess(rex, fieldCount - 1);
+    rexNode = rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, rexNode);
+
+    // Then append the IS NOT NULL(leftKeysForIn).
+    //
+    // RexRangeRef contains the following fields:
+    //   leftKeysForIn,
+    //   rightKeysForIn (the original sub-query select list),
+    //   nullIndicator
+    //
+    // The first two lists contain the same number of fields.
+    List<RexNode> exprs = new ArrayList();
+    exprs.add(rexNode);
+    final int k = (fieldCount - 1) / 2;
+    for (int i = 0; i < k; i++) {
+      exprs.add(
+          rexBuilder.makeCall(
+          SqlStdOperatorTable.IS_NOT_NULL,
+          rexBuilder.makeFieldAccess(rex, i)));
+    }
+    return rexBuilder.makeCall(SqlStdOperatorTable.AND, exprs);
   }
 
   /**
