@@ -127,8 +127,6 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new Db2SqlDialect(c);
     } else if (upperProductName.contains("FIREBIRD")) {
       return new FirebirdSqlDialect(c);
-    } else if (upperProductName.contains("FIREBOLT")) {
-      return new FireboltSqlDialect(c);
     } else if (databaseProductName.startsWith("Informix")) {
       return new InformixSqlDialect(c);
     } else if (upperProductName.contains("NETEZZA")) {
