@@ -5430,6 +5430,28 @@ public class JdbcTest {
         });
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5048">[CALCITE-5048]
+   * Query with parameterized LIMIT and correlated sub-query throws AssertionError "not a
+   * literal"</a>.
+   */
+  @Test void testDynamicParameterInLimitOffset() {
+    CalciteAssert.hr()
+        .query("SELECT * FROM \"hr\".\"emps\" AS a "
+            + "WHERE \"deptno\" = "
+            + "(SELECT MAX(\"deptno\") "
+            + "FROM \"hr\".\"emps\" AS b "
+            + "WHERE a.\"empid\" = b.\"empid\""
+            + ") ORDER BY \"salary\" LIMIT ? OFFSET ?")
+        .explainContains("EnumerableLimit(offset=[?1], fetch=[?0])")
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 2);
+          p.setInt(2, 1);
+        })
+        .returns("empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+  }
+
   /** Tests a JDBC connection that provides a model (a single schema based on
    * a JDBC database). */
   @Test void testModel() {

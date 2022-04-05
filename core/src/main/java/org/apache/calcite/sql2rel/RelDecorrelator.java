@@ -477,13 +477,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     RelCollation oldCollation = rel.getCollation();
     RelCollation newCollation = RexUtil.apply(mapping, oldCollation);
 
-    final int offset = rel.offset == null ? -1 : RexLiteral.intValue(rel.offset);
-    final int fetch = rel.fetch == null ? -1 : RexLiteral.intValue(rel.fetch);
-
     final RelNode newSort = relBuilder
-            .push(newInput)
-            .sortLimit(offset, fetch, relBuilder.fields(newCollation))
-            .build();
+        .push(newInput)
+        .sortLimit(rel.offset, rel.fetch, relBuilder.fields(newCollation))
+        .build();
 
     // Sort does not change input ordering
     return register(rel, newSort, frame.oldToNewOutputs, frame.corDefOutputs);
