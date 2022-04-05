@@ -7415,7 +7415,7 @@ public class SqlParserTest {
 
   @Test void testGeometry() {
     expr("cast(null as ^geometry^)")
-        .fails("Geo-spatial extensions and the GEOMETRY data type are not enabled");
+        .ok("CAST(NULL AS GEOMETRY)");
     conformance = SqlConformanceEnum.LENIENT;
     expr("cast(null as geometry)")
         .ok("CAST(NULL AS GEOMETRY)");

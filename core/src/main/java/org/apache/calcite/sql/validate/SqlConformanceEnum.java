@@ -332,6 +332,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   @Override public boolean allowGeometry() {
     switch (this) {
+    case DEFAULT:
     case BABEL:
     case LENIENT:
     case MYSQL_5:

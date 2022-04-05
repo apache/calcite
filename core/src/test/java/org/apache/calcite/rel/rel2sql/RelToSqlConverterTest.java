@@ -9709,4 +9709,12 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
+  @Test void testBigQueryCastGeometry() {
+    String query = "select cast(null as geometry) "
+        + "from \"foodmart\".\"reserve_employee\" ";
+    final String expected = "SELECT CAST(NULL AS GEOGRAPHY)\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withBigQuery().ok(expected);
+  }
 }
