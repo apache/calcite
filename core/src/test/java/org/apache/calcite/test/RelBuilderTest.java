@@ -17,12 +17,14 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
@@ -37,6 +39,7 @@ import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -69,10 +72,13 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.tools.RelRunners;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -4369,6 +4375,41 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test void testDynamicParameterInLimitOffset() {
+    final RelBuilder relBuilder = RelBuilder.create(config().build());
+    final RelDataType intType = relBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    RelNode planBefore = relBuilder
+        .scan("DEPT")
+        .sortLimit(rexBuilder.makeDynamicParam(intType, 1),
+            rexBuilder.makeDynamicParam(intType, 0),
+            ImmutableList.of())
+        .build();
+    String expectedLogicalPlan = "LogicalSort(offset=[?1], fetch=[?0])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(planBefore, hasTree(expectedLogicalPlan));
+
+    RuleSet prepareRules =
+        RuleSets.ofList(
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_LIMIT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+    RelTraitSet desiredTraits = planBefore.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    Program program = Programs.of(prepareRules);
+    RelNode planAfter = program.run(planBefore.getCluster().getPlanner(), planBefore,
+        desiredTraits, ImmutableList.of(), ImmutableList.of());
+    String expectedEnumerablePlan = "EnumerableLimit(offset=[?1], fetch=[?0])\n"
+        + "  EnumerableTableScan(table=[[scott, DEPT]])\n";
+    assertThat(planAfter, hasTree(expectedEnumerablePlan));
+
+    RelMetadataQuery mq = planAfter.getCluster().getMetadataQuery();
+    assertThat(mq.getMinRowCount(planAfter), is(0D));
+    assertThat(mq.getMaxRowCount(planAfter), is(Double.POSITIVE_INFINITY));
   }
 
   @Test void testAdoptConventionEnumerable() {
