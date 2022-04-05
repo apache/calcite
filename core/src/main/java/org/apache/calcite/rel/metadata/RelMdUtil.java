@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -911,7 +912,7 @@ public class RelMdUtil {
       return true;
     }
     final Double rowCount = mq.getMaxRowCount(input);
-    if (rowCount == null) {
+    if (rowCount == null || offset instanceof RexDynamicParam || fetch instanceof RexDynamicParam) {
       // Cannot be determined
       return false;
     }
