@@ -20,12 +20,15 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
@@ -34,14 +37,18 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.util.NlsString;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
+import java.math.BigDecimal;
 import java.text.Collator;
+import java.util.Locale;
 import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -105,6 +112,45 @@ public class SqlCastFunction extends SqlFunction {
     if (opBinding instanceof SqlCallBinding) {
       SqlCallBinding callBinding = (SqlCallBinding) opBinding;
       SqlNode operand0 = callBinding.operand(0);
+
+      if (operand0 instanceof SqlLiteral
+          && !SqlUtil.isNullLiteral(operand0, false)) {
+
+        // Make sure integer types are within boundaries for the cast
+        // Allow exceptions to percolate up
+        if (SqlTypeName.INT_TYPES.contains(ret.getSqlTypeName())
+            && (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())
+            || SqlTypeName.CHAR_TYPES.contains(((SqlLiteral) operand0).getTypeName()))) {
+
+          BigDecimal upperLimit =
+              (BigDecimal) ret.getSqlTypeName()
+                  .getLimit(true, SqlTypeName.Limit.OVERFLOW, false, -1, -1);
+          BigDecimal lowerLimit =
+              (BigDecimal) ret.getSqlTypeName()
+                  .getLimit(false, SqlTypeName.Limit.OVERFLOW, false, -1, -1);
+          BigDecimal val = null;
+          if (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())) {
+            int scale = ((SqlNumericLiteral) operand0).getScale();
+            val = ((BigDecimal) ((SqlLiteral) operand0).getValue())
+                .movePointRight(scale)
+                .divide(BigDecimal.TEN.pow(scale), 0, BigDecimal.ROUND_DOWN);
+          } else {
+            try {
+              val = BigDecimal.valueOf(
+                  Long.parseLong(((SqlCharStringLiteral) operand0)
+                      .getValueAs(NlsString.class).getValue().trim()));
+            } catch (NumberFormatException e) {
+              // ignore;
+            }
+          }
+          if (null != val
+              && (val.compareTo(upperLimit) > 0 || val.compareTo(lowerLimit) < 0)) {
+            throw new RuntimeException(
+                String.format(
+                    Locale.ROOT, "Exception casting value %s as %s", val, ret.getSqlTypeName()));
+          }
+        }
+      }
 
       // dynamic parameters and null constants need their types assigned
       // to them using the type they are casted to.

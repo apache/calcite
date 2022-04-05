@@ -7784,6 +7784,72 @@ public class JdbcTest {
         .returns("C=1000; EMPID=100\nC=500; EMPID=200\n");
   }
 
+  @Test public void testCastToTinyInt() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST('123' AS TINYINT)")
+        .returns("EXPR$0=123\n");
+
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(123456 AS TINYINT)")
+        .throws_("Exception casting value 123456 as TINYINT");
+  }
+
+  @Test public void testCastToSmallInt() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(32767 AS SMALLINT)")
+        .returns("EXPR$0=32767\n");
+
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(-32769 AS SMALLINT)")
+        .throws_("Exception casting value -32769 as SMALLINT");
+  }
+
+  @Test public void testCastToInt() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(2147483647 AS INT)")
+        .returns("EXPR$0=2147483647\n");
+
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(2147483648 AS INT)")
+        .throws_("Exception casting value 2147483648 as INT");
+
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(2328602934.4917483 as INT)")
+        .throws_("Exception casting value 2328602934 as INTEGER");
+  }
+
+  @Test public void testCastToBigInt() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select cast(cast(9223372036854775807 as BIGINT) as float)")
+        .returns("EXPR$0=9.223372036854776E18\n");
+
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(9223372036854775808 as BIGINT)")
+        .throws_("Exception casting value 9223372036854775808 as BIGINT");
+  }
+
+  @Test public void testCastChain() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(CAST(CAST(123 AS TINYINT) AS INT) AS BIGINT)")
+        .returns("EXPR$0=123\n");
+
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select CAST(CAST(CAST(123456 AS TINYINT) AS INT) AS BIGINT)")
+        .throws_("Exception casting value 123456 as TINYINT");
+  }
+
+
   @Test void testJsonType() {
     CalciteAssert.that()
         .query("SELECT JSON_TYPE(v) AS c1\n"
