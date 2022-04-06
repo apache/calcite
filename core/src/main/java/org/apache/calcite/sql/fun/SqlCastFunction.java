@@ -133,7 +133,7 @@ public class SqlCastFunction extends SqlFunction {
             int scale = ((SqlNumericLiteral) operand0).getScale();
             val = ((BigDecimal) ((SqlLiteral) operand0).getValue())
                 .movePointRight(scale)
-                .divide(BigDecimal.TEN.pow(scale), 0, BigDecimal.ROUND_DOWN);
+                .divide(BigDecimal.TEN.pow(scale), 0, RoundingMode.DOWN);
           } else {
             try {
               val = BigDecimal.valueOf(
