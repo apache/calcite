@@ -133,9 +133,9 @@ public class SqlCastFunction extends SqlFunction {
           if (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())) {
             int scale = (((SqlNumericLiteral) operand0).getScale() == null) ? 0
                 : ((SqlNumericLiteral) operand0).getScale();
-            assert(((SqlLiteral) operand0) != null);
+            assert ((SqlLiteral) operand0) != null;
             final BigDecimal tmpVal = (BigDecimal) ((SqlLiteral) operand0).getValue();
-            assert(tmpVal != null);
+            assert tmpVal != null;
             val = tmpVal
                 .movePointRight(scale)
                 .divide(BigDecimal.TEN.pow(scale), 0, RoundingMode.DOWN);
