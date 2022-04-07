@@ -42,6 +42,9 @@ public interface CalciteResource {
   @BaseMessage("''LIMIT start, count'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> limitStartCountNotAllowed();
 
+  @BaseMessage("''OFFSET start LIMIT count'' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> offsetLimitNotAllowed();
+
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 

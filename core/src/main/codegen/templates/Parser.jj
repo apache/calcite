@@ -635,6 +635,13 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
  *    [ OFFSET start ]</pre>
  * </blockquote>
  *
+ * <p>Trino syntax for limit:
+ *
+ * <blockquote><pre>
+ *    [ OFFSET start ]
+ *    [ LIMIT { count | ALL } ]</pre>
+ * </blockquote>
+ *
  * <p>MySQL syntax for limit:
  *
  * <blockquote><pre>
@@ -665,8 +672,8 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 SqlNode OrderByLimitOpt(SqlNode e) :
 {
     SqlNodeList orderBy = null;
-    SqlNode start = null;
-    SqlNode count = null;
+    final Span s = Span.of();
+    SqlNode[] offsetFetch = {null, null};
 }
 {
     [
@@ -675,45 +682,85 @@ SqlNode OrderByLimitOpt(SqlNode e) :
         orderBy = OrderBy(e.isA(SqlKind.QUERY))
     ]
     [
-        // Postgres-style syntax. "LIMIT ... OFFSET ..."
-        <LIMIT>
-        (
-            // MySQL-style syntax. "LIMIT start, count"
-            LOOKAHEAD(2)
-            start = UnsignedNumericLiteralOrParam()
-            <COMMA> count = UnsignedNumericLiteralOrParam() {
-                if (!this.conformance.isLimitStartCountAllowed()) {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.limitStartCountNotAllowed());
+        LimitClause(s, offsetFetch)
+        [ OffsetClause(s, offsetFetch) ]
+    |
+        OffsetClause(s, offsetFetch)
+        [
+            LimitClause(s, offsetFetch) {
+                if (!this.conformance.isOffsetLimitAllowed()) {
+                    throw SqlUtil.newContextException(s.end(this),
+                        RESOURCE.offsetLimitNotAllowed());
                 }
             }
         |
-            count = UnsignedNumericLiteralOrParam()
-        |
-            <ALL>
-        )
-    ]
-    [
-        // ROW or ROWS is required in SQL:2008 but we make it optional
-        // because it is not present in Postgres-style syntax.
-        // If you specify both LIMIT start and OFFSET, OFFSET wins.
-        <OFFSET> start = UnsignedNumericLiteralOrParam() [ <ROW> | <ROWS> ]
-    ]
-    [
-        // SQL:2008-style syntax. "OFFSET ... FETCH ...".
-        // If you specify both LIMIT and FETCH, FETCH wins.
-        <FETCH> ( <FIRST> | <NEXT> ) count = UnsignedNumericLiteralOrParam()
-        ( <ROW> | <ROWS> ) <ONLY>
+            FetchClause(offsetFetch)
+        ]
+    |
+        FetchClause(offsetFetch)
     ]
     {
-        if (orderBy != null || start != null || count != null) {
+        if (orderBy != null || offsetFetch[0] != null || offsetFetch[1] != null) {
             if (orderBy == null) {
                 orderBy = SqlNodeList.EMPTY;
             }
-            e = new SqlOrderBy(getPos(), e, orderBy, start, count);
-
+            e = new SqlOrderBy(getPos(), e, orderBy, offsetFetch[0], offsetFetch[1]);
         }
         return e;
     }
+}
+
+/**
+ * Parses an OFFSET clause in an ORDER BY expression.
+ */
+void OffsetClause(Span s, SqlNode[] offsetFetch) :
+{
+}
+{
+    // ROW or ROWS is required in SQL:2008 but we make it optional
+    // because it is not present in Postgres-style syntax.
+    <OFFSET> { s.add(this); }
+    offsetFetch[0] = UnsignedNumericLiteralOrParam()
+    [ <ROW> | <ROWS> ]
+}
+
+/**
+ * Parses a FETCH clause in an ORDER BY expression.
+ */
+void FetchClause(SqlNode[] offsetFetch) :
+{
+}
+{
+    // SQL:2008-style syntax. "OFFSET ... FETCH ...".
+    // If you specify both LIMIT and FETCH, FETCH wins.
+    <FETCH> ( <FIRST> | <NEXT> ) offsetFetch[1] = UnsignedNumericLiteralOrParam()
+    ( <ROW> | <ROWS> ) <ONLY>
+}
+
+/**
+ * Parses a LIMIT clause in an ORDER BY expression.
+ */
+void LimitClause(Span s, SqlNode[] offsetFetch) :
+{
+}
+{
+    // Postgres-style syntax. "LIMIT ... OFFSET ..."
+    <LIMIT> { s.add(this); }
+    (
+        // MySQL-style syntax. "LIMIT start, count"
+        LOOKAHEAD(2)
+        offsetFetch[0] = UnsignedNumericLiteralOrParam()
+        <COMMA> offsetFetch[1] = UnsignedNumericLiteralOrParam() {
+            if (!this.conformance.isLimitStartCountAllowed()) {
+                throw SqlUtil.newContextException(s.end(this),
+                    RESOURCE.limitStartCountNotAllowed());
+            }
+        }
+    |
+        offsetFetch[1] = UnsignedNumericLiteralOrParam()
+    |
+        <ALL>
+    )
 }
 
 /**
@@ -2519,7 +2566,7 @@ SqlNode WhereOpt() :
     {
         return condition;
     }
-    |
+|
     {
         return null;
     }
