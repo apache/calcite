@@ -3225,8 +3225,8 @@ public class SqlParserTest {
   }
 
   /**
-   * "LIMIT ... OFFSET ..." is the postgres equivalent of SQL:2008
-   * "OFFSET ... FETCH". It all maps down to a parse tree that looks like
+   * "LIMIT ... OFFSET ...", "OFFSET ... LIMIT ..." is the postgres/trino equivalent
+   * of SQL:2008 "OFFSET ... FETCH". It all maps down to a parse tree that looks like
    * SQL:2008.
    */
   @Test void testLimit() {
@@ -3246,6 +3246,16 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "ORDER BY `B`, `C`\n"
             + "OFFSET 1 ROWS");
+    /* Test case for
+     * <a href="https://issues.apache.org/jira/browse/CALCITE-5086">[CALCITE-5086]
+     * Calcite supports OFFSET start LIMIT count expression</a>.
+     */
+    sql("select a from foo order by b, c offset 1 limit 2")
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
   }
 
   /** Test case for

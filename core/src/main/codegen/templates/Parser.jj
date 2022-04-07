@@ -606,6 +606,13 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
  *    [ OFFSET start ]</pre>
  * </blockquote>
  *
+ * <p>Trino syntax for limit:
+ *
+ * <blockquote><pre>
+ *    [ OFFSET start ]
+ *    [ LIMIT { count | ALL } ]</pre>
+ * </blockquote>
+ *
  * <p>MySQL syntax for limit:
  *
  * <blockquote><pre>
@@ -623,8 +630,7 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
     SqlNode e;
     SqlNodeList orderBy = null;
-    SqlNode start = null;
-    SqlNode count = null;
+    SqlNode[] startCount = {null, null};
 }
 {
     (
@@ -636,45 +642,69 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
         orderBy = OrderBy(e.isA(SqlKind.QUERY))
     ]
     [
-        // Postgres-style syntax. "LIMIT ... OFFSET ..."
-        <LIMIT>
-        (
-            // MySQL-style syntax. "LIMIT start, count"
-            LOOKAHEAD(2)
-            start = UnsignedNumericLiteralOrParam()
-            <COMMA> count = UnsignedNumericLiteralOrParam() {
-                if (!this.conformance.isLimitStartCountAllowed()) {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.limitStartCountNotAllowed());
-                }
-            }
+        OffsetClause(startCount)
+        [
+            LimitClause(startCount)
+        ]
         |
-            count = UnsignedNumericLiteralOrParam()
-        |
-            <ALL>
-        )
-    ]
-    [
-        // ROW or ROWS is required in SQL:2008 but we make it optional
-        // because it is not present in Postgres-style syntax.
-        // If you specify both LIMIT start and OFFSET, OFFSET wins.
-        <OFFSET> start = UnsignedNumericLiteralOrParam() [ <ROW> | <ROWS> ]
+        LimitClause(startCount)
+        [
+            OffsetClause(startCount)
+        ]
     ]
     [
         // SQL:2008-style syntax. "OFFSET ... FETCH ...".
         // If you specify both LIMIT and FETCH, FETCH wins.
-        <FETCH> ( <FIRST> | <NEXT> ) count = UnsignedNumericLiteralOrParam()
+        <FETCH> ( <FIRST> | <NEXT> ) startCount[1] = UnsignedNumericLiteralOrParam()
         ( <ROW> | <ROWS> ) <ONLY>
     ]
     {
-        if (orderBy != null || start != null || count != null) {
+        if (orderBy != null || startCount[0] != null || startCount[1] != null) {
             if (orderBy == null) {
                 orderBy = SqlNodeList.EMPTY;
             }
-            e = new SqlOrderBy(getPos(), e, orderBy, start, count);
-
+            e = new SqlOrderBy(getPos(), e, orderBy, startCount[0], startCount[1]);
         }
         return e;
     }
+}
+
+/**
+ * Parses an offset clause in an order by expression.
+ */
+void OffsetClause(SqlNode[] startCount) :
+{
+}
+{
+    // ROW or ROWS is required in SQL:2008 but we make it optional
+    // because it is not present in Postgres-style syntax.
+    // If you specify both LIMIT start and OFFSET, OFFSET wins.
+    <OFFSET> startCount[0] = UnsignedNumericLiteralOrParam() [ <ROW> | <ROWS> ]
+}
+
+/**
+ * Parses a limit clause in an order by expression.
+ */
+void LimitClause(SqlNode[] startCount) :
+{
+}
+{
+    // Postgres-style syntax. "LIMIT ... OFFSET ..."
+    <LIMIT>
+    (
+        // MySQL-style syntax. "LIMIT start, count"
+        LOOKAHEAD(2)
+        startCount[0] = UnsignedNumericLiteralOrParam()
+        <COMMA> startCount[1] = UnsignedNumericLiteralOrParam() {
+            if (!this.conformance.isLimitStartCountAllowed()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.limitStartCountNotAllowed());
+            }
+        }
+    |
+        startCount[1] = UnsignedNumericLiteralOrParam()
+    |
+        <ALL>
+    )
 }
 
 /**
