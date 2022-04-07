@@ -104,6 +104,7 @@ import static org.apache.calcite.sql.test.ResultCheckers.isWithin;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.BAD_DATETIME_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.DIVISION_BY_ZERO_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_ARGUMENTS_NUMBER;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_CAST_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_CHAR_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_EXTRACT_UNIT_CONVERTLET_ERROR;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_EXTRACT_UNIT_VALIDATION_ERROR;
@@ -590,6 +591,36 @@ public class SqlOperatorTest {
     f.checkScalarExact("cast('654342432412312' as bigint)",
         "BIGINT NOT NULL",
         "654342432412312");
+  }
+
+  @Test void testCastToIntTypes() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+
+    // TINYINT
+    f.checkCastToScalarOkay("cast('123' as TINYINT)", "TINYINT", "123");
+    f.checkCastToScalarOkay("cast(cast('-123' as TINYINT) as INT)", "INTEGER", "-123");
+    f.checkFails("cast(123456 as TINYINT)", INVALID_CAST_MESSAGE,
+        false);
+    f.checkFails("cast(cast(cast(123456 as TINYINT) as INT) as BIGINT)",
+        INVALID_CAST_MESSAGE, false);
+
+    // SMALLINT
+    f.checkCastToScalarOkay("cast('32767' as SMALLINT)", "SMALLINT", "32767");
+    f.checkFails("cast(-32769 as SMALLINT)", INVALID_CAST_MESSAGE,
+        false);
+
+    // INT
+    f.checkCastToScalarOkay("cast('2147483647' as INT)", "INTEGER", "2147483647");
+    f.checkFails("cast(2147483648 AS INT)", INVALID_CAST_MESSAGE,
+        false);
+    f.checkFails("cast(2328602934.4917483 AS INT)", INVALID_CAST_MESSAGE,
+        false);
+
+    // BIGINT
+    f.checkCastToScalarOkay("cast(9223372036854775807 as BIGINT)", "BIGINT", "9223372036854775807");
+    f.checkFails("cast(^9223372036854775808^ AS BIGINT)", LITERAL_OUT_OF_RANGE_MESSAGE,
+        false);
   }
 
   @Test void testCastStringToDecimal() {
