@@ -105,7 +105,7 @@ public interface SqlOperatorFixture extends AutoCloseable {
   String INVALID_ARGUMENTS_NUMBER =
       "Invalid number of arguments to function .* Was expecting .* arguments";
 
-String INVALID_CAST_MESSAGE =
+  String INVALID_CAST_MESSAGE =
       "Exception casting value .* as .*";
 
   //~ Enums ------------------------------------------------------------------
