@@ -137,6 +137,8 @@ public class SqlCastFunction extends SqlFunction {
             final BigDecimal tmpVal = (BigDecimal) ((SqlLiteral) operand0).getValue();
             assert(tmpVal != null);
             val = tmpVal
+                .movePointRight(scale)
+                .divide(BigDecimal.TEN.pow(scale), 0, RoundingMode.DOWN);
           } else {
             try {
               val = BigDecimal.valueOf(
