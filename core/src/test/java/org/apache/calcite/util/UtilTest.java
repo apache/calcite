@@ -745,6 +745,13 @@ class UtilTest {
     buf.literal(new Timestamp(0));
     assertEquals("TIMESTAMP '1970-01-01 00:00:00'", buf.getSqlAndClear());
 
+    buf.literal(new Timestamp(1261053296000L));
+    assertEquals("TIMESTAMP '2009-12-17 12:34:56'", buf.getSqlAndClear());
+
+    buf.append("select ");
+    buf.literal(new Timestamp(1261053296000L));
+    assertEquals("select TIMESTAMP '2009-12-17 12:34:56'", buf.getSqlAndClear());
+
     buf.clear();
     assertEquals(0, buf.length());
 
