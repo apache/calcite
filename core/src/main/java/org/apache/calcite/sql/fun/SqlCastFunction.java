@@ -123,15 +123,19 @@ public class SqlCastFunction extends SqlFunction {
             && (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())
             || SqlTypeName.CHAR_TYPES.contains(((SqlLiteral) operand0).getTypeName()))) {
 
-          final BigDecimal upperLimit = new BigDecimal(
-              ((BigDecimal) ret.getSqlTypeName()
-                  .getLimit(true, SqlTypeName.Limit.OVERFLOW, false, -1, -1))
-                  .longValue());
-          final BigDecimal lowerLimit = new BigDecimal(
-              ((BigDecimal) ret.getSqlTypeName()
-                  .getLimit(false, SqlTypeName.Limit.OVERFLOW, false, -1, -1))
-                  .longValue());
-
+          assert ret != null;
+          SqlTypeName tName = ret.getSqlTypeName();
+          assert tName != null;
+          BigDecimal upper = (BigDecimal) ret.getSqlTypeName()
+              .getLimit(true, SqlTypeName.Limit.OVERFLOW, false, -1, -1);
+          assert upper != null;
+          BigDecimal lower = (BigDecimal) ret.getSqlTypeName()
+              .getLimit(false, SqlTypeName.Limit.OVERFLOW, false, -1, -1);
+          assert lower != null;
+          long upperLong = upper.longValue();
+          long lowerLong = lower.longValue();
+          final BigDecimal upperLimit = new BigDecimal(upperLong);
+          final BigDecimal lowerLimit = new BigDecimal(lowerLong);
           BigDecimal val = null;
           if (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())) {
             final SqlLiteral sqlLiteral = (SqlLiteral) operand0;
