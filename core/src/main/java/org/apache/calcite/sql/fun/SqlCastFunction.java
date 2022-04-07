@@ -123,18 +123,23 @@ public class SqlCastFunction extends SqlFunction {
             && (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())
             || SqlTypeName.CHAR_TYPES.contains(((SqlLiteral) operand0).getTypeName()))) {
 
-          final BigDecimal upperLimit =
-              (BigDecimal) ret.getSqlTypeName()
-                  .getLimit(true, SqlTypeName.Limit.OVERFLOW, false, -1, -1);
-          final BigDecimal lowerLimit =
-              (BigDecimal) ret.getSqlTypeName()
-                  .getLimit(false, SqlTypeName.Limit.OVERFLOW, false, -1, -1);
-          BigDecimal val = null;
+          final BigDecimal upperLimit = new BigDecimal(
+              ((BigDecimal) ret.getSqlTypeName()
+                  .getLimit(true, SqlTypeName.Limit.OVERFLOW, false, -1, -1))
+                  .longValue());
+          final BigDecimal lowerLimit = new BigDecimal(
+              ((BigDecimal) ret.getSqlTypeName()
+                  .getLimit(false, SqlTypeName.Limit.OVERFLOW, false, -1, -1))
+                  .longValue());
+
           if (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())) {
-            int scale = (((SqlNumericLiteral) operand0).getScale() == null) ? 0
-                : ((SqlNumericLiteral) operand0).getScale();
-            assert ((SqlLiteral) operand0) != null;
-            final BigDecimal tmpVal = (BigDecimal) ((SqlLiteral) operand0).getValue();
+            final SqlLiteral sqlLiteral = (SqlLiteral) operand0;
+            final SqlNumericLiteral numLiteral = (SqlNumericLiteral) operand0;
+            assert sqlLiteral != null;
+            assert numLiteral != null;
+            final BigDecimal tmpVal = numLiteral.getValueAs(BigDecimal.class);
+            assert tmpVal != null;
+            int scale = tmpVal.scale();
             assert tmpVal != null;
             val = tmpVal
                 .movePointRight(scale)
