@@ -132,6 +132,7 @@ public class SqlCastFunction extends SqlFunction {
                   .getLimit(false, SqlTypeName.Limit.OVERFLOW, false, -1, -1))
                   .longValue());
 
+          BigDecimal val = null;
           if (SqlTypeName.EXACT_TYPES.contains(((SqlLiteral) operand0).getTypeName())) {
             final SqlLiteral sqlLiteral = (SqlLiteral) operand0;
             final SqlNumericLiteral numLiteral = (SqlNumericLiteral) operand0;
