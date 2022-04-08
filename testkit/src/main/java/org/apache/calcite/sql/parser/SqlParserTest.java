@@ -3225,8 +3225,8 @@ public class SqlParserTest {
   }
 
   /**
-   * "LIMIT ... OFFSET ...", "OFFSET ... LIMIT ..." is the postgres/trino equivalent
-   * of SQL:2008 "OFFSET ... FETCH". It all maps down to a parse tree that looks like
+   * "LIMIT ... OFFSET ..." is the postgres equivalent of SQL:2008
+   * "OFFSET ... FETCH". It all maps down to a parse tree that looks like
    * SQL:2008.
    */
   @Test void testLimit() {
@@ -3246,16 +3246,6 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "ORDER BY `B`, `C`\n"
             + "OFFSET 1 ROWS");
-    /* Test case for
-     * <a href="https://issues.apache.org/jira/browse/CALCITE-5086">[CALCITE-5086]
-     * Calcite supports OFFSET start LIMIT count expression</a>.
-     */
-    sql("select a from foo order by b, c offset 1 limit 2")
-        .ok("SELECT `A`\n"
-            + "FROM `FOO`\n"
-            + "ORDER BY `B`, `C`\n"
-            + "OFFSET 1 ROWS\n"
-            + "FETCH NEXT 2 ROWS ONLY");
   }
 
   /** Test case for
@@ -3375,6 +3365,48 @@ public class SqlParserTest {
 
     // "limit start, all" is not valid
     sql("select a from foo limit 2, ^all^")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Encountered \"all\" at line 1.*");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5086">[CALCITE-5086]
+   * Calcite supports OFFSET start LIMIT count expression</a>. */
+  @Test void testOffsetStartLimitCount() {
+    final String error = "'OFFSET start LIMIT count' is not allowed under the "
+        + "current SQL conformance level";
+    sql("select a from foo order by b, c offset 1 limit 2")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+
+    sql("select a from foo order by b, c offset 1 limit ^2^")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails(error);
+
+    // "limit 2" overrides the earlier "offset 4"
+    final String expected3 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 2 ROWS\n"
+        + "FETCH NEXT 3 ROWS ONLY";
+    sql("select a from foo offset 4 limit 2,3")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok(expected3);
+
+    // "fetch next 4" overrides the earlier "limit 3"
+    final String expected4 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 2 ROWS\n"
+        + "FETCH NEXT 4 ROWS ONLY";
+    sql("select a from foo offset 2 limit 3 fetch next 4 rows only")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok(expected4);
+
+    // "limit start, all" is not valid
+    sql("select a from foo offset 1 limit 2, ^all^")
         .withConformance(SqlConformanceEnum.LENIENT)
         .fails("(?s).*Encountered \"all\" at line 1.*");
   }

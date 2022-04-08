@@ -644,7 +644,11 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
     [
         OffsetClause(startCount)
         [
-            LimitClause(startCount)
+            LimitClause(startCount) {
+                if (!this.conformance.isOffsetStartLimitCountAllowed()) {
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.offsetStartLimitCountNotAllowed());
+                }
+            }
         ]
         |
         LimitClause(startCount)

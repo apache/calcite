@@ -319,6 +319,17 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override
+  public boolean isOffsetStartLimitCountAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public boolean allowGeometry() {
     switch (this) {
     case BABEL:
