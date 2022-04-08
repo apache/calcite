@@ -1588,29 +1588,40 @@ class UtilTest {
     map.put("foo", 1);
     map.put("baz", true);
     map.put("bar", "can't");
+    final String tricky = "string with doublequote\", singlequote', "
+        + "backslash\\, percent20%20, plus+, ampersand&, linefeed\n"
+        + ", carriage return\r, lfcr\n"
+        + "\r.";
+    map.put("tricky", tricky);
     List<Object> list = builder.list();
     map.put("list", list);
     list.add(2);
     list.add(3);
     list.add(builder.list());
     list.add(builder.map());
+    list.add(tricky);
     list.add(null);
     map.put("nullValue", null);
-    assertEquals(
-        "{\n"
-            + "  \"foo\": 1,\n"
-            + "  \"baz\": true,\n"
-            + "  \"bar\": \"can't\",\n"
-            + "  \"list\": [\n"
-            + "    2,\n"
-            + "    3,\n"
-            + "    [],\n"
-            + "    {},\n"
-            + "    null\n"
-            + "  ],\n"
-            + "  \"nullValue\": null\n"
-            + "}",
-        builder.toJsonString(map));
+    final String expected = "{\n"
+        + "  \"foo\": 1,\n"
+        + "  \"baz\": true,\n"
+        + "  \"bar\": \"can't\",\n"
+        + "  \"tricky\": \"string with doublequote\\\", singlequote', "
+        + "backslash\\\\, percent20%20, plus+, ampersand&, linefeed\\n"
+        + ", carriage return\\r, lfcr\\n\\r.\",\n"
+        + "  \"list\": [\n"
+        + "    2,\n"
+        + "    3,\n"
+        + "    [],\n"
+        + "    {},\n"
+        + "    \"string with doublequote\\\", singlequote', backslash\\\\, "
+        + "percent20%20, plus+, ampersand&, linefeed\\n"
+        + ", carriage return\\r, lfcr\\n\\r.\",\n"
+        + "    null\n"
+        + "  ],\n"
+        + "  \"nullValue\": null\n"
+        + "}";
+    assertThat(builder.toJsonString(map), is(expected));
   }
 
   @Test void testCompositeMap() {

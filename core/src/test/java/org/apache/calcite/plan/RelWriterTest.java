@@ -709,6 +709,24 @@ class RelWriterTest {
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4893">[CALCITE-4893]
+   * JsonParseException happens when externalizing expressions with escape
+   * character from JSON</a>. */
+  @Test void testEscapeCharacter() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(
+            b.call(new MockSqlOperatorTable.SplitFunction(),
+                b.field("ENAME"), b.literal("\r")))
+        .build();
+    final String expected = ""
+        + "LogicalProject($f0=[SPLIT($1, '\r')])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    relFn(relFn)
+        .assertThatPlan(isLinux(expected));
+  }
+
   @Test void testJsonToRex() {
     // Test simple literal without inputs
     final String jsonString1 = "{\n"
