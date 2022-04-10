@@ -197,17 +197,21 @@ schema, passing in the <code>directory</code> argument from the model file:
 {% highlight java %}
 public Schema create(SchemaPlus parentSchema, String name,
     Map<String, Object> operand) {
-  String directory = (String) operand.get("directory");
+  final String directory = (String) operand.get("directory");
+  final File base =
+      (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+  File directoryFile = new File(directory);
+  if (base != null && !directoryFile.isAbsolute()) {
+    directoryFile = new File(base, directory);
+  }
   String flavorName = (String) operand.get("flavor");
   CsvTable.Flavor flavor;
   if (flavorName == null) {
     flavor = CsvTable.Flavor.SCANNABLE;
   } else {
-    flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase());
+    flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
   }
-  return new CsvSchema(
-      new File(directory),
-      flavor);
+  return new CsvSchema(directoryFile, flavor);
 }
 {% endhighlight %}
 
@@ -230,17 +234,15 @@ Here is the relevant code from <code>CsvSchema</code>, overriding the
 method in the <code>AbstractSchema</code> base class.
 
 {% highlight java %}
-protected Map<String, Table> getTableMap() {
+private Map<String, Table> createTableMap() {
   // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
   // ".json.gz".
-  File[] files = directoryFile.listFiles(
-      new FilenameFilter() {
-        public boolean accept(File dir, String name) {
-          final String nameSansGz = trim(name, ".gz");
-          return nameSansGz.endsWith(".csv")
-              || nameSansGz.endsWith(".json");
-        }
-      });
+  final Source baseSource = Sources.of(directoryFile);
+  File[] files = directoryFile.listFiles((dir, name) -> {
+    final String nameSansGz = trim(name, ".gz");
+    return nameSansGz.endsWith(".csv")
+        || nameSansGz.endsWith(".json");
+  });
   if (files == null) {
     System.out.println("directory " + directoryFile + " not found");
     files = new File[0];
@@ -248,31 +250,33 @@ protected Map<String, Table> getTableMap() {
   // Build a map from table name to table; each file becomes a table.
   final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
   for (File file : files) {
-    String tableName = trim(file.getName(), ".gz");
-    final String tableNameSansJson = trimOrNull(tableName, ".json");
-    if (tableNameSansJson != null) {
-      JsonTable table = new JsonTable(file);
-      builder.put(tableNameSansJson, table);
-      continue;
+    Source source = Sources.of(file);
+    Source sourceSansGz = source.trim(".gz");
+    final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+    if (sourceSansJson != null) {
+      final Table table = new JsonScannableTable(source);
+      builder.put(sourceSansJson.relative(baseSource).path(), table);
     }
-    tableName = trim(tableName, ".csv");
-    final Table table = createTable(file);
-    builder.put(tableName, table);
+    final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
+    if (sourceSansCsv != null) {
+      final Table table = createTable(source);
+      builder.put(sourceSansCsv.relative(baseSource).path(), table);
+    }
   }
   return builder.build();
 }
 
 /** Creates different sub-type of table based on the "flavor" attribute. */
-private Table createTable(File file) {
+private Table createTable(Source source) {
   switch (flavor) {
   case TRANSLATABLE:
-    return new CsvTranslatableTable(file, null);
+    return new CsvTranslatableTable(source, null);
   case SCANNABLE:
-    return new CsvScannableTable(file, null);
+    return new CsvScannableTable(source, null);
   case FILTERABLE:
-    return new CsvFilterableTable(file, null);
+    return new CsvFilterableTable(source, null);
   default:
-    throw new AssertionError("Unknown flavor " + flavor);
+    throw new AssertionError("Unknown flavor " + this.flavor);
   }
 }
 {% endhighlight %}
@@ -413,12 +417,14 @@ passing in the <code>file</code> argument from the model file:
 
 {% highlight java %}
 public CsvTable create(SchemaPlus schema, String name,
-    Map<String, Object> map, RelDataType rowType) {
-  String fileName = (String) map.get("file");
-  final File file = new File(fileName);
+    Map<String, Object> operand, @Nullable RelDataType rowType) {
+  String fileName = (String) operand.get("file");
+  final File base =
+      (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+  final Source source = Sources.file(base, fileName);
   final RelProtoDataType protoRowType =
       rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-  return new CsvScannableTable(file, protoRowType);
+  return new CsvScannableTable(source, protoRowType);
 }
 {% endhighlight %}
 
@@ -519,6 +525,7 @@ Here is the rule in its entirety:
 {% highlight java %}
 public class CsvProjectTableScanRule
     extends RelRule<CsvProjectTableScanRule.Config> {
+
   /** Creates a CsvProjectTableScanRule. */
   protected CsvProjectTableScanRule(Config config) {
     super(config);
@@ -540,7 +547,7 @@ public class CsvProjectTableScanRule
             fields));
   }
 
-  private int[] getProjectFields(List<RexNode> exps) {
+  private static int[] getProjectFields(List<RexNode> exps) {
     final int[] fields = new int[exps.size()];
     for (int i = 0; i < exps.size(); i++) {
       final RexNode exp = exps.get(i);
@@ -554,17 +561,19 @@ public class CsvProjectTableScanRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableCsvProjectTableScanRule.Config.builder()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
                 b1.operand(CsvTableScan.class).noInputs()))
-        .as(Config.class);
+        .build();
 
     @Override default CsvProjectTableScanRule toRule() {
       return new CsvProjectTableScanRule(this);
     }
-}
+  }
+} 
 {% endhighlight %}
 
 The default instance of the rule resides in the `CsvRules` holder class:

@@ -3978,7 +3978,28 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testPullConstantIntoProject() {
     final String sql = "select deptno, deptno + 1, empno + deptno\n"
-        + "from sales.emp where deptno = 10";
+        + "from sales.emp\n"
+        + "where deptno = 10";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
+            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  @Test void testPullConstantIntoProjectWithIsNotDistinctFrom() {
+    final String sql = "select deptno, deptno + 1, empno + deptno\n"
+        + "from sales.emp\n"
+        + "where deptno is not distinct from 10";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
+            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  @Test void testPullConstantIntoProjectWithIsNotDistinctFromForNull() {
+    final String sql = "select mgr, deptno\n"
+        + "from sales.emp\n"
+        + "where mgr is not distinct from null";
     sql(sql).withPre(getTransitiveProgram())
         .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
             CoreRules.PROJECT_REDUCE_EXPRESSIONS)
@@ -5582,8 +5603,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testAggregateConstantKeyRule3() {
     final String sql = "select job\n"
         + "from sales.emp\n"
-        + "where sal is null and job = 'Clerk'\n"
-        + "group by sal, job\n"
+        + "where mgr is null and job = 'Clerk'\n"
+        + "group by mgr, job\n"
         + "having count(*) > 3";
     sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
         .check();
@@ -5596,8 +5617,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testAggregateDynamicFunction() {
     final String sql = "select hiredate\n"
         + "from sales.emp\n"
-        + "where sal is null and hiredate = current_timestamp\n"
-        + "group by sal, hiredate\n"
+        + "where mgr is null and hiredate = current_timestamp\n"
+        + "group by mgr, hiredate\n"
         + "having count(*) > 3";
     sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
         .check();
