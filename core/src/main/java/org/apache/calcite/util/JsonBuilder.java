@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.Spaces;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
