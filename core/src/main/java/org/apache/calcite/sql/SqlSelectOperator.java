@@ -202,6 +202,7 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
     if (select.groupBy != null) {
+      writer.sep("GROUP BY");
       select.groupBy.unparse(writer, 0, 0);
     }
     if (select.having != null) {
