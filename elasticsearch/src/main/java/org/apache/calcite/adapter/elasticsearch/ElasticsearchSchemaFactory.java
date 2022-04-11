@@ -47,7 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -60,19 +59,34 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchSchemaFactory.class);
 
+  private static final int REST_CLIENT_CACHE_SIZE = 100;
+
   // RestClient objects allocate system resources and are thread safe. Here, we
   // cache them using a key derived from the hashCode()s of the parameters that
-  // define a RestClient.
+  // define a RestClient. The primary reason to do this is to limit the resource leak
+  // that results from Calcite's current inability to close clients that it creates.
+  // Amongst the OS resources leaked are file descriptors which are limited to
+  // 1024 per process by default on Linux at the time of writing.
   private static Cache<Integer, RestClient> restClients = CacheBuilder.newBuilder()
-      .maximumSize(1000)
-      .expireAfterAccess(1, TimeUnit.HOURS)
+      .maximumSize(REST_CLIENT_CACHE_SIZE)
       .removalListener(new RemovalListener<Integer, RestClient>() {
         @Override public void onRemoval(RemovalNotification<Integer, RestClient> notice) {
+          LOGGER.warn(
+            "Will close an ES REST client to keep the number of open clients under {}",
+            REST_CLIENT_CACHE_SIZE
+          );
+          LOGGER.warn(
+            "Any schema objects created with this client are now broken!\n"
+  +
+            "Do not try to access more than {} distinct ES REST APIs through this adapter.",
+            REST_CLIENT_CACHE_SIZE
+          );
+
           try {
             // Free resources allocated by this RestClient
             notice.getValue().close();
           } catch (IOException ex) {
-            LOGGER.warn("Could not close RestClient %s", notice.getValue());
+            LOGGER.warn("Could not close RestClient {}", notice.getValue());
           }
         }
       })
