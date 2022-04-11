@@ -2150,6 +2150,29 @@ public class SqlParserTest {
     sql(sql1).fails("(?s)Encountered \", rollup\" at .*");
   }
 
+  @Test void testGroupByAllOrDistinct() {
+    final String sql = "select deptno from emp\n"
+        + "group by all cube (a, b), rollup (a, b)";
+    final String expected = "SELECT `DEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY ALL CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
+    sql(sql).ok(expected);
+
+    final String sql1 = "select deptno from emp\n"
+        + "group by distinct cube (a, b), rollup (a, b)";
+    final String expected1 = "SELECT `DEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY DISTINCT CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "select deptno from emp\n"
+        + "group by cube (a, b), rollup (a, b)";
+    final String expected2 = "SELECT `DEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
+    sql(sql2).ok(expected2);
+  }
+
   @Test void testGrouping() {
     final String sql = "select deptno, grouping(deptno) from emp\n"
         + "group by grouping sets (deptno, (deptno, gender), ())";

@@ -581,6 +581,42 @@ select distinct count(*) from emp group by cube(deptno, gender);
 
 !ok
 
+# CUBE and ROLLUP cartesian product over same columns
+select deptno, gender, count(*) from emp where deptno = 20 group by cube(deptno, gender), rollup(deptno, gender);
++--------+--------+--------+
+| DEPTNO | GENDER | EXPR$2 |
++--------+--------+--------+
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 |        |      1 |
+|     20 |        |      1 |
+|     20 |        |      1 |
+|        | M      |      1 |
+|        |        |      1 |
++--------+--------+--------+
+(12 rows)
+
+!ok
+
+# GROUP BY DISTINCT CUBE and ROLLUP cartesian product over same columns
+select deptno, gender, count(*) from emp where deptno = 20 group by distinct cube(deptno, gender), rollup(deptno, gender);
++--------+--------+--------+
+| DEPTNO | GENDER | EXPR$2 |
++--------+--------+--------+
+|     20 | M      |      1 |
+|     20 |        |      1 |
+|        | M      |      1 |
+|        |        |      1 |
++--------+--------+--------+
+(4 rows)
+
+!ok
+
 # CUBE and JOIN
 select e.deptno, e.gender, min(e.ename) as min_name
 from emp as e join dept as d using (deptno)

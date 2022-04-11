@@ -157,6 +157,9 @@ public enum SqlKind {
   /** A dynamic parameter. */
   DYNAMIC_PARAM,
 
+  /** GROUP BY clause. */
+  GROUP_BY,
+
   /**
    * ORDER BY clause.
    *

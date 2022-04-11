@@ -42,7 +42,7 @@ import static java.util.Objects.requireNonNull;
  * <li>2: fromClause ({@link SqlCall} to "join" operator)</li>
  * <li>3: whereClause ({@link SqlNode})</li>
  * <li>4: havingClause ({@link SqlNode})</li>
- * <li>5: groupClause ({@link SqlNode})</li>
+ * <li>5: groupClause ({@link SqlGroupBy})</li>
  * <li>6: windowClause ({@link SqlNodeList})</li>
  * <li>7: orderClause ({@link SqlNode})</li>
  * </ul>
@@ -73,7 +73,7 @@ public class SqlSelectOperator extends SqlOperator {
         requireNonNull((SqlNodeList) operands[1], "selectList"),
         operands[2],
         operands[3],
-        (SqlNodeList) operands[4],
+        (SqlGroupBy) operands[4],
         operands[5],
         (SqlNodeList) operands[6],
         (SqlNodeList) operands[7],
@@ -93,7 +93,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList selectList,
       SqlNode fromClause,
       SqlNode whereClause,
-      SqlNodeList groupBy,
+      SqlGroupBy groupBy,
       SqlNode having,
       SqlNodeList windowDecls,
       SqlNodeList orderBy,
@@ -202,12 +202,7 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
     if (select.groupBy != null) {
-      writer.sep("GROUP BY");
-      final SqlNodeList groupBy =
-          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
-              : select.groupBy;
-      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
-          groupBy);
+      select.groupBy.unparse(writer, 0, 0);
     }
     if (select.having != null) {
       writer.sep("HAVING");

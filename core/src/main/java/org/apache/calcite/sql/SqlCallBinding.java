@@ -104,10 +104,10 @@ public class SqlCallBinding extends SqlOperatorBinding {
       return 0;
     }
     final SqlSelect select = selectScope.getNode();
-    final SqlNodeList group = select.getGroup();
-    if (group != null) {
+    final SqlGroupBy groupBy = select.getGroup();
+    if (groupBy != null) {
       int n = 0;
-      for (SqlNode groupItem : group) {
+      for (SqlNode groupItem : groupBy.groupList) {
         if (!(groupItem instanceof SqlNodeList)
             || ((SqlNodeList) groupItem).size() != 0) {
           ++n;

@@ -94,7 +94,7 @@ public class AggregatingSelectScope
       final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
           ImmutableList.builder();
       if (select.getGroup() != null) {
-        final SqlNodeList groupList = select.getGroup();
+        final SqlNodeList groupList = select.getGroup().groupList;
         for (SqlNode groupExpr : groupList) {
           SqlValidatorUtil.analyzeGroupItem(this, groupAnalyzer, builder,
               groupExpr);

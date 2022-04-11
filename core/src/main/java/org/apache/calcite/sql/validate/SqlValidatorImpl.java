@@ -51,6 +51,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlGroupBy;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalLiteral;
@@ -2761,7 +2762,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       if (select.getGroup() != null) {
         GroupByScope groupByScope =
-            new GroupByScope(selectScope, select.getGroup(), select);
+            new GroupByScope(selectScope, select.getGroup().groupList, select);
         clauseScopes.put(IdPair.of(select, Clause.GROUP_BY), groupByScope);
         registerSubQueries(groupByScope, select.getGroup());
       }
@@ -3675,9 +3676,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private void checkRollUpInGroupBy(SqlSelect select) {
-    SqlNodeList group = select.getGroup();
-    if (group != null) {
-      for (SqlNode node : group) {
+    SqlGroupBy groupBy = select.getGroup();
+    if (groupBy != null) {
+      for (SqlNode node : groupBy.groupList) {
         checkRollUp(null, select, node, getGroupScope(select), "GROUP BY");
       }
     }
@@ -3941,9 +3942,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (aggregateNode != null) {
       switch (modality) {
       case STREAM:
-        SqlNodeList groupList = select.getGroup();
-        if (groupList == null
-            || !SqlValidatorUtil.containsMonotonic(scope, groupList)) {
+        SqlGroupBy groupBy = select.getGroup();
+        if (groupBy == null
+            || !SqlValidatorUtil.containsMonotonic(scope, groupBy.groupList)) {
           if (fail) {
             throw newValidationError(aggregateNode,
                 Static.RESOURCE.streamMustGroupByMonotonic());
@@ -4234,23 +4235,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * called even if no GROUP BY clause is present.
    */
   protected void validateGroupClause(SqlSelect select) {
-    SqlNodeList groupList = select.getGroup();
-    if (groupList == null) {
+    SqlGroupBy groupBy = select.getGroup();
+    if (groupBy == null) {
       return;
     }
     final String clause = "GROUP BY";
-    validateNoAggs(aggOrOverFinder, groupList, clause);
+    validateNoAggs(aggOrOverFinder, groupBy.groupList, clause);
     final SqlValidatorScope groupScope = getGroupScope(select);
 
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
-    for (SqlNode groupItem : groupList) {
+    for (SqlNode groupItem : groupBy.groupList) {
       SqlNode expandedItem = expandGroupByOrHavingExpr(groupItem, groupScope, select, false);
       expandedList.add(expandedItem);
     }
-    groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
-    select.setGroupBy(groupList);
-    inferUnknownTypes(unknownType, groupScope, groupList);
+    groupBy.setOperand(1, new SqlNodeList(expandedList, groupBy.groupList.getParserPosition()));
+    inferUnknownTypes(unknownType, groupScope, groupBy.groupList);
     for (SqlNode groupItem : expandedList) {
       validateGroupByItem(select, groupItem);
     }
@@ -4258,7 +4258,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Nodes in the GROUP BY clause are expressions except if they are calls
     // to the GROUPING SETS, ROLLUP or CUBE operators; this operators are not
     // expressions, because they do not have a type.
-    for (SqlNode node : groupList) {
+    for (SqlNode node : groupBy.groupList) {
       switch (node.getKind()) {
       case GROUPING_SETS:
       case ROLLUP:
@@ -4278,7 +4278,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (selectScope instanceof AggregatingSelectScope) {
       aggregatingScope = (AggregatingSelectScope) selectScope;
     }
-    for (SqlNode groupItem : groupList) {
+    for (SqlNode groupItem : groupBy.groupList) {
       if (groupItem instanceof SqlNodeList
           && ((SqlNodeList) groupItem).size() == 0) {
         continue;
@@ -4286,7 +4286,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       validateGroupItem(groupScope, aggregatingScope, groupItem);
     }
 
-    SqlNode agg = aggFinder.findAgg(groupList);
+    SqlNode agg = aggFinder.findAgg(groupBy.groupList);
     if (agg != null) {
       throw newValidationError(agg, RESOURCE.aggregateIllegalInClause(clause));
     }

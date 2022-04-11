@@ -105,6 +105,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlGroupBy;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -1517,10 +1518,10 @@ public class SqlToRelConverter {
     if (query instanceof SqlSelect) {
       SqlSelect select = (SqlSelect) query;
       SqlNodeList selectList = select.getSelectList();
-      SqlNodeList groupList = select.getGroup();
+      SqlGroupBy groupBy = select.getGroup();
 
       if ((selectList.size() == 1)
-          && ((groupList == null) || (groupList.size() == 0))) {
+          && (groupBy == null || groupBy.groupList.size() == 0)) {
         SqlNode selectExpr = selectList.get(0);
         if (selectExpr instanceof SqlCall) {
           SqlCall selectExprCall = (SqlCall) selectExpr;
@@ -3185,7 +3186,7 @@ public class SqlToRelConverter {
       SqlSelect select,
       List<SqlNode> orderExprList) {
     assert bb.root != null : "precondition: child != null";
-    SqlNodeList groupList = select.getGroup();
+    SqlGroupBy groupBy = select.getGroup();
     SqlNodeList selectList = select.getSelectList();
     SqlNode having = select.getHaving();
 
@@ -3194,7 +3195,7 @@ public class SqlToRelConverter {
         bb,
         aggConverter,
         selectList,
-        groupList,
+        groupBy,
         having,
         orderExprList);
   }
@@ -3203,7 +3204,7 @@ public class SqlToRelConverter {
       Blackboard bb,
       final AggConverter aggConverter,
       SqlNodeList selectList,
-      @Nullable SqlNodeList groupList,
+      @Nullable SqlGroupBy groupBy,
       @Nullable SqlNode having,
       List<SqlNode> orderExprList) {
     // Find aggregate functions in SELECT and HAVING clause
@@ -3227,10 +3228,10 @@ public class SqlToRelConverter {
         RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // If group-by clause is missing, pretend that it has zero elements.
-    if (groupList == null) {
-      groupList = SqlNodeList.EMPTY;
+    SqlNodeList groupList = SqlNodeList.EMPTY;
+    if (groupBy != null) {
+      groupList = groupBy.groupList;
     }
-
     replaceSubQueries(bb, groupList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     // register the group exprs
@@ -3303,9 +3304,14 @@ public class SqlToRelConverter {
             bb.scope().getMonotonicity(groupItem));
       }
 
+      // If GROUP BY DISTINCT, groupSets will have no duplicates.
+      ImmutableList<ImmutableBitSet> groupSets = r.groupSets.asList();
+      if (groupBy != null && groupBy.isDistinct()) {
+        groupSets = r.groupSets.elementSet().asList();
+      }
       // Add the aggregator
       bb.setRoot(
-          createAggregate(bb, r.groupSet, r.groupSets.asList(),
+          createAggregate(bb, r.groupSet, groupSets,
               aggConverter.getAggCalls()), false);
       bb.mapRootRelToFieldProjection.put(bb.root(), r.groupExprProjection);
 

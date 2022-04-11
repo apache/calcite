@@ -62,6 +62,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlGroupBy;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -2067,9 +2068,9 @@ public abstract class SqlImplementor {
       select.setWhere(node);
     }
 
-    public void setGroupBy(SqlNodeList nodeList) {
+    public void setGroupBy(SqlGroupBy groupBy) {
       assert clauses.contains(Clause.GROUP_BY);
-      select.setGroupBy(nodeList);
+      select.setGroupBy(groupBy);
     }
 
     public void setHaving(SqlNode node) {

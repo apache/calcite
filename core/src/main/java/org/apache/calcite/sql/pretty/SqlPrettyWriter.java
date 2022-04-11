@@ -639,6 +639,7 @@ public class SqlPrettyWriter implements SqlWriter {
       newlineAfterSep = false;
       break;
 
+    case GROUP_BY:
     case ORDER_BY:
     case OFFSET:
     case FETCH:

@@ -62,6 +62,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlGroupBy;
 import org.apache.calcite.sql.SqlHint;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
@@ -561,7 +562,7 @@ public class RelToSqlConverter extends SqlImplementor
     if (!groupByList.isEmpty() || e.getAggCallList().isEmpty()) {
       // Some databases don't support "GROUP BY ()". We can omit it as long
       // as there is at least one aggregate function.
-      builder.setGroupBy(new SqlNodeList(groupByList, POS));
+      builder.setGroupBy(new SqlGroupBy(POS, null, new SqlNodeList(groupByList, POS)));
     }
 
     if (builder.clauses.contains(Clause.HAVING) && !e.getGroupSet()

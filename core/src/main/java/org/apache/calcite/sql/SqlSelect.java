@@ -46,7 +46,7 @@ public class SqlSelect extends SqlCall {
   SqlNodeList selectList;
   @Nullable SqlNode from;
   @Nullable SqlNode where;
-  @Nullable SqlNodeList groupBy;
+  @Nullable SqlGroupBy groupBy;
   @Nullable SqlNode having;
   SqlNodeList windowDecls;
   @Nullable SqlNodeList orderBy;
@@ -61,7 +61,7 @@ public class SqlSelect extends SqlCall {
       SqlNodeList selectList,
       @Nullable SqlNode from,
       @Nullable SqlNode where,
-      @Nullable SqlNodeList groupBy,
+      @Nullable SqlGroupBy groupBy,
       @Nullable SqlNode having,
       @Nullable SqlNodeList windowDecls,
       @Nullable SqlNodeList orderBy,
@@ -115,7 +115,7 @@ public class SqlSelect extends SqlCall {
       where = operand;
       break;
     case 4:
-      groupBy = (SqlNodeList) operand;
+      groupBy = (SqlGroupBy) operand;
       break;
     case 5:
       having = operand;
@@ -162,11 +162,11 @@ public class SqlSelect extends SqlCall {
   }
 
   @Pure
-  public final @Nullable SqlNodeList getGroup() {
+  public final @Nullable SqlGroupBy getGroup() {
     return groupBy;
   }
 
-  public void setGroupBy(@Nullable SqlNodeList groupBy) {
+  public void setGroupBy(@Nullable SqlGroupBy groupBy) {
     this.groupBy = groupBy;
   }
 

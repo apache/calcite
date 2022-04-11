@@ -170,6 +170,12 @@ public interface SqlWriter {
     FETCH,
 
     /**
+     * GROUP BY clause of a SELECT statement. The "list" has only two items:
+     * the query and the group by clause, with GROUP BY as the separator.
+     */
+    GROUP_BY,
+
+    /**
      * GROUP BY list.
      *
      * <p>Example:</p>
