@@ -72,14 +72,14 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
       .removalListener(new RemovalListener<Integer, RestClient>() {
         @Override public void onRemoval(RemovalNotification<Integer, RestClient> notice) {
           LOGGER.warn(
-            "Will close an ES REST client to keep the number of open clients under {}",
-            REST_CLIENT_CACHE_SIZE
+              "Will close an ES REST client to keep the number of open clients under {}",
+              REST_CLIENT_CACHE_SIZE
           );
           LOGGER.warn(
-            "Any schema objects created with this client are now broken!\n"
-  +
-            "Do not try to access more than {} distinct ES REST APIs through this adapter.",
-            REST_CLIENT_CACHE_SIZE
+              "Any schema objects created with this client are now broken!\n"
+              +
+              "Do not try to access more than {} distinct ES REST APIs through this adapter.",
+              REST_CLIENT_CACHE_SIZE
           );
 
           try {
