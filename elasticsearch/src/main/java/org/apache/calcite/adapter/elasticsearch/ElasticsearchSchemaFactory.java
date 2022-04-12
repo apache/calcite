@@ -35,6 +35,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.ImmutableList;
 
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -61,24 +62,22 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
 
   private static final int REST_CLIENT_CACHE_SIZE = 100;
 
-  // RestClient objects allocate system resources and are thread safe. Here, we
-  // cache them using a key derived from the hashCode()s of the parameters that
-  // define a RestClient. The primary reason to do this is to limit the resource leak
-  // that results from Calcite's current inability to close clients that it creates.
-  // Amongst the OS resources leaked are file descriptors which are limited to
-  // 1024 per process by default on Linux at the time of writing.
-  private static Cache<Integer, RestClient> restClients = CacheBuilder.newBuilder()
+  // RestClient objects allocate system resources and are thread safe. Here, we cache
+  // them using a key derived from the parameters that define a RestClient. The primary
+  // reason to do this is to limit the resource leak that results from Calcite's
+  // current inability to close clients that it creates.  Amongst the OS resources
+  // leaked are file descriptors which are limited to 1024 per process by default on
+  // Linux at the time of writing.
+  private static final Cache<List, RestClient> REST_CLIENTS = CacheBuilder.newBuilder()
       .maximumSize(REST_CLIENT_CACHE_SIZE)
-      .removalListener(new RemovalListener<Integer, RestClient>() {
-        @Override public void onRemoval(RemovalNotification<Integer, RestClient> notice) {
+      .removalListener(new RemovalListener<List, RestClient>() {
+        @Override public void onRemoval(RemovalNotification<List, RestClient> notice) {
           LOGGER.warn(
-              "Will close an ES REST client to keep the number of open clients under {}",
-              REST_CLIENT_CACHE_SIZE
-          );
-          LOGGER.warn(
-              "Any schema objects created with this client are now broken!\n"
-              +
-              "Do not try to access more than {} distinct ES REST APIs through this adapter.",
+              "Will close an ES REST client to keep the number of open clients under {}. "
+              + "Any schema objects that might still have been relying on this client are now "
+              + "broken! Do not try to access more than {} distinct ES REST APIs through this "
+              + "adapter.",
+              REST_CLIENT_CACHE_SIZE,
               REST_CLIENT_CACHE_SIZE
           );
 
@@ -86,7 +85,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
             // Free resources allocated by this RestClient
             notice.getValue().close();
           } catch (IOException ex) {
-            LOGGER.warn("Could not close RestClient {}", notice.getValue());
+            LOGGER.warn("Could not close RestClient {}", notice.getValue(), ex);
           }
         }
       })
@@ -156,11 +155,12 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
 
     Objects.requireNonNull(hosts, "hosts or coordinates");
     Preconditions.checkArgument(!hosts.isEmpty(), "no ES hosts specified");
-
-    Integer cacheKey = Objects.hash(hosts, pathPrefix, username, password);
+    // Two lists are considered equal when all of their corresponding elements are equal
+    // making a list of RestClient parms a suitable cache key.
+    List cacheKey = ImmutableList.of(hosts, pathPrefix, username, password);
 
     try {
-      return restClients.get(cacheKey, new Callable<RestClient>() {
+      return REST_CLIENTS.get(cacheKey, new Callable<RestClient>() {
         @Override public RestClient call() {
           RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
 
