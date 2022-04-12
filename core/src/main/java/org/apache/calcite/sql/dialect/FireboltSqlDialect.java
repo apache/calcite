@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
@@ -23,9 +24,11 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.RelToSqlConverterUtil;
@@ -37,6 +40,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * A SqlDialect implementation for the Firebolt database.
@@ -55,6 +59,7 @@ public class FireboltSqlDialect extends SqlDialect {
     super(context);
   }
 
+  /** Reserved Keywords for Firebolt. */
   private static final List<String> RESERVED_KEYWORDS =
       ImmutableList.copyOf(
           Arrays.asList("ALL", "ALTER", "AND", "ARRAY", "BETWEEN",
@@ -80,35 +85,20 @@ public class FireboltSqlDialect extends SqlDialect {
               "UPDATE", "USING", "VARCHAR", "WEEK", "WHEN", "WHERE",
               "WITH"));
 
-  /**
-   * Returns whether the dialect supports character set names as part of a
-   * data type, for instance {VARCHAR(30) CHARACTER SET `ISO-8859-1`}.
-   *
-   * @return boolean
-   */
+  /** An unquoted Firebolt identifier must start with a letter and be followed
+   * by zero or more letters, digits or _. */
+  private static final Pattern IDENTIFIER_REGEX =
+      Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
+
   @Override public boolean supportsCharSet() {
     return false;
   }
 
-  /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax.
-   *
-   * @param writer   Object of SqlWriter class.
-   * @param offset   Operator used to omit a specified number of rows
-   *                 from the beginning of the result set.
-   * @param fetch    Operator used to specify the number of rows
-   *                 to be returned after the OFFSET.
-   */
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
-  /**
-   * Returns whether the dialect supports aggregation functions.
-   *
-   * @param kind    Enum SqlKind that enumerates the possible types of {@link SqlNode}.
-   * @return boolean
-   */
   @Override public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case ANY_VALUE:
@@ -125,25 +115,11 @@ public class FireboltSqlDialect extends SqlDialect {
     return false;
   }
 
-  /** Returns whether to quote a reserve word of Firebolt.
-   * By default, all identifiers are quoted. */
   @Override protected boolean identifierNeedsQuote(String val) {
-    return RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
+    return IDENTIFIER_REGEX.matcher(val).matches()
+        || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  /**
-   * Returns SqlNode for type in "cast(column as type)", which might be
-   * different for Firebolt by type name, precision etc.
-   *
-   * Firebolt datatypes reference: https://docs.firebolt.io/general-reference/data-types.html
-   *
-   * If this method returns null, the cast will be omitted. In the default
-   * implementation, this is the case for the NULL type, and therefore
-   * {CAST(NULL AS <nulltype/>)} is rendered as {NULL}.
-   *
-   * @param type      object of RelDataType class; SQL datatype of column.
-   * @return SqlNode  casts the datatype of column received into datatype supported by Firebolt.
-   */
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
     switch (type.getSqlTypeName()) {
@@ -182,9 +158,6 @@ public class FireboltSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
-  /**
-   * Returns whether this dialect supports a given function or operator.
-   */
   @Override public boolean supportsFunction(SqlOperator operator,
       RelDataType type, final List<RelDataType> paramTypes) {
     switch (operator.kind) {
@@ -198,21 +171,29 @@ public class FireboltSqlDialect extends SqlDialect {
     }
   }
 
-  /**
-   * Unparses the SQL call as per the kind and operators of SQL required for the database.
-   *
-   * @param writer       object of SqlWriter class.
-   * @param call         object of SqlCall class; call to an SQL operator.
-   * @param leftPrec     left precedence.
-   * @param rightPrec    right precedence.
-   */
   @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       RelToSqlConverterUtil.specialOperatorByName("SUBSTR")
           .unparse(writer, call, 0, 0);
     } else {
-      // Current impl is same with Postgresql.
-      PostgresqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
+      switch (call.getKind()) {
+      case FLOOR:
+        if (call.operandCount() != 2) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+          return;
+        }
+
+        final SqlLiteral timeUnitNode = call.operand(1);
+        final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
+
+        SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+            timeUnitNode.getParserPosition());
+        SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
+        break;
+
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
     }
   }
 }
