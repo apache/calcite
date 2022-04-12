@@ -3468,46 +3468,6 @@ public class JdbcTest {
             "deptno=20; C=1; S=8000.0");
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5089">[CALCITE-5089]
-   * Allow GROUP BY ALL or DISTINCT set quantifier on GROUPING SETS</a>. */
-  @Test void testGroupByDistinct() {
-    CalciteAssert.hr()
-        .query("select \"deptno\", \"commission\", sum(\"salary\") as s\n"
-            + "from \"hr\".\"emps\"\n"
-            + "where \"deptno\" = 20\n"
-            + "group by distinct cube(\"deptno\", \"commission\"), rollup(\"deptno\", \"commission\")")
-        .returnsUnordered(
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=null; S=8000.0",
-            "deptno=null; commission=500; S=8000.0",
-            "deptno=null; commission=null; S=8000.0");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5089">[CALCITE-5089]
-   * Allow GROUP BY ALL or DISTINCT set quantifier on GROUPING SETS</a>. */
-  @Test void testGroupByAll() {
-    CalciteAssert.hr()
-        .query("select \"deptno\", \"commission\", sum(\"salary\") as s\n"
-            + "from \"hr\".\"emps\"\n"
-            + "where \"deptno\" = 20\n"
-            + "group by all cube(\"deptno\", \"commission\"), rollup(\"deptno\", \"commission\")")
-        .returnsUnordered(
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=500; S=8000.0",
-            "deptno=20; commission=null; S=8000.0",
-            "deptno=20; commission=null; S=8000.0",
-            "deptno=20; commission=null; S=8000.0",
-            "deptno=null; commission=500; S=8000.0",
-            "deptno=null; commission=null; S=8000.0");
-  }
-
   @Test void testCaseWhenOnNullableField() {
     CalciteAssert.hr()
         .query("select case when \"commission\" is not null "

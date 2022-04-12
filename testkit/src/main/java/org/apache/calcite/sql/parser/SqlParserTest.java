@@ -2155,7 +2155,7 @@ public class SqlParserTest {
         + "group by all cube (a, b), rollup (a, b)";
     final String expected = "SELECT `DEPTNO`\n"
         + "FROM `EMP`\n"
-        + "GROUP BY ALL CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
+        + "GROUP BY CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
     sql(sql).ok(expected);
 
     final String sql1 = "select deptno from emp\n"
