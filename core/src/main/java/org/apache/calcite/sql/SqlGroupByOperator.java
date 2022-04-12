@@ -21,7 +21,7 @@ import org.apache.calcite.util.ImmutableNullableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 /**
  * An operator describing a GROUP BY.
@@ -55,6 +55,7 @@ public class SqlGroupByOperator extends SqlOperator {
       @Nullable SqlNode... operands) {
     return new SqlGroupBy(pos,
         qualifier,
-        new SqlNodeList(new ArrayList<>(ImmutableNullableList.copyOf(operands)), pos));
+        new SqlNodeList(ImmutableNullableList.copyOf(operands).stream()
+            .filter(o -> o != null).collect(Collectors.toList()), pos));
   }
 }
