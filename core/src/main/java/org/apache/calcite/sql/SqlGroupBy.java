@@ -77,8 +77,6 @@ public class SqlGroupBy extends SqlCall {
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY);
     if (qualifier != null) {
       qualifier.unparse(writer, 0, 0);
     }
@@ -87,6 +85,5 @@ public class SqlGroupBy extends SqlCall {
             : groupList;
     writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
         groupBy);
-    writer.endList(frame);
   }
 }
