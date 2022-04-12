@@ -30,20 +30,15 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.Frameworks;
@@ -54,74 +49,50 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.immutables.value.Value;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
-import static org.apache.calcite.test.CalciteAssert.SchemaSpec;
+import static java.util.Objects.requireNonNull;
 
 /**
- * Abstract class to provide testing environment and utilities for extensions.
+ * Abstract base class for testing materialized views.
+ *
+ * @see MaterializedViewFixture
  */
-public abstract class AbstractMaterializedViewTest {
-
-  /**
-   * Abstract method to customize materialization matching approach.
-   */
-  protected abstract List<RelNode> optimize(TestConfig testConfig);
-
-  /**
-   * Method to customize the expected in result.
-   */
-  protected Function<String, Boolean> resultContains(
-      final String... expected) {
-    return s -> {
-      String sLinux = Util.toLinux(s);
-      for (String st : expected) {
-        if (!sLinux.contains(Util.toLinux(st))) {
-          return false;
-        }
-      }
-      return true;
-    };
-  }
-
-  protected Sql sql(String materialize, String query) {
-    return ImmutableSql.of(query, this)
-        .withMaterializations(ImmutableList.of(Pair.of(materialize, "MV0")));
-  }
+public abstract class MaterializedViewTester {
+  /** Customizes materialization matching approach. */
+  protected abstract List<RelNode> optimize(RelNode queryRel,
+      List<RelOptMaterialization> materializationList);
 
   /** Checks that a given query can use a materialized view with a given
    * definition. */
-  private void checkMaterialize(Sql sql) {
-    final TestConfig testConfig = build(sql);
-    final Function<String, Boolean> checker;
-
-    if (sql.getChecker() != null) {
-      checker = sql.getChecker();
-    } else {
-      checker = resultContains(
-          "EnumerableTableScan(table=[[" + testConfig.defaultSchema + ", MV0]]");
-    }
-    final List<RelNode> substitutes = optimize(testConfig);
-    if (substitutes.stream().noneMatch(sub -> checker.apply(RelOptUtil.toString(sub)))) {
+  void checkMaterialize(MaterializedViewFixture f) {
+    final TestConfig testConfig = build(f);
+    final Predicate<String> checker =
+        Util.first(f.checker,
+            s -> MaterializedViewFixture.resultContains(s,
+                "EnumerableTableScan(table=[["
+                    + testConfig.defaultSchema + ", MV0]]"));
+    final List<RelNode> substitutes =
+        optimize(testConfig.queryRel, testConfig.materializationList);
+    if (substitutes.stream()
+        .noneMatch(sub -> checker.test(RelOptUtil.toString(sub)))) {
       StringBuilder substituteMessages = new StringBuilder();
       for (RelNode sub: substitutes) {
         substituteMessages.append(RelOptUtil.toString(sub)).append("\n");
       }
       throw new AssertionError("Materialized view failed to be matched by optimized results:\n"
-          + substituteMessages.toString());
+          + substituteMessages);
     }
   }
 
   /** Checks that a given query cannot use a materialized view with a given
    * definition. */
-  private void checkNoMaterialize(Sql sql) {
-    final TestConfig testConfig = build(sql);
-    final List<RelNode> results = optimize(testConfig);
+  void checkNoMaterialize(MaterializedViewFixture f) {
+    final TestConfig testConfig = build(f);
+    final List<RelNode> results =
+        optimize(testConfig.queryRel, testConfig.materializationList);
     if (results.isEmpty()
         || (results.size() == 1
         && !RelOptUtil.toString(results.get(0)).contains("MV0"))) {
@@ -135,36 +106,37 @@ public abstract class AbstractMaterializedViewTest {
     throw new AssertionError(errMsgBuilder.toString());
   }
 
-  private TestConfig build(Sql sql) {
-    assert sql != null;
+  private TestConfig build(MaterializedViewFixture f) {
     return Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       cluster.getPlanner().setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
       try {
         final SchemaPlus defaultSchema;
-        if (sql.getDefaultSchemaSpec() == null) {
+        if (f.schemaSpec == null) {
           defaultSchema = rootSchema.add("hr",
               new ReflectiveSchema(new MaterializationTest.HrFKUKSchema()));
         } else {
-          defaultSchema = CalciteAssert.addSchema(rootSchema, sql.getDefaultSchemaSpec());
+          defaultSchema = CalciteAssert.addSchema(rootSchema, f.schemaSpec);
         }
-        final RelNode queryRel = toRel(cluster, rootSchema, defaultSchema, sql.getQuery());
+        final RelNode queryRel = toRel(cluster, rootSchema, defaultSchema, f.query);
         final List<RelOptMaterialization> mvs = new ArrayList<>();
         final RelBuilder relBuilder =
             RelFactories.LOGICAL_BUILDER.create(cluster, relOptSchema);
         final MaterializationService.DefaultTableFactory tableFactory =
             new MaterializationService.DefaultTableFactory();
-        for (Pair<String, String> pair: sql.getMaterializations()) {
-          final RelNode mvRel = toRel(cluster, rootSchema, defaultSchema, pair.left);
+        for (Pair<String, String> pair: f.materializationList) {
+          String sql = requireNonNull(pair.left, "sql");
+          final RelNode mvRel = toRel(cluster, rootSchema, defaultSchema, sql);
           final Table table = tableFactory.createTable(CalciteSchema.from(rootSchema),
-              pair.left, ImmutableList.of(defaultSchema.getName()));
-          defaultSchema.add(pair.right, table);
-          relBuilder.scan(defaultSchema.getName(), pair.right);
+              sql, ImmutableList.of(defaultSchema.getName()));
+          String name = requireNonNull(pair.right, "name");
+          defaultSchema.add(name, table);
+          relBuilder.scan(defaultSchema.getName(), name);
           final LogicalTableScan logicalScan = (LogicalTableScan) relBuilder.build();
           final EnumerableTableScan replacement =
               EnumerableTableScan.create(cluster, logicalScan.getTable());
           mvs.add(
               new RelOptMaterialization(replacement, mvRel, null,
-                  ImmutableList.of(defaultSchema.getName(), pair.right)));
+                  ImmutableList.of(defaultSchema.getName(), name)));
         }
         return new TestConfig(defaultSchema.getName(), queryRel, mvs);
       } catch (Exception e) {
@@ -184,8 +156,10 @@ public abstract class AbstractMaterializedViewTest {
         new JavaTypeFactoryImpl(),
         CalciteConnectionConfig.DEFAULT);
 
-    final SqlValidator validator = new ValidatorForTest(SqlStdOperatorTable.instance(),
-        catalogReader, new JavaTypeFactoryImpl(), SqlConformanceEnum.DEFAULT);
+    final SqlValidator validator =
+        SqlValidatorUtil.newValidator(SqlStdOperatorTable.instance(),
+            catalogReader, new JavaTypeFactoryImpl(),
+            SqlValidator.Config.DEFAULT);
     final SqlNode validated = validator.validate(parsed);
     final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(true)
@@ -198,57 +172,19 @@ public abstract class AbstractMaterializedViewTest {
     return converter.convertQuery(validated, false, true).rel;
   }
 
-  /** Validator for testing. */
-  private static class ValidatorForTest extends SqlValidatorImpl {
-    ValidatorForTest(SqlOperatorTable opTab, SqlValidatorCatalogReader catalogReader,
-        RelDataTypeFactory typeFactory, SqlConformance conformance) {
-      super(opTab, catalogReader, typeFactory, Config.DEFAULT.withSqlConformance(conformance));
-    }
-  }
-
   /**
    * Processed testing definition.
    */
-  protected static class TestConfig {
-    public final String defaultSchema;
-    public final RelNode queryRel;
-    public final List<RelOptMaterialization> materializations;
+  private static class TestConfig {
+    final String defaultSchema;
+    final RelNode queryRel;
+    final List<RelOptMaterialization> materializationList;
 
-    public TestConfig(String defaultSchema, RelNode queryRel,
-        List<RelOptMaterialization> materializations) {
+    TestConfig(String defaultSchema, RelNode queryRel,
+        List<RelOptMaterialization> materializationList) {
       this.defaultSchema = defaultSchema;
       this.queryRel = queryRel;
-      this.materializations = materializations;
+      this.materializationList = materializationList;
     }
-  }
-
-  /** Fluent class that contains information necessary to run a test. */
-  @Value.Immutable(singleton = false, builder = true)
-  public interface Sql {
-
-    default void ok() {
-      getTester().checkMaterialize(this);
-    }
-
-    default void noMat() {
-      getTester().checkNoMaterialize(this);
-    }
-
-    @Nullable SchemaSpec getDefaultSchemaSpec();
-    Sql withDefaultSchemaSpec(@Nullable SchemaSpec spec);
-
-    List<Pair<String, String>> getMaterializations();
-    Sql withMaterializations(Iterable<? extends Pair<String, String>> materialize);
-
-    @Value.Parameter
-    String getQuery();
-    Sql withQuery(String query);
-
-    @Nullable Function<String, Boolean> getChecker();
-    Sql withChecker(@Nullable Function<String, Boolean> checker);
-
-    @Value.Parameter
-    AbstractMaterializedViewTest getTester();
-    Sql withTester(AbstractMaterializedViewTest tester);
   }
 }

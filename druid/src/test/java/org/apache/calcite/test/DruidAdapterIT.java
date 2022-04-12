@@ -120,17 +120,24 @@ public class DruidAdapterIT {
         .query(sql);
   }
 
+  /** Creates a fixture. */
+  public static CalciteAssert.AssertThat fixture() {
+    return CalciteAssert.that()
+        .enable(enabled());
+  }
+
   /** Creates a query against a data set given by a map. */
   private CalciteAssert.AssertQuery sql(String sql, URL url) {
-    return CalciteAssert.that()
-        .enable(enabled())
+    return fixture()
         .withModel(url)
         .query(sql);
   }
 
   /** Creates a query against the {@link #FOODMART} data set. */
   private CalciteAssert.AssertQuery sql(String sql) {
-    return sql(sql, FOODMART);
+    return fixture()
+        .withModel(FOODMART)
+        .query(sql);
   }
 
   /** Tests a query against the {@link #WIKI} data set.
@@ -1626,8 +1633,8 @@ public class DruidAdapterIT {
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1997-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z]], "
-            + "filter=[AND(>=(CAST($11):INTEGER, 8), <=(CAST($11):INTEGER, 10), "
-            + "<(CAST($10):INTEGER, 15))], projects=[[$90]], groups=[{}], aggs=[[SUM($0)]])\n")
+            + "filter=[AND(SEARCH(CAST($11):INTEGER, Sarg[[8..10]]), <(CAST($10):INTEGER, 15))], "
+            + "projects=[[$90]], groups=[{}], aggs=[[SUM($0)]])\n")
         .returnsUnordered("EXPR$0=75364.1")
         .queryContains(new DruidChecker(druidQuery));
   }
@@ -1971,7 +1978,8 @@ public class DruidAdapterIT {
   @Test void testPushCastNumeric() {
     String druidQuery = "'filter':{'type':'bound','dimension':'product_id',"
         + "'upper':'10','upperStrict':true,'ordering':'numeric'}";
-    sql("?")
+    fixture()
+        .withModel(FOODMART)
         .withRel(b -> {
           // select product_id
           // from foodmart.foodmart
@@ -1994,7 +2002,8 @@ public class DruidAdapterIT {
   }
 
   @Test void testPushFieldEqualsLiteral() {
-    sql("?")
+    fixture()
+        .withModel(FOODMART)
         .withRel(b -> {
           // select count(*) as c
           // from foodmart.foodmart
@@ -3664,9 +3673,9 @@ public class DruidAdapterIT {
             + "CAST(FLOOR(CAST(\"timestamp\" AS DATE) to MONTH) AS DATE) = "
             + " CAST('1997-01-01' as DATE) GROUP BY  floor(\"timestamp\" to DAY) order by d limit 3";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], filter=[=(FLOOR(CAST($0):DATE NOT NULL, FLAG(MONTH)), "
-        + "1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], "
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1997-01-01T00:00:00.000Z/1997-02-01T00:00:00.000Z]], "
+        + "projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], "
         + "post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[ASC], fetch=[3])";
     sql(sql, FOODMART)
         .explainContains(plan)

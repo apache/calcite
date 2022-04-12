@@ -803,7 +803,7 @@ public class JsonFunctions {
     }
 
     @Override public String toString() {
-      return Objects.toString(obj);
+      return jsonize(obj);
     }
   }
 

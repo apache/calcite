@@ -745,6 +745,13 @@ class UtilTest {
     buf.literal(new Timestamp(0));
     assertEquals("TIMESTAMP '1970-01-01 00:00:00'", buf.getSqlAndClear());
 
+    buf.literal(new Timestamp(1261053296000L));
+    assertEquals("TIMESTAMP '2009-12-17 12:34:56'", buf.getSqlAndClear());
+
+    buf.append("select ");
+    buf.literal(new Timestamp(1261053296000L));
+    assertEquals("select TIMESTAMP '2009-12-17 12:34:56'", buf.getSqlAndClear());
+
     buf.clear();
     assertEquals(0, buf.length());
 
@@ -1588,29 +1595,40 @@ class UtilTest {
     map.put("foo", 1);
     map.put("baz", true);
     map.put("bar", "can't");
+    final String tricky = "string with doublequote\", singlequote', "
+        + "backslash\\, percent20%20, plus+, ampersand&, linefeed\n"
+        + ", carriage return\r, lfcr\n"
+        + "\r.";
+    map.put("tricky", tricky);
     List<Object> list = builder.list();
     map.put("list", list);
     list.add(2);
     list.add(3);
     list.add(builder.list());
     list.add(builder.map());
+    list.add(tricky);
     list.add(null);
     map.put("nullValue", null);
-    assertEquals(
-        "{\n"
-            + "  \"foo\": 1,\n"
-            + "  \"baz\": true,\n"
-            + "  \"bar\": \"can't\",\n"
-            + "  \"list\": [\n"
-            + "    2,\n"
-            + "    3,\n"
-            + "    [],\n"
-            + "    {},\n"
-            + "    null\n"
-            + "  ],\n"
-            + "  \"nullValue\": null\n"
-            + "}",
-        builder.toJsonString(map));
+    final String expected = "{\n"
+        + "  \"foo\": 1,\n"
+        + "  \"baz\": true,\n"
+        + "  \"bar\": \"can't\",\n"
+        + "  \"tricky\": \"string with doublequote\\\", singlequote', "
+        + "backslash\\\\, percent20%20, plus+, ampersand&, linefeed\\n"
+        + ", carriage return\\r, lfcr\\n\\r.\",\n"
+        + "  \"list\": [\n"
+        + "    2,\n"
+        + "    3,\n"
+        + "    [],\n"
+        + "    {},\n"
+        + "    \"string with doublequote\\\", singlequote', backslash\\\\, "
+        + "percent20%20, plus+, ampersand&, linefeed\\n"
+        + ", carriage return\\r, lfcr\\n\\r.\",\n"
+        + "    null\n"
+        + "  ],\n"
+        + "  \"nullValue\": null\n"
+        + "}";
+    assertThat(builder.toJsonString(map), is(expected));
   }
 
   @Test void testCompositeMap() {
@@ -2346,6 +2364,43 @@ class UtilTest {
       local2.set("z");
     }
     assertThat(local2.get(), is("x"));
+  }
+
+  /** Tests
+   * {@link org.apache.calcite.util.TryThreadLocal#letIn(Object, Runnable)}
+   * and
+   * {@link org.apache.calcite.util.TryThreadLocal#letIn(Object, java.util.function.Supplier)}. */
+  @Test void testTryThreadLocalLetIn() {
+    final TryThreadLocal<Integer> local = TryThreadLocal.of(2);
+    String s3 = local.letIn(3, () -> "the value is " + local.get());
+    assertThat(s3, is("the value is 3"));
+    assertThat(local.get(), is(2));
+
+    String s2 = local.letIn(2, () -> "the value is " + local.get());
+    assertThat(s2, is("the value is 2"));
+    assertThat(local.get(), is(2));
+
+    final StringBuilder sb = new StringBuilder();
+    local.letIn(4, () -> sb.append("the value is ").append(local.get()));
+    assertThat(sb.toString(), is("the value is 4"));
+    assertThat(local.get(), is(2));
+
+    // even when the Runnable throws, the value is restored
+    local.set(10);
+    sb.setLength(0);
+    try {
+      local.letIn(5, () -> {
+        sb.append("the value is ").append(local.get());
+        throw new IllegalArgumentException("oops");
+      });
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("oops"));
+    }
+    assertThat(sb.toString(), is("the value is 5"));
+    assertThat(local.get(), is(10));
+    local.remove();
+    assertThat(local.get(), is(2));
   }
 
   /** Test case for

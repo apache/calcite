@@ -95,7 +95,7 @@
   apacheId: hyuan
   githubId: hsyuan
   org: Alibaba
-  role: PMC Chair
+  role: PMC
 - name: Hongze Zhang
   apacheId: hongze
   githubId: zhztheplayer
@@ -216,7 +216,7 @@
   apacheId: rubenql
   githubId: rubenada
   org: TIBCO
-  role: PMC
+  role: PMC Chair
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia

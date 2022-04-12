@@ -23,8 +23,8 @@
       "type": "jdbc",
       "jdbcDriver": "org.hsqldb.jdbc.JDBCDriver",
       "jdbcUrl": "jdbc:hsqldb:res:chinook",
-      "jdbcUser": "sa",
-      "jdbcPassword": ""
+      "jdbcUser": "CHINOOK",
+      "jdbcPassword": "CHINOOK"
     },
     {
       "name": "ENHANCED",
@@ -36,18 +36,18 @@
           "name": "PREFERRED_TRACKS",
           "type": "view",
           "sql": [
-            "SELECT trackid, name, albumid, mediatypeid, genreid, composer, milliseconds, bytes, unitprice ",
-            "FROM chinook.track AS tr",
-            "WHERE tr.genreid IN (SELECT id FROM preferred_genres) ",
-            "OR tr.albumid IN (SELECT id FROM preferred_albums)"
+            "SELECT \"TrackId\", \"Name\", \"AlbumId\", \"MediaTypeId\", \"GenreId\", \"Composer\", \"Milliseconds\", \"Bytes\", \"UnitPrice\" ",
+            "FROM chinook.\"Track\" AS tr",
+            "WHERE tr.\"GenreId\" IN (SELECT id FROM preferred_genres) ",
+            "OR tr.\"AlbumId\" IN (SELECT id FROM preferred_albums)"
           ]
         },
         {
           "name": "SIMPLE_CUSTOMER",
           "type": "view",
           "sql": [
-            "SELECT c.firstname, c.lastname, c.email ",
-            "FROM chinook.customer AS c"
+            "SELECT c.\"FirstName\", c.\"LastName\", c.\"Email\" ",
+            "FROM chinook.\"Customer\" AS c"
           ]
         },
         {
@@ -95,9 +95,9 @@
           "name": "CODED_EMAILS",
           "type": "view",
           "sql": [
-            "SELECT SC.email, TF.TYPE, TF.CODEVALUE ",
+            "SELECT SC.\"Email\", TF.TYPE, TF.CODEVALUE ",
             "FROM ENHANCED.SIMPLE_CUSTOMER SC ",
-            "CROSS JOIN LATERAL TABLE(AUX.CODES(SC.email)) TF ",
+            "CROSS JOIN LATERAL TABLE(AUX.CODES(SC.\"Email\")) TF ",
             "limit 6"
           ]
         }

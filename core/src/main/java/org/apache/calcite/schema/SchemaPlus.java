@@ -68,6 +68,13 @@ public interface SchemaPlus extends Schema {
   /** Adds a table to this schema. */
   void add(String name, Table table);
 
+  /** Removes a table from this schema, used e.g. to clean-up temporary tables. */
+  default boolean removeTable(String name) {
+    // Default implementation provided for backwards compatibility, to be removed before 2.0
+    return false;
+  }
+
+
   /** Adds a function to this schema. */
   void add(String name, Function function);
 

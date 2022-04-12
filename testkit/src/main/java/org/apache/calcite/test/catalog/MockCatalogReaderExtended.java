@@ -35,6 +35,8 @@ import org.apache.calcite.sql.util.SqlOperatorTables;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -46,17 +48,24 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
   /**
    * Creates a MockCatalogReader.
    *
-   * <p>Caller must then call {@link #init} to populate with data.</p>
+   * <p>Caller must then call {@link #init} to populate with data;
+   * constructor is protected to encourage you to call {@link #create}.
    *
    * @param typeFactory   Type factory
    * @param caseSensitive case sensitivity
    */
-  public MockCatalogReaderExtended(RelDataTypeFactory typeFactory,
+  protected MockCatalogReaderExtended(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
     super(typeFactory, caseSensitive);
   }
 
-  @Override public MockCatalogReader init() {
+  /** Creates and initializes a MockCatalogReaderExtended. */
+  public static @NonNull MockCatalogReaderExtended create(
+      RelDataTypeFactory typeFactory, boolean caseSensitive) {
+    return new MockCatalogReaderExtended(typeFactory, caseSensitive).init();
+  }
+
+  @Override public MockCatalogReaderExtended init() {
     super.init();
 
     MockSchema salesSchema = new MockSchema("SALES");

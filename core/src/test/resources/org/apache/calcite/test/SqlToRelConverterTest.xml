@@ -1722,7 +1722,7 @@ LogicalProject(EXPR$0=[ROW(ITEM($3, 1).EMPNO, ITEM($3, 1).ENAME, ROW(ITEM($3, 1)
   <TestCase name="testFunctionExprInOver">
     <Resource name="sql">
       <![CDATA[select ename, row_number() over(partition by char_length(ename)
-order by deptno desc) as rn
+ order by deptno desc) as rn
 from emp
 where deptno = 10]]>
     </Resource>
@@ -2425,6 +2425,28 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInToSemiJoinWithNewProject">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (
+SELECT '20210101' AS dt, deptno
+FROM emp
+GROUP BY deptno
+) t
+WHERE cast(deptno as varchar) in ('1')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DT=[$0], DEPTNO=[$1])
+  LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+    LogicalProject(DT=['20210101'], DEPTNO=[$0], DEPTNO0=[CAST($0):VARCHAR NOT NULL])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalValues(tuples=[[{ '1' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInUncorrelatedSubQuery">
     <Resource name="sql">
       <![CDATA[select empno from emp where deptno in (select deptno from dept)]]>
@@ -2691,7 +2713,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
       <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[=($7, 20)])
-    LogicalProject(EMPNO=[$2], ENAME=[$0], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[$4], COMM=[null:INTEGER], DEPTNO=[$1], SLACKER=[null:BOOLEAN], EXTRA=[null:BOOLEAN], UPDATED=[$3])
+    LogicalProject(EMPNO=[$2], ENAME=[$0], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[CAST($4):INTEGER], COMM=[null:INTEGER], DEPTNO=[CAST($1):INTEGER], SLACKER=[null:BOOLEAN], EXTRA=[null:BOOLEAN], UPDATED=[CAST($3):TIMESTAMP(0)])
       LogicalValues(tuples=[[{ 'Fred', 20, 44, 2017-03-12 13:03:05, 999999 }]])
 ]]>
     </Resource>
@@ -2703,7 +2725,7 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[CAST($2):VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 34625, 'nom', 'accountant' }]])
 ]]>
     </Resource>
@@ -2742,7 +2764,7 @@ values (10, 'Fred')]]>
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[>($5, 1000)])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+    LogicalProject(EMPNO=[$0], ENAME=[CAST($1):VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
       LogicalValues(tuples=[[{ 10, 'Fred' }]])
 ]]>
     </Resource>
@@ -2768,7 +2790,7 @@ values (150, 'Fred')]]>
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[>($5, 1000)])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+    LogicalProject(EMPNO=[$0], ENAME=[CAST($1):VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
       LogicalValues(tuples=[[{ 150, 'Fred' }]])
 ]]>
     </Resource>
@@ -3508,6 +3530,90 @@ from emp]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EXPR$0=[JSON_LENGTH($1, 'strict $')])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJsonNestedJsonArrayAggConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_object(
+  'k2' :
+  json_arrayagg(
+    json_object(
+      ename :
+      deptno)))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'k2', JSON_TYPE($0))])
+  LogicalAggregate(group=[{}], agg#0=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)])
+    LogicalProject($f0=[JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), $1, $7))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJsonNestedJsonArrayConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_array(
+  json_object(
+    'key1' :
+    json_object(
+      'key2' :
+       ename)),
+  json_array(12, 'hello', deptno))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_ARRAY(FLAG(ABSENT_ON_NULL), JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'key1', JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'key2', $1)))), JSON_TYPE(JSON_ARRAY(FLAG(ABSENT_ON_NULL), 12, 'hello', $7)))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJsonNestedJsonObjectAggConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_object(
+  'k2' :
+  json_objectagg(
+    ename :
+    json_object(
+      'k1' :
+      deptno)))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'k2', JSON_TYPE($0))])
+  LogicalAggregate(group=[{}], agg#0=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)])
+    LogicalProject(ENAME=[$1], $f1=[JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'k1', $7))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJsonNestedJsonObjectConstructor">
+    <Resource name="sql">
+      <![CDATA[select
+json_object(
+  'key1' :
+  json_object(
+    'key2' :
+    ename)),
+  json_object(
+    'key3' :
+    json_array(12, 'hello', deptno))
+from emp
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'key1', JSON_TYPE(JSON_OBJECT(FLAG(NULL_ON_NULL), 'key2', $1)))], EXPR$1=[JSON_OBJECT(FLAG(NULL_ON_NULL), 'key3', JSON_TYPE(JSON_ARRAY(FLAG(ABSENT_ON_NULL), 12, 'hello', $7)))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -4613,8 +4719,8 @@ LogicalProject(EXPR$0=[1])
 ]]>
     </Resource>
     <Resource name="sql">
-      <![CDATA[select * from emp where not unique(
-select 1 from dept where emp.deptno = dept.deptno)]]>
+      <![CDATA[select * from emp where not unique (
+  select 1 from dept where emp.deptno=dept.deptno)]]>
     </Resource>
   </TestCase>
   <TestCase name="testOffset">
@@ -4724,6 +4830,20 @@ ProjectRel(EMPNO=[$0], Y=[$1])
   SortRel(sort0=[$2], dir0=[Ascending])
     ProjectRel(EMPNO=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+($0, 3)])
       TableAccessRel(table=[[SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOrderByAliasDoesNotOverride">
+    <Resource name="sql">
+      <![CDATA[select empno + 1 as empno, empno - 2 as y
+from emp order by empno + 3]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], Y=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(EMPNO=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+($0, 3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -6939,6 +7059,12 @@ select 34 from emp
 union all values (30), (45 + 10)]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUniqueWithExpand">
+    <Resource name="sql">
+      <![CDATA[select * from emp
+where unique (select 1 from dept where deptno=55)]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUniqueWithManyProject">
     <Resource name="plan">
       <![CDATA[
@@ -6951,8 +7077,8 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
     <Resource name="sql">
-      <![CDATA[select * from emp where unique (
-select * from dept)]]>
+      <![CDATA[select * from emp
+where unique (select * from dept)]]>
     </Resource>
   </TestCase>
   <TestCase name="testUniqueWithOneProject">
@@ -6968,8 +7094,8 @@ LogicalProject(NAME=[$1])
 ]]>
     </Resource>
     <Resource name="sql">
-      <![CDATA[select * from emp where unique (
-select name from dept where deptno=55)]]>
+      <![CDATA[select * from emp
+where unique (select name from dept where deptno=55)]]>
     </Resource>
   </TestCase>
   <TestCase name="testUniqueWithProjectLateral">
@@ -6985,8 +7111,8 @@ LogicalProject(EXPR$0=[1])
 ]]>
     </Resource>
     <Resource name="sql">
-      <![CDATA[select * from emp where unique (
-select 1 from dept where deptno=55)]]>
+      <![CDATA[select * from emp
+where unique (select 1 from dept where deptno=55)]]>
     </Resource>
   </TestCase>
   <TestCase name="testUnnest">

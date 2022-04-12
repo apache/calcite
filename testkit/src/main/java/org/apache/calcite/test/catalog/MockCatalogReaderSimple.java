@@ -34,6 +34,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -47,16 +49,23 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
   /**
    * Creates a MockCatalogReader.
    *
-   * <p>Caller must then call {@link #init} to populate with data.</p>
+   * <p>Caller must then call {@link #init} to populate with data;
+   * constructor is protected to encourage you to call {@link #create}.
    *
    * @param typeFactory   Type factory
    * @param caseSensitive case sensitivity
    */
-  public MockCatalogReaderSimple(RelDataTypeFactory typeFactory,
+  protected MockCatalogReaderSimple(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
     super(typeFactory, caseSensitive);
 
     addressType = new Fixture(typeFactory).addressType;
+  }
+
+  /** Creates and initializes a MockCatalogReaderSimple. */
+  public static @NonNull MockCatalogReaderSimple create(
+      RelDataTypeFactory typeFactory, boolean caseSensitive) {
+    return new MockCatalogReaderSimple(typeFactory, caseSensitive).init();
   }
 
   @Override public RelDataType getNamedType(SqlIdentifier typeName) {
@@ -67,7 +76,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     }
   }
 
-  @Override public MockCatalogReader init() {
+  @Override public MockCatalogReaderSimple init() {
     final Fixture fixture = new Fixture(typeFactory);
 
     // Register "SALES" schema.

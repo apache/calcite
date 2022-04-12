@@ -425,14 +425,6 @@ class SqlJsonFunctionsTest {
         JsonFunctions.JsonValueContext.withJavaObj(new HashMap<>()), is("{ }"));
     assertJsonPretty(
         JsonFunctions.JsonValueContext.withJavaObj(Longs.asList(1, 2)), is("[ 1, 2 ]"));
-
-    Object input = new Object() {
-      private final Object self = this;
-    };
-    CalciteException expected = new CalciteException(
-        "Cannot serialize object to JSON: '" + input + "'", null);
-    assertJsonPrettyFailed(
-        JsonFunctions.JsonValueContext.withJavaObj(input), errorMatches(expected));
   }
 
   @Test void testDejsonize() {
