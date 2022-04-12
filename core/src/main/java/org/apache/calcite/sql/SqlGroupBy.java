@@ -77,8 +77,8 @@ public class SqlGroupBy extends SqlCall {
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    if (qualifier != null && isDistinct()) {
-      qualifier.unparse(writer, 0, 0);
+    if (isDistinct()) {
+      requireNonNull(qualifier, "qualifier").unparse(writer, 0, 0);
     }
     final SqlNodeList groupBy =
         groupList.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
