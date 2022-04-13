@@ -126,6 +126,7 @@ import org.apache.calcite.util.SourceStringReader;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 
 import java.io.Reader;
@@ -2499,11 +2500,20 @@ SqlNode WhereOpt() :
 SqlNodeList GroupByOpt() :
 {
     List<SqlNode> list = new ArrayList<SqlNode>();
+    boolean distinct = false;
     final Span s;
 }
 {
     <GROUP> { s = span(); }
-    <BY> list = GroupingElementList() {
+    <BY>
+    [ <DISTINCT> { distinct = true; } | <ALL> ]
+    list = GroupingElementList() {
+        if (distinct) {
+            SqlNode groupByDistinct =
+                SqlInternalOperators.GROUP_BY_DISTINCT.createCall(
+                    s.add(getPos()).pos(), list);
+            list = ImmutableList.of(groupByDistinct);
+        }
         return new SqlNodeList(list, s.addAll(list).pos());
     }
 |
