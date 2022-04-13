@@ -4182,10 +4182,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void validateGroupByExpr(SqlNode groupByItem,
       SqlValidatorScope groupByScope) {
     switch (groupByItem.getKind()) {
+    case GROUP_BY_DISTINCT:
+      SqlCall call = (SqlCall) groupByItem;
+      for (SqlNode operand : call.getOperandList()) {
+        validateGroupByExpr(operand, groupByScope);
+      }
+      break;
     case GROUPING_SETS:
     case ROLLUP:
     case CUBE:
-      final SqlCall call = (SqlCall) groupByItem;
+      call = (SqlCall) groupByItem;
       for (SqlNode operand : call.getOperandList()) {
         validateExpr(operand, groupByScope);
       }
@@ -4260,6 +4266,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // expressions, because they do not have a type.
     for (SqlNode node : groupList) {
       switch (node.getKind()) {
+      case GROUP_BY_DISTINCT:
       case GROUPING_SETS:
       case ROLLUP:
       case CUBE:
@@ -4296,6 +4303,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable AggregatingSelectScope aggregatingScope,
       SqlNode groupItem) {
     switch (groupItem.getKind()) {
+    case GROUP_BY_DISTINCT:
+      for (SqlNode sqlNode : ((SqlCall) groupItem).getOperandList()) {
+        validateGroupItem(groupScope, aggregatingScope, sqlNode);
+      }
+      break;
     case GROUPING_SETS:
     case ROLLUP:
     case CUBE:

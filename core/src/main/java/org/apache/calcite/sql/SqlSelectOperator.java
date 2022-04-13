@@ -19,8 +19,11 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -202,10 +205,15 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
     if (select.groupBy != null) {
-      writer.sep("GROUP BY");
-      final SqlNodeList groupBy =
-          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
-              : select.groupBy;
+      SqlNodeList groupBy = select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY : select.groupBy;
+      if (groupBy.size() > 0 && groupBy.get(0) != null
+          && groupBy.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+        writer.sep("GROUP BY DISTINCT");
+        List<SqlNode> operandList = ((SqlCall) select.groupBy.get(0)).getOperandList();
+        groupBy = new SqlNodeList(operandList, groupBy.getParserPosition());
+      } else {
+        writer.sep("GROUP BY");
+      }
       writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
           groupBy);
     }

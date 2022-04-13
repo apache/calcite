@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.sql.validate;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
@@ -93,8 +96,14 @@ public class AggregatingSelectScope
     try {
       final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
           ImmutableList.builder();
+      boolean groupByDistinct = false;
       if (select.getGroup() != null) {
-        final SqlNodeList groupList = select.getGroup();
+        SqlNodeList groupList = select.getGroup();
+        if (groupList.size() > 0 && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+          groupList = new SqlNodeList(((SqlCall)groupList.get(0)).getOperandList(),
+              groupList.getParserPosition());
+          groupByDistinct = true;
+        }
         for (SqlNode groupExpr : groupList) {
           SqlValidatorUtil.analyzeGroupItem(this, groupAnalyzer, builder,
               groupExpr);
@@ -109,6 +118,12 @@ public class AggregatingSelectScope
       // For GROUP BY (), we need a singleton grouping set.
       if (flatGroupSets.isEmpty()) {
         flatGroupSets.add(ImmutableBitSet.of());
+      }
+
+      if (groupByDistinct) {
+        ImmutableSet<ImmutableBitSet> sets = ImmutableSet.copyOf(flatGroupSets);
+        flatGroupSets.clear();
+        flatGroupSets.addAll(sets);
       }
 
       return new Resolved(groupAnalyzer.extraExprs, groupAnalyzer.groupExprs,

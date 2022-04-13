@@ -219,6 +219,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlInternalOperator GROUPING_SETS =
       new SqlRollupOperator("GROUPING SETS", SqlKind.GROUPING_SETS);
 
+  /** {@code DISTINCT} operator, occurs within {@code GROUP BY} clause. */
+  public static final SqlInternalOperator GROUP_BY_DISTINCT =
+      new SqlRollupOperator("GROUP BY DISTINCT", SqlKind.GROUP_BY_DISTINCT);
+
   /** {@code GROUPING(c1 [, c2, ...])} function.
    *
    * <p>Occurs in similar places to an aggregate
