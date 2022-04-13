@@ -4493,4 +4493,28 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withTrim(false)
         .ok();
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5089">[CALCITE-5089]
+   * Allow GROUP BY ALL or DISTINCT set quantifier on GROUPING SETS</a>. */
+  @Test void testGroupByDistinct() {
+    final String sql = "SELECT deptno, job, count(*)\n"
+        + "FROM emp\n"
+        + "GROUP BY DISTINCT\n"
+        + "CUBE (deptno, job),\n"
+        + "ROLLUP (deptno, job)";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5089">[CALCITE-5089]
+   * Allow GROUP BY ALL or DISTINCT set quantifier on GROUPING SETS</a>. */
+  @Test void testGroupByAll() {
+    final String sql = "SELECT deptno, job, count(*)\n"
+        + "FROM emp\n"
+        + "GROUP BY ALL\n"
+        + "CUBE (deptno, job),\n"
+        + "ROLLUP (deptno, job)";
+    sql(sql).ok();
+  }
 }
