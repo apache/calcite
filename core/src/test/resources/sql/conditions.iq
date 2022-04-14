@@ -327,4 +327,34 @@ where deptno > 5 AND deptno < 20 AND mgr IS NULL;
 
 !ok
 
+# [CALCITE-1794] Expressions with numeric comparisons are not simplified when CAST is present
+
+# Pull up predicate simplified plan has only 'deptno = 25' and has dropped the 'deptno <> 20' condition.
+select * from "scott".emp where deptno = 25 and deptno <> 20;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[25], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# SARGs simplified plan has only 'deptno = 25' and has dropped the 'deptno <> 20' condition.
+select * from "scott".emp where deptno <> 20 and deptno = 25;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[25], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End conditions.iq

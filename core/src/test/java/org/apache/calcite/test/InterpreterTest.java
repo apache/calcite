@@ -60,13 +60,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for {@link org.apache.calcite.interpreter.Interpreter}.
@@ -115,6 +116,10 @@ class InterpreterTest {
       this.rootSchema = rootSchema;
       this.project = project;
       this.relFn = relFn;
+    }
+
+    Sql withSql(String sql) {
+      return new Sql(sql, rootSchema, project, relFn);
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -184,8 +189,12 @@ class InterpreterTest {
   }
 
   /** Creates a {@link Sql}. */
+  private Sql fixture() {
+    return new Sql("?", rootSchema, false, null);
+  }
+
   private Sql sql(String sql) {
-    return new Sql(sql, rootSchema, false, null);
+    return fixture().withSql(sql);
   }
 
   private void reset() {
@@ -695,8 +704,7 @@ class InterpreterTest {
   @Test void testInterpretNonStaticTableFunction() {
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     final TableFunction tableFunction =
-        Objects.requireNonNull(
-            TableFunctionImpl.create(Smalls.MyTableFunction.class));
+        requireNonNull(TableFunctionImpl.create(Smalls.MyTableFunction.class));
     schema.add("t", tableFunction);
     final String sql = "select *\n"
         + "from table(\"s\".\"t\"('=100='))";
@@ -706,7 +714,7 @@ class InterpreterTest {
   /** Tests projecting zero fields. */
   @Test void testZeroFields() {
     final List<RexLiteral> row = ImmutableList.of();
-    sql("?")
+    fixture()
         .withRel(b ->
             b.values(ImmutableList.of(row, row),
                 b.getTypeFactory().builder().build())

@@ -114,6 +114,7 @@ dependencies {
         apiv("org.apiguardian:apiguardian-api")
         apiv("org.bouncycastle:bcpkix-jdk15on", "bouncycastle")
         apiv("org.bouncycastle:bcprov-jdk15on", "bouncycastle")
+        apiv("net.bytebuddy:byte-buddy")
         apiv("org.cassandraunit:cassandra-unit")
         apiv("org.codehaus.janino:commons-compiler", "janino")
         apiv("org.codehaus.janino:janino")

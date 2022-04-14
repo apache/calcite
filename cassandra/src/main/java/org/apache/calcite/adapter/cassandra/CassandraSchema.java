@@ -54,13 +54,10 @@ import com.datastax.oss.driver.api.core.type.ListType;
 import com.datastax.oss.driver.api.core.type.MapType;
 import com.datastax.oss.driver.api.core.type.SetType;
 import com.datastax.oss.driver.api.core.type.TupleType;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -80,83 +77,24 @@ public class CassandraSchema extends AbstractSchema {
   final String name;
   final Hook.Closeable hook;
 
-  static final CodecRegistry CODEC_REGISTRY = CodecRegistry.DEFAULT;
   static final CqlToSqlTypeConversionRules CQL_TO_SQL_TYPE =
       CqlToSqlTypeConversionRules.instance();
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
-  private static final int DEFAULT_CASSANDRA_PORT = 9042;
-
   /**
    * Creates a Cassandra schema.
    *
-   * @param host Cassandra host, e.g. "localhost"
-   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
+   * @param session a Cassandra session
+   * @param parentSchema the parent schema
+   * @param name the schema name
    */
-  @SuppressWarnings("unused")
-  public CassandraSchema(String host, String keyspace, SchemaPlus parentSchema, String name) {
-    this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
-  }
-
-  /**
-   * Creates a Cassandra schema.
-   *
-   * @param host Cassandra host, e.g. "localhost"
-   * @param port Cassandra port, e.g. 9042
-   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
-   */
-  @SuppressWarnings("unused")
-  public CassandraSchema(String host, int port, String keyspace,
-      SchemaPlus parentSchema, String name) {
-    this(host, port, keyspace, null, null, parentSchema, name);
-  }
-
-  /**
-   * Creates a Cassandra schema.
-   *
-   * @param host Cassandra host, e.g. "localhost"
-   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
-   * @param username Cassandra username
-   * @param password Cassandra password
-   */
-  public CassandraSchema(String host, String keyspace, @Nullable String username,
-      @Nullable String password, SchemaPlus parentSchema, String name) {
-    this(host, DEFAULT_CASSANDRA_PORT, keyspace, username, password, parentSchema, name);
-  }
-
-  /**
-   * Creates a Cassandra schema.
-   *
-   * @param host Cassandra host, e.g. "localhost"
-   * @param port Cassandra port, e.g. 9042
-   * @param keyspace Cassandra keyspace name, e.g. "twissandra"
-   * @param username Cassandra username
-   * @param password Cassandra password
-   */
-  public CassandraSchema(String host, int port, String keyspace, @Nullable String username,
-      @Nullable String password, SchemaPlus parentSchema, String name) {
+  public CassandraSchema(CqlSession session, SchemaPlus parentSchema, String name) {
     super();
-
-    this.keyspace = keyspace;
-    try {
-      if (username != null && password != null) {
-        this.session = CqlSession.builder()
-            .addContactPoint(new InetSocketAddress(host, port))
-            .withAuthCredentials(username, password)
-            .withKeyspace(keyspace)
-            .withLocalDatacenter("datacenter1")
-            .build();
-      } else {
-        this.session = CqlSession.builder()
-            .addContactPoint(new InetSocketAddress(host, port))
-            .withKeyspace(keyspace)
-            .withLocalDatacenter("datacenter1")
-            .build();
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    this.session = session;
+    this.keyspace = session.getKeyspace()
+        .orElseThrow(() -> new RuntimeException("No keyspace for session " + session.getName()))
+        .asInternal();
     this.parentSchema = parentSchema;
     this.name = name;
     this.hook = prepareHook();

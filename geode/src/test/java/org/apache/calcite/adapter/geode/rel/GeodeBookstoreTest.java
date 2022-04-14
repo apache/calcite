@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.geode.rel;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ConnectionFactory;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
@@ -47,16 +48,19 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
 
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
-        root.add("geode",
-            new GeodeSchema(POLICY.cache(), Arrays.asList("BookMaster", "BookCustomer")));
-        return connection;
-      }
-    };
+  private static Connection createConnection() throws SQLException {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
+    root.add("geode",
+        new GeodeSchema(POLICY.cache(),
+            Arrays.asList("BookMaster", "BookCustomer")));
+    return connection;
+  }
+
+  private ConnectionFactory newConnectionFactory() {
+    return GeodeBookstoreTest::createConnection;
   }
 
   private CalciteAssert.AssertThat calciteAssert() {
@@ -112,8 +116,7 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
         .returnsUnordered("author=Jim Heavisides", "author=Daisy Mae West")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(author=[$4])\n"
-            + "    GeodeFilter(condition=[OR(=(CAST($0):INTEGER, 123), "
-            + "=(CAST($0):INTEGER, 789))])\n"
+            + "    GeodeFilter(condition=[SEARCH(CAST($0):INTEGER, Sarg[123, 789])])\n"
             + "      GeodeTableScan(table=[[geode, BookMaster]])\n")
         .queryContains(
             GeodeAssertions.query(expectedQuery));
@@ -451,7 +454,7 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
 
   @Test void testSqlDisjunction() {
     String expectedQuery = "SELECT author AS author FROM /BookMaster "
-        + "WHERE itemNumber IN SET(789, 123)";
+        + "WHERE itemNumber IN SET(123, 789)";
 
     calciteAssert().query("SELECT author FROM geode.BookMaster "
         + "WHERE itemNumber = 789 OR itemNumber = 123").runs()

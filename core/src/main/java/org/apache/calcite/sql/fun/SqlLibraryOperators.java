@@ -19,6 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -706,4 +707,17 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
+
+  /** NULL-safe "&lt;=&gt;" equal operator used by MySQL, for example
+   * {@code 1<=>NULL}. */
+  @LibraryOperator(libraries = { MYSQL })
+  public static final SqlOperator NULL_SAFE_EQUAL =
+      new SqlBinaryOperator(
+          "<=>",
+          SqlKind.IS_NOT_DISTINCT_FROM,
+          30,
+          true,
+          ReturnTypes.BOOLEAN,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 }

@@ -86,20 +86,23 @@ public class DruidAdapter2IT {
 
   /** Creates a query against FOODMART with approximate parameters. */
   private CalciteAssert.AssertQuery foodmartApprox(String sql) {
-    return CalciteAssert.that()
-        .enable(enabled())
-        .withModel(FOODMART)
+    return fixture()
         .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), true)
         .with(CalciteConnectionProperty.APPROXIMATE_TOP_N.camelName(), true)
         .with(CalciteConnectionProperty.APPROXIMATE_DECIMAL.camelName(), true)
         .query(sql);
   }
 
-  /** Creates a query against the {@link #FOODMART} data set. */
-  private CalciteAssert.AssertQuery sql(String sql) {
+  /** Creates a fixture against the {@link #FOODMART} data set. */
+  public static CalciteAssert.AssertThat fixture() {
     return CalciteAssert.that()
         .enable(enabled())
-        .withModel(FOODMART)
+        .withModel(FOODMART);
+  }
+
+  /** Creates a query against the {@link #FOODMART} data set. */
+  public static CalciteAssert.AssertQuery sql(String sql) {
+    return fixture()
         .query(sql);
   }
 
@@ -393,9 +396,7 @@ public class DruidAdapter2IT {
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
         + "2992-01-10T00:00:00.000Z]], projects=[[$2, $89]], groups=[{0}], "
         + "aggs=[[SUM($1)]], sort0=[1], dir0=[DESC], fetch=[3])";
-    CalciteAssert.that()
-        .enable(enabled())
-        .withModel(FOODMART)
+    fixture()
         .with(CalciteConnectionProperty.APPROXIMATE_TOP_N.name(), approx)
         .query(sql)
         .runs()
@@ -1337,7 +1338,7 @@ public class DruidAdapter2IT {
         + "1998-01-01T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}";
     sql(sql)
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1997-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z]], filter=[AND(>=(CAST($11):INTEGER, 8), <=(CAST($11):INTEGER, 10), <(CAST($10):INTEGER, 15))], projects=[[$90]], groups=[{}], aggs=[[SUM($0)]])")
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1997-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z]], filter=[AND(SEARCH(CAST($11):INTEGER, Sarg[[8..10]]), <(CAST($10):INTEGER, 15))], projects=[[$90]], groups=[{}], aggs=[[SUM($0)]])")
         .returnsUnordered("EXPR$0=75364.1")
         .queryContains(new DruidChecker(druidQuery));
   }
@@ -1679,7 +1680,7 @@ public class DruidAdapter2IT {
   @Test void testPushCastNumeric() {
     String druidQuery = "'filter':{'type':'bound','dimension':'product_id',"
         + "'upper':'10','upperStrict':true,'ordering':'numeric'}";
-    sql("?")
+    fixture()
         .withRel(b -> {
           // select product_id
           // from foodmart.foodmart
@@ -1702,7 +1703,7 @@ public class DruidAdapter2IT {
   }
 
   @Test void testPushFieldEqualsLiteral() {
-    sql("?")
+    fixture()
         .withRel(b -> {
           // select count(*) as c
           // from foodmart.foodmart
@@ -2578,9 +2579,7 @@ public class DruidAdapter2IT {
 
   private void testCountWithApproxDistinct(boolean approx, String sql,
       String expectedExplain, String expectedDruidQuery) {
-    CalciteAssert.that()
-        .enable(enabled())
-        .withModel(FOODMART)
+    fixture()
         .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), approx)
         .query(sql)
         .runs()
@@ -2762,9 +2761,7 @@ public class DruidAdapter2IT {
     final String druidQuery = "{\"queryType\":\"scan\",\"dataSource\":\"foodmart\",\"intervals\":"
         + "[\"1997-05-01T00:00:00.000Z/1997-06-01T00:00:00.000Z\"],\"virtualColumns\":[{\"type\":"
         + "\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_floor(\\\"__time\\\"";
-    CalciteAssert.that()
-        .enable(enabled())
-        .withModel(FOODMART)
+    fixture()
         .query(sql)
         .runs()
         .queryContains(new DruidChecker(druidQuery))
@@ -3003,9 +3000,7 @@ public class DruidAdapter2IT {
         + " EXTRACT(YEAR from \"timestamp\") + 1 > 1997";
     final String filterPart1 = "'filter':{'type':'expression','expression':"
         + "'((timestamp_extract(\\'__time\\'";
-    CalciteAssert.that()
-        .enable(enabled())
-        .withModel(FOODMART)
+    fixture()
         .query(sql)
         .runs()
         .returnsOrdered("EXPR$0=86829")
@@ -3017,9 +3012,7 @@ public class DruidAdapter2IT {
         + " EXTRACT(MONTH from \"timestamp\") + 1 = 02";
     final String filterPart1 = "'filter':{'type':'expression','expression':"
         + "'((timestamp_extract(\\'__time\\'";
-    CalciteAssert.that()
-        .enable(enabled())
-        .withModel(FOODMART)
+    fixture()
         .query(sql)
         .runs()
         .returnsOrdered("EXPR$0=7033")
@@ -3033,9 +3026,9 @@ public class DruidAdapter2IT {
             + "CAST(FLOOR(CAST(\"timestamp\" AS DATE) to MONTH) AS DATE) = "
             + " CAST('1997-01-01' as DATE) GROUP BY  floor(\"timestamp\" to DAY) order by d limit 3";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], filter=[=(FLOOR(CAST($0):DATE NOT NULL, FLAG(MONTH)), "
-        + "1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], sort0=[0], "
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1997-01-01T00:00:00.000Z/1997-02-01T00:00:00.000Z]], "
+        + "projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], sort0=[0], "
         + "dir0=[ASC], fetch=[3])";
     sql(sql)
         .explainContains(plan)

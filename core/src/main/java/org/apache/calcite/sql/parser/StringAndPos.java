@@ -18,6 +18,8 @@ package org.apache.calcite.sql.parser;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Objects;
+
 /**
  * Contains a string, the offset of a token within the string, and a parser
  * position containing the beginning and end line number.
@@ -31,6 +33,22 @@ public class StringAndPos {
     this.sql = sql;
     this.cursor = cursor;
     this.pos = pos;
+  }
+
+  @Override public String toString() {
+    return addCarets();
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(sql, cursor);
+  }
+
+  @Override public boolean equals(@Nullable Object o) {
+    return o == this
+        || o instanceof StringAndPos
+        && sql.equals(((StringAndPos) o).sql)
+        && cursor == ((StringAndPos) o).cursor
+        && Objects.equals(pos, ((StringAndPos) o).pos);
   }
 
   /**

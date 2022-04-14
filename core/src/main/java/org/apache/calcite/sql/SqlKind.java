@@ -674,6 +674,9 @@ public enum SqlKind {
   /** {@code JSON_OBJECTAGG} aggregate function. */
   JSON_OBJECTAGG,
 
+  /** {@code JSON} type function. */
+  JSON_TYPE,
+
   /** {@code UNNEST} operator. */
   UNNEST,
 

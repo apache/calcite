@@ -44,6 +44,8 @@ class SqlTypeFixture {
       typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
   final RelDataType sqlNull = typeFactory.createTypeWithNullability(
       typeFactory.createSqlType(SqlTypeName.NULL), false);
+  final RelDataType sqlUnknown = typeFactory.createTypeWithNullability(
+      typeFactory.createSqlType(SqlTypeName.UNKNOWN), false);
   final RelDataType sqlAny = typeFactory.createTypeWithNullability(
       typeFactory.createSqlType(SqlTypeName.ANY), false);
   final RelDataType sqlFloat = typeFactory.createTypeWithNullability(

@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.29.0-src.tar.gz
-$ cd apache-calcite-1.29.0-src
+$ tar xvfz apache-calcite-1.30.0-src.tar.gz
+$ cd apache-calcite-1.30.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -605,7 +605,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.29.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.30.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
@@ -693,9 +693,11 @@ Before you start:
   is starting and therefore `master` branch is in code freeze until further notice.
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
-* Make sure `master` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
-  been applied also to `master`.
-  This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
+* Make sure `master` branch and `site` branch are in sync, i.e. there is no
+  commit on `site` that has not been applied also to `master`.
+  We are talking about the commit content, you need to pay attention to the commit message
+  and change, not hash: it is normal to have the same change in `site` and
+  `master`, but with different hashes. If you spot missing commits then port them to `master`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -927,7 +929,8 @@ Remember that UTC date changes at 4 pm Pacific time.
 
 Svnpubsub will publish to the
 [release repo](https://dist.apache.org/repos/dist/release/calcite) and propagate to the
-[mirrors](https://www.apache.org/dyn/closer.cgi/calcite) within 24 hours.
+[mirrors](https://www.apache.org/dyn/closer.cgi/calcite) almost immediately.
+So there is no need to wait more than fifteen minutes before announcing the release.
 
 If there are now more than 2 releases, clear out the oldest ones:
 
@@ -949,7 +952,9 @@ Add a release announcement by copying
 Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Ensure the announcement,
 javadoc, and release note appear correctly and then publish the site following the instructions
-in the same file.
+in the same file. Rebase the `site` branch with `master` (e.g., `git checkout site && git rebase master`);
+at this point there shouldn't be any commits in `site` that are not in `master`, so the rebase is
+essentially a noop.
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),

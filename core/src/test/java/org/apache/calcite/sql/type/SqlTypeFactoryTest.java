@@ -33,6 +33,7 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.Is.isA;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -286,4 +287,30 @@ class SqlTypeFactoryTest {
     assertThat(tsWithPrecision3 == tsWithPrecision8, is(true));
   }
 
+  /** Test that the {@code UNKNOWN} type is a {@link BasicSqlType} and remains
+   * so when nullified. */
+  @Test void testUnknownCreateWithNullabilityTypeConsistency() {
+    final SqlTypeFixture f = new SqlTypeFixture();
+
+    final RelDataType unknownType = f.typeFactory.createUnknownType();
+    assertThat(unknownType, isA(BasicSqlType.class));
+    assertThat(unknownType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertFalse(unknownType.isNullable());
+    assertThat(unknownType.getFullTypeString(), is("UNKNOWN NOT NULL"));
+
+    final RelDataType nullableType =
+        f.typeFactory.createTypeWithNullability(unknownType, true);
+    assertThat(nullableType, isA(BasicSqlType.class));
+    assertThat(nullableType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertTrue(nullableType.isNullable());
+    assertThat(nullableType.getFullTypeString(), is("UNKNOWN"));
+
+    final RelDataType unknownType2 =
+        f.typeFactory.createTypeWithNullability(nullableType, false);
+    assertThat(unknownType2, is(unknownType));
+    assertThat(unknownType2, isA(BasicSqlType.class));
+    assertThat(unknownType2.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertFalse(unknownType2.isNullable());
+    assertThat(unknownType2.getFullTypeString(), is("UNKNOWN NOT NULL"));
+  }
 }

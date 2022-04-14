@@ -2948,7 +2948,33 @@ select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) forma
 
 !ok
 
+select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno)) from emp group by gender;
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GENDER | EXPR$1                                                                                                                                                                               |
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
+| M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+(2 rows)
+
+!ok
+
 select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ename': ename, 'gender': gender) format json) format json) from emp group by deptno;
++-------------------------------------------------------------------------------------------+
+| EXPR$0                                                                                    |
++-------------------------------------------------------------------------------------------+
+| {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
+| {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
+| {"employees":[{"ename":"Grace","gender":"F"}],"deptno":60}                                |
+| {"employees":[{"ename":"Jane","gender":"F"},{"ename":"Bob","gender":"M"}],"deptno":10}    |
+| {"employees":[{"ename":"Susan","gender":"F"},{"ename":"Alice","gender":"F"}],"deptno":30} |
+| {"employees":[{"ename":"Wilma","gender":"F"}],"deptno":null}                              |
++-------------------------------------------------------------------------------------------+
+(6 rows)
+
+!ok
+
+select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ename': ename, 'gender': gender))) from emp group by deptno;
 +-------------------------------------------------------------------------------------------+
 | EXPR$0                                                                                    |
 +-------------------------------------------------------------------------------------------+

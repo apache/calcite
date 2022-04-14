@@ -49,6 +49,11 @@ public class RuleEventLogger implements RelOptListener {
   @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
     if (event.isBefore() && LOG.isDebugEnabled()) {
       RelOptRuleCall call = event.getRuleCall();
+
+      Arrays.stream(call.rels).forEach(rel ->
+          LOG.debug(FULL, "call#{}: Full plan for rule input [rel#{}:{}]: {}", call.id, rel.getId(),
+              rel.getRelTypeName(), System.lineSeparator() + RelOptUtil.toString(rel)));
+
       RelNode newRel = event.getRel();
       String description =
           newRel == null ? "null" : "rel#" + newRel.getId() + ":" + newRel.getRelTypeName();

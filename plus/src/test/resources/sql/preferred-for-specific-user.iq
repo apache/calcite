@@ -46,10 +46,10 @@ SELECT * FROM preferred_albums;
 !ok
 
 # Preferred tracks count by genres
-SELECT tr.genreid, COUNT(tr.trackid) as TRACKS_COUNT
-FROM chinook.track AS tr
-JOIN preferred_genres AS pg ON tr.genreid = pg.id
-GROUP BY tr.genreid;
+SELECT tr.genreid, COUNT(tr.TrackId) as TRACKS_COUNT
+FROM chinook.Track AS tr
+JOIN preferred_genres AS pg ON tr.GenreId = pg.id
+GROUP BY tr.GenreId;
 +---------+--------------+
 | genreid | TRACKS_COUNT |
 +---------+--------------+
@@ -64,12 +64,12 @@ GROUP BY tr.genreid;
 !ok
 
 # should be just like above Preferred tracks count by genres
-SELECT tr.genreid, COUNT(tr.trackid) as TRACKS_COUNT
-FROM chinook.track AS tr
-WHERE tr.genreid IN (SELECT pg.id FROM preferred_genres AS pg)
-GROUP BY tr.genreid;
+SELECT tr.GenreId, COUNT(tr.TrackId) as TRACKS_COUNT
+FROM chinook.Track AS tr
+WHERE tr.GenreId IN (SELECT pg.id FROM preferred_genres AS pg)
+GROUP BY tr.GenreId;
 +---------+--------------+
-| genreid | TRACKS_COUNT |
+| GenreId | TRACKS_COUNT |
 +---------+--------------+
 |       1 |         1297 |
 |      15 |           30 |

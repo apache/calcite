@@ -1940,13 +1940,8 @@ public class RelBuilder {
 
     // Simplify expressions.
     if (config.simplify()) {
-      final RexShuttle shuttle =
-          RexUtil.searchShuttle(getRexBuilder(), null, 2);
       for (int i = 0; i < nodeList.size(); i++) {
-        final RexNode node0 = nodeList.get(i);
-        final RexNode node1 = simplifier.simplifyPreservingType(node0);
-        final RexNode node2 = node1.accept(shuttle);
-        nodeList.set(i, node2);
+        nodeList.set(i, simplifier.simplifyPreservingType(nodeList.get(i)));
       }
     }
 
@@ -2709,7 +2704,7 @@ public class RelBuilder {
     RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
     RelNode repeatUnion =
         struct.repeatUnionFactory.createRepeatUnion(seed, iterative, all,
-            iterationLimit);
+            iterationLimit, finder.relOptTable);
     return push(repeatUnion);
   }
 
