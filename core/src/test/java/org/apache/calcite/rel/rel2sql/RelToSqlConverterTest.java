@@ -1141,8 +1141,8 @@ class RelToSqlConverterTest {
             builder.field(builder.peek().getRowType().getField("DEPTNO", false, false).getIndex()))
         .join(
             JoinRelType.SEMI, builder.equals(
-            builder.field(2, 1, "DEPTNO"),
-            builder.field(2, 0, "DEPTNO")))
+              builder.field(2, 1, "DEPTNO"),
+              builder.field(2, 0, "DEPTNO")))
         .project(builder.field("DEPTNO"))
         .build();
     final String expectedSql = "SELECT \"DEPTNO\"\n"
@@ -1161,16 +1161,16 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .join(
             JoinRelType.INNER, builder.equals(
-            builder.field(2, 0, "EMPNO"),
-            builder.field(2, 1, "EMPNO")))
+              builder.field(2, 0, "EMPNO"),
+              builder.field(2, 1, "EMPNO")))
         .build();
     final RelNode root = builder
         .scan("DEPT")
         .push(base)
         .join(
             JoinRelType.SEMI, builder.equals(
-            builder.field(2, 1, "DEPTNO"),
-            builder.field(2, 0, "DEPTNO")))
+              builder.field(2, 1, "DEPTNO"),
+              builder.field(2, 0, "DEPTNO")))
         .project(builder.field("DEPTNO"))
         .build();
     final String expectedSql = "SELECT \"DEPTNO\"\n"
