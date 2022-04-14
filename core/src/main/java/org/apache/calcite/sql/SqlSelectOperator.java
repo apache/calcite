@@ -202,7 +202,9 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
     if (select.groupBy != null) {
-      SqlNodeList groupBy = select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY : select.groupBy;
+      SqlNodeList groupBy =
+          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
+              : select.groupBy;
       // if the GROUP_BY_DISTINCT operator is present it can be the only item
       if (groupBy.size() == 1 && groupBy.get(0) != null
           && groupBy.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
