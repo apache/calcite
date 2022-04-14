@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-import com.google.common.collect.ImmutableSet;
-
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
@@ -33,6 +31,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMultiset;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -99,7 +98,8 @@ public class AggregatingSelectScope
       boolean groupByDistinct = false;
       if (select.getGroup() != null) {
         SqlNodeList groupList = select.getGroup();
-        if (groupList.size() > 0 && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+        // if the GROUP_BY_DISTINCT operator is present it can be the only item
+        if (groupList.size() == 1 && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
           groupList = new SqlNodeList(((SqlCall)groupList.get(0)).getOperandList(),
               groupList.getParserPosition());
           groupByDistinct = true;

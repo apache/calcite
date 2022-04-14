@@ -2508,7 +2508,7 @@ SqlNodeList GroupByOpt() :
     [ <DISTINCT> { distinct = true; } | <ALL> ]
     list = GroupingElementList() {
         if (distinct) {
-            SqlNode groupByDistinct = SqlStdOperatorTable.GROUP_BY_DISTINCT.createCall(s.pos(), list);
+            SqlNode groupByDistinct = SqlInternalOperators.GROUP_BY_DISTINCT.createCall(s.pos(), list);
             list = new ArrayList<SqlNode>();
             list.add(groupByDistinct);
         }

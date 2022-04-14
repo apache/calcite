@@ -115,4 +115,8 @@ public abstract class SqlInternalOperators {
       new SqlInternalOperator("SEPARATOR", SqlKind.SEPARATOR, 20, false,
           ReturnTypes.ARG0, InferTypes.RETURN_TYPE, OperandTypes.ANY);
 
+  /** {@code DISTINCT} operator, occurs within {@code GROUP BY} clause. */
+  public static final SqlInternalOperator GROUP_BY_DISTINCT =
+      new SqlRollupOperator("GROUP BY DISTINCT", SqlKind.GROUP_BY_DISTINCT);
+
 }
