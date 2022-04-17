@@ -805,36 +805,36 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkCastToScalarOkay("1.25", "INTEGER", "1");
-    f.checkCastToScalarOkay("1.25E0", "INTEGER", "1");
+    f.checkFails("cast(1.25 as int)", "INTEGER", true);
+    f.checkFails("cast(1.25E0 as int)", "INTEGER", true);
     if (!f.brokenTestsEnabled()) {
       return;
     }
-    f.checkCastToScalarOkay("1.5", "INTEGER", "2");
-    f.checkCastToScalarOkay("5E-1", "INTEGER", "1");
-    f.checkCastToScalarOkay("1.75", "INTEGER", "2");
-    f.checkCastToScalarOkay("1.75E0", "INTEGER", "2");
+    f.checkFails("cast(1.5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(5E-1 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(1.75 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(1.75E0 as int)", OUT_OF_RANGE_MESSAGE, true);
 
-    f.checkCastToScalarOkay("-1.25", "INTEGER", "-1");
-    f.checkCastToScalarOkay("-1.25E0", "INTEGER", "-1");
-    f.checkCastToScalarOkay("-1.5", "INTEGER", "-2");
-    f.checkCastToScalarOkay("-5E-1", "INTEGER", "-1");
-    f.checkCastToScalarOkay("-1.75", "INTEGER", "-2");
-    f.checkCastToScalarOkay("-1.75E0", "INTEGER", "-2");
+    f.checkFails("cast(-1.25 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.25E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-5E-1 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.75 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.75E0 as int)", OUT_OF_RANGE_MESSAGE, true);
 
-    f.checkCastToScalarOkay("1.23454", "DECIMAL(8, 4)", "1.2345");
-    f.checkCastToScalarOkay("1.23454E0", "DECIMAL(8, 4)", "1.2345");
-    f.checkCastToScalarOkay("1.23455", "DECIMAL(8, 4)", "1.2346");
-    f.checkCastToScalarOkay("5E-5", "DECIMAL(8, 4)", "0.0001");
-    f.checkCastToScalarOkay("1.99995", "DECIMAL(8, 4)", "2.0000");
-    f.checkCastToScalarOkay("1.99995E0", "DECIMAL(8, 4)", "2.0000");
+    f.checkFails("cast(1.23454 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(1.23454E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(1.23455 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(5E-5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(1.99995 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(1.99995E0 as int)", OUT_OF_RANGE_MESSAGE, true);
 
-    f.checkCastToScalarOkay("-1.23454", "DECIMAL(8, 4)", "-1.2345");
-    f.checkCastToScalarOkay("-1.23454E0", "DECIMAL(8, 4)", "-1.2345");
-    f.checkCastToScalarOkay("-1.23455", "DECIMAL(8, 4)", "-1.2346");
-    f.checkCastToScalarOkay("-5E-5", "DECIMAL(8, 4)", "-0.0001");
-    f.checkCastToScalarOkay("-1.99995", "DECIMAL(8, 4)", "-2.0000");
-    f.checkCastToScalarOkay("-1.99995E0", "DECIMAL(8, 4)", "-2.0000");
+    f.checkFails("cast(-1.23454 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.23454E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.23455 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-5E-5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.99995 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast(-1.99995E0 as int)", OUT_OF_RANGE_MESSAGE, true);
 
     // 9.99 round to 10.0, should give out of range error
     f.checkFails("cast(9.99 as decimal(2,1))", OUT_OF_RANGE_MESSAGE,
@@ -845,15 +845,15 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkScalarExact("cast( cast(1.25 as double) as integer)", 1);
-    f.checkScalarExact("cast( cast(-1.25 as double) as integer)", -1);
+    f.checkFails("cast( cast(1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast( cast(-1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
     if (!f.brokenTestsEnabled()) {
       return;
     }
-    f.checkScalarExact("cast( cast(1.75 as double) as integer)", 2);
-    f.checkScalarExact("cast( cast(-1.75 as double) as integer)", -2);
-    f.checkScalarExact("cast( cast(1.5 as double) as integer)", 2);
-    f.checkScalarExact("cast( cast(-1.5 as double) as integer)", -2);
+    f.checkFails("cast( cast(1.75 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast( cast(-1.75 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast( cast(1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("cast( cast(-1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
   }
 
   @Test void testCastApproxNumericLimits() {
@@ -1235,6 +1235,16 @@ public class SqlOperatorTest {
     f.checkBoolean("cast(cast('false' as varchar(10)) as boolean)", false);
     f.checkFails("cast(cast('blah' as varchar(10)) as boolean)",
         INVALID_CHAR_MESSAGE, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4861">[CALCITE-4861]
+   * Optimisation of chained cast calls can lead to unexpected behaviour.</a>.
+   */
+  @Test void testChainedCast() {
+    final SqlOperatorFixture f = fixture();
+    f.checkFails("CAST(CAST(CAST(123456 AS TINYINT) AS INT) AS BIGINT)",
+        "Value out of range. Value:\"123456\"", true);
   }
 
   @Test void testCase() {
