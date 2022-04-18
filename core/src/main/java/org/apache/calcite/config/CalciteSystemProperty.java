@@ -31,6 +31,8 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Stream;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A Calcite specific system property that is used to configure various aspects of the framework.
  *
@@ -429,7 +431,8 @@ public final class CalciteSystemProperty<T> {
         Thread.currentThread().getContextClassLoader(),
         CalciteSystemProperty.class.getClassLoader());
     // Read properties from the file "saffron.properties", if it exists in classpath
-    try (InputStream stream = classLoader.getResourceAsStream("saffron.properties")) {
+    try (InputStream stream = requireNonNull(classLoader, "classLoader")
+        .getResourceAsStream("saffron.properties")) {
       if (stream != null) {
         saffronProperties.load(stream);
       }

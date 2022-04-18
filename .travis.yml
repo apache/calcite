@@ -16,7 +16,7 @@
 #
 
 # Configuration file for Travis continuous integration.
-# See https://travis-ci.org/apache/calcite
+# See https://travis-ci.com/github/apache/calcite
 language: java
 matrix:
   fast_finish: true
@@ -34,7 +34,7 @@ matrix:
     - jdk: openjdk11
       env:
         - ERRORPRONE=Y
-        - GUAVA=31.0.1-jre # ErrorProne checks for Beta APIs, so use newest supported Guava version
+        - GUAVA=31.1-jre # ErrorProne checks for Beta APIs, so use newest supported Guava version
       script:
         - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
         - ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableErrorprone classes
@@ -43,13 +43,16 @@ matrix:
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
     - jdk: openjdk15
       env:
-        - GUAVA=31.0.1-jre # newest supported Guava version
+        - GUAVA=31.1-jre # newest supported Guava version
     - jdk: openjdk16
       env:
-        - GUAVA=31.0.1-jre
+        - GUAVA=31.1-jre
     - jdk: openjdk17
       env:
-        - GUAVA=31.0.1-jre
+        - GUAVA=31.1-jre
+    - jdk: openjdk18
+      env:
+        - GUAVA=31.1-jre
 branches:
   only:
     - main

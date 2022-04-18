@@ -226,7 +226,7 @@ public class JoinToMultiJoinRule
         newInputs.add(leftMultiJoin.getInput(i));
         projFieldsList.add(leftMultiJoin.getProjFields().get(i));
         joinFieldRefCountsList.add(
-            leftMultiJoin.getJoinFieldRefCountsMap().get(i).toIntArray());
+            requireNonNull(leftMultiJoin.getJoinFieldRefCountsMap().get(i)).toIntArray());
       }
     } else {
       newInputs.add(left);
@@ -242,7 +242,7 @@ public class JoinToMultiJoinRule
         projFieldsList.add(
             rightMultiJoin.getProjFields().get(i));
         joinFieldRefCountsList.add(
-            rightMultiJoin.getJoinFieldRefCountsMap().get(i).toIntArray());
+            requireNonNull(rightMultiJoin.getJoinFieldRefCountsMap().get(i)).toIntArray());
       }
     } else {
       newInputs.add(right);
