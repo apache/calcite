@@ -31,7 +31,7 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16 or 17)
+Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 or 18)
 and Gradle (version 7.3) on your path.
 
 Unpack the source distribution `.tar.gz` file,
@@ -51,7 +51,7 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16 or 17) on your path.
+and Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 or 18) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
