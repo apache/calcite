@@ -37,6 +37,11 @@ Downloads are available on the
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4936">CALCITE-4936</a>]
   Generalize `FilterCalcMergeRule`/`ProjectCalcMergeRule` to accept any `Filter`/`Project`/`Calc` operator
 
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 18;
+Guava versions 19.0 to 31.1-jre;
+other software versions as specified in gradle.properties.
+
 #### New features
 {: #new-features-1-31-0}
 
