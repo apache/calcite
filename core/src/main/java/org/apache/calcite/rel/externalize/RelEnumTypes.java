@@ -35,6 +35,8 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Objects;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /** Registry of {@link Enum} classes that can be serialized to JSON.
@@ -105,6 +107,6 @@ public abstract class RelEnumTypes {
   /** Converts a string to an enum value.
    * The converse of {@link #fromEnum(Enum)}. */
   static <E extends Enum<E>> E toEnum(String name) {
-    return (E) ENUM_BY_NAME.get(name);
+    return (E) Objects.requireNonNull(ENUM_BY_NAME.get(name));
   }
 }

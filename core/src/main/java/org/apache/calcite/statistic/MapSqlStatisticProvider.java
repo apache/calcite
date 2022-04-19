@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMultimap;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -103,7 +104,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
             .map(value ->
                 Arrays.asList(value.jdbcSchemaName, value.jdbcTableName))
             .orElseGet(table::getQualifiedName);
-    return cardinalityMap.get(qualifiedName.toString());
+    return Objects.requireNonNull(cardinalityMap.get(qualifiedName.toString()));
   }
 
   @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,

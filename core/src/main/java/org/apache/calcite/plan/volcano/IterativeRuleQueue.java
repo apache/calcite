@@ -30,6 +30,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
@@ -87,7 +88,7 @@ class IterativeRuleQueue extends RuleQueue {
     matchList.offer(match);
 
     matchList.matchMap.put(
-        planner.getSubset(match.rels[0]), match);
+        Objects.requireNonNull(planner.getSubset(match.rels[0])), match);
   }
 
   /**

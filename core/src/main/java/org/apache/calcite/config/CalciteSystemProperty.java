@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
@@ -429,7 +430,8 @@ public final class CalciteSystemProperty<T> {
         Thread.currentThread().getContextClassLoader(),
         CalciteSystemProperty.class.getClassLoader());
     // Read properties from the file "saffron.properties", if it exists in classpath
-    try (InputStream stream = classLoader.getResourceAsStream("saffron.properties")) {
+    try (InputStream stream = Objects.requireNonNull(classLoader, "classLoader")
+        .getResourceAsStream("saffron.properties")) {
       if (stream != null) {
         saffronProperties.load(stream);
       }
