@@ -2116,6 +2116,8 @@ SqlNode TableRef2(boolean lateral) :
     int repeatableSeed = 0;
     SqlNodeList columnAliasList = null;
     SqlUnnestOperator unnestOp = SqlStdOperatorTable.UNNEST;
+    final List<SqlNode> hints = new ArrayList<SqlNode>();
+    SqlNodeList hintList;
 }
 {
     (
@@ -2173,10 +2175,23 @@ SqlNode TableRef2(boolean lateral) :
         <TABLE> { s = span(); } <LPAREN>
         tableRef = TableFunctionCall(s.pos())
         <RPAREN>
+        [
+            <HINT_BEG>
+            CommaSeparatedSqlHints(hints)
+            <COMMENT_END>
+        ]
         {
             if (lateral) {
-                tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    s.end(this), tableRef);
+                if (hints.size() > 0) {
+                    hintList = new SqlNodeList(hints, s.addAll(hints).end(this));
+                    SqlNode lateralCall = new SqlTableRef(Span.of(tableRef, hintList).pos(),
+                        tableRef, hintList, true);
+                    tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                        s.end(this), lateralCall);
+                } else {
+                    tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                        s.end(this), tableRef);
+                }
             }
         }
     |

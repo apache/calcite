@@ -5314,6 +5314,16 @@ class RelToSqlConverterTest {
         isLinux(expectedSql2));
   }
 
+  @Test void testLateralTableWithHints() {
+    final String query = "select * from \"product\",\n"
+        + "lateral table(RAMP(\"product\".\"product_id\"))/*+ MINI(A='1') */";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
+        + "LATERAL (SELECT *\n"
+        + "FROM TABLE(RAMP(\"$cor0\".\"product_id\"))) AS \"t\"";
+    sql(query).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2118">[CALCITE-2118]
    * RelToSqlConverter should only generate "*" if field names match</a>. */

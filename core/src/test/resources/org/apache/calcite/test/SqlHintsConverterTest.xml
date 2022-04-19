@@ -46,7 +46,6 @@ Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
-
   <TestCase name="testCrossCorrelateHints">
     <Resource name="sql">
       <![CDATA[select /*+ use_hash_join (orders, products_temporal) */ stream *
@@ -193,6 +192,18 @@ from emp join dept on emp.deptno = dept.deptno]]>
       <![CDATA[
 Project:[[USE_HASH_JOIN inheritPath:[] options:[R, S]], [USE_HASH_JOIN inheritPath:[] options:[EMP, DEPT]]]
 LogicalJoin:[[USE_HASH_JOIN inheritPath:[0] options:[EMP, DEPT]]]
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLateralTableWithHints">
+    <Resource name="sql">
+      <![CDATA[select * from emp,
+lateral table(RAMP(emp.deptno))/*+ properties(k1='v1', k2='v2') */]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Correlate:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}]]
+TableScan:[[PROPERTIES inheritPath:[0] options:{K1=v1, K2=v2}]]
 ]]>
     </Resource>
   </TestCase>

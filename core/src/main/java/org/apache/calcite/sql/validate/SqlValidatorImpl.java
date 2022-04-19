@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
@@ -1241,6 +1242,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case COLLECTION_TABLE:
     case ORDER_BY:
     case TABLESAMPLE:
+      return getNamespace(((SqlCall) node).operand(0));
+    case LATERAL_TABLE_REF:
       return getNamespace(((SqlCall) node).operand(0));
     default:
       return namespaces.get(node);
@@ -2467,16 +2470,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return newNode;
 
     case LATERAL:
-      return registerFrom(
-          parentScope,
-          usingScope,
-          register,
-          ((SqlCall) node).operand(0),
-          enclosingNode,
-          alias,
-          extendList,
-          forceNullable,
-          true);
+    case LATERAL_TABLE_REF:
+      newOperand = registerFrom(parentScope, usingScope, register, ((SqlCall) node).operand(0),
+          enclosingNode, alias, extendList, forceNullable, true);
+      if (kind == SqlKind.LATERAL) {
+        return newOperand;
+      } else {
+        return new SqlTableRef(node.getParserPosition(), newOperand,
+            ((SqlCall) node).operand(1), true);
+      }
 
     case COLLECTION_TABLE:
       call = (SqlCall) node;

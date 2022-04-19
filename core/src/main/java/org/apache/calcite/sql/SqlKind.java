@@ -106,6 +106,11 @@ public enum SqlKind {
   TABLE_REF,
 
   /**
+   * Lateral Table reference with hint.
+   */
+  LATERAL_TABLE_REF,
+
+  /**
    * JOIN operator or compound FROM clause.
    *
    * <p>A FROM clause with more than one table is represented as if it were a
