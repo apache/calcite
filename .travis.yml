@@ -16,7 +16,7 @@
 #
 
 # Configuration file for Travis continuous integration.
-# See https://travis-ci.com/apache/calcite
+# See https://travis-ci.com/github/apache/calcite
 language: java
 matrix:
   fast_finish: true
