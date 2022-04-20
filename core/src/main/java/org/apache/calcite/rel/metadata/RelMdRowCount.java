@@ -33,7 +33,6 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -147,22 +146,13 @@ public class RelMdRowCount
     if (rowCount == null) {
       return null;
     }
-    if (rel.offset instanceof RexDynamicParam) {
-      return rowCount;
-    }
-    final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
+
+    final int offset = rel.offset instanceof RexLiteral ? RexLiteral.intValue(rel.offset) : 0;
     rowCount = Math.max(rowCount - offset, 0D);
 
-    if (rel.fetch != null) {
-      if (rel.fetch instanceof RexDynamicParam) {
-        return rowCount;
-      }
-      final int limit = RexLiteral.intValue(rel.fetch);
-      if (limit < rowCount) {
-        return (double) limit;
-      }
-    }
-    return rowCount;
+    final double limit =
+        rel.fetch instanceof RexLiteral ? RexLiteral.intValue(rel.fetch) : rowCount;
+    return limit < rowCount ? limit : rowCount;
   }
 
   public @Nullable Double getRowCount(EnumerableLimit rel, RelMetadataQuery mq) {
@@ -170,22 +160,13 @@ public class RelMdRowCount
     if (rowCount == null) {
       return null;
     }
-    if (rel.offset instanceof RexDynamicParam) {
-      return rowCount;
-    }
-    final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
+
+    final int offset = rel.offset instanceof RexLiteral ? RexLiteral.intValue(rel.offset) : 0;
     rowCount = Math.max(rowCount - offset, 0D);
 
-    if (rel.fetch != null) {
-      if (rel.fetch instanceof RexDynamicParam) {
-        return rowCount;
-      }
-      final int limit = RexLiteral.intValue(rel.fetch);
-      if (limit < rowCount) {
-        return (double) limit;
-      }
-    }
-    return rowCount;
+    final double limit =
+        rel.fetch instanceof RexLiteral ? RexLiteral.intValue(rel.fetch) : rowCount;
+    return limit < rowCount ? limit : rowCount;
   }
 
   // Covers Converter, Interpreter

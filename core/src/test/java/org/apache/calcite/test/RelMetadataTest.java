@@ -648,7 +648,7 @@ public class RelMetadataTest {
     sql("select * from emp order by ename limit ? offset ?")
         .assertThatRowCount(is(EMP_SIZE), is(0D), is(Double.POSITIVE_INFINITY));
     sql("select * from emp order by ename limit 1 offset ?")
-        .assertThatRowCount(is(EMP_SIZE), is(0D), is(1D));
+        .assertThatRowCount(is(1D), is(0D), is(1D));
     sql("select * from emp order by ename limit ? offset 1")
         .assertThatRowCount(is(EMP_SIZE - 1), is(0D), is(Double.POSITIVE_INFINITY));
   }
