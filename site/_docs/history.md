@@ -28,6 +28,7 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+{% comment %}
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.31.0">1.31.0</a> / 2022-MM-DD
 {: #v1-31-0}
 
@@ -51,6 +52,7 @@ Downloads are available on the
 
 #### Web site and documentation
 {: #site-1-31-0}
+{% endcomment %}
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.30.0">1.30.0</a> / 2022-03-20
 {: #v1-30-0}

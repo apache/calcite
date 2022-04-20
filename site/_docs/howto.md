@@ -720,9 +720,10 @@ Before you start:
   * `-Dcalcite.test.splunk`
 * Optional tests using tasks:
   * `./gradlew testSlow`
-* Add release notes to `site/_docs/history.md`. Include the commit history,
-  and say which versions of Java, Guava and operating systems the release is
-  tested against.
+* Add release notes to `site/_docs/history.md`. If release notes already exist for the version to be released, but
+  are commented out, remove the comments (`{% comment %}` and `{% endcomment %}`). Include the commit history,
+  names of people who contributed to the release, and say which versions of Java, Guava and operating systems the
+  release is tested against.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
