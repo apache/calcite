@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.core;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -36,6 +35,8 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Litmus;
+
+import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;

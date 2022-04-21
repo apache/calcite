@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.logical;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -34,6 +33,7 @@ import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
