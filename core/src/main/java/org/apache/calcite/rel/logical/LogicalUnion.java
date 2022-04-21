@@ -23,7 +23,9 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.hint.RelHint;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -40,9 +42,22 @@ public final class LogicalUnion extends Union {
    */
   public LogicalUnion(RelOptCluster cluster,
       RelTraitSet traitSet,
+      List<RelHint> hints,
       List<RelNode> inputs,
       boolean all) {
-    super(cluster, traitSet, inputs, all);
+    super(cluster, traitSet, hints, inputs, all);
+  }
+
+  /**
+   * Creates a LogicalUnion.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   */
+  public LogicalUnion(RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelNode> inputs,
+      boolean all) {
+    this(cluster, traitSet, Collections.emptyList(), inputs, all);
   }
 
   @Deprecated // to be removed before 2.0
@@ -70,10 +85,14 @@ public final class LogicalUnion extends Union {
   @Override public LogicalUnion copy(
       RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalUnion(getCluster(), traitSet, inputs, all);
+    return new LogicalUnion(getCluster(), traitSet, hints, inputs, all);
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
+  }
+
+  @Override public RelNode withHints(List<RelHint> hintList) {
+    return new LogicalUnion(getCluster(), traitSet, hintList, inputs, all);
   }
 }
