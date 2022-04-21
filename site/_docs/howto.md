@@ -693,11 +693,6 @@ Before you start:
   is starting and therefore `master` branch is in code freeze until further notice.
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
-* Make sure `master` branch and `site` branch are in sync, i.e. there is no
-  commit on `site` that has not been applied also to `master`.
-  We are talking about the commit content, you need to pay attention to the commit message
-  and change, not hash: it is normal to have the same change in `site` and
-  `master`, but with different hashes. If you spot missing commits then port them to `master`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -721,7 +716,7 @@ Before you start:
 * Optional tests using tasks:
   * `./gradlew testSlow`
 * Add release notes to `site/_docs/history.md`. If release notes already exist for the version to be released, but
-  are commented out, remove the comments (`{% comment %}` and `{% endcomment %}`). Include the commit history,
+  are commented out, remove the comments (`{% raw %}{% comment %}{% endraw %}` and `{% raw %}{% endcomment %}{% endraw %}`). Include the commit history,
   names of people who contributed to the release, and say which versions of Java, Guava and operating systems the
   release is tested against.
 * Make sure that
