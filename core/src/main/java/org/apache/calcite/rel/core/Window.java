@@ -80,7 +80,7 @@ public abstract class Window extends SingleRel implements Hintable {
    *
    * @param cluster Cluster
    * @param traitSet Trait set
-   * @param hints    Hints
+   * @param hints   Hints for this node
    * @param input   Input relational expression
    * @param constants List of constants that are additional inputs
    * @param rowType Output row type

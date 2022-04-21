@@ -801,7 +801,7 @@ class SqlHintsConverterTest {
 
       @Override public RelNode visit(LogicalFilter filter) {
         if (filter.getHints().size() > 0) {
-          this.hintsCollect.add("Filter:" + filter.getHints().toString());
+          this.hintsCollect.add("Filter:" + filter.getHints());
         }
         return super.visit(filter);
       }
