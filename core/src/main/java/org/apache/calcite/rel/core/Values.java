@@ -111,6 +111,7 @@ public abstract class Values extends AbstractRelNode implements Hintable {
    *                list contains tuples; each inner list is one tuple; all
    *                tuples must be of same length, conforming to rowType
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Values(
       RelOptCluster cluster,
       RelDataType rowType,

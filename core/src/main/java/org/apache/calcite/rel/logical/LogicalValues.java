@@ -146,6 +146,6 @@ public class LogicalValues extends Values {
   }
 
   @Override public RelNode withHints(List<RelHint> hintList) {
-    return new LogicalValues(getCluster(), traitSet, hintList, rowType, tuples);
+    return new LogicalValues(getCluster(), traitSet, hintList, getRowType(), tuples);
   }
 }

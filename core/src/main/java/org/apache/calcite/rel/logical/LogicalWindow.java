@@ -389,6 +389,6 @@ public final class LogicalWindow extends Window {
 
   @Override public RelNode withHints(List<RelHint> hintList) {
     return new LogicalWindow(getCluster(), traitSet, hintList,
-        input, constants, rowType, groups);
+        input, constants, getRowType(), groups);
   }
 }
