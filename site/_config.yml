@@ -50,9 +50,4 @@ avaticaBaseurl: /avatica
 
 plugins:
     - jekyll-redirect-from
-    - jekyll-spaceship
-
-jekyll-spaceship:
-  processors:
-    - media-processor
 # End _config.yml
