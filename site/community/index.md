@@ -168,16 +168,12 @@ Voted [Best Lightning Talk at XLDB-2015](https://www.xldb.org/archives/2015/05/b
 [[video](https://www.youtube.com/watch?v=5_MyORYjq3w)],
 [[slides](https://www.slideshare.net/julianhyde/apache-calcite-one-planner-fits-all)].
 
-![](https://www.youtube.com/watch?v=5_MyORYjq3w)
-
 ## Streaming SQL
 
 At Hadoop Summit, San Jose, CA, 2016
 [[video](https://www.youtube.com/watch?v=b7HENkvd1uU)],
 [[slides](https://www.slideshare.net/julianhyde/streaming-sql-63554778)],
 [[pdf](https://github.com/julianhyde/share/blob/master/slides/calcite-streaming-sql-san-jose-2016.pdf?raw=true)].
-
-![](https://www.youtube.com/watch?v=b7HENkvd1uU)
 
 ## Cost-based Query Optimization in Apache Phoenix using Apache Calcite
 
@@ -186,15 +182,11 @@ At Hadoop Summit, San Jose, CA, 2016
 [[slides](https://www.slideshare.net/julianhyde/costbased-query-optimization-in-apache-phoenix-using-apache-calcite)],
 [[pdf](https://github.com/julianhyde/share/blob/master/slides/phoenix-on-calcite-hadoop-summit-2016.pdf?raw=true)].
 
-![](https://www.youtube.com/watch?v=gz9X7JD8BAU)
-
 ## Planning with Polyalgebra: Bringing together relational, complex and machine learning algebra
 
 As Hadoop Summit, Dublin, 2016
 [[video](https://www.youtube.com/watch?v=fHZqbe3iPMc)],
 [[slides](https://www.slideshare.net/julianhyde/planning-with-polyalgebra-bringing-together-relational-complex-and-machine-learning-algebra)].
-
-![](https://www.youtube.com/watch?v=fHZqbe3iPMc)
 
 ## More talks
 
