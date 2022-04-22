@@ -44,7 +44,7 @@ public final class LogicalSort extends Sort {
   }
 
   private LogicalSort(RelOptCluster cluster, RelTraitSet traitSet, List<RelHint> hints,
-      RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
+      RelNode input, RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
     super(cluster, traitSet, hints, input, collation, offset, fetch);
     assert traitSet.containsIfApplicable(Convention.NONE);
   }

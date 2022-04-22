@@ -76,8 +76,8 @@ public abstract class Sort extends SingleRel implements Hintable {
       List<RelHint> hints,
       RelNode child,
       RelCollation collation,
-      RexNode offset,
-      RexNode fetch) {
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     super(cluster, traits, child);
     this.collation = collation;
     this.offset = offset;
