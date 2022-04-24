@@ -532,20 +532,21 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     int newPos = 0;
 
-    // oldInput has the original group by keys in the front.
+    final List<Integer> groupKeyIndices = rel.getGroupSet().asList();
     final NavigableMap<Integer, RexLiteral> omittedConstants = new TreeMap<>();
     for (int i = 0; i < oldGroupKeyCount; i++) {
-      final RexLiteral constant = projectedLiteral(newInput, i);
+      final int idx = groupKeyIndices.get(i);
+      final RexLiteral constant = projectedLiteral(newInput, idx);
       if (constant != null) {
         // Exclude constants. Aggregate({true}) occurs because Aggregate({})
         // would generate 1 row even when applied to an empty table.
-        omittedConstants.put(i, constant);
+        omittedConstants.put(idx, constant);
         continue;
       }
 
       // add mapping of group keys.
-      outputMap.put(i, newPos);
-      int newInputPos = requireNonNull(frame.oldToNewOutputs.get(i));
+      outputMap.put(idx, newPos);
+      int newInputPos = requireNonNull(frame.oldToNewOutputs.get(idx));
       projects.add(RexInputRef.of2(newInputPos, newInputOutput));
       mapNewInputToProjOutputs.put(newInputPos, newPos);
       newPos++;
