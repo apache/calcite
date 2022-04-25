@@ -25,9 +25,11 @@
     <vendor name="Apache Software Foundation"/>
     <driver name="Calcite JDBC Driver"/>
     <customizations>
-      <customization name="CAP_SELECT_INTO" value="yes"/>
-      <customization name="CAP_SELECT_TOP_INTO" value="yes"/>
+      <customization name="CAP_SUPPRESS_TEMP_TABLE_CHECKS" value="yes"/>
+      <customization name="CAP_SELECT_INTO" value="no"/>
+      <customization name="CAP_SELECT_TOP_INTO" value="no"/>
       <customization name="CAP_CREATE_TEMP_TABLES" value="no"/>
+      <customization name="CAP_TEMP_TABLES_NOT_SESSION_SCOPED" value="no"/>
       <customization name="CAP_QUERY_BOOLEXPR_TO_INTEXPR" value="no"/>
       <customization name="CAP_QUERY_GROUP_BY_BOOL" value="yes"/>
       <customization name="CAP_QUERY_GROUP_BY_DEGREE" value="yes"/>
