@@ -39,7 +39,11 @@ jobs:
         run: |
           git config user.email ${{ github.actor }}@users.noreply.github.com
           git config user.name ${{ github.actor }}
-          git cherry-pick $GITHUB_SHA
+          git cherry-pick --strategy=recursive -X theirs $GITHUB_SHA
+          if [ $? -neq 0 ]; then
+            git status | sed -n 's/deleted by us://p' | xargs git add
+            git cherry-pick --continue --no-edit
+          fi
           git push origin site
 
   publish-website:
