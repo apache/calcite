@@ -40,7 +40,7 @@ avaticaApiRoot: /avatica/apidocs
 # avaticaApiRoot: http://calcite.apache.org/avatica/apidocs
 
 # The URL where the JDK's Javadocs are located
-jdkApiRoot: https://docs.oracle.com/javase/8/docs/api/
+jdkApiRoot: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/
 
 # The base path where the website is deployed
 baseurl:

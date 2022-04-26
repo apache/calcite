@@ -48,7 +48,7 @@
    * resulting database column.  Processing steps are applied in the
    * order described and replace and match patterns are based on Java
    * Pattern syntax see:
-   * (http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
+   * (https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html).
    *
    */
   "schemas": [ {

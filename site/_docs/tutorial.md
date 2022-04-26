@@ -90,7 +90,7 @@ sqlline> !tables
 {% endhighlight %}
 
 (JDBC experts, note: sqlline's <code>!tables</code> command is just executing
-<a href="https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
+<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
 behind the scenes.
 It has other commands to query JDBC metadata, such as <code>!columns</code> and <code>!describe</code>.)
 
