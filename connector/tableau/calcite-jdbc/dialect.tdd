@@ -569,7 +569,7 @@
       <argument type='date' />
     </function>
     <function group='cast' name='MAKEDATE' return-type='date'>
-      <formula>DATE((%1), (%2), (%3))
+      <formula>DATE((%1), (%2), (%3))</formula>
       <argument type='int' />
       <argument type='int' />
       <argument type='int' />
