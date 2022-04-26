@@ -1154,7 +1154,7 @@
       <argument type='int' />
     </function>
     <function group='operator' name='-' return-type='int'>
-      <formula>((%1) - (%2))</formula>
+      <formula>DATE_DIFF((%1), (%2), DAY)</formula>
       <argument type='date' />
       <argument type='date' />
     </function>
