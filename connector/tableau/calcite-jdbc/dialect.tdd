@@ -1749,7 +1749,6 @@
     <format-date-literal formula="(DATE '%1')"  format='yyyy-MM-dd' />
     <format-datetime-literal formula="(TIMESTAMP '%1')" format='yyyy-MM-dd HH:mm:ss.SSS' />
     <format-false literal='FALSE' predicate='FALSE' /> <!-- Requires 2020.3 or newer -->
-    <format-true literal='TRUE' predicate='TRUE' /> <!-- Requires 2020.3 or newer -->
     <format-is-distinct value='Keyword' />
     <format-order-by value='DirectionOnly' />
     <format-select>
@@ -1762,6 +1761,7 @@
       <part name='Top' value='LIMIT %1' />
     </format-select>
     <format-string-literal value='Extended' />
+    <format-true literal='TRUE' predicate='TRUE' /> <!-- Requires 2020.3 or newer -->
     <icu-date-token-map>
       <!-- used by DATEPARSE -->
       <!-- http://userguide.icu-project.org/formatparse/datetime -->
