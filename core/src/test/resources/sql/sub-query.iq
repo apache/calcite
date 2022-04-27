@@ -3383,4 +3383,83 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[IS NOT TRUE($t12)], expr#14=[IS N
         EnumerableValues(tuples=[[{ 7369, 20 }, { 7499, 30 }]])
 !plan
 
+# [CALCITE-5117] Optimize the EXISTS sub-query by Metadata RowCount
+
+# Test case about sub-query is guaranteed to produce at least one row
+select *
+from dept as d
+where EXISTS (select count(*) from emp e where d.deptno = e.deptno);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# As above, but the filter condition always false
+select *
+from dept as d
+where EXISTS (select count(*) from emp e where d.deptno = e.deptno and 1 = 2);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+
+# As above, but the Sum aggregation function
+select *
+from dept as d
+where EXISTS (select sum(1) from emp e where d.deptno = e.deptno and 1 = 2);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test case about sub-query is guaranteed to produce no row
+select *
+from dept as d
+where NOT EXISTS (select count(*) from emp e having false);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
 # End sub-query.iq
