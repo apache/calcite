@@ -450,8 +450,18 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteExists(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder) {
+    // If the sub-query is guaranteed to produce at least one row, just return
+    // TRUE.
+    final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
+    final Double minRowCount = mq.getMinRowCount(e.rel);
+    if (minRowCount != null && minRowCount >= 1D) {
+      return builder.literal(true);
+    }
+    final Double maxRowCount = mq.getMaxRowCount(e.rel);
+    if (maxRowCount != null && maxRowCount < 1D) {
+      return builder.literal(false);
+    }
     builder.push(e.rel);
-
     builder.project(builder.alias(builder.literal(true), "i"));
     switch (logic) {
     case TRUE:
