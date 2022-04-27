@@ -34,6 +34,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 
 import java.util.List;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
  * SqlDatePartFunction represents the SQL:1999 standard {@code YEAR},
  * {@code QUARTER}, {@code MONTH} and {@code DAY} functions.
@@ -56,6 +58,11 @@ public class SqlDatePartFunction extends SqlFunction {
 
   @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     final List<SqlNode> operands = call.getOperandList();
+
+    if (operands.size() != 1) {
+      throw validator.newValidationError(call, RESOURCE.invalidArgCount(getName(), 1));
+    }
+
     final SqlParserPos pos = call.getParserPosition();
     return SqlStdOperatorTable.EXTRACT.createCall(pos,
         new SqlIntervalQualifier(timeUnit, null, SqlParserPos.ZERO),

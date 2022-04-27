@@ -8977,6 +8977,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected2);
   }
 
+  @Test void testDatePartWithRewrite() {
+    final String sql = "select week(date '2022-04-27'), year(date '2022-04-27')";
+    final String expected = "SELECT EXTRACT(WEEK FROM DATE '2022-04-27'),"
+        + " EXTRACT(YEAR FROM DATE '2022-04-27')";
+    sql(sql)
+        .withValidatorCallRewrite(true)
+        .rewritesTo(expected);
+
+    final String noParamSql = "select ^week()^";
+    sql(noParamSql)
+        .withValidatorCallRewrite(true)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
+
+    final String multiParamsSql = "select ^week(date '2022-04-27', 1)^";
+    sql(multiParamsSql)
+        .withValidatorCallRewrite(true)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
+  }
+
+  @Test void testDatePartWithoutRewrite() {
+    final String sql = "select week(date '2022-04-27'), year(date '2022-04-27')";
+    final String expected = "SELECT WEEK(DATE '2022-04-27'), YEAR(DATE '2022-04-27')";
+    sql(sql)
+        .withValidatorCallRewrite(false)
+        .rewritesTo(expected);
+
+    final String noParamSql = "select ^week()^";
+    sql(noParamSql)
+        .withValidatorCallRewrite(false)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
+
+    final String multiParamsSql = "select ^week(date '2022-04-27', 1)^";
+    sql(multiParamsSql)
+        .withValidatorCallRewrite(false)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
+  }
+
   @Disabled
   @Test void testValuesWithAggFuncs() {
     sql("values(^count(1)^)")
