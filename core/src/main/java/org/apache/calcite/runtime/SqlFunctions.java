@@ -1239,10 +1239,8 @@ public class SqlFunctions {
     return Math.pow(b0.doubleValue(), b1);
   }
 
-  public static BigDecimal power(BigDecimal b0, BigDecimal b1) {
-    return b0 == null || b1 == null
-        ? null
-        : new BigDecimal(Math.pow(b0.doubleValue(), b1.doubleValue()));
+  public static double power(BigDecimal b0, BigDecimal b1) {
+    return Math.pow(b0.doubleValue(), b1.doubleValue());
   }
 
   // LN
