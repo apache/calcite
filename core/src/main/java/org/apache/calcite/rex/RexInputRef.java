@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
@@ -92,6 +93,15 @@ public class RexInputRef extends RexSlot {
    */
   public static RexInputRef of(int index, List<RelDataTypeField> fields) {
     return new RexInputRef(index, fields.get(index).getType());
+  }
+
+  /**
+   * It's same to {@link RexInputRef#of(int, RelDataType)}, but it makes nullable reference.
+   */
+  public static RexInputRef ofNullable(RelDataTypeFactory factory, int index, RelDataType rowType) {
+    final List<RelDataTypeField> fields = rowType.getFieldList();
+    final RelDataType type = fields.get(index).getType();
+    return new RexInputRef(index, factory.createTypeWithNullability(type, true));
   }
 
   /**

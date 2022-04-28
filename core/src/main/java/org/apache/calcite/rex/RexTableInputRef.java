@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlKind;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -46,10 +47,23 @@ public class RexTableInputRef extends RexInputRef {
 
   private final RelTableRef tableRef;
 
-  private RexTableInputRef(RelTableRef tableRef, int index, RelDataType type) {
+  /**
+   * It's a tag, which ref is wrapped by out join. And it always emits nullable = true.
+   * Input ref will be true, if it exists in right's input of left-join
+   * or left's input of right-join are true
+   */
+  private final boolean wrapJoinNullable;
+
+  private RexTableInputRef(RelTableRef tableRef, int index, RelDataType type,
+      boolean wrapJoinNullable) {
     super(index, type);
+    if (wrapJoinNullable) {
+      // Nullable of type must be true, if this input ref is wrapped by left/right join.
+      assert type.isNullable();
+    }
     this.tableRef = tableRef;
-    this.digest = tableRef.toString() + ".$" + index;
+    this.wrapJoinNullable = wrapJoinNullable;
+    this.digest = tableRef + ".$" + index + (wrapJoinNullable ? "(nullable)" : "");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -58,7 +72,8 @@ public class RexTableInputRef extends RexInputRef {
     return this == obj
         || obj instanceof RexTableInputRef
         && tableRef.equals(((RexTableInputRef) obj).tableRef)
-        && index == ((RexTableInputRef) obj).index;
+        && index == ((RexTableInputRef) obj).index
+        && wrapJoinNullable == ((RexTableInputRef) obj).wrapJoinNullable;
   }
 
   @Override public int hashCode() {
@@ -77,12 +92,28 @@ public class RexTableInputRef extends RexInputRef {
     return tableRef.getEntityNumber();
   }
 
+  public boolean getWrapJoinNullable() {
+    return wrapJoinNullable;
+  }
+
   public static RexTableInputRef of(RelTableRef tableRef, int index, RelDataType type) {
-    return new RexTableInputRef(tableRef, index, type);
+    return new RexTableInputRef(tableRef, index, type, false);
   }
 
   public static RexTableInputRef of(RelTableRef tableRef, RexInputRef ref) {
-    return new RexTableInputRef(tableRef, ref.getIndex(), ref.getType());
+    return new RexTableInputRef(tableRef, ref.getIndex(), ref.getType(), false);
+  }
+
+  /**
+   * Make a {@link RexTableInputRef} with join's nullable, rebuild type's nullable info,
+   * if join's nullable is true.
+   */
+  public static RexTableInputRef of(RelDataTypeFactory factory, RelTableRef tableRef, int index,
+      RelDataType type, boolean wrapJoinNullable) {
+    if (wrapJoinNullable) {
+      type = factory.createTypeWithNullability(type, true);
+    }
+    return new RexTableInputRef(tableRef, index, type, wrapJoinNullable);
   }
 
   @Override public <R> R accept(RexVisitor<R> visitor) {

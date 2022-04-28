@@ -2252,6 +2252,17 @@ public class RexUtil {
   }
 
   /**
+   * It's same to {@link RexUtil#swapTableReferences(RexBuilder, RexNode, Map)},
+   * but it works for nullable references.
+   * Given an expression, it will swap the table references contained in its
+   * {@link RexTableInputRef} using the contents in the map.
+   */
+  public static RexNode swapTableReferencesNullable(final RexBuilder rexBuilder,
+      final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping) {
+    return swapTableColumnReferences(rexBuilder, node, tableMapping, null, true);
+  }
+
+  /**
    * Given an expression, it will swap the table references contained in its
    * {@link RexTableInputRef} using the contents in the first map, and then
    * it will swap the column references {@link RexTableInputRef} using the contents
@@ -2260,16 +2271,24 @@ public class RexUtil {
   public static RexNode swapTableColumnReferences(final RexBuilder rexBuilder,
       final RexNode node, final @Nullable Map<RelTableRef, RelTableRef> tableMapping,
       final @Nullable Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
+    return swapTableColumnReferences(rexBuilder, node, tableMapping, ec, false);
+  }
+
+  public static RexNode swapTableColumnReferences(final RexBuilder rexBuilder,
+      final RexNode node, final @Nullable Map<RelTableRef, RelTableRef> tableMapping,
+      final @Nullable Map<RexTableInputRef, Set<RexTableInputRef>> ec, boolean wrapJoinNullable) {
+    RelDataTypeFactory factory = rexBuilder.getTypeFactory();
     RexShuttle visitor =
         new RexShuttle() {
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
             if (tableMapping != null) {
               RexTableInputRef inputRefFinal = inputRef;
-              inputRef = RexTableInputRef.of(
+              inputRef = RexTableInputRef.of(factory,
                   requireNonNull(tableMapping.get(inputRef.getTableRef()),
                       () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
                   inputRef.getIndex(),
-                  inputRef.getType());
+                  inputRef.getType(),
+                  wrapJoinNullable || inputRef.getWrapJoinNullable());
             }
             if (ec != null) {
               Set<RexTableInputRef> s = ec.get(inputRef);
