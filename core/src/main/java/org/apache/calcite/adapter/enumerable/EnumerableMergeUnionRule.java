@@ -19,18 +19,24 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalSort} on top of a
@@ -90,9 +96,43 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
       }
     }
 
+    final RelBuilder builder = call.builder();
+    final List<RelDataTypeField> unionFieldList = union.getRowType().getFieldList();
     final List<RelNode> inputs = new ArrayList<>(unionInputsSize);
     for (RelNode input : union.getInputs()) {
-      final RelNode newInput = sort.copy(sort.getTraitSet(), input, collation, null, inputFetch);
+      // Check if type collations match, otherwise store it in this bitset to generate a cast later
+      // to guarantee that all inputs will be sorted in the same way
+      final ImmutableBitSet.Builder fieldsRequiringCastBuilder = ImmutableBitSet.builder();
+      for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+        final int index = fieldCollation.getFieldIndex();
+        final RelDataType unionType = unionFieldList.get(index).getType();
+        final RelDataType inputType = input.getRowType().getFieldList().get(index).getType();
+        if (!Objects.equals(unionType.getCollation(), inputType.getCollation())) {
+          fieldsRequiringCastBuilder.set(index);
+        }
+      }
+      final ImmutableBitSet fieldsRequiringCast = fieldsRequiringCastBuilder.build();
+      final RelNode unsortedInput;
+      if (fieldsRequiringCast.isEmpty()) {
+        unsortedInput = input;
+      } else {
+        // At least one cast is required, generate the corresponding projection
+        builder.push(input);
+        final List<RexNode> fields = builder.fields();
+        final List<RexNode> projFields = new ArrayList<>(fields.size());
+        for (int i = 0; i < fields.size(); i++) {
+          RexNode node = fields.get(i);
+          if (fieldsRequiringCast.get(i)) {
+            final RelDataType targetType = unionFieldList.get(i).getType();
+            node = builder.getRexBuilder().makeCast(targetType, node);
+          }
+          projFields.add(node);
+        }
+        builder.project(projFields);
+        unsortedInput = builder.build();
+      }
+      final RelNode newInput =
+          sort.copy(sort.getTraitSet(), unsortedInput, collation, null, inputFetch);
       inputs.add(
           convert(newInput, newInput.getTraitSet().replace(EnumerableConvention.INSTANCE)));
     }
