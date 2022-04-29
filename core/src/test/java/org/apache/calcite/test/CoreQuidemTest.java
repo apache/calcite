@@ -60,9 +60,15 @@ class CoreQuidemTest extends QuidemTest {
                   ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
               .with(CalciteAssert.SchemaSpec.BLANK)
               .connect();
+        case "scott":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
         default:
+          return super.connect(name, reference);
         }
-        return super.connect(name, reference);
       }
     };
   }

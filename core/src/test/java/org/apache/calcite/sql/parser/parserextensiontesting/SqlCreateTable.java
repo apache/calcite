@@ -30,6 +30,8 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -39,15 +41,15 @@ import java.util.function.BiConsumer;
  */
 public class SqlCreateTable extends SqlCreate {
   public final SqlIdentifier name;
-  public final SqlNodeList columnList;
-  public final SqlNode query;
+  public final @Nullable SqlNodeList columnList;
+  public final @Nullable SqlNode query;
 
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
 
   /** Creates a SqlCreateTable. */
   public SqlCreateTable(SqlParserPos pos, SqlIdentifier name,
-      SqlNodeList columnList, SqlNode query) {
+      @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
     super(OPERATOR, pos, false, false);
     this.name = Objects.requireNonNull(name, "name");
     this.columnList = columnList; // may be null
