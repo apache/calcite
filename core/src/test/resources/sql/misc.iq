@@ -1063,6 +1063,24 @@ Expression 'DEPTNO' is not being grouped
 
 !use scott
 
+# In Quidem's "scott" schema, we allow CREATE VIEW
+create view v as
+  select * from (values (1, 'a'), (2, 'b')) as t (x, y);
+(0 rows modified)
+
+!update
+
+select count(*) as c
+from v;
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
 # ORDER BY expression with SELECT DISTINCT
 select distinct deptno, job
 from "scott".emp

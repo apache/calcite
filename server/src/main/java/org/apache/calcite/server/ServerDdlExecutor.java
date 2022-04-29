@@ -89,6 +89,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Reader;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -162,7 +164,8 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
 
   /** Wraps a query to rename its columns. Used by CREATE VIEW and CREATE
    * MATERIALIZED VIEW. */
-  static SqlNode renameColumns(SqlNodeList columnList, SqlNode query) {
+  static SqlNode renameColumns(@Nullable SqlNodeList columnList,
+      SqlNode query) {
     if (columnList == null) {
       return query;
     }
