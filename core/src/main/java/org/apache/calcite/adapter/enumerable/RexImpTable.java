@@ -373,8 +373,7 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(OCTET_LENGTH, BuiltInMethod.OCTET_LENGTH.method,
         NullPolicy.STRICT);
-    defineMethod(CONCAT, BuiltInMethod.STRING_CONCAT.method,
-        NullPolicy.STRICT);
+    map.put(CONCAT, new ConcatImplementor());
     defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
         NullPolicy.STRICT);
     defineMethod(CONCAT2, BuiltInMethod.STRING_CONCAT.method, NullPolicy.STRICT);
@@ -2696,6 +2695,29 @@ public class RexImpTable {
         );
       }
       return list;
+    }
+  }
+
+  /** Implementor for a array or string concat. */
+  private static class ConcatImplementor extends AbstractRexCallImplementor {
+    private ArrayConcatImplementor arrayConcatImplementor =
+        new ArrayConcatImplementor();
+    private MethodImplementor stringConcatImplementor
+        = new MethodImplementor(BuiltInMethod.STRING_CONCAT.method, NullPolicy.STRICT, false);
+    ConcatImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "concat";
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      if (call.type.getSqlTypeName() == SqlTypeName.ARRAY) {
+        return arrayConcatImplementor.implementSafe(translator, call, argValueList);
+      }
+      return stringConcatImplementor.implementSafe(translator, call, argValueList);
     }
   }
 
