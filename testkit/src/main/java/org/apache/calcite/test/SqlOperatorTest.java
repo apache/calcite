@@ -1776,6 +1776,15 @@ public class SqlOperatorTest {
     f.checkNull(" cast(null as ANY) || cast(null as ANY) ");
     f.checkString("cast('a' as varchar) || cast('b' as varchar) "
         + "|| cast('c' as varchar)", "abc", "VARCHAR NOT NULL");
+
+    f.checkScalar("array[1, 2] || array[2, 3]", "[1, 2, 2, 3]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array[1, 2] || array[2, null]", "[1, 2, 2, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array['hello', 'world'] || array['!'] || "
+            + "array[cast(null as char)]",
+        "[hello, world, !, null]", "CHAR(5) ARRAY NOT NULL");
+    f.checkNull("cast(null as integer array) || array[1]");
   }
 
   @Test void testConcatFunc() {
