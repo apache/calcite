@@ -288,7 +288,6 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker ARRAY =
       family(SqlTypeFamily.ARRAY);
-
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =
@@ -519,6 +518,10 @@ public abstract class OperandTypes {
    */
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_INTEGER =
       OperandTypes.and(STRING_STRING_INTEGER, SAME_SAME_INTEGER);
+
+  public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_OR_ARRAY_SAME_SAME =
+      or(STRING_SAME_SAME,
+          and(OperandTypes.SAME_SAME, family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
   public static final SqlSingleOperandTypeChecker ANY =
       family(SqlTypeFamily.ANY);
