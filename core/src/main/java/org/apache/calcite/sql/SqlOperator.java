@@ -675,7 +675,7 @@ public abstract class SqlOperator {
       if (operand.getKind() == SqlKind.ROW && convertRowArgToColumnList) {
         RelDataTypeFactory typeFactory = validator.getTypeFactory();
         nodeType = typeFactory.createSqlType(SqlTypeName.COLUMN_LIST);
-        ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+        validator.setValidatedNodeType(operand, nodeType);
       } else {
         nodeType = validator.deriveType(operandScope, operand);
       }
