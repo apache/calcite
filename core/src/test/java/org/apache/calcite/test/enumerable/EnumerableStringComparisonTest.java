@@ -167,6 +167,40 @@ class EnumerableStringComparisonTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5003">[CALCITE-5003]
+   * MergeUnion on types with different collators produces wrong result</a>. */
+  @Test void testMergeUnionOnStringDifferentCollation() {
+    tester()
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(EnumerableRules.ENUMERABLE_UNION_RULE))
+        .withRel(b -> {
+          final RelBuilder builder = b.transform(c -> c.withSimplifyValues(false));
+          return builder
+              .values(builder.getTypeFactory().builder()
+                      .add("name",
+                          builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)).build(),
+                  "facilities", "HR", "administration", "Marketing")
+              .values(createRecordVarcharSpecialCollation(builder),
+                  "Marketing", "administration", "presales", "HR")
+              .union(false)
+              .sort(0)
+              .build();
+        })
+        .explainHookMatches("" // It is important that we have MergeUnion in the plan
+            + "EnumerableMergeUnion(all=[false])\n"
+            + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR COLLATE \"ISO-8859-1$en_US$tertiary$JAVA_COLLATOR\" NOT NULL], name=[$t1])\n"
+            + "      EnumerableValues(tuples=[[{ 'facilities' }, { 'HR' }, { 'administration' }, { 'Marketing' }]])\n"
+            + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'administration' }, { 'presales' }, { 'HR' }]])\n")
+        .returnsOrdered("name=administration\n"
+            + "name=facilities\n"
+            + "name=HR\n"
+            + "name=Marketing\n"
+            + "name=presales");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4195">[CALCITE-4195]
    * Cast between types with different collators must be evaluated as not monotonic</a>. */
   @Test void testCastDifferentCollationShouldNotApplySortProjectTranspose() {
