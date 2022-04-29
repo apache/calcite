@@ -115,8 +115,8 @@ public class SqlOverOperator extends SqlBinaryOperator {
     RelDataType ret = aggCall.getOperator().inferReturnType(opBinding);
 
     // Copied from validateOperands
-    ((SqlValidatorImpl) validator).setValidatedNodeType(call, ret);
-    ((SqlValidatorImpl) validator).setValidatedNodeType(agg, ret);
+    validator.setValidatedNodeType(call, ret);
+    validator.setValidatedNodeType(agg, ret);
     return ret;
   }
 
