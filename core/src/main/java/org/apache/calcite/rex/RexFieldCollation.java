@@ -24,8 +24,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Expression combined with sort flags (DESCENDING, NULLS LAST).
@@ -45,7 +46,7 @@ public class RexFieldCollation extends Pair<RexNode, ImmutableSet<SqlKind>> {
           .build();
 
   public RexFieldCollation(RexNode left, Set<SqlKind> right) {
-    super(left, Objects.requireNonNull(KINDS.get(right)));
+    super(left, requireNonNull(KINDS.get(right)));
   }
 
   @Override public String toString() {

@@ -23,7 +23,8 @@ import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Passes over a row-expression, calling a handler method for each node,
@@ -186,7 +187,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
       if ((clonedOperand != collation.left) && (update != null)) {
         update[0] = true;
         collation =
-            new RexFieldCollation(clonedOperand, Objects.requireNonNull(collation.right));
+            new RexFieldCollation(clonedOperand, requireNonNull(collation.right));
       }
       clonedOperands.add(collation);
     }
