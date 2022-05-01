@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -961,8 +962,6 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a TableModify; called by {@link #dispatch} via reflection. */
   public Result visit(TableModify modify) {
-    final Map<String, RelDataType> pairs = ImmutableMap.of();
-    final Context context = aliasContext(pairs, false);
 
     // Target Table Name
     final SqlIdentifier sqlTargetTable = getSqlTargetTable(modify);
@@ -982,16 +981,31 @@ public class RelToSqlConverter extends SqlImplementor
     }
     case UPDATE: {
       final Result input = visitInput(modify, 0);
-
+      // Context provide rowType to find field in expression.
+      final Map<String, RelDataType> pairs =
+          ImmutableMap.of(input.neededAlias,
+              requireNonNull(modify.getInput().getRowType(),
+                  () -> "modify.getInput().getRowType() is null for " + modify));
+      final Context context = aliasContext(pairs,
+          false);
+      final SqlNodeList sqlNodeList = exprList(context,
+          requireNonNull(modify.getSourceExpressionList(),
+              () -> "modify.getSourceExpressionList() is null for " + modify));
+      // Single table not need sub select, because column must from target table.
+      boolean needSubSelect = RelOptUtil.findAllTableQualifiedNames(modify).size() != 1;
+      // Need sub select when column from different tables.
+      final SqlSelect sqlSelect = needSubSelect ? input.subSelect() : input.asSelect();
+      if (needSubSelect) {
+        sqlSelect.setSelectList(sqlNodeList);
+      }
       final SqlUpdate sqlUpdate =
           new SqlUpdate(POS, sqlTargetTable,
               identifierList(
                   requireNonNull(modify.getUpdateColumnList(),
                       () -> "modify.getUpdateColumnList() is null for " + modify)),
-              exprList(context,
-                  requireNonNull(modify.getSourceExpressionList(),
-                      () -> "modify.getSourceExpressionList() is null for " + modify)),
-              ((SqlSelect) input.node).getWhere(), input.asSelect(),
+              sqlNodeList,
+              ((SqlSelect) input.node).getWhere(),
+              sqlSelect,
               null);
 
       return result(sqlUpdate, input.clauses, modify, null);

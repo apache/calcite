@@ -2770,6 +2770,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testUpdateSubQueryWithCorrelated1() {
+    final String sql = "update emp a set ename = "
+        + "(select ename from empdefaults b where a.empno = b.empno)";
+    sql(sql).ok();
+  }
+
+  @Test void testUpdateSubQueryWithCorrelated2() {
+    final String sql = "update emp a set deptno = "
+        + "(select deptno + 1 from empdefaults b where a.empno = b.empno)";
+    sql(sql).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3229">[CALCITE-3229]

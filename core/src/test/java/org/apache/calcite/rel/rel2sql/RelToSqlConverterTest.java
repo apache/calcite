@@ -6153,6 +6153,57 @@ class RelToSqlConverterTest {
         .withPresto().ok(expectedPrestoSql);
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5122">[CALCITE-5122]
+   * Update query with correlated throws AssertionError "field ordinal 0 out of range"</a>.
+   */
+  @Test void testUpdateWithCorrelated() {
+    sql("update \"foodmart\".\"product\" set \"product_id\" = \"product_id\" + 1")
+        .ok("UPDATE \"foodmart\".\"product\" SET \"product_id\" = \"product_id\" + 1");
+
+    sql("update \"foodmart\".\"product\" a set \"product_id\" = "
+        + "(select \"product_class_id\" from \"foodmart\".\"product_class\" b "
+        + "where a.\"product_class_id\" = b.\"product_class_id\")")
+        .ok("UPDATE \"foodmart\".\"product\" SET \"product_id\" = (SELECT "
+            + "\"product_class_id\"\n"
+            + "FROM (SELECT \"product\".\"product_class_id\", \"product\""
+            + ".\"product_id\", \"product\".\"brand_name\", \"product\""
+            + ".\"product_name\", \"product\".\"SKU\", \"product\".\"SRP\", "
+            + "\"product\".\"gross_weight\", \"product\".\"net_weight\", "
+            + "\"product\".\"recyclable_package\", \"product\".\"low_fat\", "
+            + "\"product\".\"units_per_case\", \"product\".\"cases_per_pallet\", "
+            + "\"product\".\"shelf_width\", \"product\".\"shelf_height\", "
+            + "\"product\".\"shelf_depth\", \"t0\".\"$f1\" AS \"EXPR$0\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "LEFT JOIN (SELECT \"product_class_id\" AS \"product_class_id1\", "
+            + "SINGLE_VALUE(\"product_class_id\") AS \"$f1\"\n"
+            + "FROM \"foodmart\".\"product_class\"\n"
+            + "GROUP BY \"product_class_id\") AS \"t0\" ON \"product\""
+            + ".\"product_class_id\" = \"t0\".\"product_class_id1\") AS \"t1\")");
+
+    sql("update \"foodmart\".\"product\" a set \"brand_name\" = "
+        + "(select cast(\"product_category\" as varchar(60)) from \"foodmart\".\"product_class\" b "
+        + "where a.\"product_class_id\" = b.\"product_class_id\")")
+        .ok("UPDATE \"foodmart\".\"product\" SET \"brand_name\" = (SELECT "
+            + "\"EXPR$0\"\n"
+            + "FROM (SELECT \"product\".\"product_class_id\", \"product\""
+            + ".\"product_id\", \"product\".\"brand_name\", \"product\""
+            + ".\"product_name\", \"product\".\"SKU\", \"product\".\"SRP\", "
+            + "\"product\".\"gross_weight\", \"product\".\"net_weight\", "
+            + "\"product\".\"recyclable_package\", \"product\".\"low_fat\", "
+            + "\"product\".\"units_per_case\", \"product\".\"cases_per_pallet\", "
+            + "\"product\".\"shelf_width\", \"product\".\"shelf_height\", "
+            + "\"product\".\"shelf_depth\", \"t0\".\"$f1\" AS \"EXPR$0\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "LEFT JOIN (SELECT \"product_class_id\", SINGLE_VALUE(CAST"
+            + "(\"product_category\" AS VARCHAR(60) CHARACTER SET \"ISO-8859-1\")) AS "
+            + "\"$f1\"\n"
+            + "FROM \"foodmart\".\"product_class\"\n"
+            + "GROUP BY \"product_class_id\") AS \"t0\" ON \"product\""
+            + ".\"product_class_id\" = \"t0\".\"product_class_id\") AS \"t1\")");
+  }
+
   @Test void testRowValueExpression() {
     String sql = "insert into \"DEPT\"\n"
         + "values ROW(1,'Fred', 'San Francisco'),\n"
