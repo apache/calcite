@@ -8295,6 +8295,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");
     sql("select*from unnest(array[43.2e1, cast(null as decimal(4,2))]) with ordinality")
         .type("RecordType(DOUBLE EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");
+    sql("select * from unnest(array(select deptno from dept)) with ordinality as t")
+        .type("RecordType(INTEGER NOT NULL T, INTEGER NOT NULL ORDINALITY) NOT NULL");
     sql("select*from ^unnest(1) with ordinality^")
         .fails("(?s).*Cannot apply 'UNNEST' to arguments of type 'UNNEST.<INTEGER>.'.*");
     sql("select deptno\n"
@@ -8338,6 +8340,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // relation, that alias becomes the name of the column.
     sql("select fruit.* from UNNEST(array ['apple', 'banana']) as fruit")
         .type(expectedType);
+    sql("select fruit.* from UNNEST(array(select 'banana')) as fruit")
+        .type(expectedType);
+    sql("SELECT array(SELECT y + 1 FROM UNNEST(s.x) y) FROM (SELECT ARRAY[1,2,3] as x) s")
+        .ok();
 
     // The magic doesn't happen if the query is not an UNNEST.
     // In this case, the query is a SELECT.
@@ -8350,7 +8356,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from UNNEST(array [('apple', 1), ('banana', 2)]) as fruit")
         .type("RecordType(CHAR(6) NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) "
             + "NOT NULL");
-
     // VALUES gets the same treatment as ARRAY. (Unlike PostgreSQL.)
     sql("select * from (values ('apple'), ('banana')) as fruit")
         .type("RecordType(CHAR(6) NOT NULL FRUIT) NOT NULL");
@@ -8358,6 +8363,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // UNNEST MULTISET gets the same treatment as UNNEST ARRAY.
     sql("select * from unnest(multiset [1, 2, 1]) as f")
         .type("RecordType(INTEGER NOT NULL F) NOT NULL");
+
+    // The magic doesn't happen if the UNNEST is used without AS operator.
+    sql("select * from (SELECT ARRAY['banana'] as fruits) as t, UNNEST(t.fruits)")
+        .type("RecordType(CHAR(6) NOT NULL ARRAY NOT NULL FRUITS, "
+            + "CHAR(6) NOT NULL EXPR$0) NOT NULL").ok();
   }
 
   @Test void testCorrelationJoin() {

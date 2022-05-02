@@ -6427,7 +6427,7 @@ unnest(t1.fake_col) as t2]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(**=[$1], $unnest=[$2])
+LogicalProject(**=[$1], T2=[$2])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
     Uncollect
