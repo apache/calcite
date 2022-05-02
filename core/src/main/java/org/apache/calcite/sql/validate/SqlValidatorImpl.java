@@ -2328,11 +2328,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       expr = call.operand(0);
       final boolean needAlias = call.operandCount() > 2
           || expr.getKind() == SqlKind.VALUES
-          || expr.getKind() == SqlKind.UNNEST
-          && (((SqlCall) expr).operand(0).getKind()
-                  == SqlKind.ARRAY_VALUE_CONSTRUCTOR
-              || ((SqlCall) expr).operand(0).getKind()
-                  == SqlKind.MULTISET_VALUE_CONSTRUCTOR);
+          || expr.getKind() == SqlKind.UNNEST;
       newExpr =
           registerFrom(
               parentScope,

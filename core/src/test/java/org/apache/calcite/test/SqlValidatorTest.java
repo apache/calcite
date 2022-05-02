@@ -8210,6 +8210,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // relation, that alias becomes the name of the column.
     sql("select fruit.* from UNNEST(array ['apple', 'banana']) as fruit")
         .type(expectedType);
+    sql("select fruit.* from UNNEST(array(select 'banana')) as fruit")
+        .type(expectedType);
+    sql("SELECT array(SELECT y + 1 FROM UNNEST(s.x) y) FROM (SELECT ARRAY[1,2,3] as x) s")
+        .ok();
 
     // The magic doesn't happen if the query is not an UNNEST.
     // In this case, the query is a SELECT.
@@ -8222,7 +8226,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from UNNEST(array [('apple', 1), ('banana', 2)]) as fruit")
         .type("RecordType(CHAR(6) NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) "
             + "NOT NULL");
-
     // VALUES gets the same treatment as ARRAY. (Unlike PostgreSQL.)
     sql("select * from (values ('apple'), ('banana')) as fruit")
         .type("RecordType(CHAR(6) NOT NULL FRUIT) NOT NULL");
