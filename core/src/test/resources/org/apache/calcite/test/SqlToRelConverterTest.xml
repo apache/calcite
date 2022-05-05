@@ -627,6 +627,26 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelatedForOuterFields">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT dept.deptno)
+FROM emp
+LEFT OUTER JOIN dept
+ON emp.empno = dept.deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$11])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{9}])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Collect(field=[EXPR$0])
+      LogicalProject(DEPTNO=[$cor0.DEPTNO0])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelatedMapSubQuery">
     <Resource name="sql">
       <![CDATA[select *,
