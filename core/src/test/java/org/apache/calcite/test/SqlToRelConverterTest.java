@@ -2639,6 +2639,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  @Test void testCorrelatedForOuterFields() {
+    final String sql = "SELECT ARRAY(SELECT dept.deptno)\n"
+        + "FROM emp\n"
+        + "LEFT OUTER JOIN dept\n"
+        + "ON emp.empno = dept.deptno";
+    sql(sql).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-614">[CALCITE-614]
