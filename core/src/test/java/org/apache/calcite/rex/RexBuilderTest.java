@@ -566,7 +566,7 @@ class RexBuilderTest {
         SqlCollation.IMPLICIT);
     assertEquals("_UTF8'foobar'", literal.toString());
     assertEquals("_UTF8'foobar':CHAR(6) CHARACTER SET \"UTF-8\"",
-        ((RexLiteral) literal).computeDigest(RexDigestIncludeType.ALWAYS));
+        literal.computeDigest(RexDigestIncludeType.ALWAYS));
     literal = builder.makePreciseStringLiteral(
         new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
         "UTF8",

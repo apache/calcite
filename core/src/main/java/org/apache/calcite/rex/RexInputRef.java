@@ -101,8 +101,7 @@ public class RexInputRef extends RexSlot {
       int index,
       List<RelDataTypeField> fields) {
     final RelDataTypeField field = fields.get(index);
-    return Pair.of(
-        (RexNode) new RexInputRef(index, field.getType()),
+    return Pair.of(new RexInputRef(index, field.getType()),
         field.getName());
   }
 
