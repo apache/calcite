@@ -34,6 +34,13 @@ class EnumerableUncollectTest {
             "y=4");
   }
 
+  @Test void simpleUnnestNullArray() {
+    final String sql = "SELECT * FROM UNNEST(CAST(null AS INTEGER ARRAY))";
+    tester()
+        .query(sql)
+        .returnsCount(0);
+  }
+
   @Test void simpleUnnestArrayOfArrays() {
     final String sql = "select * from UNNEST(array[array[3], array[4]]) as T2(y)";
     tester()

@@ -117,7 +117,7 @@ public class SqlFunctions {
   private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
-      Linq4j::asEnumerable;
+      a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
 
   @SuppressWarnings("unused")
   private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
