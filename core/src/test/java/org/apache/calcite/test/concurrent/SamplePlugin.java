@@ -48,8 +48,7 @@ public class SamplePlugin extends ConcurrentTestPlugin {
   /** Command that describes a result set. */
   static class DescribeResultSet implements ConcurrentTestPluginCommand {
     public void execute(TestContext testContext) throws IOException {
-      Statement stmt =
-          (PreparedStatement) testContext.getCurrentStatement();
+      Statement stmt = testContext.getCurrentStatement();
       if (stmt == null) {
         testContext.storeMessage("No current statement");
       } else if (stmt instanceof PreparedStatement) {

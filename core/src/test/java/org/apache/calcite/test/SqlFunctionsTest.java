@@ -836,19 +836,19 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.multiplyAny(1, null), nullValue());
 
     // Numeric types
-    assertThat(SqlFunctions.multiplyAny(2, 1L), is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(2, 1L), is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(2, 1.0D),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(2L, 1.0D),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1L),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1.0D),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), new BigDecimal(1.0D)),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
 
     // Non-numeric type
     try {
@@ -869,19 +869,19 @@ class SqlFunctionsTest {
 
     // Numeric types
     assertThat(SqlFunctions.divideAny(5, 2L),
-        is((Object) new BigDecimal("2.5")));
+        is(new BigDecimal("2.5")));
     assertThat(SqlFunctions.divideAny(5, 2.0D),
-        is((Object) new BigDecimal("2.5")));
+        is(new BigDecimal("2.5")));
     assertThat(SqlFunctions.divideAny(5L, 2.0D),
-        is((Object) new BigDecimal("2.5")));
+        is(new BigDecimal("2.5")));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2L),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2.0D),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), new BigDecimal(2.0D)),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
 
     // Non-numeric type
     try {
