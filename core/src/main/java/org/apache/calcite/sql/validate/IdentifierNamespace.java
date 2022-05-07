@@ -234,7 +234,7 @@ public class IdentifierNamespace extends AbstractNamespace {
           resolvedNamespace.getMonotonicity(fieldName);
       if (monotonicity != null && monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
         builder.add(
-            Pair.of((SqlNode) new SqlIdentifier(fieldName, SqlParserPos.ZERO),
+            Pair.of(new SqlIdentifier(fieldName, SqlParserPos.ZERO),
                 monotonicity));
       }
     }

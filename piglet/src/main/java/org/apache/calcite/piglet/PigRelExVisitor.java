@@ -442,7 +442,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
     RelNode referencedRel = builder.getRel(
         ((LogicalRelationalOperator) op.getImplicitReferencedOperator()).getAlias());
     builder.push(referencedRel);
-    List<RexNode> projectCol = Lists.newArrayList((RexNode) builder.field(index));
+    List<RexNode> projectCol = Lists.newArrayList(builder.field(index));
     builder.project(projectCol);
 
     stack.push(RexSubQuery.scalar(builder.build()));

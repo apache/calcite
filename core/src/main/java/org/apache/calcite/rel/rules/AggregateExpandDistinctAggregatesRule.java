@@ -196,7 +196,7 @@ public final class AggregateExpandDistinctAggregatesRule
       return;
     }
 
-    if (((Config) config).isUsingGroupingSets()) {
+    if (config.isUsingGroupingSets()) {
       rewriteUsingGroupingSets(call, aggregate);
       return;
     }

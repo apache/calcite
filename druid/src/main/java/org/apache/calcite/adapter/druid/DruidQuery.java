@@ -280,7 +280,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // unknown Granularity
         return Pair.of(null, null);
       }
-      if (!TimeExtractionFunction.isValidTimeExtract((RexCall) rexNode)) {
+      if (!TimeExtractionFunction.isValidTimeExtract(rexNode)) {
         return Pair.of(null, null);
       }
       RexNode extractValueNode = ((RexCall) rexNode).getOperands().get(1);
@@ -309,7 +309,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // unknown Granularity
         return Pair.of(null, null);
       }
-      if (!TimeExtractionFunction.isValidTimeFloor((RexCall) rexNode)) {
+      if (!TimeExtractionFunction.isValidTimeFloor(rexNode)) {
         return Pair.of(null, null);
       }
       RexNode floorValueNode = ((RexCall) rexNode).getOperands().get(0);
