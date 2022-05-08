@@ -357,4 +357,157 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[25], ex
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-5138] Join on condition generates wrong plan when the condition is sub-query
+
+# Bad: more than one value returned by sub-query
+select empno
+from emp as r
+         left join dept as s on (select empno > 0 from emp);
+more than one value in agg SINGLE_VALUE
+!error
+
+# Bad: more than one value returned by sub-query
+select empno
+from emp as r
+         left join dept as s on (select true from emp);
+more than one value in agg SINGLE_VALUE
+!error
+
+# Bad: more than one column returned by sub-query
+select empno
+from emp as r
+         left join dept as s on (select true,true from emp);
+sub-query as condition must return only one column
+!error
+
+# Bad: column returned by sub-query is not a conditon
+select empno
+from emp as r
+         left join dept as s on (select empno from emp);
+ON clause must be a condition
+!error
+
+# sub-query return true
+select empno
+from emp as r
+         left join dept as s on (select count(true) > 0 from emp)
+where empno = 7369;
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7369 |
+|  7369 |
+|  7369 |
++-------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7369], expr#10=[=($t8, $t9)], EMPNO=[$t0], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}], $condition=[$t1])
+      EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+        EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[>($t0, $t1)], EXPR$0=[$t2])
+            EnumerableAggregate(group=[{}], agg#0=[COUNT()])
+              EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# sub-query return true with Equal condition
+select r.empno, s.deptno
+from emp as r
+         left join dept as s on (select count(true) > 0 from emp) and s.deptno = r.deptno;
+
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
+|  7369 |     20 |
+|  7499 |     30 |
+|  7521 |     30 |
+|  7566 |     20 |
+|  7654 |     30 |
+|  7698 |     30 |
+|  7782 |     10 |
+|  7788 |     20 |
+|  7839 |     10 |
+|  7844 |     30 |
+|  7876 |     20 |
+|  7900 |     30 |
+|  7902 |     20 |
+|  7934 |     10 |
++-------+--------+
+(14 rows)
+
+!ok
+
+# sub-query return false
+select r.empno, s.deptno
+from emp as r
+         left join dept as s on (select count(job) > 0 from bonus);
+
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
+|  7369 |        |
+|  7499 |        |
+|  7521 |        |
+|  7566 |        |
+|  7654 |        |
+|  7698 |        |
+|  7782 |        |
+|  7788 |        |
+|  7839 |        |
+|  7844 |        |
+|  7876 |        |
+|  7900 |        |
+|  7902 |        |
+|  7934 |        |
++-------+--------+
+(14 rows)
+
+!ok
+
+# ON condition is a column
+select *
+from dept
+         LEFT JOIN (SELECT COUNT(*) > 0 AS "EXPR$0"
+                    FROM emp) AS "t0" ON "EXPR$0";
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK | true   |
+|     20 | RESEARCH   | DALLAS   | true   |
+|     30 | SALES      | CHICAGO  | true   |
+|     40 | OPERATIONS | BOSTON   | true   |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
+# As above, but complicated
+SELECT emp.empno
+FROM emp
+         LEFT JOIN (select *
+                    from dept
+                             LEFT JOIN (SELECT COUNT(*) > 0 AS "EXPR$0"
+                                        FROM emp) AS "t0" ON TRUE) as "dt0*" ON "EXPR$0"
+where emp.empno = 7902;
++-------+
+| EMPNO |
++-------+
+|  7902 |
+|  7902 |
+|  7902 |
+|  7902 |
++-------+
+(4 rows)
+
+!ok
+
+
 # End conditions.iq
