@@ -2419,7 +2419,7 @@ public class RelBuilderTest {
         .build();
     // Note that the join is emitted since the query is not actually a correlated.
     final String expected = ""
-        + "LogicalJoin(condition=[=($5, 1000)], joinType=[left])\n"
+        + "LogicalJoin(condition=[=($5, 1000)], joinType=[left], variablesSet=[[$cor0]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
@@ -4204,7 +4204,7 @@ public class RelBuilderTest {
   @Test void testSimpleSemiCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.SEMI);
     final String expected = ""
-        + "LogicalJoin(condition=[=($7, $8)], joinType=[semi])\n"
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[semi], variablesSet=[[$cor0]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(
@@ -4228,7 +4228,7 @@ public class RelBuilderTest {
   @Test void testSimpleAntiCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.ANTI);
     final String expected = ""
-        + "LogicalJoin(condition=[=($7, $8)], joinType=[anti])\n"
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[anti], variablesSet=[[$cor0]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(
@@ -4251,7 +4251,7 @@ public class RelBuilderTest {
   @Test void testSimpleLeftCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.LEFT);
     final String expected = ""
-        + "LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[left], variablesSet=[[$cor0]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(
@@ -4275,7 +4275,7 @@ public class RelBuilderTest {
   @Test void testSimpleInnerCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.INNER);
     final String expected = ""
-        + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+        + "LogicalJoin(condition=[=($7, $8)], joinType=[inner], variablesSet=[[$cor0]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat("Join with correlate id but never used should be simplified to a join.",
