@@ -132,7 +132,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt-openj9'
-          version: '8'
+          java-version: '8'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
