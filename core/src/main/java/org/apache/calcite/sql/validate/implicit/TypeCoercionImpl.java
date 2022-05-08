@@ -104,14 +104,15 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       updateInferredColumnType(scope1, query, columnIndex, targetType);
       return true;
     case VALUES:
+      boolean coerceValues = true;
       for (SqlNode rowConstructor : ((SqlCall) query).getOperandList()) {
         if (!coerceOperandType(scope, (SqlCall) rowConstructor, columnIndex, targetType)) {
-          return false;
+          coerceValues = false;
         }
       }
       updateInferredColumnType(
           requireNonNull(scope, "scope"), query, columnIndex, targetType);
-      return true;
+      return coerceValues;
     case WITH:
       SqlNode body = ((SqlWith) query).body;
       return rowTypeCoercion(validator.getOverScope(query), body, columnIndex, targetType);
