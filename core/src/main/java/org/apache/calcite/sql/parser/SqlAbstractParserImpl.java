@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Reader;
@@ -379,7 +378,6 @@ public abstract class SqlAbstractParserImpl {
    * @param operands          Operands to call
    * @return Call
    */
-  @SuppressWarnings("argument.type.incompatible")
   protected SqlCall createCall(
       SqlIdentifier funName,
       SqlParserPos pos,
