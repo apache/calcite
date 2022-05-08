@@ -38,7 +38,7 @@ LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5
     <Resource name="planAfter">
       <![CDATA[
 EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4], Y=[$5], unit=[$6], COORD_NE=[ROW($7, ROW($8, $9))], ACCTNO=[$10], TYPE=[$11], BALANCE=[$12])
-  EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left], batchSize=[100])
+  EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $10), <($3, $11))], joinType=[left], variablesSet=[[$cor0, $cor1, $cor2, $cor3, $cor4, $cor5, $cor6, $cor7, $cor8, $cor9, $cor10, $cor11, $cor12, $cor13, $cor14, $cor15, $cor16, $cor17, $cor18, $cor19, $cor20, $cor21, $cor22, $cor23, $cor24, $cor25, $cor26, $cor27, $cor28, $cor29, $cor30, $cor31, $cor32, $cor33, $cor34, $cor35, $cor36, $cor37, $cor38, $cor39, $cor40, $cor41, $cor42, $cor43, $cor44, $cor45, $cor46, $cor47, $cor48, $cor49, $cor50, $cor51, $cor52, $cor53, $cor54, $cor55, $cor56, $cor57, $cor58, $cor59, $cor60, $cor61, $cor62, $cor63, $cor64, $cor65, $cor66, $cor67, $cor68, $cor69, $cor70, $cor71, $cor72, $cor73, $cor74, $cor75, $cor76, $cor77, $cor78, $cor79, $cor80, $cor81, $cor82, $cor83, $cor84, $cor85, $cor86, $cor87, $cor88, $cor89, $cor90, $cor91, $cor92, $cor93, $cor94, $cor95, $cor96, $cor97, $cor98, $cor99]], batchSize=[100])
     EnumerableSort(sort0=[$0], sort1=[$3], dir0=[DESC], dir1=[DESC])
       EnumerableProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
         EnumerableTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
@@ -67,7 +67,7 @@ LogicalSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[DESC])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner], batchSize=[100])
+EnumerableBatchNestedLoopJoin(condition=[AND(>($0, $3), <($1, $4))], joinType=[inner], variablesSet=[[$cor0, $cor1, $cor2, $cor3, $cor4, $cor5, $cor6, $cor7, $cor8, $cor9, $cor10, $cor11, $cor12, $cor13, $cor14, $cor15, $cor16, $cor17, $cor18, $cor19, $cor20, $cor21, $cor22, $cor23, $cor24, $cor25, $cor26, $cor27, $cor28, $cor29, $cor30, $cor31, $cor32, $cor33, $cor34, $cor35, $cor36, $cor37, $cor38, $cor39, $cor40, $cor41, $cor42, $cor43, $cor44, $cor45, $cor46, $cor47, $cor48, $cor49, $cor50, $cor51, $cor52, $cor53, $cor54, $cor55, $cor56, $cor57, $cor58, $cor59, $cor60, $cor61, $cor62, $cor63, $cor64, $cor65, $cor66, $cor67, $cor68, $cor69, $cor70, $cor71, $cor72, $cor73, $cor74, $cor75, $cor76, $cor77, $cor78, $cor79, $cor80, $cor81, $cor82, $cor83, $cor84, $cor85, $cor86, $cor87, $cor88, $cor89, $cor90, $cor91, $cor92, $cor93, $cor94, $cor95, $cor96, $cor97, $cor98, $cor99]], batchSize=[100])
   EnumerableLimit(fetch=[10])
     EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[ASC])
       EnumerableProject(ENAME=[$1], JOB=[$2], MGR=[$3])
