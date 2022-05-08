@@ -4341,9 +4341,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     condition.validate(this, scope);
 
     final RelDataType type = deriveType(scope, condition);
-    if (!SqlTypeUtil.inBooleanFamily(type)) {
+    if (!isReturnBooleanType(type)) {
       throw newValidationError(condition, RESOURCE.condMustBeBoolean(clause));
     }
+  }
+
+  private boolean isReturnBooleanType(RelDataType relDataType) {
+    if (relDataType instanceof RelRecordType) {
+      RelRecordType recordType = (RelRecordType) relDataType;
+      Preconditions.checkState(recordType.getFieldList().size() == 1,
+          "sub-query as condition must return only one column");
+      RelDataTypeField recordField = recordType.getFieldList().get(0);
+      return SqlTypeUtil.inBooleanFamily(recordField.getType());
+    }
+    return SqlTypeUtil.inBooleanFamily(relDataType);
   }
 
   protected void validateHavingClause(SqlSelect select) {

@@ -3049,7 +3049,9 @@ public class SqlToRelConverter {
         rightRel,
         condition,
         convertJoinType(join.getJoinType()));
-    bb.setRoot(joinRel, false);
+    relBuilder.push(joinRel);
+    final RelNode newProjectRel = relBuilder.project(relBuilder.fields()).build();
+    bb.setRoot(newProjectRel, false);
   }
 
   private RexNode convertNaturalCondition(
@@ -3113,6 +3115,13 @@ public class SqlToRelConverter {
         : bb.reRegister(rightRel);
     bb.setRoot(ImmutableList.of(leftRel, newRightRel));
     RexNode conditionExp =  bb.convertExpression(condition);
+    if (conditionExp instanceof RexInputRef && newRightRel != rightRel) {
+      int leftFieldCount = leftRel.getRowType().getFieldCount();
+      List<RelDataTypeField> rightFieldList = newRightRel.getRowType().getFieldList();
+      int rightFieldCount = newRightRel.getRowType().getFieldCount();
+      conditionExp = rexBuilder.makeInputRef(rightFieldList.get(rightFieldCount - 1).getType(),
+          leftFieldCount + rightFieldCount - 1);
+    }
     return Pair.of(conditionExp, newRightRel);
   }
 
@@ -4763,7 +4772,17 @@ public class SqlToRelConverter {
       List<RegisterArgs> registerCopy = registered;
       registered = new ArrayList<>();
       for (RegisterArgs reg: registerCopy) {
-        register(reg.rel, reg.joinType, reg.leftKeys);
+        RelNode relNode = reg.rel;
+        relBuilder.push(relNode);
+        final RelMetadataQuery mq = relBuilder.getCluster().getMetadataQuery();
+        final Boolean unique = mq.areColumnsUnique(relBuilder.peek(),
+            ImmutableBitSet.of());
+        if (unique == null || !unique) {
+          relBuilder.aggregate(relBuilder.groupKey(),
+              relBuilder.aggregateCall(SqlStdOperatorTable.SINGLE_VALUE,
+                  relBuilder.field(0)));
+        }
+        register(relBuilder.build(), reg.joinType, reg.leftKeys);
       }
       return requireNonNull(this.root, "root");
     }
