@@ -3403,6 +3403,27 @@ LogicalProject(EXPR$0=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinWithOnConditionQuery">
+    <Resource name="sql">
+      <![CDATA[SELECT emp.deptno, emp.sal
+FROM dept
+         LEFT JOIN emp ON (SELECT AVG(emp.sal) > 0 FROM emp)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$9], SAL=[$7])
+  LogicalJoin(condition=[$11], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+        LogicalProject(EXPR$0=[>($0, 0)])
+          LogicalAggregate(group=[{}], agg#0=[AVG($0)])
+            LogicalProject(SAL=[$5])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinWithUnion">
     <Resource name="sql">
       <![CDATA[select grade

@@ -4419,6 +4419,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withTrim(true).ok();
   }
 
+  @Test void testJoinWithOnConditionQuery() {
+    String sql = ""
+        + "SELECT emp.deptno, emp.sal\n"
+        + "FROM dept\n"
+        + "JOIN emp\n"
+        + "ON (SELECT AVG(emp.sal) > 0 FROM emp)";
+    sql(sql).ok();
+  }
+
   @Test void testJoinExpandAndDecorrelation() {
     String sql = ""
         + "SELECT emp.deptno, emp.sal\n"
