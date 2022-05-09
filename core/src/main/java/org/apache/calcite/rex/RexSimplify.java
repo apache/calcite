@@ -82,7 +82,8 @@ public class RexSimplify {
   final RexUnknownAs defaultUnknownAs;
   final boolean predicateElimination;
   private final RexExecutor executor;
-  private final Strong strong;
+
+  private static final Strong STRONG = new Strong();
 
   /**
    * Creates a RexSimplify.
@@ -106,7 +107,6 @@ public class RexSimplify {
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
     this.executor = requireNonNull(executor, "executor");
-    this.strong = new Strong();
   }
 
   @Deprecated // to be removed before 2.0
@@ -260,7 +260,7 @@ public class RexSimplify {
    * Verify adds an overhead that is only acceptable for a top-level call.
    */
   RexNode simplify(RexNode e, RexUnknownAs unknownAs) {
-    if (strong.isNull(e)) {
+    if (STRONG.isNull(e)) {
       // Only boolean NULL (aka UNKNOWN) can be converted to FALSE. Even in
       // unknownAs=FALSE mode, we must not convert a NULL integer (say) to FALSE
       if (e.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {

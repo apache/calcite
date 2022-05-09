@@ -411,6 +411,102 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3890">[CALCITE-3890]
+   * Derive IS NOT NULL predicates from a inner join and create filters with those predicates
+   * as new inputs of the join</a>. */
+  @Test void testJoinDeriveIsNotNullFilterRule1() {
+    final String sql = "select t1.deptno from emp t1 inner join emp t2 on t1.mgr = t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should create IS NOT NULL filter for the right input of join, but not for
+   * the left input since its child already has one. */
+  @Test void testJoinDeriveIsNotNullFilterRule2() {
+    final String sql = "select t1.deptno from (select * from emp where mgr is not null) t1 "
+        + "join emp t2 on t1.mgr = t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should create IS NOT NULL filter in both sides. */
+  @Test void testJoinDeriveIsNotNullFilterRule3() {
+    final String sql = "select t1.deptno from emp t1 inner join emp t2 on t1.mgr > t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should create IS NOT NULL filter for both join keys. */
+  @Test void testJoinDeriveIsNotNullFilterRule4() {
+    final String sql = "select t1.deptno from empnullables t1 inner join\n"
+        + "empnullables t2 on t1.ename = t2.ename and t1.mgr > t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should create IS NOT NULL filter for the right input of join, but not for
+   * the left input since its ancestor already has one. */
+  @Test void testJoinDeriveIsNotNullFilterRule5() {
+    final String sql = "select t1.deptno from (select ename, deptno+1 as deptno from\n"
+        + "empnullables where ename is not null) t1 inner join\n"
+        + "empnullables t2 on t1.ename = t2.ename";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should not create IS NOT NULL filter in any side since it is full join. */
+  @Test void testJoinDeriveIsNotNullFilterRule6() {
+    final String sql = "select t1.deptno from emp t1 full join emp t2 on t1.mgr = t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should not create IS NOT NULL filter in any side since it is left join. */
+  @Test void testJoinDeriveIsNotNullFilterRule7() {
+    final String sql = "select t1.deptno from emp t1 left join emp t2 on t1.mgr = t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should not create IS NOT NULL filter in any side since it is right join. */
+  @Test void testJoinDeriveIsNotNullFilterRule8() {
+    final String sql = "select t1.deptno from emp t1 right join emp t2 on t1.mgr = t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should not create IS NOT NULL filter in both sides since they already have the filter. */
+  @Test void testJoinDeriveIsNotNullFilterRule9() {
+    final String sql = "select t1.deptno from (select * from emp where mgr is not null) t1\n"
+        + "join (select * from emp where mgr is not null) t2 on t1.mgr = t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should not create IS NOT NULL filter in any side since the join condition is not strong. */
+  @Test void testJoinDeriveIsNotNullFilterRule10() {
+    final String sql = "select t1.deptno from emp t1 inner join emp t2\n"
+        + "on t1.mgr is not distinct from t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should not create IS NOT NULL filter since it's cartesian product. */
+  @Test void testJoinDeriveIsNotNullFilterRule11() {
+    final String sql = "select t1.deptno from empnullables t1 inner join\n"
+        + "empnullables t2 on t1.ename = t2.ename or 1 = 1";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   * should create IS NOT NULL filter for one of the join keys. */
+  @Test void testJoinDeriveIsNotNullFilterRule12() {
+    final String sql = "select t1.deptno from empnullables t1 inner join\n"
+        + "empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
+  }
+
   @Test void testStrengthenJoinType() {
     // The "Filter(... , right.c IS NOT NULL)" above a left join is pushed into
     // the join, makes it an inner join, and then disappears because c is NOT
