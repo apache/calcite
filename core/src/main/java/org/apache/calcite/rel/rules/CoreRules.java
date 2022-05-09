@@ -570,6 +570,11 @@ public class CoreRules {
       JOIN_PUSH_TRANSITIVE_PREDICATES =
       JoinPushTransitivePredicatesRule.Config.DEFAULT.toRule();
 
+  /** Rule that derives IS NOT NULL predicates from a inner {@link Join} and creates
+   * {@link Filter}s with those predicates as new inputs of the {@link Join}. */
+  public static final JoinDeriveIsNotNullFilterRule JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE =
+      JoinDeriveIsNotNullFilterRule.Config.DEFAULT.toRule();
+
   /** Rule that reduces constants inside a {@link Join}.
    *
    * @see #FILTER_REDUCE_EXPRESSIONS
