@@ -3897,8 +3897,8 @@ public class SqlParserTest {
     sql("select * from lateral table(ramp(1)) as t(x)")
         .ok(expected + " AS `T` (`X`)");
     // Bad: Parentheses make it look like a sub-query
-    sql("select * from lateral (table^(^ramp(1)))")
-        .fails("(?s)Encountered \"\\(\" at .*");
+    sql("select * from lateral (table(ramp(1))^)^")
+        .fails("(?s)Encountered \"\\)\" at .*");
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
@@ -9647,6 +9647,37 @@ public class SqlParserTest {
     } else {
       return "[" + v.ordinal + "]";
     }
+  }
+
+  /**
+   * Test parsing parenthesized joins
+   */
+  @Test public void testParenthesizedJoins() {
+    final String sql = "SELECT * FROM "
+        + "(((S.C c INNER JOIN S.N n ON n.id = c.id) "
+        + "INNER JOIN S.A a ON (NOT a.isactive)) "
+        + "INNER JOIN S.T t ON t.id = a.id)";
+    final String expected = "SELECT *\n"
+        + "FROM `S`.`C` AS `C`\n"
+        + "INNER JOIN `S`.`N` AS `N` ON (`N`.`ID` = `C`.`ID`)\n"
+        + "INNER JOIN `S`.`A` AS `A` ON (NOT `A`.`ISACTIVE`)\n"
+        + "INNER JOIN `S`.`T` AS `T` ON (`T`.`ID` = `A`.`ID`)";
+    sql(sql).ok(expected);
+  }
+
+  /**
+   * Test parsing parenthesized queries
+   */
+  @Test public void testParenthesizedQueries() {
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `TAB`) AS `X`";
+
+    final String sql1 = "SELECT * FROM (((SELECT * FROM tab))) X";
+    sql(sql1).ok(expected);
+
+    final String sql2 = "SELECT * FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
+    sql(sql2).ok(expected);
   }
 
   //~ Inner Interfaces -------------------------------------------------------
