@@ -57,8 +57,9 @@ public class RexTableInputRef extends RexInputRef {
   private RexTableInputRef(RelTableRef tableRef, int index, RelDataType type,
       boolean forceNullable) {
     super(index, type);
-    // Nullable of type must be true, if this input ref is wrapped by left/right join.
-    assert !forceNullable || type.isNullable();
+    // Nullable of type should be true, because this input may emit nullable type,
+    // if this input ref is wrapped by left/right join.
+    assert !forceNullable || type.isNullable() : "Type should be nullable, if forced for nullable";
     this.tableRef = tableRef;
     this.forceNullable = forceNullable;
     this.digest = tableRef + ".$" + index + (forceNullable ? "(nullable)" : "");
