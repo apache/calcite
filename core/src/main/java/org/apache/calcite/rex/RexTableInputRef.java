@@ -52,18 +52,16 @@ public class RexTableInputRef extends RexInputRef {
    * Input ref will be true, if it exists in right's input of left-join
    * or left's input of right-join are true
    */
-  private final boolean wrapJoinNullable;
+  private final boolean forceNullable;
 
   private RexTableInputRef(RelTableRef tableRef, int index, RelDataType type,
-      boolean wrapJoinNullable) {
+      boolean forceNullable) {
     super(index, type);
-    if (wrapJoinNullable) {
-      // Nullable of type must be true, if this input ref is wrapped by left/right join.
-      assert type.isNullable();
-    }
+    // Nullable of type must be true, if this input ref is wrapped by left/right join.
+    assert !forceNullable || type.isNullable();
     this.tableRef = tableRef;
-    this.wrapJoinNullable = wrapJoinNullable;
-    this.digest = tableRef + ".$" + index + (wrapJoinNullable ? "(nullable)" : "");
+    this.forceNullable = forceNullable;
+    this.digest = tableRef + ".$" + index + (forceNullable ? "(nullable)" : "");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -73,7 +71,7 @@ public class RexTableInputRef extends RexInputRef {
         || obj instanceof RexTableInputRef
         && tableRef.equals(((RexTableInputRef) obj).tableRef)
         && index == ((RexTableInputRef) obj).index
-        && wrapJoinNullable == ((RexTableInputRef) obj).wrapJoinNullable;
+        && forceNullable == ((RexTableInputRef) obj).forceNullable;
   }
 
   @Override public int hashCode() {
@@ -92,8 +90,8 @@ public class RexTableInputRef extends RexInputRef {
     return tableRef.getEntityNumber();
   }
 
-  public boolean getWrapJoinNullable() {
-    return wrapJoinNullable;
+  public boolean getForceNullable() {
+    return forceNullable;
   }
 
   public static RexTableInputRef of(RelTableRef tableRef, int index, RelDataType type) {
@@ -109,11 +107,11 @@ public class RexTableInputRef extends RexInputRef {
    * if join's nullable is true.
    */
   public static RexTableInputRef of(RelDataTypeFactory factory, RelTableRef tableRef, int index,
-      RelDataType type, boolean wrapJoinNullable) {
-    if (wrapJoinNullable) {
+      RelDataType type, boolean forceNullable) {
+    if (forceNullable) {
       type = factory.createTypeWithNullability(type, true);
     }
-    return new RexTableInputRef(tableRef, index, type, wrapJoinNullable);
+    return new RexTableInputRef(tableRef, index, type, forceNullable);
   }
 
   @Override public <R> R accept(RexVisitor<R> visitor) {

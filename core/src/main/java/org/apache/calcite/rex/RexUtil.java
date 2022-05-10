@@ -2276,7 +2276,7 @@ public class RexUtil {
 
   public static RexNode swapTableColumnReferences(final RexBuilder rexBuilder,
       final RexNode node, final @Nullable Map<RelTableRef, RelTableRef> tableMapping,
-      final @Nullable Map<RexTableInputRef, Set<RexTableInputRef>> ec, boolean wrapJoinNullable) {
+      final @Nullable Map<RexTableInputRef, Set<RexTableInputRef>> ec, boolean forceNullable) {
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
     RexShuttle visitor =
         new RexShuttle() {
@@ -2288,7 +2288,7 @@ public class RexUtil {
                       () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
                   inputRef.getIndex(),
                   inputRef.getType(),
-                  wrapJoinNullable || inputRef.getWrapJoinNullable());
+                  forceNullable || inputRef.getForceNullable());
             }
             if (ec != null) {
               Set<RexTableInputRef> s = ec.get(inputRef);

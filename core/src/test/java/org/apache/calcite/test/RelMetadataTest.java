@@ -2423,7 +2423,7 @@ public class RelMetadataTest {
     final Set<RexNode> empNode = mq.getExpressionLineage(rel, empRef);
     assertThat(empNode.size(), is(1));
     final RexNode empTargetNode = empNode.iterator().next();
-    assertThat(((RexTableInputRef) empTargetNode).getWrapJoinNullable(), is(false));
+    assertThat(((RexTableInputRef) empTargetNode).getForceNullable(), is(false));
     assertThat(empTargetNode.toString(), startsWith(EMP_QNAME.toString()));
     assertThat(
         empTargetNode.toString(),
@@ -2436,7 +2436,7 @@ public class RelMetadataTest {
     final Set<RexNode> deptNode = mq.getExpressionLineage(rel, deptRef);
     assertThat(deptNode.size(), is(1));
     final RexNode deptTargetNode = deptNode.iterator().next();
-    assertThat(((RexTableInputRef) deptTargetNode).getWrapJoinNullable(), is(true));
+    assertThat(((RexTableInputRef) deptTargetNode).getForceNullable(), is(true));
     assertThat(deptTargetNode.toString(), startsWith(DEPT_QNAME.toString()));
     assertThat(
         deptTargetNode.toString(),
@@ -2459,7 +2459,7 @@ public class RelMetadataTest {
     final Set<RexNode> empNode = mq.getExpressionLineage(rel, empRef);
     assertThat(empNode.size(), is(1));
     final RexNode empTargetNode = empNode.iterator().next();
-    assertThat(((RexTableInputRef) empTargetNode).getWrapJoinNullable(), is(false));
+    assertThat(((RexTableInputRef) empTargetNode).getForceNullable(), is(false));
     assertThat(empTargetNode.toString(), startsWith(EMP_QNAME.toString()));
     assertThat(
         empTargetNode.toString(),
@@ -2472,7 +2472,7 @@ public class RelMetadataTest {
     final Set<RexNode> deptNode = mq.getExpressionLineage(rel, deptRef);
     assertThat(deptNode.size(), is(1));
     final RexNode deptTargetNode = deptNode.iterator().next();
-    assertThat(((RexTableInputRef) deptTargetNode).getWrapJoinNullable(), is(true));
+    assertThat(((RexTableInputRef) deptTargetNode).getForceNullable(), is(true));
     assertThat(deptTargetNode.toString(), startsWith(DEPT_QNAME.toString()));
     assertThat(
         deptTargetNode.toString(),
