@@ -9649,9 +9649,7 @@ public class SqlParserTest {
     }
   }
 
-  /**
-   * Test parsing parenthesized joins
-   */
+  /** Tests parsing parenthesized joins. */
   @Test public void testParenthesizedJoins() {
     final String sql = "SELECT * FROM "
         + "(((S.C c INNER JOIN S.N n ON n.id = c.id) "
@@ -9665,9 +9663,7 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  /**
-   * Test parsing parenthesized queries
-   */
+  /** Tests parsing parenthesized queries. */
   @Test public void testParenthesizedQueries() {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
