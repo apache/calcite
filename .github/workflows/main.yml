@@ -139,7 +139,7 @@ jobs:
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          OPENJ9_JAVA_OPTIONS: -javaagent:${ GITHUB_WORKSPACE }/setvendor.zip
+          OPENJ9_JAVA_OPTIONS: -javaagent:${{ env.GITHUB_WORKSPACE }}/setvendor.zip
         with:
           job-id: jdk8-openj9
           remote-build-cache-proxy-enabled: false
