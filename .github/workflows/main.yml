@@ -142,7 +142,8 @@ jobs:
         with:
           job-id: jdk8-openj9
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon build javadoc
+          # Temporarily disable hadoop related tests due to https://github.com/eclipse-openj9/openj9/issues/14950
+          arguments: --scan --no-parallel --no-daemon -x :piglet:test -x :spark:test build javadoc
       - name: 'sqlline and sqllsh'
         run: |
           ./sqlline -e '!quit'
