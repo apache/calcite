@@ -77,6 +77,18 @@ LogicalProject(EXPR$0=[CAST($3):DECIMAL(19, 0) NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCastNullAsIntUnionChar">
+    <Resource name="sql">
+      <![CDATA[select CAST(null AS INTEGER) union select '10']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalValues(tuples=[[{ null }]])
+  LogicalValues(tuples=[[{ '10' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInDateTimestamp">
     <Resource name="sql">
       <![CDATA[select (t1_timestamp, t1_date)

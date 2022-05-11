@@ -442,6 +442,12 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isAtomic(type2)) {
       resultType = factory.createSqlType(SqlTypeName.VARCHAR);
     }
+
+    if (null != resultType) {
+      resultType = factory.createTypeWithNullability(resultType,
+          type1.isNullable() || type2.isNullable());
+    }
+
     return resultType;
   }
 

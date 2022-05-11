@@ -132,4 +132,12 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5130">[CALCITE-5130]
+   * AssertionError: "Conversion to relational algebra failed to preserve datatypes"
+   * when union VARCHAR literal and CAST(null AS INTEGER) </a>. */
+  @Test void testCastNullAsIntUnionChar() {
+    String sql = "select CAST(null AS INTEGER) union select '10'";
+    sql(sql).ok();
+  }
 }
