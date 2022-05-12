@@ -5312,6 +5312,16 @@ public class SqlParserTest {
         .ok("(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
   }
 
+  @Test void testArrayQueryConstructor() {
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x)")
+        .ok("SELECT (ARRAY ((SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`)))");
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x ORDER BY x)")
+        .ok("SELECT (ARRAY (SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`\n"
+            + "ORDER BY `X`))");
+  }
+
   @Test void testCastAsCollectionType() {
     // test array type.
     expr("cast(a as int array)")

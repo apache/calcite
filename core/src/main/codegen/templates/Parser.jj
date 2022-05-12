@@ -4679,7 +4679,7 @@ SqlNode ArrayConstructor() :
         LOOKAHEAD(1)
         <LPAREN>
         // by sub query "MULTISET(SELECT * FROM T)"
-        e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
         <RPAREN>
         {
             return SqlStdOperatorTable.ARRAY_QUERY.createCall(
