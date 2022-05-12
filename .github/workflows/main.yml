@@ -139,11 +139,11 @@ jobs:
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          OPENJ9_JAVA_OPTIONS: -javaagent:/Users/runner/work/calcite/calcite/setvendor.zip
         with:
           job-id: jdk8-openj9
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon build javadoc
+          # Temporarily disable hadoop related tests due to https://github.com/eclipse-openj9/openj9/issues/14950
+          arguments: --scan --no-parallel --no-daemon -x :piglet:test -x :spark:test build javadoc
       - name: 'sqlline and sqllsh'
         run: |
           ./sqlline -e '!quit'
