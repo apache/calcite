@@ -351,8 +351,24 @@ public class RelMdColumnUniqueness
     if (Aggregate.isSimple(rel) || ignoreNulls) {
       columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
       // group by keys form a unique key
-      ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
-      return columns.contains(groupKey);
+      final ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
+      final boolean contained = columns.contains(groupKey);
+      if (contained) {
+        return true;
+      } else if (!Aggregate.isSimple(rel)) {
+        return false;
+      }
+
+      final ImmutableBitSet commonKeys = columns.intersect(groupKey);
+      if (commonKeys.isEmpty()) {
+        return false;
+      }
+      final ImmutableBitSet.Builder targetColumns = ImmutableBitSet.builder();
+      for (int key: commonKeys) {
+        targetColumns.set(rel.getGroupSet().nth(key));
+      }
+
+      return mq.areColumnsUnique(rel.getInput(), targetColumns.build(), ignoreNulls);
     }
     return null;
   }
