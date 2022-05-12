@@ -7254,9 +7254,9 @@ public class SqlOperatorTest {
     f.checkFails("^floor('abcde' to minute)^",
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
     f.checkFails("floor(timestamp '2015-02-19 12:34:56.78' to ^microsecond^)",
-        "(?s)Encountered \"microsecond\" at .*", false);
+        "'MICROSECOND' is not a valid datetime format", false);
     f.checkFails("floor(timestamp '2015-02-19 12:34:56.78' to ^nanosecond^)",
-        "(?s)Encountered \"nanosecond\" at .*", false);
+        "'NANOSECOND' is not a valid datetime format", false);
     f.checkScalar("floor(time '12:34:56' to minute)",
         "12:34:00", "TIME(0) NOT NULL");
     f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to second)",
@@ -7295,9 +7295,9 @@ public class SqlOperatorTest {
     f.checkFails("^ceil('abcde' to minute)^",
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
     f.checkFails("ceil(timestamp '2015-02-19 12:34:56.78' to ^microsecond^)",
-        "(?s)Encountered \"microsecond\" at .*", false);
+        "'MICROSECOND' is not a valid datetime format", false);
     f.checkFails("ceil(timestamp '2015-02-19 12:34:56.78' to ^nanosecond^)",
-        "(?s)Encountered \"nanosecond\" at .*", false);
+        "'NANOSECOND' is not a valid datetime format", false);
     f.checkScalar("ceil(time '12:34:56' to minute)",
         "12:35:00", "TIME(0) NOT NULL");
     f.checkScalar("ceil(time '12:59:56' to minute)",

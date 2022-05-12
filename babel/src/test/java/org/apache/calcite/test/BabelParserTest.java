@@ -184,6 +184,59 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** PostgreSQL and SQL Server allow Time Unit Abbreviation.
+   * year          y, yy, yyyy
+   * quarter       q, qq
+   * month         m, mm
+   * week          w, wk, ww
+   * dayofyear     dy
+   * dayofweek     dw
+   * day           d, dd
+   * hour          hh
+   * minute        n, mi
+   * second        s, ss
+   * millisecond   ms
+   * microsecond   mcs
+   * nanosecond    ns
+   **/
+  @Test public void testSqlServerTimeUnitAbbreviation() {
+    String sql = "SELECT "
+        + "DATEADD(Y, 1, NOW()), DATEADD(yy, 1, NOW()), DATEADD(yyyy, 1, NOW()), "
+        + "DATEADD(Q, 1, NOW()), DATEADD(QQ, 1, NOW()), "
+        + "DATEADD(M, 1, NOW()), DATEADD(MM, 1, NOW()), "
+        + "DATEADD(W, 1, NOW()), DATEADD(ww, 1, NOW()), DATEADD(wk, 1, NOW()), "
+        + "DATEADD(dy, 1, NOW()), "
+        + "DATEADD(dw, 1, NOW()), "
+        + "DATEADD(D, 1, NOW()), DATEADD(dd, 1, NOW()), "
+        + "DATEADD(H, 1, NOW()), DATEADD(hh, 1, NOW()), "
+        + "DATEADD(N, 1, NOW()), DATEADD(mi, 1, NOW()), "
+        + "DATEADD(S, 1, NOW()), DATEADD(ss, 1, NOW()), "
+        + "DATEADD(ms, 1, NOW()), "
+        + "DATEADD(mcs, 1, NOW()), "
+        + "DATEADD(ns, 1, NOW())";
+    String expected = "SELECT "
+        + "`DATEADD`(YEAR, 1, `NOW`()), `DATEADD`(YEAR, 1, `NOW`()), `DATEADD`(YEAR, 1, `NOW`()), "
+        + "`DATEADD`(QUARTER, 1, `NOW`()), `DATEADD`(QUARTER, 1, `NOW`()), "
+        + "`DATEADD`(MONTH, 1, `NOW`()), `DATEADD`(MONTH, 1, `NOW`()), "
+        + "`DATEADD`(WEEK, 1, `NOW`()), `DATEADD`(WEEK, 1, `NOW`()), `DATEADD`(WEEK, 1, `NOW`()), "
+        + "`DATEADD`(DOY, 1, `NOW`()), "
+        + "`DATEADD`(DOW, 1, `NOW`()), "
+        + "`DATEADD`(DAY, 1, `NOW`()), `DATEADD`(DAY, 1, `NOW`()), "
+        + "`DATEADD`(HOUR, 1, `NOW`()), `DATEADD`(HOUR, 1, `NOW`()), "
+        + "`DATEADD`(MINUTE, 1, `NOW`()), `DATEADD`(MINUTE, 1, `NOW`()), "
+        + "`DATEADD`(SECOND, 1, `NOW`()), `DATEADD`(SECOND, 1, `NOW`()), "
+        + "`DATEADD`(MILLISECOND, 1, `NOW`()), "
+        + "`DATEADD`(MICROSECOND, 1, `NOW`()), "
+        + "`DATEADD`(NANOSECOND, 1, `NOW`())";
+    sql(sql).ok(expected);
+
+    expr("DATEADD(^A^, 1, NOW())")
+        .fails("'A' is not a valid datetime format");
+
+    expr("DATEADD(S^.^A, 1, NOW())")
+        .fails("(?s).*Encountered \".\" at .*");
+  }
+
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
    * date part. */
   @Test void testShortTimestampLiteral() {

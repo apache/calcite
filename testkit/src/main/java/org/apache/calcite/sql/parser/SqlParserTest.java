@@ -59,6 +59,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1614,6 +1615,28 @@ public class SqlParserTest {
         .ok("CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO CENTURY)");
     expr("ceil(x + interval '1:20' minute to second to millennium)")
         .ok("CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO MILLENNIUM)");
+  }
+
+  @Test void testFloorCeilTimeUnitAbbreviation() {
+    Map<String, String> unitAbbreviationMap = new HashMap();
+    unitAbbreviationMap.put("Y", "YEAR");
+    unitAbbreviationMap.put("M", "MONTH");
+    unitAbbreviationMap.put("D", "DAY");
+    unitAbbreviationMap.put("H", "HOUR");
+    unitAbbreviationMap.put("N", "MINUTE");
+    unitAbbreviationMap.put("S", "SECOND");
+    for (Map.Entry<String, String> entry : unitAbbreviationMap.entrySet()) {
+      String unitAbbreviation = entry.getKey();
+      String unit = entry.getValue();
+      expr("FLOOR(x to " + unitAbbreviation + ")")
+          .ok("FLOOR(`X` TO " + unit + ")");
+      expr("CEIL(x to " + unitAbbreviation + ")")
+          .ok("CEIL(`X` TO " + unit + ")");
+    }
+    expr("FLOOR(x to ^A^)")
+        .fails("'A' is not a valid datetime format");
+    expr("CEIL(x to ^A^)")
+        .fails("'A' is not a valid datetime format");
   }
 
   @Test void testCast() {
@@ -7587,6 +7610,23 @@ public class SqlParserTest {
 
     expr("extract(day ^to^ second from x)")
         .fails("(?s)Encountered \"to\".*");
+  }
+
+  @Test void testExtractTimeUnitAbbreviation() {
+    Map<String, String> unitAbbreviationMap = new HashMap();
+    unitAbbreviationMap.put("Y", "YEAR");
+    unitAbbreviationMap.put("M", "MONTH");
+    unitAbbreviationMap.put("D", "DAY");
+    unitAbbreviationMap.put("H", "HOUR");
+    unitAbbreviationMap.put("N", "MINUTE");
+    unitAbbreviationMap.put("S", "SECOND");
+    for (Map.Entry<String, String> entry : unitAbbreviationMap.entrySet()) {
+      String unitAbbreviation = entry.getKey();
+      expr("extract(" + unitAbbreviation + " from x)")
+          .ok("EXTRACT(" + entry.getValue() + " FROM `X`)");
+    }
+    expr("extract(^A^ from x)")
+        .fails("'A' is not a valid datetime format");
   }
 
   @Test void testGeometry() {
