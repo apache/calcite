@@ -696,38 +696,52 @@ SqlNode LeafQuery(ExprContext exprContext) :
     e = ExplicitTable(getPos()) { return e; }
 }
 
-/**
- * Parses a parenthesized query or single row expression.
- */
-SqlNode ParenthesizedExpression(ExprContext exprContext) :
+SqlNode ParenthesizedQueryOrJoin() :
 {
-    SqlNode e, left;
+    SqlNode e, e2;
 }
 {
     <LPAREN>
+    LOOKAHEAD(TableRef())
     (
-        LOOKAHEAD(TableRef())
-        (
-            left = TableRef()
-            e = JoinTable(left)
-        )
+        e = TableRef()
     |
-        (
-            {
-                // we've now seen left paren, so queries inside should
-                // be allowed as sub-queries
-                switch (exprContext) {
-                case ACCEPT_SUB_QUERY:
-                    exprContext = ExprContext.ACCEPT_NONCURSOR;
-                    break;
-                case ACCEPT_CURSOR:
-                    exprContext = ExprContext.ACCEPT_ALL;
-                    break;
-                }
-            }
-            e = OrderedQueryOrExpr(exprContext)
-        )
+        e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     )
+    (
+        [<CROSS>] <JOIN> e2 = TableRef()
+    )*
+    <RPAREN>
+    {
+        return e;
+    }
+}
+
+/**
+ * Parses a parenthesized query or single row expression.
+ *
+ * <p>TDOO: replace 'ParenthesizedExpression(ACCEPT_QUERY)'
+ * with 'ParenthesizedQuery()' (which is the only case used)
+ */
+SqlNode ParenthesizedExpression(ExprContext exprContext) :
+{
+    SqlNode e;
+}
+{
+    <LPAREN>
+    {
+        // we've now seen left paren, so queries inside should
+        // be allowed as sub-queries
+        switch (exprContext) {
+        case ACCEPT_SUB_QUERY:
+            exprContext = ExprContext.ACCEPT_NONCURSOR;
+            break;
+        case ACCEPT_CURSOR:
+            exprContext = ExprContext.ACCEPT_ALL;
+            break;
+        }
+    }
+    e = OrderedQueryOrExpr(exprContext)
     <RPAREN>
     {
         return e;
@@ -2164,7 +2178,7 @@ SqlNode TableRef2(boolean lateral) :
     |
         LOOKAHEAD(2)
         [ <LATERAL> { lateral = true; } ]
-        tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
+        tableRef = ParenthesizedQueryOrJoin()
         over = TableOverOpt()
         {
             if (over != null) {

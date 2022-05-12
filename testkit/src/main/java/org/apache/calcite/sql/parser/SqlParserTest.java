@@ -7817,6 +7817,17 @@ public class SqlParserTest {
     sql(sql2).ok(expected2);
   }
 
+  @Test void testFromExpr() {
+    sql("select * from a cross join b")
+        .ok("SELECT *\n"
+            + "FROM `A`\n"
+            + "CROSS JOIN `B`");
+    sql("select * from (a cross join b)")
+        .ok("SELECT *\n"
+            + "FROM `A`\n"
+            + "CROSS JOIN `B`");
+  }
+
   /** Tests parsing parenthesized queries. */
   @Test void testParenthesizedQueries() {
     final String expected = "SELECT *\n"
