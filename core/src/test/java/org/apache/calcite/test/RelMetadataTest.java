@@ -1116,6 +1116,24 @@ public class RelMetadataTest {
         .assertThatAreColumnsUnique(bitSetOf(0), is(true));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5149">[CALCITE-5149]
+   * Refine RelMdColumnUniqueness for Aggregate by considering intersect keys
+   * between target keys and group keys</a>. */
+  @Test void testColumnUniquenessForAggregate() {
+    sql("select empno, ename, count(1) as cnt from emp group by empno, ename")
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true));
+
+    sql("select empno, ename, count(1) as cnt from emp group by empno, ename")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true));
+
+    sql("select ename, empno, count(1) as cnt from emp group by ename, empno")
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true));
+
+    sql("select empno, ename, count(1) as cnt from emp group by empno, ename")
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false));
+  }
+
   @Test void testGroupBy() {
     sql("select deptno, count(*), sum(sal) from emp group by deptno")
         .assertThatUniqueKeysAre(bitSetOf(0));
