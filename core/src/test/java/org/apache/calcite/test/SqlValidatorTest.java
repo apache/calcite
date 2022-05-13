@@ -9129,9 +9129,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Tests using case-insensitive matching of user-defined functions. */
   @Test void testCaseInsensitiveUdfs() {
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-    MockSqlOperatorTable.addRamp(operatorTable);
+    final SqlOperatorTable operatorTable =
+        MockSqlOperatorTable.standard().extend();
     final SqlValidatorFixture insensitive = fixture()
         .withCaseSensitive(false)
         .withQuoting(Quoting.BRACKET)
@@ -12098,9 +12097,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInvalidFunctionCall() {
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-    MockSqlOperatorTable.addRamp(operatorTable);
+    final SqlOperatorTable operatorTable =
+        MockSqlOperatorTable.standard().extend();
 
     // With implicit type coercion.
     expr("^unknown_udf(1, 2)^")
@@ -12220,9 +12218,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withExtendedCatalog()
         .type("RecordType(BIGINT EXPR$0) NOT NULL");
 
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-    MockSqlOperatorTable.addRamp(operatorTable);
+    final SqlOperatorTable operatorTable =
+        MockSqlOperatorTable.standard().extend();
     sql("select * FROM TABLE(ROW_FUNC()) AS T(a, b)")
         .withOperatorTable(operatorTable)
         .type("RecordType(BIGINT NOT NULL A, BIGINT B) NOT NULL");

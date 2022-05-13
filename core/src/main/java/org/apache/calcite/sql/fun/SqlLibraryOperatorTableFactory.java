@@ -18,7 +18,6 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.Util;
 
@@ -112,7 +111,7 @@ public class SqlLibraryOperatorTableFactory {
         }
       }
     }
-    SqlOperatorTable operatorTable = new ListSqlOperatorTable(list.build());
+    SqlOperatorTable operatorTable = SqlOperatorTables.of(list.build());
     if (standard) {
       operatorTable =
           SqlOperatorTables.chain(SqlStdOperatorTable.instance(),

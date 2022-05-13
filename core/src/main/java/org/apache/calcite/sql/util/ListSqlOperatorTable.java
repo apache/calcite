@@ -40,16 +40,28 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
 
   //~ Constructors -----------------------------------------------------------
 
+  /** @deprecated Use {@link SqlOperatorTables#of}, which creates an immutable
+   * table. */
+  @Deprecated
   public ListSqlOperatorTable() {
-    this(new ArrayList<>());
+    this(new ArrayList<>(), false);
   }
 
+  /** @deprecated Use {@link SqlOperatorTables#of}, which creates an immutable
+   * table. */
   public ListSqlOperatorTable(List<SqlOperator> operatorList) {
+    this(operatorList, false);
+  }
+
+  // internal constructor
+  ListSqlOperatorTable(List<SqlOperator> operatorList, boolean ignored) {
     this.operatorList = operatorList;
   }
 
   //~ Methods ----------------------------------------------------------------
 
+  /** @deprecated Use {@link SqlOperatorTables#of}, which creates an immutable
+   * table. */
   public void add(SqlOperator op) {
     operatorList.add(op);
   }

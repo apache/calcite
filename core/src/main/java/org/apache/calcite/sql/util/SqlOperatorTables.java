@@ -18,6 +18,7 @@ package org.apache.calcite.sql.util;
 
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlGeoFunctions;
 
@@ -29,7 +30,8 @@ import java.util.function.Supplier;
 /**
  * Utilities for {@link SqlOperatorTable}s.
  */
-public class SqlOperatorTables extends ReflectiveSqlOperatorTable {
+public class SqlOperatorTables {
+  private SqlOperatorTables() {}
 
   private static final Supplier<SqlOperatorTable> SPATIAL =
       Suppliers.memoize(SqlOperatorTables::createSpatial)::get;
@@ -58,5 +60,16 @@ public class SqlOperatorTables extends ReflectiveSqlOperatorTable {
   /** Creates a composite operator table from an array of tables. */
   public static SqlOperatorTable chain(SqlOperatorTable... tables) {
     return chain(ImmutableList.copyOf(tables));
+  }
+
+  /** Creates an operator table that contains a list of operators. */
+  public static SqlOperatorTable of(Iterable<? extends SqlOperator> list) {
+    return new ListSqlOperatorTable(ImmutableList.copyOf(list), false);
+  }
+
+  /** Creates an operator table that contains the given operator or
+   * operators. */
+  public static SqlOperatorTable of(SqlOperator... operators) {
+    return of(ImmutableList.copyOf(operators));
   }
 }
