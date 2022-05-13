@@ -62,12 +62,10 @@ import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
-import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -141,19 +139,15 @@ class RelToSqlConverterTest {
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
       RelDataTypeSystem typeSystem, Program... programs) {
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(
-            SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
-                SqlLibraryOperatorTableFactory.INSTANCE
-                    .getOperatorTable(librarySet)));
-    MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
-        .operatorTable(operatorTable)
+        .operatorTable(MockSqlOperatorTable.standard()
+            .plus(librarySet)
+            .extend())
         .typeSystem(typeSystem)
         .build();
     return Frameworks.getPlanner(config);
