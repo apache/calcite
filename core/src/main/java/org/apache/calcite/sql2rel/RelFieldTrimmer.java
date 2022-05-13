@@ -352,11 +352,25 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       RelNode rel,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
-    // We don't know how to trim this kind of relational expression, so give
-    // it back intact.
+    // We don't know how to trim this kind of relational expression
     Util.discard(fieldsUsed);
-    return result(rel,
-        Mappings.createIdentity(rel.getRowType().getFieldCount()));
+    if (rel.getInputs().isEmpty()) {
+      return result(rel, Mappings.createIdentity(rel.getRowType().getFieldCount()));
+    }
+
+    // We don't know how to trim this RelNode, but we can try to trim inside its inputs
+    List<RelNode> newInputs = new ArrayList<>(rel.getInputs().size());
+    for (RelNode input : rel.getInputs()) {
+      ImmutableBitSet inputFieldsUsed = ImmutableBitSet.range(input.getRowType().getFieldCount());
+      TrimResult trimResult = dispatchTrimFields(input, inputFieldsUsed, extraFields);
+      if (!trimResult.right.isIdentity()) {
+        throw new IllegalArgumentException("Expected identity mapping after processing RelNode "
+            + input + "; but got " + trimResult.right);
+      }
+      newInputs.add(trimResult.left);
+    }
+    RelNode newRel = rel.copy(rel.getTraitSet(), newInputs);
+    return result(newRel, Mappings.createIdentity(newRel.getRowType().getFieldCount()));
   }
 
   /**
@@ -914,7 +928,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // They can not be trimmed because the comparison needs
     // complete fields.
     if (!(setOp.kind == SqlKind.UNION && setOp.all)) {
-      return result(setOp, Mappings.createIdentity(fieldCount));
+      return trimFields((RelNode) setOp, fieldsUsed, extraFields);
     }
 
     int changeCount = 0;

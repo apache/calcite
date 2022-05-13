@@ -302,16 +302,16 @@ class EnumerableRepeatUnionTest {
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[2], expr#6=[=($t0, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[#DELTA#]])\n"
-            + "    EnumerableCalc(expr#0..8=[{inputs}], empid=[$t4], name=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t3], name=[$t4])\n"
             + "      EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])\n"
             // It is important to have EnumerableCorrelate + #DELTA# table scan on its right
             // to reproduce the issue CALCITE-4054
             + "        EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
             + "          EnumerableTableScan(table=[[s, hierarchies]])\n"
-            + "          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.managerid], expr#4=[=($t0, $t3)], proj#0..1=[{exprs}], $condition=[$t4])\n"
+            + "          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.managerid], expr#4=[=($t0, $t3)], empid=[$t0], $condition=[$t4])\n"
             + "            EnumerableInterpreter\n"
             + "              BindableTableScan(table=[[#DELTA#]])\n"
-            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.subordinateid], expr#7=[=($t6, $t0)], proj#0..4=[{exprs}], $condition=[$t7])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.subordinateid], expr#7=[=($t6, $t0)], empid=[$t0], name=[$t2], $condition=[$t7])\n"
             + "          EnumerableTableScan(table=[[s, emps]])\n")
         .returnsUnordered(""
             + "empid=2; name=Emp2\n"
