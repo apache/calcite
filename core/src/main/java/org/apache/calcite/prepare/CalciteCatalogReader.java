@@ -48,7 +48,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerImpl;
 import org.apache.calcite.sql.validate.SqlMonikerType;
@@ -288,14 +288,14 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           className, "*", true);
     }
 
-    final ListSqlOperatorTable table = new ListSqlOperatorTable();
+    final List<SqlOperator> list = new ArrayList<>();
     for (String name : schema.getFunctionNames()) {
       schema.getFunctions(name, true).forEach(function -> {
         final SqlIdentifier id = new SqlIdentifier(name, SqlParserPos.ZERO);
-        table.add(toOp(id, function));
+        list.add(toOp(id, function));
       });
     }
-    return table;
+    return SqlOperatorTables.of(list);
   }
 
   /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}. */
