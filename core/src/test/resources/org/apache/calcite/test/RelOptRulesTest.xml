@@ -1811,9 +1811,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalAggregate(group=[{0}])
         LogicalProject(EXPR$0=[$2])
           LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($2)])
-            LogicalProject(DEPTNO=[$7], $f1=['abc'], SAL=[$5])
+            LogicalProject(DEPTNO=[$2], $f1=['abc'], SAL=[$1])
               LogicalFilter(condition=[=($cor0.MGR, $0)])
-                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planMid">
@@ -1825,9 +1826,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalAggregate(group=[{0}])
         LogicalProject(EXPR$0=[$2])
           LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($2)])
-            LogicalProject(DEPTNO=[$7], $f1=['abc'], SAL=[$5])
+            LogicalProject(DEPTNO=[$2], $f1=['abc'], SAL=[$1])
               LogicalFilter(condition=[=($cor0.MGR, $0)])
-                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
@@ -1849,22 +1851,20 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(C=[$0], S=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
-      LogicalProject(SAL=[$5], $f1=[1])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
 ]]>
     </Resource>
     <Resource name="planMid">
       <![CDATA[
-LogicalProject(C=[$0], S=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
-      LogicalProject(SAL=[$5], $f1=[1])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
 ]]>
     </Resource>
   </TestCase>
@@ -1875,24 +1875,22 @@ LogicalProject(C=[$0], S=[$1])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(C=[$0], S=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalProject(C=[$2])
-      LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
-        LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalProject(C=[$2])
+    LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
+      LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
 ]]>
     </Resource>
     <Resource name="planMid">
       <![CDATA[
-LogicalProject(C=[$0], S=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-    LogicalProject(C=[$2])
-      LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
-        LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalProject(C=[$2])
+    LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
+      LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
 ]]>
     </Resource>
   </TestCase>
