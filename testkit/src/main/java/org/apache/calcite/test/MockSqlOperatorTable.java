@@ -48,8 +48,11 @@ import com.google.common.collect.Iterables;
  * table, plus a list of operators.
  */
 public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
-  @Deprecated
-  public MockSqlOperatorTable(SqlOperatorTable parentTable) {
+  /** Internal constructor; call {@link #standard()},
+   * {@link #of(SqlOperatorTable)},
+   * {@link #plus(Iterable)}, or
+   * {@link #extend()}. */
+  private MockSqlOperatorTable(SqlOperatorTable parentTable) {
     super(ImmutableList.of(parentTable));
   }
 

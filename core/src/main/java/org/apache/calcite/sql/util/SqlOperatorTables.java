@@ -25,6 +25,8 @@ import org.apache.calcite.sql.fun.SqlGeoFunctions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -33,6 +35,7 @@ import java.util.function.Supplier;
 public class SqlOperatorTables {
   private SqlOperatorTables() {}
 
+  @SuppressWarnings("FunctionalExpressionCanBeFolded")
   private static final Supplier<SqlOperatorTable> SPATIAL =
       Suppliers.memoize(SqlOperatorTables::createSpatial)::get;
 
@@ -49,12 +52,30 @@ public class SqlOperatorTables {
 
   /** Creates a composite operator table. */
   public static SqlOperatorTable chain(Iterable<SqlOperatorTable> tables) {
-    final ImmutableList<SqlOperatorTable> list =
-        ImmutableList.copyOf(tables);
+    final List<SqlOperatorTable> list = new ArrayList<>();
+    for (SqlOperatorTable table : tables) {
+      addFlattened(list, table);
+    }
     if (list.size() == 1) {
       return list.get(0);
     }
-    return new ChainedSqlOperatorTable(list);
+    return new ChainedSqlOperatorTable(ImmutableList.copyOf(list));
+  }
+
+  @SuppressWarnings("StatementWithEmptyBody")
+  private static void addFlattened(List<SqlOperatorTable> list,
+      SqlOperatorTable table) {
+    if (table instanceof ChainedSqlOperatorTable) {
+      ChainedSqlOperatorTable chainedTable = (ChainedSqlOperatorTable) table;
+      for (SqlOperatorTable table2 : chainedTable.tableList) {
+        addFlattened(list, table2);
+      }
+    } else if (table instanceof ImmutableListSqlOperatorTable
+        && table.getOperatorList().isEmpty()) {
+      // Table is empty and will remain empty; don't add it.
+    } else {
+      list.add(table);
+    }
   }
 
   /** Creates a composite operator table from an array of tables. */
@@ -62,14 +83,23 @@ public class SqlOperatorTables {
     return chain(ImmutableList.copyOf(tables));
   }
 
-  /** Creates an operator table that contains a list of operators. */
+  /** Creates an operator table that contains an immutable list of operators. */
   public static SqlOperatorTable of(Iterable<? extends SqlOperator> list) {
-    return new ListSqlOperatorTable(ImmutableList.copyOf(list), false);
+    return new ImmutableListSqlOperatorTable(ImmutableList.copyOf(list));
   }
 
   /** Creates an operator table that contains the given operator or
    * operators. */
   public static SqlOperatorTable of(SqlOperator... operators) {
     return of(ImmutableList.copyOf(operators));
+  }
+
+  /** Subclass of {@link ListSqlOperatorTable} that is immutable.
+   * Operators cannot be added or removed after creation. */
+  private static class ImmutableListSqlOperatorTable
+      extends ListSqlOperatorTable {
+    ImmutableListSqlOperatorTable(ImmutableList<SqlOperator> operatorList) {
+      super(operatorList, false);
+    }
   }
 }
