@@ -702,15 +702,15 @@ SqlNode ParenthesizedQueryOrJoin() :
 }
 {
     <LPAREN>
-    LOOKAHEAD(TableRef())
-    (
-        e = TableRef()
-    |
+//    LOOKAHEAD(TableRef())
+//    (
+//        e = TableRef()
+//    |
         e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
-    )
-    (
-        [<CROSS>] <JOIN> e2 = TableRef()
-    )*
+//    )
+//    (
+//        [<CROSS>] <JOIN> e2 = TableRef()
+//    )*
     <RPAREN>
     {
         return e;
@@ -3391,7 +3391,11 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
     [
         withList = WithList()
     ]
-    e = LeafQueryOrExpr(exprContext) {
+    e = LeafQueryOrExpr(exprContext)
+    (
+        e = JoinTable(e)
+    )*
+    {
         list = startList(e);
     }
     (
