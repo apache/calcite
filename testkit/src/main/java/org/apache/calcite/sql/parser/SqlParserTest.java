@@ -7825,7 +7825,7 @@ public class SqlParserTest {
         + "FROM `A`\n"
         + "CROSS JOIN `B`";
     sql(sql0).ok(expected);
-//    sql(sql1).ok(expected);
+    sql(sql1).ok(expected);
   }
 
   /** Tests parsing parenthesized queries. */
