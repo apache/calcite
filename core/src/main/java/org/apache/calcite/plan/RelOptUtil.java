@@ -306,6 +306,50 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Transforms a join condition over two inputs to a correlated condition over the right input.
+   *
+   * Replaces references on the left relation with correlating variables and shifts references on
+   * the right relation as needed to be able to put the condition over the right relation.
+   *
+   * For example, given:
+   * <pre>{@code
+   * Join(condition=[($0, $9)])
+   *   Scan(table=[DEPT])
+   *   Scan(table=[EMP])
+   * }</pre>
+   * Returning the {@link RexNode} from the filter condition of:
+   * <pre>{@code
+   * Correlate(correlation=[$cor0])
+   *   Scan(table=[DEPT])
+   *   Filter(condition=[=($cor0.EMPNO, $7)])
+   *     Scan(table=[EMP])
+   * }</pre>
+   *
+   * {@link RexInputRef} to field accesses of {@link RexCorrelVariable}.
+   * @param left Rel fields to be correlated
+   * @param id id to correlate
+   * @param right Rel field to be shifted to the right
+   * @param rexNode expression to be rewritten
+   * @return An expression
+   */
+  public static RexNode transformJoinConditionToCorrelate(RexBuilder rexBuilder,
+      RelNode left, CorrelationId id, RelNode right, RexNode rexNode) {
+    final RelDataType leftRowType = left.getRowType();
+    final int leftCount = leftRowType.getFieldCount();
+    RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
+        if (inputRef.getIndex() < leftCount) {
+          final RexNode v = rexBuilder.makeCorrel(leftRowType, id);
+          return rexBuilder.makeFieldAccess(v, inputRef.getIndex());
+        } else {
+          return rexBuilder.makeInputRef(right, inputRef.getIndex() - leftCount);
+        }
+      }
+    };
+    return shuttle.apply(rexNode);
+  }
+
+  /**
    * Sets a {@link RelVisitor} going on a given relational expression, and
    * returns the result.
    */

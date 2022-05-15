@@ -5980,7 +5980,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinIn() {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
@@ -5988,7 +5987,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
-  @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinInComposite() {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
@@ -6002,6 +6000,30 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp left join sales.dept\n"
         + "on exists (select deptno from sales.emp where empno < 20)";
     sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testJoinOnMultipleCorrelatedSubQueries() {
+    final String sql = ""
+        + "SELECT empno\n"
+        + "FROM emp AS e\n"
+        + "LEFT JOIN dept AS d\n"
+        + "  ON d.deptno = e.deptno\n"
+        + "    AND (e.sal in (\n"
+        + "      SELECT e2.sal FROM emp AS e2\n"
+        + "      WHERE e2.deptno > e.deptno)\n"
+        + "    OR e.sal < (\n"
+        + "      SELECT avg(e2.sal) FROM emp AS e2\n"
+        + "      WHERE e2.deptno = d.deptno)\n"
+        + "    OR e.sal > SOME (\n"
+        + "      SELECT MAX(e2.sal) FROM emp AS e2\n"
+        + "      WHERE e2.sal = e.sal"
+        + "      GROUP BY e2.deptno)\n"
+        + "    OR EXISTS (\n"
+        + "      SELECT e2.deptno FROM emp AS e2\n"
+        + "      WHERE e2.deptno = d.deptno\n"
+        + "      GROUP BY e2.deptno\n"
+        + "      HAVING SUM(e2.sal) > 1000000))";
+    checkSubQuery(sql).check();
   }
 
   @Test void testDecorrelateExists() {
