@@ -2343,4 +2343,24 @@ null
 14
 !ok
 
+# [CALCITE-5135] Implement SQL DAY function
+with data(c_date) as (select * from (values
+    (DATE'1965-01-10'),
+    (DATE'2019-01-01'),
+    (DATE'2019-02-20'),
+    (DATE'2019-02-28'),
+    (DATE'2019-03-02'),
+    (DATE'2019-06-28'),
+    (DATE'2019-12-12')))
+select day(c_date) from data;
+EXPR$0
+10
+1
+20
+28
+2
+28
+12
+!ok
+
 # End misc.iq

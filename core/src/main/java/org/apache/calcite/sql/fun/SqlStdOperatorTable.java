@@ -2055,6 +2055,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlDatePartFunction("WEEK", TimeUnit.WEEK);
 
   /**
+   * The SQL <code>DAY</code> operator. Returns the Day
+   * from a DATETIME  E.g.<br>
+   * <code>DAY(date '2008-9-23')</code> returns <code>
+   * 23</code>
+   */
+  public static final SqlDatePartFunction DAY =
+      new SqlDatePartFunction("DAY", TimeUnit.DAY);
+
+  /**
    * The SQL <code>DAYOFYEAR</code> operator. Returns the DOY
    * from a DATETIME  E.g.<br>
    * <code>DAYOFYEAR(date '2008-9-23')</code> returns <code>
