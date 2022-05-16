@@ -2792,7 +2792,7 @@ public class SqlParserTest {
   @Test void testFullInnerJoinFails() {
     // cannot have more than one of INNER, FULL, LEFT, RIGHT, CROSS
     sql("select * from a ^full^ inner join b")
-        .fails("(?s).*Encountered \"full inner\" at line 1, column 17.*");
+        .fails("(?s).*Encountered \"full inner\" at line .*");
   }
 
   @Test void testFullOuterJoin() {
@@ -2805,26 +2805,39 @@ public class SqlParserTest {
 
   @Test void testInnerOuterJoinFails() {
     sql("select * from a ^inner^ outer join b")
-        .fails("(?s).*Encountered \"inner outer\" at line 1, column 17.*");
+        .fails("(?s).*Encountered \"inner outer\" at line .*");
   }
 
-  @Disabled
   @Test void testJoinAssociativity() {
     // joins are left-associative
     // 1. no parens needed
+    String expected = "SELECT *\n"
+        + "FROM `A`\n"
+        + "NATURAL LEFT JOIN `B`\n"
+        + "LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)";
     sql("select * from (a natural left join b) left join c on b.c1 = c.c1")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected);
 
     // 2. parens needed
+    String expected2 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "NATURAL LEFT JOIN (`B` LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`))";
     sql("select * from a natural left join (b left join c on b.c1 = c.c1)")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected2);
 
     // 3. same as 1
     sql("select * from a natural left join b left join c on b.c1 = c.c1")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected);
+
+    // bushy
+    String sql4 = "select *\n"
+        + "from (a cross join b)\n"
+        + "cross join (c cross join d)";
+    String expected4 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "CROSS JOIN `B`\n"
+        + "CROSS JOIN (`C` CROSS JOIN `D`)";
+    sql(sql4).ok(expected4);
   }
 
   // Note: "select * from a natural cross join b" is actually illegal SQL
@@ -3089,7 +3102,6 @@ public class SqlParserTest {
   }
 
   @Test void testMixedFrom() {
-    // REVIEW: Is this syntax even valid?
     sql("select * from a join b using (x), c join d using (y)")
         .ok("SELECT *\n"
             + "FROM `A`\n"
@@ -3863,8 +3875,8 @@ public class SqlParserTest {
     sql("select * from table ^emp^")
         .fails("(?s).*Encountered \"emp\" at .*");
 
-    sql("select * from (table ^(^select empno from emp))")
-        .fails("(?s)Encountered \"\\(\".*");
+    sql("select * from (table (^select^ empno from emp))")
+        .fails("(?s)Encountered \"select\".*");
   }
 
   @Test void testCollectionTable() {
@@ -3921,8 +3933,8 @@ public class SqlParserTest {
     sql("select * from lateral table(ramp(1)) as t(x)")
         .ok(expected + " AS `T` (`X`)");
     // Bad: Parentheses make it look like a sub-query
-    sql("select * from lateral (table^(^ramp(1)))")
-        .fails("(?s)Encountered \"\\(\" at .*");
+    sql("select * from lateral (^table (ramp(1))^)")
+        .fails("Expected query or join");
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
@@ -7793,28 +7805,130 @@ public class SqlParserTest {
   @Test void testParensInFrom() {
     // UNNEST may not occur within parentheses.
     // FIXME should fail at "unnest"
-    sql("select *from ^(^unnest(x))")
-        .fails("(?s)Encountered \"\\( unnest\" at .*");
+    sql("select *from (^unnest(x)^)")
+        .fails("Expected query or join");
 
     // <table-name> may not occur within parentheses.
+    // TODO: Postgres gives "syntax error at ')'", which might be better
     sql("select * from (^emp^)")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+        .fails("(?s)Expected query or join.*");
 
     // <table-name> may not occur within parentheses.
-    sql("select * from (^emp^ as x)")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+    // TODO: Postgres gives "syntax error at ')'", which might be better
+    sql("select * from (^emp as x^)")
+        .fails("Expected query or join");
 
     // <table-name> may not occur within parentheses.
     sql("select * from (^emp^) as x")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+        .fails("Expected query or join");
 
     // Parentheses around JOINs are OK, and sometimes necessary.
-    if (false) {
-      // todo:
-      sql("select * from (emp join dept using (deptno))").ok("xx");
+    String sql1 = "select *\n"
+        + "from (emp join dept using (deptno))";
+    String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "INNER JOIN `DEPT` USING (`DEPTNO`)";
+    sql(sql1).ok(expected);
 
-      sql("select * from (emp join dept using (deptno)) join foo using (x)").ok("xx");
-    }
+    String sql2 = "select *\n"
+        + "from (emp join dept using (deptno))\n"
+        + "join foo using (x)";
+    String expected2 = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "INNER JOIN `DEPT` USING (`DEPTNO`)\n"
+        + "INNER JOIN `FOO` USING (`X`)";
+    sql(sql2).ok(expected2);
+
+    // In Postgres and Standard SQL, you can alias a join:
+    //   "select x.i from (t cross join u) as x"
+    // is syntactically and semantically valid; but
+    //   "select t.i from (t cross join u) as x"
+    // is semantically invalid.
+    // TODO: Support this in Calcite.
+    sql("select * from (t cross ^join^ u) as x")
+        .fails("Join expression encountered in illegal context");
+    sql("select *\n"
+        + "from (t cross ^join^ u)\n"
+        + "  tablesample substitute('medium')")
+        .fails("Join expression encountered in illegal context");
+    sql("select *\n"
+        + "from (t cross ^join^ u)\n"
+        + "PIVOT (sum(sal) AS sal FOR job in ('CLERK' AS c))")
+        .fails("Join expression encountered in illegal context");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-35">[CALCITE-35]
+   * Support parenthesized sub-clause in JOIN</a>. */
+  @Test void testParenthesizedJoins() {
+    final String sql = "SELECT * FROM "
+        + "(((S.C c INNER JOIN S.N n ON n.id = c.id) "
+        + "INNER JOIN S.A a ON (NOT a.isactive)) "
+        + "INNER JOIN S.T t ON t.id = a.id)";
+    final String expected = "SELECT *\n"
+        + "FROM `S`.`C` AS `C`\n"
+        + "INNER JOIN `S`.`N` AS `N` ON (`N`.`ID` = `C`.`ID`)\n"
+        + "INNER JOIN `S`.`A` AS `A` ON (NOT `A`.`ISACTIVE`)\n"
+        + "INNER JOIN `S`.`T` AS `T` ON (`T`.`ID` = `A`.`ID`)";
+    sql(sql).ok(expected);
+
+    final String sql2 = "select *\n"
+        + "from a\n"
+        + " join (b join c on b.x = c.x)\n"
+        + " on a.y = c.y";
+    final String expected2 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "INNER JOIN (`B` INNER JOIN `C` ON (`B`.`X` = `C`.`X`))"
+        + " ON (`A`.`Y` = `C`.`Y`)";
+    sql(sql2).ok(expected2);
+  }
+
+  @Test void testFromExpr() {
+    String sql0 = "select * from a cross join b";
+    String sql1 = "select * from (a cross join b)";
+    String expected = "SELECT *\n"
+        + "FROM `A`\n"
+        + "CROSS JOIN `B`";
+    sql(sql0).ok(expected);
+    sql(sql1).ok(expected);
+  }
+
+  /** Tests parsing parenthesized queries. */
+  @Test void testParenthesizedQueries() {
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `TAB`) AS `X`";
+    final String sql1 = "SELECT *\n"
+        + "FROM (((SELECT * FROM tab))) X";
+    final String sql2 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
+    sql(sql1).ok(expected);
+    sql(sql2).ok(expected);
+
+    final String sql3 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross join ((table t2)))))))))))";
+    final String expected3 = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `T`)\n"
+        + "CROSS JOIN (TABLE `T2`)";
+    sql(sql3).ok(expected3);
+
+    // Adding an alias to the previous query makes it invalid
+    // (The error message and location could be improved)
+    final String sql4 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) X";
+    final String sql5 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) as X";
+    final String sql6 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) as X (a, b, c)";
+    final String message = "Join expression encountered in illegal context";
+    sql(sql4).fails(message);
+    sql(sql5).fails(message);
+    sql(sql6).fails(message);
   }
 
   @Test void testProcedureCall() {

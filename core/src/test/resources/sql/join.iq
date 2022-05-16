@@ -18,6 +18,79 @@
 !use post
 !set outputformat mysql
 
+# Various combinations of comma and cross join
+with t (i) as (values (0), (1))
+select *
+from t as t1
+   cross join t as t2,
+ t as t3
+   cross join t as t4
+where t1.i + t2.i + t3.i + t4.i = 1;
++---+----+----+----+
+| I | I0 | I1 | I2 |
++---+----+----+----+
+| 0 |  0 |  0 |  1 |
+| 0 |  0 |  1 |  0 |
+| 0 |  1 |  0 |  0 |
+| 1 |  0 |  0 |  0 |
++---+----+----+----+
+(4 rows)
+
+!ok
+
+with t (i) as (values (0), (1))
+select *
+from t as t1
+   cross join t as t2,
+ t as t3
+where t1.i + t2.i + t3.i = 1;
++---+----+----+
+| I | I0 | I1 |
++---+----+----+
+| 0 |  0 |  1 |
+| 0 |  1 |  0 |
+| 1 |  0 |  0 |
++---+----+----+
+(3 rows)
+
+!ok
+
+with t (i) as (values (0), (1))
+select *
+from t as t1,
+ t as t2
+   cross join t as t3
+where t1.i + t2.i + t3.i = 1;
++---+----+----+
+| I | I0 | I1 |
++---+----+----+
+| 0 |  0 |  1 |
+| 0 |  1 |  0 |
+| 1 |  0 |  0 |
++---+----+----+
+(3 rows)
+
+!ok
+
+with t (i) as (values (0), (1))
+select *
+from t as t1
+ cross join t as t2
+ cross join t as t3
+ cross join t as t4
+where t1.i + t2.i + t3.i + t4.i = 1;
++---+----+----+----+
+| I | I0 | I1 | I2 |
++---+----+----+----+
+| 0 |  0 |  0 |  1 |
+| 0 |  0 |  1 |  0 |
+| 0 |  1 |  0 |  0 |
+| 1 |  0 |  0 |  0 |
++---+----+----+----+
+(4 rows)
+
+!ok
+
 # OR is a nestedLoop join
 select *
 from emp
@@ -69,7 +142,209 @@ EnumerableNestedLoopJoin(condition=[OR(=($1, $3), =(CAST($0):CHAR(11) NOT NULL, 
   EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
 
+!use foodmart
+# [CALCITE-35] Support parenthesized sub-clause in JOIN
+select
+   "product_class"."product_family" as "c0",
+   "product_class"."product_department" as "c1",
+   "customer"."country" as "c2",
+   "customer"."state_province" as "c3",
+   "customer"."city" as "c4"
+from
+   "sales_fact_1997" as "sales_fact_1997"
+join ("product" as "product"
+     join "product_class" as "product_class"
+     on "product"."product_class_id" = "product_class"."product_class_id")
+on  "sales_fact_1997"."product_id" = "product"."product_id"
+join "customer" as "customer"
+on  "sales_fact_1997"."customer_id" = "customer"."customer_id"
+join "promotion" as "promotion"
+on "sales_fact_1997"."promotion_id" = "promotion"."promotion_id"
+where ("promotion"."media_type" = 'Radio'
+ or "promotion"."media_type" = 'TV'
+ or "promotion"."media_type" = 'Sunday Paper'
+ or "promotion"."media_type" = 'Street Handout')
+ and ("product_class"."product_family" = 'Drink')
+ and ("customer"."country" = 'USA'
+   and "customer"."state_province" = 'WA'
+   and "customer"."city" = 'Bellingham')
+group by "product_class"."product_family",
+   "product_class"."product_department",
+   "customer"."country",
+   "customer"."state_province",
+   "customer"."city"
+order by "product_class"."product_family" asc nulls first,
+   "product_class"."product_department" asc nulls first,
+   "customer"."country" asc nulls first,
+   "customer"."state_province" asc nulls first,
+   "customer"."city" asc nulls first;
++-------+---------------------+-----+----+------------+
+| c0    | c1                  | c2  | c3 | c4         |
++-------+---------------------+-----+----+------------+
+| Drink | Alcoholic Beverages | USA | WA | Bellingham |
+| Drink | Dairy               | USA | WA | Bellingham |
++-------+---------------------+-----+----+------------+
+(2 rows)
+
+!ok
+
 !use scott
+
+# [CALCITE-35] Support parenthesized sub-clause in JOIN
+with clerk as (select * from emp where job = 'CLERK')
+select e.ename, d.dname, c.ename
+from dept as d
+ left join (emp as e
+   left join clerk as c using (empno))
+ on d.deptno = e.deptno;
++--------+------------+--------+
+| ENAME  | DNAME      | ENAME  |
++--------+------------+--------+
+| ADAMS  | RESEARCH   | ADAMS  |
+| ALLEN  | SALES      |        |
+| BLAKE  | SALES      |        |
+| CLARK  | ACCOUNTING |        |
+| FORD   | RESEARCH   |        |
+| JAMES  | SALES      | JAMES  |
+| JONES  | RESEARCH   |        |
+| KING   | ACCOUNTING |        |
+| MARTIN | SALES      |        |
+| MILLER | ACCOUNTING | MILLER |
+| SCOTT  | RESEARCH   |        |
+| SMITH  | RESEARCH   | SMITH  |
+| TURNER | SALES      |        |
+| WARD   | SALES      |        |
+|        | OPERATIONS |        |
++--------+------------+--------+
+(15 rows)
+
+!ok
+
+# Similar to previous; should be invalid because emp-join-clerk
+# returns duplicate "deptno" columns but Calcite currently allows it.
+with clerk as (select * from emp where job = 'CLERK')
+select e.ename, d.dname, c.ename
+from dept as d
+ natural left join (emp as e
+ left join clerk as c using (empno));
+Column name 'DEPTNO' in NATURAL join or USING clause is not unique on one side of join
+!error
+
+with clerk as (select * from emp where job = 'CLERK')
+select e.ename, d.dname, c.ename
+from dept as d
+ natural left join emp as e
+ left join clerk as c using (empno);
++--------+------------+--------+
+| ENAME  | DNAME      | ENAME  |
++--------+------------+--------+
+| ADAMS  | RESEARCH   | ADAMS  |
+| ALLEN  | SALES      |        |
+| BLAKE  | SALES      |        |
+| CLARK  | ACCOUNTING |        |
+| FORD   | RESEARCH   |        |
+| JAMES  | SALES      | JAMES  |
+| JONES  | RESEARCH   |        |
+| KING   | ACCOUNTING |        |
+| MARTIN | SALES      |        |
+| MILLER | ACCOUNTING | MILLER |
+| SCOTT  | RESEARCH   |        |
+| SMITH  | RESEARCH   | SMITH  |
+| TURNER | SALES      |        |
+| WARD   | SALES      |        |
+|        | OPERATIONS |        |
++--------+------------+--------+
+(15 rows)
+
+!ok
+
+# Without parentheses (i.e joining b to d, then (b-d) to e),
+# query would be invalid
+select d.dname, b.ename, b.job, e.job, e.ename
+from dept as d
+join (bonus as b
+  right join emp as e
+  on b.job = e.job)
+on d.deptno = e.deptno;
++------------+-------+-----+-----------+--------+
+| DNAME      | ENAME | JOB | JOB       | ENAME  |
++------------+-------+-----+-----------+--------+
+| ACCOUNTING |       |     | CLERK     | MILLER |
+| ACCOUNTING |       |     | MANAGER   | CLARK  |
+| ACCOUNTING |       |     | PRESIDENT | KING   |
+| RESEARCH   |       |     | ANALYST   | FORD   |
+| RESEARCH   |       |     | ANALYST   | SCOTT  |
+| RESEARCH   |       |     | CLERK     | ADAMS  |
+| RESEARCH   |       |     | CLERK     | SMITH  |
+| RESEARCH   |       |     | MANAGER   | JONES  |
+| SALES      |       |     | CLERK     | JAMES  |
+| SALES      |       |     | MANAGER   | BLAKE  |
+| SALES      |       |     | SALESMAN  | ALLEN  |
+| SALES      |       |     | SALESMAN  | MARTIN |
+| SALES      |       |     | SALESMAN  | TURNER |
+| SALES      |       |     | SALESMAN  | WARD   |
++------------+-------+-----+-----------+--------+
+(14 rows)
+
+!ok
+
+# As previous, but CROSS JOIN;
+# empty only because "bonus" is empty.
+select d.dname, b.ename, b.job, e.job, e.ename
+from dept as d
+cross join (bonus as b
+  cross join emp as e);
++-------+-------+-----+-----+-------+
+| DNAME | ENAME | JOB | JOB | ENAME |
++-------+-------+-----+-----+-------+
++-------+-------+-----+-----+-------+
+(0 rows)
+
+!ok
+
+# Join plus TABLE
+select e.ename, d.dname
+from emp as e
+natural join (table dept) as d;
++--------+------------+
+| ENAME  | DNAME      |
++--------+------------+
+| ADAMS  | RESEARCH   |
+| ALLEN  | SALES      |
+| BLAKE  | SALES      |
+| CLARK  | ACCOUNTING |
+| FORD   | RESEARCH   |
+| JAMES  | SALES      |
+| JONES  | RESEARCH   |
+| KING   | ACCOUNTING |
+| MARTIN | SALES      |
+| MILLER | ACCOUNTING |
+| SCOTT  | RESEARCH   |
+| SMITH  | RESEARCH   |
+| TURNER | SALES      |
+| WARD   | SALES      |
++--------+------------+
+(14 rows)
+
+!ok
+
+# Join plus INTERSECT and TABLE
+with clerk as (select * from emp where job = 'CLERK'),
+  ancient as (select * from emp where hiredate < '1982-01-01')
+select d.deptno, e.ename
+from (table dept) as d
+natural join (select * from clerk
+  intersect
+  select * from ancient) as e;
++--------+-------+
+| DEPTNO | ENAME |
++--------+-------+
+|     20 | SMITH |
+|     30 | JAMES |
++--------+-------+
+(2 rows)
+
+!ok
 
 # Full join with USING
 select *

@@ -79,6 +79,12 @@ public interface CalciteResource {
   @BaseMessage("Query expression encountered in illegal context")
   ExInst<CalciteException> illegalQueryExpression();
 
+  @BaseMessage("Join expression encountered in illegal context")
+  ExInst<CalciteException> illegalJoinExpression();
+
+  @BaseMessage("Expected query or join")
+  ExInst<CalciteException> expectedQueryOrJoinExpression();
+
   @BaseMessage("CURSOR expression encountered in illegal context")
   ExInst<CalciteException> illegalCursorExpression();
 
