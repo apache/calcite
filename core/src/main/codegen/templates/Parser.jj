@@ -627,9 +627,7 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
     SqlNode count = null;
 }
 {
-    (
-        e = QueryOrExpr(exprContext)
-    )
+    e = QueryOrExpr(exprContext)
     [
         // use the syntactic type of the expression we just parsed
         // to decide whether ORDER BY makes sense
@@ -2048,6 +2046,9 @@ SqlNode Join() :
             // Decide whether to read a JOIN clause or a comma, or to quit having
             // seen a single entry FROM clause like 'FROM emps'. See comments
             // elsewhere regarding <COMMA> lookahead.
+            //
+            // TODO: update the above comment if this production only allows joins
+            // with at least 2 elements. Also deal with the comma case separately.
             //
             // And LOOKAHEAD(3) is needed here rather than a LOOKAHEAD(2). Because currently JavaCC
             // calculates minimum lookahead count incorrectly for choice that contains zero size
@@ -3578,6 +3579,23 @@ SqlNode SqlExpressionEof() :
 
 /**
  * Parses either a row expression or a query expression without ORDER BY.
+ *
+ * <p>Examples of valid queries:
+ * <ul>
+ * <li>{@code SELECT c FROM t}
+ * <li>{@code SELECT c} (valid in some dialects)
+ * <li>{@code SELECT c FROM t UNION SELECT c2 FROM t2}
+ * <li>{@code WITH q AS (SELECT 1) SELECT * FROM q}
+ * <li>{@code VALUES (1, 2)}
+ * <li>{@code TABLE t}
+ * </ul>
+ *
+ * <p>Non-examples:
+ * <ul>
+ * <li>{@code emp CROSS JOIN dept}
+ * <li>{@code SELECT c FROM t ORDER BY c}
+ * <li>{@code (SELECT c FROM t)}
+ * </ul>
  */
 SqlNode QueryOrExpr(ExprContext exprContext) :
 {
@@ -3612,7 +3630,6 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
             // ensure a query is legal in this context
             pos = getPos();
             checkQueryExpression(exprContext);
-
         }
         e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY) {
             list.add(new SqlParserUtil.ToTreeListItem(op, pos));
@@ -4176,6 +4193,7 @@ SqlCall StringAggFunctionCall() :
     (
         <COMMA> {
             // a comma-list can't appear where only a query is expected
+            // TODO: the following line is a no-op; remove it?
             checkNonQueryExpression(ExprContext.ACCEPT_SUB_QUERY);
         }
         Arg(args, ExprContext.ACCEPT_SUB_QUERY)
