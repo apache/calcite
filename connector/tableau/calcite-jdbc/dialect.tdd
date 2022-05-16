@@ -21,6 +21,12 @@
          base='BigQuerySQLDialect'
          version='18.1'>
   <function-map>
+    <function group='system' name='TIME1899' return-type='datetime'>
+      <!-- This is invoked because Tableau has no concept of "time" values (just dates and datetimes).
+           When we tell it that there's a time as part of our schema, it's coerced to datetime by setting the date to Tableau's epoch (1899-12-30). -->
+      <formula>TIMESTAMP(DATETIME(DATE(1899, 12, 30), CAST((%1) AS TIME)))</formula>
+      <argument type='datetime' />
+    </function>
     <function group='numeric' name='ABS' return-type='real'>
       <formula>ABS(%1)</formula>
       <argument type='real' />
