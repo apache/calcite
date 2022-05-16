@@ -423,6 +423,15 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
     }
 }
 
+JAVACODE SqlNode checkNotJoin(SqlNode e)
+{
+    if (e instanceof SqlJoin) {
+        throw SqlUtil.newContextException(e.getParserPosition(),
+            RESOURCE.illegalJoinExpression());
+    }
+    return e;
+}
+
 /**
  * Converts a ParseException (local to this particular instantiation
  * of the parser) into a SqlParseException (common to all parsers).
@@ -596,6 +605,25 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
  * Syntactical Descriptions              *
  *****************************************/
 
+SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
+{
+    SqlNode e;
+}
+{
+    // Lookhead to distinguish between "TABLE emp" (which will be
+    // matched by ExplicitTable() via Query())
+    // and "TABLE fun(args)" (which will be matched by TableRef())
+    (
+        LOOKAHEAD(2)
+        e = Query(exprContext)
+        e = OrderByLimitOpt(e)
+    |
+        e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
+        ( e = JoinTable(e) )*
+    )
+    { return e; }
+}
+
 /**
  * Parses either a row expression or a query expression with an optional
  * ORDER BY.
@@ -623,14 +651,24 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
     SqlNode e;
+}
+{
+    e = QueryOrExpr(exprContext)
+    e = OrderByLimitOpt(e)
+    { return e; }
+}
+
+/** Reads optional "ORDER BY", "LIMIT", "OFFSET", "FETCH" following a query,
+ * {@code e}. If any of them are present, adds them to the query;
+ * otherwise returns the query unchanged.
+ * Throws if they are present and {@code e} is not a query. */
+SqlNode OrderByLimitOpt(SqlNode e) :
+{
     SqlNodeList orderBy = null;
     SqlNode start = null;
     SqlNode count = null;
 }
 {
-    (
-        e = QueryOrExpr(exprContext)
-    )
     [
         // use the syntactic type of the expression we just parsed
         // to decide whether ORDER BY makes sense
@@ -699,6 +737,7 @@ SqlNode LeafQuery(ExprContext exprContext) :
 
 /**
  * Parses a parenthesized query or single row expression.
+ * Depending on {@code exprContext}, may also accept a join.
  */
 SqlNode ParenthesizedExpression(ExprContext exprContext) :
 {
@@ -718,9 +757,10 @@ SqlNode ParenthesizedExpression(ExprContext exprContext) :
             break;
         }
     }
-    e = OrderedQueryOrExpr(exprContext)
+    e = ExprOrJoinOrOrderedQuery(exprContext)
     <RPAREN>
     {
+        exprContext.throwIfNotCompatible(e);
         return e;
     }
 }
@@ -1909,6 +1949,60 @@ SqlLiteral JoinType() :
     }
 }
 
+/**
+ * Parses the FROM clause for a SELECT.
+ *
+ * <p>FROM is mandatory in standard SQL, optional in dialects such as MySQL,
+ * PostgreSQL. The parser allows SELECT without FROM, but the validator fails
+ * if conformance is, say, STRICT_2003.
+ */
+SqlNode FromClause() :
+{
+    SqlNode e, e2;
+    SqlLiteral joinType;
+}
+{
+    e = Join()
+    (
+        // Comma joins should only occur at top-level in the FROM clause.
+        // Valid:
+        //  * FROM a, b
+        //  * FROM (a CROSS JOIN b), c
+        // Not valid:
+        //  * FROM a CROSS JOIN (b, c)
+        LOOKAHEAD(1)
+        <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
+        e2 = Join() {
+            e = new SqlJoin(joinType.getParserPosition(),
+                e,
+                SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+                joinType,
+                e2,
+                JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+                null);
+        }
+    )*
+    { return e; }
+}
+
+SqlNode Join() :
+{
+    SqlNode e, e2, condition;
+    SqlLiteral natural, joinType, joinConditionType;
+    SqlNodeList list;
+    SqlParserPos pos;
+}
+{
+    e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
+    (
+        LOOKAHEAD(2)
+        e = JoinTable(e)
+    )*
+    {
+        return e;
+    }
+}
+
 /** Matches "LEFT JOIN t ON ...", "RIGHT JOIN t USING ...", "JOIN t". */
 SqlNode JoinTable(SqlNode e) :
 {
@@ -1917,9 +2011,22 @@ SqlNode JoinTable(SqlNode e) :
     SqlNodeList list;
 }
 {
+    // LOOKAHEAD(3) is needed here rather than a LOOKAHEAD(2) because JavaCC
+    // calculates minimum lookahead count incorrectly for choice that contains
+    // zero size child. For instance, with the generated code,
+    // "LOOKAHEAD(2, Natural(), JoinType())"
+    // returns true immediately if it sees a single "<CROSS>" token. Where we
+    // expect the lookahead succeeds after "<CROSS> <APPLY>".
+    //
+    // For more information about the issue,
+    // see https://github.com/javacc/javacc/issues/86
+    //
+    // We allow CROSS JOIN (joinType = CROSS_JOIN) to have a join condition,
+    // even though that is not valid SQL; the validator will catch it.
+    LOOKAHEAD(3)
     natural = Natural()
     joinType = JoinType()
-    e2 = TableRef()
+    e2 = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
     (
         <ON> { on = JoinConditionType.ON.symbol(getPos()); }
         condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -1953,135 +2060,33 @@ SqlNode JoinTable(SqlNode e) :
                 null);
         }
     )
-}
-
-// TODO jvs 15-Nov-2003:  SQL standard allows parentheses in the FROM list for
-// building up non-linear join trees (e.g. OUTER JOIN two tables, and then INNER
-// JOIN the result).  Also note that aliases on parenthesized FROM expressions
-// "hide" all table names inside the parentheses (without aliases, they're
-// visible).
-//
-// We allow CROSS JOIN to have a join condition, even though that is not valid
-// SQL; the validator will catch it.
-/**
- * Parses the FROM clause for a SELECT.
- *
- * <p>FROM is mandatory in standard SQL, optional in dialects such as MySQL,
- * PostgreSQL. The parser allows SELECT without FROM, but the validator fails
- * if conformance is, say, STRICT_2003.
- */
-SqlNode FromClause() :
-{
-    SqlNode e, e2, condition;
-    SqlLiteral natural, joinType, joinConditionType;
-    SqlNodeList list;
-    SqlParserPos pos;
-}
-{
-    e = TableRef()
-    (
-        LOOKAHEAD(2)
-        (
-            // Decide whether to read a JOIN clause or a comma, or to quit having
-            // seen a single entry FROM clause like 'FROM emps'. See comments
-            // elsewhere regarding <COMMA> lookahead.
-            //
-            // And LOOKAHEAD(3) is needed here rather than a LOOKAHEAD(2). Because currently JavaCC
-            // calculates minimum lookahead count incorrectly for choice that contains zero size
-            // child. For instance, with the generated code, "LOOKAHEAD(2, Natural(), JoinType())"
-            // returns true immediately if it sees a single "<CROSS>" token. Where we expect
-            // the lookahead succeeds after "<CROSS> <APPLY>".
-            //
-            // For more information about the issue, see https://github.com/javacc/javacc/issues/86
-            LOOKAHEAD(3)
-            natural = Natural()
-            joinType = JoinType()
-            e2 = TableRef()
-            (
-                <ON> {
-                    joinConditionType = JoinConditionType.ON.symbol(getPos());
-                }
-                condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-                    e = new SqlJoin(joinType.getParserPosition(),
-                        e,
-                        natural,
-                        joinType,
-                        e2,
-                        joinConditionType,
-                        condition);
-                }
-            |
-                <USING> {
-                    joinConditionType = JoinConditionType.USING.symbol(getPos());
-                }
-                list = ParenthesizedSimpleIdentifierList() {
-                    e = new SqlJoin(joinType.getParserPosition(),
-                        e,
-                        natural,
-                        joinType,
-                        e2,
-                        joinConditionType,
-                        new SqlNodeList(list.getList(), Span.of(joinConditionType).end(this)));
-                }
-            |
-                {
-                    e = new SqlJoin(joinType.getParserPosition(),
-                        e,
-                        natural,
-                        joinType,
-                        e2,
-                        JoinConditionType.NONE.symbol(joinType.getParserPosition()),
-                        null);
-                }
-            )
-        |
-            // NOTE jvs 6-Feb-2004:  See comments at top of file for why
-            // hint is necessary here.  I had to use this special semantic
-            // lookahead form to get JavaCC to shut up, which makes
-            // me even more uneasy.
-            //LOOKAHEAD({true})
-            <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
-            e2 = TableRef() {
-                e = new SqlJoin(joinType.getParserPosition(),
-                    e,
-                    SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                    joinType,
-                    e2,
-                    JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
-                    null);
-            }
-        |
-            <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
-            e2 = TableRef2(true) {
-                if (!this.conformance.isApplyAllowed()) {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
-                }
-                e = new SqlJoin(joinType.getParserPosition(),
-                    e,
-                    SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                    joinType,
-                    e2,
-                    JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
-                    null);
-            }
-        |
-            <OUTER> { joinType = JoinType.LEFT.symbol(getPos()); } <APPLY>
-            e2 = TableRef2(true) {
-                if (!this.conformance.isApplyAllowed()) {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
-                }
-                e = new SqlJoin(joinType.getParserPosition(),
-                    e,
-                    SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                    joinType,
-                    e2,
-                    JoinConditionType.ON.symbol(SqlParserPos.ZERO),
-                    SqlLiteral.createBoolean(true, joinType.getParserPosition()));
-            }
-        )
-    )*
-    {
-        return e;
+|
+    <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
+    e2 = TableRef2(true) {
+        if (!this.conformance.isApplyAllowed()) {
+            throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
+        }
+        return new SqlJoin(joinType.getParserPosition(),
+            e,
+            SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+            joinType,
+            e2,
+            JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+            null);
+    }
+|
+    <OUTER> { joinType = JoinType.LEFT.symbol(getPos()); } <APPLY>
+    e2 = TableRef2(true) {
+        if (!this.conformance.isApplyAllowed()) {
+            throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
+        }
+        return new SqlJoin(joinType.getParserPosition(),
+            e,
+            SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+            joinType,
+            e2,
+            JoinConditionType.ON.symbol(SqlParserPos.ZERO),
+            SqlLiteral.createBoolean(true, joinType.getParserPosition()));
     }
 }
 
@@ -2094,13 +2099,29 @@ SqlNode TableRef() :
     final SqlNode e;
 }
 {
-    e = TableRef2(false) { return e; }
+    e = TableRef3(ExprContext.ACCEPT_QUERY, false) { return e; }
+}
+
+SqlNode TableRef1(ExprContext exprContext) :
+{
+    final SqlNode e;
+}
+{
+    e = TableRef3(exprContext, false) { return e; }
 }
 
 /**
  * Parses a table reference in a FROM clause.
  */
 SqlNode TableRef2(boolean lateral) :
+{
+    final SqlNode e;
+}
+{
+    e = TableRef3(ExprContext.ACCEPT_QUERY, lateral) { return e; }
+}
+
+SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
 {
     SqlNode tableRef;
     final SqlNode over;
@@ -2110,11 +2131,6 @@ SqlNode TableRef2(boolean lateral) :
     final SqlIdentifier alias;
     final Span s, s2;
     SqlNodeList args;
-    SqlNode sample;
-    boolean isBernoulli;
-    SqlNumericLiteral samplePercentage;
-    boolean isRepeatable = false;
-    int repeatableSeed = 0;
     SqlNodeList columnAliasList = null;
     SqlUnnestOperator unnestOp = SqlStdOperatorTable.UNNEST;
 }
@@ -2143,16 +2159,16 @@ SqlNode TableRef2(boolean lateral) :
     |
         LOOKAHEAD(2)
         [ <LATERAL> { lateral = true; } ]
-        tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
+        tableRef = ParenthesizedExpression(exprContext)
         over = TableOverOpt()
         {
             if (over != null) {
                 tableRef = SqlStdOperatorTable.OVER.createCall(
-                    getPos(), tableRef, over);
+                    getPos(), checkNotJoin(tableRef), over);
             }
             if (lateral) {
                 tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    getPos(), tableRef);
+                    getPos(), checkNotJoin(tableRef));
             }
         }
         [
@@ -2170,14 +2186,12 @@ SqlNode TableRef2(boolean lateral) :
             tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
         }
     |
-        [<LATERAL> { lateral = true; } ]
-        <TABLE> { s = span(); } <LPAREN>
-        tableRef = TableFunctionCall(s.pos())
-        <RPAREN>
+        [ <LATERAL> { lateral = true; } ]
+        tableRef = TableFunctionCall()
         {
             if (lateral) {
                 tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    s.end(this), tableRef);
+                    tableRef.getParserPosition(), tableRef);
             }
         }
     |
@@ -2195,6 +2209,12 @@ SqlNode TableRef2(boolean lateral) :
         [ <AS> ] alias = SimpleIdentifier()
         [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
         {
+            // Standard SQL (and Postgres) allow applying "AS alias" to a JOIN,
+            // e.g. "FROM (a CROSS JOIN b) AS c". The new alias obscures the
+            // internal aliases, and columns cannot be referenced if they are
+            // not unique. TODO: Support this behavior; see
+            // [CALCITE-5168] Allow AS after parenthesized JOIN
+            checkNotJoin(tableRef);
             if (columnAliasList == null) {
                 tableRef = SqlStdOperatorTable.AS.createCall(
                     Span.of(tableRef).end(this), tableRef, alias);
@@ -2209,71 +2229,79 @@ SqlNode TableRef2(boolean lateral) :
         }
     ]
     [
-        <TABLESAMPLE> { s2 = span(); }
-        (
-            <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
-            {
-                String sampleName =
-                    SqlLiteral.unchain(sample).getValueAs(String.class);
-                SqlSampleSpec sampleSpec = SqlSampleSpec.createNamed(sampleName);
-                final SqlLiteral sampleLiteral =
-                    SqlLiteral.createSample(sampleSpec, s2.end(this));
-                tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
-                    s2.add(tableRef).end(this), tableRef, sampleLiteral);
-            }
-        |
-            (
-                <BERNOULLI>
-                {
-                    isBernoulli = true;
-                }
-            |
-                <SYSTEM>
-                {
-                    isBernoulli = false;
-                }
-            )
-            <LPAREN> samplePercentage = UnsignedNumericLiteral() <RPAREN>
-            [
-                <REPEATABLE> <LPAREN> repeatableSeed = IntLiteral() <RPAREN>
-                {
-                    isRepeatable = true;
-                }
-            ]
-            {
-                final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
-                BigDecimal rate = samplePercentage.bigDecimalValue();
-                if (rate.compareTo(BigDecimal.ZERO) < 0
-                    || rate.compareTo(ONE_HUNDRED) > 0)
-                {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
-                }
+        tableRef = Tablesample(tableRef)
+    ]
+    {
+        return tableRef;
+    }
+}
 
-                // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
-                // sampling at all.  Not strictly correct: TABLESAMPLE(0)
-                // should produce no output, but it simplifies implementation
-                // to know that some amount of sampling will occur.
-                // In practice values less than ~1E-43% are treated as 0.0 and
-                // values greater than ~99.999997% are treated as 1.0
-                float fRate = rate.divide(ONE_HUNDRED).floatValue();
-                if (fRate > 0.0f && fRate < 1.0f) {
-                    SqlSampleSpec tableSampleSpec =
+SqlNode Tablesample(SqlNode tableRef) :
+{
+    final Span s;
+    final SqlNode sample;
+    final boolean isBernoulli;
+    final SqlNumericLiteral samplePercentage;
+    boolean isRepeatable = false;
+    int repeatableSeed = 0;
+}
+{
+    <TABLESAMPLE> { s = span(); checkNotJoin(tableRef); }
+    (
+        <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
+        {
+            String sampleName =
+                SqlLiteral.unchain(sample).getValueAs(String.class);
+            SqlSampleSpec sampleSpec = SqlSampleSpec.createNamed(sampleName);
+            final SqlLiteral sampleLiteral =
+                SqlLiteral.createSample(sampleSpec, s.end(this));
+            tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
+                s.add(tableRef).end(this), tableRef, sampleLiteral);
+        }
+    |
+        (
+            <BERNOULLI> { isBernoulli = true; }
+        |
+            <SYSTEM> { isBernoulli = false; }
+        )
+        <LPAREN> samplePercentage = UnsignedNumericLiteral() <RPAREN>
+        [
+            <REPEATABLE> <LPAREN> repeatableSeed = IntLiteral() <RPAREN>
+            {
+                isRepeatable = true;
+            }
+        ]
+        {
+            final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
+            BigDecimal rate = samplePercentage.bigDecimalValue();
+            if (rate.compareTo(BigDecimal.ZERO) < 0
+                || rate.compareTo(ONE_HUNDRED) > 0)
+            {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
+            }
+
+            // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
+            // sampling at all.  Not strictly correct: TABLESAMPLE(0)
+            // should produce no output, but it simplifies implementation
+            // to know that some amount of sampling will occur.
+            // In practice values less than ~1E-43% are treated as 0.0 and
+            // values greater than ~99.999997% are treated as 1.0
+            float fRate = rate.divide(ONE_HUNDRED).floatValue();
+            if (fRate > 0.0f && fRate < 1.0f) {
+                SqlSampleSpec tableSampleSpec =
                     isRepeatable
                         ? SqlSampleSpec.createTableSample(
                             isBernoulli, fRate, repeatableSeed)
                         : SqlSampleSpec.createTableSample(isBernoulli, fRate);
 
-                    SqlLiteral tableSampleLiteral =
-                        SqlLiteral.createSample(tableSampleSpec, s2.end(this));
-                    tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
-                        s2.end(this), tableRef, tableSampleLiteral);
-                }
+                SqlLiteral tableSampleLiteral =
+                    SqlLiteral.createSample(tableSampleSpec, s.end(this));
+                tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
+                    s.end(this), tableRef, tableSampleLiteral);
             }
-        )
-    ]
-    {
-        return tableRef;
-    }
+        }
+    )
+    { return tableRef; }
 }
 
 SqlNodeList ExtendList() :
@@ -2344,12 +2372,14 @@ void CompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList) :
     }
 }
 
-SqlNode TableFunctionCall(SqlParserPos pos) :
+SqlNode TableFunctionCall() :
 {
-    SqlNode call;
+    final Span s;
+    final SqlNode call;
     SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
 }
 {
+    <TABLE> { s = span(); } <LPAREN>
     [
         <SPECIFIC>
         {
@@ -2357,8 +2387,9 @@ SqlNode TableFunctionCall(SqlParserPos pos) :
         }
     ]
     call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    <RPAREN>
     {
-        return SqlStdOperatorTable.COLLECTION_TABLE.createCall(pos, call);
+        return SqlStdOperatorTable.COLLECTION_TABLE.createCall(s.end(this), call);
     }
 }
 
@@ -2849,7 +2880,7 @@ SqlNode Pivot(SqlNode tableRef) :
     final SqlNodeList inList;
 }
 {
-    <PIVOT> { s = span(); }
+    <PIVOT> { s = span(); checkNotJoin(tableRef); }
     <LPAREN>
     PivotAgg(aggList) ( <COMMA> PivotAgg(aggList) )*
     <FOR> axisList = SimpleIdentifierOrList()
@@ -2915,7 +2946,7 @@ SqlNode Unpivot(SqlNode tableRef) :
     final SqlNodeList inList;
 }
 {
-    <UNPIVOT> { s = span(); }
+    <UNPIVOT> { s = span(); checkNotJoin(tableRef); }
     (
         <INCLUDE> <NULLS> { includeNulls = true; }
     |   <EXCLUDE> <NULLS> { includeNulls = false; }
@@ -2975,7 +3006,7 @@ SqlMatchRecognize MatchRecognize(SqlNode tableRef) :
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
 }
 {
-    <MATCH_RECOGNIZE> { s = span(); } <LPAREN>
+    <MATCH_RECOGNIZE> { s = span(); checkNotJoin(tableRef); } <LPAREN>
     [
         <PARTITION> { s2 = span(); } <BY>
         partitionList = ExpressionCommaList(s2, ExprContext.ACCEPT_NON_QUERY)
@@ -3351,6 +3382,23 @@ SqlNode SqlExpressionEof() :
 
 /**
  * Parses either a row expression or a query expression without ORDER BY.
+ *
+ * <p>Examples of valid queries:
+ * <ul>
+ * <li>{@code SELECT c FROM t}
+ * <li>{@code SELECT c} (valid in some dialects)
+ * <li>{@code SELECT c FROM t UNION SELECT c2 FROM t2}
+ * <li>{@code WITH q AS (SELECT 1) SELECT * FROM q}
+ * <li>{@code VALUES (1, 2)}
+ * <li>{@code TABLE t}
+ * </ul>
+ *
+ * <p>Non-examples:
+ * <ul>
+ * <li>{@code emp CROSS JOIN dept}
+ * <li>{@code SELECT c FROM t ORDER BY c}
+ * <li>{@code (SELECT c FROM t)}
+ * </ul>
  */
 SqlNode QueryOrExpr(ExprContext exprContext) :
 {
@@ -3365,7 +3413,8 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
     [
         withList = WithList()
     ]
-    e = LeafQueryOrExpr(exprContext) {
+    e = LeafQueryOrExpr(exprContext)
+    {
         list = startList(e);
     }
     (
@@ -3381,9 +3430,53 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
             // ensure a query is legal in this context
             pos = getPos();
             checkQueryExpression(exprContext);
-
         }
         e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY) {
+            list.add(new SqlParserUtil.ToTreeListItem(op, pos));
+            list.add(e);
+        }
+    )*
+    {
+        e = SqlParserUtil.toTree(list);
+        if (withList != null) {
+            e = new SqlWith(withList.getParserPosition(), withList, e);
+        }
+        return e;
+    }
+}
+
+SqlNode Query(ExprContext exprContext) :
+{
+    SqlNodeList withList = null;
+    SqlNode e;
+    SqlOperator op;
+    SqlParserPos pos;
+    SqlParserPos withPos;
+    List<Object> list;
+}
+{
+    [
+        withList = WithList()
+    ]
+    e = LeafQuery(exprContext)
+    {
+        list = startList(e);
+    }
+    (
+        {
+            if (!e.isA(SqlKind.QUERY)) {
+                // whoops, expression we just parsed wasn't a query,
+                // but we're about to see something like UNION, so
+                // force an exception retroactively
+                checkNonQueryExpression(ExprContext.ACCEPT_QUERY);
+            }
+        }
+        op = BinaryQueryOperator() {
+            // ensure a query is legal in this context
+            pos = getPos();
+            checkQueryExpression(exprContext);
+        }
+        e = LeafQuery(ExprContext.ACCEPT_QUERY) {
             list.add(new SqlParserUtil.ToTreeListItem(op, pos));
             list.add(e);
         }
@@ -3461,8 +3554,6 @@ SqlNode Expression(ExprContext exprContext) :
         return e;
     }
 }
-
-// TODO jvs 15-Nov-2003:  ANY/ALL
 
 void Expression2b(ExprContext exprContext, List<Object> list) :
 {
@@ -3945,6 +4036,7 @@ SqlCall StringAggFunctionCall() :
     (
         <COMMA> {
             // a comma-list can't appear where only a query is expected
+            // TODO: the following line is a no-op; remove it?
             checkNonQueryExpression(ExprContext.ACCEPT_SUB_QUERY);
         }
         Arg(args, ExprContext.ACCEPT_SUB_QUERY)

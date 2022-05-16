@@ -220,3 +220,33 @@ except
 (0 rows)
 
 !ok
+
+!use scott
+
+# Parentheses at top level
+(select * from emp where deptno = 10
+ union all
+ select * from emp where job = 'CLERK')
+intersect
+select * from emp where job = 'CLERK';
++-------+--------+-------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB   | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-------+------+------------+---------+------+--------+
+|  7369 | SMITH  | CLERK | 7902 | 1980-12-17 |  800.00 |      |     20 |
+|  7876 | ADAMS  | CLERK | 7788 | 1987-05-23 | 1100.00 |      |     20 |
+|  7900 | JAMES  | CLERK | 7698 | 1981-12-03 |  950.00 |      |     30 |
+|  7934 | MILLER | CLERK | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-------+------+------------+---------+------+--------+
+(4 rows)
+
+!ok
+
+# Join at top level is illegal
+# (Postgres doesn't allow it either)
+(emp natural join dept)
+intersect
+select * from emp natural join dept where job = 'CLERK';
+Non-query expression encountered in illegal context
+!error
+
+# End set-op.iq
