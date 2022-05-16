@@ -18,6 +18,79 @@
 !use post
 !set outputformat mysql
 
+# Various combinations of comma and cross join
+with t (i) as (values (0), (1))
+select *
+from t as t1
+   cross join t as t2,
+ t as t3
+   cross join t as t4
+where t1.i + t2.i + t3.i + t4.i = 1;
++---+----+----+----+
+| I | I0 | I1 | I2 |
++---+----+----+----+
+| 0 |  0 |  0 |  1 |
+| 0 |  0 |  1 |  0 |
+| 0 |  1 |  0 |  0 |
+| 1 |  0 |  0 |  0 |
++---+----+----+----+
+(4 rows)
+
+!ok
+
+with t (i) as (values (0), (1))
+select *
+from t as t1
+   cross join t as t2,
+ t as t3
+where t1.i + t2.i + t3.i = 1;
++---+----+----+
+| I | I0 | I1 |
++---+----+----+
+| 0 |  0 |  1 |
+| 0 |  1 |  0 |
+| 1 |  0 |  0 |
++---+----+----+
+(3 rows)
+
+!ok
+
+with t (i) as (values (0), (1))
+select *
+from t as t1,
+ t as t2
+   cross join t as t3
+where t1.i + t2.i + t3.i = 1;
++---+----+----+
+| I | I0 | I1 |
++---+----+----+
+| 0 |  0 |  1 |
+| 0 |  1 |  0 |
+| 1 |  0 |  0 |
++---+----+----+
+(3 rows)
+
+!ok
+
+with t (i) as (values (0), (1))
+select *
+from t as t1
+ cross join t as t2
+ cross join t as t3
+ cross join t as t4
+where t1.i + t2.i + t3.i + t4.i = 1;
++---+----+----+----+
+| I | I0 | I1 | I2 |
++---+----+----+----+
+| 0 |  0 |  0 |  1 |
+| 0 |  0 |  1 |  0 |
+| 0 |  1 |  0 |  0 |
+| 1 |  0 |  0 |  0 |
++---+----+----+----+
+(4 rows)
+
+!ok
+
 # OR is a nestedLoop join
 select *
 from emp

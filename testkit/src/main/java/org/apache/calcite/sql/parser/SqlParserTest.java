@@ -3066,7 +3066,6 @@ public class SqlParserTest {
   }
 
   @Test void testMixedFrom() {
-    // REVIEW: Is this syntax even valid?
     sql("select * from a join b using (x), c join d using (y)")
         .ok("SELECT *\n"
             + "FROM `A`\n"

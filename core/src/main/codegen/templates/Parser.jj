@@ -1971,6 +1971,34 @@ SqlNode JoinTable(SqlNode e) :
  */
 SqlNode FromClause() :
 {
+    SqlNode e, e2;
+    SqlLiteral joinType;
+}
+{
+    e = Join()
+    (
+        // Comma joins should only occur at top-level in the FROM clause.
+        // Valid:
+        //  * FROM a, b
+        //  * FROM (a CROSS JOIN b), c
+        // Not valid:
+        //  * FROM a CROSS JOIN (b, c)
+        <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
+        e2 = Join() {
+            e = new SqlJoin(joinType.getParserPosition(),
+                e,
+                SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+                joinType,
+                e2,
+                JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+                null);
+        }
+    )*
+    { return e; }
+}
+
+SqlNode Join() :
+{
     SqlNode e, e2, condition;
     SqlLiteral natural, joinType, joinConditionType;
     SqlNodeList list;
@@ -2033,22 +2061,6 @@ SqlNode FromClause() :
                         null);
                 }
             )
-        |
-            // NOTE jvs 6-Feb-2004:  See comments at top of file for why
-            // hint is necessary here.  I had to use this special semantic
-            // lookahead form to get JavaCC to shut up, which makes
-            // me even more uneasy.
-            //LOOKAHEAD({true})
-            <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
-            e2 = TableRef() {
-                e = new SqlJoin(joinType.getParserPosition(),
-                    e,
-                    SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                    joinType,
-                    e2,
-                    JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
-                    null);
-            }
         |
             <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
             e2 = TableRef2(true) {

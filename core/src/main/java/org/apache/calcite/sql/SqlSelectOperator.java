@@ -165,8 +165,8 @@ public class SqlSelectOperator extends SqlOperator {
           writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
       select.from.unparse(
           writer,
-          SqlJoin.OPERATOR.getLeftPrec() - 1,
-          SqlJoin.OPERATOR.getRightPrec() - 1);
+          SqlJoin.COMMA_OPERATOR.getLeftPrec() - 1,
+          SqlJoin.COMMA_OPERATOR.getRightPrec() - 1);
       writer.endList(fromFrame);
     }
 
