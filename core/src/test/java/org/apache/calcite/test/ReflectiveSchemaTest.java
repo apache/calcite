@@ -330,6 +330,16 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5157">[CALCITE-5157]
+   * ClassCastException in checkRollUp with DOT operator</a>. */
+  @Test void testSelectWithFieldAccessOnFirstLevelRecordTypeWithParentheses() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .query("select (\"birthPlace\").\"city\" as city from \"bookstore\".\"authors\"\n")
+        .returnsUnordered("CITY=Heraklion", "CITY=Besançon", "CITY=Ionia");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2404">[CALCITE-2404]
    * Accessing structured-types is not implemented by the runtime</a>. */
   @Test void testSelectWithFieldAccessOnSecondLevelRecordType() {
