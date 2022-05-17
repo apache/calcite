@@ -57,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -531,5 +532,27 @@ class ServerTest {
         assertThat(r.getString(1), isLinux(plan));
       }
     }
+  }
+
+  @Test void testDropWithFullyQualifiedNameWhenSchemaDoesntExist() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "schema", "Schema");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "table", "Table");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "materialized view", "Table");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "view", "View");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "type", "Type");
+      checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "function", "Function");
+    }
+  }
+
+  private void checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(
+      Statement statement, String objectType, String objectTypeInErrorMessage) throws Exception {
+    SQLException e = assertThrows(SQLException.class, () ->
+        statement.execute("drop " + objectType + " s.o"),
+        "expected error because the object doesn't exist");
+    assertThat(e.getMessage(), containsString(objectTypeInErrorMessage + " 'O' not found"));
+
+    statement.execute("drop " + objectType + " if exists s.o");
   }
 }

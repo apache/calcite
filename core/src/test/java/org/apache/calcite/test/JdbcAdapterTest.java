@@ -20,6 +20,7 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
+import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
@@ -59,7 +60,7 @@ class JdbcAdapterTest {
         + "  EnumerableValues(tuples=[[{ 1 }, { 2 }]])";
     final String jdbcSql = "SELECT *\n"
         + "FROM \"foodmart\".\"days\"";
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query(sql)
         .explainContains(explain)
         .runs()
@@ -69,7 +70,7 @@ class JdbcAdapterTest {
   }
 
   @Test void testUnionPlan() {
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
             + "union all\n"
             + "select * from \"sales_fact_1998\"")
@@ -115,7 +116,7 @@ class JdbcAdapterTest {
   }
 
   @Test void testFilterUnionPlan() {
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select * from (\n"
             + "  select * from \"sales_fact_1997\"\n"
             + "  union all\n"
@@ -133,7 +134,7 @@ class JdbcAdapterTest {
   }
 
   @Test void testInPlan() {
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
         .runs()
@@ -412,7 +413,7 @@ class JdbcAdapterTest {
         + "WHERE T2.\"product_department\" = 'Frozen Foods'\n"
         + " OR T2.\"product_department\" = 'Baking Goods'\n"
         + " AND T1.\"brand_name\" <> 'King'";
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query(sql).runs()
         .returnsCount(275);
   }
@@ -445,7 +446,7 @@ class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1382">[CALCITE-1382]
    * ClassCastException in JDBC adapter</a>. */
-  @Test public void testJoinPlan3() {
+  @Test void testJoinPlan3() {
     final String sql = "SELECT count(*) AS c FROM (\n"
         + "  SELECT count(emp.empno) `Count Emp`,\n"
         + "      dept.dname `Department Name`\n"
@@ -533,7 +534,7 @@ class JdbcAdapterTest {
         + "  JdbcToEnumerableConverter\n"
         + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n";
     CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB)
         .query(sql)
         .explainContains(explain)
@@ -543,8 +544,13 @@ class JdbcAdapterTest {
   }
 
   @Test void testTablesNoCatalogSchema() {
+    // Switch from "FOODMART" user, whose default schema is 'foodmart',
+    // to "sa", whose default schema is the root, and therefore cannot
+    // see the table unless directed to look in a particular schema.
     final String model =
-        JdbcTest.FOODMART_MODEL
+        FoodmartSchema.FOODMART_MODEL
+            .replace("jdbcUser: 'FOODMART'", "jdbcUser: 'sa'")
+            .replace("jdbcPassword: 'FOODMART'", "jdbcPassword: ''")
             .replace("jdbcCatalog: 'foodmart'", "jdbcCatalog: null")
             .replace("jdbcSchema: 'foodmart'", "jdbcSchema: null");
     // Since Calcite uses PostgreSQL JDBC driver version >= 4.1,
@@ -578,7 +584,7 @@ class JdbcAdapterTest {
    * support OVER. */
   @Test void testOverDefault() {
     CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("select \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
@@ -604,7 +610,7 @@ class JdbcAdapterTest {
    * not have TINYINT and DOUBLE types</a>. */
   @Test void testCast() {
     CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("select cast(\"store_id\" as TINYINT),"
             + "cast(\"store_id\" as DOUBLE)"
@@ -617,7 +623,7 @@ class JdbcAdapterTest {
 
   @Test void testOverRowsBetweenBoundFollowingAndFollowing() {
     CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("select \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
@@ -641,7 +647,7 @@ class JdbcAdapterTest {
 
   @Test void testOverRowsBetweenBoundPrecedingAndCurrent() {
     CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("select \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
@@ -665,7 +671,7 @@ class JdbcAdapterTest {
 
   @Test void testOverDisallowPartial() {
     CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("select \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
@@ -695,7 +701,7 @@ class JdbcAdapterTest {
 
   @Test void testLastValueOver() {
     CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("select \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
@@ -731,7 +737,7 @@ class JdbcAdapterTest {
     default:
       expected = "more than one value in agg SINGLE_VALUE";
     }
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("SELECT \"full_name\" FROM \"employee\" WHERE "
                 + "\"employee_id\" = (SELECT \"employee_id\" FROM \"salary\")")
         .explainContains("SINGLE_VALUE")
@@ -746,7 +752,7 @@ class JdbcAdapterTest {
   @Test void testMetadataTables() throws Exception {
     // The troublesome tables occur in PostgreSQL's system schema.
     final String model =
-        JdbcTest.FOODMART_MODEL.replace("jdbcSchema: 'foodmart'",
+        FoodmartSchema.FOODMART_MODEL.replace("jdbcSchema: 'foodmart'",
             "jdbcSchema: null");
     CalciteAssert.model(
         model)
@@ -885,7 +891,7 @@ class JdbcAdapterTest {
         + "VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', "
         + "666, 666)";
     final AssertThat that =
-        CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+        CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
                 || CalciteAssert.DB == DatabaseInstance.POSTGRESQL);
     that.doWithConnection(connection -> {
@@ -920,7 +926,7 @@ class JdbcAdapterTest {
         + "(666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666),\n"
         + "(666, 777, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666)";
     final AssertThat that =
-        CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+        CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
                 || CalciteAssert.DB == DatabaseInstance.POSTGRESQL);
     that.doWithConnection(connection -> {
@@ -936,7 +942,7 @@ class JdbcAdapterTest {
 
   @Test void testTableModifyInsertWithSubQuery() throws Exception {
     final AssertThat that = CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
 
     that.doWithConnection(connection -> {
@@ -973,7 +979,7 @@ class JdbcAdapterTest {
 
   @Test void testTableModifyUpdate() throws Exception {
     final AssertThat that = CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
 
     that.doWithConnection(connection -> {
@@ -1001,7 +1007,7 @@ class JdbcAdapterTest {
 
   @Test void testTableModifyDelete() throws Exception {
     final AssertThat that = CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
+        .model(FoodmartSchema.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
 
     that.doWithConnection(connection -> {
@@ -1029,7 +1035,7 @@ class JdbcAdapterTest {
   @Test void testColumnNullability() {
     final String sql = "select \"employee_id\", \"position_id\"\n"
         + "from \"foodmart\".\"employee\" limit 10";
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query(sql)
         .runs()
         .returnsCount(10)
@@ -1043,6 +1049,29 @@ class JdbcAdapterTest {
         .consumesPreparedStatement(p -> p.setInt(1, 7566))
         .returnsCount(1)
         .planHasSql("SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\"\nWHERE \"EMPNO\" = ?");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4619">[CALCITE-4619]
+   * "Full join" generates an incorrect execution plan under mysql</a>. */
+  @Test void testFullJoinNonSupportedDialect() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.H2
+            || CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL)
+        .query("select empno, ename, e.deptno, dname\n"
+            + "from scott.emp e full join scott.dept d\n"
+            + "on e.deptno = d.deptno")
+        .explainContains("PLAN=EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}],"
+            + " DNAME=[$t4])\n"
+            + "  EnumerableHashJoin(condition=[=($2, $3)], joinType=[full])\n"
+            + "    JdbcToEnumerableConverter\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "    JdbcToEnumerableConverter\n"
+            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
+        .runs();
   }
 
   /** Acquires a lock, and releases it when closed. */

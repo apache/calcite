@@ -63,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -116,7 +117,7 @@ public class SqlFunctions {
   private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
-      Linq4j::asEnumerable;
+      a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
 
   @SuppressWarnings("unused")
   private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
@@ -2786,6 +2787,12 @@ public class SqlFunctions {
     resultCollection.addAll(collection1);
     resultCollection.addAll(collection2);
     return resultCollection;
+  }
+
+  /** Support the ARRAY_REVERSE function. */
+  public static List reverse(List list) {
+    Collections.reverse(list);
+    return list;
   }
 
   /**

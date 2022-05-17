@@ -52,6 +52,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -88,14 +89,14 @@ import static java.util.Objects.requireNonNull;
  */
 public abstract class DateRangeRules {
 
-  private DateRangeRules() {}
+  private DateRangeRules() { }
 
   /** Rule that matches a {@link Filter} and converts calls to {@code EXTRACT},
    * {@code FLOOR} and {@code CEIL} functions to date ranges (typically using
    * the {@code BETWEEN} operator). */
   public static final RelOptRule FILTER_INSTANCE =
-      FilterDateRangeRule.Config.DEFAULT
-          .as(FilterDateRangeRule.Config.class)
+      FilterDateRangeRule.FilterDateRangeRuleConfig.DEFAULT
+          .as(FilterDateRangeRule.FilterDateRangeRuleConfig.class)
           .toRule();
 
   private static final Map<TimeUnitRange, Integer> TIME_UNIT_CODES =
@@ -171,17 +172,17 @@ public abstract class DateRangeRules {
    * @see DateRangeRules#FILTER_INSTANCE */
   @SuppressWarnings("WeakerAccess")
   public static class FilterDateRangeRule
-      extends RelRule<FilterDateRangeRule.Config>
+      extends RelRule<FilterDateRangeRule.FilterDateRangeRuleConfig>
       implements TransformationRule {
     /** Creates a FilterDateRangeRule. */
-    protected FilterDateRangeRule(Config config) {
+    protected FilterDateRangeRule(FilterDateRangeRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public FilterDateRangeRule(RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class));
+      this(FilterDateRangeRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(FilterDateRangeRuleConfig.class));
     }
 
     /** Whether this an EXTRACT of YEAR, or a call to FLOOR or CEIL.
@@ -215,13 +216,13 @@ public abstract class DateRangeRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface FilterDateRangeRuleConfig extends RelRule.Config {
+      FilterDateRangeRuleConfig DEFAULT = ImmutableFilterDateRangeRuleConfig.of()
           .withOperandSupplier(b ->
               b.operand(Filter.class)
                   .predicate(FilterDateRangeRule::containsRoundingExpression)
-                  .anyInputs())
-          .as(Config.class);
+                  .anyInputs());
 
       @Override default FilterDateRangeRule toRule() {
         return new FilterDateRangeRule(this);

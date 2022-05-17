@@ -98,7 +98,7 @@ public class AggregateFunctionImpl implements AggregateFunction,
 
       // V is remaining args of add by definition
       final List<Class> addParamTypes =
-          ImmutableList.copyOf((Class[]) addMethod.getParameterTypes());
+          ImmutableList.copyOf(addMethod.getParameterTypes());
       if (addParamTypes.isEmpty() || addParamTypes.get(0) != accumulatorType) {
         throw RESOURCE.firstParameterOfAdd(clazz.getName()).ex();
       }

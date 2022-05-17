@@ -22,6 +22,8 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * <code>UnionEliminatorRule</code> checks to see if its possible to optimize a
  * Union call by eliminating the Union operator altogether in the case the call
@@ -29,6 +31,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#UNION_REMOVE
  */
+@Value.Enclosing
 public class UnionEliminatorRule
     extends RelRule<UnionEliminatorRule.Config>
     implements SubstitutionRule {
@@ -63,8 +66,9 @@ public class UnionEliminatorRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableUnionEliminatorRule.Config.of()
         .withOperandFor(LogicalUnion.class);
 
     @Override default UnionEliminatorRule toRule() {

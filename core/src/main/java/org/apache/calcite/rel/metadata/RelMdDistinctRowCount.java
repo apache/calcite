@@ -33,7 +33,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 
@@ -55,7 +54,7 @@ public class RelMdDistinctRowCount
     implements MetadataHandler<BuiltInMetadata.DistinctRowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.DISTINCT_ROW_COUNT.method, new RelMdDistinctRowCount());
+          new RelMdDistinctRowCount(), BuiltInMetadata.DistinctRowCount.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -227,6 +226,21 @@ public class RelMdDistinctRowCount
         return 1D;
       }
     }
+
+    // try to remove const columns from the group keys, as they do not
+    // affect the distinct row count
+    ImmutableBitSet nonConstCols = RexUtil.getNonConstColumns(groupKey, rel.getProjects());
+    if (nonConstCols.cardinality() == 0) {
+      // all columns are constants, the distinct row count should be 1
+      return 1D;
+    }
+
+    if (nonConstCols.cardinality() < groupKey.cardinality()) {
+      // some const columns can be removed, call the method recursively
+      // with the trimmed columns
+      return getDistinctRowCount(rel, mq, nonConstCols, predicate);
+    }
+
     ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
     ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();

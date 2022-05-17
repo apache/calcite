@@ -29,8 +29,7 @@ init:
 branches:
   # whitelist
   only:
-    - master
-    - new-master
+    - main
     - javadoc
     - /^branch-.*$/
     - /^[0-9]+-.*$/
@@ -39,7 +38,7 @@ matrix:
 environment:
   matrix:
     - JAVA_HOME: C:\Program Files\Java\jdk1.8.0
-    - JAVA_HOME: C:\Program Files\Java\jdk15
+    - JAVA_HOME: C:\Program Files\Java\jdk16
 build_script:
   - ./gradlew assemble javadoc
 test_script:

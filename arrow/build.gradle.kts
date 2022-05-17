@@ -23,5 +23,7 @@ dependencies {
     implementation("org.apache.arrow.gandiva:arrow-gandiva")
 
     testImplementation("org.apache.commons:commons-lang3")
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
+    annotationProcessor("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
 }

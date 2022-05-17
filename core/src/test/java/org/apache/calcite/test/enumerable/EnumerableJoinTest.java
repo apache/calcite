@@ -27,8 +27,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.HierarchySchema;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.HierarchySchema;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.junit.jupiter.api.Test;
 
@@ -43,8 +43,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
   @Test void equiAntiJoin() {
-    tester(false, new JdbcTest.HrSchema())
-        .query("?")
+    tester(false, new HrSchema())
         .withRel(
             // Retrieve departments without employees. Equivalent SQL:
             //   SELECT d.deptno, d.name FROM depts d
@@ -69,8 +68,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
   @Test void nonEquiAntiJoin() {
-    tester(false, new JdbcTest.HrSchema())
-        .query("?")
+    tester(false, new HrSchema())
         .withRel(
             // Retrieve employees with the top salary in their department. Equivalent SQL:
             //   SELECT e.name, e.salary FROM emps e
@@ -103,8 +101,7 @@ class EnumerableJoinTest {
    * New AntiJoin relational expression</a>. */
   @Test void equiAntiJoinWithNullValues() {
     final Integer salesDeptNo = 10;
-    tester(false, new JdbcTest.HrSchema())
-        .query("?")
+    tester(false, new HrSchema())
         .withRel(
             // Retrieve employees from any department other than Sales (deptno 10) whose
             // commission is different from any Sales employee commission. Since there
@@ -141,8 +138,8 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3170">[CALCITE-3170]
    * ANTI join on conditions push down generates wrong plan</a>. */
   @Test void testCanNotPushAntiJoinConditionsToLeft() {
-    tester(false, new JdbcTest.HrSchema())
-        .query("?").withRel(
+    tester(false, new HrSchema())
+        .withRel(
             // build a rel equivalent to sql:
             // select * from emps
             // where emps.deptno
@@ -171,8 +168,7 @@ class EnumerableJoinTest {
    * The test verifies if {@link EnumerableMergeJoin} can implement a join with non-equi conditions.
    */
   @Test void testSortMergeJoinWithNonEquiCondition() {
-    tester(false, new JdbcTest.HrSchema())
-        .query("?")
+    tester(false, new HrSchema())
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -224,8 +220,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3846">[CALCITE-3846]
    * EnumerableMergeJoin: wrong comparison of composite key with null values</a>. */
   @Test void testMergeJoinWithCompositeKeyAndNullValues() {
-    tester(false, new JdbcTest.HrSchema())
-        .query("?")
+    tester(false, new HrSchema())
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -264,7 +259,6 @@ class EnumerableJoinTest {
    * re-initialization</a>. */
   @Test void testRepeatUnionWithMergeJoin() {
     tester(false, new HierarchySchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);

@@ -25,7 +25,6 @@ import org.apache.calcite.runtime.Resources.StringProp;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Properties;
@@ -134,8 +133,10 @@ public interface SaffronProperties {
         }
       } catch (IOException e) {
         throw new RuntimeException("while reading from saffron.properties file", e);
-      } catch (AccessControlException e) {
-        // we're in a sandbox
+      } catch (RuntimeException e) {
+        if (!"java.security.AccessControlException".equals(e.getClass().getName())) {
+          throw e;
+        }
       }
 
       // copy in all system properties which start with "saffron."

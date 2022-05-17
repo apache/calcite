@@ -35,7 +35,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -83,7 +82,6 @@ public class PigRelBuilder extends RelBuilder {
   /** Creates a PigRelBuilder. */
   public static PigRelBuilder create(FrameworkConfig config) {
     final RelBuilder relBuilder = RelBuilder.create(config);
-    Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false));
     return new PigRelBuilder(
         transform(config.getContext(), c -> c.withBloat(-1)),
         relBuilder.getCluster(),

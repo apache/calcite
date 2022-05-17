@@ -35,11 +35,11 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -65,6 +65,7 @@ import java.util.List;
  *
  * @see CoreRules#AGGREGATE_CASE_TO_FILTER
  */
+@Value.Enclosing
 public class AggregateCaseToFilterRule
     extends RelRule<AggregateCaseToFilterRule.Config>
     implements TransformationRule {
@@ -140,8 +141,7 @@ public class AggregateCaseToFilterRule
         .project(newProjects);
 
     final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(aggregate.getGroupSet(),
-            (Iterable<ImmutableBitSet>) aggregate.getGroupSets());
+        relBuilder.groupKey(aggregate.getGroupSet(), aggregate.getGroupSets());
 
     relBuilder.aggregate(groupKey, newCalls)
         .convert(aggregate.getRowType(), false);
@@ -275,12 +275,13 @@ public class AggregateCaseToFilterRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateCaseToFilterRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Aggregate.class).oneInput(b1 ->
-                b1.operand(Project.class).anyInputs()))
-        .as(Config.class);
+                b1.operand(Project.class).anyInputs()));
+
 
     @Override default AggregateCaseToFilterRule toRule() {
       return new AggregateCaseToFilterRule(this);

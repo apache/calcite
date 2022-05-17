@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
@@ -32,7 +31,8 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.util.ImmutableBeans;
+
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,6 +53,7 @@ import java.util.stream.Collectors;
  * @see CoreRules#EXCHANGE_REMOVE_CONSTANT_KEYS
  * @see CoreRules#SORT_EXCHANGE_REMOVE_CONSTANT_KEYS
  */
+@Value.Enclosing
 public class ExchangeRemoveConstantKeysRule
     extends RelRule<ExchangeRemoveConstantKeysRule.Config>
     implements SubstitutionRule {
@@ -170,34 +171,34 @@ public class ExchangeRemoveConstantKeysRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .as(Config.class)
+    Config DEFAULT = ImmutableExchangeRemoveConstantKeysRule.Config
+        .of(ExchangeRemoveConstantKeysRule::matchExchange)
         .withOperandFor(LogicalExchange.class,
             exchange -> exchange.getDistribution().getType()
-                == RelDistribution.Type.HASH_DISTRIBUTED)
-        .withMatchHandler(ExchangeRemoveConstantKeysRule::matchExchange);
+                == RelDistribution.Type.HASH_DISTRIBUTED);
 
-    Config SORT = EMPTY
+    Config SORT = ImmutableExchangeRemoveConstantKeysRule.Config
+        .of(ExchangeRemoveConstantKeysRule::matchSortExchange)
         .withDescription("SortExchangeRemoveConstantKeysRule")
         .as(Config.class)
         .withOperandFor(LogicalSortExchange.class,
             sortExchange -> sortExchange.getDistribution().getType()
                 == RelDistribution.Type.HASH_DISTRIBUTED
                 || !sortExchange.getCollation().getFieldCollations()
-                .isEmpty())
-        .withMatchHandler(ExchangeRemoveConstantKeysRule::matchSortExchange);
+                .isEmpty());
 
     @Override default ExchangeRemoveConstantKeysRule toRule() {
       return new ExchangeRemoveConstantKeysRule(this);
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @ImmutableBeans.Property
-    <R extends RelOptRule> MatchHandler<R> matchHandler();
+    @Value.Parameter
+    MatchHandler<ExchangeRemoveConstantKeysRule> matchHandler();
 
     /** Sets {@link #matchHandler()}. */
-    <R extends RelOptRule> Config withMatchHandler(MatchHandler<R> matchHandler);
+    Config withMatchHandler(MatchHandler<ExchangeRemoveConstantKeysRule> matchHandler);
 
     /** Defines an operand tree for the given classes. */
     default <R extends Exchange> Config withOperandFor(Class<R> exchangeClass,

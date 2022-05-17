@@ -36,8 +36,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
@@ -99,7 +99,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testSortStringDefault() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 builder.getTypeFactory().builder()
@@ -121,7 +120,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testSortStringSpecialCollation() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 createRecordVarcharSpecialCollation(builder),
@@ -141,7 +139,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testMergeJoinOnStringSpecialCollation() {
     tester()
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -167,6 +164,40 @@ class EnumerableStringComparisonTest {
             + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'bureaucracy' }, { 'Sales' }, { 'HR' }]])\n")
         .returnsOrdered("name=HR; name0=HR\n"
             + "name=Marketing; name0=Marketing");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5003">[CALCITE-5003]
+   * MergeUnion on types with different collators produces wrong result</a>. */
+  @Test void testMergeUnionOnStringDifferentCollation() {
+    tester()
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(EnumerableRules.ENUMERABLE_UNION_RULE))
+        .withRel(b -> {
+          final RelBuilder builder = b.transform(c -> c.withSimplifyValues(false));
+          return builder
+              .values(builder.getTypeFactory().builder()
+                      .add("name",
+                          builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)).build(),
+                  "facilities", "HR", "administration", "Marketing")
+              .values(createRecordVarcharSpecialCollation(builder),
+                  "Marketing", "administration", "presales", "HR")
+              .union(false)
+              .sort(0)
+              .build();
+        })
+        .explainHookMatches("" // It is important that we have MergeUnion in the plan
+            + "EnumerableMergeUnion(all=[false])\n"
+            + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR COLLATE \"ISO-8859-1$en_US$tertiary$JAVA_COLLATOR\" NOT NULL], name=[$t1])\n"
+            + "      EnumerableValues(tuples=[[{ 'facilities' }, { 'HR' }, { 'administration' }, { 'Marketing' }]])\n"
+            + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'administration' }, { 'presales' }, { 'HR' }]])\n")
+        .returnsOrdered("name=administration\n"
+            + "name=facilities\n"
+            + "name=HR\n"
+            + "name=Marketing\n"
+            + "name=presales");
   }
 
   /** Test case for
@@ -265,7 +296,6 @@ class EnumerableStringComparisonTest {
                                     SqlOperator operator, SqlCollation col,
                                     boolean expectedResult) {
     tester()
-        .query("?")
         .withRel(builder -> {
           final RexBuilder rexBuilder = builder.getRexBuilder();
           final RelDataType varcharSpecialCollation = createVarcharSpecialCollation(builder, col);
@@ -287,6 +317,6 @@ class EnumerableStringComparisonTest {
     return CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()));
+        .withSchema("s", new ReflectiveSchema(new HrSchema()));
   }
 }

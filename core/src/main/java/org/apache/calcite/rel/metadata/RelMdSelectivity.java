@@ -32,7 +32,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -48,7 +47,7 @@ public class RelMdSelectivity
     implements MetadataHandler<BuiltInMetadata.Selectivity> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.SELECTIVITY.method, new RelMdSelectivity());
+          new RelMdSelectivity(), BuiltInMetadata.Selectivity.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

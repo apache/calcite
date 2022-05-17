@@ -93,7 +93,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   @Override public RelDataType createUnknownType() {
-    return canonize(new UnknownSqlType(this));
+    return createSqlType(SqlTypeName.UNKNOWN);
   }
 
   @Override public RelDataType createMultisetType(
@@ -287,8 +287,16 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
       if (resultType == null) {
         resultType = type;
-        if (resultType.getSqlTypeName() == SqlTypeName.ROW) {
+        SqlTypeName sqlTypeName = resultType.getSqlTypeName();
+        if (sqlTypeName == SqlTypeName.ROW) {
           return leastRestrictiveStructuredType(types);
+        }
+        if (sqlTypeName == SqlTypeName.ARRAY
+            || sqlTypeName == SqlTypeName.MULTISET) {
+          return leastRestrictiveArrayMultisetType(types, sqlTypeName);
+        }
+        if (sqlTypeName == SqlTypeName.MAP) {
+          return leastRestrictiveMapType(types, sqlTypeName);
         }
       }
 
@@ -542,7 +550,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return new MapSqlType(keyType, valueType, nullable);
   }
 
-  // override RelDataTypeFactoryImpl
   @Override protected RelDataType canonize(RelDataType type) {
     type = super.canonize(type);
     if (!(type instanceof ObjectSqlType)) {
@@ -558,18 +565,5 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               false));
     }
     return type;
-  }
-
-  /** The unknown type. Similar to the NULL type, but is only equal to
-   * itself. */
-  private static class UnknownSqlType extends BasicSqlType {
-    UnknownSqlType(RelDataTypeFactory typeFactory) {
-      super(typeFactory.getTypeSystem(), SqlTypeName.NULL);
-    }
-
-    @Override protected void generateTypeString(StringBuilder sb,
-        boolean withDetail) {
-      sb.append("UNKNOWN");
-    }
   }
 }

@@ -17,7 +17,10 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    api("org.apache.spark:spark-core_2.10")
+    api("org.apache.spark:spark-core_2.10") {
+        exclude("org.slf4j", "slf4j-log4j12")
+                .because("conflicts with log4j-slf4j-impl")
+    }
 
     implementation("com.google.guava:guava")
     implementation("org.eclipse.jetty:jetty-server")
@@ -27,5 +30,6 @@ dependencies {
     runtimeOnly("xalan:xalan")
     runtimeOnly("xerces:xercesImpl")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }

@@ -202,7 +202,8 @@ public class CoreRules {
    * @see #FILTER_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.CalcReduceExpressionsRule
       CALC_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.CalcReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.CalcReduceExpressionsRule.CalcReduceExpressionsRuleConfig.DEFAULT
+          .toRule();
 
   /** Rule that converts a {@link Calc} to a {@link Project} and
    * {@link Filter}. */
@@ -213,7 +214,7 @@ public class CoreRules {
    * that contains windowed aggregates to a mixture of
    * {@link LogicalWindow} and {@code Calc}. */
   public static final ProjectToWindowRule.CalcToWindowRule CALC_TO_WINDOW =
-      ProjectToWindowRule.CalcToWindowRule.Config.DEFAULT.toRule();
+      ProjectToWindowRule.CalcToWindowRule.CalcToWindowRuleConfig.DEFAULT.toRule();
 
   /** Rule that pre-casts inputs to a particular type. This can assist operator
    * implementations that impose requirements on their input types. */
@@ -231,7 +232,7 @@ public class CoreRules {
   /** Rule that tries to push filter expressions into a join
    * condition and into the inputs of the join. */
   public static final FilterJoinRule.FilterIntoJoinRule FILTER_INTO_JOIN =
-      FilterJoinRule.FilterIntoJoinRule.Config.DEFAULT.toRule();
+      FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.DEFAULT.toRule();
 
   /** Dumber version of {@link #FILTER_INTO_JOIN}. Not intended for production
    * use, but keeps some tests working for which {@code FILTER_INTO_JOIN} is too
@@ -239,7 +240,7 @@ public class CoreRules {
   public static final FilterJoinRule.FilterIntoJoinRule FILTER_INTO_JOIN_DUMB =
       FILTER_INTO_JOIN.config
           .withSmart(false)
-          .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
+          .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
           .toRule();
 
   /** Rule that combines two {@link LogicalFilter}s. */
@@ -324,7 +325,8 @@ public class CoreRules {
    */
   public static final ReduceExpressionsRule.FilterReduceExpressionsRule
       FILTER_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.FilterReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.FilterReduceExpressionsRule.FilterReduceExpressionsRuleConfig.DEFAULT
+          .toRule();
 
   /** Rule that flattens an {@link Intersect} on an {@code Intersect}
    * into a single {@code Intersect}. */
@@ -387,7 +389,8 @@ public class CoreRules {
    * @see #FILTER_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.ProjectReduceExpressionsRule
       PROJECT_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.ProjectReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.ProjectReduceExpressionsRule.ProjectReduceExpressionsRuleConfig
+          .DEFAULT.toRule();
 
   /** Rule that converts sub-queries from project expressions into
    * {@link Correlate} instances.
@@ -418,8 +421,8 @@ public class CoreRules {
    * and {@link LogicalWindow}. */
   public static final ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule
       PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW =
-      ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule.Config.DEFAULT
-          .toRule();
+      ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule.
+          ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT.toRule();
 
   /** Rule that creates a {@link Join#isSemiJoin semi-join} from a
    * {@link Project} on top of a {@link Join} with an {@link Aggregate} as its
@@ -427,7 +430,7 @@ public class CoreRules {
    *
    * @see #JOIN_TO_SEMI_JOIN */
   public static final SemiJoinRule.ProjectToSemiJoinRule PROJECT_TO_SEMI_JOIN =
-      SemiJoinRule.ProjectToSemiJoinRule.Config.DEFAULT.toRule();
+      SemiJoinRule.ProjectToSemiJoinRule.ProjectToSemiJoinRuleConfig.DEFAULT.toRule();
 
   /** Rule that matches an {@link Project} on a {@link Join} and removes the
    * left input of the join provided that the left input is also a left join. */
@@ -497,7 +500,7 @@ public class CoreRules {
 
   /** Rule that pushes predicates in a Join into the inputs to the join. */
   public static final FilterJoinRule.JoinConditionPushRule JOIN_CONDITION_PUSH =
-      FilterJoinRule.JoinConditionPushRule.Config.DEFAULT.toRule();
+      FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.DEFAULT.toRule();
 
   /** Rule to add a semi-join into a {@link Join}. */
   public static final JoinAddRedundantSemiJoinRule JOIN_ADD_REDUNDANT_SEMI_JOIN =
@@ -573,7 +576,8 @@ public class CoreRules {
    * @see #PROJECT_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.JoinReduceExpressionsRule
       JOIN_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.JoinReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.JoinReduceExpressionsRule.JoinReduceExpressionsRuleConfig
+          .DEFAULT.toRule();
 
   /** Rule that converts a {@link LogicalJoin}
    * into a {@link LogicalCorrelate}. */
@@ -590,7 +594,7 @@ public class CoreRules {
    *
    * @see #PROJECT_TO_SEMI_JOIN */
   public static final SemiJoinRule.JoinToSemiJoinRule JOIN_TO_SEMI_JOIN =
-      SemiJoinRule.JoinToSemiJoinRule.Config.DEFAULT.toRule();
+      SemiJoinRule.JoinToSemiJoinRule.JoinToSemiJoinRuleConfig.DEFAULT.toRule();
 
   /** Rule that pushes a {@link Join}
    * past a non-distinct {@link Union} as its left input. */
@@ -760,5 +764,6 @@ public class CoreRules {
    * @see #FILTER_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.WindowReduceExpressionsRule
       WINDOW_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.WindowReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.WindowReduceExpressionsRule.WindowReduceExpressionsRuleConfig
+          .DEFAULT.toRule();
 }

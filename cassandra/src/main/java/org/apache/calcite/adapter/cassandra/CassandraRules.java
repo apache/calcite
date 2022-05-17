@@ -39,7 +39,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Pair;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.HashSet;
 import java.util.List;
@@ -70,7 +72,7 @@ public class CassandraRules {
           .toRule(CassandraToEnumerableConverterRule.class);
 
   @SuppressWarnings("MutablePublicArray")
-  public static final RelOptRule[] RULES = {
+  protected static final RelOptRule[] RULES = {
       FILTER,
       PROJECT,
       SORT,
@@ -113,9 +115,9 @@ public class CassandraRules {
    * @see #FILTER
    */
   public static class CassandraFilterRule
-      extends RelRule<CassandraFilterRule.Config> {
+      extends RelRule<CassandraFilterRule.CassandraFilterRuleConfig> {
     /** Creates a CassandraFilterRule. */
-    protected CassandraFilterRule(Config config) {
+    protected CassandraFilterRule(CassandraFilterRuleConfig config) {
       super(config);
     }
 
@@ -126,8 +128,11 @@ public class CassandraRules {
 
       // Get field names from the scan operation
       CassandraTableScan scan = call.rel(1);
-      Pair<List<String>, List<String>> keyFields = scan.cassandraTable.getKeyFields();
-      Set<String> partitionKeys = new HashSet<>(keyFields.left);
+
+      List<String> partitionKeys = scan.cassandraTable.getPartitionKeys();
+      List<String> clusteringKeys = scan.cassandraTable.getClusteringKeys();
+      Set<String> partitionKeysSet = new HashSet<>(scan.cassandraTable.getPartitionKeys());
+
       List<String> fieldNames = CassandraRules.cassandraFieldNames(filter.getInput().getRowType());
 
       List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
@@ -137,14 +142,14 @@ public class CassandraRules {
         // Check that all conjunctions are primary key equalities
         condition = disjunctions.get(0);
         for (RexNode predicate : RelOptUtil.conjunctions(condition)) {
-          if (!isEqualityOnKey(predicate, fieldNames, partitionKeys, keyFields.right)) {
+          if (!isEqualityOnKey(predicate, fieldNames, partitionKeysSet, clusteringKeys)) {
             return false;
           }
         }
       }
 
-      // Either all of the partition keys must be specified or none
-      return partitionKeys.size() == keyFields.left.size() || partitionKeys.size() == 0;
+      // Either all the partition keys must be specified or none
+      return partitionKeysSet.size() == partitionKeys.size() || partitionKeysSet.isEmpty();
     }
 
     /** Check if the node is a supported predicate (primary key equality).
@@ -166,7 +171,7 @@ public class CassandraRules {
       final RexNode right = call.operands.get(1);
       String key = compareFieldWithLiteral(left, right, fieldNames);
       if (key == null) {
-        key = compareFieldWithLiteral(right, left, fieldNames);
+        key = compareFieldWithLiteral(left, right, fieldNames);
       }
       if (key != null) {
         return partitionKeys.remove(key) || clusteringKeys.contains(key);
@@ -182,17 +187,16 @@ public class CassandraRules {
      * @param fieldNames Names of all columns in the table
      * @return The field being compared or null if there is no key equality
      */
-    private static String compareFieldWithLiteral(RexNode left, RexNode right,
-        List<String> fieldNames) {
+    private static @Nullable String compareFieldWithLiteral(
+        RexNode left, RexNode right, List<String> fieldNames) {
       // FIXME Ignore casts for new and assume they aren't really necessary
       if (left.isA(SqlKind.CAST)) {
         left = ((RexCall) left).getOperands().get(0);
       }
 
       if (left.isA(SqlKind.INPUT_REF) && right.isA(SqlKind.LITERAL)) {
-        final RexInputRef left1 = (RexInputRef) left;
-        String name = fieldNames.get(left1.getIndex());
-        return name;
+        RexInputRef left1 = (RexInputRef) left;
+        return fieldNames.get(left1.getIndex());
       } else {
         return null;
       }
@@ -209,32 +213,40 @@ public class CassandraRules {
       }
     }
 
-    RelNode convert(LogicalFilter filter, CassandraTableScan scan) {
+    @Nullable RelNode convert(LogicalFilter filter, CassandraTableScan scan) {
       final RelTraitSet traitSet = filter.getTraitSet().replace(CassandraRel.CONVENTION);
-      final Pair<List<String>, List<String>> keyFields = scan.cassandraTable.getKeyFields();
+      final List<String> partitionKeys = scan.cassandraTable.getPartitionKeys();
+      final List<String> clusteringKeys = scan.cassandraTable.getClusteringKeys();
+
       return new CassandraFilter(
           filter.getCluster(),
           traitSet,
           convert(filter.getInput(), CassandraRel.CONVENTION),
           filter.getCondition(),
-          keyFields.left,
-          keyFields.right,
+          partitionKeys,
+          clusteringKeys,
           scan.cassandraTable.getClusteringOrder());
     }
 
+    /** Deprecated in favor of {@link CassandraFilterRuleConfig}. **/
+    @Deprecated
+    public interface Config extends CassandraFilterRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface CassandraFilterRuleConfig extends RelRule.Config {
+      CassandraFilterRuleConfig DEFAULT = ImmutableCassandraFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class)
                   .oneInput(b1 -> b1.operand(CassandraTableScan.class)
                       .noInputs()))
-          .as(Config.class);
+          .build();
 
       @Override default CassandraFilterRule toRule() {
         return new CassandraFilterRule(this);
       }
     }
+
   }
 
   /**
@@ -281,9 +293,9 @@ public class CassandraRules {
    * @see #SORT
    */
   public static class CassandraSortRule
-      extends RelRule<CassandraSortRule.Config> {
+      extends RelRule<CassandraSortRule.CassandraSortRuleConfig> {
     /** Creates a CassandraSortRule. */
-    protected CassandraSortRule(Config config) {
+    protected CassandraSortRule(CassandraSortRuleConfig config) {
       super(config);
     }
 
@@ -314,7 +326,7 @@ public class CassandraRules {
       if (sortFieldCollations.size() > implicitFieldCollations.size()) {
         return false;
       }
-      if (sortFieldCollations.size() == 0) {
+      if (sortFieldCollations.isEmpty()) {
         return true;
       }
 
@@ -346,17 +358,19 @@ public class CassandraRules {
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
-      final Sort sort = call.rel(0);
+      Sort sort = call.rel(0);
       CassandraFilter filter = call.rel(2);
-      final RelNode converted = convert(sort, filter);
-      if (converted != null) {
-        call.transformTo(converted);
-      }
+      call.transformTo(convert(sort, filter));
     }
 
+    /** Deprecated in favor of CassandraSortRuleConfig. **/
+    @Deprecated
+    public interface Config extends CassandraSortRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface CassandraSortRuleConfig extends RelRule.Config {
+      CassandraSortRuleConfig DEFAULT = ImmutableCassandraSortRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class)
                   // Limits are handled by CassandraLimit
@@ -370,8 +384,7 @@ public class CassandraRules {
                                   // single partition
                                   .predicate(
                                       CassandraFilter::isSinglePartition)
-                                  .anyInputs())))
-          .as(Config.class);
+                                  .anyInputs()))).build();
 
       @Override default CassandraSortRule toRule() {
         return new CassandraSortRule(this);
@@ -387,9 +400,9 @@ public class CassandraRules {
    * @see #LIMIT
    */
   public static class CassandraLimitRule
-      extends RelRule<CassandraLimitRule.Config> {
+      extends RelRule<CassandraLimitRule.CassandraLimitRuleConfig> {
     /** Creates a CassandraLimitRule. */
-    protected CassandraLimitRule(Config config) {
+    protected CassandraLimitRule(CassandraLimitRuleConfig config) {
       super(config);
     }
 
@@ -401,22 +414,23 @@ public class CassandraRules {
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
-      final EnumerableLimit limit = call.rel(0);
-      final RelNode converted = convert(limit);
-      if (converted != null) {
-        call.transformTo(converted);
-      }
+      EnumerableLimit limit = call.rel(0);
+      call.transformTo(convert(limit));
     }
 
+    /** Deprecated in favor of CassandraLimitRuleConfig. **/
+    @Deprecated
+    public interface Config extends CassandraLimitRuleConfig { }
+
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface CassandraLimitRuleConfig extends RelRule.Config {
+      CassandraLimitRuleConfig DEFAULT = ImmutableCassandraLimitRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(EnumerableLimit.class)
                   .oneInput(b1 ->
                       b1.operand(CassandraToEnumerableConverter.class)
-                          .anyInputs()))
-          .as(Config.class);
+                          .anyInputs())).build();
 
       @Override default CassandraLimitRule toRule() {
         return new CassandraLimitRule(this);

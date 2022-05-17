@@ -22,15 +22,17 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 
+import org.immutables.value.Value;
+
 /**
  * Implementation of nested loops over enumerable inputs.
  *
  * @see EnumerableRules#ENUMERABLE_CORRELATE_RULE
  */
+@Value.Enclosing
 public class EnumerableCorrelateRule extends ConverterRule {
   /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
       .withConversion(LogicalCorrelate.class, r -> true, Convention.NONE,
           EnumerableConvention.INSTANCE, "EnumerableCorrelateRule")
       .withRuleFactory(EnumerableCorrelateRule::new);

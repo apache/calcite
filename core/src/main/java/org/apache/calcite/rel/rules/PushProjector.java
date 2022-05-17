@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -540,6 +541,7 @@ public class PushProjector {
         adjustments[idx] = -offset;
       }
     }
+    int preserveExpOrdinal = 0;
     for (RexNode projExpr : preserveExprs) {
       RexNode newExpr;
       if (adjust) {
@@ -560,11 +562,15 @@ public class PushProjector {
           new RexUtil.FixNullabilityShuttle(
               projChild.getCluster().getRexBuilder(), typeList);
       newExpr = newExpr.accept(fixer);
-
-      newProjects.add(
-          Pair.of(
-              newExpr,
-              ((RexCall) projExpr).getOperator().getName()));
+      final String originalFieldName = findOriginalFieldName(projExpr);
+      final String newAlias;
+      if (originalFieldName != null) {
+        newAlias = originalFieldName;
+      } else {
+        newAlias = SqlUtil.deriveAliasFromOrdinal(preserveExpOrdinal);
+      }
+      newProjects.add(Pair.of(newExpr, newAlias));
+      preserveExpOrdinal++;
     }
 
     return (Project) relBuilder.push(projChild)
@@ -572,6 +578,16 @@ public class PushProjector {
         .build();
   }
 
+  private @Nullable String findOriginalFieldName(RexNode originRexNode) {
+    if (origProj == null) {
+      return null;
+    }
+    int idx = origProj.getProjects().indexOf(originRexNode);
+    if (idx < 0) {
+      return null;
+    }
+    return origProj.getRowType().getFieldList().get(idx).getName();
+  }
   /**
    * Determines how much each input reference needs to be adjusted as a result
    * of projection.

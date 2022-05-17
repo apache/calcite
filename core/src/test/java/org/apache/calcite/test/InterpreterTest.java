@@ -30,9 +30,12 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -40,10 +43,13 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -61,21 +67,23 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Unit tests for {@link org.apache.calcite.interpreter.Interpreter}.
  */
 class InterpreterTest {
   private SchemaPlus rootSchema;
-  private Planner planner;
-  private MyDataContext dataContext;
 
   /** Implementation of {@link DataContext} for executing queries without a
    * connection. */
-  private class MyDataContext implements DataContext {
-    private final Planner planner;
+  private static class MyDataContext implements DataContext {
+    private final SchemaPlus rootSchema;
+    private final JavaTypeFactory typeFactory;
 
-    MyDataContext(Planner planner) {
-      this.planner = planner;
+    MyDataContext(SchemaPlus rootSchema, RelNode rel) {
+      this.rootSchema = rootSchema;
+      this.typeFactory = (JavaTypeFactory) rel.getCluster().getTypeFactory();
     }
 
     public SchemaPlus getRootSchema() {
@@ -83,7 +91,7 @@ class InterpreterTest {
     }
 
     public JavaTypeFactory getTypeFactory() {
-      return (JavaTypeFactory) planner.getTypeFactory();
+      return typeFactory;
     }
 
     public @Nullable QueryProvider getQueryProvider() {
@@ -98,21 +106,29 @@ class InterpreterTest {
   /** Fluent class that contains information necessary to run a test. */
   private static class Sql {
     private final String sql;
-    private final MyDataContext dataContext;
-    private final Planner planner;
+    private final SchemaPlus rootSchema;
     private final boolean project;
+    private final Function<RelBuilder, RelNode> relFn;
 
-    Sql(String sql, MyDataContext dataContext, Planner planner,
-        boolean project) {
+    Sql(String sql, SchemaPlus rootSchema, boolean project,
+        @Nullable Function<RelBuilder, RelNode> relFn) {
       this.sql = sql;
-      this.dataContext = dataContext;
-      this.planner = planner;
+      this.rootSchema = rootSchema;
       this.project = project;
+      this.relFn = relFn;
+    }
+
+    Sql withSql(String sql) {
+      return new Sql(sql, rootSchema, project, relFn);
     }
 
     @SuppressWarnings("SameParameterValue")
     Sql withProject(boolean project) {
-      return new Sql(sql, dataContext, planner, project);
+      return new Sql(sql, rootSchema, project, relFn);
+    }
+
+    Sql withRel(Function<RelBuilder, RelNode> relFn) {
+      return new Sql(sql, rootSchema, project, relFn);
     }
 
     /** Interprets the sql and checks result with specified rows, ordered. */
@@ -127,13 +143,41 @@ class InterpreterTest {
       return returnsRows(true, rows);
     }
 
+    private Planner createPlanner() {
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .parserConfig(SqlParser.Config.DEFAULT)
+          .defaultSchema(
+              CalciteAssert.addSchema(rootSchema,
+                  CalciteAssert.SchemaSpec.JDBC_SCOTT,
+                  CalciteAssert.SchemaSpec.HR))
+          .build();
+      return Frameworks.getPlanner(config);
+    }
+
+    /** Performs an action that requires a {@link RelBuilder}, and returns the
+     * result. */
+    private <T> T withRelBuilder(Function<RelBuilder, T> fn) {
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .defaultSchema(rootSchema)
+          .build();
+      final RelBuilder relBuilder = RelBuilder.create(config);
+      return fn.apply(relBuilder);
+    }
+
     /** Interprets the sql and checks result with specified rows. */
     private Sql returnsRows(boolean unordered, String[] rows) {
-      try {
-        SqlNode parse = planner.parse(sql);
-        SqlNode validate = planner.validate(parse);
-        final RelRoot root = planner.rel(validate);
-        RelNode convert = project ? root.project() : root.rel;
+      try (Planner planner = createPlanner()) {
+        final RelNode convert;
+        if (relFn != null) {
+          convert = withRelBuilder(relFn);
+        } else {
+          SqlNode parse = planner.parse(sql);
+          SqlNode validate = planner.validate(parse);
+          final RelRoot root = planner.rel(validate);
+          convert = project ? root.project() : root.rel;
+        }
+        final MyDataContext dataContext =
+            new MyDataContext(rootSchema, convert);
         assertInterpret(convert, dataContext, unordered, rows);
         return this;
       } catch (ValidationException
@@ -145,21 +189,16 @@ class InterpreterTest {
   }
 
   /** Creates a {@link Sql}. */
+  private Sql fixture() {
+    return new Sql("?", rootSchema, false, null);
+  }
+
   private Sql sql(String sql) {
-    return new Sql(sql, dataContext, planner, false);
+    return fixture().withSql(sql);
   }
 
   private void reset() {
     rootSchema = Frameworks.createRootSchema(true);
-    final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT)
-        .defaultSchema(
-            CalciteAssert.addSchema(rootSchema,
-                CalciteAssert.SchemaSpec.JDBC_SCOTT,
-                CalciteAssert.SchemaSpec.HR))
-        .build();
-    planner = Frameworks.getPlanner(config);
-    dataContext = new MyDataContext(planner);
   }
 
   @BeforeEach public void setUp() {
@@ -168,8 +207,6 @@ class InterpreterTest {
 
   @AfterEach public void tearDown() {
     rootSchema = null;
-    planner = null;
-    dataContext = null;
   }
 
   /** Tests executing a simple plan using an interpreter. */
@@ -466,7 +503,7 @@ class InterpreterTest {
     final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "where x in\n"
         + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
-    try {
+    try (Planner planner = sql(sql).createPlanner()) {
       SqlNode validate = planner.validate(planner.parse(sql));
       RelNode convert = planner.rel(validate).rel;
       final HepProgram program = new HepProgramBuilder()
@@ -475,6 +512,8 @@ class InterpreterTest {
       final HepPlanner hepPlanner = new HepPlanner(program);
       hepPlanner.setRoot(convert);
       final RelNode relNode = hepPlanner.findBestExp();
+      final MyDataContext dataContext =
+          new MyDataContext(rootSchema, relNode);
       assertInterpret(relNode, dataContext, true, "[1, a]", "[3, c]");
     } catch (ValidationException
         | SqlParseException
@@ -564,6 +603,56 @@ class InterpreterTest {
             "[7900, 1981-12-03]", "[7902, 1981-12-03]", "[7934, 1982-01-23]");
   }
 
+  /** Tests a user-defined scalar function that is non-static. */
+  @Test void testInterpretFunction() {
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final ScalarFunction f =
+        ScalarFunctionImpl.create(Smalls.MY_PLUS_EVAL_METHOD);
+    schema.add("myPlus", f);
+    final String sql = "select x, \"s\".\"myPlus\"(x, 1)\n"
+        + "from (values (2), (4), (7)) as t (x)";
+    String[] rows = {"[2, 3]", "[4, 5]", "[7, 8]"};
+    final int n = Smalls.MyPlusFunction.INSTANCE_COUNT.get().get();
+    sql(sql).returnsRows(rows);
+    final int n2 = Smalls.MyPlusFunction.INSTANCE_COUNT.get().get();
+    assertThat(n2, is(n + 1)); // instantiated once per run, not once per row
+  }
+
+  /** Tests a user-defined scalar function that is non-static and has a
+   * constructor that uses
+   * {@link org.apache.calcite.schema.FunctionContext}. */
+  @Test void testInterpretFunctionWithInitializer() {
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final ScalarFunction f =
+        ScalarFunctionImpl.create(Smalls.MY_PLUS_INIT_EVAL_METHOD);
+    schema.add("myPlusInit", f);
+    final String sql = "select x, \"s\".\"myPlusInit\"(x, 1)\n"
+        + "from (values (2), (4), (7)) as t (x)";
+    String[] rows = {"[2, 3]", "[4, 5]", "[7, 8]"};
+    final int n = Smalls.MyPlusInitFunction.INSTANCE_COUNT.get().get();
+    sql(sql).returnsRows(rows);
+    final int n2 = Smalls.MyPlusInitFunction.INSTANCE_COUNT.get().get();
+    assertThat(n2, is(n + 1)); // instantiated once per run, not once per row
+    final String digest = Smalls.MyPlusInitFunction.THREAD_DIGEST.get();
+    String expectedDigest = "parameterCount=2; "
+        + "argument 0 is not constant; "
+        + "argument 1 is constant and has value 1";
+    assertThat(digest, is(expectedDigest));
+
+    // Similar, but replace '1' with the expression '3 - 2'
+    final String sql2 = "select x, \"s\".\"myPlusInit\"(x, 3 - 2)\n"
+        + "from (values (2), (4), (7)) as t (x)";
+    String[] rows2 = {"[2, 102]", "[4, 104]", "[7, 107]"};
+    sql(sql2).returnsRows(rows2);
+    final int n3 = Smalls.MyPlusInitFunction.INSTANCE_COUNT.get().get();
+    assertThat(n3, is(n2 + 1)); // instantiated once per run, not once per row
+    final String digest2 = Smalls.MyPlusInitFunction.THREAD_DIGEST.get();
+    String expectedDigest2 = "parameterCount=2; "
+        + "argument 0 is not constant; "
+        + "argument 1 is not constant";
+    assertThat(digest2, is(expectedDigest2));
+  }
+
   /** Tests a table function. */
   @Test void testInterpretTableFunction() {
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
@@ -609,5 +698,27 @@ class InterpreterTest {
         + "]}', 0))\n"
         + "where \"i\" < 0 and \"d\" is not null";
     sql(sql).returnsRows();
+  }
+
+  /** Tests a table function that is a non-static class. */
+  @Test void testInterpretNonStaticTableFunction() {
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableFunction tableFunction =
+        requireNonNull(TableFunctionImpl.create(Smalls.MyTableFunction.class));
+    schema.add("t", tableFunction);
+    final String sql = "select *\n"
+        + "from table(\"s\".\"t\"('=100='))";
+    sql(sql).returnsRows("[1]", "[3]", "[100]");
+  }
+
+  /** Tests projecting zero fields. */
+  @Test void testZeroFields() {
+    final List<RexLiteral> row = ImmutableList.of();
+    fixture()
+        .withRel(b ->
+            b.values(ImmutableList.of(row, row),
+                b.getTypeFactory().builder().build())
+                .build())
+        .returnsRows("[]", "[]");
   }
 }

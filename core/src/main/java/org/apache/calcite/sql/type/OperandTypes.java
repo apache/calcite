@@ -288,7 +288,6 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker ARRAY =
       family(SqlTypeFamily.ARRAY);
-
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =
@@ -370,6 +369,49 @@ public abstract class OperandTypes {
       };
 
   /**
+   * Operand type-checking strategy type must be a numeric non-NULL
+   * literal in the range 0 and 1 inclusive.
+   */
+  public static final SqlSingleOperandTypeChecker UNIT_INTERVAL_NUMERIC_LITERAL =
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),
+          i -> false) {
+        @Override public boolean checkSingleOperandType(
+            SqlCallBinding callBinding,
+            SqlNode node,
+            int iFormalOperand,
+            boolean throwOnFailure) {
+          if (!LITERAL.checkSingleOperandType(
+              callBinding,
+              node,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          if (!super.checkSingleOperandType(
+              callBinding,
+              node,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          final SqlLiteral arg = (SqlLiteral) node;
+          final BigDecimal value = arg.getValueAs(BigDecimal.class);
+          if (value.compareTo(BigDecimal.ZERO) < 0
+              || value.compareTo(BigDecimal.ONE) > 0) {
+            if (throwOnFailure) {
+              throw callBinding.newError(
+                  RESOURCE.argumentMustBeNumericLiteralInRange(
+                      callBinding.getOperator().getName(), 0, 1));
+            }
+            return false;
+          }
+          return true;
+        }
+      };
+
+  /**
    * Operand type-checking strategy where two operands must both be in the
    * same type family.
    */
@@ -392,6 +434,18 @@ public abstract class OperandTypes {
    */
   public static final SqlOperandTypeChecker SAME_VARIADIC =
       new SameOperandTypeChecker(-1);
+
+  /**
+   * Operand type-checking strategy where any positive number of operands must all be
+   * in the same type family.
+   */
+  public static final SqlOperandTypeChecker AT_LEAST_ONE_SAME_VARIADIC =
+      new SameOperandTypeChecker(-1) {
+        @Override public SqlOperandCountRange
+        getOperandCountRange() {
+          return SqlOperandCountRanges.from(1);
+        }
+      };
 
   /**
    * Operand type-checking strategy where operand types must allow ordered
@@ -464,6 +518,10 @@ public abstract class OperandTypes {
    */
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_INTEGER =
       OperandTypes.and(STRING_STRING_INTEGER, SAME_SAME_INTEGER);
+
+  public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_OR_ARRAY_SAME_SAME =
+      or(STRING_SAME_SAME,
+          and(OperandTypes.SAME_SAME, family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
   public static final SqlSingleOperandTypeChecker ANY =
       family(SqlTypeFamily.ANY);

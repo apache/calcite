@@ -16,23 +16,22 @@
  */
 package org.apache.calcite.adapter.java;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static java.lang.annotation.ElementType.FIELD;
-
 /**
  * Annotation that indicates that a field is a map type.
  */
-@Target({FIELD })
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Map {
   /** Key type. */
-  Class key();
+  Class<?> key();
 
   /** Value type. */
-  Class value();
+  Class<?> value();
 
   /** Whether keys may be null. */
   boolean keyIsNullable() default true;

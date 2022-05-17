@@ -16,15 +16,31 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.test.RelMetadataFixture;
+import org.apache.calcite.tools.Frameworks;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test cases for {@link RelMdUtil}.
  */
 public class RelMdUtilTest {
+
+  /** Creates a fixture. */
+  protected RelMetadataFixture fixture() {
+    return RelMetadataFixture.DEFAULT;
+  }
+
+  final RelMetadataFixture sql(String sql) {
+    return fixture().withSql(sql);
+  }
 
   @Test void testNumDistinctVals() {
     // the first element must be distinct, the second one has half chance of being distinct
@@ -49,6 +65,19 @@ public class RelMdUtilTest {
     // when the number of selections is large enough
     // we get all distinct values, w.h.p.
     assertEquals(domainSize, RelMdUtil.numDistinctVals(domainSize, domainSize * 100), 1e-5);
+  }
+
+  @Test void testDynamicParameterInLimitOffset() {
+    Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      RelMetadataQuery mq = cluster.getMetadataQuery();
+      RelNode rel = sql("select * from emp limit ? offset ?").toRel();
+      Sort sort = (Sort) rel;
+      assertFalse(
+          RelMdUtil.checkInputForCollationAndLimit(mq, sort.getInput(), RelCollations.EMPTY,
+              sort.offset, sort.fetch)
+      );
+      return null;
+    });
   }
 
 }

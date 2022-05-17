@@ -18,6 +18,7 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -42,21 +43,27 @@ import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 /**
  * Tools for invoking Calcite functionality without initializing a container /
  * server first.
  */
 public class Frameworks {
+
+  /** Caches an instance of the JDBC driver. */
+  private static final Supplier<Driver> DRIVER_SUPPLIER =
+      Suppliers.memoize(Driver::new)::get;
+
   private Frameworks() {
   }
 
@@ -174,8 +181,10 @@ public class Frameworks {
         info.setProperty(CalciteConnectionProperty.TYPE_SYSTEM.camelName(),
             config.getTypeSystem().getClass().getName());
       }
+      // Connect via a Driver instance. Don't use DriverManager because driver
+      // auto-loading can get broken by shading and jar-repacking.
       Connection connection =
-          DriverManager.getConnection("jdbc:calcite:", info);
+          DRIVER_SUPPLIER.get().connect("jdbc:calcite:", info);
       final CalciteServerStatement statement =
           connection.createStatement()
               .unwrap(CalciteServerStatement.class);

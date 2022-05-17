@@ -47,6 +47,7 @@ import org.apache.calcite.util.mapping.AbstractSourceMapping;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +66,7 @@ import static java.util.Objects.requireNonNull;
  * @see CoreRules#AGGREGATE_STAR_TABLE
  * @see CoreRules#AGGREGATE_PROJECT_STAR_TABLE
  */
+@Value.Enclosing
 public class AggregateStarTableRule
     extends RelRule<AggregateStarTableRule.Config>
     implements TransformationRule {
@@ -251,8 +253,10 @@ public class AggregateStarTableRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+
+    Config DEFAULT = ImmutableAggregateStarTableRule.Config.of()
         .withOperandFor(Aggregate.class, StarTable.StarTableScan.class);
 
     @Override default AggregateStarTableRule toRule() {
@@ -270,4 +274,5 @@ public class AggregateStarTableRule
           .as(Config.class);
     }
   }
+
 }

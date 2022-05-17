@@ -30,8 +30,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
  */
 class EnumerableFilterRule extends ConverterRule {
   /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
       .withConversion(LogicalFilter.class, f -> !f.containsOver(),
           Convention.NONE, EnumerableConvention.INSTANCE,
           "EnumerableFilterRule")

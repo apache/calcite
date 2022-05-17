@@ -56,6 +56,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -273,7 +274,7 @@ class RelOptUtilTest {
     int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
     int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
 
-    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.EQUALS,
+    RexNode joinCond = relBuilder.equals(
         RexInputRef.of(leftJoinIndex, empDeptJoinRelFields),
         RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields));
 
@@ -285,6 +286,27 @@ class RelOptUtilTest {
         relBuilder.literal(true));
   }
 
+  @Test void testSplitJoinConditionWithoutEqualCondition() {
+    final List<RelDataTypeField> sysFieldList = Collections.emptyList();
+    final List<List<RexNode>> joinKeys = Arrays.asList(new ArrayList<>(), new ArrayList<>());
+    final RexNode joinCondition = relBuilder.equals(
+        RexInputRef.of(0, empDeptJoinRelFields),
+        relBuilder.literal(1));
+    final RexNode result = RelOptUtil.splitJoinCondition(
+        sysFieldList,
+        Arrays.asList(empScan, deptScan),
+        joinCondition,
+        joinKeys,
+        null,
+        null
+    );
+    final List<List<RexNode>> expectedJoinKeys = Arrays.asList(
+        Collections.emptyList(),
+        Collections.emptyList());
+    assertEquals(joinKeys, expectedJoinKeys);
+    assertEquals(result, joinCondition);
+  }
+
   /**
    * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
    * where the join condition contains just one which is a IS NOT DISTINCT operator.
@@ -293,7 +315,7 @@ class RelOptUtilTest {
     int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
     int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
 
-    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+    RexNode joinCond = relBuilder.isNotDistinctFrom(
         RexInputRef.of(leftJoinIndex, empDeptJoinRelFields),
         RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields));
 
@@ -316,11 +338,11 @@ class RelOptUtilTest {
     RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
     RexInputRef rightKeyInputRef =
         RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
-    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.OR,
-        relBuilder.call(SqlStdOperatorTable.EQUALS, leftKeyInputRef, rightKeyInputRef),
+    RexNode joinCond = relBuilder.or(
+        relBuilder.equals(leftKeyInputRef, rightKeyInputRef),
         relBuilder.call(SqlStdOperatorTable.AND,
-            relBuilder.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
-            relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef)));
+            relBuilder.isNull(leftKeyInputRef),
+            relBuilder.isNull(rightKeyInputRef)));
 
     splitJoinConditionHelper(
         joinCond,
@@ -370,11 +392,11 @@ class RelOptUtilTest {
     RexInputRef rightKeyInputRef =
         RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
     RexNode joinCond = relBuilder.call(SqlStdOperatorTable.CASE,
-        relBuilder.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
-        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
-        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
-        relBuilder.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
-        relBuilder.call(SqlStdOperatorTable.EQUALS, leftKeyInputRef, rightKeyInputRef));
+        relBuilder.isNull(leftKeyInputRef),
+        relBuilder.isNull(rightKeyInputRef),
+        relBuilder.isNull(rightKeyInputRef),
+        relBuilder.isNull(leftKeyInputRef),
+        relBuilder.equals(leftKeyInputRef, rightKeyInputRef));
 
     splitJoinConditionHelper(
         joinCond,
@@ -410,8 +432,9 @@ class RelOptUtilTest {
     RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
     RexInputRef rightKeyInputRef =
         RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
-    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.EQUALS,
-        relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1)),
+    RexNode joinCond = relBuilder.equals(
+        relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+            relBuilder.literal(1)),
         rightKeyInputRef);
 
 
@@ -500,15 +523,15 @@ class RelOptUtilTest {
     RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
     RexInputRef rightKeyInputRef =
         RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
-    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.OR,
-        relBuilder.call(SqlStdOperatorTable.EQUALS,
+    RexNode joinCond = relBuilder.or(
+        relBuilder.equals(
             relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1)),
             rightKeyInputRef),
         relBuilder.call(SqlStdOperatorTable.AND,
-            relBuilder.call(SqlStdOperatorTable.IS_NULL,
+            relBuilder.isNull(
                 relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
                     relBuilder.literal(1))),
-            relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef)));
+            relBuilder.isNull(rightKeyInputRef)));
 
 
     // Build the join operator and push down join conditions
@@ -552,14 +575,17 @@ class RelOptUtilTest {
     RexInputRef rightKeyInputRef =
         RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
     RexNode joinCond = relBuilder.call(SqlStdOperatorTable.CASE,
-        relBuilder.call(SqlStdOperatorTable.IS_NULL,
-            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))),
-        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
-        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
-        relBuilder.call(SqlStdOperatorTable.IS_NULL,
-            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))),
-        relBuilder.call(SqlStdOperatorTable.EQUALS,
-            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1)),
+        relBuilder.isNull(
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                relBuilder.literal(1))),
+        relBuilder.isNull(rightKeyInputRef),
+        relBuilder.isNull(rightKeyInputRef),
+        relBuilder.isNull(
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                relBuilder.literal(1))),
+        relBuilder.equals(
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                relBuilder.literal(1)),
             rightKeyInputRef));
 
 

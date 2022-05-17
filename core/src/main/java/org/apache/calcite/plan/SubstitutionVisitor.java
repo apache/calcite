@@ -61,6 +61,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -126,7 +127,7 @@ import static java.util.Objects.requireNonNull;
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
 
-  protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
+  public static final ImmutableList<UnifyRule> DEFAULT_RULES =
       ImmutableList.of(
           TrivialRule.INSTANCE,
           ScanToCalcUnifyRule.INSTANCE,
@@ -285,6 +286,8 @@ public class SubstitutionVisitor {
   public static @Nullable RexNode splitFilter(final RexSimplify simplify,
       RexNode condition, RexNode target) {
     final RexBuilder rexBuilder = simplify.rexBuilder;
+    condition = simplify.simplify(condition);
+    target = simplify.simplify(target);
     RexNode condition2 = canonizeNode(rexBuilder, condition);
     RexNode target2 = canonizeNode(rexBuilder, target);
 
@@ -860,7 +863,7 @@ public class SubstitutionVisitor {
    * <p>The rule declares the query and target types; this allows the
    * engine to fire only a few rules in a given context.</p>
    */
-  protected abstract static class UnifyRule {
+  public abstract static class UnifyRule {
     protected final int slotCount;
     protected final Operand queryOperand;
     protected final Operand targetOperand;
@@ -927,7 +930,7 @@ public class SubstitutionVisitor {
   /**
    * Arguments to an application of a {@link UnifyRule}.
    */
-  protected class UnifyRuleCall {
+  public class UnifyRuleCall {
     protected final UnifyRule rule;
     public final MutableRel query;
     public final MutableRel target;
@@ -982,7 +985,7 @@ public class SubstitutionVisitor {
    * contains {@code target}. {@code stopTrying} indicates whether there's
    * no need to do matching for the same query node again.
    */
-  protected static class UnifyResult {
+  public static class UnifyResult {
     private final UnifyRuleCall call;
     private final MutableRel result;
     private final boolean stopTrying;
@@ -997,7 +1000,7 @@ public class SubstitutionVisitor {
   }
 
   /** Abstract base class for implementing {@link UnifyRule}. */
-  protected abstract static class AbstractUnifyRule extends UnifyRule {
+  public abstract static class AbstractUnifyRule extends UnifyRule {
     @SuppressWarnings("method.invocation.invalid")
     protected AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
         int slotCount) {
@@ -1210,15 +1213,13 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
       }
-      if (joinRelType != JoinRelType.INNER
-          && !(joinRelType.isOuterJoin() && qInput0Cond.isAlwaysTrue())) {
+      // Check if filter under join can be pulled up.
+      if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, null)) {
         return null;
       }
       // Try pulling up MutableCalc only when Join condition references mapping.
@@ -1296,15 +1297,13 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
       }
-      if (joinRelType != JoinRelType.INNER
-          && !(joinRelType.isOuterJoin() && qInput1Cond.isAlwaysTrue())) {
+      // Check if filter under join can be pulled up.
+      if (!canPullUpFilterUnderJoin(joinRelType, null, qInput1Cond)) {
         return null;
       }
       // Try pulling up MutableCalc only when Join condition references mapping.
@@ -1387,17 +1386,13 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
       }
-      if (joinRelType != JoinRelType.INNER
-          && !(joinRelType.isOuterJoin()
-              && qInput0Cond.isAlwaysTrue()
-              && qInput1Cond.isAlwaysTrue())) {
+      // Check if filter under join can be pulled up.
+      if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, qInput1Cond)) {
         return null;
       }
       if (!referenceByMapping(query.condition, qInput0Projs, qInput1Projs)) {
@@ -1760,7 +1755,7 @@ public class SubstitutionVisitor {
   }
 
   /** Explain filtering condition and projections from MutableCalc. */
-  private static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
+  public static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
     final RexNode condition = shuttle.apply(calc.program.getCondition());
     final List<RexNode> projects = new ArrayList<>();
@@ -1912,18 +1907,39 @@ public class SubstitutionVisitor {
         int i = targetGroupByIndexList.indexOf(inputIndex);
         projects.add(i);
       }
+      final List<AggregateCall> targetGroupGenAggCalls = new ArrayList<>();
       for (AggregateCall aggregateCall : query.aggCalls) {
         int i = target.aggCalls.indexOf(aggregateCall);
         if (i < 0) {
-          return null;
+          final AggregateCall newAggCall = genAggCallWithTargetGrouping(
+              aggregateCall, targetGroupByIndexList);
+          if (newAggCall == null) {
+            return null;
+          } else {
+            // Here, we create a new `MutableAggregate` to return.
+            // So, we record this new agg-call.
+            targetGroupGenAggCalls.add(newAggCall);
+          }
+        } else {
+          if (!targetGroupGenAggCalls.isEmpty()) {
+            // Here, we didn't build target's agg-call by ref of mv's agg-call,
+            // if some agg-call is generated by target's grouping.
+            // So, we return null to stop it.
+            return null;
+          }
+          projects.add(groupCount + i + projOffset);
         }
-        projects.add(groupCount + i +  projOffset);
       }
 
-      List<RexNode> compenProjs = MutableRels.createProjectExprs(target, projects);
-      RexProgram compenRexProgram = RexProgram.create(
-          target.rowType, compenProjs, targetCond, query.rowType, rexBuilder);
-      result = MutableCalc.of(target, compenRexProgram);
+      if (targetGroupGenAggCalls.isEmpty()) {
+        List<RexNode> compenProjs = MutableRels.createProjectExprs(target, projects);
+        RexProgram compenRexProgram = RexProgram.create(
+            target.rowType, compenProjs, targetCond, query.rowType, rexBuilder);
+        result = MutableCalc.of(target, compenRexProgram);
+      } else {
+        result = MutableAggregate.of(target,
+            target.groupSet, target.groupSets, targetGroupGenAggCalls);
+      }
     } else if (target.getGroupType() == Aggregate.Group.SIMPLE) {
       // Query is coarser level of aggregation. Generate an aggregate.
       final Map<Integer, Integer> map = new HashMap<>();
@@ -1941,38 +1957,34 @@ public class SubstitutionVisitor {
       }
       final List<AggregateCall> aggregateCalls = new ArrayList<>();
       for (AggregateCall aggregateCall : query.aggCalls) {
-        if (aggregateCall.isDistinct() && aggregateCall.getArgList().size() == 1) {
-          final int aggIndex = aggregateCall.getArgList().get(0);
-          final int newIndex = targetGroupByIndexList.indexOf(aggIndex);
-          if (newIndex >= 0) {
-            aggregateCalls.add(
-                AggregateCall.create(aggregateCall.getAggregation(),
-                    aggregateCall.isDistinct(), aggregateCall.isApproximate(),
-                    aggregateCall.ignoreNulls(),
-                    ImmutableList.of(newIndex), -1, aggregateCall.distinctKeys,
-                    aggregateCall.collation, aggregateCall.type,
-                    aggregateCall.name));
-            continue;
+        AggregateCall newAggCall = null;
+        // 1. try to find rollup agg-call.
+        if (!aggregateCall.isDistinct()) {
+          int i = target.aggCalls.indexOf(aggregateCall);
+          if (i >= 0) {
+            // When an SqlAggFunction does not support roll up, it will return null,
+            // which means that it cannot do secondary aggregation
+            // and the materialization recognition will fail.
+            final SqlAggFunction aggFunction = aggregateCall.getAggregation().getRollup();
+            if (aggFunction != null) {
+              newAggCall = AggregateCall.create(aggFunction,
+                  aggregateCall.isDistinct(), aggregateCall.isApproximate(),
+                  aggregateCall.ignoreNulls(),
+                  ImmutableList.of(target.groupSet.cardinality() + i), -1,
+                  aggregateCall.distinctKeys, aggregateCall.collation,
+                  aggregateCall.type, aggregateCall.name);
+            }
           }
+        }
+        // 2. try to build a new agg-cal by target's grouping.
+        if (newAggCall == null) {
+          newAggCall = genAggCallWithTargetGrouping(aggregateCall, targetGroupByIndexList);
+        }
+        if (newAggCall == null) {
+          // gen agg call fail.
           return null;
         }
-        int i = target.aggCalls.indexOf(aggregateCall);
-        if (i < 0) {
-          return null;
-        }
-        // When an SqlAggFunction does not support roll up, it will return null, which means that
-        // it cannot do secondary aggregation and the materialization recognition will fail.
-        final SqlAggFunction aggFunction = aggregateCall.getAggregation().getRollup();
-        if (aggFunction == null) {
-          return null;
-        }
-        aggregateCalls.add(
-            AggregateCall.create(aggFunction,
-                aggregateCall.isDistinct(), aggregateCall.isApproximate(),
-                aggregateCall.ignoreNulls(),
-                ImmutableList.of(target.groupSet.cardinality() + i), -1,
-                aggregateCall.distinctKeys, aggregateCall.collation,
-                aggregateCall.type, aggregateCall.name));
+        aggregateCalls.add(newAggCall);
       }
       if (targetCond != null && !targetCond.isAlwaysTrue()) {
         RexProgram compenRexProgram = RexProgram.create(
@@ -1990,6 +2002,46 @@ public class SubstitutionVisitor {
       return null;
     }
     return result;
+  }
+
+  /**
+   * Generate agg call by mv's grouping.
+   */
+  private static @Nullable AggregateCall genAggCallWithTargetGrouping(AggregateCall queryAggCall,
+      List<Integer> targetGroupByIndexes) {
+    final SqlAggFunction aggregation = queryAggCall.getAggregation();
+    final List<Integer> argList = queryAggCall.getArgList();
+    final List<Integer> newArgList = new ArrayList<>();
+    for (Integer arg : argList) {
+      final int newArgIndex = targetGroupByIndexes.indexOf(arg);
+      if (newArgIndex < 0) {
+        return null;
+      }
+      newArgList.add(newArgIndex);
+    }
+    final boolean isAllowBuild;
+    if (newArgList.size() == 0) {
+      // Size of agg-call's args is empty, we stop to build a new agg-call,
+      // eg: count(1) or count(*).
+      isAllowBuild = false;
+    } else if (queryAggCall.isDistinct()) {
+      // Args of agg-call is distinct, we can build a new agg-call.
+      isAllowBuild = true;
+    } else if (aggregation.getDistinctOptionality() == Optionality.IGNORED) {
+      // If attribute of agg-call's distinct could be ignore, we can build a new agg-call.
+      isAllowBuild = true;
+    } else {
+      isAllowBuild = false;
+    }
+    if (!isAllowBuild) {
+      return null;
+    }
+    return AggregateCall.create(aggregation,
+        queryAggCall.isDistinct(), queryAggCall.isApproximate(),
+        queryAggCall.ignoreNulls(),
+        newArgList, -1, queryAggCall.distinctKeys,
+        queryAggCall.collation, queryAggCall.type,
+        queryAggCall.name);
   }
 
   @Deprecated // to be removed before 2.0
@@ -2017,8 +2069,12 @@ public class SubstitutionVisitor {
    * expressions to references to them. */
   private static RexShuttle getRexShuttle(List<RexNode> rexNodes) {
     final Map<RexNode, Integer> map = new HashMap<>();
-    for (RexNode e : rexNodes) {
-      map.put(e, map.size());
+    for (int i = 0; i < rexNodes.size(); i++) {
+      final RexNode rexNode = rexNodes.get(i);
+      if (map.containsKey(rexNode)) {
+        continue;
+      }
+      map.put(rexNode, i);
     }
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
@@ -2079,8 +2135,36 @@ public class SubstitutionVisitor {
     return RelOptUtil.equal(desc0, rel0.rowType, desc1, rel1.rowType, litmus);
   }
 
+  /**
+   * Check if filter under join can be pulled up,
+   * when meeting JoinOnCalc of query unify to Join of target.
+   * Working in rules: {@link JoinOnLeftCalcToJoinUnifyRule} <br/>
+   * {@link JoinOnRightCalcToJoinUnifyRule} <br/>
+   * {@link JoinOnCalcsToJoinUnifyRule} <br/>
+   */
+  private static boolean canPullUpFilterUnderJoin(JoinRelType joinType,
+      @Nullable RexNode leftFilterRexNode, @Nullable RexNode rightFilterRexNode) {
+    if (joinType == JoinRelType.INNER) {
+      return true;
+    }
+    if (joinType == JoinRelType.LEFT
+        && (rightFilterRexNode == null || rightFilterRexNode.isAlwaysTrue())) {
+      return true;
+    }
+    if (joinType == JoinRelType.RIGHT
+        && (leftFilterRexNode == null || leftFilterRexNode.isAlwaysTrue())) {
+      return true;
+    }
+    if (joinType == JoinRelType.FULL
+        && ((rightFilterRexNode == null || rightFilterRexNode.isAlwaysTrue())
+        && (leftFilterRexNode == null || leftFilterRexNode.isAlwaysTrue()))) {
+      return true;
+    }
+    return false;
+  }
+
   /** Operand to a {@link UnifyRule}. */
-  protected abstract static class Operand {
+  public abstract static class Operand {
     protected final Class<? extends MutableRel> clazz;
 
     protected Operand(Class<? extends MutableRel> clazz) {

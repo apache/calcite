@@ -65,6 +65,7 @@ import java.util.Objects;
 import java.util.TimeZone;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 
 import static java.util.Objects.requireNonNull;
 
@@ -432,11 +433,13 @@ public class RexLiteral extends RexNode {
     if (includeType != RexDigestIncludeType.NO_TYPE) {
       sb.append(':');
       final String fullTypeString = type.getFullTypeString();
-      if (!fullTypeString.endsWith("NOT NULL")) {
+
+      if (!fullTypeString.endsWith(NON_NULLABLE_SUFFIX)) {
         sb.append(fullTypeString);
       } else {
         // Trim " NOT NULL". Apparently, the literal is not null, so we just print the data type.
-        sb.append(fullTypeString, 0, fullTypeString.length() - 9);
+        sb.append(fullTypeString, 0,
+            fullTypeString.length() - NON_NULLABLE_SUFFIX.length());
       }
     }
     return sb.toString();

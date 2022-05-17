@@ -23,7 +23,10 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /** Rule that matches Project on Join. */
+@Value.Enclosing
 public class MaterializedViewProjectJoinRule
     extends MaterializedViewJoinRule<MaterializedViewProjectJoinRule.Config> {
 
@@ -51,18 +54,18 @@ public class MaterializedViewProjectJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends MaterializedViewRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableMaterializedViewProjectJoinRule.Config.builder()
         .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
         .withOperandSupplier(b0 ->
             b0.operand(Project.class).oneInput(b1 ->
                 b1.operand(Join.class).anyInputs()))
         .withDescription("MaterializedViewJoinRule(Project-Join)")
-        .as(MaterializedViewProjectFilterRule.Config.class)
         .withGenerateUnionRewriting(true)
         .withUnionRewritingPullProgram(null)
         .withFastBailOut(true)
-        .as(Config.class);
+        .build();
 
     @Override default MaterializedViewProjectJoinRule toRule() {
       return new MaterializedViewProjectJoinRule(this);

@@ -47,8 +47,17 @@ public class BlockBuilder {
 
   private final boolean optimizing;
   private final @Nullable BlockBuilder parent;
+  private final boolean removeUnused;
 
   private static final Shuttle OPTIMIZE_SHUTTLE = new OptimizeShuttle();
+
+  /** Private constructor. */
+  private BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent,
+      boolean removeUnused) {
+    this.optimizing = optimizing;
+    this.parent = parent;
+    this.removeUnused = removeUnused;
+  }
 
   /**
    * Creates a non-optimizing BlockBuilder.
@@ -72,8 +81,7 @@ public class BlockBuilder {
    * @param optimizing Whether to eliminate common sub-expressions
    */
   public BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent) {
-    this.optimizing = optimizing;
-    this.parent = parent;
+    this(optimizing, parent, true);
   }
 
   /**
@@ -322,7 +330,7 @@ public class BlockBuilder {
    * Returns a block consisting of the current list of statements.
    */
   public BlockStatement toBlock() {
-    if (optimizing) {
+    if (optimizing && removeUnused) {
       // We put an artificial limit of 10 iterations just to prevent an endless
       // loop. Optimize should not loop forever, however it is hard to prove if
       // it always finishes in reasonable time.
@@ -508,6 +516,10 @@ public class BlockBuilder {
   public BlockBuilder append(Expression expression) {
     add(expression);
     return this;
+  }
+
+  public BlockBuilder withRemoveUnused(boolean removeUnused) {
+    return new BlockBuilder(optimizing, parent, removeUnused);
   }
 
   /** Substitute Variable Visitor. */

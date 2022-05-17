@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Reader;
@@ -378,6 +379,7 @@ public abstract class SqlAbstractParserImpl {
    * @param operands          Operands to call
    * @return Call
    */
+  @SuppressWarnings("argument.type.incompatible")
   protected SqlCall createCall(
       SqlIdentifier funName,
       SqlParserPos pos,
@@ -548,6 +550,8 @@ public abstract class SqlAbstractParserImpl {
         return DEFAULT;
       case DOUBLE_QUOTE:
         return DQID;
+      case BACK_TICK_BACKSLASH:
+        return BQID;
       case BACK_TICK:
         if (config.conformance().allowHyphenInUnquotedTableName()
             && config.charLiteralStyles().equals(

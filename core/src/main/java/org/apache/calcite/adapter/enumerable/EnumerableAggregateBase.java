@@ -50,7 +50,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -278,9 +277,8 @@ public abstract class EnumerableAggregateBase extends Aggregate {
             @Override public RexToLixTranslator rowTranslator() {
               return RexToLixTranslator.forAggregation(typeFactory,
                   currentBlock(),
-                  new RexToLixTranslator.InputGetterImpl(
-                      Collections.singletonList(
-                          Pair.of(inParameter, inputPhysType))),
+                  new RexToLixTranslator.InputGetterImpl(inParameter,
+                      inputPhysType),
                   implementor.getConformance());
             }
           };

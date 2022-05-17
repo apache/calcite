@@ -63,6 +63,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -966,6 +967,9 @@ public class Util {
       throwable.addSuppressed(new Throwable(message));
       throw (Error) throwable;
     }
+    if (throwable instanceof IOException) {
+      return new UncheckedIOException(message, (IOException) throwable);
+    }
     throw new RuntimeException(message, throwable);
   }
 
@@ -977,6 +981,9 @@ public class Util {
   public static RuntimeException toUnchecked(Exception e) {
     if (e instanceof RuntimeException) {
       return (RuntimeException) e;
+    }
+    if (e instanceof IOException) {
+      return new UncheckedIOException((IOException) e);
     }
     return new RuntimeException(e);
   }

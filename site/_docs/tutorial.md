@@ -78,15 +78,15 @@ Execute a metadata query:
 
 {% highlight bash %}
 sqlline> !tables
-+------------+--------------+-------------+---------------+----------+------+
-| TABLE_CAT  | TABLE_SCHEM  | TABLE_NAME  |  TABLE_TYPE   | REMARKS  | TYPE |
-+------------+--------------+-------------+---------------+----------+------+
-| null       | SALES        | DEPTS       | TABLE         | null     | null |
-| null       | SALES        | EMPS        | TABLE         | null     | null |
-| null       | SALES        | HOBBIES     | TABLE         | null     | null |
-| null       | metadata     | COLUMNS     | SYSTEM_TABLE  | null     | null |
-| null       | metadata     | TABLES      | SYSTEM_TABLE  | null     | null |
-+------------+--------------+-------------+---------------+----------+------+
++-----------+-------------+------------+--------------+---------+----------+------------+-----------+---------------------------+----------------+
+| TABLE_CAT | TABLE_SCHEM | TABLE_NAME |  TABLE_TYPE  | REMARKS | TYPE_CAT | TYPE_SCHEM | TYPE_NAME | SELF_REFERENCING_COL_NAME | REF_GENERATION |
++-----------+-------------+------------+--------------+---------+----------+------------+-----------+---------------------------+----------------+
+|           | SALES       | DEPTS      | TABLE        |         |          |            |           |                           |                |
+|           | SALES       | EMPS       | TABLE        |         |          |            |           |                           |                |
+|           | SALES       | SDEPTS     | TABLE        |         |          |            |           |                           |                |
+|           | metadata    | COLUMNS    | SYSTEM TABLE |         |          |            |           |                           |                |
+|           | metadata    | TABLES     | SYSTEM TABLE |         |          |            |           |                           |                |
++-----------+-------------+------------+--------------+---------+----------+------------+-----------+---------------------------+----------------+
 {% endhighlight %}
 
 (JDBC experts, note: sqlline's <code>!tables</code> command is just executing
@@ -95,13 +95,13 @@ behind the scenes.
 It has other commands to query JDBC metadata, such as <code>!columns</code> and <code>!describe</code>.)
 
 As you can see there are 5 tables in the system: tables
-<code>EMPS</code>, <code>DEPTS</code> and <code>HOBBIES</code> in the current
+<code>EMPS</code>, <code>DEPTS</code> and <code>SDEPTS</code> in the current
 <code>SALES</code> schema, and <code>COLUMNS</code> and
 <code>TABLES</code> in the system <code>metadata</code> schema. The
 system tables are always present in Calcite, but the other tables are
 provided by the specific implementation of the schema; in this case,
-the <code>EMPS</code> and <code>DEPTS</code> tables are based on the
-<code>EMPS.csv</code> and <code>DEPTS.csv</code> files in the
+the <code>EMPS</code>, <code>DEPTS</code> and <code>SDEPTS</code> tables are based on the
+<code>EMPS.csv.gz</code>, <code>DEPTS.csv</code> and <code>SDEPTS.csv</code> files in the
 <code>resources/sales</code> directory.
 
 Let's execute some queries on those tables, to show that Calcite is providing
@@ -109,15 +109,15 @@ a full implementation of SQL. First, a table scan:
 
 {% highlight bash %}
 sqlline> SELECT * FROM emps;
-+--------+--------+---------+---------+----------------+--------+-------+---+
-| EMPNO  |  NAME  | DEPTNO  | GENDER  |      CITY      | EMPID  |  AGE  | S |
-+--------+--------+---------+---------+----------------+--------+-------+---+
-| 100    | Fred   | 10      |         |                | 30     | 25    | t |
-| 110    | Eric   | 20      | M       | San Francisco  | 3      | 80    | n |
-| 110    | John   | 40      | M       | Vancouver      | 2      | null  | f |
-| 120    | Wilma  | 20      | F       |                | 1      | 5     | n |
-| 130    | Alice  | 40      | F       | Vancouver      | 2      | null  | f |
-+--------+--------+---------+---------+----------------+--------+-------+---+
++-------+-------+--------+--------+---------------+-------+------+---------+---------+------------+
+| EMPNO | NAME  | DEPTNO | GENDER |     CITY      | EMPID | AGE  | SLACKER | MANAGER |  JOINEDAT  |
++-------+-------+--------+--------+---------------+-------+------+---------+---------+------------+
+| 100   | Fred  | 10     |        |               | 30    | 25   | true    | false   | 1996-08-03 |
+| 110   | Eric  | 20     | M      | San Francisco | 3     | 80   |         | false   | 2001-01-01 |
+| 110   | John  | 40     | M      | Vancouver     | 2     | null | false   | true    | 2002-05-03 |
+| 120   | Wilma | 20     | F      |               | 1     | 5    |         | true    | 2005-09-07 |
+| 130   | Alice | 40     | F      | Vancouver     | 2     | null | false   | true    | 2007-01-01 |
++-------+-------+--------+--------+---------------+-------+------+---------+---------+------------+
 {% endhighlight %}
 
 Now JOIN and GROUP BY:
@@ -197,17 +197,21 @@ schema, passing in the <code>directory</code> argument from the model file:
 {% highlight java %}
 public Schema create(SchemaPlus parentSchema, String name,
     Map<String, Object> operand) {
-  String directory = (String) operand.get("directory");
+  final String directory = (String) operand.get("directory");
+  final File base =
+      (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+  File directoryFile = new File(directory);
+  if (base != null && !directoryFile.isAbsolute()) {
+    directoryFile = new File(base, directory);
+  }
   String flavorName = (String) operand.get("flavor");
   CsvTable.Flavor flavor;
   if (flavorName == null) {
     flavor = CsvTable.Flavor.SCANNABLE;
   } else {
-    flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase());
+    flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
   }
-  return new CsvSchema(
-      new File(directory),
-      flavor);
+  return new CsvSchema(directoryFile, flavor);
 }
 {% endhighlight %}
 
@@ -230,17 +234,15 @@ Here is the relevant code from <code>CsvSchema</code>, overriding the
 method in the <code>AbstractSchema</code> base class.
 
 {% highlight java %}
-protected Map<String, Table> getTableMap() {
+private Map<String, Table> createTableMap() {
   // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
   // ".json.gz".
-  File[] files = directoryFile.listFiles(
-      new FilenameFilter() {
-        public boolean accept(File dir, String name) {
-          final String nameSansGz = trim(name, ".gz");
-          return nameSansGz.endsWith(".csv")
-              || nameSansGz.endsWith(".json");
-        }
-      });
+  final Source baseSource = Sources.of(directoryFile);
+  File[] files = directoryFile.listFiles((dir, name) -> {
+    final String nameSansGz = trim(name, ".gz");
+    return nameSansGz.endsWith(".csv")
+        || nameSansGz.endsWith(".json");
+  });
   if (files == null) {
     System.out.println("directory " + directoryFile + " not found");
     files = new File[0];
@@ -248,40 +250,42 @@ protected Map<String, Table> getTableMap() {
   // Build a map from table name to table; each file becomes a table.
   final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
   for (File file : files) {
-    String tableName = trim(file.getName(), ".gz");
-    final String tableNameSansJson = trimOrNull(tableName, ".json");
-    if (tableNameSansJson != null) {
-      JsonTable table = new JsonTable(file);
-      builder.put(tableNameSansJson, table);
-      continue;
+    Source source = Sources.of(file);
+    Source sourceSansGz = source.trim(".gz");
+    final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+    if (sourceSansJson != null) {
+      final Table table = new JsonScannableTable(source);
+      builder.put(sourceSansJson.relative(baseSource).path(), table);
     }
-    tableName = trim(tableName, ".csv");
-    final Table table = createTable(file);
-    builder.put(tableName, table);
+    final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
+    if (sourceSansCsv != null) {
+      final Table table = createTable(source);
+      builder.put(sourceSansCsv.relative(baseSource).path(), table);
+    }
   }
   return builder.build();
 }
 
 /** Creates different sub-type of table based on the "flavor" attribute. */
-private Table createTable(File file) {
+private Table createTable(Source source) {
   switch (flavor) {
   case TRANSLATABLE:
-    return new CsvTranslatableTable(file, null);
+    return new CsvTranslatableTable(source, null);
   case SCANNABLE:
-    return new CsvScannableTable(file, null);
+    return new CsvScannableTable(source, null);
   case FILTERABLE:
-    return new CsvFilterableTable(file, null);
+    return new CsvFilterableTable(source, null);
   default:
-    throw new AssertionError("Unknown flavor " + flavor);
+    throw new AssertionError("Unknown flavor " + this.flavor);
   }
 }
 {% endhighlight %}
 
-The schema scans the directory and finds all files whose name ends
-with ".csv" and creates tables for them. In this case, the directory
+The schema scans the directory, finds all files with the appropriate extension,
+and creates tables for them. In this case, the directory
 is <code>sales</code> and contains files
-<code>EMPS.csv</code> and <code>DEPTS.csv</code>, which these become
-the tables <code>EMPS</code> and <code>DEPTS</code>.
+<code>EMPS.csv.gz</code>, <code>DEPTS.csv</code> and <code>SDEPTS.csv</code>, which these become
+the tables <code>EMPS</code>, <code>DEPTS</code> and <code>SDEPTS</code>.
 
 ## Tables and views in schemas
 
@@ -413,12 +417,14 @@ passing in the <code>file</code> argument from the model file:
 
 {% highlight java %}
 public CsvTable create(SchemaPlus schema, String name,
-    Map<String, Object> map, RelDataType rowType) {
-  String fileName = (String) map.get("file");
-  final File file = new File(fileName);
+    Map<String, Object> operand, @Nullable RelDataType rowType) {
+  String fileName = (String) operand.get("file");
+  final File base =
+      (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+  final Source source = Sources.file(base, fileName);
   final RelProtoDataType protoRowType =
       rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-  return new CsvScannableTable(file, protoRowType);
+  return new CsvScannableTable(source, protoRowType);
 }
 {% endhighlight %}
 
@@ -480,7 +486,7 @@ sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
 +-----------------------------------------------------+
-| EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
+| EnumerableCalc(expr#0..9=[{inputs}], NAME=[$t1])    |
 |   EnumerableTableScan(table=[[SALES, EMPS]])        |
 +-----------------------------------------------------+
 sqlline> !connect jdbc:calcite:model=src/test/resources/smart.json admin admin
@@ -488,8 +494,7 @@ sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
 +-----------------------------------------------------+
-| EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
-|   CsvTableScan(table=[[SALES, EMPS]])               |
+| CsvTableScan(table=[[SALES, EMPS]], fields=[[1]])   |
 +-----------------------------------------------------+
 {% endhighlight %}
 
@@ -520,6 +525,7 @@ Here is the rule in its entirety:
 {% highlight java %}
 public class CsvProjectTableScanRule
     extends RelRule<CsvProjectTableScanRule.Config> {
+
   /** Creates a CsvProjectTableScanRule. */
   protected CsvProjectTableScanRule(Config config) {
     super(config);
@@ -541,7 +547,7 @@ public class CsvProjectTableScanRule
             fields));
   }
 
-  private int[] getProjectFields(List<RexNode> exps) {
+  private static int[] getProjectFields(List<RexNode> exps) {
     final int[] fields = new int[exps.size()];
     for (int i = 0; i < exps.size(); i++) {
       final RexNode exp = exps.get(i);
@@ -555,17 +561,19 @@ public class CsvProjectTableScanRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableCsvProjectTableScanRule.Config.builder()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
                 b1.operand(CsvTableScan.class).noInputs()))
-        .as(Config.class);
+        .build();
 
     @Override default CsvProjectTableScanRule toRule() {
       return new CsvProjectTableScanRule(this);
     }
-}
+  }
+} 
 {% endhighlight %}
 
 The default instance of the rule resides in the `CsvRules` holder class:

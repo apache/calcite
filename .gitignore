@@ -24,6 +24,7 @@
 /example/*/build
 /buildSrc/build
 /buildSrc/subprojects/*/build
+/site/.jekyll-cache
 
 # IDEA
 /out

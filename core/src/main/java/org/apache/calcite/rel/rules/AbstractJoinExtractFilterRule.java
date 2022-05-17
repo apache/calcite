@@ -17,13 +17,11 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Rule to convert an
@@ -44,16 +42,6 @@ public abstract class AbstractJoinExtractFilterRule
   /** Creates an AbstractJoinExtractFilterRule. */
   protected AbstractJoinExtractFilterRule(Config config) {
     super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
-  protected AbstractJoinExtractFilterRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description) {
-    this(Config.EMPTY
-        .withOperandSupplier(b -> b.exactly(operand))
-        .withRelBuilderFactory(relBuilderFactory)
-        .withDescription(description)
-        .as(Config.class));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

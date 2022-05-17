@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -30,6 +29,8 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
+
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,7 @@ import java.util.List;
  * @see JoinCommuteRule
  * @see CoreRules#JOIN_ASSOCIATE
  */
+@Value.Enclosing
 public class JoinAssociateRule
     extends RelRule<JoinAssociateRule.Config>
     implements TransformationRule {
@@ -68,7 +70,7 @@ public class JoinAssociateRule
     final Join bottomJoin = call.rel(1);
     final RelNode relA = bottomJoin.getLeft();
     final RelNode relB = bottomJoin.getRight();
-    final RelSubset relC = call.rel(2);
+    final RelNode relC = call.rel(2);
     final RelOptCluster cluster = topJoin.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
 
@@ -120,6 +122,11 @@ public class JoinAssociateRule
     JoinPushThroughJoinRule.split(bottomJoin.getCondition(), aBitSet, top,
         bottom);
 
+    final boolean allowAlwaysTrueCondition = config.isAllowAlwaysTrueCondition();
+    if (!allowAlwaysTrueCondition && (top.isEmpty() || bottom.isEmpty())) {
+      return;
+    }
+
     // Mapping for moving conditions from topJoin or bottomJoin to
     // newBottomJoin.
     // target: | B | C      |
@@ -132,16 +139,23 @@ public class JoinAssociateRule
     final List<RexNode> newBottomList =
         new RexPermuteInputsShuttle(bottomMapping, relB, relC)
             .visitList(bottom);
-    RexNode newBottomCondition =
-        RexUtil.composeConjunction(rexBuilder, newBottomList);
+
+    RexNode newBottomCondition = RexUtil.composeConjunction(rexBuilder, newBottomList);
+    if (!allowAlwaysTrueCondition && newBottomCondition.isAlwaysTrue()) {
+      return;
+    }
+
+    // Condition for newTopJoin consists of pieces from bottomJoin and topJoin.
+    // Field ordinals do not need to be changed.
+    RexNode newTopCondition = RexUtil.composeConjunction(rexBuilder, top);
+    if (!allowAlwaysTrueCondition && newTopCondition.isAlwaysTrue()) {
+      return;
+    }
 
     final Join newBottomJoin =
         bottomJoin.copy(bottomJoin.getTraitSet(), newBottomCondition, relB,
             relC, JoinRelType.INNER, false);
 
-    // Condition for newTopJoin consists of pieces from bottomJoin and topJoin.
-    // Field ordinals do not need to be changed.
-    RexNode newTopCondition = RexUtil.composeConjunction(rexBuilder, top);
     @SuppressWarnings("SuspiciousNameCombination")
     final Join newTopJoin =
         topJoin.copy(topJoin.getTraitSet(), newTopCondition, relA,
@@ -151,21 +165,32 @@ public class JoinAssociateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(Join.class, RelSubset.class);
+    Config DEFAULT = ImmutableJoinAssociateRule.Config.of()
+        .withOperandFor(Join.class);
 
     @Override default JoinAssociateRule toRule() {
       return new JoinAssociateRule(this);
     }
 
+    /**
+     * Whether to emit the new join tree if the new top or bottom join has a condition which
+     * is always {@code TRUE}.
+     */
+    @Value.Default default boolean isAllowAlwaysTrueCondition() {
+      return true;
+    }
+
+    /** Sets {@link #isAllowAlwaysTrueCondition()}. */
+    Config withAllowAlwaysTrueCondition(boolean allowAlwaysTrueCondition);
+
     /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Join> joinClass,
-        Class<? extends RelSubset> relSubsetClass) {
+    default Config withOperandFor(Class<? extends Join> joinClass) {
       return withOperandSupplier(b0 ->
           b0.operand(joinClass).inputs(
               b1 -> b1.operand(joinClass).anyInputs(),
-              b2 -> b2.operand(relSubsetClass).anyInputs()))
+              b2 -> b2.operand(RelNode.class).anyInputs()))
           .as(Config.class);
     }
   }

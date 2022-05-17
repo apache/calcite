@@ -26,7 +26,6 @@ import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.util.SqlString;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
@@ -259,7 +258,7 @@ public class SqlPrettyWriter implements SqlWriter {
    * Default SqlWriterConfig, reduce the overhead of "ImmutableBeans.create"
    */
   private static final SqlWriterConfig CONFIG =
-      ImmutableBeans.create(SqlWriterConfig.class)
+      SqlWriterConfig.of()
           .withDialect(CalciteSqlDialect.DEFAULT);
 
   /**

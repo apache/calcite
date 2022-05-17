@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
@@ -36,7 +37,6 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -56,7 +56,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
@@ -128,7 +127,7 @@ public class JdbcRules {
       };
 
   static final RelFactories.CorrelateFactory CORRELATE_FACTORY =
-      (left, right, correlationId, requiredColumns, joinType) -> {
+      (left, right, hints, correlationId, requiredColumns, joinType) -> {
         throw new UnsupportedOperationException("JdbcCorrelate");
       };
 
@@ -238,7 +237,6 @@ public class JdbcRules {
       Consumer<RelRule<?>> consumer) {
     consumer.accept(JdbcToEnumerableConverterRule.create(out));
     consumer.accept(JdbcJoinRule.create(out));
-    consumer.accept(JdbcCalcRule.create(out));
     consumer.accept(JdbcProjectRule.create(out));
     consumer.accept(JdbcFilterRule.create(out));
     consumer.accept(JdbcAggregateRule.create(out));
@@ -361,6 +359,12 @@ public class JdbcRules {
         return false;
       }
     }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      Join join = call.rel(0);
+      JoinRelType joinType = join.getJoinType();
+      return ((JdbcConvention) getOutConvention()).dialect.supportsJoinType(joinType);
+    }
   }
 
   /** Join operator implemented in JDBC convention. */
@@ -419,42 +423,11 @@ public class JdbcRules {
     }
   }
 
-  /**
-   * Rule to convert a {@link org.apache.calcite.rel.core.Calc} to an
-   * {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcCalc}.
-   */
-  private static class JdbcCalcRule extends JdbcConverterRule {
-    /** Creates a JdbcCalcRule. */
-    public static JdbcCalcRule create(JdbcConvention out) {
-      return Config.INSTANCE
-          .withConversion(Calc.class, Convention.NONE, out, "JdbcCalcRule")
-          .withRuleFactory(JdbcCalcRule::new)
-          .toRule(JdbcCalcRule.class);
-    }
-
-    /** Called from the Config. */
-    protected JdbcCalcRule(Config config) {
-      super(config);
-    }
-
-    @Override public @Nullable RelNode convert(RelNode rel) {
-      final Calc calc = (Calc) rel;
-
-      // If there's a multiset, let FarragoMultisetSplitter work on it
-      // first.
-      if (RexMultisetUtil.containsMultiset(calc.getProgram())) {
-        return null;
-      }
-
-      return new JdbcCalc(rel.getCluster(), rel.getTraitSet().replace(out),
-          convert(calc.getInput(), calc.getTraitSet().replace(out)),
-          calc.getProgram());
-    }
-  }
-
   /** Calc operator implemented in JDBC convention.
    *
-   * @see org.apache.calcite.rel.core.Calc */
+   * @see org.apache.calcite.rel.core.Calc
+   * */
+  @Deprecated // to be removed before 2.0
   public static class JdbcCalc extends SingleRel implements JdbcRel {
     private final RexProgram program;
 

@@ -24,13 +24,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.AccessControlException;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Stream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A Calcite specific system property that is used to configure various aspects of the framework.
@@ -430,14 +431,17 @@ public final class CalciteSystemProperty<T> {
         Thread.currentThread().getContextClassLoader(),
         CalciteSystemProperty.class.getClassLoader());
     // Read properties from the file "saffron.properties", if it exists in classpath
-    try (InputStream stream = classLoader.getResourceAsStream("saffron.properties")) {
+    try (InputStream stream = requireNonNull(classLoader, "classLoader")
+        .getResourceAsStream("saffron.properties")) {
       if (stream != null) {
         saffronProperties.load(stream);
       }
     } catch (IOException e) {
       throw new RuntimeException("while reading from saffron.properties file", e);
-    } catch (AccessControlException e) {
-      // we're in a sandbox
+    } catch (RuntimeException e) {
+      if (!"java.security.AccessControlException".equals(e.getClass().getName())) {
+        throw e;
+      }
     }
 
     // Merge system and saffron properties, mapping deprecated saffron

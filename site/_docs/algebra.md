@@ -443,6 +443,32 @@ added to the stack.
 | `nullsLast(expr)` | Changes sort order to nulls last (only valid as an argument to `sort` or `sortLimit`)
 | `cursor(n, input)` | Reference to `input`th (0-based) relational input of a `TableFunctionScan` with `n` inputs (see `functionScan`)
 
+#### Sub-query methods
+
+The following methods convert a sub-query into a scalar value (a `BOOLEAN` in
+the case of `in`, `exists`, `some`, `all`, `unique`;
+any scalar type for `scalarQuery`).
+an `ARRAY` for `arrayQuery`,
+a `MAP` for `mapQuery`,
+and a `MULTISET` for `multisetQuery`).
+
+In all the following, `relFn` is a function that takes a `RelBuilder` argument
+and returns a `RelNode`. You typically implement it as a lambda; the method
+calls your code with a `RelBuilder` that has the correct context, and your code
+returns the `RelNode` that is to be the sub-query.
+
+| Method              | Description
+|:------------------- |:-----------
+| `all(expr, op, relFn)` | Returns whether *expr* has a particular relation to all of the values of the sub-query
+| `arrayQuery(relFn)` | Returns the rows of a sub-query as an `ARRAY`
+| `exists(relFn)` | Tests whether sub-query is non-empty
+| `in(expr, relFn)`<br/>`in(exprList, relFn)` | Tests whether a value occurs in a sub-query
+| `mapQuery(relFn)` | Returns the rows of a sub-query as a `MAP`
+| `multisetQuery(relFn)` | Returns the rows of a sub-query as a `MULTISET`
+| `scalarQuery(relFn)` | Returns the value of the sole column of the sole row of a sub-query
+| `some(expr, op, relFn)` | Returns whether *expr* has a particular relation to one or more of the values of the sub-query
+| `unique(relFn)` | Returns whether the rows of a sub-query are unique
+
 #### Pattern methods
 
 The following methods return patterns for use in `match`.
@@ -491,3 +517,30 @@ To further modify the `AggCall`, call its methods:
 | `filter(expr)`       | Filters rows before aggregating (see SQL `FILTER (WHERE ...)`)
 | `sort(expr...)`<br/>`sort(exprList)` | Sorts rows before aggregating (see SQL `WITHIN GROUP`)
 | `unique(expr...)`<br/>`unique(exprList)` | Makes rows unique before aggregating (see SQL `WITHIN DISTINCT`)
+| `over()`             | Converts this `AggCall` into a windowed aggregate (see `OverCall` below)
+
+#### Windowed aggregate call methods
+
+To create an
+[RelBuilder.OverCall]({{ site.apiRoot }}/org/apache/calcite/tools/RelBuilder.OverCall.html),
+which represents a call to a windowed aggregate function, create an aggregate
+call and then call its `over()` method, for instance `count().over()`.
+
+To further modify the `OverCall`, call its methods:
+
+| Method               | Description
+|:-------------------- |:-----------
+| `rangeUnbounded()`   | Creates an unbounded range-based window, `RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING`
+| `rangeFrom(lower)`   | Creates a range-based window bounded below, `RANGE BETWEEN lower AND CURRENT ROW`
+| `rangeTo(upper)`     | Creates a range-based window bounded above, `RANGE BETWEEN CURRENT ROW AND upper`
+| `rangeBetween(lower, upper)` | Creates a range-based window, `RANGE BETWEEN lower AND upper`
+| `rowsUnbounded()`    | Creates an unbounded row-based window, `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING`
+| `rowsFrom(lower)`    | Creates a row-based window bounded below, `ROWS BETWEEN lower AND CURRENT ROW`
+| `rowsTo(upper)`      | Creates a row-based window bounded above, `ROWS BETWEEN CURRENT ROW AND upper`
+| `rowsBetween(lower, upper)` | Creates a rows-based window, `ROWS BETWEEN lower AND upper`
+| `partitionBy(expr...)`<br/>`partitionBy(exprList)` | Partitions the window on the given expressions (see SQL `PARTITION BY`)
+| `orderBy(expr...)`<br/>`sort(exprList)` | Sorts the rows in the window (see SQL `ORDER BY`)
+| `allowPartial(b)`    | Sets whether to allow partial width windows; default true
+| `nullWhenCountZero(b)` | Sets whether whether the aggregate function should evaluate to null if no rows are in the window; default false
+| `as(alias)`          | Assigns a column alias (see SQL `AS`) and converts this `OverCall` to a `RexNode`
+| `toRex()`            | Converts this `OverCall` to a `RexNode`

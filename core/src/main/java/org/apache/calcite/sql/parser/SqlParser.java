@@ -27,8 +27,11 @@ import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.SourceStringReader;
+
+import com.google.common.collect.ImmutableSet;
+
+import org.immutables.value.Value;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -38,6 +41,8 @@ import java.util.Set;
 /**
  * A <code>SqlParser</code> parses a SQL statement.
  */
+@Value.Enclosing
+@SuppressWarnings("deprecation")
 public class SqlParser {
   public static final int DEFAULT_IDENTIFIER_MAX_LENGTH = 128;
   @Deprecated // to be removed before 2.0
@@ -242,64 +247,71 @@ public class SqlParser {
   /**
    * Interface to define the configuration for a SQL parser.
    */
+  @Value.Immutable
+  @SuppressWarnings("deprecation")
   public interface Config {
     /** Default configuration. */
-    Config DEFAULT = ImmutableBeans.create(Config.class)
-        .withLex(Lex.ORACLE)
-        .withIdentifierMaxLength(DEFAULT_IDENTIFIER_MAX_LENGTH)
-        .withConformance(SqlConformanceEnum.DEFAULT)
-        .withParserFactory(SqlParserImpl.FACTORY);
+    Config DEFAULT = ImmutableSqlParser.Config.of();
 
-    @ImmutableBeans.Property()
-    @ImmutableBeans.IntDefault(DEFAULT_IDENTIFIER_MAX_LENGTH)
-    int identifierMaxLength();
+    @Value.Default default int identifierMaxLength() {
+      return DEFAULT_IDENTIFIER_MAX_LENGTH;
+    }
 
     /** Sets {@link #identifierMaxLength()}. */
     Config withIdentifierMaxLength(int identifierMaxLength);
 
-    @ImmutableBeans.Property
-    Casing quotedCasing();
+    @Value.Default default Casing quotedCasing() {
+      return Casing.UNCHANGED;
+    }
 
     /** Sets {@link #quotedCasing()}. */
     Config withQuotedCasing(Casing casing);
 
-    @ImmutableBeans.Property
-    Casing unquotedCasing();
+    @Value.Default default Casing unquotedCasing() {
+      return Casing.TO_UPPER;
+    }
 
     /** Sets {@link #unquotedCasing()}. */
     Config withUnquotedCasing(Casing casing);
 
-    @ImmutableBeans.Property
-    Quoting quoting();
+    @Value.Default default Quoting quoting() {
+      return Quoting.DOUBLE_QUOTE;
+    }
 
     /** Sets {@link #quoting()}. */
     Config withQuoting(Quoting quoting);
 
-    @ImmutableBeans.Property()
-    @ImmutableBeans.BooleanDefault(true)
-    boolean caseSensitive();
+    @Value.Default default boolean caseSensitive() {
+      return true;
+    }
 
     /** Sets {@link #caseSensitive()}. */
     Config withCaseSensitive(boolean caseSensitive);
 
-    @ImmutableBeans.Property
-    SqlConformance conformance();
+    @Value.Default default SqlConformance conformance() {
+      return SqlConformanceEnum.DEFAULT;
+    }
 
     /** Sets {@link #conformance()}. */
     Config withConformance(SqlConformance conformance);
 
     @Deprecated // to be removed before 2.0
-    boolean allowBangEqual();
+    @SuppressWarnings("deprecation")
+    @Value.Default default boolean allowBangEqual() {
+      return DEFAULT_ALLOW_BANG_EQUAL;
+    }
 
     /** Returns which character literal styles are supported. */
-    @ImmutableBeans.Property
-    Set<CharLiteralStyle> charLiteralStyles();
+    @Value.Default default Set<CharLiteralStyle> charLiteralStyles() {
+      return ImmutableSet.of(CharLiteralStyle.STANDARD);
+    }
 
     /** Sets {@link #charLiteralStyles()}. */
-    Config withCharLiteralStyles(Set<CharLiteralStyle> charLiteralStyles);
+    Config withCharLiteralStyles(Iterable<CharLiteralStyle> charLiteralStyles);
 
-    @ImmutableBeans.Property
-    SqlParserImplFactory parserFactory();
+    @Value.Default default SqlParserImplFactory parserFactory() {
+      return SqlParserImpl.FACTORY;
+    }
 
     /** Sets {@link #parserFactory()}. */
     Config withParserFactory(SqlParserImplFactory factory);

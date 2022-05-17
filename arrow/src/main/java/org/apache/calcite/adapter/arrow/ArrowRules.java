@@ -34,6 +34,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.List;
 
@@ -46,8 +47,8 @@ public class ArrowRules {
   public static final ArrowProjectRule PROJECT_SCAN =
       ArrowProjectRule.DEFAULT_CONFIG.toRule(ArrowProjectRule.class);
 
-  public static final ArrowFilterRule FILTER_SCAN =
-      ArrowFilterRule.Config.DEFAULT.toRule();
+  public static final RelOptRule FILTER_SCAN =
+      ArrowFilterRule.ArrowRuleConfig.DEFAULT.toRule();
 
   public static final ArrowToEnumerableConverterRule TO_ENUMERABLE =
       ArrowToEnumerableConverterRule.DEFAULT_CONFIG
@@ -74,10 +75,10 @@ public class ArrowRules {
    * Rule to convert a {@link org.apache.calcite.rel.core.Filter} to an
    * {@link ArrowFilter}.
    */
-  public static class ArrowFilterRule extends RelRule<ArrowFilterRule.Config> {
+  public static class ArrowFilterRule extends RelRule<ArrowFilterRule.ArrowRuleConfig> {
 
     /** Creates an ArrowFilterRule. */
-    protected ArrowFilterRule(Config config) {
+    protected ArrowFilterRule(ArrowRuleConfig config) {
       super(config);
     }
 
@@ -99,12 +100,13 @@ public class ArrowRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface ArrowRuleConfig extends RelRule.Config {
+      Config DEFAULT = ImmutableArrowRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class).oneInput(b1 ->
                   b1.operand(ArrowTableScan.class).noInputs()))
-          .as(Config.class);
+          .build();
 
       @Override default ArrowFilterRule toRule() {
         return new ArrowFilterRule(this);

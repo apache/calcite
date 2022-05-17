@@ -33,6 +33,8 @@ import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
  * which have not yet been acted upon.
@@ -87,7 +89,7 @@ class IterativeRuleQueue extends RuleQueue {
     matchList.offer(match);
 
     matchList.matchMap.put(
-        planner.getSubset(match.rels[0]), match);
+        requireNonNull(planner.getSubset(match.rels[0])), match);
   }
 
   /**

@@ -4519,6 +4519,7 @@ public abstract class EnumerableDefaults {
    * @param all whether duplicates will be considered or not
    * @param comparer {@link EqualityComparer} to control duplicates,
    *                 only used if {@code all} is {@code false}
+   * @param cleanUpFunction optional clean-up actions (e.g. delete temporary table)
    * @param <TSource> record type
    */
   @SuppressWarnings("unchecked")
@@ -4527,7 +4528,8 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> iteration,
       int iterationLimit,
       boolean all,
-      EqualityComparer<TSource> comparer) {
+      EqualityComparer<TSource> comparer,
+      @Nullable Function0<Boolean> cleanUpFunction) {
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
         return new Enumerator<TSource>() {
@@ -4623,6 +4625,9 @@ public abstract class EnumerableDefaults {
           }
 
           @Override public void close() {
+            if (cleanUpFunction != null) {
+              cleanUpFunction.apply();
+            }
             seedEnumerator.close();
             if (iterativeEnumerator != null) {
               iterativeEnumerator.close();

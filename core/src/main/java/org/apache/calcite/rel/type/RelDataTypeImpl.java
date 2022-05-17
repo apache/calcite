@@ -35,6 +35,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -50,6 +51,12 @@ import static java.util.Objects.requireNonNull;
  */
 public abstract class RelDataTypeImpl
     implements RelDataType, RelDataTypeFamily {
+
+  /**
+   * Suffix for the digests of non-nullable types.
+   */
+  public static final String NON_NULLABLE_SUFFIX = " NOT NULL";
+
   //~ Instance fields --------------------------------------------------------
 
   protected final @Nullable List<RelDataTypeField> fieldList;
@@ -85,15 +92,23 @@ public abstract class RelDataTypeImpl
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public @Nullable RelDataTypeField getField(String fieldName, boolean caseSensitive,
-      boolean elideRecord) {
+  @Override public @Nullable RelDataTypeField getField(String fieldName,
+      boolean caseSensitive, boolean elideRecord) {
     if (fieldList == null) {
       throw new IllegalStateException("Trying to access field " + fieldName
           + " in a type with no fields: " + this);
     }
-    for (RelDataTypeField field : fieldList) {
-      if (Util.matches(caseSensitive, field.getName(), fieldName)) {
+    final Map<String, RelDataTypeField> fieldMap = getFieldMap();
+    if (caseSensitive && fieldMap != null) {
+      RelDataTypeField field = fieldMap.get(fieldName);
+      if (field != null) {
         return field;
+      }
+    } else {
+      for (RelDataTypeField field : fieldList) {
+        if (Util.matches(caseSensitive, field.getName(), fieldName)) {
+          return field;
+        }
       }
     }
     if (elideRecord) {
@@ -121,13 +136,32 @@ public abstract class RelDataTypeImpl
     }
 
     // a dynamic * field will match any field name.
-    for (RelDataTypeField field : fieldList) {
-      if (field.isDynamicStar()) {
-        // the requested field could be in the unresolved star
-        return field;
+    if (fieldMap != null) {
+      return fieldMap.get("");
+    } else {
+      for (RelDataTypeField field : fieldList) {
+        if (field.isDynamicStar()) {
+          // the requested field could be in the unresolved star
+          return field;
+        }
       }
     }
 
+    return null;
+  }
+
+  /** Returns a map from field names to fields.
+   *
+   * <p>Matching is case-sensitive.
+   *
+   * <p>If several fields have the same name, the map contains the first.
+   *
+   * <p>A {@link RelDataTypeField#isDynamicStar() dynamic star field} is indexed
+   * under its own name and "" (the empty string).
+   *
+   * <p>If the map is null, the type must do lookup the long way.
+   */
+  protected @Nullable Map<String, RelDataTypeField> getFieldMap() {
     return null;
   }
 
@@ -279,7 +313,7 @@ public abstract class RelDataTypeImpl
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, true);
     if (!isNullable()) {
-      sb.append(" NOT NULL");
+      sb.append(NON_NULLABLE_SUFFIX);
     }
     digest = sb.toString();
   }

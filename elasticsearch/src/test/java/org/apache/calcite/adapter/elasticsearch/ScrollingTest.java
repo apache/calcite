@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.elasticsearch;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ConnectionFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -34,7 +35,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,7 +46,6 @@ import java.util.stream.IntStream;
  * Tests usage of scrolling API like correct results and resource cleanup
  * (delete scroll after scan).
  */
-@Disabled("RestClient often timeout in PR CI")
 @ResourceLock("elasticsearch-scrolls")
 class ScrollingTest {
 
@@ -66,16 +65,16 @@ class ScrollingTest {
     NODE.insertBulk(NAME, docs);
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory(int fetchSize) {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
-        ElasticsearchSchema schema = new ElasticsearchSchema(NODE.restClient(), NODE.mapper(),
-            NAME, fetchSize);
-        root.add("elastic", schema);
-        return connection;
-      }
+  private ConnectionFactory newConnectionFactory(int fetchSize) {
+    return () -> {
+      final Connection connection =
+          DriverManager.getConnection("jdbc:calcite:");
+      final SchemaPlus root =
+          connection.unwrap(CalciteConnection.class).getRootSchema();
+      root.add("elastic",
+          new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME,
+              fetchSize));
+      return connection;
     };
   }
 

@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.util.Util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -50,9 +51,9 @@ public class RelRunners {
     rel = rel.accept(shuttle);
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
       final RelRunner runner = connection.unwrap(RelRunner.class);
-      return runner.prepare(rel);
+      return runner.prepareStatement(rel);
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw Util.throwAsRuntime(e);
     }
   }
 }

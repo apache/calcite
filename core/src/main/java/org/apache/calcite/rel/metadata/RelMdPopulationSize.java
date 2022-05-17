@@ -27,7 +27,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,7 +42,7 @@ public class RelMdPopulationSize
     implements MetadataHandler<BuiltInMetadata.PopulationSize> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.POPULATION_SIZE.method, new RelMdPopulationSize());
+          new RelMdPopulationSize(), BuiltInMetadata.PopulationSize.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -107,6 +107,20 @@ public class RelMdPopulationSize
 
   public @Nullable Double getPopulationSize(Project rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey) {
+    // try to remove const columns from the group keys, as they do not
+    // affect the population size
+    ImmutableBitSet nonConstCols = RexUtil.getNonConstColumns(groupKey, rel.getProjects());
+    if (nonConstCols.cardinality() == 0) {
+      // all columns are constants, the population size should be 1
+      return 1D;
+    }
+
+    if (nonConstCols.cardinality() < groupKey.cardinality()) {
+      // some const columns can be removed, call the method recursively
+      // with the trimmed columns
+      return getPopulationSize(rel, mq, nonConstCols);
+    }
+
     ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
     ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();

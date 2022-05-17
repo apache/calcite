@@ -14,12 +14,11 @@
 # limitations under the License.
 #
 source 'https://rubygems.org'
-gem 'github-pages', '182'
-gem 'rouge'
-gem 'jekyll-redirect-from'
+gem 'jekyll', '~>4'
+gem "webrick", "~> 1.7"
+gem "nokogiri", "~> 1.13"
 
 group :jekyll_plugins do
-  gem 'jekyll_oembed'
+  gem 'jekyll-redirect-from'
 end
-
 # End Gemfile

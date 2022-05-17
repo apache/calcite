@@ -164,19 +164,20 @@ public class ExtensionDdlExecutor extends DdlExecutorImpl {
       final SqlNode query1 = planner.parse(sql);
       final SqlNode query2 = planner.validate(query1);
       final RelRoot r = planner.rel(query2);
-      final PreparedStatement prepare = context.getRelRunner().prepare(r.rel);
+      final PreparedStatement prepare =
+          context.getRelRunner().prepareStatement(r.rel);
       int rowCount = prepare.executeUpdate();
       Util.discard(rowCount);
       prepare.close();
     } catch (SqlParseException | ValidationException
         | RelConversionException | SQLException e) {
-      throw new RuntimeException(e);
+      throw Util.throwAsRuntime(e);
     }
   }
 
   /** Table backed by a Java list. */
   private static class MutableArrayTable
-      extends JdbcTest.AbstractModifiableTable {
+      extends AbstractModifiableTable {
     final List list = new ArrayList();
     private final RelProtoDataType protoRowType;
 

@@ -34,6 +34,13 @@ on:
     branches:
       - '*'
 
+concurrency:
+  # On main/release, we don't want any jobs cancelled so the sha is used to name the group
+  # On PR branches, we cancel the job if new commits are pushed
+  # More info: https://stackoverflow.com/a/68422069/253468
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' ) && format('ci-main-{0}', github.sha) || format('ci-main-{0}', github.ref) }}
+  cancel-in-progress: true
+
 # Throw OutOfMemoryError in case less than 35% is free after full GC
 # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
 env:
@@ -74,7 +81,7 @@ jobs:
 
   linux-avatica:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 11), Avatica master'
+    name: 'Linux (JDK 11), Avatica main'
     runs-on: ubuntu-latest
     steps:
     - name: 'Set up JDK 11'
@@ -83,7 +90,7 @@ jobs:
         java-version: 11
     - name: 'Clone Avatica to Maven Local repository'
       run: |
-        git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
+        git clone --branch main --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
     - uses: burrunan/gradle-cache-action@v1
       name: Build Avatica
       env:
@@ -95,7 +102,7 @@ jobs:
         build-root-directory: ../calcite-avatica
         arguments: publishToMavenLocal
         properties: |
-          calcite.avatica.version=1.0.0-dev-master
+          calcite.avatica.version=1.0.0-dev-main
           skipJavadoc=
     - uses: actions/checkout@v2
       with:
@@ -111,7 +118,7 @@ jobs:
         execution-only-caches: true
         arguments: --scan --no-parallel --no-daemon build javadoc
         properties: |
-          calcite.avatica.version=1.0.0-dev-master-SNAPSHOT
+          calcite.avatica.version=1.0.0-dev-main-SNAPSHOT
           enableMavenLocal=
 
   linux-openj9:
@@ -135,7 +142,8 @@ jobs:
         with:
           job-id: jdk8-openj9
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon build javadoc
+          # Temporarily disable hadoop related tests due to https://github.com/eclipse-openj9/openj9/issues/14950
+          arguments: --scan --no-parallel --no-daemon -x :piglet:test -x :spark:test build javadoc
       - name: 'sqlline and sqllsh'
         run: |
           ./sqlline -e '!quit'
@@ -148,23 +156,23 @@ jobs:
 
   mac:
     if: github.event.action != 'labeled'
-    name: 'macOS (JDK 15)'
+    name: 'macOS (JDK 18)'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 15'
+      - name: 'Set up JDK 18'
         uses: actions/setup-java@v1
         with:
-          java-version: 15
+          java-version: 18
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
-          job-id: jdk15
+          job-id: jdk18
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'
@@ -221,9 +229,9 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes
 
   linux-slow:
-    # Run slow tests when the commit is on master or it is requested explicitly by adding an
+    # Run slow tests when the commit is on main or it is requested explicitly by adding an
     # appropriate label in the PR
-    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'slow-tests-needed')
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'slow-tests-needed')
     name: 'Linux (JDK 8) Slow Tests'
     runs-on: ubuntu-latest
     steps:
@@ -254,7 +262,7 @@ jobs:
       with:
         java-version: 8
     - name: 'Checkout Druid dataset'
-      uses: actions/checkout@master
+      uses: actions/checkout@v3
       with:
         repository: zabetak/calcite-druid-dataset
         fetch-depth: 1
@@ -280,6 +288,7 @@ jobs:
         path: calcite
     - uses: burrunan/gradle-cache-action@v1
       name: 'Run Druid tests'
+      timeout-minutes: 10
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}

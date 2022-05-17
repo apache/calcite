@@ -27,6 +27,8 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -50,6 +52,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.util.AbstractList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,9 +70,31 @@ import java.util.Objects;
  *
  * <p>Created by {@link org.apache.calcite.rel.rules.ProjectToWindowRule}.
  */
-public abstract class Window extends SingleRel {
+public abstract class Window extends SingleRel implements Hintable {
   public final ImmutableList<Group> groups;
   public final ImmutableList<RexLiteral> constants;
+  protected final ImmutableList<RelHint> hints;
+
+  /**
+   * Creates a window relational expression.
+   *
+   * @param cluster Cluster
+   * @param traitSet Trait set
+   * @param hints   Hints for this node
+   * @param input   Input relational expression
+   * @param constants List of constants that are additional inputs
+   * @param rowType Output row type
+   * @param groups Windows
+   */
+  protected Window(RelOptCluster cluster, RelTraitSet traitSet, List<RelHint> hints,
+      RelNode input, List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
+    super(cluster, traitSet, input);
+    this.constants = ImmutableList.copyOf(constants);
+    assert rowType != null;
+    this.rowType = rowType;
+    this.groups = ImmutableList.copyOf(groups);
+    this.hints = ImmutableList.copyOf(hints);
+  }
 
   /**
    * Creates a window relational expression.
@@ -81,13 +106,9 @@ public abstract class Window extends SingleRel {
    * @param rowType Output row type
    * @param groups Windows
    */
-  protected Window(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+  public Window(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
-    super(cluster, traitSet, input);
-    this.constants = ImmutableList.copyOf(constants);
-    assert rowType != null;
-    this.rowType = rowType;
-    this.groups = ImmutableList.copyOf(groups);
+    this(cluster, traitSet, Collections.emptyList(), input, constants, rowType, groups);
   }
 
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
@@ -427,5 +448,9 @@ public abstract class Window extends SingleRel {
     @Override public RexCall clone(RelDataType type, List<RexNode> operands) {
       return super.clone(type, operands);
     }
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 }
