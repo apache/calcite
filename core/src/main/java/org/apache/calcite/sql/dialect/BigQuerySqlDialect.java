@@ -1530,13 +1530,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  @Override public @Nullable SqlNode getCastSpecWithPrecision(final RelDataType type,
-      final boolean isColumnLengthPresent) {
+  @Override public @Nullable SqlNode getCastSpecWithPrecisionAndScale(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       final int precision = type.getPrecision();
       final int scale = type.getScale();
-      boolean isContainsPrecision = type.toString().matches("^.*[\\(\\)].*");
+      boolean isContainsPrecision = type.toString().matches("\\w+\\(\\d+(, \\d+)?\\)$");
       boolean isContainsScale = type.toString().contains(",");
       boolean isContainsNegativePrecisionOrScale = type.toString().contains("-");
       String typeAlias;
@@ -1556,7 +1555,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName(typeAlias, typeName);
       case CHAR:
       case VARCHAR:
-        if (isColumnLengthPresent) {
+        if (isContainsPrecision) {
           typeAlias =  precision > 0 ? "STRING(" + precision + ")" : "STRING";
         } else {
           typeAlias = "STRING";
