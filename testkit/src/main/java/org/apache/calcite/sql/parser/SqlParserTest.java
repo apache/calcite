@@ -1287,11 +1287,20 @@ public class SqlParserTest {
 
   @Test void testRowWithDot() {
     sql("select (1,2).a from c.t")
-        .ok("SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
+        .ok("SELECT ((ROW(1, 2)).`A`)\n"
+            + "FROM `C`.`T`");
     sql("select row(1,2).a from c.t")
-        .ok("SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
+        .ok("SELECT ((ROW(1, 2)).`A`)\n"
+            + "FROM `C`.`T`");
     sql("select tbl.foo(0).col.bar from tbl")
-        .ok("SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`)\nFROM `TBL`");
+        .ok("SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`)\n"
+            + "FROM `TBL`");
+  }
+
+  @Test void testDotAfterParenthesizedIdentifier() {
+    sql("select (a).c.d from c.t")
+        .ok("SELECT ((`A`.`C`).`D`)\n"
+            + "FROM `C`.`T`");
   }
 
   @Test void testPeriod() {
