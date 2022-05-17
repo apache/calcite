@@ -2027,19 +2027,7 @@ SqlNode Join() :
     SqlParserPos pos;
 }
 {
-    (
-        LOOKAHEAD(2)
-        <LPAREN>
-        (
-            LOOKAHEAD(<SELECT> | <TABLE>)
-            e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
-        |
-            e = Join()
-        )
-        <RPAREN>
-    |
-        e = TableRefNoParen()
-    )
+    e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
     (
         LOOKAHEAD(2)
         (
@@ -2142,13 +2130,29 @@ SqlNode TableRef() :
     final SqlNode e;
 }
 {
-    e = TableRef2(false) { return e; }
+    e = TableRef3(ExprContext.ACCEPT_QUERY, false) { return e; }
+}
+
+SqlNode TableRef1(ExprContext exprContext) :
+{
+    final SqlNode e;
+}
+{
+    e = TableRef3(exprContext, false) { return e; }
 }
 
 /**
  * Parses a table reference in a FROM clause.
  */
 SqlNode TableRef2(boolean lateral) :
+{
+    final SqlNode e;
+}
+{
+    e = TableRef3(ExprContext.ACCEPT_QUERY, true) { return e; }
+}
+
+SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
 {
     SqlNode tableRef;
     final SqlNode over;
@@ -2191,7 +2195,7 @@ SqlNode TableRef2(boolean lateral) :
     |
         LOOKAHEAD(2)
         [ <LATERAL> { lateral = true; } ]
-        tableRef = ParenthesizedQueryOrJoin()
+        tableRef = ParenthesizedExpression(exprContext)
         over = TableOverOpt()
         {
             if (over != null) {

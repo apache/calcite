@@ -327,6 +327,11 @@ public abstract class SqlAbstractParserImpl {
     ACCEPT_QUERY,
 
     /**
+     * Accept only query expressions or joins in this context.
+     */
+    ACCEPT_QUERY_OR_JOIN,
+
+    /**
      * Accept only non-query expressions in this context.
      */
     ACCEPT_NON_QUERY,
