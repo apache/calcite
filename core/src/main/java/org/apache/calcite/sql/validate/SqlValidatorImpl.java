@@ -3726,10 +3726,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       current = stripOver(current);
 
       SqlNode stripDot = requireNonNull(stripDot(current), "stripDot(current)");
-      List<? extends @Nullable SqlNode> children =
-          ((SqlCall) stripAs(stripDot)).getOperandList();
-      for (SqlNode child : children) {
-        checkRollUp(parent, current, child, scope, optionalClause);
+      if (stripDot != current) {
+        checkRollUp(grandParent, parent, stripDot, scope, optionalClause);
+      } else {
+        List<? extends @Nullable SqlNode> children =
+            ((SqlCall) stripAs(stripDot)).getOperandList();
+        for (SqlNode child : children) {
+          checkRollUp(parent, current, child, scope, optionalClause);
+        }
       }
     } else if (current instanceof SqlIdentifier) {
       SqlIdentifier id = (SqlIdentifier) current;
