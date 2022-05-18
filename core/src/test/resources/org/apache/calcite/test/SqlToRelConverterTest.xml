@@ -411,6 +411,16 @@ LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testBigIntervalHourPrecision">
+    <Resource name="sql">
+      <![CDATA[interval '1000000' hour]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+3600000000000:INTERVAL HOUR
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCase">
     <Resource name="plan">
       <![CDATA[
