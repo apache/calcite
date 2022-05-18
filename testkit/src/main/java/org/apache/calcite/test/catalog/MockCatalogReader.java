@@ -366,7 +366,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.wraps = ImmutableList.of();
     }
 
-    void addWrap(Object wrap) {
+    public void addWrap(Object wrap) {
       if (wraps instanceof ImmutableList) {
         wraps = new ArrayList<>(wraps);
       }

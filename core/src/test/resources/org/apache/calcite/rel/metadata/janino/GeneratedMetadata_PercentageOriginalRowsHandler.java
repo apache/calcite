@@ -64,6 +64,8 @@ public final class GeneratedMetadata_PercentageOriginalRowsHandler
       return provider0.getPercentageOriginalRows((org.apache.calcite.rel.core.Aggregate) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Join) {
       return provider0.getPercentageOriginalRows((org.apache.calcite.rel.core.Join) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
+      return provider0.getPercentageOriginalRows((org.apache.calcite.rel.core.TableScan) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Union) {
       return provider0.getPercentageOriginalRows((org.apache.calcite.rel.core.Union) r, mq);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {

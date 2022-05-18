@@ -149,6 +149,11 @@ public class RelMdCollation
 
   public @Nullable ImmutableList<RelCollation> collations(TableScan scan,
       RelMetadataQuery mq) {
+    final BuiltInMetadata.Collation.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Collation.Handler.class);
+    if (handler != null) {
+      return handler.collations(scan, mq);
+    }
     return copyOf(table(scan.getTable()));
   }
 
