@@ -111,24 +111,27 @@ class ArrowEnumerator implements Enumerator<Object> {
     } else {
       if (selectionVector == null
           || selectionVectorIndex >= selectionVector.getRecordCount()) {
-        final boolean hasNextBatch;
-        try {
-          hasNextBatch = arrowFileReader.loadNextBatch();
-        } catch (IOException e) {
-          throw Util.toUnchecked(e);
-        }
-        if (hasNextBatch) {
-          selectionVectorIndex = 0;
-          this.valueVectors.clear();
-          loadNextArrowBatch();
-          assert selectionVector != null;
-          if (selectionVectorIndex >= selectionVector.getRecordCount()) {
+        boolean hasNextBatch;
+        while (true) {
+          try {
+            hasNextBatch = arrowFileReader.loadNextBatch();
+          } catch (IOException e) {
+            throw Util.toUnchecked(e);
+          }
+          if (hasNextBatch) {
+            selectionVectorIndex = 0;
+            this.valueVectors.clear();
+            loadNextArrowBatch();
+            assert selectionVector != null;
+            if (selectionVectorIndex >= selectionVector.getRecordCount()) {
+              // the "filtered" batch is empty, but there may be more batches to fetch
+              continue;
+            }
+            rowIndex = selectionVector.getIndex(selectionVectorIndex++);
+            return true;
+          } else {
             return false;
           }
-          rowIndex = selectionVector.getIndex(selectionVectorIndex++);
-          return true;
-        } else {
-          return false;
         }
       } else {
         rowIndex = selectionVector.getIndex(selectionVectorIndex++);

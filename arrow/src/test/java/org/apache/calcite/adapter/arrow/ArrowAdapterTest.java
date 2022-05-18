@@ -180,6 +180,22 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  @Test void testArrowProjectFieldsWithFilterOnLaterBatch() {
+    String sql = "select \"intField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\"=25";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0])\n"
+        + "    ArrowFilter(condition=[=($0, 25)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+    String result = "intField=25\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
   // TODO: test a table whose field names contain spaces,
   // e.g. 'SELECT ... WHERE "my Field" > 5'
   // (code generator does not seem to quote field names currently)
