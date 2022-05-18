@@ -187,7 +187,7 @@ public class ArrowTable extends AbstractTable
     case "double":
       return TreeBuilder.makeLiteral(Double.parseDouble(literal));
     case "string":
-      return TreeBuilder.makeStringLiteral(literal.substring(1, literal.length()-1));
+      return TreeBuilder.makeStringLiteral(literal.substring(1, literal.length() - 1));
     default:
       throw new AssertionError("Invalid literal " + literal
           + ", type " + type);

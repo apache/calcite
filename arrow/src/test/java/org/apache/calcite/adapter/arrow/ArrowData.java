@@ -17,7 +17,11 @@
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.FloatingPointVector;
+import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.VarCharVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.ipc.ArrowFileWriter;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
@@ -31,10 +35,14 @@ import com.google.common.collect.ImmutableList;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 
+/**
+ * Class that can be used to generate Arrow sample data into a data directory.
+ */
 public class ArrowData {
 
-  private int batchSize;
+  private final int batchSize;
   private final int entries;
   private int intValue;
   private int stringValue;
@@ -48,44 +56,49 @@ public class ArrowData {
     this.floatValue = 0;
   }
 
-  private Schema makeArrowSchema(){
+  private Schema makeArrowSchema() {
     ImmutableList.Builder<Field> childrenBuilder = ImmutableList.builder();
-    childrenBuilder.add(new Field("intField", FieldType.nullable(new ArrowType.Int(32, true)), null));
-    childrenBuilder.add(new Field("stringField", FieldType.nullable(new ArrowType.Utf8()), null));
-    childrenBuilder.add(new Field("floatField", FieldType.nullable(new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE)), null));
+    FieldType intType = FieldType.nullable(new ArrowType.Int(32, true));
+    FieldType stringType = FieldType.nullable(new ArrowType.Utf8());
+    FieldType floatType = FieldType.nullable(
+        new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE));
+
+    childrenBuilder.add(new Field("intField", intType, null));
+    childrenBuilder.add(new Field("stringField", stringType, null));
+    childrenBuilder.add(new Field("floatField", floatType, null));
+
     return new Schema(childrenBuilder.build(), null);
   }
 
-  public void writeArrowData() throws Exception {
-    File file = new File("src/test/resources/arrow/arrowData.arrow");
-    file.createNewFile();
+  public void writeArrowData(File file) throws IOException {
     FileOutputStream fileOutputStream = new FileOutputStream(file);
     Schema arrowSchema = makeArrowSchema();
     VectorSchemaRoot vectorSchemaRoot = VectorSchemaRoot.create(arrowSchema,
         new RootAllocator(Integer.MAX_VALUE));
-    DictionaryProvider.MapDictionaryProvider provider = new DictionaryProvider.MapDictionaryProvider();
-    ArrowFileWriter arrowFileWriter = new ArrowFileWriter(vectorSchemaRoot, provider,
-        fileOutputStream.getChannel());
+    DictionaryProvider.MapDictionaryProvider provider =
+        new DictionaryProvider.MapDictionaryProvider();
+    ArrowFileWriter arrowFileWriter =
+        new ArrowFileWriter(vectorSchemaRoot, provider, fileOutputStream.getChannel());
 
     arrowFileWriter.start();
 
-    for (int i = 0; i < this.entries; ) {
+    for (int i = 0; i < this.entries;) {
       int numRows = Math.min(this.batchSize, this.entries - i);
       vectorSchemaRoot.setRowCount(numRows);
       for (Field field : vectorSchemaRoot.getSchema().getFields()) {
         FieldVector vector = vectorSchemaRoot.getVector(field.getName());
         switch (vector.getMinorType()) {
-          case INT:
-            intField(vector, numRows);
-            break;
-          case FLOAT4:
-            floatField(vector, numRows);
-            break;
-          case VARCHAR:
-            varCharField(vector, numRows);
-            break;
-          default:
-            throw new Exception("Not supported type yet: " + vector.getMinorType());
+        case INT:
+          intField(vector, numRows);
+          break;
+        case FLOAT4:
+          floatField(vector, numRows);
+          break;
+        case VARCHAR:
+          varCharField(vector, numRows);
+          break;
+        default:
+          throw new IllegalStateException("Not supported type yet: " + vector.getMinorType());
         }
       }
       arrowFileWriter.writeBatch();
@@ -97,22 +110,22 @@ public class ArrowData {
     fileOutputStream.close();
   }
 
-  private void intField(FieldVector fieldVector, int rowCount){
+  private void intField(FieldVector fieldVector, int rowCount) {
     IntVector intVector = (IntVector) fieldVector;
     intVector.setInitialCapacity(rowCount);
     intVector.allocateNew();
-    for(int i = 0; i < rowCount; i++){
+    for (int i = 0; i < rowCount; i++) {
       intVector.set(i, 1, intValue);
       this.intValue++;
     }
     fieldVector.setValueCount(rowCount);
   }
 
-  private void floatField(FieldVector fieldVector, int rowCount){
+  private void floatField(FieldVector fieldVector, int rowCount) {
     FloatingPointVector floatingPointVector = (FloatingPointVector) fieldVector;
     floatingPointVector.setInitialCapacity(rowCount);
     floatingPointVector.allocateNew();
-    for(int i = 0; i < rowCount; i++){
+    for (int i = 0; i < rowCount; i++) {
       float value = this.floatValue;
       floatingPointVector.setWithPossibleTruncate(i, value);
       this.floatValue++;
@@ -120,24 +133,15 @@ public class ArrowData {
     fieldVector.setValueCount(rowCount);
   }
 
-  private void varCharField(FieldVector fieldVector, int rowCount){
+  private void varCharField(FieldVector fieldVector, int rowCount) {
     VarCharVector varCharVector = (VarCharVector) fieldVector;
     varCharVector.setInitialCapacity(rowCount);
     varCharVector.allocateNew();
-    for(int i = 0; i < rowCount; i++){
+    for (int i = 0; i < rowCount; i++) {
       String value = String.valueOf(this.stringValue);
       varCharVector.set(i, new Text(value));
       this.stringValue++;
     }
     fieldVector.setValueCount(rowCount);
-  }
-
-  public static void main(String[] args) {
-    ArrowData arrowData = new ArrowData();
-    try {
-      arrowData.writeArrowData();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
   }
 }

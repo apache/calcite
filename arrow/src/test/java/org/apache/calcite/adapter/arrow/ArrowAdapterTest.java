@@ -26,9 +26,15 @@ import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,27 +42,31 @@ import static org.hamcrest.core.Is.is;
 
 /**
  * Tests for the Apache Arrow adapter.
- *
- * <p>The tests are only enabled on Linux, until
- * <a href="https://issues.apache.org/jira/browse/ARROW-11135">[ARROW-11135]
- * Using Maven Central artifacts as dependencies produce runtime errors</a>
- * is fixed. On macOS and Windows, the tests throw
- * {@link org.opentest4j.TestAbortedException}, which causes Junit to ignore
- * them.
  */
 class ArrowAdapterTest {
-  static final Map<String, String> ARROW =
-      ImmutableMap.of("model",
-          resourceFile("/arrow-model.json").getAbsolutePath());
+  private static Map<String, String> arrow;
+  private static File arrowDataDirectory;
 
-  static File resourceFile(String resourcePath) {
-    return Sources.of(ArrowAdapterTest.class.getResource(resourcePath)).file();
+  @BeforeAll
+  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException {
+    URL modelUrl = ArrowAdapterTest.class.getResource("/arrow-model.json");
+    Path sourceModelFilePath = Sources.of(modelUrl).file().toPath();
+    Path modelFileTarget = sharedTempDir.resolve("arrow-model.json");
+    Files.copy(sourceModelFilePath, modelFileTarget);
+
+    Path arrowFilesDirectory = sharedTempDir.resolve("arrow");
+    Files.createDirectory(arrowFilesDirectory);
+    arrowDataDirectory = arrowFilesDirectory.toFile();
+
+    File dataLocationFile = arrowFilesDirectory.resolve("arrowData.arrow").toFile();
+    new ArrowData().writeArrowData(dataLocationFile);
+
+    arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
   }
 
   /** Test to read an Arrow file and check its field names. */
   @Test void testArrowSchema() {
-    ArrowSchema arrowSchema =
-        new ArrowSchema(resourceFile("/arrow").getAbsoluteFile());
+    ArrowSchema arrowSchema = new ArrowSchema(arrowDataDirectory);
     Map<String, Table> tableMap = arrowSchema.getTableMap();
     RelDataTypeFactory typeFactory =
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -78,7 +88,7 @@ class ArrowAdapterTest {
         + "intField=4; stringField=4; floatField=4.0\n"
         + "intField=5; stringField=5; floatField=5.0\n";
     CalciteAssert.that()
-        .with(ARROW)
+        .with(arrow)
         .query(sql)
         .limit(6)
         .returns(result)
@@ -93,7 +103,7 @@ class ArrowAdapterTest {
         + "  ArrowProject(intField=[$0])\n"
         + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
-        .with(ARROW)
+        .with(arrow)
         .query(sql)
         .limit(6)
         .returns(result)
@@ -112,7 +122,7 @@ class ArrowAdapterTest {
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
         + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
-        .with(ARROW)
+        .with(arrow)
         .query(sql)
         .limit(6)
         .returns(result)
@@ -132,7 +142,7 @@ class ArrowAdapterTest {
         + "    ArrowFilter(condition=[<($0, 4)])\n"
         + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     CalciteAssert.that()
-        .with(ARROW)
+        .with(arrow)
         .query(sql)
         .limit(4)
         .returns(result)
@@ -149,7 +159,7 @@ class ArrowAdapterTest {
         + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     String result = "intField=12; stringField=12\n";
     CalciteAssert.that()
-        .with(ARROW)
+        .with(arrow)
         .query(sql)
         .limit(3)
         .returns(result)
@@ -164,7 +174,7 @@ class ArrowAdapterTest {
         + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
     String result = "intField=15; stringField=15; floatField=15.0\n";
     CalciteAssert.that()
-        .with(ARROW)
+        .with(arrow)
         .query(sql)
         .returns(result)
         .explainContains(plan);
