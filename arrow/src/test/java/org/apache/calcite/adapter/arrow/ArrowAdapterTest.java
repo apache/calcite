@@ -53,11 +53,6 @@ class ArrowAdapterTest {
     return Sources.of(ArrowAdapterTest.class.getResource(resourcePath)).file();
   }
 
-  ArrowAdapterTest() {
-//    assumeTrue(SystemUtils.IS_OS_LINUX,
-//        "Arrow adapter requires Linux, until [ARROW-11135] is fixed");
-  }
-
   /** Test to read an Arrow file and check its field names. */
   @Test void testArrowSchema() {
     ArrowSchema arrowSchema =
