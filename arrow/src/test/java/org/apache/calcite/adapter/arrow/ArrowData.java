@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.arrow;
-
-import com.google.common.collect.ImmutableList;
 
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.*;
@@ -30,12 +27,10 @@ import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.util.Text;
 
+import com.google.common.collect.ImmutableList;
+
 import java.io.File;
 import java.io.FileOutputStream;
-
-import org.apache.calcite.util.Sources;
-
-import org.junit.jupiter.api.Test;
 
 public class ArrowData {
 

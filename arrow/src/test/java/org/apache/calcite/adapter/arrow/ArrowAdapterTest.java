@@ -24,8 +24,6 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Sources;
 
-import org.apache.commons.lang3.SystemUtils;
-
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.Test;
@@ -35,7 +33,6 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Tests for the Apache Arrow adapter.
@@ -131,10 +128,10 @@ class ArrowAdapterTest {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" < 4";
-    String result = "intField=0; stringField=0\n" +
-        "intField=1; stringField=1\n" +
-        "intField=2; stringField=2\n" +
-        "intField=3; stringField=3\n";
+    String result = "intField=0; stringField=0\n"
+        + "intField=1; stringField=1\n"
+        + "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
         + "    ArrowFilter(condition=[<($0, 4)])\n"
