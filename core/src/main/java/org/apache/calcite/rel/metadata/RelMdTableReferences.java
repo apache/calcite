@@ -92,6 +92,11 @@ public class RelMdTableReferences
    * TableScan table reference.
    */
   public Set<RelTableRef> getTableReferences(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.TableReferences.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.TableReferences.Handler.class);
+    if (handler != null) {
+      return handler.getTableReferences(rel, mq);
+    }
     return ImmutableSet.of(RelTableRef.of(rel.getTable(), 0));
   }
 

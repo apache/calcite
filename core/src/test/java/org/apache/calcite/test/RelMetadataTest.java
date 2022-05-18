@@ -3261,6 +3261,44 @@ public class RelMetadataTest {
     });
   }
 
+  /** Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageColumnSizes(org.apache.calcite.rel.RelNode)}
+   * with a table that has its own implementation of {@link BuiltInMetadata.Size}. */
+  @Test void testCustomizedAverageColumnSizes() {
+    SqlTestFactory.CatalogReaderFactory factory = (typeFactory, caseSensitive) -> {
+      CompositeKeysCatalogReader catalogReader =
+          new CompositeKeysCatalogReader(typeFactory, false);
+      catalogReader.init();
+      return catalogReader;
+    };
+
+    final RelNode rel = sql("select key1, key2 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    List<Double> columnSizes = mq.getAverageColumnSizes(rel);
+    assertThat(columnSizes.size(), is(2));
+    assertThat(columnSizes.get(0), is(2.0));
+    assertThat(columnSizes.get(1), is(3.0));
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getDistinctRowCount(RelNode, ImmutableBitSet, RexNode)}
+   * with a table that has its own implementation of {@link BuiltInMetadata.Size}. */
+  @Test void testCustomizedDistinctRowcount() {
+    SqlTestFactory.CatalogReaderFactory factory = (typeFactory, caseSensitive) -> {
+      CompositeKeysCatalogReader catalogReader =
+          new CompositeKeysCatalogReader(typeFactory, false);
+      catalogReader.init();
+      return catalogReader;
+    };
+
+    final RelNode rel = sql("select key1, key2 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    Double ndv = mq.getDistinctRowCount(rel, ImmutableBitSet.of(0, 1), null);
+    assertThat(ndv, is(100.0));
+  }
+
   private void checkInputForCollationAndLimit(RelOptCluster cluster, RelOptTable empTable,
       RelOptTable deptTable) {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -3404,8 +3442,48 @@ public class RelMetadataTest {
       t1.addColumn("key1", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
       t1.addColumn("key2", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
       t1.addColumn("value1", typeFactory.createSqlType(SqlTypeName.INTEGER));
+      addSizeHandler(t1);
+      addDistinctRowcountHandler(t1);
+      addUniqueKeyHandler(t1);
       registerTable(t1);
       return this;
+    }
+
+    private void addSizeHandler(MockTable table) {
+      table.addWrap(
+          new BuiltInMetadata.Size.Handler() {
+            @Override public @Nullable Double averageRowSize(RelNode r, RelMetadataQuery mq) {
+              return null;
+            }
+
+            @Override public @Nullable List<@Nullable Double> averageColumnSizes(RelNode r,
+                RelMetadataQuery mq) {
+              List<Double> colSize = new ArrayList<>();
+              colSize.add(2D);
+              colSize.add(3D);
+              return colSize;
+            }
+          });
+    }
+
+    private void addDistinctRowcountHandler(MockTable table) {
+      table.addWrap(
+          new BuiltInMetadata.DistinctRowCount.Handler() {
+            @Override public @Nullable Double getDistinctRowCount(RelNode r, RelMetadataQuery mq,
+                ImmutableBitSet groupKey, @Nullable RexNode predicate) {
+              return 100D;
+            }
+          });
+    }
+
+    private void addUniqueKeyHandler(MockTable table) {
+      table.addWrap(
+          new BuiltInMetadata.UniqueKeys.Handler() {
+            @Override public @Nullable Set<ImmutableBitSet> getUniqueKeys(RelNode r,
+                RelMetadataQuery mq, boolean ignoreNulls) {
+              return ImmutableSet.of(ImmutableBitSet.of(0, 1));
+            }
+          });
     }
   }
 }
