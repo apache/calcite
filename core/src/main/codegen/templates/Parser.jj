@@ -120,6 +120,7 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Glossary;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SourceStringReader;
@@ -2509,8 +2510,7 @@ SqlNodeList GroupByOpt() :
     list = GroupingElementList() {
         if (distinct) {
             SqlNode groupByDistinct = SqlInternalOperators.GROUP_BY_DISTINCT.createCall(s.add(getPos()).pos(), list);
-            list = new ArrayList<SqlNode>();
-            list.add(groupByDistinct);
+            list = ImmutableNullableList.of(groupByDistinct);
         }
         return new SqlNodeList(list, s.addAll(list).pos());
     }
