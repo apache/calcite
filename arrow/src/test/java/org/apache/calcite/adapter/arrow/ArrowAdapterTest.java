@@ -214,7 +214,22 @@ class ArrowAdapterTest {
   // TODO: test 3-valued boolean logic, e.g. 'WHERE (x > 5) IS NOT FALSE',
   // 'SELECT (x > 5) ...'
 
-  // TODO: test string operations, e.g. SUBSTRING
+  @Test void testStringOperation() {
+    String sql = "select\n"
+        + "  \"stringField\" || '_suffix' as \"field1\"\n"
+        + "from arrowdata";
+    String plan = "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=['_suffix'], "
+            + "expr#4=[||($t1, $t3)], field1=[$t4])\n"
+            + "  ArrowToEnumerableConverter\n"
+            + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+    String result = "field1=0_suffix\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(1)
+        .returns(result)
+        .explainContains(plan);
+  }
 
   // TODO: test a join
   // (The implementor can only hold one table at a time, so I suspect this will
@@ -245,9 +260,35 @@ class ArrowAdapterTest {
 
   // TODO: test an aggregate that groups by a nullable column
 
-  // TODO: test a limit (with no sort),
-  // 'SELECT ... LIMIT 10'
+  @Test void testArrowAdapterLimitNoSort() {
+    String sql = "select \"intField\"\n"
+        + "from arrowdata\n"
+        + "limit 2";
+    String plan = "PLAN=EnumerableCalc(expr#0..2=[{inputs}], intField=[$t0])\n"
+        + "  EnumerableLimit(fetch=[2])\n"
+        + "    ArrowToEnumerableConverter\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+    String result = "intField=0\nintField=1\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
 
-  // TODO: test an offset and limit (with no sort),
-  // 'SELECT ... OFFSET 20 LIMIT 10'
+  @Test void testArrowLimitOffsetNoSort() {
+    String sql = "select \"intField\"\n"
+        + "from arrowdata\n"
+        + "limit 2 offset 2";
+    String plan = "PLAN=EnumerableCalc(expr#0..2=[{inputs}], intField=[$t0])\n"
+        + "  EnumerableLimit(offset=[2], fetch=[2])\n"
+        + "    ArrowToEnumerableConverter\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+    String result = "intField=2\nintField=3\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
 }
