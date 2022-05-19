@@ -98,7 +98,7 @@ public class AggregatingSelectScope
       boolean groupByDistinct = false;
       if (select.getGroup() != null) {
         SqlNodeList groupList = select.getGroup();
-        // if the GROUP_BY_DISTINCT operator is present it can be the only item
+        // if the DISTINCT keyword of GROUP BY is present it can be the only item
         if (groupList.size() == 1 && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
           groupList = new SqlNodeList(((SqlCall) groupList.get(0)).getOperandList(),
               groupList.getParserPosition());

@@ -617,6 +617,39 @@ select deptno, gender, count(*) from emp where deptno = 20 group by distinct cub
 
 !ok
 
+# GROUP BY over empty columns
+select count(*) from emp where deptno = 20 group by ();
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# GROUP BY DISTINCT over empty columns
+select count(*) from emp where deptno = 20 group by distinct ();
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# GROUP BY DISTINCT x + y
+select deptno + 1, count(*) from emp where deptno = 20 group by distinct deptno + 1;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     21 |      1 |
++--------+--------+
+(1 row)
+
+!ok
+
 # CUBE and JOIN
 select e.deptno, e.gender, min(e.ename) as min_name
 from emp as e join dept as d using (deptno)
