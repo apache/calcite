@@ -35,7 +35,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -48,8 +50,9 @@ class ArrowAdapterTest {
   private static File arrowDataDirectory;
 
   @BeforeAll
-  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException {
-    URL modelUrl = ArrowAdapterTest.class.getResource("/arrow-model.json");
+  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException, SQLException {
+    URL modelUrl = Objects.requireNonNull(
+        ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
     Path sourceModelFilePath = Sources.of(modelUrl).file().toPath();
     Path modelFileTarget = sharedTempDir.resolve("arrow-model.json");
     Files.copy(sourceModelFilePath, modelFileTarget);
@@ -58,8 +61,10 @@ class ArrowAdapterTest {
     Files.createDirectory(arrowFilesDirectory);
     arrowDataDirectory = arrowFilesDirectory.toFile();
 
-    File dataLocationFile = arrowFilesDirectory.resolve("arrowData.arrow").toFile();
-    new ArrowData().writeArrowData(dataLocationFile);
+    File dataLocationFile = arrowFilesDirectory.resolve("arrowdata.arrow").toFile();
+    ArrowData arrowDataGenerator = new ArrowData();
+    arrowDataGenerator.writeArrowData(dataLocationFile);
+    arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
 
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
   }
@@ -207,7 +212,98 @@ class ArrowAdapterTest {
   // FLOAT, DATE, TIME, TIMESTAMP, INTERVAL SECOND, INTERVAL MONTH, CHAR,
   // VARCHAR, BINARY, VARBINARY, BOOLEAN) with and without NOT NULL
 
+  @Test void testTinyIntProject() {
+    String sql = "select DEPTNO from DEPT";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(DEPTNO=[$0])\n"
+        + "    ArrowTableScan(table=[[ARROW, DEPT]], fields=[[0, 1, 2]])\n\n";
+    String result = "DEPTNO=10\nDEPTNO=20\nDEPTNO=30\nDEPTNO=40\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testSmallIntProject() {
+    String sql = "select EMPNO from EMP";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(EMPNO=[$0])\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+    String result = "EMPNO=7369\nEMPNO=7499\nEMPNO=7521\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
   // TODO: test casts, including lossy casts
+  @Test void testCastDecimalToInt() {
+    String sql = "select CAST(LOSAL AS INT) as \"trunc\" from SALGRADE";
+    String plan =
+        "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):INTEGER], trunc=[$t3])\n"
+            + "  ArrowToEnumerableConverter\n"
+            + "    ArrowTableScan(table=[[ARROW, SALGRADE]], fields=[[0, 1, 2]])\n\n";
+    String result = "trunc=700\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .typeIs("[trunc INTEGER]")
+        .limit(1)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testCastDecimalToFloat() {
+    String sql = "select CAST(LOSAL AS FLOAT) as \"extra\" from SALGRADE";
+    String plan = "PLAN=EnumerableCalc(expr#0..2=[{inputs}],"
+        + " expr#3=[CAST($t1):FLOAT], extra=[$t3])\n"
+        + "  ArrowToEnumerableConverter\n"
+        + "    ArrowTableScan(table=[[ARROW, SALGRADE]], fields=[[0, 1, 2]])\n\n";
+    String result = "extra=700.0\nextra=1201.0\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .typeIs("[extra FLOAT]")
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testCastDecimalToDouble() {
+    String sql = "select CAST(LOSAL AS DOUBLE) as \"extra\" from SALGRADE";
+    String plan =
+        "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):DOUBLE], extra=[$t3])\n"
+            + "  ArrowToEnumerableConverter\n"
+            + "    ArrowTableScan(table=[[ARROW, SALGRADE]], fields=[[0, 1, 2]])\n\n";
+    String result = "extra=700.0\nextra=1201.0\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .typeIs("[extra DOUBLE]")
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testCastIntToDouble() {
+    String sql = "select CAST(\"intField\" AS DOUBLE) as \"dbl\" from arrowdata";
+    String result = "dbl=0.0\ndbl=1.0\n";
+    String plan =
+        "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):DOUBLE], dbl=[$t3])\n"
+            + "  ArrowToEnumerableConverter\n"
+            + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .typeIs("[dbl DOUBLE]")
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
 
   // TODO: test IS NULL, IS NOT NULL
 
@@ -248,17 +344,75 @@ class ArrowAdapterTest {
 
   // TODO: test an IN condition, e.g. x IN (1, 7, 8, 9)
 
-  // TODO: test an aggregate without aggregate functions,
-  // 'SELECT DISTINCT ...'; hopefully Arrow can do this for us
+  @Test void testAggWithoutAggFunctions() {
+    String sql = "select DISTINCT(\"intField\") as \"dep\" from arrowdata";
+    String result = "dep=0\ndep=1\n";
 
-  // TODO: test an aggregate with aggregate functions,
-  // 'SELECT SUM(x) ... GROUP BY y'; hopefully Arrow can do this for us
+    String plan = "PLAN=EnumerableAggregate(group=[{0}])\n"
+        + "  ArrowToEnumerableConverter\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
 
-  // TODO: test an aggregate with filtered aggregate functions,
-  // 'SELECT SUM(x) FILTER WHERE (z > 5) ... GROUP BY y';
-  // hopefully Arrow can do this for us
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
 
-  // TODO: test an aggregate that groups by a nullable column
+  @Test void testAggWithAggFunctions() {
+    String sql = "select JOB, SUM(SAL) as TOTAL from EMP GROUP BY JOB";
+    String result = "JOB=SALESMAN; TOTAL=5600.00\nJOB=ANALYST; TOTAL=6000.00\n";
+
+    String plan = "PLAN=EnumerableAggregate(group=[{2}], TOTAL=[SUM($5)])\n"
+        + "  ArrowToEnumerableConverter\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testFilteredAgg() {
+    // TODO add group by
+    String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP";
+    String result = "SALESSUM=2500.00\n";
+
+    String plan = "PLAN=EnumerableAggregate(group=[{}], SALESSUM=[SUM($0) FILTER $1])\n"
+        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400], expr#9=[>($t6, $t8)], "
+        + "expr#10=[IS TRUE($t9)], SAL=[$t5], $f1=[$t10])\n"
+        + "    ArrowToEnumerableConverter\n"
+        + "      ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testAggGroupedByNullable() {
+    String sql = "select COMM, SUM(SAL) as SALESSUM from EMP GROUP BY COMM";
+    String result = "COMM=0.00; SALESSUM=1500.00\n"
+        + "COMM=1400.00; SALESSUM=1250.00\n"
+        + "COMM=300.00; SALESSUM=1600.00\n"
+        + "COMM=500.00; SALESSUM=1250.00\n"
+        + "COMM=null; SALESSUM=23425.00";
+
+    String plan = "PLAN=EnumerableAggregate(group=[{6}], SALESSUM=[SUM($5)])\n"
+        + "  ArrowToEnumerableConverter\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsUnordered(result)
+        .explainContains(plan);
+  }
 
   @Test void testArrowAdapterLimitNoSort() {
     String sql = "select \"intField\"\n"

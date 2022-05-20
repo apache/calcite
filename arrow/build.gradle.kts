@@ -22,6 +22,8 @@ dependencies {
     implementation("org.apache.arrow:arrow-vector")
     implementation("org.apache.arrow.gandiva:arrow-gandiva")
 
+    testImplementation("org.apache.arrow:arrow-jdbc")
+    testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.apache.commons:commons-lang3")
     testImplementation(project(":testkit"))
     annotationProcessor("org.immutables:value")

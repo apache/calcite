@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.arrow.adapter.jdbc.ArrowVectorIterator;
+import org.apache.arrow.adapter.jdbc.JdbcToArrow;
+import org.apache.arrow.adapter.jdbc.JdbcToArrowConfig;
+import org.apache.arrow.adapter.jdbc.JdbcToArrowConfigBuilder;
+import org.apache.arrow.adapter.jdbc.JdbcToArrowUtils;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.FloatingPointVector;
@@ -33,9 +38,19 @@ import org.apache.arrow.vector.util.Text;
 
 import com.google.common.collect.ImmutableList;
 
+import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Calendar;
+import java.util.List;
 
 /**
  * Class that can be used to generate Arrow sample data into a data directory.
@@ -68,6 +83,50 @@ public class ArrowData {
     childrenBuilder.add(new Field("floatField", floatType, null));
 
     return new Schema(childrenBuilder.build(), null);
+  }
+
+  public void writeScottEmpData(Path arrowDataDirectory) throws IOException, SQLException {
+    List<String> tableNames = ImmutableList.of("EMP", "DEPT", "SALGRADE");
+
+    Connection connection =
+        DriverManager.getConnection(ScottHsqldb.URI, ScottHsqldb.USER, ScottHsqldb.PASSWORD);
+
+    for (String tableName : tableNames) {
+      String sql = "SELECT * FROM " + tableName;
+      Statement statement = connection.createStatement();
+      ResultSet resultSet = statement.executeQuery(sql);
+
+      Calendar calendar = JdbcToArrowUtils.getUtcCalendar();
+
+      RootAllocator rootAllocator = new RootAllocator();
+      JdbcToArrowConfig config = new JdbcToArrowConfigBuilder()
+          .setAllocator(rootAllocator)
+          .setReuseVectorSchemaRoot(true)
+          .setCalendar(calendar)
+          .setTargetBatchSize(1024)
+          .build();
+
+      ArrowVectorIterator vectorIterator = JdbcToArrow.sqlToArrowVectorIterator(resultSet, config);
+      Path tablePath = arrowDataDirectory.resolve(tableName + ".arrow");
+
+      FileOutputStream fileOutputStream = new FileOutputStream(tablePath.toFile());
+
+      VectorSchemaRoot vectorSchemaRoot = vectorIterator.next();
+
+      ArrowFileWriter arrowFileWriter =
+          new ArrowFileWriter(vectorSchemaRoot, null, fileOutputStream.getChannel());
+
+      arrowFileWriter.start();
+      arrowFileWriter.writeBatch();
+
+      while (vectorIterator.hasNext()) {
+        // refreshes the data in the VectorSchemaRoot with the next batch
+        vectorIterator.next();
+        arrowFileWriter.writeBatch();
+      }
+
+      arrowFileWriter.close();
+    }
   }
 
   public void writeArrowData(File file) throws IOException {

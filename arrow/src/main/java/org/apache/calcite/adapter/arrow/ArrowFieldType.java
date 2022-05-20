@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,8 @@ enum ArrowFieldType {
   STRING(String.class, null),
   FLOAT(Primitive.FLOAT),
   DATE(Date.class, null),
-  LIST(List.class, null);
+  LIST(List.class, null),
+  DECIMAL(BigDecimal.class, null);
 
   private final Class<?> clazz;
 
@@ -53,6 +55,7 @@ enum ArrowFieldType {
           .put(ArrowType.FloatingPoint.class, FLOAT)
           .put(ArrowType.Date.class, DATE)
           .put(ArrowType.List.class, LIST)
+          .put(ArrowType.Decimal.class, DECIMAL)
           .build();
 
   ArrowFieldType(Primitive primitive) {
