@@ -1572,8 +1572,6 @@ public class SqlOperatorTest {
         // Day names in root locale changed from long to short in JDK 9
         TestUtil.getJavaMajorVersion() <= 8 ? "Wednesday" : "Wed",
         "VARCHAR(2000) NOT NULL");
-    f.checkScalar("{fn DAY(DATE '2014-12-10')}", 10,
-        "BIGINT NOT NULL");
     f.checkScalar("{fn DAYOFMONTH(DATE '2014-12-10')}", 10,
         "BIGINT NOT NULL");
     if (Bug.CALCITE_2539_FIXED) {
