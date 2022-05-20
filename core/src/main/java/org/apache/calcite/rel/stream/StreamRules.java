@@ -46,6 +46,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,21 +59,21 @@ public class StreamRules {
 
   public static final ImmutableList<RelOptRule> RULES =
       ImmutableList.of(
-          DeltaProjectTransposeRule.Config.DEFAULT.toRule(),
-          DeltaFilterTransposeRule.Config.DEFAULT.toRule(),
-          DeltaAggregateTransposeRule.Config.DEFAULT.toRule(),
-          DeltaSortTransposeRule.Config.DEFAULT.toRule(),
-          DeltaUnionTransposeRule.Config.DEFAULT.toRule(),
-          DeltaJoinTransposeRule.Config.DEFAULT.toRule(),
-          DeltaTableScanRule.Config.DEFAULT.toRule(),
-          DeltaTableScanToEmptyRule.Config.DEFAULT.toRule());
+          DeltaProjectTransposeRule.DeltaProjectTransposeRuleConfig.DEFAULT.toRule(),
+          DeltaFilterTransposeRule.DeltaFilterTransposeRuleConfig.DEFAULT.toRule(),
+          DeltaAggregateTransposeRule.DeltaAggregateTransposeRuleConfig.DEFAULT.toRule(),
+          DeltaSortTransposeRule.DeltaSortTransposeRuleConfig.DEFAULT.toRule(),
+          DeltaUnionTransposeRule.DeltaUnionTransposeRuleConfig.DEFAULT.toRule(),
+          DeltaJoinTransposeRule.DeltaJoinTransposeRuleConfig.DEFAULT.toRule(),
+          DeltaTableScanRule.DeltaTableScanRuleConfig.DEFAULT.toRule(),
+          DeltaTableScanToEmptyRule.DeltaTableScanToEmptyRuleConfig.DEFAULT.toRule());
 
   /** Planner rule that pushes a {@link Delta} through a {@link Project}. */
   public static class DeltaProjectTransposeRule
-      extends RelRule<DeltaProjectTransposeRule.Config>
+      extends RelRule<DeltaProjectTransposeRule.DeltaProjectTransposeRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaProjectTransposeRule. */
-    protected DeltaProjectTransposeRule(Config config) {
+    protected DeltaProjectTransposeRule(DeltaProjectTransposeRuleConfig config) {
       super(config);
     }
 
@@ -89,12 +91,12 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface DeltaProjectTransposeRuleConfig extends RelRule.Config {
+      DeltaProjectTransposeRuleConfig DEFAULT = ImmutableDeltaProjectTransposeRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Project.class).anyInputs()))
-          .as(Config.class);
+                  b1.operand(Project.class).anyInputs()));
 
       @Override default DeltaProjectTransposeRule toRule() {
         return new DeltaProjectTransposeRule(this);
@@ -110,10 +112,10 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through a {@link Filter}. */
   public static class DeltaFilterTransposeRule
-      extends RelRule<DeltaFilterTransposeRule.Config>
+      extends RelRule<DeltaFilterTransposeRule.DeltaFilterTransposeRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaFilterTransposeRule. */
-    protected DeltaFilterTransposeRule(Config config) {
+    protected DeltaFilterTransposeRule(DeltaFilterTransposeRuleConfig config) {
       super(config);
     }
 
@@ -128,12 +130,12 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface DeltaFilterTransposeRuleConfig extends RelRule.Config {
+      DeltaFilterTransposeRuleConfig DEFAULT = ImmutableDeltaFilterTransposeRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Filter.class).anyInputs()))
-          .as(Config.class);
+                  b1.operand(Filter.class).anyInputs()));
 
       @Override default DeltaFilterTransposeRule toRule() {
         return new DeltaFilterTransposeRule(this);
@@ -149,10 +151,10 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through an {@link Aggregate}. */
   public static class DeltaAggregateTransposeRule
-      extends RelRule<DeltaAggregateTransposeRule.Config>
+      extends RelRule<DeltaAggregateTransposeRule.DeltaAggregateTransposeRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaAggregateTransposeRule. */
-    protected DeltaAggregateTransposeRule(Config config) {
+    protected DeltaAggregateTransposeRule(DeltaAggregateTransposeRuleConfig config) {
       super(config);
     }
 
@@ -169,13 +171,13 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface DeltaAggregateTransposeRuleConfig extends RelRule.Config {
+      DeltaAggregateTransposeRuleConfig DEFAULT = ImmutableDeltaAggregateTransposeRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Delta.class).oneInput(b1 ->
                   b1.operand(Aggregate.class)
-                      .predicate(Aggregate::isSimple).anyInputs()))
-          .as(Config.class);
+                      .predicate(Aggregate::isSimple).anyInputs()));
 
       @Override default DeltaAggregateTransposeRule toRule() {
         return new DeltaAggregateTransposeRule(this);
@@ -191,10 +193,10 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through an {@link Sort}. */
   public static class DeltaSortTransposeRule
-      extends RelRule<DeltaSortTransposeRule.Config>
+      extends RelRule<DeltaSortTransposeRule.DeltaSortTransposeRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaSortTransposeRule. */
-    protected DeltaSortTransposeRule(Config config) {
+    protected DeltaSortTransposeRule(DeltaSortTransposeRuleConfig config) {
       super(config);
     }
 
@@ -210,12 +212,12 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface DeltaSortTransposeRuleConfig extends RelRule.Config {
+      DeltaSortTransposeRuleConfig DEFAULT = ImmutableDeltaSortTransposeRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Sort.class).anyInputs()))
-          .as(Config.class);
+                  b1.operand(Sort.class).anyInputs()));
 
       @Override default DeltaSortTransposeRule toRule() {
         return new DeltaSortTransposeRule(this);
@@ -225,10 +227,10 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through an {@link Union}. */
   public static class DeltaUnionTransposeRule
-      extends RelRule<DeltaUnionTransposeRule.Config>
+      extends RelRule<DeltaUnionTransposeRule.DeltaUnionTransposeRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaUnionTransposeRule. */
-    protected DeltaUnionTransposeRule(Config config) {
+    protected DeltaUnionTransposeRule(DeltaUnionTransposeRuleConfig config) {
       super(config);
     }
 
@@ -247,12 +249,12 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface DeltaUnionTransposeRuleConfig extends RelRule.Config {
+      DeltaUnionTransposeRuleConfig DEFAULT = ImmutableDeltaUnionTransposeRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Union.class).anyInputs()))
-          .as(Config.class);
+                  b1.operand(Union.class).anyInputs()));
 
       @Override default DeltaUnionTransposeRule toRule() {
         return new DeltaUnionTransposeRule(this);
@@ -267,10 +269,10 @@ public class StreamRules {
    * with the other relations in the system. The Delta disappears and the stream
    * can be implemented directly. */
   public static class DeltaTableScanRule
-      extends RelRule<DeltaTableScanRule.Config>
+      extends RelRule<DeltaTableScanRule.DeltaTableScanRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaTableScanRule. */
-    protected DeltaTableScanRule(Config config) {
+    protected DeltaTableScanRule(DeltaTableScanRuleConfig config) {
       super(config);
     }
 
@@ -296,12 +298,12 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface DeltaTableScanRuleConfig extends RelRule.Config {
+      DeltaTableScanRuleConfig DEFAULT = ImmutableDeltaTableScanRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(TableScan.class).anyInputs()))
-          .as(Config.class);
+                  b1.operand(TableScan.class).anyInputs()));
 
       @Override default DeltaTableScanRule toRule() {
         return new DeltaTableScanRule(this);
@@ -315,10 +317,10 @@ public class StreamRules {
    * an empty {@link Values}.
    */
   public static class DeltaTableScanToEmptyRule
-      extends RelRule<DeltaTableScanToEmptyRule.Config>
+      extends RelRule<DeltaTableScanToEmptyRule.DeltaTableScanToEmptyRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaTableScanToEmptyRule. */
-    protected DeltaTableScanToEmptyRule(Config config) {
+    protected DeltaTableScanToEmptyRule(DeltaTableScanToEmptyRuleConfig config) {
       super(config);
     }
 
@@ -335,12 +337,13 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(TableScan.class).anyInputs()))
-          .as(Config.class);
+    @Value.Immutable
+    public interface DeltaTableScanToEmptyRuleConfig extends RelRule.Config {
+      ImmutableDeltaTableScanToEmptyRuleConfig DEFAULT =
+          ImmutableDeltaTableScanToEmptyRuleConfig.of()
+              .withOperandSupplier(b0 ->
+                  b0.operand(Delta.class).oneInput(b1 ->
+                      b1.operand(TableScan.class).anyInputs()));
 
       @Override default DeltaTableScanToEmptyRule toRule() {
         return new DeltaTableScanToEmptyRule(this);
@@ -359,16 +362,16 @@ public class StreamRules {
    * x join stream(y) union all stream(x) join y</code></blockquote>
    */
   public static class DeltaJoinTransposeRule
-      extends RelRule<DeltaJoinTransposeRule.Config>
+      extends RelRule<DeltaJoinTransposeRule.DeltaJoinTransposeRuleConfig>
       implements TransformationRule {
     /** Creates a DeltaJoinTransposeRule. */
-    protected DeltaJoinTransposeRule(Config config) {
+    protected DeltaJoinTransposeRule(DeltaJoinTransposeRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public DeltaJoinTransposeRule() {
-      this(Config.DEFAULT.toRule().config);
+      this(DeltaJoinTransposeRuleConfig.DEFAULT.toRule().config);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -407,12 +410,12 @@ public class StreamRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface DeltaJoinTransposeRuleConfig extends RelRule.Config {
+      DeltaJoinTransposeRuleConfig DEFAULT = ImmutableDeltaJoinTransposeRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Join.class).anyInputs()))
-          .as(Config.class);
+                  b1.operand(Join.class).anyInputs()));
 
       @Override default DeltaJoinTransposeRule toRule() {
         return new DeltaJoinTransposeRule(this);

@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 
 import org.junit.jupiter.api.Test;
@@ -96,5 +97,67 @@ class BabelTest {
       assertThat("Invalid column type", metaData.getColumnType(1),
           is(sqlType));
     }
+  }
+
+  /** Tests that you can run tests via {@link Fixtures}. */
+  @Test void testFixtures() {
+    final SqlValidatorFixture v = Fixtures.forValidator();
+    v.withSql("select ^1 + date '2002-03-04'^")
+        .fails("(?s).*Cannot apply '\\+' to arguments of"
+            + " type '<INTEGER> \\+ <DATE>'.*");
+
+    v.withSql("select 1 + 2 as three")
+        .type("RecordType(INTEGER NOT NULL THREE) NOT NULL");
+
+    // 'as' as identifier is invalid with Core parser
+    final SqlParserFixture p = Fixtures.forParser();
+    p.sql("select ^as^ from t")
+        .fails("(?s)Encountered \"as\".*");
+
+    // 'as' as identifier is invalid if you use Babel's tester and Core parser
+    p.sql("select ^as^ from t")
+        .withTester(new BabelParserTest.BabelTesterImpl())
+        .fails("(?s)Encountered \"as\".*");
+
+    // 'as' as identifier is valid with Babel parser
+    p.withConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY))
+        .sql("select as from t")
+        .ok("SELECT `AS`\n"
+            + "FROM `T`");
+
+    // Postgres cast is invalid with core parser
+    p.sql("select 1 ^:^: integer as x")
+        .fails("(?s).*Encountered \":\" at .*");
+  }
+
+//  @Test void testNullSafeEqual() {
+//    // x <=> y
+//    checkSqlResult("mysql", "SELECT 1 <=> NULL", "EXPR$0=false\n");
+//    checkSqlResult("mysql", "SELECT NULL <=> NULL", "EXPR$0=true\n");
+//    // (a, b) <=> (x, y)
+//    checkSqlResult("mysql",
+//        "SELECT (CAST(NULL AS Integer), 1) <=> (1, CAST(NULL AS Integer))",
+//        "EXPR$0=false\n");
+//    checkSqlResult("mysql",
+//        "SELECT (CAST(NULL AS Integer), CAST(NULL AS Integer))\n"
+//            + "<=> (CAST(NULL AS Integer), CAST(NULL AS Integer))",
+//        "EXPR$0=true\n");
+//    // the higher precedence
+//    checkSqlResult("mysql",
+//        "SELECT x <=> 1 + 3 FROM (VALUES (1, 2)) as tbl(x,y)",
+//        "EXPR$0=false\n");
+//    // the lower precedence
+//    checkSqlResult("mysql",
+//        "SELECT NOT x <=> 1 FROM (VALUES (1, 2)) as tbl(x,y)",
+//        "EXPR$0=false\n");
+//  }
+
+  private void checkSqlResult(String funLibrary, String query, String result) {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.PARSER_FACTORY,
+            SqlBabelParserImpl.class.getName() + "#FACTORY")
+        .with(CalciteConnectionProperty.FUN, funLibrary)
+        .query(query)
+        .returns(result);
   }
 }

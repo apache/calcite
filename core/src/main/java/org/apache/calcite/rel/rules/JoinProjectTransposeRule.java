@@ -39,10 +39,10 @@ import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,6 +60,7 @@ import static java.util.Objects.requireNonNull;
  * {@link org.apache.calcite.rel.logical.LogicalProject} doesn't originate from
  * a null generating input in an outer join.
  */
+@Value.Enclosing
 public class JoinProjectTransposeRule
     extends RelRule<JoinProjectTransposeRule.Config>
     implements TransformationRule {
@@ -379,14 +380,14 @@ public class JoinProjectTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableJoinProjectTransposeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalJoin.class).inputs(
                 b1 -> b1.operand(LogicalProject.class).anyInputs(),
                 b2 -> b2.operand(LogicalProject.class).anyInputs()))
-        .withDescription("JoinProjectTransposeRule(Project-Project)")
-        .as(Config.class);
+        .withDescription("JoinProjectTransposeRule(Project-Project)");
 
     Config LEFT = DEFAULT
         .withOperandSupplier(b0 ->
@@ -426,9 +427,9 @@ public class JoinProjectTransposeRule
     }
 
     /** Whether to include outer joins, default false. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isIncludeOuter();
+    @Value.Default default boolean isIncludeOuter() {
+      return false;
+    }
 
     /** Sets {@link #isIncludeOuter()}. */
     Config withIncludeOuter(boolean includeOuter);

@@ -31,9 +31,10 @@ import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
+
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +63,7 @@ import java.util.List;
  * <p>Before the rule, one join has two conditions and the other has none
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>
  */
+@Value.Enclosing
 public class JoinPushThroughJoinRule
     extends RelRule<JoinPushThroughJoinRule.Config>
     implements TransformationRule {
@@ -328,14 +330,15 @@ public class JoinPushThroughJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config RIGHT = EMPTY.withDescription("JoinPushThroughJoinRule:right")
-        .as(Config.class)
+    Config RIGHT = ImmutableJoinPushThroughJoinRule.Config.of()
+        .withDescription("JoinPushThroughJoinRule:right")
         .withOperandFor(LogicalJoin.class)
         .withRight(true);
 
-    Config LEFT = EMPTY.withDescription("JoinPushThroughJoinRule:left")
-        .as(Config.class)
+    Config LEFT = ImmutableJoinPushThroughJoinRule.Config.of()
+        .withDescription("JoinPushThroughJoinRule:left")
         .withOperandFor(LogicalJoin.class)
         .withRight(false);
 
@@ -344,9 +347,9 @@ public class JoinPushThroughJoinRule
     }
 
     /** Whether to push on the right. If false, push to the left. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isRight();
+    @Value.Default default boolean isRight() {
+      return false;
+    }
 
     /** Sets {@link #isRight()}. */
     Config withRight(boolean right);

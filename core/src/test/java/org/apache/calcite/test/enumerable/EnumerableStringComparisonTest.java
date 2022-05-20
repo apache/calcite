@@ -36,8 +36,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
 import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
@@ -99,7 +99,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testSortStringDefault() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 builder.getTypeFactory().builder()
@@ -121,7 +120,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testSortStringSpecialCollation() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 createRecordVarcharSpecialCollation(builder),
@@ -141,7 +139,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testMergeJoinOnStringSpecialCollation() {
     tester()
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -265,7 +262,6 @@ class EnumerableStringComparisonTest {
                                     SqlOperator operator, SqlCollation col,
                                     boolean expectedResult) {
     tester()
-        .query("?")
         .withRel(builder -> {
           final RexBuilder rexBuilder = builder.getRexBuilder();
           final RelDataType varcharSpecialCollation = createVarcharSpecialCollation(builder, col);
@@ -287,6 +283,6 @@ class EnumerableStringComparisonTest {
     return CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()));
+        .withSchema("s", new ReflectiveSchema(new HrSchema()));
   }
 }

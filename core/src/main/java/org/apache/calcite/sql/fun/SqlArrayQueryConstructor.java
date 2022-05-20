@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
  * Definition of the SQL:2003 standard ARRAY query constructor, <code>
@@ -26,6 +27,6 @@ public class SqlArrayQueryConstructor extends SqlMultisetQueryConstructor {
   //~ Constructors -----------------------------------------------------------
 
   public SqlArrayQueryConstructor() {
-    super("ARRAY", SqlKind.ARRAY_QUERY_CONSTRUCTOR);
+    super("ARRAY", SqlKind.ARRAY_QUERY_CONSTRUCTOR, SqlTypeTransforms.TO_ARRAY);
   }
 }

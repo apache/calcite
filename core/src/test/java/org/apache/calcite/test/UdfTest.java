@@ -34,6 +34,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
@@ -278,7 +279,7 @@ class UdfTest {
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
 
     SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
     post.add("MY_INCREMENT",
@@ -1000,7 +1001,7 @@ class UdfTest {
       CalciteConnection calciteConnection =
           connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+      rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
 
       SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
       post.add("ARRAY_APPEND", new ArrayAppendDoubleFunction());

@@ -153,8 +153,11 @@ class DirectedGraphTest {
    * {@link DefaultDirectedGraph#removeAllVertices(java.util.Collection)}. */
   @Test void testRemoveAllVertices() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    assertEquals(6, graph.edgeSet().size());
     graph.removeAllVertices(Arrays.asList("B", "E"));
     assertEquals("[A, C, D, F]", graph.vertexSet().toString());
+    assertEquals(1, graph.edgeSet().size());
+    assertEquals("[C -> D]", graph.edgeSet().toString());
   }
 
   /** Unit test for {@link TopologicalOrderIterator}. */

@@ -19,10 +19,21 @@ limitations under the License.
 
 # Apache Calcite docs site
 
-This directory contains the code for the Apache Calcite web site,
-[calcite.apache.org](https://calcite.apache.org/).
+This directory contains the sources/templates for generating the Apache Calcite website,
+[calcite.apache.org](https://calcite.apache.org/). The actual generated content of the website
+is present in the [calcite-site](https://github.com/apache/calcite-site) repository.
 
-You can build the site manually using your environment or use the docker compose file.
+We want to deploy project changes (for example, new committers, PMC members or upcoming talks)
+immediately, but we want to deploy documentation of project features only when that feature appears
+in a release.
+
+The procedure for deploying changes to the website is outlined below:
+1. Push the commit with the changes to the `master` branch of this repository.
+2. Cherry-pick the commit from the `master` branch to the `site` branch of this repository.
+3. Checkout the `site` branch and build the website either [manually](#manually) or using
+[docker-compose](#using-docker) (preferred).
+4. Commit the generated content to the `master` branch of the `calcite-site` repository following
+the [Pushing to site](#pushing-to-site) instructions.
 
 ## Manually
 
@@ -117,22 +128,3 @@ generate files to `site/target/avatica`, which becomes an
 [avatica](https://calcite.apache.org/avatica)
 sub-directory when deployed. See
 [Avatica site README](../avatica/site/README.md).
-
-## Site branch
-
-We want to deploy project changes (for example, new committers, PMC
-members or upcoming talks) immediately, but we want to deploy
-documentation of project features only when that feature appears in a
-release. For this reason, we generally edit the site on the "site" git
-branch.
-
-Before making a release, release manager must ensure that "site" is in
-sync with "master". Immediately after a release, the release manager
-will publish the site, including all of the features that have just
-been released. When making an edit to the site, a Calcite committer
-must commit the change to the git "master" branch (as well as
-git, to publish the site, of course). If the edit is to appear
-on the site immediately, the committer should then cherry-pick the
-change into the "site" branch.  If there have been no feature-related
-changes on the site since the release, then "site" should be a
-fast-forward merge of "master".

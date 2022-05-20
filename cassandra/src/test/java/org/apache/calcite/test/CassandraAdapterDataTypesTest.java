@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.test;
 
-import com.datastax.driver.core.Session;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.google.common.collect.ImmutableMap;
 
 import org.cassandraunit.CQLDataLoader;
@@ -26,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+
+import java.util.Objects;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package related to data types.
@@ -47,7 +52,7 @@ class CassandraAdapterDataTypesTest {
           CassandraExtension.getDataset("/model-datatypes.json");
 
   @BeforeAll
-  static void load(Session session) {
+  static void load(CqlSession session) {
     new CQLDataLoader(session)
         .load(new ClassPathCQLDataSet("datatypes.cql"));
   }
@@ -67,6 +72,7 @@ class CassandraAdapterDataTypesTest {
                 + ", f_duration ANY"
                 + ", f_float REAL"
                 + ", f_inet ANY"
+                + ", f_int_null INTEGER"
                 + ", f_smallint SMALLINT"
                 + ", f_text VARCHAR"
                 + ", f_time BIGINT"
@@ -122,6 +128,7 @@ class CassandraAdapterDataTypesTest {
             + "; f_duration=89h9m9s"
             + "; f_float=5.1"
             + "; f_inet=/192.168.0.1"
+            + "; f_int_null=null"
             + "; f_smallint=5"
             + "; f_text=abcdefg"
             + "; f_time=48654234000000"
@@ -187,6 +194,11 @@ class CassandraAdapterDataTypesTest {
   }
 
   @Test void testCollectionsInnerValues() {
+    // timestamp retrieval depends on the user timezone, we must compute the expected result
+    long v = Objects.requireNonNull(
+        TypeCodecs.TIMESTAMP.parse("'2015-05-03 13:30:54.234'")).toEpochMilli();
+    String expectedTimestamp = DateTimeUtils.unixTimestampToString(v);
+
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select \"f_list\"[1], "
@@ -199,7 +211,7 @@ class CassandraAdapterDataTypesTest {
             + "; EXPR$1=v1"
             + "; 1=3000000000"
             + "; 2=30ff87"
-            + "; 3=2015-05-03 11:30:54\n");
+            + "; 3=" + expectedTimestamp + "\n");
   }
 
   // frozen collections should not affect the row type

@@ -824,6 +824,9 @@ public abstract class SqlTypeUtil {
 
     final SqlTypeName fromTypeName = fromType.getSqlTypeName();
     final SqlTypeName toTypeName = toType.getSqlTypeName();
+    if (toTypeName == SqlTypeName.UNKNOWN) {
+      return true;
+    }
     if (toType.isStruct() || fromType.isStruct()) {
       if (toTypeName == SqlTypeName.DISTINCT) {
         if (fromTypeName == SqlTypeName.DISTINCT) {
@@ -837,7 +840,7 @@ public abstract class SqlTypeUtil {
             toType, fromType.getFieldList().get(0).getType(), coerce);
       } else if (toTypeName == SqlTypeName.ROW) {
         if (fromTypeName != SqlTypeName.ROW) {
-          return false;
+          return fromTypeName == SqlTypeName.NULL;
         }
         int n = toType.getFieldCount();
         if (fromType.getFieldCount() != n) {
@@ -1021,10 +1024,11 @@ public abstract class SqlTypeUtil {
    * @param type         type descriptor
    * @param charSetName  charSet name
    * @param maxPrecision The max allowed precision.
+   * @param maxScale     max allowed scale
    * @return corresponding parse representation
    */
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type,
-      @Nullable String charSetName, int maxPrecision) {
+      @Nullable String charSetName, int maxPrecision, int maxScale) {
     SqlTypeName typeName = type.getSqlTypeName();
 
     // TODO jvs 28-Dec-2004:  support row types, user-defined types,
@@ -1032,13 +1036,16 @@ public abstract class SqlTypeUtil {
     assert typeName != null;
 
     final SqlTypeNameSpec typeNameSpec;
-    if (isAtomic(type) || isNull(type)) {
+    if (isAtomic(type) || isNull(type) || type.getSqlTypeName() == SqlTypeName.UNKNOWN) {
       int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {
         precision = maxPrecision;
       }
       int scale = typeName.allowsScale() ? type.getScale() : -1;
+      if (maxScale > 0 && scale > maxScale) {
+        scale = maxScale;
+      }
 
       typeNameSpec = new SqlBasicTypeNameSpec(
           typeName,
@@ -1084,7 +1091,7 @@ public abstract class SqlTypeUtil {
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
     // TODO jvs 28-Dec-2004:  collation
     String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
-    return convertTypeToSpec(type, charSetName, -1);
+    return convertTypeToSpec(type, charSetName, -1, -1);
   }
 
   public static RelDataType createMultisetType(
@@ -1110,6 +1117,17 @@ public abstract class SqlTypeUtil {
       boolean nullable) {
     RelDataType ret = typeFactory.createMapType(keyType, valueType);
     return typeFactory.createTypeWithNullability(ret, nullable);
+  }
+
+  /** Creates a MAP type from a record type. The record type must have exactly
+   * two fields. */
+  public static RelDataType createMapTypeFromRecord(
+      RelDataTypeFactory typeFactory, RelDataType type) {
+    Preconditions.checkArgument(type.getFieldCount() == 2,
+        "MAP requires exactly two fields, got %s; row type %s",
+        type.getFieldCount(), type);
+    return createMapType(typeFactory, type.getFieldList().get(0).getType(),
+        type.getFieldList().get(1).getType(), false);
   }
 
   /**

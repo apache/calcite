@@ -1337,7 +1337,8 @@ public class SqlValidatorUtil {
   }
 
   public static final Suggester EXPR_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "EXPR$") + attempt;
+      (original, attempt, size) ->
+          Util.first(original, SqlUtil.GENERATED_EXPR_ALIAS_PREFIX) + attempt;
 
   public static final Suggester F_SUGGESTER =
       (original, attempt, size) -> Util.first(original, "$f")

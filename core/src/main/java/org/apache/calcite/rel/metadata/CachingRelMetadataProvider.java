@@ -40,6 +40,7 @@ import static java.util.Objects.requireNonNull;
  * Implementation of the {@link RelMetadataProvider}
  * interface that caches results from an underlying provider.
  */
+@Deprecated // to be removed before 2.0
 public class CachingRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------
 
@@ -59,7 +60,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
   }
 
   //~ Methods ----------------------------------------------------------------
-
+  @Deprecated // to be removed before 2.0
   @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
@@ -82,9 +83,15 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return underlyingProvider.handlers(def);
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    return underlyingProvider.handlers(handlerClass);
   }
 
   //~ Inner Classes ----------------------------------------------------------

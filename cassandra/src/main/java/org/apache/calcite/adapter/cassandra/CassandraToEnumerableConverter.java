@@ -46,6 +46,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Relational expression representing a scan of a table in a Cassandra data source.
@@ -84,8 +85,8 @@ public class CassandraToEnumerableConverter
         list.append("fields",
             constantArrayList(
                 Pair.zip(CassandraRules.cassandraFieldNames(rowType),
-                    new AbstractList<Class>() {
-                      @Override public Class get(int index) {
+                    new AbstractList<Class<?>>() {
+                      @Override public Class<?> get(int index) {
                         return physType.fieldClass(index);
                       }
 
@@ -104,8 +105,9 @@ public class CassandraToEnumerableConverter
         list.append("selectFields", constantArrayList(selectList, Pair.class));
     final Expression table =
         list.append("table",
-            cassandraImplementor.table.getExpression(
-                CassandraTable.CassandraQueryable.class));
+            Objects.requireNonNull(
+                cassandraImplementor.table.getExpression(
+                    CassandraTable.CassandraQueryable.class)));
     final Expression predicates =
         list.append("predicates",
             constantArrayList(cassandraImplementor.whereClause, String.class));
@@ -135,7 +137,7 @@ public class CassandraToEnumerableConverter
   /** E.g. {@code constantArrayList("x", "y")} returns
    * "Arrays.asList('x', 'y')". */
   private static <T> MethodCallExpression constantArrayList(List<T> values,
-      Class clazz) {
+      Class<?> clazz) {
     return Expressions.call(
         BuiltInMethod.ARRAYS_AS_LIST.method,
         Expressions.newArrayInit(clazz, constantList(values)));

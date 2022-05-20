@@ -48,7 +48,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -62,7 +61,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -638,7 +636,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       if (Join.class.isAssignableFrom(c)) {
         for (RelNode n : e.getValue()) {
           final Join join = (Join) n;
-          if (join.getJoinType() != JoinRelType.INNER && !join.isSemiJoin()) {
+          if (join.getJoinType() != JoinRelType.INNER) {
             // Skip it
             return false;
           }
@@ -1037,18 +1035,21 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     final Map<RexNode, Integer> exprsLineage = new HashMap<>();
     final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
-      final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
-      if (s == null) {
+      final RexNode expr = nodeExprs.get(i);
+      final Set<RexNode> lineages = mq.getExpressionLineage(node, expr);
+      if (lineages == null) {
         // Next expression
         continue;
       }
-      // We only support project - filter - join, thus it should map to
-      // a single expression
-      assert s.size() == 1;
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: '"
+            + lineages + "' for expr '" + expr + "' in node '" + node + "'");
+      }
       // Rewrite expr. First we swap the table references following the table
       // mapping, then we take first element from the corresponding equivalence class
       final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
-          s.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
+          lineages.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
       exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
         exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
@@ -1071,18 +1072,21 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     final Map<RexNode, Integer> exprsLineage = new HashMap<>();
     final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
-      final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
-      if (s == null) {
+      final RexNode expr = nodeExprs.get(i);
+      final Set<RexNode> lineages = mq.getExpressionLineage(node, expr);
+      if (lineages == null) {
         // Next expression
         continue;
       }
-      // We only support project - filter - join, thus it should map to
-      // a single expression
-      final RexNode node2 = Iterables.getOnlyElement(s);
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: '"
+            + lineages + "' for expr '" + expr + "' in node '" + node + "'");
+      }
       // Rewrite expr. First we take first element from the corresponding equivalence class,
       // then we swap the table references following the table mapping
-      final RexNode e = RexUtil.swapColumnTableReferences(rexBuilder, node2,
-          ec.getEquivalenceClassesMap(), tableMapping);
+      final RexNode e = RexUtil.swapColumnTableReferences(rexBuilder,
+          lineages.iterator().next(), ec.getEquivalenceClassesMap(), tableMapping);
       exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
         exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
@@ -1393,7 +1397,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
   public interface Config extends RelRule.Config {
     /** Whether to generate rewritings containing union if the query results
      * are contained within the view results. */
-    @ImmutableBeans.Property
     boolean generateUnionRewriting();
 
     /** Sets {@link #generateUnionRewriting()}. */
@@ -1401,7 +1404,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** If we generate union rewriting, we might want to pull up projections
      * from the query itself to maximize rewriting opportunities. */
-    @ImmutableBeans.Property
     @Nullable HepProgram unionRewritingPullProgram();
 
     /** Sets {@link #unionRewritingPullProgram()}. */
@@ -1409,7 +1411,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** Whether we should create the rewriting in the minimal subtree of plan
      * operators. */
-    @ImmutableBeans.Property
     boolean fastBailOut();
 
     /** Sets {@link #fastBailOut()}. */

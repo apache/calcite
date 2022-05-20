@@ -31,12 +31,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -110,10 +110,9 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     if (RelOptUtil.classifyFilters(
         join,
         aboveFilters,
-        joinType,
-        true,
-        !joinType.generatesNullsOnLeft(),
-        !joinType.generatesNullsOnRight(),
+        joinType.canPushIntoFromAbove(),
+        joinType.canPushLeftFromAbove(),
+        joinType.canPushRightFromAbove(),
         joinFilters,
         leftFilters,
         rightFilters)) {
@@ -147,14 +146,12 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     // The semantic would change if join condition $2 is pushed into left,
     // that is, the result set may be smaller. The right can not be pushed
     // into for the same reason.
-    if (joinType != JoinRelType.ANTI
-        && RelOptUtil.classifyFilters(
+    if (RelOptUtil.classifyFilters(
         join,
         joinFilters,
-        joinType,
         false,
-        !joinType.generatesNullsOnRight(),
-        !joinType.generatesNullsOnLeft(),
+        joinType.canPushLeftFromWithin(),
+        joinType.canPushRightFromWithin(),
         joinFilters,
         leftFilters,
         rightFilters)) {
@@ -282,24 +279,21 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
 
   /** Rule that pushes parts of the join condition to its inputs. */
   public static class JoinConditionPushRule
-      extends FilterJoinRule<JoinConditionPushRule.Config> {
+      extends FilterJoinRule<JoinConditionPushRule.JoinConditionPushRuleConfig> {
     /** Creates a JoinConditionPushRule. */
-    protected JoinConditionPushRule(Config config) {
+    protected JoinConditionPushRule(JoinConditionPushRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public JoinConditionPushRule(RelBuilderFactory relBuilderFactory,
         Predicate predicate) {
-      this(Config.EMPTY
+      this(ImmutableJoinConditionPushRuleConfig.of(predicate)
           .withRelBuilderFactory(relBuilderFactory)
           .withOperandSupplier(b ->
               b.operand(Join.class).anyInputs())
           .withDescription("FilterJoinRule:no-filter")
-          .as(Config.class)
-          .withSmart(true)
-          .withPredicate(predicate)
-          .as(Config.class));
+          .withSmart(true));
     }
 
     @Deprecated // to be removed before 2.0
@@ -314,14 +308,13 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     }
 
     /** Rule configuration. */
-    public interface Config extends FilterJoinRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface JoinConditionPushRuleConfig extends FilterJoinRule.Config {
+      JoinConditionPushRuleConfig DEFAULT = ImmutableJoinConditionPushRuleConfig
+          .of((join, joinType, exp) -> true)
           .withOperandSupplier(b ->
               b.operand(Join.class).anyInputs())
-          .as(JoinConditionPushRule.Config.class)
-          .withSmart(true)
-          .withPredicate((join, joinType, exp) -> true)
-          .as(JoinConditionPushRule.Config.class);
+          .withSmart(true);
 
       @Override default JoinConditionPushRule toRule() {
         return new JoinConditionPushRule(this);
@@ -334,25 +327,22 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    *
    * @see CoreRules#FILTER_INTO_JOIN */
   public static class FilterIntoJoinRule
-      extends FilterJoinRule<FilterIntoJoinRule.Config> {
+      extends FilterJoinRule<FilterIntoJoinRule.FilterIntoJoinRuleConfig> {
     /** Creates a FilterIntoJoinRule. */
-    protected FilterIntoJoinRule(Config config) {
+    protected FilterIntoJoinRule(FilterIntoJoinRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public FilterIntoJoinRule(boolean smart,
         RelBuilderFactory relBuilderFactory, Predicate predicate) {
-      this(Config.EMPTY
+      this(ImmutableFilterIntoJoinRuleConfig.of(predicate)
           .withRelBuilderFactory(relBuilderFactory)
           .withOperandSupplier(b0 ->
               b0.operand(Filter.class).oneInput(b1 ->
                   b1.operand(Join.class).anyInputs()))
           .withDescription("FilterJoinRule:filter")
-          .as(Config.class)
-          .withSmart(smart)
-          .withPredicate(predicate)
-          .as(Config.class));
+          .withSmart(smart));
     }
 
     @Deprecated // to be removed before 2.0
@@ -360,17 +350,14 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
         RelFactories.FilterFactory filterFactory,
         RelFactories.ProjectFactory projectFactory,
         Predicate predicate) {
-      this(Config.EMPTY
+      this(ImmutableFilterIntoJoinRuleConfig.of(predicate)
           .withRelBuilderFactory(
               RelBuilder.proto(filterFactory, projectFactory))
           .withOperandSupplier(b0 ->
               b0.operand(Filter.class).oneInput(b1 ->
                   b1.operand(Join.class).anyInputs()))
           .withDescription("FilterJoinRule:filter")
-          .as(Config.class)
-          .withSmart(smart)
-          .withPredicate(predicate)
-          .as(Config.class));
+          .withSmart(smart));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -380,15 +367,14 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     }
 
     /** Rule configuration. */
-    public interface Config extends FilterJoinRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Filter.class).oneInput(b1 ->
-                  b1.operand(Join.class).anyInputs()))
-          .as(FilterIntoJoinRule.Config.class)
-          .withSmart(true)
-          .withPredicate((join, joinType, exp) -> true)
-          .as(FilterIntoJoinRule.Config.class);
+    @Value.Immutable(singleton = false)
+    public interface FilterIntoJoinRuleConfig extends FilterJoinRule.Config {
+      FilterIntoJoinRuleConfig DEFAULT =
+          ImmutableFilterIntoJoinRuleConfig.of((join, joinType, exp) -> true)
+              .withOperandSupplier(b0 ->
+                  b0.operand(Filter.class).oneInput(b1 ->
+                      b1.operand(Join.class).anyInputs()))
+              .withSmart(true);
 
       @Override default FilterIntoJoinRule toRule() {
         return new FilterIntoJoinRule(this);
@@ -404,12 +390,14 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     boolean apply(Join join, JoinRelType joinType, RexNode exp);
   }
 
-  /** Rule configuration. */
+  /**
+   * Rule configuration.
+   */
   public interface Config extends RelRule.Config {
     /** Whether to try to strengthen join-type, default false. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isSmart();
+    @Value.Default default boolean isSmart() {
+      return false;
+    }
 
     /** Sets {@link #isSmart()}. */
     Config withSmart(boolean smart);
@@ -417,7 +405,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     /** Predicate that returns whether a filter is valid in the ON clause of a
      * join for this particular kind of join. If not, Calcite will push it back to
      * above the join. */
-    @ImmutableBeans.Property
+    @Value.Parameter
     Predicate getPredicate();
 
     /** Sets {@link #getPredicate()} ()}. */

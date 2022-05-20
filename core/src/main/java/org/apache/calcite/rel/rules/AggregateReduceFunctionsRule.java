@@ -34,8 +34,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
-import org.apache.calcite.util.ImmutableBeans;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
@@ -43,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -54,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -96,6 +96,7 @@ import java.util.function.IntPredicate;
  *
  * @see CoreRules#AGGREGATE_REDUCE_FUNCTIONS
  */
+@Value.Enclosing
 public class AggregateReduceFunctionsRule
     extends RelRule<AggregateReduceFunctionsRule.Config>
     implements TransformationRule {
@@ -173,7 +174,8 @@ public class AggregateReduceFunctionsRule
 
   /** Returns whether this rule can reduce a given aggregate function call. */
   public boolean canReduce(AggregateCall call) {
-    return functionsToReduce.contains(call.getAggregation().getKind());
+    return functionsToReduce.contains(call.getAggregation().getKind())
+        && config.extraCondition().test(call);
   }
 
   /**
@@ -209,7 +211,7 @@ public class AggregateReduceFunctionsRule
     relBuilder.push(oldAggRel.getInput());
     final List<RexNode> inputExprs = new ArrayList<>(relBuilder.fields());
 
-    // create new agg function calls and rest of project list together
+    // create new aggregate function calls and rest of project list together
     for (AggregateCall oldCall : oldCalls) {
       projList.add(
           reduceAgg(
@@ -798,7 +800,7 @@ public class AggregateReduceFunctionsRule
   }
 
   /**
-   * Do a shallow clone of oldAggRel and update aggCalls. Could be refactored
+   * Does a shallow clone of oldAggRel and updates aggCalls. Could be refactored
    * into Aggregate and subclasses - but it's only needed for some
    * subclasses.
    *
@@ -811,19 +813,18 @@ public class AggregateReduceFunctionsRule
       Aggregate oldAggregate,
       List<AggregateCall> newCalls) {
     relBuilder.aggregate(
-        relBuilder.groupKey(oldAggregate.getGroupSet(),
-            (Iterable<ImmutableBitSet>) oldAggregate.getGroupSets()),
+        relBuilder.groupKey(oldAggregate.getGroupSet(), oldAggregate.getGroupSets()),
         newCalls);
   }
 
   /**
-   * Add a calc with the expressions to compute the original agg calls from the
-   * decomposed ones.
+   * Adds a calculation with the expressions to compute the original aggregate
+   * calls from the decomposed ones.
    *
    * @param relBuilder Builder of relational expressions; at the top of its
    *                   stack is its input
    * @param rowType The output row type of the original aggregate.
-   * @param exprs The expressions to compute the original agg calls.
+   * @param exprs The expressions to compute the original aggregate calls
    */
   protected void newCalcRel(RelBuilder relBuilder,
       RelDataType rowType,
@@ -832,8 +833,9 @@ public class AggregateReduceFunctionsRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateReduceFunctionsRule.Config.of()
         .withOperandFor(LogicalAggregate.class);
 
     Set<SqlKind> DEFAULT_FUNCTIONS_TO_REDUCE =
@@ -847,11 +849,33 @@ public class AggregateReduceFunctionsRule
       return new AggregateReduceFunctionsRule(this);
     }
 
-    @ImmutableBeans.Property
+    /** The set of aggregate function types to try to reduce.
+     *
+     * <p>Any aggregate function whose type is omitted from this set, OR which
+     * does not pass the {@link #extraCondition}, will be ignored.
+     */
     @Nullable Set<SqlKind> functionsToReduce();
 
+    /** A test that must pass before attempting to reduce any aggregate function.
+     *
+     * <p>Any aggegate function which does not pass, OR whose type is omitted
+     * from {@link #functionsToReduce}, will be ignored. The default predicate
+     * always passes.
+     */
+    @Value.Default
+    default Predicate<AggregateCall> extraCondition() {
+      return ignored -> true;
+    }
+
     /** Sets {@link #functionsToReduce}. */
-    Config withFunctionsToReduce(@Nullable Set<SqlKind> functionSet);
+    Config withFunctionsToReduce(@Nullable Iterable<SqlKind> functionSet);
+
+    default Config withFunctionsToReduce(@Nullable Set<SqlKind> functionSet) {
+      return withFunctionsToReduce((Iterable<SqlKind>) functionSet);
+    }
+
+    /** Sets {@link #extraCondition}. */
+    Config withExtraCondition(Predicate<AggregateCall> test);
 
     /** Returns the validated set of functions to reduce, or the default set
      * if not specified. */

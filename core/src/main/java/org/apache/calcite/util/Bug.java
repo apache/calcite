@@ -200,6 +200,11 @@ public abstract class Bug {
    * Druid plans with small intervals should be chosen over full interval scan plus filter</a> is
    * fixed. */
   public static final boolean CALCITE_4213_FIXED = false;
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4645">[CALCITE-4645]
+   * In Elasticsearch adapter, a range predicate should be translated to a range query</a> is
+   * fixed. */
+  public static final boolean CALCITE_4645_FIXED = false;
 
   /**
    * Use this to flag temporary code.
@@ -237,4 +242,5 @@ public abstract class Bug {
     Util.discard(remark);
     return false;
   }
+
 }

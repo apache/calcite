@@ -48,11 +48,11 @@ import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionFactory;
 import org.apache.calcite.sql.validate.implicit.TypeCoercions;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
+import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -113,6 +113,7 @@ import java.util.function.UnaryOperator;
  * to resolve
  * names in a particular clause of a SQL statement.</p>
  */
+@Value.Enclosing
 public interface SqlValidator {
 
   /** Table Name that indicates no named Parameter table was provided. */
@@ -799,17 +800,19 @@ public interface SqlValidator {
    * Interface to define the configuration for a SqlValidator.
    * Provides methods to set each configuration option.
    */
+  @Value.Immutable(singleton = false)
   public interface Config {
     /** Default configuration. */
-    SqlValidator.Config DEFAULT = ImmutableBeans.create(Config.class)
-        .withTypeCoercionFactory(TypeCoercions::createTypeCoercion);
+    SqlValidator.Config DEFAULT = ImmutableSqlValidator.Config.builder()
+        .withTypeCoercionFactory(TypeCoercions::createTypeCoercion)
+        .build();
 
     /**
      * Returns whether to enable rewrite of "macro-like" calls such as COALESCE.
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean callRewrite();
+    @Value.Default default boolean callRewrite() {
+      return true;
+    }
 
     /**
      * Sets whether to enable rewrite of "macro-like" calls such as COALESCE.
@@ -818,18 +821,18 @@ public interface SqlValidator {
 
     /** Returns how NULL values should be collated if an ORDER BY item does not
      * contain NULLS FIRST or NULLS LAST. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.EnumDefault("HIGH")
-    NullCollation defaultNullCollation();
+    @Value.Default default NullCollation defaultNullCollation() {
+      return NullCollation.HIGH;
+    }
 
     /** Sets how NULL values should be collated if an ORDER BY item does not
      * contain NULLS FIRST or NULLS LAST. */
     Config withDefaultNullCollation(NullCollation nullCollation);
 
     /** Returns whether column reference expansion is enabled. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean columnReferenceExpansion();
+    @Value.Default default boolean columnReferenceExpansion() {
+      return true;
+    }
 
     /**
      * Sets whether to enable expansion of column references. (Currently this does
@@ -846,9 +849,9 @@ public interface SqlValidator {
      * method and always use this variable (or better, move preferences like
      * this to a separate "parameter" class).
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean identifierExpansion();
+    @Value.Default default boolean identifierExpansion() {
+      return false;
+    }
 
     /**
      * Sets whether to enable expansion of identifiers other than column
@@ -869,9 +872,9 @@ public interface SqlValidator {
      * <p>If false (the default behavior), an unknown function call causes a
      * validation error to be thrown.
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean lenientOperatorLookup();
+    @Value.Default default boolean lenientOperatorLookup() {
+      return false;
+    }
 
     /**
      * Sets whether this validator should be lenient upon encountering an unknown
@@ -882,9 +885,9 @@ public interface SqlValidator {
     Config withLenientOperatorLookup(boolean lenient);
 
     /** Returns whether the validator supports implicit type coercion. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean typeCoercionEnabled();
+    @Value.Default default boolean typeCoercionEnabled() {
+      return true;
+    }
 
     /**
      * Sets whether to enable implicit type coercion for validation, default true.
@@ -894,7 +897,6 @@ public interface SqlValidator {
     Config withTypeCoercionEnabled(boolean enabled);
 
     /** Returns the type coercion factory. */
-    @ImmutableBeans.Property
     TypeCoercionFactory typeCoercionFactory();
 
     /**
@@ -907,7 +909,6 @@ public interface SqlValidator {
     Config withTypeCoercionFactory(TypeCoercionFactory factory);
 
     /** Returns the type coercion rules for explicit type coercion. */
-    @ImmutableBeans.Property
     @Nullable SqlTypeCoercionRule typeCoercionRules();
 
     /**
@@ -922,23 +923,38 @@ public interface SqlValidator {
      */
     Config withTypeCoercionRules(@Nullable SqlTypeCoercionRule rules);
 
-    /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
-     * Default is {@link SqlConformanceEnum#DEFAULT}. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.EnumDefault("DEFAULT")
-    SqlConformance sqlConformance();
-
-    /** Sets up the sql conformance of the validator. */
-    Config withSqlConformance(SqlConformance conformance);
-
     /** Returns the name of the table used to determine
      * named parameters' types. Default is
      * "". */
-    @ImmutableBeans.Property
-    @ImmutableBeans.StringDefault(NAMED_PARAM_TABLE_NAME_EMPTY)
-    String namedParamTableName();
+
+    @Value.Default default String namedParamTableName() {
+      return NAMED_PARAM_TABLE_NAME_EMPTY;
+    }
 
     /** Sets {@link #namedParamTableName()}. */
     Config withNamedParamTableName(String namedParamTable);
+
+    /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
+     * Default is {@link SqlConformanceEnum#DEFAULT}. */
+    @Value.Default default SqlConformance conformance() {
+      return SqlConformanceEnum.DEFAULT;
+    }
+
+    /** Returns the SQL conformance.
+     * @deprecated Use {@link #conformance()} */
+    @Deprecated // to be removed before 2.0
+    default SqlConformance sqlConformance() {
+      return conformance();
+    }
+
+    /** Sets the SQL conformance of the validator. */
+    Config withConformance(SqlConformance conformance);
+
+    /** Sets the SQL conformance of the validator.
+     * @deprecated Use {@link #conformance()} */
+    @Deprecated // to be removed before 2.0
+    default Config withSqlConformance(SqlConformance conformance) {
+      return withConformance(conformance);
+    }
   }
 }

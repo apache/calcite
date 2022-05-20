@@ -32,12 +32,6 @@ public abstract class CommonRelSubExprRule
     super(config);
   }
 
-  @Deprecated // to be removed before 2.0
-  protected CommonRelSubExprRule(RelOptRuleOperand operand) {
-    this(Config.EMPTY.withOperandSupplier(b -> b.exactly(operand))
-        .as(Config.class));
-  }
-
   /** Rule configuration. */
   public interface Config extends RelRule.Config {
   }

@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelRule;
@@ -34,13 +33,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -71,6 +70,7 @@ import static java.util.Objects.requireNonNull;
  * @see CoreRules#PROJECT_VALUES_MERGE
  * @see CoreRules#PROJECT_FILTER_VALUES_MERGE
  */
+@Value.Enclosing
 public class ValuesReduceRule
     extends RelRule<ValuesReduceRule.Config>
     implements TransformationRule {
@@ -86,10 +86,13 @@ public class ValuesReduceRule
   @Deprecated // to be removed before 2.0
   public ValuesReduceRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String desc) {
-    this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+    this(ImmutableValuesReduceRule.Config.builder().withRelBuilderFactory(relBuilderFactory)
         .withDescription(desc)
         .withOperandSupplier(b -> b.exactly(operand))
-        .as(Config.class));
+        .withMatchHandler((u, v) -> {
+          throw new IllegalArgumentException("Match handler not set.");
+        })
+        .build());
     throw new IllegalArgumentException("cannot guess matchHandler");
   }
 
@@ -170,7 +173,7 @@ public class ValuesReduceRule
     // Compute the values they reduce to.
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     ReduceExpressionsRule.reduceExpressions(values, reducibleExps, predicates,
-        false, true);
+        false, true, false);
 
     int changeCount = 0;
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tuplesBuilder =
@@ -248,43 +251,46 @@ public class ValuesReduceRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config FILTER = EMPTY.withDescription("ValuesReduceRule(Filter)")
+    Config FILTER = ImmutableValuesReduceRule.Config.builder()
+        .withDescription("ValuesReduceRule(Filter)")
         .withOperandSupplier(b0 ->
             b0.operand(LogicalFilter.class).oneInput(b1 ->
                 b1.operand(LogicalValues.class)
                     .predicate(Values::isNotEmpty).noInputs()))
-        .as(Config.class)
-        .withMatchHandler(ValuesReduceRule::matchFilter);
+        .withMatchHandler(ValuesReduceRule::matchFilter)
+        .build();
 
-    Config PROJECT = EMPTY.withDescription("ValuesReduceRule(Project)")
+    Config PROJECT = ImmutableValuesReduceRule.Config.builder()
+        .withDescription("ValuesReduceRule(Project)")
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
                 b1.operand(LogicalValues.class)
                     .predicate(Values::isNotEmpty).noInputs()))
-        .as(Config.class)
-        .withMatchHandler(ValuesReduceRule::matchProject);
+        .withMatchHandler(ValuesReduceRule::matchProject)
+        .build();
 
-    Config PROJECT_FILTER = EMPTY
+    Config PROJECT_FILTER = ImmutableValuesReduceRule.Config.builder()
         .withDescription("ValuesReduceRule(Project-Filter)")
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
                 b1.operand(LogicalFilter.class).oneInput(b2 ->
                     b2.operand(LogicalValues.class)
                         .predicate(Values::isNotEmpty).noInputs())))
-        .as(Config.class)
-        .withMatchHandler(ValuesReduceRule::matchProjectFilter);
+        .withMatchHandler(ValuesReduceRule::matchProjectFilter)
+        .build();
 
     @Override default ValuesReduceRule toRule() {
       return new ValuesReduceRule(this);
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    @ImmutableBeans.Property
-    <R extends RelOptRule> MatchHandler<R> matchHandler();
+    @Value.Parameter
+    MatchHandler<ValuesReduceRule> matchHandler();
 
     /** Sets {@link #matchHandler()}. */
-    <R extends RelOptRule> Config withMatchHandler(MatchHandler<R> matchHandler);
+    Config withMatchHandler(MatchHandler<ValuesReduceRule> matchHandler);
 
     /** Defines an operand tree for the given classes. */
     default Config withOperandFor(Class<? extends RelNode> relClass) {

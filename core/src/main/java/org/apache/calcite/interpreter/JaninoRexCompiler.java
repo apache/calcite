@@ -54,6 +54,7 @@ import java.io.StringReader;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Compiles a scalar expression ({@link RexNode}) to an expression that
@@ -199,8 +200,10 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
   static Scalar.Producer getScalar(ClassDeclaration expr, String s)
       throws CompileException, IOException {
     ICompilerFactory compilerFactory;
+    ClassLoader classLoader =
+        Objects.requireNonNull(JaninoRexCompiler.class.getClassLoader(), "classLoader");
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
@@ -208,7 +211,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
     cbe.setClassName(expr.name);
     cbe.setImplementedInterfaces(new Class[] {Scalar.Producer.class});
-    cbe.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
+    cbe.setParentClassLoader(classLoader);
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);

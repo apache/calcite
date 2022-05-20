@@ -23,18 +23,21 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * VolcanoRelMetadataProvider implements the {@link RelMetadataProvider}
  * interface by combining metadata from the rels making up an equivalence class.
  */
+@Deprecated // to be removed before 2.0
 public class VolcanoRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
@@ -46,6 +49,7 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     return 103;
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
@@ -117,8 +121,14 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
+  @Deprecated
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    return ImmutableList.of();
   }
 }

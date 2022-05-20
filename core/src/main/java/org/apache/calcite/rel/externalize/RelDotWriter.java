@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -30,6 +29,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -42,6 +42,7 @@ import java.util.function.Predicate;
 /**
  * Utility to dump a rel node plan in dot format.
  */
+@Value.Enclosing
 public class RelDotWriter extends RelWriterImpl {
 
   //~ Instance fields --------------------------------------------------------
@@ -262,32 +263,32 @@ public class RelDotWriter extends RelWriterImpl {
   /**
    * Options for displaying the rel node plan in dot format.
    */
+  @Value.Immutable
   public interface WriteOption {
 
     /** Default configuration. */
-    WriteOption DEFAULT = ImmutableBeans.create(WriteOption.class);
+    WriteOption DEFAULT = ImmutableRelDotWriter.WriteOption.of();
 
     /**
      * The max length of node labels.
      * If the label is too long, the visual display would be messy.
      * -1 means no limit to the label length.
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(100)
-    int maxNodeLabelLength();
+    @Value.Default default int maxNodeLabelLength() {
+      return 100;
+    }
 
     /**
      * The max length of node label in a line.
      * -1 means no limitation.
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(20)
-    int maxNodeLabelPerLine();
+    @Value.Default default int maxNodeLabelPerLine() {
+      return 20;
+    }
 
     /**
      * Predicate for nodes that need to be highlighted.
      */
-    @ImmutableBeans.Property
     @Nullable Predicate<RelNode> nodePredicate();
   }
 }

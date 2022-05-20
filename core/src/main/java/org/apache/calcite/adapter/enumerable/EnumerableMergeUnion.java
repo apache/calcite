@@ -73,7 +73,7 @@ public class EnumerableMergeUnion extends EnumerableUnion {
 
     final ParameterExpression inputListExp = Expressions.parameter(
         List.class,
-        builder.newName("mergeUnionInputs" + getId()));
+        builder.newName("mergeUnionInputs" + Integer.toUnsignedString(this.getId())));
     builder.add(Expressions.declare(0, inputListExp, Expressions.new_(ArrayList.class)));
 
     for (Ord<RelNode> ord : Ord.zip(inputs)) {

@@ -41,6 +41,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -90,13 +92,12 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule UNION_INSTANCE =
-      UnionEmptyPruneRuleConfig.EMPTY
+      ImmutableUnionEmptyPruneRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalUnion.class).unorderedInputs(b1 ->
                   b1.operand(Values.class)
                       .predicate(Values::isEmpty).noInputs()))
           .withDescription("Union")
-          .as(UnionEmptyPruneRuleConfig.class)
           .toRule();
 
 
@@ -112,13 +113,12 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule MINUS_INSTANCE =
-      MinusEmptyPruneRuleConfig.EMPTY
+      ImmutableMinusEmptyPruneRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalMinus.class).unorderedInputs(b1 ->
                   b1.operand(Values.class).predicate(Values::isEmpty)
                       .noInputs()))
           .withDescription("Minus")
-          .as(MinusEmptyPruneRuleConfig.class)
           .toRule();
 
   /**
@@ -134,13 +134,12 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule INTERSECT_INSTANCE =
-      IntersectEmptyPruneRuleConfig.EMPTY
+      ImmutableIntersectEmptyPruneRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalIntersect.class).unorderedInputs(b1 ->
                   b1.operand(Values.class).predicate(Values::isEmpty)
                       .noInputs()))
           .withDescription("Intersect")
-          .as(IntersectEmptyPruneRuleConfig.class)
           .toRule();
 
   private static boolean isEmpty(RelNode node) {
@@ -175,9 +174,8 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule PROJECT_INSTANCE =
-      RemoveEmptySingleRule.Config.EMPTY
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyProject")
-          .as(RemoveEmptySingleRule.Config.class)
           .withOperandFor(Project.class, project -> true)
           .toRule();
 
@@ -192,9 +190,8 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule FILTER_INSTANCE =
-      RemoveEmptySingleRule.Config.EMPTY
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyFilter")
-          .as(RemoveEmptySingleRule.Config.class)
           .withOperandFor(Filter.class, singleRel -> true)
           .toRule();
 
@@ -209,9 +206,8 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule SORT_INSTANCE =
-      RemoveEmptySingleRule.Config.EMPTY
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptySort")
-          .as(RemoveEmptySingleRule.Config.class)
           .withOperandFor(Sort.class, singleRel -> true)
           .toRule();
 
@@ -226,11 +222,10 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
-      SortFetchZeroRuleConfig.EMPTY
+      ImmutableSortFetchZeroRuleConfig.of()
           .withOperandSupplier(b ->
               b.operand(Sort.class).anyInputs())
           .withDescription("PruneSortLimit0")
-          .as(SortFetchZeroRuleConfig.class)
           .toRule();
 
   /**
@@ -249,9 +244,8 @@ public abstract class PruneEmptyRules {
    * @see AggregateValuesRule
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
-      RemoveEmptySingleRule.Config.EMPTY
+      ImmutableRemoveEmptySingleRuleConfig.of()
           .withDescription("PruneEmptyAggregate")
-          .as(RemoveEmptySingleRule.Config.class)
           .withOperandFor(Aggregate.class, Aggregate::isNotGrandTotal)
           .toRule();
 
@@ -269,14 +263,13 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule JOIN_LEFT_INSTANCE =
-      JoinLeftEmptyRuleConfig.EMPTY
+      ImmutableJoinLeftEmptyRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Join.class).inputs(
                   b1 -> b1.operand(Values.class)
                       .predicate(Values::isEmpty).noInputs(),
                   b2 -> b2.operand(RelNode.class).anyInputs()))
           .withDescription("PruneEmptyJoin(left)")
-          .as(JoinLeftEmptyRuleConfig.class)
           .toRule();
 
   /**
@@ -293,29 +286,28 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule JOIN_RIGHT_INSTANCE =
-      JoinRightEmptyRuleConfig.EMPTY
+      ImmutableJoinRightEmptyRuleConfig.of()
           .withOperandSupplier(b0 ->
               b0.operand(Join.class).inputs(
                   b1 -> b1.operand(RelNode.class).anyInputs(),
                   b2 -> b2.operand(Values.class).predicate(Values::isEmpty)
                       .noInputs()))
           .withDescription("PruneEmptyJoin(right)")
-          .as(JoinRightEmptyRuleConfig.class)
           .toRule();
 
   /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
    * filter) on top of the empty relational expression into empty. */
   public static class RemoveEmptySingleRule extends PruneEmptyRule {
     /** Creates a RemoveEmptySingleRule. */
-    RemoveEmptySingleRule(Config config) {
+    RemoveEmptySingleRule(RemoveEmptySingleRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         String description) {
-      this(Config.EMPTY.withDescription(description)
-          .as(Config.class)
+      this(ImmutableRemoveEmptySingleRuleConfig.of().withDescription(description)
+          .as(ImmutableRemoveEmptySingleRuleConfig.class)
           .withOperandFor(clazz, singleRel -> true));
     }
 
@@ -323,9 +315,9 @@ public abstract class PruneEmptyRules {
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
         String description) {
-      this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+      this(ImmutableRemoveEmptySingleRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
           .withDescription(description)
-          .as(Config.class)
+          .as(ImmutableRemoveEmptySingleRuleConfig.class)
           .withOperandFor(clazz, predicate));
     }
 
@@ -334,9 +326,9 @@ public abstract class PruneEmptyRules {
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         com.google.common.base.Predicate<R> predicate,
         RelBuilderFactory relBuilderFactory, String description) {
-      this(Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
+      this(ImmutableRemoveEmptySingleRuleConfig.of().withRelBuilderFactory(relBuilderFactory)
           .withDescription(description)
-          .as(Config.class)
+          .as(ImmutableRemoveEmptySingleRuleConfig.class)
           .withOperandFor(clazz, predicate::apply));
     }
 
@@ -353,23 +345,25 @@ public abstract class PruneEmptyRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends PruneEmptyRule.Config {
+    @Value.Immutable
+    public interface RemoveEmptySingleRuleConfig extends PruneEmptyRule.Config {
       @Override default RemoveEmptySingleRule toRule() {
         return new RemoveEmptySingleRule(this);
       }
 
       /** Defines an operand tree for the given classes. */
-      default <R extends RelNode> Config withOperandFor(Class<R> relClass,
+      default <R extends RelNode> RemoveEmptySingleRuleConfig withOperandFor(Class<R> relClass,
           Predicate<R> predicate) {
         return withOperandSupplier(b0 ->
             b0.operand(relClass).predicate(predicate).oneInput(b1 ->
                 b1.operand(Values.class).predicate(Values::isEmpty).noInputs()))
-            .as(Config.class);
+            .as(RemoveEmptySingleRuleConfig.class);
       }
     }
   }
 
   /** Configuration for a rule that prunes empty inputs from a Minus. */
+  @Value.Immutable
   public interface UnionEmptyPruneRuleConfig extends PruneEmptyRule.Config {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
@@ -401,6 +395,7 @@ public abstract class PruneEmptyRules {
   }
 
   /** Configuration for a rule that prunes empty inputs from a Minus. */
+  @Value.Immutable
   public interface MinusEmptyPruneRuleConfig extends PruneEmptyRule.Config {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
@@ -438,6 +433,7 @@ public abstract class PruneEmptyRules {
 
   /** Configuration for a rule that prunes an Intersect if any of its inputs
    * is empty. */
+  @Value.Immutable
   public interface IntersectEmptyPruneRuleConfig extends PruneEmptyRule.Config {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
@@ -452,6 +448,7 @@ public abstract class PruneEmptyRules {
   }
 
   /** Configuration for a rule that prunes a Sort if it has limit 0. */
+  @Value.Immutable
   public interface SortFetchZeroRuleConfig extends PruneEmptyRule.Config {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
@@ -477,6 +474,7 @@ public abstract class PruneEmptyRules {
 
   /** Configuration for rule that prunes a join it its left input is
    * empty. */
+  @Value.Immutable
   public interface JoinLeftEmptyRuleConfig extends PruneEmptyRule.Config {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
@@ -495,6 +493,7 @@ public abstract class PruneEmptyRules {
 
   /** Configuration for rule that prunes a join it its right input is
    * empty. */
+  @Value.Immutable
   public interface JoinRightEmptyRuleConfig extends PruneEmptyRule.Config {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {

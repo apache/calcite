@@ -109,7 +109,10 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
@@ -261,6 +264,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MODE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT;
@@ -348,7 +352,7 @@ public class RexImpTable {
   @SuppressWarnings("method.invocation.invalid")
   RexImpTable() {
     defineMethod(THROW_UNLESS, BuiltInMethod.THROW_UNLESS.method, NullPolicy.NONE);
-    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.NONE);
+    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ALL);
     defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
     defineMethod(LOWER, BuiltInMethod.LOWER.method, NullPolicy.STRICT);
     defineMethod(INITCAP,  BuiltInMethod.INITCAP.method, NullPolicy.STRICT);
@@ -509,10 +513,14 @@ public class RexImpTable {
     // Multisets & arrays
     defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
         NullPolicy.STRICT);
+    defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method,
+        NullPolicy.STRICT);
     defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
     defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
     defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
+    defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
+    map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
     final MethodImplementor isEmptyImplementor =
         new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
             false);
@@ -666,6 +674,7 @@ public class RexImpTable {
     aggMap.put(ARRAY_AGG, constructorSupplier(CollectImplementor.class));
     aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
+    aggMap.put(MODE, constructorSupplier(ModeImplementor.class));
     aggMap.put(ARRAY_CONCAT_AGG, constructorSupplier(FusionImplementor.class));
     aggMap.put(INTERSECTION, constructorSupplier(IntersectionImplementor.class));
     final Supplier<GroupingImplementor> grouping =
@@ -1238,6 +1247,83 @@ public class RexImpTable {
               Expressions.equal(add.accumulator().get(0), Expressions.constant(null)),
               accumulatorIsNull.toBlock(),
               accumulatorNotNull.toBlock()));
+    }
+  }
+
+  /** Implementor for the {@code MODE} aggregate function. */
+  static class ModeImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      // acc[0] = null;
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.constant(null))));
+      // acc[1] = new HashMap<>();
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(1),
+                  Expressions.new_(HashMap.class))));
+      // acc[2] = Long.valueOf(0);
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(2),
+                  Expressions.constant(0, Long.class))));
+    }
+
+    @Override protected void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      Expression currentArg = add.arguments().get(0);
+
+      Expression currentResult = add.accumulator().get(0);
+      Expression accMap = add.accumulator().get(1);
+      Expression currentMaxNumber = add.accumulator().get(2);
+      // the default number of occurrences is 0
+      Expression getOrDefaultExpression =
+          Expressions.call(accMap, BuiltInMethod.MAP_GET_OR_DEFAULT.method, currentArg,
+              Expressions.constant(0, Long.class));
+      // declare and assign the occurrences number about current value
+      ParameterExpression currentNumber = Expressions.parameter(
+          Long.class, add.currentBlock().newName("currentNumber"));
+      add.currentBlock().add(Expressions.declare(0, currentNumber, null));
+      add.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(currentNumber,
+                  Expressions.add(Expressions.convert_(getOrDefaultExpression, Long.class),
+                      Expressions.constant(1, Long.class)))));
+      // update the occurrences number about current value
+      Expression methodCallExpression2 =
+          Expressions.call(accMap, BuiltInMethod.MAP_PUT.method, currentArg, currentNumber);
+      add.currentBlock().add(Expressions.statement(methodCallExpression2));
+      // update the most frequent value
+      BlockBuilder thenBlock = new BlockBuilder(true, add.currentBlock());
+      thenBlock.add(
+          Expressions.statement(
+              Expressions.assign(
+                  currentMaxNumber, Expressions.convert_(currentNumber, Long.class))));
+      thenBlock.add(
+          Expressions.statement(Expressions.assign(currentResult, currentArg)));
+      // if the maximum number of occurrences less than current value's occurrences number
+      // than update
+      add.currentBlock().add(
+          Expressions.ifThen(
+              Expressions.lessThan(currentMaxNumber, currentNumber), thenBlock.toBlock()));
+    }
+
+    @Override protected Expression implementNotNullResult(AggContext info,
+        AggResultContext result) {
+      return result.accumulator().get(0);
+    }
+
+    @Override public List<Type> getNotNullState(AggContext info) {
+      List<Type> types = new ArrayList<>();
+      // the most frequent value
+      types.add(Object.class);
+      // hashmap's key: value, hashmap's value: number of occurrences
+      types.add(HashMap.class);
+      // maximum number of occurrences about frequent value
+      types.add(Long.class);
+      return types;
     }
   }
 
@@ -2578,6 +2664,38 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for a array concat. */
+  private static class ArrayConcatImplementor extends AbstractRexCallImplementor {
+
+    ArrayConcatImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "array_concat";
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      final BlockBuilder blockBuilder = translator.getBlockBuilder();
+      final Expression list =
+          blockBuilder.append("list", Expressions.new_(ArrayList.class), false);
+      final Expression nullValue = Expressions.constant(null);
+      for (Expression expression : argValueList) {
+        blockBuilder.add(
+            Expressions.ifThenElse(
+                Expressions.or(
+                    Expressions.equal(nullValue, list),
+                    Expressions.equal(nullValue, expression)),
+                Expressions.assign(list, nullValue),
+                Expressions.statement(
+                    Expressions.call(list, BuiltInMethod.COLLECTION_ADDALL.method, expression)))
+        );
+      }
+      return list;
+    }
+  }
+
   /** Implementor for a value-constructor. */
   private static class ValueConstructorImplementor
       extends AbstractRexCallImplementor {
@@ -2989,6 +3107,13 @@ public class RexImpTable {
       if (nullPolicy == NullPolicy.ARG0) {
         return argIsNullList.get(0);
       }
+
+      if (nullPolicy == NullPolicy.ALL) {
+        // Condition for NullPolicy.ALL: v0 == null && v1 == null
+        return Expressions.foldAnd(argIsNullList);
+      }
+
+      // Condition for regular cases: v0 == null || v1 == null
       return Expressions.foldOr(argIsNullList);
     }
 

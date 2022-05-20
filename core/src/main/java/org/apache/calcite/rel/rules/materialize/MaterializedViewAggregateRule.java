@@ -35,7 +35,6 @@ import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -53,8 +52,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
-import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mapping;
@@ -70,6 +67,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -912,66 +910,58 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     return Pair.of(resultTopViewProject, requireNonNull(resultViewNode, "resultViewNode"));
   }
 
-  /** Rule configuration. */
+  /**
+   * Rule configuration.
+   */
   public interface Config extends MaterializedViewRule.Config {
-    static Config create(RelBuilderFactory relBuilderFactory) {
-      return EMPTY.as(Config.class)
-          .withFilterProjectTransposeRule(
-              CoreRules.FILTER_PROJECT_TRANSPOSE.config
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .as(FilterProjectTransposeRule.Config.class)
-                  .withOperandFor(Filter.class, filter ->
-                          !RexUtil.containsCorrelation(filter.getCondition()),
-                      Project.class, project -> true)
-                  .withCopyFilter(true)
-                  .withCopyProject(true)
-                  .toRule())
-          .withFilterAggregateTransposeRule(
-              CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .as(FilterAggregateTransposeRule.Config.class)
-                  .withOperandFor(Filter.class, Aggregate.class)
-                  .toRule())
-          .withAggregateProjectPullUpConstantsRule(
-              AggregateProjectPullUpConstantsRule.Config.DEFAULT
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .withDescription("AggFilterPullUpConstants")
-                  .as(AggregateProjectPullUpConstantsRule.Config.class)
-                  .withOperandFor(Aggregate.class, Filter.class)
-                  .toRule())
-          .withProjectMergeRule(
-              CoreRules.PROJECT_MERGE.config
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .as(ProjectMergeRule.Config.class)
-                  .toRule())
-          .withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class);
-    }
 
     /** Instance of rule to push filter through project. */
-    @ImmutableBeans.Property
-    RelOptRule filterProjectTransposeRule();
+    @Value.Default default RelOptRule filterProjectTransposeRule() {
+      return CoreRules.FILTER_PROJECT_TRANSPOSE.config
+          .withRelBuilderFactory(relBuilderFactory())
+          .as(FilterProjectTransposeRule.Config.class)
+          .withOperandFor(Filter.class, filter ->
+                  !RexUtil.containsCorrelation(filter.getCondition()),
+              Project.class, project -> true)
+          .withCopyFilter(true)
+          .withCopyProject(true)
+          .toRule();
+    }
 
     /** Sets {@link #filterProjectTransposeRule()}. */
     Config withFilterProjectTransposeRule(RelOptRule rule);
 
     /** Instance of rule to push filter through aggregate. */
-    @ImmutableBeans.Property
-    RelOptRule filterAggregateTransposeRule();
+    @Value.Default default RelOptRule filterAggregateTransposeRule() {
+      return CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
+          .withRelBuilderFactory(relBuilderFactory())
+          .as(FilterAggregateTransposeRule.Config.class)
+          .withOperandFor(Filter.class, Aggregate.class)
+          .toRule();
+    }
 
     /** Sets {@link #filterAggregateTransposeRule()}. */
     Config withFilterAggregateTransposeRule(RelOptRule rule);
 
     /** Instance of rule to pull up constants into aggregate. */
-    @ImmutableBeans.Property
-    RelOptRule aggregateProjectPullUpConstantsRule();
+    @Value.Default default RelOptRule aggregateProjectPullUpConstantsRule() {
+      return AggregateProjectPullUpConstantsRule.Config.DEFAULT
+          .withRelBuilderFactory(relBuilderFactory())
+          .withDescription("AggFilterPullUpConstants")
+          .as(AggregateProjectPullUpConstantsRule.Config.class)
+          .withOperandFor(Aggregate.class, Filter.class)
+          .toRule();
+    }
 
     /** Sets {@link #aggregateProjectPullUpConstantsRule()}. */
     Config withAggregateProjectPullUpConstantsRule(RelOptRule rule);
 
     /** Instance of rule to merge project operators. */
-    @ImmutableBeans.Property
-    RelOptRule projectMergeRule();
+    @Value.Default default RelOptRule projectMergeRule() {
+      return CoreRules.PROJECT_MERGE.config
+          .withRelBuilderFactory(relBuilderFactory())
+          .toRule();
+    }
 
     /** Sets {@link #projectMergeRule()}. */
     Config withProjectMergeRule(RelOptRule rule);

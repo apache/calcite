@@ -24,9 +24,10 @@ import com.google.common.collect.Table;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Proxy;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -66,8 +67,11 @@ public class RelMetadataQueryBase {
   //~ Instance fields --------------------------------------------------------
 
   /** Set of active metadata queries, and cache of previous results. */
-  public final Table<RelNode, List, Object> map = HashBasedTable.create();
+  public final Table<RelNode, Object, Object> map = HashBasedTable.create();
 
+  private final @Nullable MetadataHandlerProvider metadataHandlerProvider;
+
+  @Deprecated // to be removed before 2.0
   public final @Nullable JaninoRelMetadataProvider metadataProvider;
 
   //~ Static fields/initializers ---------------------------------------------
@@ -76,11 +80,19 @@ public class RelMetadataQueryBase {
       new ThreadLocal<>();
 
   //~ Constructors -----------------------------------------------------------
-
+  @Deprecated // to be removed before 2.0
   protected RelMetadataQueryBase(@Nullable JaninoRelMetadataProvider metadataProvider) {
-    this.metadataProvider = metadataProvider;
+    this((MetadataHandlerProvider) metadataProvider);
   }
 
+  @SuppressWarnings("deprecation")
+  protected RelMetadataQueryBase(@Nullable MetadataHandlerProvider provider) {
+    this.metadataHandlerProvider = provider;
+    this.metadataProvider = provider instanceof JaninoRelMetadataProvider
+        ? (JaninoRelMetadataProvider) provider : null;
+  }
+
+  @Deprecated
   protected static <H> H initialHandler(Class<H> handlerClass) {
     return handlerClass.cast(
         Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
@@ -94,10 +106,31 @@ public class RelMetadataQueryBase {
 
   /** Re-generates the handler for a given kind of metadata, adding support for
    * {@code class_} if it is not already present. */
+  @Deprecated // to be removed before 2.0
   protected <M extends Metadata, H extends MetadataHandler<M>> H
       revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
-    requireNonNull(metadataProvider, "metadataProvider");
-    return metadataProvider.revise(class_, def);
+    return (H) revise(def.handlerClass);
+  }
+
+  /** Re-generates the handler for a given kind of metadata, adding support for
+   * {@code class_} if it is not already present. */
+  protected <H extends MetadataHandler<?>> H revise(Class<H> def) {
+    return getMetadataHandlerProvider().revise(def);
+  }
+
+  private MetadataHandlerProvider getMetadataHandlerProvider() {
+    requireNonNull(metadataHandlerProvider, "metadataHandlerProvider");
+    return castNonNull(metadataHandlerProvider);
+  }
+
+  /**
+   * Provide a handler for the requested metadata class.
+   * @param handlerClass The handler interface expected
+   * @param <MH> The metadata type the handler relates to.
+   * @return The handler implementation.
+   */
+  protected <MH extends MetadataHandler<?>> MH handler(Class<MH> handlerClass) {
+    return getMetadataHandlerProvider().handler(handlerClass);
   }
 
   /**
@@ -107,7 +140,7 @@ public class RelMetadataQueryBase {
    * @return true if cache for the provided RelNode was not empty
    */
   public boolean clearCache(RelNode rel) {
-    Map<List, Object> row = map.row(rel);
+    Map<Object, Object> row = map.row(rel);
     if (row.isEmpty()) {
       return false;
     }

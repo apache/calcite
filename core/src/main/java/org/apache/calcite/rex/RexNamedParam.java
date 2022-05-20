@@ -29,8 +29,6 @@ import java.util.Objects;
 public class RexNamedParam extends RexVariable {
   //~ Instance fields --------------------------------------------------------
 
-  private final String name;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -42,18 +40,13 @@ public class RexNamedParam extends RexVariable {
   public RexNamedParam(
       RelDataType type,
       String name) {
-    super("?" + name, type);
-    this.name = name;
+    super(name, type);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlKind getKind() {
     return SqlKind.NAMED_PARAM;
-  }
-
-  public String getName() {
-    return name;
   }
 
   @Override public <R> R accept(RexVisitor<R> visitor) {

@@ -23,21 +23,54 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BuiltInMethod;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Collect} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableCollect extends Collect implements EnumerableRel {
+  /**
+   * Creates an EnumerableCollect.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
+   * @param cluster   Cluster
+   * @param traitSet  Trait set
+   * @param input     Input relational expression
+   * @param rowType   Row type
+   */
   public EnumerableCollect(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode child, String fieldName) {
-    super(cluster, traitSet, child, fieldName);
+      RelNode input, RelDataType rowType) {
+    super(cluster, traitSet, input, rowType);
     assert getConvention() instanceof EnumerableConvention;
-    assert getConvention() == child.getConvention();
+    assert getConvention() == input.getConvention();
+  }
+
+  @Deprecated // to be removed before 2.0
+  public EnumerableCollect(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, String fieldName) {
+    this(cluster, traitSet, input,
+        deriveRowType(cluster.getTypeFactory(), SqlTypeName.MULTISET, fieldName,
+            input.getRowType()));
+  }
+
+  /**
+   * Creates an EnumerableCollect.
+   *
+   * @param input          Input relational expression
+   * @param rowType        Row type
+   */
+  public static Collect create(RelNode input, RelDataType rowType) {
+    final RelOptCluster cluster = input.getCluster();
+    final RelTraitSet traitSet =
+        cluster.traitSet().replace(EnumerableConvention.INSTANCE);
+    return new EnumerableCollect(cluster, traitSet, input, rowType);
   }
 
   @Override public EnumerableCollect copy(RelTraitSet traitSet,
       RelNode newInput) {
-    return new EnumerableCollect(getCluster(), traitSet, newInput, fieldName);
+    return new EnumerableCollect(getCluster(), traitSet, newInput, rowType());
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

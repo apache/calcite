@@ -143,7 +143,7 @@ Commit your change to your branch, and use a comment that starts with
 the JIRA case number, like this:
 
 {% highlight text %}
-[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal (FirstName LastName)
+[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
 {% endhighlight %}
 
 If your change had multiple commits, use `git rebase -i master` to
@@ -158,6 +158,7 @@ description of the change.
  * The message is often, but not always, the same as the JIRA subject.
 If the JIRA subject is not clear, change it (perhaps move the original
 subject to the description of the JIRA case, if it clarifies).
+ * Leave a single space character after the JIRA id.
  * Start with a capital letter.
  * Do not finish with a period.
  * Use imperative mood ("Add a handler ...") rather than past tense
@@ -168,8 +169,6 @@ the implementation ("Add handler for FileNotFound").
  * If you are fixing a bug, it is sufficient to describe the bug
  ("NullPointerException if user is unknown") and people will correctly
  surmise that the purpose of your change is to fix the bug.
- * If you are not a committer, add your name in parentheses at the end
- of the message.
 
 Then push your commit(s) to GitHub, and create a pull request from
 your branch to the calcite master branch. Update the JIRA case
@@ -180,7 +179,7 @@ The pull request may need to be updated (after its submission) for three main
 reasons:
 1. you identified a problem after the submission of the pull request;
 2. the reviewer requested further changes;
-3. the Travis CI build failed and the failure is not caused by your changes.
+3. the CI build failed, and the failure is not caused by your changes.
 
 In order to update the pull request, you need to commit the changes in your
 branch and then push the commit(s) to GitHub. You are encouraged to use regular
@@ -194,7 +193,7 @@ parameter and its alternatives. You may choose to force push your changes under
  * a reviewer has explicitly asked you to perform some modifications that
  require the use of the `--force` option.
 
-In the special case, that the Travis CI build failed and the failure is not
+In the special case, that the CI build failed, and the failure is not
 caused by your changes create an empty commit (`git commit --allow-empty`) and
 push it.
 
@@ -310,9 +309,10 @@ so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullab
 
 ## Continuous Integration Testing
 
-Calcite has a collection of Jenkins jobs on ASF-hosted infrastructure.
-They are all organized in a single view and available at
-[https://builds.apache.org/view/A-D/view/Calcite/](https://builds.apache.org/view/A-D/view/Calcite/).
+Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amaster)
+and [Travis](https://app.travis-ci.com/github/apache/calcite) for continuous integration testing.
+In the past, there were also Jenkins jobs on the [ASF-hosted](https://builds.apache.org/)
+infrastructure, but they are not maintained anymore.
 
 ## Getting started
 

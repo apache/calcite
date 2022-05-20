@@ -38,6 +38,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.immutables.value.Value;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @see CoreRules#PROJECT_AGGREGATE_MERGE
  */
+@Value.Enclosing
 public class ProjectAggregateMergeRule
     extends RelRule<ProjectAggregateMergeRule.Config>
     implements TransformationRule {
@@ -149,8 +152,7 @@ public class ProjectAggregateMergeRule
     final RelBuilder builder = call.builder();
     builder.push(aggregate.getInput());
     builder.aggregate(
-        builder.groupKey(aggregate.getGroupSet(),
-            (Iterable<ImmutableBitSet>) aggregate.groupSets), aggCallList);
+        builder.groupKey(aggregate.getGroupSet(), aggregate.groupSets), aggCallList);
     builder.project(
         RexPermuteInputsShuttle.of(mapping).visitList(projects2));
     call.transformTo(builder.build());
@@ -189,13 +191,13 @@ public class ProjectAggregateMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableProjectAggregateMergeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Project.class)
                 .oneInput(b1 ->
-                    b1.operand(Aggregate.class).anyInputs()))
-        .as(Config.class);
+                    b1.operand(Aggregate.class).anyInputs()));
 
     @Override default ProjectAggregateMergeRule toRule() {
       return new ProjectAggregateMergeRule(this);

@@ -37,6 +37,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -106,6 +107,7 @@ import static java.util.Objects.requireNonNull;
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  * @see CoreRules#JOIN_TO_MULTI_JOIN
  */
+@Value.Enclosing
 public class JoinToMultiJoinRule
     extends RelRule<JoinToMultiJoinRule.Config>
     implements TransformationRule {
@@ -577,8 +579,9 @@ public class JoinToMultiJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinToMultiJoinRule.Config.of()
         .withOperandFor(LogicalJoin.class);
 
     @Override default JoinToMultiJoinRule toRule() {

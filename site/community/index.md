@@ -26,20 +26,20 @@ limitations under the License.
 
 # Upcoming talks
 
-There are no upcoming talks at the moment. Stay tuned!
+None scheduled.
 
 # Project Members
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endunless %}{% endfor %}
 
 Emeritus members
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endif %}{% endfor %}
 
 # Mailing Lists
@@ -86,6 +86,30 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## calcite-clj - Use Calcite with Clojure
+
+At [Apache Calcite Online Meetup January 2022](https://www.meetup.com/Apache-Calcite/events/282836907/)
+[[slides]](https://ieugen.github.io/calcite-clj/)
+[[video]](https://www.youtube.com/watch?v=9CUWX8JHA90)
+[[code]](https://github.com/ieugen/calcite-clj)
+
+## Morel, a functional query language (Julian Hyde)
+
+At [Strange Loop 2021](https://thestrangeloop.com/2021/morel-a-functional-query-language.html),
+St. Louis, Missouri, September 30, 2021;
+[[slides](https://www.slideshare.net/julianhyde/morel-a-functional-query-language)].
+
+## Building modern SQL query optimizers with Apache Calcite
+
+At [ApacheCon 2021](https://www.apachecon.com/acah2021/tracks/bigdatasql.html), September 22, 2021.
+
+## Apache Calcite Tutorial
+
+At [BOSS 2021](https://boss-workshop.github.io/boss-2021/), Copenhagen, Denmark, August 16, 2021;
+[[summary](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.md)],
+[[slides](https://www.slideshare.net/StamatisZampetakis/apache-calcite-tutorial-boss-21)],
+[[pdf](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.pdf)].
 
 ## An introduction to query processing & Apache Calcite
 
@@ -180,3 +204,25 @@ As Hadoop Summit, Dublin, 2016
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
 * <a href="https://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)
+
+# External resources
+
+A collection of articles, blogs, presentations, and interesting projects related to Apache Calcite.
+
+If you have something interesting to share with the community drop us an email on the dev list or
+consider creating a pull request on GitHub. If you just finished a cool project using Calcite
+consider writing a short article about it for our [news section]({{ site.baseurl }}/news/index.html).
+
+* <a href="https://datalore.jetbrains.com/view/notebook/JYTVfn90xYSmv6U5f2NIQR">Building a new Calcite frontend (GraphQL)</a> (Gavin Ray, 2022)
+* <a href="https://github.com/ieugen/calcite-clj">Write Calcite adapters in Clojure</a> (Ioan Eugen Stan, 2022)
+* <a href="https://www.querifylabs.com/blog/cross-product-suppression-in-join-order-planning">Cross-Product Suppression in Join Order Planning</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/metadata-management-in-apache-calcite">Metadata Management in Apache Calcite</a> (Roman Kondakov, 2021)
+* <a href="https://www.querifylabs.com/blog/relational-operators-in-apache-calcite">Relational Operators in Apache Calcite</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/introduction-to-the-join-ordering-problem">Introduction to the Join Ordering Problem</a> (Alexey Goncharuk, 2021)
+* <a href="https://www.querifylabs.com/blog/what-is-cost-based-optimization">What is Cost-based Optimization?</a> (Alexey Goncharuk, 2021)
+* <a href="https://www.querifylabs.com/blog/memoization-in-cost-based-optimizers">Memoization in Cost-based Optimizers</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/rule-based-query-optimization">Rule-based Query Optimization</a> (Vladimir Ozerov, 2021)
+* <a href="https://www.querifylabs.com/blog/custom-traits-in-apache-calcite">Custom traits in Apache Calcite</a> (Vladimir Ozerov, 2020)
+* <a href="https://www.querifylabs.com/blog/assembling-a-query-optimizer-with-apache-calcite">Assembling a query optimizer with Apache Calcite</a> (Vladimir Ozerov, 2020)
+* <a href="https://github.com/michaelmior/calcite-notebooks">A series of Jupyter notebooks to demonstrate the functionality of Apache Calcite</a> (Michael Mior)
+* <a href="https://github.com/pingcap/awesome-database-learning">A curated collection of resources about databases</a>

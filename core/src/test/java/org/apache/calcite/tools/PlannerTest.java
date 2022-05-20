@@ -79,6 +79,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.test.schemata.tpch.TpchSchema;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
@@ -87,6 +88,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -95,7 +97,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.calcite.test.RelMetadataTest.sortsAs;
+import static org.apache.calcite.test.Matchers.sortsAs;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -1172,7 +1174,8 @@ class PlannerTest {
   public static class MyProjectFilterRule
       extends RelRule<MyProjectFilterRule.Config> {
     static Config config(String description) {
-      return Config.EMPTY
+      return ImmutableMyProjectFilterRuleConfig.builder()
+          .build()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalProject.class).oneInput(b1 ->
                   b1.operand(LogicalFilter.class).anyInputs()))
@@ -1193,6 +1196,8 @@ class PlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableMyProjectFilterRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyProjectFilterRule toRule() {
         return new MyProjectFilterRule(this);
@@ -1204,12 +1209,12 @@ class PlannerTest {
   public static class MyFilterProjectRule
       extends RelRule<MyFilterProjectRule.Config> {
     static Config config(String description) {
-      return Config.EMPTY
+      return ImmutableMyFilterProjectRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class).oneInput(b1 ->
                   b1.operand(LogicalProject.class).anyInputs()))
           .withDescription(description)
-          .as(Config.class);
+          .build();
     }
 
     protected MyFilterProjectRule(Config config) {
@@ -1224,6 +1229,8 @@ class PlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableMyFilterProjectRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyFilterProjectRule toRule() {
         return new MyFilterProjectRule(this);

@@ -41,6 +41,8 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import com.alibaba.innodb.java.reader.schema.TableDef;
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.List;
 
 /**
@@ -65,18 +67,18 @@ public class InnodbRules {
   /** Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to
    * a {@link InnodbFilter}. */
   public static final InnodbFilterRule FILTER =
-      InnodbFilterRule.Config.DEFAULT.toRule();
+      InnodbFilterRule.InnodbFilterRuleConfig.DEFAULT.toRule();
 
   /** Rule to convert a {@link org.apache.calcite.rel.core.Sort} with a
    * {@link org.apache.calcite.rel.core.Filter} to a
    * {@link InnodbSort}. */
   public static final InnodbSortFilterRule SORT_FILTER =
-      InnodbSortFilterRule.Config.DEFAULT.toRule();
+      InnodbSortFilterRule.InnodbSortFilterRuleConfig.DEFAULT.toRule();
 
   /** Rule to convert a {@link org.apache.calcite.rel.core.Sort} to a
    * {@link InnodbSort} based on InnoDB table clustering index. */
   public static final InnodbSortTableScanRule SORT_SCAN =
-      InnodbSortTableScanRule.Config.DEFAULT.toRule();
+      InnodbSortTableScanRule.InnodbSortTableScanRuleConfig.DEFAULT.toRule();
 
   public static final List<RelOptRule> RULES =
       ImmutableList.of(PROJECT,
@@ -157,9 +159,9 @@ public class InnodbRules {
    *
    * @see #FILTER
    */
-  public static class InnodbFilterRule extends RelRule<InnodbFilterRule.Config> {
+  public static class InnodbFilterRule extends RelRule<InnodbFilterRule.InnodbFilterRuleConfig> {
     /** Creates a InnodbFilterRule. */
-    protected InnodbFilterRule(Config config) {
+    protected InnodbFilterRule(InnodbFilterRuleConfig config) {
       super(config);
     }
 
@@ -202,13 +204,14 @@ public class InnodbRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface InnodbFilterRuleConfig extends RelRule.Config {
+      InnodbFilterRuleConfig DEFAULT = ImmutableInnodbFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class)
                   .oneInput(b1 -> b1.operand(InnodbTableScan.class)
                       .noInputs()))
-          .as(Config.class);
+          .build();
 
       @Override default InnodbFilterRule toRule() {
         return new InnodbFilterRule(this);
@@ -298,9 +301,9 @@ public class InnodbRules {
    * @see #SORT_FILTER
    */
   public static class InnodbSortFilterRule
-      extends AbstractInnodbSortRule<InnodbSortFilterRule.Config> {
+      extends AbstractInnodbSortRule<InnodbSortFilterRule.InnodbSortFilterRuleConfig> {
     /** Creates a InnodbSortFilterRule. */
-    protected InnodbSortFilterRule(Config config) {
+    protected InnodbSortFilterRule(InnodbSortFilterRuleConfig config) {
       super(config);
     }
 
@@ -311,8 +314,9 @@ public class InnodbRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface InnodbSortFilterRuleConfig extends RelRule.Config {
+      InnodbSortFilterRuleConfig DEFAULT = ImmutableInnodbSortFilterRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class)
                   .predicate(sort -> true)
@@ -322,7 +326,7 @@ public class InnodbRules {
                               b2.operand(InnodbFilter.class)
                                   .predicate(innodbFilter -> true)
                                   .anyInputs())))
-          .as(Config.class);
+          .build();
 
       @Override default InnodbSortFilterRule toRule() {
         return new InnodbSortFilterRule(this);
@@ -337,9 +341,9 @@ public class InnodbRules {
    * @see #SORT_SCAN
    */
   public static class InnodbSortTableScanRule
-      extends AbstractInnodbSortRule<InnodbSortTableScanRule.Config> {
+      extends AbstractInnodbSortRule<InnodbSortTableScanRule.InnodbSortTableScanRuleConfig> {
     /** Creates a InnodbSortTableScanRule. */
-    protected InnodbSortTableScanRule(Config config) {
+    protected InnodbSortTableScanRule(InnodbSortTableScanRuleConfig config) {
       super(config);
     }
 
@@ -350,8 +354,9 @@ public class InnodbRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      InnodbSortTableScanRule.Config DEFAULT = EMPTY
+    @Value.Immutable(singleton = false)
+    public interface InnodbSortTableScanRuleConfig extends RelRule.Config {
+      InnodbSortTableScanRuleConfig DEFAULT = ImmutableInnodbSortTableScanRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(Sort.class)
                   .predicate(sort -> true)
@@ -361,7 +366,7 @@ public class InnodbRules {
                               b2.operand(InnodbTableScan.class)
                                   .predicate(tableScan -> true)
                                   .anyInputs())))
-          .as(InnodbSortTableScanRule.Config.class);
+          .build();
 
       @Override default InnodbSortTableScanRule toRule() {
         return new InnodbSortTableScanRule(this);

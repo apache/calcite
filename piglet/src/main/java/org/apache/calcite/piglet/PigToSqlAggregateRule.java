@@ -34,7 +34,8 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBitSet;
+
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -54,17 +55,19 @@ import static org.apache.calcite.piglet.PigTypes.TYPE_FACTORY;
  * first then apply the Pig aggregate UDF later.  It is inefficient to
  * do that in SQL.
  */
+@Value.Enclosing
 public class PigToSqlAggregateRule
     extends RelRule<PigToSqlAggregateRule.Config> {
   private static final String MULTISET_PROJECTION = "MULTISET_PROJECTION";
 
   public static final PigToSqlAggregateRule INSTANCE =
-      Config.EMPTY.withOperandSupplier(b0 ->
-          b0.operand(Project.class).oneInput(b1 ->
-              b1.operand(Project.class).oneInput(b2 ->
-                  b2.operand(Aggregate.class).oneInput(b3 ->
-                      b3.operand(Project.class).anyInputs()))))
-          .as(Config.class)
+      ImmutablePigToSqlAggregateRule.Config.builder()
+          .withOperandSupplier(b0 ->
+              b0.operand(Project.class).oneInput(b1 ->
+                  b1.operand(Project.class).oneInput(b2 ->
+                      b2.operand(Aggregate.class).oneInput(b3 ->
+                          b3.operand(Project.class).anyInputs()))))
+          .build()
           .toRule();
 
   /** Creates a PigToSqlAggregateRule. */
@@ -254,8 +257,7 @@ public class PigToSqlAggregateRule
     // Step 2 build new Aggregate
     // Copy the group key
     final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(oldAgg.getGroupSet(),
-            (Iterable<ImmutableBitSet>) oldAgg.groupSets);
+        relBuilder.groupKey(oldAgg.getGroupSet(), oldAgg.groupSets);
     // The construct the agg call list
     final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
     if (needGroupingCol) {
@@ -409,6 +411,7 @@ public class PigToSqlAggregateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
     @Override default PigToSqlAggregateRule toRule() {
       return new PigToSqlAggregateRule(this);

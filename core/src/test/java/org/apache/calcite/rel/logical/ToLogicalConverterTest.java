@@ -327,21 +327,25 @@ class ToLogicalConverterTest {
     final RelNode rel = builder.scan("EMP")
         .variable(v)
         .scan("DEPT")
+        .filter(
+            builder.equals(builder.field(0), builder.field(v.get(), "DEPTNO")))
         .join(JoinRelType.LEFT,
             builder.equals(builder.field(2, 0, "SAL"),
                 builder.literal(1000)),
             ImmutableSet.of(v.get().id))
         .build();
     String expectedPhysical = ""
-        + "EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5}])\n"
+        + "EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5, 7}])\n"
         + "  EnumerableTableScan(table=[[scott, EMP]])\n"
         + "  EnumerableFilter(condition=[=($cor0.SAL, 1000)])\n"
-        + "    EnumerableTableScan(table=[[scott, DEPT]])\n";
+        + "    EnumerableFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "      EnumerableTableScan(table=[[scott, DEPT]])\n";
     String expectedLogical = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5}])\n"
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
-        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+        + "    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     verify(rel, expectedPhysical, expectedLogical);
   }
 
@@ -464,7 +468,7 @@ class ToLogicalConverterTest {
 
   @Test void testTableModify() {
     final String sql = "insert into \"employee\" select * from \"employee\"";
-    final String expectedPhysial = ""
+    final String expectedPhysical = ""
         + "JdbcToEnumerableConverter\n"
         + "  JdbcTableModify(table=[[foodmart, employee]], operation=[INSERT], flattened=[true])\n"
         + "    JdbcTableScan(table=[[foodmart, employee]])\n";
@@ -472,7 +476,7 @@ class ToLogicalConverterTest {
         + "LogicalTableModify(table=[[foodmart, employee]], "
         + "operation=[INSERT], flattened=[true])\n"
         + "  LogicalTableScan(table=[[foodmart, employee]])\n";
-    verify(rel(sql), expectedPhysial, expectedLogical);
+    verify(rel(sql), expectedPhysical, expectedLogical);
   }
 
 }

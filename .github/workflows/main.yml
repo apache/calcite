@@ -34,6 +34,13 @@ on:
     branches:
       - '*'
 
+concurrency:
+  # On master/release, we don't want any jobs cancelled so the sha is used to name the group
+  # On PR branches, we cancel the job if new commits are pushed
+  # More info: https://stackoverflow.com/a/68422069/253468
+  group: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release' ) && format('ci-main-{0}', github.sha) || format('ci-main-{0}', github.ref) }}
+  cancel-in-progress: true
+
 # Throw OutOfMemoryError in case less than 35% is free after full GC
 # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
 env:
@@ -45,75 +52,73 @@ jobs:
     name: 'Windows (JDK 8)'
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 50
-    - name: 'Set up JDK 8'
-      uses: actions/setup-java@v1
-      with:
-        java-version: 8
-    - uses: burrunan/gradle-cache-action@v1
-      name: Test
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-      with:
-        job-id: jdk${{ matrix.jdk }}
-        remote-build-cache-proxy-enabled: false
-        arguments: --scan --no-parallel --no-daemon build javadoc
-    - name: 'sqlline and sqllsh'
-      shell: cmd
-      run: |
-        call sqlline.bat -e '!quit'
-        echo.
-        echo Sqlline example/csv
-        call example/csv/sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
-        echo.
-        echo sqlsh
-        call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
-
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 8'
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          arguments: --scan --no-parallel --no-daemon build javadoc
+      - name: 'sqlline and sqllsh'
+        shell: cmd
+        run: |
+          call sqlline.bat -e '!quit'
+          echo.
+          echo Sqlline example/csv
+          call example/csv/sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
+          echo.
+          echo sqlsh
+          call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
   linux-avatica:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 11), Avatica master'
+    name: 'Linux (JDK 11), Avatica main'
     runs-on: ubuntu-latest
     steps:
-    - name: 'Set up JDK 11'
-      uses: actions/setup-java@v1
-      with:
-        java-version: 11
-    - name: 'Clone Avatica to Maven Local repository'
-      run: |
-        git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
-    - uses: burrunan/gradle-cache-action@v1
-      name: Build Avatica
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-      with:
-        job-id: avatica-jdk${{ matrix.jdk }}
-        remote-build-cache-proxy-enabled: false
-        build-root-directory: ../calcite-avatica
-        arguments: publishToMavenLocal
-        properties: |
-          calcite.avatica.version=1.0.0-dev-master
-          skipJavadoc=
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 50
-    - uses: burrunan/gradle-cache-action@v1
-      name: Test
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-      with:
-        job-id: jdk${{ matrix.jdk }}
-        remote-build-cache-proxy-enabled: false
-        execution-only-caches: true
-        arguments: --scan --no-parallel --no-daemon build javadoc
-        properties: |
-          calcite.avatica.version=1.0.0-dev-master-SNAPSHOT
-          enableMavenLocal=
-
+      - name: 'Set up JDK 11'
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: 'Clone Avatica to Maven Local repository'
+        run: |
+          git clone --branch main --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
+      - uses: burrunan/gradle-cache-action@v1
+        name: Build Avatica
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: avatica-jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          build-root-directory: ../calcite-avatica
+          arguments: publishToMavenLocal
+          properties: |
+            calcite.avatica.version=1.0.0-dev-master
+            skipJavadoc=
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          execution-only-caches: true
+          arguments: --scan --no-parallel --no-daemon build javadoc
+          properties: |
+            calcite.avatica.version=1.0.0-dev-master-SNAPSHOT
+            enableMavenLocal=
   linux-openj9:
     if: github.event.action != 'labeled'
     name: 'Linux (OpenJ9 8)'
@@ -145,26 +150,25 @@ jobs:
           echo
           echo sqlsh
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
-
   mac:
     if: github.event.action != 'labeled'
-    name: 'macOS (JDK 15)'
+    name: 'macOS (JDK 17)'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 15'
+      - name: 'Set up JDK 17'
         uses: actions/setup-java@v1
         with:
-          java-version: 15
+          java-version: 17
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
-          job-id: jdk15
+          job-id: jdk17
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'
@@ -176,7 +180,6 @@ jobs:
           echo
           echo sqlsh
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
-
   errorprone:
     if: github.event.action != 'labeled'
     name: 'Error Prone (JDK 11)'
@@ -249,42 +252,43 @@ jobs:
     name: 'Linux (JDK 8) Druid Tests'
     runs-on: ubuntu-latest
     steps:
-    - name: 'Set up JDK 8'
-      uses: actions/setup-java@v1
-      with:
-        java-version: 8
-    - name: 'Checkout Druid dataset'
-      uses: actions/checkout@master
-      with:
-        repository: zabetak/calcite-druid-dataset
-        fetch-depth: 1
-        path: druid-dataset
-    - name: 'Start Druid containers'
-      working-directory: ./druid-dataset
-      run: |
-        chmod -R 777 storage
-        docker-compose up -d
-    - name: 'Wait Druid nodes to startup'
-      run: |
-        until docker logs coordinator | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs router | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs historical | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs middlemanager | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs broker | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-    - name: 'Index Foodmart/Wikipedia datasets'
-      working-directory: ./druid-dataset
-      run: ./index.sh 30s
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 1
-        path: calcite
-    - uses: burrunan/gradle-cache-action@v1
-      name: 'Run Druid tests'
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-      with:
-        build-root-directory: ./calcite
-        job-id: Druid8
-        remote-build-cache-proxy-enabled: false
-        arguments: --scan --no-parallel --no-daemon :druid:test -Dcalcite.test.druid=true
+      - name: 'Set up JDK 8'
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: 'Checkout Druid dataset'
+        uses: actions/checkout@master
+        with:
+          repository: zabetak/calcite-druid-dataset
+          fetch-depth: 1
+          path: druid-dataset
+      - name: 'Start Druid containers'
+        working-directory: ./druid-dataset
+        run: |
+          chmod -R 777 storage
+          docker-compose up -d
+      - name: 'Wait Druid nodes to startup'
+        run: |
+          until docker logs coordinator | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+          until docker logs router | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+          until docker logs historical | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+          until docker logs middlemanager | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+          until docker logs broker | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+      - name: 'Index Foodmart/Wikipedia datasets'
+        working-directory: ./druid-dataset
+        run: ./index.sh 30s
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: calcite
+      - uses: burrunan/gradle-cache-action@v1
+        name: 'Run Druid tests'
+        timeout-minutes: 10
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          build-root-directory: ./calcite
+          job-id: Druid8
+          remote-build-cache-proxy-enabled: false
+          arguments: --scan --no-parallel --no-daemon :druid:test -Dcalcite.test.druid=true

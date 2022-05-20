@@ -1353,7 +1353,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   @Override public Result visitNamedParam(RexNamedParam namedParam) {
     // TODO: Actually implement. It seems like this class isn't used by
     // BodoSQL so we aren't going to implement it
-    return null;
+    throw Util.needToImplement(namedParam);
   }
 
   @Override public Result visitFieldAccess(RexFieldAccess fieldAccess) {

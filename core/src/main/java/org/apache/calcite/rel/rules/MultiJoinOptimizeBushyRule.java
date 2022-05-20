@@ -39,6 +39,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -73,6 +74,7 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  *
  * @see CoreRules#MULTI_JOIN_OPTIMIZE_BUSHY
  */
+@Value.Enclosing
 public class MultiJoinOptimizeBushyRule
     extends RelRule<MultiJoinOptimizeBushyRule.Config>
     implements TransformationRule {
@@ -399,10 +401,10 @@ public class MultiJoinOptimizeBushyRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableMultiJoinOptimizeBushyRule.Config.of()
+        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs());
 
     @Override default MultiJoinOptimizeBushyRule toRule() {
       return new MultiJoinOptimizeBushyRule(this);

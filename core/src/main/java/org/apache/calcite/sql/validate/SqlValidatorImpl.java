@@ -91,6 +91,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.IdPair;
@@ -104,6 +105,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
@@ -319,7 +321,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   //~ Methods ----------------------------------------------------------------
 
   public SqlConformance getConformance() {
-    return config.sqlConformance();
+    return config.conformance();
   }
 
   @Pure
@@ -550,7 +552,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SqlIdentifier identifier = (SqlIdentifier) selectItem;
     if (!identifier.isSimple()) {
-      if (!validator.config().sqlConformance().allowQualifyingCommonColumn()) {
+      if (!validator.config().conformance().allowQualifyingCommonColumn()) {
         validateQualifiedCommonColumn((SqlJoin) from, identifier, scope, validator);
       }
       return selectItem;
@@ -1384,20 +1386,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlKind kind = node.getKind();
     switch (kind) {
     case VALUES:
-      // CHECKSTYLE: IGNORE 1
-      if (underFrom || true) {
-        // leave FROM (VALUES(...)) [ AS alias ] clauses alone,
-        // otherwise they grow cancerously if this rewrite is invoked
-        // over and over
-        return node;
-      } else {
-        final SqlNodeList selectList =
-            new SqlNodeList(SqlParserPos.ZERO);
-        selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
-        return new SqlSelect(node.getParserPosition(), null, selectList, node,
-            null, null, null, null, null, null, null, null);
-      }
-
+      // Do not rewrite VALUES clauses.
+      // At some point we used to rewrite VALUES(...) clauses
+      // to (SELECT * FROM VALUES(...)) but this was problematic
+      // in various cases such as FROM (VALUES(...)) [ AS alias ]
+      // where the rewrite was invoked over and over making the
+      // expression grow indefinitely.
+      return node;
     case ORDER_BY: {
       SqlOrderBy orderBy = (SqlOrderBy) node;
       handleOffsetFetch(orderBy.offset, orderBy.fetch);
@@ -1853,8 +1848,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           // actually a call to a function. Construct a fake
           // call to this function, so we can use the regular
           // operator validation.
-          return new SqlBasicCall(operator, SqlNode.EMPTY_ARRAY,
-              id.getParserPosition(), true, null);
+          return new SqlBasicCall(operator, ImmutableList.of(),
+              id.getParserPosition(), null).withExpanded(true);
         }
       }
     }
@@ -3528,7 +3523,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // a NATURAL keyword?
     switch (joinType) {
     case LEFT_SEMI_JOIN:
-      if (!this.config.sqlConformance().isLiberal()) {
+      if (!this.config.conformance().isLiberal()) {
         throw newValidationError(join.getJoinTypeNode(),
             RESOURCE.dialectDoesNotSupportFeature("LEFT SEMI JOIN"));
       }
@@ -3668,7 +3663,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     if (select.getFrom() == null) {
-      if (this.config.sqlConformance().isFromRequired()) {
+      if (this.config.conformance().isFromRequired()) {
         throw newValidationError(select, RESOURCE.selectMissingFrom());
       }
     } else {
@@ -4393,7 +4388,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
-    if (config.sqlConformance().isHavingAlias()) {
+    if (config.conformance().isHavingAlias()) {
       SqlNode newExpr = expandGroupByOrHavingExpr(having, havingScope, select, true);
       if (having != newExpr) {
         having = newExpr;
@@ -4865,7 +4860,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataType targetRowType,
       SqlInsert insert) {
     if (insert.getTargetColumnList() == null
-        && this.config.sqlConformance().isInsertSubsetColumnsAllowed()) {
+        && this.config.conformance().isInsertSubsetColumnsAllowed()) {
       // Target an implicit subset of columns.
       final SqlNode source = insert.getSource();
       final RelDataType sourceRowType = getNamespaceOrThrow(source).getRowType();
@@ -5181,7 +5176,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       SqlCall rowConstructor = (SqlCall) operand;
-      if (this.config.sqlConformance().isInsertSubsetColumnsAllowed()
+      if (this.config.conformance().isInsertSubsetColumnsAllowed()
           && targetRowType.isStruct()
           && rowConstructor.operandCount() < targetRowType.getFieldCount()) {
         targetRowType =
@@ -5788,7 +5783,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // What columns from the input are not referenced by a column in the IN
     // list?
     final SqlValidatorNamespace inputNs =
-        Objects.requireNonNull(getNamespace(unpivot.query));
+        requireNonNull(getNamespace(unpivot.query));
     final Set<String> unusedColumnNames =
         catalogReader.nameMatcher().createSet();
     unusedColumnNames.addAll(inputNs.getRowType().getFieldNames());
@@ -5962,6 +5957,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     default:
       throw new AssertionError(op);
     }
+
+    if (op.isPercentile()) {
+      assert op.requiresGroupOrder() == Optionality.MANDATORY;
+      assert orderList != null;
+
+      // Validate that percentile function have a single ORDER BY expression
+      if (orderList.size() != 1) {
+        throw newValidationError(orderList,
+            RESOURCE.orderByRequiresOneKey(op.getName()));
+      }
+
+      // Validate that the ORDER BY field is of NUMERIC type
+      SqlNode node = orderList.get(0);
+      assert node != null;
+
+      final RelDataType type = deriveType(scope, node);
+      final @Nullable SqlTypeFamily family = type.getSqlTypeName().getFamily();
+      if (family == null
+          || family.allowableDifferenceTypes().isEmpty()) {
+        throw newValidationError(orderList,
+            RESOURCE.unsupportedTypeInOrderBy(
+                type.getSqlTypeName().getName(),
+                op.getName()));
+      }
+    }
   }
 
   @Override public void validateCall(
@@ -5971,7 +5991,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if ((call.operandCount() == 0)
         && (operator.getSyntax() == SqlSyntax.FUNCTION_ID)
         && !call.isExpanded()
-        && !this.config.sqlConformance().allowNiladicParentheses()) {
+        && !this.config.conformance().allowNiladicParentheses()) {
       // For example, "LOCALTIME()" is illegal. (It should be
       // "LOCALTIME", which would have been handled as a
       // SqlIdentifier.)
@@ -6414,9 +6434,39 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return unknownType;
     }
 
-    // TODO: Fix DataType
-    @Override public RelDataType visit(SqlNamedParam param) {
-      return unknownType;
+    @Override public RelDataType visit(SqlNamedParam namedParam) {
+      /** Ideally, this would throw an error in all the cases where we currently return
+       * unknownType, so that we don't recurse unnecessarily.
+       *
+       * This Function is needed as of the 1.30.0 Calcite upgrade, I believe due to changes
+       * within inferUnknownTypes(). However, this change should benefit us regardless, as it
+       * will get the correct typing information into the program faster.
+       * This could increase the time to validate in the case that we have an invalid Named Param,
+       * as this function has much more logic now, and may be called many many times before the
+       * query is declared invalid.
+       */
+
+      // Named Param is always in the default schema with the encoded table name.
+      String tableName = config().namedParamTableName();
+      if (tableName.equals(NAMED_PARAM_TABLE_NAME_EMPTY)) {
+        return unknownType;
+      }
+      // TODO: Set caseSensitive?
+      CalciteSchema.TableEntry entry =
+          SqlValidatorUtil.getTableEntry(getCatalogReader(), ImmutableList.of(tableName));
+      if (entry == null) {
+        return unknownType;
+      }
+      Table table = entry.getTable();
+      RelDataType rowStruct = table.getRowType(typeFactory);
+      String name = namedParam.getName();
+      // TODO: Set caseSensitive?
+      RelDataTypeField typeField = rowStruct.getField(name, false, false);
+      if (typeField == null) {
+        return unknownType;
+      }
+      // Get the type of the parameter. This stored as a column in a parameter table.
+      return typeField.getType();
     }
 
     @Override public RelDataType visit(SqlIntervalQualifier intervalQualifier) {
@@ -6479,14 +6529,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           && !DynamicRecordType.isDynamicStarColName(Util.last(id.names))) {
         // Convert a column ref into ITEM(*, 'col_name')
         // for a dynamic star field in dynTable's rowType.
-        SqlNode[] inputs = new SqlNode[2];
-        inputs[0] = fqId;
-        inputs[1] = SqlLiteral.createCharString(
-            Util.last(id.names),
-            id.getParserPosition());
         return new SqlBasicCall(
             SqlStdOperatorTable.ITEM,
-            inputs,
+            ImmutableList.of(fqId,
+                SqlLiteral.createCharString(Util.last(id.names),
+                    id.getParserPosition())),
             id.getParserPosition());
       }
       return fqId;
@@ -6518,7 +6565,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Ordinal markers, e.g. 'select a, b from t order by 2'.
       // Only recognize them if they are the whole expression,
       // and if the dialect permits.
-      if (literal == root && config.sqlConformance().isSortByOrdinal()) {
+      if (literal == root && config.conformance().isSortByOrdinal()) {
         switch (literal.getTypeName()) {
         case DECIMAL:
         case DOUBLE:
@@ -6569,7 +6616,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @Override public SqlNode visit(SqlIdentifier id) {
       // Aliases, e.g. 'select a as x, b from t order by x'.
       if (id.isSimple()
-          && config.sqlConformance().isSortByAlias()) {
+          && config.conformance().isSortByAlias()) {
         String alias = id.getSimple();
         final SqlValidatorNamespace selectNs = getNamespaceOrThrow(select);
         final RelDataType rowType =
@@ -6641,8 +6688,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
       if (id.isSimple()
           && (havingExpr
-              ? validator.config().sqlConformance().isHavingAlias()
-              : validator.config().sqlConformance().isGroupByAlias())) {
+              ? validator.config().conformance().isHavingAlias()
+              : validator.config().conformance().isGroupByAlias())) {
         String name = id.getSimple();
         SqlNode expr = null;
         final SqlNameMatcher nameMatcher =
@@ -6684,7 +6731,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      if (havingExpr || !validator.config().sqlConformance().isGroupByOrdinal()) {
+      if (havingExpr || !validator.config().conformance().isGroupByOrdinal()) {
         return super.visit(literal);
       }
       boolean isOrdinalLiteral = literal == root;

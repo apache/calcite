@@ -18,8 +18,8 @@
 # SQL statements, literals or data types.
 #
 # Calcite's parser grammar file (Parser.jj) is written in javacc
-# (http://javacc.java.net/) with Freemarker (http://freemarker.org/) variables
-# to allow clients to:
+# (https://javacc.github.io/javacc/) with Freemarker (http://freemarker.org/)
+# variables to allow clients to:
 #   1. have custom parser implementation class and package name.
 #   2. insert new parser method implementations written in javacc to parse
 #      custom:

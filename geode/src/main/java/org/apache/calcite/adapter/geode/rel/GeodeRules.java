@@ -40,6 +40,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -194,20 +196,20 @@ public class GeodeRules {
    * {@link GeodeSort}.
    */
   public static class GeodeSortLimitRule
-      extends RelRule<GeodeSortLimitRule.Config> {
+      extends RelRule<GeodeSortLimitRule.GeodeSortLimitRuleConfig> {
 
     private static final GeodeSortLimitRule INSTANCE =
-        Config.EMPTY
+        ImmutableGeodeSortLimitRuleConfig.builder()
             .withOperandSupplier(b ->
                 b.operand(Sort.class)
                     // OQL doesn't support offsets (e.g. LIMIT 10 OFFSET 500)
                     .predicate(sort -> sort.offset == null)
                     .anyInputs())
-            .as(Config.class)
+            .build()
             .toRule();
 
     /** Creates a GeodeSortLimitRule. */
-    protected GeodeSortLimitRule(Config config) {
+    protected GeodeSortLimitRule(GeodeSortLimitRuleConfig config) {
       super(config);
     }
 
@@ -226,7 +228,8 @@ public class GeodeRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
+    @Value.Immutable(singleton = false)
+    public interface GeodeSortLimitRuleConfig extends RelRule.Config {
       @Override default GeodeSortLimitRule toRule() {
         return new GeodeSortLimitRule(this);
       }
@@ -238,18 +241,18 @@ public class GeodeRules {
    * {@link GeodeFilter}.
    */
   public static class GeodeFilterRule
-      extends RelRule<GeodeFilterRule.Config> {
+      extends RelRule<GeodeFilterRule.GeodeFilterRuleConfig> {
 
     private static final GeodeFilterRule INSTANCE =
-        Config.EMPTY
+        ImmutableGeodeFilterRuleConfig.builder()
             .withOperandSupplier(b0 ->
                 b0.operand(LogicalFilter.class).oneInput(b1 ->
                     b1.operand(GeodeTableScan.class).noInputs()))
-            .as(Config.class)
+            .build()
             .toRule();
 
     /** Creates a GeodeFilterRule. */
-    protected GeodeFilterRule(Config config) {
+    protected GeodeFilterRule(GeodeFilterRuleConfig config) {
       super(config);
     }
 
@@ -380,7 +383,8 @@ public class GeodeRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
+    @Value.Immutable(singleton = false)
+    public interface GeodeFilterRuleConfig extends RelRule.Config {
       @Override default GeodeFilterRule toRule() {
         return new GeodeFilterRule(this);
       }

@@ -2334,13 +2334,13 @@ FROM (VALUES (0, 2, 4, 8),
    (1, 2, 4, 8),
    (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
 V
-14.0
 13.0
 9.5
 1.75
-0.0
 1.875
 null
+0
+14
 !ok
 
 # End misc.iq

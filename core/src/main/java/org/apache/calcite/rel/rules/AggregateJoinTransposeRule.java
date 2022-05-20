@@ -40,7 +40,6 @@ import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -49,6 +48,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -68,6 +68,7 @@ import static java.util.Objects.requireNonNull;
  * @see CoreRules#AGGREGATE_JOIN_TRANSPOSE
  * @see CoreRules#AGGREGATE_JOIN_TRANSPOSE_EXTENDED
  */
+@Value.Enclosing
 public class AggregateJoinTransposeRule
     extends RelRule<AggregateJoinTransposeRule.Config>
     implements TransformationRule {
@@ -375,8 +376,7 @@ public class AggregateJoinTransposeRule
     if (!aggConvertedToProjects) {
       relBuilder.aggregate(
           relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
-              (Iterable<ImmutableBitSet>)
-                  Mappings.apply2(mapping, aggregate.getGroupSets())),
+              Mappings.apply2(mapping, aggregate.getGroupSets())),
           newAggCalls);
     }
 
@@ -454,12 +454,13 @@ public class AggregateJoinTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateJoinTransposeRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalJoin.class, false);
 
     /** Extended instance that can push down aggregate functions. */
-    Config EXTENDED = EMPTY.as(Config.class)
+    Config EXTENDED = ImmutableAggregateJoinTransposeRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalJoin.class, true);
 
     @Override default AggregateJoinTransposeRule toRule() {
@@ -467,9 +468,10 @@ public class AggregateJoinTransposeRule
     }
 
     /** Whether to push down aggregate functions, default false. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isAllowFunctions();
+    @Value.Default
+    default boolean isAllowFunctions() {
+      return false;
+    }
 
     /** Sets {@link #isAllowFunctions()}. */
     Config withAllowFunctions(boolean allowFunctions);

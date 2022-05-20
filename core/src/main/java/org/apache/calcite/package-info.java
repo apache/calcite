@@ -18,4 +18,5 @@
 /**
  * Main package for Calcite, the dynamic data management platform.
  */
+@CalciteImmutable
 package org.apache.calcite;

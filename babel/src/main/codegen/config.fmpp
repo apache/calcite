@@ -545,12 +545,16 @@ data: {
     # Example: "< INFIX_CAST: \"::\" >".
     binaryOperatorsTokens: [
       "< INFIX_CAST: \"::\" >"
+# Temporary reversion for the Bodo version
+#      "< NULL_SAFE_EQUAL: \"<=>\" >"
     ]
 
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [
       "InfixCast"
+# Temporary reversion for the Bodo version
+#      "NullSafeEqual"
     ]
 
     # List of files in @includes directory that have parser method

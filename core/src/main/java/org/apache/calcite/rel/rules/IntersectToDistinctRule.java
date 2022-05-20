@@ -28,6 +28,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import org.immutables.value.Value;
+
 import java.math.BigDecimal;
 
 /**
@@ -66,6 +68,7 @@ import java.math.BigDecimal;
  * @see org.apache.calcite.rel.rules.UnionToDistinctRule
  * @see CoreRules#INTERSECT_TO_DISTINCT
  */
+@Value.Enclosing
 public class IntersectToDistinctRule
     extends RelRule<IntersectToDistinctRule.Config>
     implements TransformationRule {
@@ -130,8 +133,9 @@ public class IntersectToDistinctRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableIntersectToDistinctRule.Config.of()
         .withOperandFor(LogicalIntersect.class);
 
     @Override default IntersectToDistinctRule toRule() {

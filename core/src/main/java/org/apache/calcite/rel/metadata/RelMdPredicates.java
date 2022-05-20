@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RexImplicationChecker;
 import org.apache.calcite.plan.Strong;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -53,7 +52,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -130,7 +128,7 @@ import static java.util.Objects.requireNonNull;
 public class RelMdPredicates
     implements MetadataHandler<BuiltInMetadata.Predicates> {
   public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
-      .reflectiveSource(BuiltInMethod.PREDICATES.method, new RelMdPredicates());
+      .reflectiveSource(new RelMdPredicates(), BuiltInMetadata.Predicates.Handler.class);
 
   private static final List<RexNode> EMPTY_LIST = ImmutableList.of();
 
@@ -146,11 +144,6 @@ public class RelMdPredicates
    */
   public RelOptPredicateList getPredicates(RelNode rel, RelMetadataQuery mq) {
     return RelOptPredicateList.EMPTY;
-  }
-
-  public RelOptPredicateList getPredicates(HepRelVertex rel,
-      RelMetadataQuery mq) {
-    return mq.getPulledUpPredicates(rel.getCurrentRel());
   }
 
   /**

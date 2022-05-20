@@ -40,11 +40,11 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -210,7 +210,8 @@ class VolcanoPlannerTest {
    */
   public static class ThreeInputsUnionRule
       extends RelRule<ThreeInputsUnionRule.Config> {
-    static final ThreeInputsUnionRule INSTANCE = Config.EMPTY
+    static final ThreeInputsUnionRule INSTANCE = ImmutableThreeInputsUnionRuleConfig.builder()
+        .build()
         .withOperandSupplier(b0 ->
             b0.operand(EnumerableUnion.class).inputs(
                 b1 -> b1.operand(PhysBiRel.class).anyInputs(),
@@ -227,6 +228,8 @@ class VolcanoPlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableThreeInputsUnionRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default ThreeInputsUnionRule toRule() {
         return new ThreeInputsUnionRule(this);
@@ -272,9 +275,9 @@ class VolcanoPlannerTest {
 
     planner.addRule(PhysLeafRule.INSTANCE);
     planner.addRule(GoodSingleRule.INSTANCE);
-    final List<String> buf = new ArrayList<>();
-    planner.addRule(SubsetRule.config(buf).toRule());
-
+    List<String> buf = new ArrayList<>();
+    SubsetRule.Config config = SubsetRule.config(buf);
+    planner.addRule(config.toRule());
     RelOptCluster cluster = newCluster(planner);
     NoneLeafRel leafRel =
         new NoneLeafRel(
@@ -293,6 +296,8 @@ class VolcanoPlannerTest {
         .plus(RelCollations.of(0)));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
+
+    buf = config.buf();
     assertTrue(result instanceof PhysSingleRel);
     assertThat(sort(buf),
         equalTo(
@@ -355,8 +360,9 @@ class VolcanoPlannerTest {
     planner.addRule(PhysLeafRule.INSTANCE);
     planner.addRule(GoodSingleRule.INSTANCE);
     planner.addRule(PhysSingleInputSetMergeRule.INSTANCE);
-    final List<String> buf = new ArrayList<>();
-    planner.addRule(PhysSingleSubsetRule.config(buf).toRule());
+    List<String> buf = new ArrayList<>();
+    PhysSingleSubsetRule.Config config = PhysSingleSubsetRule.config(buf);
+    planner.addRule(config.toRule());
 
     RelOptCluster cluster = newCluster(planner);
     NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
@@ -365,6 +371,7 @@ class VolcanoPlannerTest {
         .changeTraits(singleRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
+    buf = config.buf();
     assertTrue(result instanceof PhysSingleRel);
     assertThat(sort(buf),
         equalTo(
@@ -558,7 +565,7 @@ class VolcanoPlannerTest {
         isLinux(plan));
   }
 
-  @Test public void testPruneNode() {
+  @Test void testPruneNode() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -774,7 +781,7 @@ class VolcanoPlannerTest {
   /** Rule that matches a {@link RelSubset}. */
   public static class SubsetRule extends RelRule<SubsetRule.Config> {
     static Config config(List<String> buf) {
-      return Config.EMPTY
+      return ModifiableSubsetRuleConfig.create()
           .withOperandSupplier(b0 ->
               b0.operand(TestSingleRel.class).oneInput(b1 ->
                   b1.operand(RelSubset.class).anyInputs()))
@@ -795,22 +802,25 @@ class VolcanoPlannerTest {
       TestSingleRel singleRel = call.rel(0);
       RelSubset childRel = call.rel(1);
       assertThat(call.rels.length, equalTo(2));
-      final List<String> buf = config.buf();
-      buf.add(singleRel.getClass().getSimpleName() + ":"
+      config.addBuf(singleRel.getClass().getSimpleName() + ":"
           + childRel.getDigest());
     }
 
     /** Rule configuration. */
+    @Value.Modifiable
+    @Value.Style(set = "with*", typeModifiable = "ModifiableSubsetRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default SubsetRule toRule() {
         return new SubsetRule(this);
       }
 
-      @ImmutableBeans.Property(makeImmutable = false)
       List<String> buf();
 
       /** Sets {@link #buf()}. */
-      Config withBuf(List<String> buf);
+      Config withBuf(Iterable<String> buf);
+
+      Config addBuf(String element);
+
     }
   }
 
@@ -818,7 +828,7 @@ class VolcanoPlannerTest {
   public static class PhysSingleSubsetRule
       extends RelRule<PhysSingleSubsetRule.Config> {
     static Config config(List<String> buf) {
-      return Config.EMPTY
+      return ModifiablePhysSingleSubsetRuleConfig.create()
           .withOperandSupplier(b0 ->
               b0.operand(PhysSingleRel.class).oneInput(b1 ->
                   b1.operand(RelSubset.class).anyInputs()))
@@ -837,22 +847,24 @@ class VolcanoPlannerTest {
     @Override public void onMatch(RelOptRuleCall call) {
       PhysSingleRel singleRel = call.rel(0);
       RelSubset subset = call.rel(1);
-      final List<String> buf = config.buf();
-      buf.add(singleRel.getClass().getSimpleName() + ":"
+      config.addBuf(singleRel.getClass().getSimpleName() + ":"
           + subset.getDigest());
     }
 
     /** Rule configuration. */
+    @Value.Modifiable
+    @Value.Style(set = "with*", typeModifiable = "ModifiablePhysSingleSubsetRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysSingleSubsetRule toRule() {
         return new PhysSingleSubsetRule(this);
       }
 
-      @ImmutableBeans.Property(makeImmutable = false)
       List<String> buf();
 
       /** Sets {@link #buf()}. */
-      Config withBuf(List<String> buf);
+      Config withBuf(Iterable<String> buf);
+
+      Config addBuf(String element);
     }
   }
 
@@ -860,7 +872,7 @@ class VolcanoPlannerTest {
   public static class PhysSingleInputSetMergeRule
       extends RelRule<PhysSingleInputSetMergeRule.Config> {
     static final PhysSingleInputSetMergeRule INSTANCE =
-        Config.EMPTY
+        ImmutablePhysSingleInputSetMergeRuleConfig.builder().build()
             .withOperandSupplier(b0 ->
                 b0.operand(PhysSingleRel.class).oneInput(b1 ->
                     b1.operand(PhysLeafRel.class)
@@ -886,6 +898,8 @@ class VolcanoPlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutablePhysSingleInputSetMergeRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysSingleInputSetMergeRule toRule() {
         return new PhysSingleInputSetMergeRule(this);
@@ -905,7 +919,7 @@ class VolcanoPlannerTest {
   public static class ReformedSingleRule
       extends RelRule<ReformedSingleRule.Config> {
     static final ReformedSingleRule INSTANCE =
-        Config.EMPTY
+        ImmutableReformedSingleRuleConfig.builder().build()
             .withOperandSupplier(b0 ->
                 b0.operand(NoneSingleRel.class).oneInput(b1 ->
                     b1.operand(PhysLeafRel.class).anyInputs()))
@@ -934,6 +948,8 @@ class VolcanoPlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableReformedSingleRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default ReformedSingleRule toRule() {
         return new ReformedSingleRule(this);
@@ -945,7 +961,7 @@ class VolcanoPlannerTest {
   public static class PhysProjectRule
       extends RelRule<PhysProjectRule.Config> {
     static final PhysProjectRule INSTANCE =
-        Config.EMPTY
+        ImmutablePhysProjectRuleConfig.builder().build()
             .withOperandSupplier(b ->
                 b.operand(LogicalProject.class).anyInputs())
             .as(Config.class)
@@ -969,6 +985,8 @@ class VolcanoPlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutablePhysProjectRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysProjectRule toRule() {
         return new PhysProjectRule(this);
@@ -980,7 +998,7 @@ class VolcanoPlannerTest {
   public static class GoodRemoveSingleRule
       extends RelRule<GoodRemoveSingleRule.Config> {
     static final GoodRemoveSingleRule INSTANCE =
-        Config.EMPTY
+        ImmutableGoodRemoveSingleRuleConfig.builder().build()
             .withOperandSupplier(b0 ->
                 b0.operand(PhysSingleRel.class).oneInput(b1 ->
                     b1.operand(PhysLeafRel.class).anyInputs()))
@@ -1006,6 +1024,8 @@ class VolcanoPlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableGoodRemoveSingleRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default GoodRemoveSingleRule toRule() {
         return new GoodRemoveSingleRule(this);
@@ -1017,7 +1037,7 @@ class VolcanoPlannerTest {
   public static class ReformedRemoveSingleRule
       extends RelRule<ReformedRemoveSingleRule.Config> {
     static final ReformedRemoveSingleRule INSTANCE =
-        Config.EMPTY
+        ImmutableReformedRemoveSingleRuleConfig.builder().build()
             .withOperandSupplier(b0 ->
                 b0.operand(NoneSingleRel.class).oneInput(b1 ->
                     b1.operand(PhysLeafRel.class).anyInputs()))
@@ -1042,6 +1062,8 @@ class VolcanoPlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableReformedRemoveSingleRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default ReformedRemoveSingleRule toRule() {
         return new ReformedRemoveSingleRule(this);
