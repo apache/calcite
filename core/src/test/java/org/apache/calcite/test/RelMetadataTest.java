@@ -969,6 +969,14 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5162">[CALCITE-5162]
+   * RelMdUniqueKeys can return more precise unique keys for Aggregate</a>. */
+  @Test void testGroupByPreciseUniqueKeys() {
+    sql("select empno, ename from emp group by empno, ename")
+        .assertThatUniqueKeysAre(bitSetOf(0));
+  }
+
   @Test void testFullOuterJoinUniqueness1() {
     final String sql = "select e.empno, d.deptno\n"
         + "from (select cast(null as int) empno from sales.emp "
