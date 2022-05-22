@@ -42,7 +42,7 @@ import java.util.stream.Collector;
  * A <code>SqlNode</code> is a SQL parse tree.
  *
  * <p>It may be an
- * {@link SqlOperator operator}, {@link SqlLiteral literal},
+ * {@link SqlCall call}, {@link SqlLiteral literal},
  * {@link SqlIdentifier identifier}, and so forth.
  */
 public abstract class SqlNode implements Cloneable {
