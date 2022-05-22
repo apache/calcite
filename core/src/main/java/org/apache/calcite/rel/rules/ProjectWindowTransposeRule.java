@@ -36,7 +36,9 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 
@@ -85,7 +87,7 @@ public class ProjectWindowTransposeRule
       return;
     }
 
-    // Put a DrillProjectRel below LogicalWindow
+    // Put a LogicalProject below LogicalWindow
     final List<RexNode> exps = new ArrayList<>();
     final RelDataTypeFactory.Builder builder =
         cluster.getTypeFactory().builder();
@@ -97,9 +99,11 @@ public class ProjectWindowTransposeRule
       builder.add(relDataTypeField);
     }
 
+    Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+        "Correlated project should be decorrelated before.");
     final LogicalProject projectBelowWindow =
         new LogicalProject(cluster, window.getTraitSet(), ImmutableList.of(),
-            window.getInput(), exps, builder.build());
+            window.getInput(), exps, builder.build(), ImmutableSet.of());
 
     // Create a new LogicalWindow with necessary inputs only
     final List<Window.Group> groups = new ArrayList<>();

@@ -73,6 +73,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -396,9 +397,9 @@ public class RelJson {
       return toJson((RexWindowBound) value);
     } else if (value instanceof CorrelationId) {
       return toJson((CorrelationId) value);
-    } else if (value instanceof List) {
+    } else if (value instanceof List || value instanceof Set) {
       final List<@Nullable Object> list = jsonBuilder().list();
-      for (Object o : (List<?>) value) {
+      for (Object o : (Collection<?>) value) {
         list.add(toJson(o));
       }
       return list;

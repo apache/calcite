@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
@@ -146,6 +147,8 @@ public class InnodbRules {
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "InnodbProject does now allow variables");
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new InnodbProject(project.getCluster(), traitSet,
           convert(project.getInput(), out), project.getProjects(),

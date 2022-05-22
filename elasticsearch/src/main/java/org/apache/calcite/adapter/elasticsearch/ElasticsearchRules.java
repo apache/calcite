@@ -41,6 +41,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.base.Preconditions;
+
 import java.util.AbstractList;
 import java.util.List;
 
@@ -295,6 +297,8 @@ class ElasticsearchRules {
 
     @Override public RelNode convert(RelNode relNode) {
       final LogicalProject project = (LogicalProject) relNode;
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "ElasticsearchProject does not allow variables");
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new ElasticsearchProject(project.getCluster(), traitSet,
         convert(project.getInput(), out), project.getProjects(), project.getRowType());

@@ -44,7 +44,9 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 
@@ -82,11 +84,14 @@ public class StreamRules {
       Util.discard(delta);
       final Project project = call.rel(1);
       final LogicalDelta newDelta = LogicalDelta.create(project.getInput());
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "Correlated project should be decorrelated before.");
       final LogicalProject newProject =
           LogicalProject.create(newDelta,
               project.getHints(),
               project.getProjects(),
-              project.getRowType().getFieldNames());
+              project.getRowType().getFieldNames(),
+              ImmutableSet.of());
       call.transformTo(newProject);
     }
 

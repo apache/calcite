@@ -152,8 +152,27 @@ public interface RelNode extends RelOptNode, Cloneable {
    * expression but also used and therefore not available to parents of this
    * relational expression.
    *
-   * <p>Note: only {@link org.apache.calcite.rel.core.Correlate} should set
-   * variables.
+   * <p> For now, only {@link org.apache.calcite.rel.core.Correlate},
+   * {@link org.apache.calcite.rel.core.Project},
+   * {@link org.apache.calcite.rel.logical.LogicalFilter} could set variables.
+   *
+   * <p> {@link org.apache.calcite.rel.core.Project} and
+   * {@link org.apache.calcite.rel.logical.LogicalFilter} are designed to carry
+   * the variables just before {@link org.apache.calcite.rel.rules.SubQueryRemoveRule}.
+   * After that, the sub-query expressions will be expanded with
+   * {@link org.apache.calcite.rel.core.Correlate} or
+   * {@link org.apache.calcite.rel.core.Join} depending on whether it's
+   * correlated or not.
+   *
+   * <p> The reason why we put the variables in
+   * {@link org.apache.calcite.rel.logical.LogicalFilter} instead of
+   * {@link org.apache.calcite.rel.core.Filter} is that we tried to not expose
+   * the variables to the optimization/physical phase for Filter.
+   * However, as discussed in
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5127">[CALCITE-5127]</a>,
+   * we now put the variables in {@link org.apache.calcite.rel.core.Project} instead
+   * of {@link org.apache.calcite.rel.logical.LogicalProject} because some downstream
+   * projects used their own logical RelNode which extends from the core RelNode.
    *
    * @return Names of variables which are set in this relational
    *   expression

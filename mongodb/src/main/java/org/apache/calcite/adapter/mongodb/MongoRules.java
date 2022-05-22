@@ -45,6 +45,8 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Preconditions;
+
 import org.slf4j.Logger;
 
 import java.util.AbstractList;
@@ -312,6 +314,8 @@ public class MongoRules {
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "MongoProject does not allow variables");
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new MongoProject(project.getCluster(), traitSet,
           convert(project.getInput(), out), project.getProjects(),

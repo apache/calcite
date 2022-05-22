@@ -27,6 +27,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -110,6 +111,8 @@ public class PigRules {
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "PigProject does now allow variables");
       final RelTraitSet traitSet = project.getTraitSet().replace(PigRel.CONVENTION);
       return new PigProject(project.getCluster(), traitSet, project.getInput(),
           project.getProjects(), project.getRowType());

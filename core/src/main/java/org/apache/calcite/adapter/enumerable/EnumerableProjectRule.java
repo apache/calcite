@@ -22,6 +22,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}.
  * You may provide a custom config to convert other nodes that extend {@link Project}.
@@ -44,6 +46,8 @@ class EnumerableProjectRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     final Project project = (Project) rel;
+    Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+        "EnumerableProject does not allow variables");
     return EnumerableProject.create(
         convert(project.getInput(),
             project.getInput().getTraitSet()
