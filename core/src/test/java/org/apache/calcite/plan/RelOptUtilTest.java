@@ -49,6 +49,7 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -693,7 +694,8 @@ class RelOptUtilTest {
             ImmutableList.of(
                 fieldEmpno.getName(),
                 fieldEname.getName(),
-                "JOB_CNT"));
+                "JOB_CNT"),
+            ImmutableSet.of());
     assertThat(castNode1.explain(), is(expectNode1.explain()));
     // Change the field JOB_CNT field name again.
     // The projection expect to be merged.
@@ -716,7 +718,8 @@ class RelOptUtilTest {
             ImmutableList.of(
                 fieldEmpno.getName(),
                 fieldEname.getName(),
-                "JOB_CNT2"));
+                "JOB_CNT2"),
+            ImmutableSet.of());
     assertThat(castNode2.explain(), is(expectNode2.explain()));
   }
 

@@ -356,6 +356,11 @@ public class DruidRules {
       super(config);
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
+    }
+
     @Override public void onMatch(RelOptRuleCall call) {
       final Project project = call.rel(0);
       final DruidQuery query = call.rel(1);

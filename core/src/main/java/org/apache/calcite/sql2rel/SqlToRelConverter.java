@@ -836,7 +836,7 @@ public class SqlToRelConverter {
       }
       rel =
           LogicalProject.create(rel, ImmutableList.of(),
-              Pair.left(newProjects), Pair.right(newProjects));
+              Pair.left(newProjects), Pair.right(newProjects), project.getVariablesSet());
       bb.root = rel;
       distinctify(bb, false);
       rel = bb.root();
@@ -857,7 +857,7 @@ public class SqlToRelConverter {
 
       rel =
           LogicalProject.create(rel, ImmutableList.of(),
-              Pair.left(undoProjects), Pair.right(undoProjects));
+              Pair.left(undoProjects), Pair.right(undoProjects), ImmutableSet.of());
       bb.setRoot(
           rel,
           false);
@@ -936,7 +936,8 @@ public class SqlToRelConverter {
           LogicalProject.create(bb.root(),
               ImmutableList.of(),
               exprs,
-              rowType.getFieldNames().subList(0, fieldCount)),
+              rowType.getFieldNames().subList(0, fieldCount),
+              ImmutableSet.of()),
           false);
     }
   }
@@ -4540,7 +4541,13 @@ public class SqlToRelConverter {
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, project);
     if (p != null) {
-      r = p.r;
+      assert p.r instanceof Project;
+      // correlation variables have been normalized in p.r, we should use expressions
+      // in p.r instead of the original exprs
+      Project project1 = (Project) p.r;
+      r = relBuilder.push(bb.root())
+          .projectNamed(project1.getProjects(), fieldNames, true, ImmutableSet.of(p.id))
+          .build();
     } else {
       r = project;
     }
@@ -6626,7 +6633,8 @@ public class SqlToRelConverter {
           newInput,
           project.getHints(),
           newProjections.build(),
-          project.getRowType().getFieldNames());
+          project.getRowType().getFieldNames(),
+          project.getVariablesSet());
     }
 
     private Set<Integer> requiredJsonOutputFromParent(RelNode relNode) {

@@ -3383,6 +3383,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withDecorrelate(true).ok();
   }
 
+  @Test void testCorrelationInProjectionWithScan() {
+    final String sql = "select array(select e.deptno) from emp e";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  @Test void testCorrelationInProjectionWithProjection() {
+    final String sql = "select array(select e.deptno)\n"
+        + "from (select deptno, ename from emp) e";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  @Test void testMultiCorrelationInProjectionWithProjection() {
+    final String sql = "select cardinality(array(select e.deptno)), array(select e.ename)[0]\n"
+        + "from (select deptno, ename from emp) e";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  @Test void testCorrelationInProjectionWithCorrelatedProjection() {
+    final String sql = "select cardinality(arr) from"
+        + "(select array(select e.deptno) arr\n"
+        + "from (select deptno, ename from emp) e)";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
   @Test void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();

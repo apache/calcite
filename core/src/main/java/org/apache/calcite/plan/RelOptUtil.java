@@ -889,6 +889,7 @@ public abstract class RelOptUtil {
     List<RexNode> castExps;
     RelNode input;
     List<RelHint> hints = ImmutableList.of();
+    Set<CorrelationId> correlationVariables;
     if (rel instanceof Project) {
       // No need to create another project node if the rel
       // is already a project.
@@ -899,21 +900,23 @@ public abstract class RelOptUtil {
           ((Project) rel).getProjects());
       input = rel.getInput(0);
       hints = project.getHints();
+      correlationVariables = project.getVariablesSet();
     } else {
       castExps = RexUtil.generateCastExpressions(
           rexBuilder,
           castRowType,
           rowType);
       input = rel;
+      correlationVariables = ImmutableSet.of();
     }
     if (rename) {
       // Use names and types from castRowType.
       return projectFactory.createProject(input, hints, castExps,
-          castRowType.getFieldNames());
+          castRowType.getFieldNames(), correlationVariables);
     } else {
       // Use names from rowType, types from castRowType.
       return projectFactory.createProject(input, hints, castExps,
-          rowType.getFieldNames());
+          rowType.getFieldNames(), correlationVariables);
     }
   }
 
@@ -3623,7 +3626,8 @@ public abstract class RelOptUtil {
               : fieldNames.get(i));
       exprList.add(rexBuilder.makeInputRef(rel, source));
     }
-    return projectFactory.createProject(rel, ImmutableList.of(), exprList, outputNameList);
+    return projectFactory.createProject(rel, ImmutableList.of(), exprList, outputNameList,
+        ImmutableSet.of());
   }
 
   /** Predicate for if a {@link Calc} does not contain windowed aggregates. */

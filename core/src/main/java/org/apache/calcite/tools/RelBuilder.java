@@ -1817,7 +1817,24 @@ public class RelBuilder {
    */
   public RelBuilder project(Iterable<? extends RexNode> nodes,
       Iterable<? extends @Nullable String> fieldNames, boolean force) {
-    return project_(nodes, fieldNames, ImmutableList.of(), force);
+    return project(nodes, fieldNames, force, ImmutableSet.of());
+  }
+
+  /**
+   * The same with {@link #project(Iterable, Iterable, boolean)}, with additional
+   * variablesSet param.
+   *
+   * @param nodes Expressions
+   * @param fieldNames Suggested field names
+   * @param force create project even if it is identity
+   * @param variablesSet Correlating variables that are set when reading a row
+   *                     from the input, and which may be referenced from the
+   *                     projection expressions
+   */
+  public RelBuilder project(Iterable<? extends RexNode> nodes,
+      Iterable<? extends @Nullable String> fieldNames, boolean force,
+      Iterable<CorrelationId> variablesSet) {
+    return project_(nodes, fieldNames, ImmutableList.of(), force, variablesSet);
   }
 
   /** Creates a {@link Project} of all original fields, plus the given
@@ -1891,10 +1908,12 @@ public class RelBuilder {
       Iterable<? extends RexNode> nodes,
       Iterable<? extends @Nullable String> fieldNames,
       Iterable<RelHint> hints,
-      boolean force) {
+      boolean force,
+      Iterable<CorrelationId> variablesSet) {
     final Frame frame = requireNonNull(peek_(), "frame stack is empty");
     final RelDataType inputRowType = frame.rel.getRowType();
     final List<RexNode> nodeList = Lists.newArrayList(nodes);
+    final Set<CorrelationId> variables = ImmutableSet.copyOf(variablesSet);
 
     // Perform a quick check for identity. We'll do a deeper check
     // later when we've derived column names.
@@ -1908,9 +1927,11 @@ public class RelBuilder {
       fieldNameList.add(null);
     }
 
+    // Do not merge projection when top projection has correlation variables
     bloat:
     if (frame.rel instanceof Project
-        && config.bloat() >= 0) {
+        && config.bloat() >= 0
+        && variables.isEmpty()) {
       final Project project = (Project) frame.rel;
       // Populate field names. If the upper expression is an input ref and does
       // not have a recommended name, use the name of the underlying field.
@@ -1958,7 +1979,9 @@ public class RelBuilder {
       final ImmutableSet.Builder<RelHint> mergedHints = ImmutableSet.builder();
       mergedHints.addAll(project.getHints());
       mergedHints.addAll(hints);
-      return project_(newNodes, fieldNameList, mergedHints.build(), force);
+      // Keep bottom projection's variablesSet.
+      return project_(newNodes, fieldNameList, mergedHints.build(), force,
+          ImmutableSet.copyOf(project.getVariablesSet()));
     }
 
     // Simplify expressions.
@@ -2043,7 +2066,8 @@ public class RelBuilder {
         struct.projectFactory.createProject(frame.rel,
             ImmutableList.copyOf(hints),
             ImmutableList.copyOf(nodeList),
-            fieldNameList);
+            fieldNameList,
+            variables);
     stack.pop();
     stack.push(new Frame(project, fields.build()));
     return this;
@@ -2068,6 +2092,32 @@ public class RelBuilder {
    */
   public RelBuilder projectNamed(Iterable<? extends RexNode> nodes,
       @Nullable Iterable<? extends @Nullable String> fieldNames, boolean force) {
+    return projectNamed(nodes, fieldNames, force, ImmutableSet.of());
+  }
+
+  /** Creates a {@link Project} of the given
+   * expressions and field names, and optionally optimizing.
+   *
+   * <p>If {@code fieldNames} is null, or if a particular entry in
+   * {@code fieldNames} is null, derives field names from the input
+   * expressions.
+   *
+   * <p>If {@code force} is false,
+   * and the input is a {@code Project},
+   * and the expressions  make the trivial projection ($0, $1, ...),
+   * modifies the input.
+   *
+   * @param nodes       Expressions
+   * @param fieldNames  Suggested field names, or null to generate
+   * @param force       Whether to create a renaming Project if the
+   *                    projections are trivial
+   * @param variablesSet Correlating variables that are set when reading a row
+   *                     from the input, and which may be referenced from the
+   *                     projection expressions
+   */
+  public RelBuilder projectNamed(Iterable<? extends RexNode> nodes,
+      @Nullable Iterable<? extends @Nullable String> fieldNames, boolean force,
+      Iterable<CorrelationId> variablesSet) {
     @SuppressWarnings("unchecked") final List<? extends RexNode> nodeList =
         nodes instanceof List ? (List) nodes : ImmutableList.copyOf(nodes);
     final List<@Nullable String> fieldNameList =
@@ -2103,7 +2153,7 @@ public class RelBuilder {
         stack.push(new Frame(newValues, frame.fields));
       }
     } else {
-      project(nodeList, rowType.getFieldNames(), force);
+      project(nodeList, rowType.getFieldNames(), force, variablesSet);
     }
     return this;
   }
@@ -2344,8 +2394,7 @@ public class RelBuilder {
           newProjects.add(project.getProjects().get(i));
           builder.add(project.getRowType().getFieldList().get(i));
         }
-        r = project.copy(cluster.traitSet(), project.getInput(), newProjects,
-            builder.build());
+        r = project.copy(cluster.traitSet(), project.getInput(), newProjects, builder.build());
       }
     }
 
@@ -3278,7 +3327,8 @@ public class RelBuilder {
                 struct.projectFactory.createProject(sort,
                     project.getHints(),
                     project.getProjects(),
-                    Pair.right(project.getNamedProjects())));
+                    Pair.right(project.getNamedProjects()),
+                    project.getVariablesSet()));
             return this;
           }
         }

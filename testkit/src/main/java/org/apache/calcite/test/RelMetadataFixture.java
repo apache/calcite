@@ -41,6 +41,7 @@ import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -195,6 +196,8 @@ public class RelMetadataFixture {
     metadataConfig.applyMetadata(rel.getCluster());
     if (convertAsCalc) {
       Project project = (Project) rel;
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "Calc does not allow variables");
       RexProgram program = RexProgram.create(
           project.getInput().getRowType(),
           project.getProjects(),
