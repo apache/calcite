@@ -33,7 +33,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * of it in constructs such as the following:</p>
  *
  * <blockquote><code>CASE<br>
- * WHEN &lt;conditionn&gt; THEN true<br>
+ * WHEN &lt;condition&gt; THEN true<br>
  * ELSE throw("what's wrong with you man?")<br>
  * END</code></blockquote>
  */
