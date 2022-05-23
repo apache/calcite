@@ -853,7 +853,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     case OR:
       return call; // don't push CASE into CASE!
     case EQUALS: {
-      // checks that the EQUALS operands may be splitted and
+      // checks that the EQUALS operands may be split and
       // doesn't push EQUALS into CASE
       List<RexNode> equalsOperands = call.getOperands();
       ImmutableBitSet left = RelOptUtil.InputFinder.bits(equalsOperands.get(0));
