@@ -283,7 +283,7 @@ public class ReduceDecimalsRule
    * decoded, SqlOperators can then operate on the integer representations. The
    * value can later be recoded as a decimal.
    *
-   * <p>For example, suppose one casts 2.0 as a decima(10,4). The value is
+   * <p>For example, suppose one casts 2.0 as a decimal(10,4). The value is
    * decoded (20), multiplied by a scale factor (1000), for a result of
    * (20000) which is encoded as a decimal(10,4), in this case 2.0000
    *
@@ -877,7 +877,7 @@ public class ReduceDecimalsRule
     /**
      * Convenience method for reading characteristics of operands (such as
      * scale, precision, whole digits) into an ArithmeticExpander. The
-     * operands are restricted by the following contraints:
+     * operands are restricted by the following constraints:
      *
      * <ul>
      * <li>there are exactly two operands
