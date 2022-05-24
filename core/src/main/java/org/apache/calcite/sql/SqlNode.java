@@ -41,7 +41,7 @@ import java.util.stream.Collector;
 /**
  * A <code>SqlNode</code> is a SQL parse tree.
  *
- * <p>It may be an
+ * <p>It may be a
  * {@link SqlCall call}, {@link SqlLiteral literal},
  * {@link SqlIdentifier identifier}, and so forth.
  */
