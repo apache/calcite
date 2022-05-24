@@ -417,9 +417,19 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
 {
     switch (exprContext) {
     case ACCEPT_QUERY:
+//    case ACCEPT_QUERY_OR_JOIN:
         throw SqlUtil.newContextException(getPos(),
             RESOURCE.illegalNonQueryExpression());
     }
+}
+
+JAVACODE SqlNode checkNotJoin(SqlNode e)
+{
+    if (e instanceof SqlJoin) {
+        throw SqlUtil.newContextException(e.getParserPosition(),
+            RESOURCE.illegalJoinExpression());
+    }
+    return e;
 }
 
 /**
@@ -595,6 +605,25 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
  * Syntactical Descriptions              *
  *****************************************/
 
+SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
+{
+    SqlNode e;
+}
+{
+    // Lookhead to distinguish between "TABLE emp" (which will be
+    // matched by ExplicitTable() via Query())
+    // and "TABLE fun(args)" (which will be matched by TableRef())
+    (
+        LOOKAHEAD(2)
+        e = Query(exprContext)
+        e = OrderByLimitOpt(e)
+    |
+        e = TableRef()
+        ( e = JoinTable(e) )*
+    )
+    { return e; }
+}
+
 /**
  * Parses either a row expression or a query expression with an optional
  * ORDER BY.
@@ -622,12 +651,24 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
     SqlNode e;
+}
+{
+    e = QueryOrExpr(exprContext)
+    e = OrderByLimitOpt(e)
+    { return e; }
+}
+
+/** Reads optional "ORDER BY", "LIMIT", "OFFSET", "FETCH" following a query,
+ * {@code e}. If any of them are present, adds them to the query;
+ * otherwise returns the query unchanged.
+ * Throws if they are present and {@code e} is not a query. */
+SqlNode OrderByLimitOpt(SqlNode e) :
+{
     SqlNodeList orderBy = null;
     SqlNode start = null;
     SqlNode count = null;
 }
 {
-    e = QueryOrExpr(exprContext)
     [
         // use the syntactic type of the expression we just parsed
         // to decide whether ORDER BY makes sense
@@ -694,31 +735,10 @@ SqlNode LeafQuery(ExprContext exprContext) :
     e = ExplicitTable(getPos()) { return e; }
 }
 
-SqlNode ParenthesizedQueryOrJoin() :
-{
-    SqlNode e, e2;
-}
-{
-    <LPAREN>
-//    LOOKAHEAD(TableRef())
-//    (
-//        e = TableRef()
-//    |
-        e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
-//    )
-//    (
-//        [<CROSS>] <JOIN> e2 = TableRef()
-//    )*
-    <RPAREN>
-    {
-        return e;
-    }
-}
-
 /**
  * Parses a parenthesized query or single row expression.
  *
- * <p>TDOO: replace 'ParenthesizedExpression(ACCEPT_QUERY)'
+ * <p>TODO: replace 'ParenthesizedExpression(ACCEPT_QUERY)'
  * with 'ParenthesizedQuery()' (which is the only case used)
  */
 SqlNode ParenthesizedExpression(ExprContext exprContext) :
@@ -739,9 +759,10 @@ SqlNode ParenthesizedExpression(ExprContext exprContext) :
             break;
         }
     }
-    e = OrderedQueryOrExpr(exprContext)
+    e = ExprOrJoinOrOrderedQuery(exprContext)
     <RPAREN>
     {
+        exprContext.throwIfNotCompatible(e);
         return e;
     }
 }
@@ -2149,7 +2170,7 @@ SqlNode TableRef2(boolean lateral) :
     final SqlNode e;
 }
 {
-    e = TableRef3(ExprContext.ACCEPT_QUERY, true) { return e; }
+    e = TableRef3(ExprContext.ACCEPT_QUERY, lateral) { return e; }
 }
 
 SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
@@ -2162,11 +2183,6 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
     final SqlIdentifier alias;
     final Span s, s2;
     SqlNodeList args;
-    SqlNode sample;
-    boolean isBernoulli;
-    SqlNumericLiteral samplePercentage;
-    boolean isRepeatable = false;
-    int repeatableSeed = 0;
     SqlNodeList columnAliasList = null;
     SqlUnnestOperator unnestOp = SqlStdOperatorTable.UNNEST;
 }
@@ -2200,11 +2216,11 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
         {
             if (over != null) {
                 tableRef = SqlStdOperatorTable.OVER.createCall(
-                    getPos(), tableRef, over);
+                    getPos(), checkNotJoin(tableRef), over);
             }
             if (lateral) {
                 tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    getPos(), tableRef);
+                    getPos(), checkNotJoin(tableRef));
             }
         }
         [
@@ -2222,14 +2238,12 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
             tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
         }
     |
-        [<LATERAL> { lateral = true; } ]
-        <TABLE> { s = span(); } <LPAREN>
-        tableRef = TableFunctionCall(s.pos())
-        <RPAREN>
+        [ <LATERAL> { lateral = true; } ]
+        tableRef = TableFunctionCall()
         {
             if (lateral) {
                 tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    s.end(this), tableRef);
+                    tableRef.getParserPosition(), tableRef);
             }
         }
     |
@@ -2247,6 +2261,7 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
         [ <AS> ] alias = SimpleIdentifier()
         [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
         {
+            checkNotJoin(tableRef);
             if (columnAliasList == null) {
                 tableRef = SqlStdOperatorTable.AS.createCall(
                     Span.of(tableRef).end(this), tableRef, alias);
@@ -2261,260 +2276,79 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
         }
     ]
     [
-        <TABLESAMPLE> { s2 = span(); }
-        (
-            <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
-            {
-                String sampleName =
-                    SqlLiteral.unchain(sample).getValueAs(String.class);
-                SqlSampleSpec sampleSpec = SqlSampleSpec.createNamed(sampleName);
-                final SqlLiteral sampleLiteral =
-                    SqlLiteral.createSample(sampleSpec, s2.end(this));
-                tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
-                    s2.add(tableRef).end(this), tableRef, sampleLiteral);
-            }
-        |
-            (
-                <BERNOULLI>
-                {
-                    isBernoulli = true;
-                }
-            |
-                <SYSTEM>
-                {
-                    isBernoulli = false;
-                }
-            )
-            <LPAREN> samplePercentage = UnsignedNumericLiteral() <RPAREN>
-            [
-                <REPEATABLE> <LPAREN> repeatableSeed = IntLiteral() <RPAREN>
-                {
-                    isRepeatable = true;
-                }
-            ]
-            {
-                final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
-                BigDecimal rate = samplePercentage.bigDecimalValue();
-                if (rate.compareTo(BigDecimal.ZERO) < 0
-                    || rate.compareTo(ONE_HUNDRED) > 0)
-                {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
-                }
-
-                // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
-                // sampling at all.  Not strictly correct: TABLESAMPLE(0)
-                // should produce no output, but it simplifies implementation
-                // to know that some amount of sampling will occur.
-                // In practice values less than ~1E-43% are treated as 0.0 and
-                // values greater than ~99.999997% are treated as 1.0
-                float fRate = rate.divide(ONE_HUNDRED).floatValue();
-                if (fRate > 0.0f && fRate < 1.0f) {
-                    SqlSampleSpec tableSampleSpec =
-                    isRepeatable
-                        ? SqlSampleSpec.createTableSample(
-                            isBernoulli, fRate, repeatableSeed)
-                        : SqlSampleSpec.createTableSample(isBernoulli, fRate);
-
-                    SqlLiteral tableSampleLiteral =
-                        SqlLiteral.createSample(tableSampleSpec, s2.end(this));
-                    tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
-                        s2.end(this), tableRef, tableSampleLiteral);
-                }
-            }
-        )
+        tableRef = Tablesample(tableRef)
     ]
     {
         return tableRef;
     }
 }
 
-SqlNode TableRefNoParen() :
+SqlNode Tablesample(SqlNode tableRef) :
 {
-    final SqlNode e;
-}
-{
-    e = TableRefNoParen2(false) { return e; }
-}
-
-/**
- * Parses a table reference in a FROM clause.
- */
-SqlNode TableRefNoParen2(boolean lateral) :
-{
-    SqlNode tableRef;
-    final SqlNode over;
-    final SqlNode snapshot;
-    final SqlNode match;
-    SqlNodeList extendList = null;
-    final SqlIdentifier alias;
-    final Span s, s2;
-    SqlNodeList args;
-    SqlNode sample;
-    boolean isBernoulli;
-    SqlNumericLiteral samplePercentage;
+    final Span s;
+    final SqlNode sample;
+    final boolean isBernoulli;
+    final SqlNumericLiteral samplePercentage;
     boolean isRepeatable = false;
     int repeatableSeed = 0;
-    SqlNodeList columnAliasList = null;
-    SqlUnnestOperator unnestOp = SqlStdOperatorTable.UNNEST;
 }
 {
+    <TABLESAMPLE> { s = span(); checkNotJoin(tableRef); }
     (
-        LOOKAHEAD(2)
-        tableRef = TableRefWithHintsOpt()
-        [
-            [ <EXTEND> ]
-            extendList = ExtendList() {
-                tableRef = extend(tableRef, extendList);
-            }
-        ]
-        over = TableOverOpt() {
-            if (over != null) {
-                tableRef = SqlStdOperatorTable.OVER.createCall(
-                    getPos(), tableRef, over);
-            }
-        }
-        [
-            tableRef = Snapshot(tableRef)
-        ]
-        [
-            tableRef = MatchRecognize(tableRef)
-        ]
-/*
-    |
-        LOOKAHEAD(2)
-        [ <LATERAL> { lateral = true; } ]
-        tableRef = ParenthesizedQueryOrJoin()
-        over = TableOverOpt()
+        <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
         {
-            if (over != null) {
-                tableRef = SqlStdOperatorTable.OVER.createCall(
-                    getPos(), tableRef, over);
-            }
-            if (lateral) {
-                tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    getPos(), tableRef);
-            }
-        }
-        [
-            tableRef = MatchRecognize(tableRef)
-        ]
-*/
-    |
-        <UNNEST> { s = span(); }
-        args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUB_QUERY)
-        [
-            <WITH> <ORDINALITY> {
-                unnestOp = SqlStdOperatorTable.UNNEST_WITH_ORDINALITY;
-            }
-        ]
-        {
-            tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
+            String sampleName =
+                SqlLiteral.unchain(sample).getValueAs(String.class);
+            SqlSampleSpec sampleSpec = SqlSampleSpec.createNamed(sampleName);
+            final SqlLiteral sampleLiteral =
+                SqlLiteral.createSample(sampleSpec, s.end(this));
+            tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
+                s.add(tableRef).end(this), tableRef, sampleLiteral);
         }
     |
-        [<LATERAL> { lateral = true; } ]
-        <TABLE> { s = span(); } <LPAREN>
-        tableRef = TableFunctionCall(s.pos())
-        <RPAREN>
-        {
-            if (lateral) {
-                tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    s.end(this), tableRef);
-            }
-        }
-    |
-        tableRef = ExtendedTableRef()
-    )
-    [
-        LOOKAHEAD(2)
-        tableRef = Pivot(tableRef)
-    ]
-    [
-        LOOKAHEAD(2)
-        tableRef = Unpivot(tableRef)
-    ]
-    [
-        [ <AS> ] alias = SimpleIdentifier()
-        [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
-        {
-            if (columnAliasList == null) {
-                tableRef = SqlStdOperatorTable.AS.createCall(
-                    Span.of(tableRef).end(this), tableRef, alias);
-            } else {
-                List<SqlNode> idList = new ArrayList<SqlNode>();
-                idList.add(tableRef);
-                idList.add(alias);
-                idList.addAll(columnAliasList.getList());
-                tableRef = SqlStdOperatorTable.AS.createCall(
-                    Span.of(tableRef).end(this), idList);
-            }
-        }
-    ]
-    [
-        <TABLESAMPLE> { s2 = span(); }
         (
-            <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
-            {
-                String sampleName =
-                    SqlLiteral.unchain(sample).getValueAs(String.class);
-                SqlSampleSpec sampleSpec = SqlSampleSpec.createNamed(sampleName);
-                final SqlLiteral sampleLiteral =
-                    SqlLiteral.createSample(sampleSpec, s2.end(this));
-                tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
-                    s2.add(tableRef).end(this), tableRef, sampleLiteral);
-            }
+            <BERNOULLI> { isBernoulli = true; }
         |
-            (
-                <BERNOULLI>
-                {
-                    isBernoulli = true;
-                }
-            |
-                <SYSTEM>
-                {
-                    isBernoulli = false;
-                }
-            )
-            <LPAREN> samplePercentage = UnsignedNumericLiteral() <RPAREN>
-            [
-                <REPEATABLE> <LPAREN> repeatableSeed = IntLiteral() <RPAREN>
-                {
-                    isRepeatable = true;
-                }
-            ]
+            <SYSTEM> { isBernoulli = false; }
+        )
+        <LPAREN> samplePercentage = UnsignedNumericLiteral() <RPAREN>
+        [
+            <REPEATABLE> <LPAREN> repeatableSeed = IntLiteral() <RPAREN>
             {
-                final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
-                BigDecimal rate = samplePercentage.bigDecimalValue();
-                if (rate.compareTo(BigDecimal.ZERO) < 0
-                    || rate.compareTo(ONE_HUNDRED) > 0)
-                {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
-                }
+                isRepeatable = true;
+            }
+        ]
+        {
+            final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
+            BigDecimal rate = samplePercentage.bigDecimalValue();
+            if (rate.compareTo(BigDecimal.ZERO) < 0
+                || rate.compareTo(ONE_HUNDRED) > 0)
+            {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
+            }
 
-                // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
-                // sampling at all.  Not strictly correct: TABLESAMPLE(0)
-                // should produce no output, but it simplifies implementation
-                // to know that some amount of sampling will occur.
-                // In practice values less than ~1E-43% are treated as 0.0 and
-                // values greater than ~99.999997% are treated as 1.0
-                float fRate = rate.divide(ONE_HUNDRED).floatValue();
-                if (fRate > 0.0f && fRate < 1.0f) {
-                    SqlSampleSpec tableSampleSpec =
+            // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
+            // sampling at all.  Not strictly correct: TABLESAMPLE(0)
+            // should produce no output, but it simplifies implementation
+            // to know that some amount of sampling will occur.
+            // In practice values less than ~1E-43% are treated as 0.0 and
+            // values greater than ~99.999997% are treated as 1.0
+            float fRate = rate.divide(ONE_HUNDRED).floatValue();
+            if (fRate > 0.0f && fRate < 1.0f) {
+                SqlSampleSpec tableSampleSpec =
                     isRepeatable
                         ? SqlSampleSpec.createTableSample(
                             isBernoulli, fRate, repeatableSeed)
                         : SqlSampleSpec.createTableSample(isBernoulli, fRate);
 
-                    SqlLiteral tableSampleLiteral =
-                        SqlLiteral.createSample(tableSampleSpec, s2.end(this));
-                    tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
-                        s2.end(this), tableRef, tableSampleLiteral);
-                }
+                SqlLiteral tableSampleLiteral =
+                    SqlLiteral.createSample(tableSampleSpec, s.end(this));
+                tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
+                    s.end(this), tableRef, tableSampleLiteral);
             }
-        )
-    ]
-    {
-        return tableRef;
-    }
+        }
+    )
+    { return tableRef; }
 }
 
 SqlNodeList ExtendList() :
@@ -2585,12 +2419,14 @@ void CompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList) :
     }
 }
 
-SqlNode TableFunctionCall(SqlParserPos pos) :
+SqlNode TableFunctionCall() :
 {
-    SqlNode call;
+    final Span s;
+    final SqlNode call;
     SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
 }
 {
+    <TABLE> { s = span(); } <LPAREN>
     [
         <SPECIFIC>
         {
@@ -2598,8 +2434,9 @@ SqlNode TableFunctionCall(SqlParserPos pos) :
         }
     ]
     call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    <RPAREN>
     {
-        return SqlStdOperatorTable.COLLECTION_TABLE.createCall(pos, call);
+        return SqlStdOperatorTable.COLLECTION_TABLE.createCall(s.end(this), call);
     }
 }
 
@@ -3081,7 +2918,7 @@ SqlNode Pivot(SqlNode tableRef) :
     final SqlNodeList inList;
 }
 {
-    <PIVOT> { s = span(); }
+    <PIVOT> { s = span(); checkNotJoin(tableRef); }
     <LPAREN>
     PivotAgg(aggList) ( <COMMA> PivotAgg(aggList) )*
     <FOR> axisList = SimpleIdentifierOrList()
@@ -3147,7 +2984,7 @@ SqlNode Unpivot(SqlNode tableRef) :
     final SqlNodeList inList;
 }
 {
-    <UNPIVOT> { s = span(); }
+    <UNPIVOT> { s = span(); checkNotJoin(tableRef); }
     (
         <INCLUDE> <NULLS> { includeNulls = true; }
     |   <EXCLUDE> <NULLS> { includeNulls = false; }
@@ -3207,7 +3044,7 @@ SqlMatchRecognize MatchRecognize(SqlNode tableRef) :
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
 }
 {
-    <MATCH_RECOGNIZE> { s = span(); } <LPAREN>
+    <MATCH_RECOGNIZE> { s = span(); checkNotJoin(tableRef); } <LPAREN>
     [
         <PARTITION> { s2 = span(); } <BY>
         partitionList = ExpressionCommaList(s2, ExprContext.ACCEPT_NON_QUERY)
@@ -3649,6 +3486,51 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
     }
 }
 
+SqlNode Query(ExprContext exprContext) :
+{
+    SqlNodeList withList = null;
+    SqlNode e;
+    SqlOperator op;
+    SqlParserPos pos;
+    SqlParserPos withPos;
+    List<Object> list;
+}
+{
+    [
+        withList = WithList()
+    ]
+    e = LeafQuery(exprContext)
+    {
+        list = startList(e);
+    }
+    (
+        {
+            if (!e.isA(SqlKind.QUERY)) {
+                // whoops, expression we just parsed wasn't a query,
+                // but we're about to see something like UNION, so
+                // force an exception retroactively
+                checkNonQueryExpression(ExprContext.ACCEPT_QUERY);
+            }
+        }
+        op = BinaryQueryOperator() {
+            // ensure a query is legal in this context
+            pos = getPos();
+            checkQueryExpression(exprContext);
+        }
+        e = LeafQuery(ExprContext.ACCEPT_QUERY) {
+            list.add(new SqlParserUtil.ToTreeListItem(op, pos));
+            list.add(e);
+        }
+    )*
+    {
+        e = SqlParserUtil.toTree(list);
+        if (withList != null) {
+            e = new SqlWith(withList.getParserPosition(), withList, e);
+        }
+        return e;
+    }
+}
+
 SqlNodeList WithList() :
 {
     SqlWithItem withItem;
@@ -3713,8 +3595,6 @@ SqlNode Expression(ExprContext exprContext) :
         return e;
     }
 }
-
-// TODO jvs 15-Nov-2003:  ANY/ALL
 
 void Expression2b(ExprContext exprContext, List<Object> list) :
 {

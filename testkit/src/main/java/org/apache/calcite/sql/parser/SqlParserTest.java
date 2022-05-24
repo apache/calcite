@@ -3840,8 +3840,8 @@ public class SqlParserTest {
     sql("select * from table ^emp^")
         .fails("(?s).*Encountered \"emp\" at .*");
 
-    sql("select * from (table ^(^select empno from emp))")
-        .fails("(?s)Encountered \"\\(\".*");
+    sql("select * from (table (^select^ empno from emp))")
+        .fails("(?s)Encountered \"select\".*");
   }
 
   @Test void testCollectionTable() {
@@ -3898,8 +3898,8 @@ public class SqlParserTest {
     sql("select * from lateral table(ramp(1)) as t(x)")
         .ok(expected + " AS `T` (`X`)");
     // Bad: Parentheses make it look like a sub-query
-    sql("select * from lateral (table^(^ramp(1)))")
-        .fails("(?s)Encountered \"\\(\" at .*");
+    sql("select * from lateral (^table (ramp(1))^)")
+        .fails("Expected query or join");
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
@@ -7767,33 +7767,59 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"with\" at .*");
   }
 
-  @Disabled // TODO fix
   @Test void testParensInFrom() {
     // UNNEST may not occur within parentheses.
     // FIXME should fail at "unnest"
-    sql("select *from ^(^unnest(x))")
-        .fails("(?s)Encountered \"\\( unnest\" at .*");
+    sql("select *from (^unnest(x)^)")
+        .fails("Expected query or join");
 
     // <table-name> may not occur within parentheses.
-    // TODO: Postgres gives "syntax error at ')'", which would be better
+    // TODO: Postgres gives "syntax error at ')'", which might be better
     sql("select * from (^emp^)")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+        .fails("(?s)Expected query or join.*");
 
     // <table-name> may not occur within parentheses.
-    sql("select * from (^emp^ as x)")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+    // TODO: Postgres gives "syntax error at ')'", which might be better
+    sql("select * from (^emp as x^)")
+        .fails("Expected query or join");
 
     // <table-name> may not occur within parentheses.
     sql("select * from (^emp^) as x")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+        .fails("Expected query or join");
 
     // Parentheses around JOINs are OK, and sometimes necessary.
-    if (false) {
-      // todo:
-      sql("select * from (emp join dept using (deptno))").ok("xx");
+    String sql1 = "select *\n"
+        + "from (emp join dept using (deptno))";
+    String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "INNER JOIN `DEPT` USING (`DEPTNO`)";
+    sql(sql1).ok(expected);
 
-      sql("select * from (emp join dept using (deptno)) join foo using (x)").ok("xx");
-    }
+    String sql2 = "select *\n"
+        + "from (emp join dept using (deptno))\n"
+        + "join foo using (x)";
+    String expected2 = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "INNER JOIN `DEPT` USING (`DEPTNO`)\n"
+        + "INNER JOIN `FOO` USING (`X`)";
+    sql(sql2).ok(expected2);
+
+    // In Postgres, you can alias a join:
+    //   "select x.i from (t cross join u) as x"
+    // is syntactically and semantically valid; but
+    //   "select t.i from (t cross join u) as x"
+    // is semantically invalid.
+    // But Calcite doesn't.
+    sql("select * from (t cross ^join^ u) as x")
+        .fails("Join expression encountered in illegal context");
+    sql("select *\n"
+        + "from (t cross ^join^ u)\n"
+        + "  tablesample substitute('medium')")
+        .fails("Join expression encountered in illegal context");
+    sql("select *\n"
+        + "from (t cross ^join^ u)\n"
+        + "PIVOT (sum(sal) AS sal FOR job in ('CLERK' AS c))")
+        .fails("Join expression encountered in illegal context");
   }
 
   /** Test case for
