@@ -245,6 +245,39 @@ public class ${parser.class} extends SqlAbstractParserImpl
         return SqlStmtList();
     }
 
+    // Q: Is it the best way ???
+    private SqlNode tryParseArrayLiteral(SqlNode stringLiteral) {
+        try {
+            return parseArrayLiteral((SqlLiteral) stringLiteral);
+        } catch (Throwable e) {
+            return stringLiteral;
+        }
+    }
+
+    private SqlNode parseArrayLiteral(SqlLiteral stringLiteral) throws Exception {
+        String s = stringLiteral.getValueAs(String.class);
+
+        // a simple check to not create a parser on every string literal.
+        if (s.length() < 2 || s.charAt(0) != '{' || s.charAt(s.length() - 1) != '}') {
+            return stringLiteral;
+        }
+
+        ${parser.class} parser = (${parser.class}) FACTORY.getParser(new SourceStringReader(s));
+        parser.setConformance(conformance);
+        parser.setIdentifierMaxLength(identifierMaxLength);
+        parser.setUnquotedCasing(unquotedCasing);
+        parser.setQuotedCasing(quotedCasing);
+        // switch to double-quote literals mode
+        parser.switchTo(LexicalState.BQID);
+
+        SqlCall arrayValueCall = parser.ArrayLiteral();
+        return SqlLiteral.createArrayStringLiteral(
+            (NlsString) stringLiteral.getValue(),
+            arrayValueCall,
+            stringLiteral.getParserPosition()
+        );
+    }
+
     private SqlNode extend(SqlNode table, SqlNodeList extendList) {
         return SqlStdOperatorTable.EXTEND.createCall(
             Span.of(table, extendList).pos(), table, extendList);
@@ -4397,6 +4430,11 @@ SqlNode NonIntervalLiteral() :
         e = NumericLiteral()
     |
         e = StringLiteral()
+<#if (parser.includeParsingStringLiteralAsArrayLiteral!default.parser.includeParsingStringLiteralAsArrayLiteral)>
+        {
+            return tryParseArrayLiteral(e);
+        }
+</#if>
     |
         e = SpecialLiteral()
     |
@@ -4775,6 +4813,25 @@ SqlNode ArrayConstructor() :
                 s.end(this), args.getList());
         }
     )
+}
+
+SqlCall ArrayLiteral() :
+{
+    List<SqlNode> list;
+    SqlNode e;
+    final Span s;
+}
+{
+    <LBRACE> { s = span(); }
+    (
+        e = Literal() { list = startList(e); } (<COMMA> e = Literal() { list.add(e); } )*
+    |
+        e = ArrayLiteral() { list = startList(e); } (<COMMA> e = ArrayLiteral() { list.add(e); } )*
+    |
+        { list = Collections.emptyList();}
+    ) <RBRACE> {
+       return SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(s.end(this), list);
+    }
 }
 
 /** Parses a MAP constructor */

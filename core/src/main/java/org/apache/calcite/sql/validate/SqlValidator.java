@@ -933,5 +933,17 @@ public interface SqlValidator {
     default Config withSqlConformance(SqlConformance conformance) {
       return withConformance(conformance);
     }
+
+    /** Returns whether the validator supports implicit cast from string literal
+     * to array literal.
+     * */
+    @Value.Default default boolean typeCoercionStringToArrayEnabled() {
+      return false;
+    }
+
+    /**
+     * Sets whether to enable implicit cast string literal to array literal, default false.
+     */
+    Config withTypeCoercionStringToArrayEnabled(boolean enabled);
   }
 }

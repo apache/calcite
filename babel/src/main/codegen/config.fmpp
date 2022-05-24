@@ -565,6 +565,7 @@ data: {
     ]
 
     includePosixOperators: true
+    includeParsingStringLiteralAsArrayLiteral: true
   }
 }
 

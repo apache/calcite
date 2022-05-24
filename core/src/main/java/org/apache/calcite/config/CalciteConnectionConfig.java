@@ -110,4 +110,6 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean lenientOperatorLookup();
   /** Returns the value of {@link CalciteConnectionProperty#TOPDOWN_OPT}. */
   boolean topDownOpt();
+  /** Returns the value of {@link CalciteConnectionProperty#TYPE_COERCION_STRING_TO_ARRAY}. */
+  boolean typeCoercionStringToArray();
 }

@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlArrayCharStringLiteral;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -103,12 +104,17 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
     requireNonNull(scope, "scope");
+    RelDataType operandType = validator.deriveType(scope, operand);
+    if (coerceStringToArray(call, operand, index, operandType, targetType)) {
+      return true;
+    }
+
     // Check it early.
     if (!needToCast(scope, operand, targetType)) {
       return false;
     }
     // Fix up nullable attr.
-    RelDataType targetType1 = syncAttributes(validator.deriveType(scope, operand), targetType);
+    RelDataType targetType1 = syncAttributes(operandType, targetType);
     SqlNode desired = castTo(operand, targetType1);
     call.setOperand(index, desired);
     updateInferredType(desired, targetType1);
@@ -525,6 +531,16 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return type2;
     }
 
+    if (validator.config().typeCoercionStringToArrayEnabled()) {
+      if (SqlTypeUtil.isString(type1) && SqlTypeUtil.isArray(type2)) {
+        return type2;
+      }
+
+      if (SqlTypeUtil.isString(type2) && SqlTypeUtil.isArray(type1)) {
+        return type1;
+      }
+    }
+
     return null;
   }
 
@@ -720,5 +736,27 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return expected.getDefaultConcreteType(factory);
     }
     return null;
+  }
+
+  /**
+   * Coerce STRING type to ARRAY type.
+   */
+  protected Boolean coerceStringToArray(
+      SqlCall call,
+      SqlNode operand,
+      int index,
+      RelDataType fromType,
+      RelDataType targetType) {
+    if (validator.config().typeCoercionStringToArrayEnabled()
+        && SqlTypeUtil.isString(fromType)
+        && SqlTypeUtil.isArray(targetType)
+        && operand instanceof SqlArrayCharStringLiteral
+    ) {
+      SqlCall arrayValue = ((SqlArrayCharStringLiteral) operand).asArrayValue();
+      call.setOperand(index, arrayValue);
+      updateInferredType(arrayValue, targetType);
+      return true;
+    }
+    return false;
   }
 }

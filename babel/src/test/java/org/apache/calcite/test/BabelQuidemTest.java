@@ -111,6 +111,17 @@ class BabelQuidemTest extends QuidemTest {
                   SqlConformanceEnum.BABEL)
               .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
               .connect();
+        case "scott-postgresql":
+          return CalciteAssert.that()
+              .with(CalciteAssert.SchemaSpec.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,postgresql")
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  BabelDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .with(CalciteConnectionProperty.TYPE_COERCION_STRING_TO_ARRAY, true)
+              .connect();
         default:
           return super.connect(name, reference);
         }
