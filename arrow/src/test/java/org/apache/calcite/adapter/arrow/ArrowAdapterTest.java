@@ -24,6 +24,11 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Sources;
 
+import org.apache.arrow.gandiva.evaluator.Projector;
+import org.apache.arrow.gandiva.exceptions.GandivaException;
+import org.apache.arrow.gandiva.expression.ExpressionTree;
+import org.apache.arrow.vector.types.pojo.Schema;
+
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -36,11 +41,14 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Tests for the Apache Arrow adapter.
@@ -48,6 +56,33 @@ import static org.hamcrest.core.Is.is;
 class ArrowAdapterTest {
   private static Map<String, String> arrow;
   private static File arrowDataDirectory;
+  private static boolean hasGandivaSupport = detectGandivaSupport();
+
+  ArrowAdapterTest() {
+    assumeTrue(hasGandivaSupport, "gandiva not supported on this platform, skipping tests");
+  }
+
+  /**
+   * Gandiva (used to implement arrow filtering / projection) does not currently distribute
+   * a binary that is compatible with M1 macs on maven central.
+   * see <a href="https://issues.apache.org/jira/browse/ARROW-16608">ARROW-16608</a>.
+   *
+   * @return true if we believe that gandiva is supported on this platform and we can run the tests
+   */
+  private static boolean detectGandivaSupport() {
+    try {
+      Schema emptySchema = new Schema(new ArrayList<>(), null);
+      List<ExpressionTree> expressions = new ArrayList<>();
+      Projector.make(emptySchema, expressions);
+    } catch (GandivaException e) {
+      // this is ok -- we'll always hit this because of an empty expression
+      // the fact that we got here, is indicative that the JNI library was loaded properly
+      return true;
+    } catch (UnsatisfiedLinkError e) {
+      return false;
+    }
+    return true;
+  }
 
   @BeforeAll
   static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException, SQLException {
