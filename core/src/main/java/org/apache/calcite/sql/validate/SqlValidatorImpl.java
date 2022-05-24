@@ -460,6 +460,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (expanded != null) {
       inferUnknownTypes(targetType, scope, expanded);
     }
+
+    // Re-derive type for CASE expression from AggregatingSelectScope if it's a grouping expression.
+    if (selectScope instanceof AggregatingSelectScope) {
+      final SqlNode expr =
+          (expanded.getKind() == SqlKind.AS) ? ((SqlCall) expanded).operand(0) : expanded;
+      if (expr instanceof SqlCase) {
+        final AggregatingSelectScope.Resolved r =
+            ((AggregatingSelectScope) selectScope).resolved.get();
+        if (r.isGroupingExpr(expr)) {
+          nodeToTypeMap.remove(expr);
+        }
+      }
+    }
+
     final RelDataType type = deriveType(selectScope, expanded);
     setValidatedNodeType(expanded, type);
     fields.add(Pair.of(alias, type));
