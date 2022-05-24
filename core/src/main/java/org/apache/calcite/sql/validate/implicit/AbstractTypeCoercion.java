@@ -751,14 +751,13 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     if (validator.config().conformance().allowCoercionStringToArray()
         && SqlTypeUtil.isString(fromType)
         && SqlTypeUtil.isArray(targetType)
-        && operand instanceof SqlCharStringLiteral
-    ) {
+        && operand instanceof SqlCharStringLiteral) {
       try {
         SqlNode arrayValue = SqlParserUtil.parseArrayLiteral(
             ((SqlCharStringLiteral) operand).getValueAs(String.class));
         call.setOperand(index, arrayValue);
         updateInferredType(arrayValue, targetType);
-      } catch (Throwable e) {
+      } catch (Exception | Error e) {
         return false;
       }
       return true;
