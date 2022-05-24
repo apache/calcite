@@ -22,12 +22,12 @@ import org.apache.arrow.adapter.jdbc.JdbcToArrowConfig;
 import org.apache.arrow.adapter.jdbc.JdbcToArrowConfigBuilder;
 import org.apache.arrow.adapter.jdbc.JdbcToArrowUtils;
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.FloatingPointVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.dictionary.DictionaryProvider;
 import org.apache.arrow.vector.ipc.ArrowFileWriter;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
@@ -62,6 +62,7 @@ public class ArrowData {
   private int intValue;
   private int stringValue;
   private float floatValue;
+  private long longValue;
 
   public ArrowData() {
     this.batchSize = 20;
@@ -69,6 +70,7 @@ public class ArrowData {
     this.intValue = 0;
     this.stringValue = 0;
     this.floatValue = 0;
+    this.longValue = 0;
   }
 
   private Schema makeArrowSchema() {
@@ -77,10 +79,12 @@ public class ArrowData {
     FieldType stringType = FieldType.nullable(new ArrowType.Utf8());
     FieldType floatType = FieldType.nullable(
         new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE));
+    FieldType longType = FieldType.nullable(new ArrowType.Int(64, true));
 
     childrenBuilder.add(new Field("intField", intType, null));
     childrenBuilder.add(new Field("stringField", stringType, null));
     childrenBuilder.add(new Field("floatField", floatType, null));
+    childrenBuilder.add(new Field("longField", longType, null));
 
     return new Schema(childrenBuilder.build(), null);
   }
@@ -134,10 +138,8 @@ public class ArrowData {
     Schema arrowSchema = makeArrowSchema();
     VectorSchemaRoot vectorSchemaRoot = VectorSchemaRoot.create(arrowSchema,
         new RootAllocator(Integer.MAX_VALUE));
-    DictionaryProvider.MapDictionaryProvider provider =
-        new DictionaryProvider.MapDictionaryProvider();
     ArrowFileWriter arrowFileWriter =
-        new ArrowFileWriter(vectorSchemaRoot, provider, fileOutputStream.getChannel());
+        new ArrowFileWriter(vectorSchemaRoot, null, fileOutputStream.getChannel());
 
     arrowFileWriter.start();
 
@@ -155,6 +157,9 @@ public class ArrowData {
           break;
         case VARCHAR:
           varCharField(vector, numRows);
+          break;
+        case BIGINT:
+          longField(vector, numRows);
           break;
         default:
           throw new IllegalStateException("Not supported type yet: " + vector.getMinorType());
@@ -200,6 +205,17 @@ public class ArrowData {
       String value = String.valueOf(this.stringValue);
       varCharVector.set(i, new Text(value));
       this.stringValue++;
+    }
+    fieldVector.setValueCount(rowCount);
+  }
+
+  private void longField(FieldVector fieldVector, int rowCount) {
+    BigIntVector longVector = (BigIntVector) fieldVector;
+    longVector.setInitialCapacity(rowCount);
+    longVector.allocateNew();
+    for (int i = 0; i < rowCount; i++) {
+      longVector.set(i, this.longValue);
+      this.longValue++;
     }
     fieldVector.setValueCount(rowCount);
   }

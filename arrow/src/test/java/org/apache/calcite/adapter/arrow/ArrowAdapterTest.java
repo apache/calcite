@@ -120,13 +120,13 @@ class ArrowAdapterTest {
   @Test void testArrowProjectAllFields() {
     String sql = "select * from arrowdata\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
-    String result = "intField=0; stringField=0; floatField=0.0\n"
-        + "intField=1; stringField=1; floatField=1.0\n"
-        + "intField=2; stringField=2; floatField=2.0\n"
-        + "intField=3; stringField=3; floatField=3.0\n"
-        + "intField=4; stringField=4; floatField=4.0\n"
-        + "intField=5; stringField=5; floatField=5.0\n";
+        + "  ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=0; stringField=0; floatField=0.0; longField=0\n"
+        + "intField=1; stringField=1; floatField=1.0; longField=1\n"
+        + "intField=2; stringField=2; floatField=2.0; longField=2\n"
+        + "intField=3; stringField=3; floatField=3.0; longField=3\n"
+        + "intField=4; stringField=4; floatField=4.0; longField=4\n"
+        + "intField=5; stringField=5; floatField=5.0; longField=5\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
@@ -141,7 +141,7 @@ class ArrowAdapterTest {
         + "intField=3\nintField=4\nintField=5\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0])\n"
-        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
@@ -160,7 +160,7 @@ class ArrowAdapterTest {
         + "intField=5; stringField=5\n";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
@@ -180,7 +180,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
         + "    ArrowFilter(condition=[<($0, 4)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
@@ -196,7 +196,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
         + "    ArrowFilter(condition=[AND(=($0, 12), =($1, '12'))])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=12; stringField=12\n";
     CalciteAssert.that()
         .with(arrow)
@@ -211,8 +211,8 @@ class ArrowAdapterTest {
         + " where \"floatField\"=15.0";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowFilter(condition=[=(CAST($2):DOUBLE, 15.0)])\n"
-        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
-    String result = "intField=15; stringField=15; floatField=15.0\n";
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=15; stringField=15; floatField=15.0; longField=15\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
@@ -227,7 +227,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0])\n"
         + "    ArrowFilter(condition=[=($0, 25)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=25\n";
     CalciteAssert.that()
         .with(arrow)
@@ -327,9 +327,9 @@ class ArrowAdapterTest {
     String sql = "select CAST(\"intField\" AS DOUBLE) as \"dbl\" from arrowdata";
     String result = "dbl=0.0\ndbl=1.0\n";
     String plan =
-        "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):DOUBLE], dbl=[$t3])\n"
+        "PLAN=EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t0):DOUBLE], dbl=[$t4])\n"
             + "  ArrowToEnumerableConverter\n"
-            + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+            + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
 
     CalciteAssert.that()
         .with(arrow)
@@ -349,10 +349,10 @@ class ArrowAdapterTest {
     String sql = "select\n"
         + "  \"stringField\" || '_suffix' as \"field1\"\n"
         + "from arrowdata";
-    String plan = "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=['_suffix'], "
-            + "expr#4=[||($t1, $t3)], field1=[$t4])\n"
+    String plan = "PLAN=EnumerableCalc(expr#0..3=[{inputs}], expr#4=['_suffix'], "
+            + "expr#5=[||($t1, $t4)], field1=[$t5])\n"
             + "  ArrowToEnumerableConverter\n"
-            + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+            + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "field1=0_suffix\n";
     CalciteAssert.that()
         .with(arrow)
@@ -385,7 +385,7 @@ class ArrowAdapterTest {
 
     String plan = "PLAN=EnumerableAggregate(group=[{0}])\n"
         + "  ArrowToEnumerableConverter\n"
-        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
 
     CalciteAssert.that()
         .with(arrow)
@@ -453,10 +453,10 @@ class ArrowAdapterTest {
     String sql = "select \"intField\"\n"
         + "from arrowdata\n"
         + "limit 2";
-    String plan = "PLAN=EnumerableCalc(expr#0..2=[{inputs}], intField=[$t0])\n"
+    String plan = "PLAN=EnumerableCalc(expr#0..3=[{inputs}], intField=[$t0])\n"
         + "  EnumerableLimit(fetch=[2])\n"
         + "    ArrowToEnumerableConverter\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=0\nintField=1\n";
     CalciteAssert.that()
         .with(arrow)
@@ -469,14 +469,30 @@ class ArrowAdapterTest {
     String sql = "select \"intField\"\n"
         + "from arrowdata\n"
         + "limit 2 offset 2";
-    String plan = "PLAN=EnumerableCalc(expr#0..2=[{inputs}], intField=[$t0])\n"
+    String plan = "PLAN=EnumerableCalc(expr#0..3=[{inputs}], intField=[$t0])\n"
         + "  EnumerableLimit(offset=[2], fetch=[2])\n"
         + "    ArrowToEnumerableConverter\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=2\nintField=3\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowSortOnLong() {
+    String sql = "select \"intField\" from arrowdata order by \"longField\" desc";
+    String plan = "PLAN=EnumerableSort(sort0=[$1], dir0=[DESC])\n"
+        + "  ArrowToEnumerableConverter\n"
+        + "    ArrowProject(intField=[$0], longField=[$3])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=49\nintField=48\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
         .returns(result)
         .explainContains(plan);
   }

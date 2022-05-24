@@ -20,16 +20,14 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
-
-import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -41,28 +39,21 @@ enum ArrowFieldType {
   BOOLEAN(Primitive.BOOLEAN),
   STRING(String.class, null),
   FLOAT(Primitive.FLOAT),
+  DOUBLE(Primitive.DOUBLE),
   DATE(Date.class, null),
   LIST(List.class, null),
-  DECIMAL(BigDecimal.class, null);
+  DECIMAL(BigDecimal.class, null),
+  LONG(Primitive.LONG),
+  BYTE(Primitive.BYTE),
+  SHORT(Primitive.SHORT);
 
   private final Class<?> clazz;
-
-  private static final Map<Class<? extends ArrowType>, ArrowFieldType> MAP =
-      ImmutableMap.<Class<? extends ArrowType>, ArrowFieldType>builder()
-          .put(ArrowType.Int.class, INT)
-          .put(ArrowType.Bool.class, BOOLEAN)
-          .put(ArrowType.Utf8.class, STRING)
-          .put(ArrowType.FloatingPoint.class, FLOAT)
-          .put(ArrowType.Date.class, DATE)
-          .put(ArrowType.List.class, LIST)
-          .put(ArrowType.Decimal.class, DECIMAL)
-          .build();
 
   ArrowFieldType(Primitive primitive) {
     this(requireNonNull(primitive.boxClass, "boxClass"), primitive);
   }
 
-  ArrowFieldType(Class<?> clazz, @Nullable Primitive unused) {
+  ArrowFieldType(Class<?> clazz, @Nullable Primitive primitiveType) {
     this.clazz = clazz;
   }
 
@@ -73,6 +64,41 @@ enum ArrowFieldType {
   }
 
   public static ArrowFieldType of(ArrowType arrowType) {
-    return requireNonNull(MAP.get(arrowType.getClass()), "fieldType");
+    switch (arrowType.getTypeID()) {
+    case Int:
+      int bitWidth = ((ArrowType.Int) arrowType).getBitWidth();
+      switch (bitWidth) {
+      case 64:
+        return LONG;
+      case 32:
+        return INT;
+      case 16:
+        return SHORT;
+      case 8:
+        return BYTE;
+      default:
+        throw new RuntimeException("Unsupported Int bit width: " + bitWidth);
+      }
+    case Bool:
+      return BOOLEAN;
+    case Utf8:
+      return STRING;
+    case FloatingPoint:
+      FloatingPointPrecision precision = ((ArrowType.FloatingPoint) arrowType).getPrecision();
+      switch (precision) {
+      case SINGLE:
+        return FLOAT;
+      case DOUBLE:
+        return DOUBLE;
+      default:
+        throw new RuntimeException("Unsupported Floating point precision: " + precision);
+      }
+    case Date:
+      return DATE;
+    case Decimal:
+      return DECIMAL;
+    default:
+      throw new RuntimeException("Unsupported type: " + arrowType);
+    }
   }
 }
