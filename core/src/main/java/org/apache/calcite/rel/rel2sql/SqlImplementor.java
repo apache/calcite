@@ -25,9 +25,11 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.RavenDistinctProject;
@@ -2043,6 +2045,52 @@ public abstract class SqlImplementor {
       return operandList;
     }
 
+    RexNode getRexInputRefFromCondition(RexNode condition) {
+      if (condition instanceof RexInputRef) {
+        return condition;
+      } else if (condition instanceof RexCall) {
+        for (RexNode operand : ((RexCall) condition).getOperands()) {
+          if (operand instanceof  RexLiteral) {
+            continue;
+          } else {
+            return getRexInputRefFromCondition(operand);
+          }
+        }
+      }
+      return condition;
+    }
+
+    /** Returns whether an Analytical Function is present in filter condition. */
+    private boolean hasAnalyticalFunctionPresentInFilter(RelNode rel) {
+      Integer rexOperandIndex = null;
+      if (node instanceof SqlSelect) {
+        RexNode filterCondition = ((LogicalFilter) rel).getCondition();
+        if (filterCondition instanceof RexCall) {
+          for (int i = 0; i < ((RexCall) filterCondition).getOperands().size(); i++) {
+            if (((RexCall) filterCondition).
+                getOperands().get(i) instanceof  RexLiteral) {
+              continue;
+            }
+            RexNode rexOperand = getRexInputRefFromCondition(((RexCall) filterCondition).
+                getOperands().get(i));
+            if (rexOperand instanceof RexInputRef) {
+              rexOperandIndex = Integer.parseInt(rexOperand.toString().
+                  replace("$", ""));
+              Project projectRel = (Project) rel.getInput(0);
+              if (projectRel.getChildExps().get(rexOperandIndex) instanceof RexOver) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean hasAnalyticalFunctionPresentInProjection(Project projectRel) {
+      return projectRel.toString().contains("ROW_NUMBER()");
+    }
+
     /** Returns whether a new sub-query is required. */
     private boolean needNewSubQuery(
         @UnknownInitialization Result this,
@@ -2052,6 +2100,19 @@ public abstract class SqlImplementor {
         return false;
       }
       final Clause maxClause = Collections.max(clauses);
+
+      // New SELECT wrap is not required -
+      // If REL is an instanceof filter specified on normal column type except any analytical
+      // function and if that filter has any projection with ROW_NUMBER() function present
+      if (rel instanceof Filter
+          && rel.getInput(0) instanceof Project
+          && hasAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
+          && !hasAnalyticalFunctionPresentInFilter(rel)) {
+        if (maxClause == Clause.SELECT) {
+          return false;
+        }
+      }
+
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required
       final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
