@@ -102,9 +102,14 @@ public class FilterExtractInnerJoinRule
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
 
-  /** This method will return TRUE if it encounters at least one INNER JOIN ON TRUE in RelNode.*/
+  /** This method will return TRUE if it encounters at least one
+   *   [INNER JOIN, LEFT JOIN, RIGHT JOIN]
+   *   ON TRUE in RelNode.
+   */
   private static boolean isCrossJoin(Join join, RelBuilder builder) {
-    if (join.getJoinType().equals(JoinRelType.INNER)
+    if ((join.getJoinType().equals(JoinRelType.INNER)
+        || join.getJoinType().equals(JoinRelType.LEFT)
+        || join.getJoinType().equals(JoinRelType.RIGHT))
         && builder.literal(true).equals(join.getCondition())) {
       return true;
     }
