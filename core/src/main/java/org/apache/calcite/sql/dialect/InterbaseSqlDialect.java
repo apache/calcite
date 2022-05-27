@@ -31,4 +31,8 @@ public class InterbaseSqlDialect extends SqlDialect {
   public InterbaseSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
 }

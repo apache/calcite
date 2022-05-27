@@ -32,4 +32,8 @@ public class ParaccelSqlDialect extends SqlDialect {
   public ParaccelSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
 }

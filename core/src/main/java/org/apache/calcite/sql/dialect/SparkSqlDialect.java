@@ -194,6 +194,10 @@ public class SparkSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    return true;
+  }
+
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);

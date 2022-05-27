@@ -31,4 +31,8 @@ public class InformixSqlDialect extends SqlDialect {
   public InformixSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
 }

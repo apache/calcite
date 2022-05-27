@@ -78,6 +78,10 @@ public class OracleSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
+
   @Override public boolean supportsDataType(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case BOOLEAN:

@@ -37,4 +37,8 @@ public class InfobrightSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
+
 }

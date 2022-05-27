@@ -31,4 +31,8 @@ public class DerbySqlDialect extends SqlDialect {
   public DerbySqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
 }

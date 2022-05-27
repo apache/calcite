@@ -38,4 +38,8 @@ public class AnsiSqlDialect extends SqlDialect {
   public AnsiSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
 }

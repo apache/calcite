@@ -143,6 +143,10 @@ public class MysqlSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    throw new UnsupportedOperationException();
+  }
+
   @Override public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
   }
