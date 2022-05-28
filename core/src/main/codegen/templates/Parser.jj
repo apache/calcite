@@ -417,7 +417,6 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
 {
     switch (exprContext) {
     case ACCEPT_QUERY:
-//    case ACCEPT_QUERY_OR_JOIN:
         throw SqlUtil.newContextException(getPos(),
             RESOURCE.illegalNonQueryExpression());
     }
@@ -618,7 +617,7 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
         e = Query(exprContext)
         e = OrderByLimitOpt(e)
     |
-        e = TableRef()
+        e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
         ( e = JoinTable(e) )*
     )
     { return e; }
@@ -1961,7 +1960,7 @@ SqlNode JoinTable(SqlNode e) :
 {
     natural = Natural()
     joinType = JoinType()
-    e2 = TableRef()
+    e2 = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
     (
         <ON> { on = JoinConditionType.ON.symbol(getPos()); }
         condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -2026,6 +2025,7 @@ SqlNode FromClause() :
         //  * FROM (a CROSS JOIN b), c
         // Not valid:
         //  * FROM a CROSS JOIN (b, c)
+        LOOKAHEAD(1)
         <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
         e2 = Join() {
             e = new SqlJoin(joinType.getParserPosition(),
@@ -2067,46 +2067,7 @@ SqlNode Join() :
             //
             // For more information about the issue, see https://github.com/javacc/javacc/issues/86
             LOOKAHEAD(3)
-            natural = Natural()
-            joinType = JoinType()
-            e2 = TableRef()
-            (
-                <ON> {
-                    joinConditionType = JoinConditionType.ON.symbol(getPos());
-                }
-                condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-                    e = new SqlJoin(joinType.getParserPosition(),
-                        e,
-                        natural,
-                        joinType,
-                        e2,
-                        joinConditionType,
-                        condition);
-                }
-            |
-                <USING> {
-                    joinConditionType = JoinConditionType.USING.symbol(getPos());
-                }
-                list = ParenthesizedSimpleIdentifierList() {
-                    e = new SqlJoin(joinType.getParserPosition(),
-                        e,
-                        natural,
-                        joinType,
-                        e2,
-                        joinConditionType,
-                        new SqlNodeList(list.getList(), Span.of(joinConditionType).end(this)));
-                }
-            |
-                {
-                    e = new SqlJoin(joinType.getParserPosition(),
-                        e,
-                        natural,
-                        joinType,
-                        e2,
-                        JoinConditionType.NONE.symbol(joinType.getParserPosition()),
-                        null);
-                }
-            )
+            e = JoinTable(e)
         |
             <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
             e2 = TableRef2(true) {
@@ -3452,9 +3413,6 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
         withList = WithList()
     ]
     e = LeafQueryOrExpr(exprContext)
-    (
-        e = JoinTable(e)
-    )*
     {
         list = startList(e);
     }

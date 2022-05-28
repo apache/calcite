@@ -704,7 +704,6 @@ public class SqlParserTest {
             + "Was expecting one of:\n"
             + "    <EOF> \n"
             + "    \"AS\" \\.\\.\\.\n"
-            + "    \"CROSS\" \\.\\.\\.\n"
             + "    \"EXCEPT\" \\.\\.\\.\n"
             + ".*");
   }
@@ -2769,8 +2768,8 @@ public class SqlParserTest {
 
   @Test void testFullInnerJoinFails() {
     // cannot have more than one of INNER, FULL, LEFT, RIGHT, CROSS
-    sql("select * from a full ^inner^ join b")
-        .fails("(?s).*Encountered \"inner\" at line .*");
+    sql("select * from a ^full^ inner join b")
+        .fails("(?s).*Encountered \"full inner\" at line .*");
   }
 
   @Test void testFullOuterJoin() {
@@ -2782,27 +2781,40 @@ public class SqlParserTest {
   }
 
   @Test void testInnerOuterJoinFails() {
-    sql("select * from a inner ^outer^ join b")
-        .fails("(?s).*Encountered \"outer\" at line .*");
+    sql("select * from a ^inner^ outer join b")
+        .fails("(?s).*Encountered \"inner outer\" at line .*");
   }
 
-  @Disabled
   @Test void testJoinAssociativity() {
     // joins are left-associative
     // 1. no parens needed
+    String expected = "SELECT *\n"
+        + "FROM `A`\n"
+        + "NATURAL LEFT JOIN `B`\n"
+        + "LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)";
     sql("select * from (a natural left join b) left join c on b.c1 = c.c1")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected);
 
     // 2. parens needed
+    String expected2 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "NATURAL LEFT JOIN (`B` LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`))";
     sql("select * from a natural left join (b left join c on b.c1 = c.c1)")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected2);
 
     // 3. same as 1
     sql("select * from a natural left join b left join c on b.c1 = c.c1")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected);
+
+    // bushy
+    String sql4 = "select *\n"
+        + "from (a cross join b)\n"
+        + "cross join (c cross join d)";
+    String expected4 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "CROSS JOIN `B`\n"
+        + "CROSS JOIN (`C` CROSS JOIN `D`)";
+    sql(sql4).ok(expected4);
   }
 
   // Note: "select * from a natural cross join b" is actually illegal SQL
@@ -7825,7 +7837,6 @@ public class SqlParserTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-35">[CALCITE-35]
    * Support parenthesized sub-clause in JOIN</a>. */
-  @Disabled("[CALCITE-35]")
   @Test void testParenthesizedJoins() {
     final String sql = "SELECT * FROM "
         + "(((S.C c INNER JOIN S.N n ON n.id = c.id) "
@@ -7842,7 +7853,10 @@ public class SqlParserTest {
         + "from a\n"
         + " join (b join c on b.x = c.x)\n"
         + " on a.y = c.y";
-    final String expected2 = "xxx";
+    final String expected2 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "INNER JOIN (`B` INNER JOIN `C` ON (`B`.`X` = `C`.`X`))"
+        + " ON (`A`.`Y` = `C`.`Y`)";
     sql(sql2).ok(expected2);
   }
 
@@ -7867,6 +7881,31 @@ public class SqlParserTest {
         + "FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
     sql(sql1).ok(expected);
     sql(sql2).ok(expected);
+
+    final String sql3 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross join ((table t2)))))))))))";
+    final String expected3 = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `T`)\n"
+        + "CROSS JOIN (TABLE `T2`)";
+    sql(sql3).ok(expected3);
+
+    // Adding an alias to the previous query makes it invalid
+    // (The error message and location could be improved)
+    final String sql4 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) X";
+    final String sql5 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) as X";
+    final String sql6 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) as X (a, b, c)";
+    final String message = "Join expression encountered in illegal context";
+    sql(sql4).fails(message);
+    sql(sql5).fails(message);
+    sql(sql6).fails(message);
   }
 
   @Test void testProcedureCall() {
