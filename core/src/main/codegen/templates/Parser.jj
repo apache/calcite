@@ -1950,60 +1950,6 @@ SqlLiteral JoinType() :
     }
 }
 
-/** Matches "LEFT JOIN t ON ...", "RIGHT JOIN t USING ...", "JOIN t". */
-SqlNode JoinTable(SqlNode e) :
-{
-    SqlNode e2, condition;
-    final SqlLiteral natural, joinType, on, using;
-    SqlNodeList list;
-}
-{
-    natural = Natural()
-    joinType = JoinType()
-    e2 = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
-    (
-        <ON> { on = JoinConditionType.ON.symbol(getPos()); }
-        condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-            return new SqlJoin(joinType.getParserPosition(),
-                e,
-                natural,
-                joinType,
-                e2,
-                on,
-                condition);
-        }
-    |
-        <USING> { using = JoinConditionType.USING.symbol(getPos()); }
-        list = ParenthesizedSimpleIdentifierList() {
-            return new SqlJoin(joinType.getParserPosition(),
-                e,
-                natural,
-                joinType,
-                e2,
-                using,
-                new SqlNodeList(list, Span.of(using).end(this)));
-        }
-    |
-        {
-            return new SqlJoin(joinType.getParserPosition(),
-                e,
-                natural,
-                joinType,
-                e2,
-                JoinConditionType.NONE.symbol(joinType.getParserPosition()),
-                null);
-        }
-    )
-}
-
-// TODO jvs 15-Nov-2003:  SQL standard allows parentheses in the FROM list for
-// building up non-linear join trees (e.g. OUTER JOIN two tables, and then INNER
-// JOIN the result).  Also note that aliases on parenthesized FROM expressions
-// "hide" all table names inside the parentheses (without aliases, they're
-// visible).
-//
-// We allow CROSS JOIN to have a join condition, even though that is not valid
-// SQL; the validator will catch it.
 /**
  * Parses the FROM clause for a SELECT.
  *
@@ -2051,55 +1997,97 @@ SqlNode Join() :
     e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
     (
         LOOKAHEAD(2)
-        (
-            // Decide whether to read a JOIN clause or a comma, or to quit having
-            // seen a single entry FROM clause like 'FROM emps'. See comments
-            // elsewhere regarding <COMMA> lookahead.
-            //
-            // TODO: update the above comment if this production only allows joins
-            // with at least 2 elements. Also deal with the comma case separately.
-            //
-            // And LOOKAHEAD(3) is needed here rather than a LOOKAHEAD(2). Because currently JavaCC
-            // calculates minimum lookahead count incorrectly for choice that contains zero size
-            // child. For instance, with the generated code, "LOOKAHEAD(2, Natural(), JoinType())"
-            // returns true immediately if it sees a single "<CROSS>" token. Where we expect
-            // the lookahead succeeds after "<CROSS> <APPLY>".
-            //
-            // For more information about the issue, see https://github.com/javacc/javacc/issues/86
-            LOOKAHEAD(3)
-            e = JoinTable(e)
-        |
-            <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
-            e2 = TableRef2(true) {
-                if (!this.conformance.isApplyAllowed()) {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
-                }
-                e = new SqlJoin(joinType.getParserPosition(),
-                    e,
-                    SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                    joinType,
-                    e2,
-                    JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
-                    null);
-            }
-        |
-            <OUTER> { joinType = JoinType.LEFT.symbol(getPos()); } <APPLY>
-            e2 = TableRef2(true) {
-                if (!this.conformance.isApplyAllowed()) {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
-                }
-                e = new SqlJoin(joinType.getParserPosition(),
-                    e,
-                    SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                    joinType,
-                    e2,
-                    JoinConditionType.ON.symbol(SqlParserPos.ZERO),
-                    SqlLiteral.createBoolean(true, joinType.getParserPosition()));
-            }
-        )
+        e = JoinTable(e)
     )*
     {
         return e;
+    }
+}
+
+/** Matches "LEFT JOIN t ON ...", "RIGHT JOIN t USING ...", "JOIN t". */
+SqlNode JoinTable(SqlNode e) :
+{
+    SqlNode e2, condition;
+    final SqlLiteral natural, joinType, on, using;
+    SqlNodeList list;
+}
+{
+    // LOOKAHEAD(3) is needed here rather than a LOOKAHEAD(2) because JavaCC
+    // calculates minimum lookahead count incorrectly for choice that contains
+    // zero size child. For instance, with the generated code,
+    // "LOOKAHEAD(2, Natural(), JoinType())"
+    // returns true immediately if it sees a single "<CROSS>" token. Where we
+    // expect the lookahead succeeds after "<CROSS> <APPLY>".
+    //
+    // For more information about the issue,
+    // see https://github.com/javacc/javacc/issues/86
+    //
+    // We allow CROSS JOIN (joinType = CROSS_JOIN) to have a join condition,
+    // even though that is not valid SQL; the validator will catch it.
+    LOOKAHEAD(3)
+    natural = Natural()
+    joinType = JoinType()
+    e2 = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
+    (
+        <ON> { on = JoinConditionType.ON.symbol(getPos()); }
+        condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+            return new SqlJoin(joinType.getParserPosition(),
+                e,
+                natural,
+                joinType,
+                e2,
+                on,
+                condition);
+        }
+    |
+        <USING> { using = JoinConditionType.USING.symbol(getPos()); }
+        list = ParenthesizedSimpleIdentifierList() {
+            return new SqlJoin(joinType.getParserPosition(),
+                e,
+                natural,
+                joinType,
+                e2,
+                using,
+                new SqlNodeList(list, Span.of(using).end(this)));
+        }
+    |
+        {
+            return new SqlJoin(joinType.getParserPosition(),
+                e,
+                natural,
+                joinType,
+                e2,
+                JoinConditionType.NONE.symbol(joinType.getParserPosition()),
+                null);
+        }
+    )
+|
+    <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
+    e2 = TableRef2(true) {
+        if (!this.conformance.isApplyAllowed()) {
+            throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
+        }
+        return new SqlJoin(joinType.getParserPosition(),
+            e,
+            SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+            joinType,
+            e2,
+            JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+            null);
+    }
+|
+    <OUTER> { joinType = JoinType.LEFT.symbol(getPos()); } <APPLY>
+    e2 = TableRef2(true) {
+        if (!this.conformance.isApplyAllowed()) {
+            throw SqlUtil.newContextException(getPos(), RESOURCE.applyNotAllowed());
+        }
+        return new SqlJoin(joinType.getParserPosition(),
+            e,
+            SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+            joinType,
+            e2,
+            JoinConditionType.ON.symbol(SqlParserPos.ZERO),
+            SqlLiteral.createBoolean(true, joinType.getParserPosition()));
     }
 }
 
@@ -2222,6 +2210,10 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
         [ <AS> ] alias = SimpleIdentifier()
         [ columnAliasList = ParenthesizedSimpleIdentifierList() ]
         {
+            // Standard SQL (and Postgres) allow applying "AS alias" to a JOIN,
+            // e.g. "FROM (a CROSS JOIN b) AS c". The new alias obscures the
+            // internal aliases, and columns cannot be referenced if they are
+            // not unique. TODO: Support this behavior.
             checkNotJoin(tableRef);
             if (columnAliasList == null) {
                 tableRef = SqlStdOperatorTable.AS.createCall(

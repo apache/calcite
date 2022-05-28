@@ -7816,12 +7816,12 @@ public class SqlParserTest {
         + "INNER JOIN `FOO` USING (`X`)";
     sql(sql2).ok(expected2);
 
-    // In Postgres, you can alias a join:
+    // In Postgres and Standard SQL, you can alias a join:
     //   "select x.i from (t cross join u) as x"
     // is syntactically and semantically valid; but
     //   "select t.i from (t cross join u) as x"
     // is semantically invalid.
-    // But Calcite doesn't.
+    // TODO: Support this in Calcite.
     sql("select * from (t cross ^join^ u) as x")
         .fails("Join expression encountered in illegal context");
     sql("select *\n"
