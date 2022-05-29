@@ -310,7 +310,7 @@ public interface CalciteResource {
   @BaseMessage("Cannot specify NATURAL keyword with ON or USING clause")
   ExInst<SqlValidatorException> naturalDisallowsOnOrUsing();
 
-  @BaseMessage("Column name ''{0}'' in USING clause is not unique on one side of join")
+  @BaseMessage("Column name ''{0}'' in NATURAL join or USING clause is not unique on one side of join")
   ExInst<SqlValidatorException> columnInUsingNotUnique(String a0);
 
   @BaseMessage("Column ''{0}'' matched using NATURAL keyword or USING clause has incompatible types: cannot compare ''{1}'' to ''{2}''")
