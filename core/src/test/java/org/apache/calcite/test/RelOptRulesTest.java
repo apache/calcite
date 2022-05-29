@@ -1298,6 +1298,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testExpressionSimplication1() {
+    final String sql = "select * from emp\n"
+        + "where ename <> '' and ename <> '3'";
+    sql(sql)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  @Test void testExpressionSimplication2() {
+    final String sql = "select * from emp\n"
+        + "where (ename < '' or ename > '') and (ename < '3' or ename > '3')";
+    sql(sql)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   @Test void testReduceAverage() {
     final String sql = "select name, max(name), avg(deptno), min(name)\n"
         + "from sales.dept group by name";
