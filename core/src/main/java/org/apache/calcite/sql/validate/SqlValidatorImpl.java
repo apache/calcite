@@ -513,27 +513,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public @Nullable List<String> usingNames(SqlJoin join) {
     switch (join.getConditionType()) {
     case USING:
-      final ImmutableList.Builder<String> list = ImmutableList.builder();
-      final Set<String> names = catalogReader.nameMatcher().createSet();
-      for (String name
-          : SqlIdentifier.simpleNames((SqlNodeList) getCondition(join))) {
-        if (names.add(name)) {
-          list.add(name);
-        }
-      }
-      return list.build();
+      SqlNodeList condition = (SqlNodeList) getCondition(join);
+      List<String> simpleNames = SqlIdentifier.simpleNames(condition);
+      return catalogReader.nameMatcher().distinctCopy(simpleNames);
+
     case NONE:
       if (join.isNatural()) {
-        final RelDataType t0 = getValidatedNodeType(join.getLeft());
-        final RelDataType t1 = getValidatedNodeType(join.getRight());
-        return SqlValidatorUtil.deriveNaturalJoinColumnList(
-            catalogReader.nameMatcher(), t0, t1);
+        return deriveNaturalJoinColumnList(join);
       }
-      break;
+      return null;
+
     default:
-      break;
+      return null;
     }
-    return null;
+  }
+
+  private List<String> deriveNaturalJoinColumnList(SqlJoin join) {
+    return SqlValidatorUtil.deriveNaturalJoinColumnList(
+        catalogReader.nameMatcher(),
+        getNamespaceOrThrow(join.getLeft()).getRowType(),
+        getNamespaceOrThrow(join.getRight()).getRowType());
   }
 
   private static SqlNode expandCommonColumn(SqlSelect sqlSelect,
@@ -3411,10 +3410,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   protected void validateJoin(SqlJoin join, SqlValidatorScope scope) {
-    SqlNode left = join.getLeft();
-    SqlNode right = join.getRight();
-    SqlNode condition = join.getCondition();
-    boolean natural = join.isNatural();
+    final SqlNode left = join.getLeft();
+    final SqlNode right = join.getRight();
+    final boolean natural = join.isNatural();
     final JoinType joinType = join.getJoinType();
     final JoinConditionType conditionType = join.getConditionType();
     final SqlValidatorScope joinScope = getScopeOrThrow(join); // getJoinScope?
@@ -3424,32 +3422,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate condition.
     switch (conditionType) {
     case NONE:
-      Preconditions.checkArgument(condition == null);
+      Preconditions.checkArgument(join.getCondition() == null);
       break;
     case ON:
-      requireNonNull(condition, "join.getCondition()");
-      SqlNode expandedCondition = expand(condition, joinScope);
-      join.setOperand(5, expandedCondition);
-      condition = getCondition(join);
+      final SqlNode condition = expand(getCondition(join), joinScope);
+      join.setOperand(5, condition);
       validateWhereOrOn(joinScope, condition, "ON");
       checkRollUp(null, join, condition, joinScope, "ON");
       break;
     case USING:
-      SqlNodeList list = (SqlNodeList) requireNonNull(condition, "join.getCondition()");
+      @SuppressWarnings({"rawtypes", "unchecked"}) List<SqlIdentifier> list =
+          (List) getCondition(join);
 
       // Parser ensures that using clause is not empty.
       Preconditions.checkArgument(list.size() > 0, "Empty USING clause");
-      for (SqlNode node : list) {
-        SqlIdentifier id = (SqlIdentifier) node;
-        final RelDataType leftColType = validateUsingCol(id, left);
-        final RelDataType rightColType = validateUsingCol(id, right);
-        if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
-          throw newValidationError(id,
-              RESOURCE.naturalOrUsingColumnNotCompatible(id.getSimple(),
-                  leftColType.toString(), rightColType.toString()));
-        }
-        checkRollUpInUsing(id, left, scope);
-        checkRollUpInUsing(id, right, scope);
+      for (SqlIdentifier id : list) {
+        validateCommonJoinColumn(id, left, right, scope);
       }
       break;
     default:
@@ -3458,33 +3446,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Validate NATURAL.
     if (natural) {
-      if (condition != null) {
-        throw newValidationError(condition,
+      if (join.getCondition() != null) {
+        throw newValidationError(getCondition(join),
             RESOURCE.naturalDisallowsOnOrUsing());
       }
 
-      // Join on fields that occur exactly once on each side. Ignore
-      // fields that occur more than once on either side.
-      final RelDataType leftRowType = getNamespaceOrThrow(left).getRowType();
-      final RelDataType rightRowType = getNamespaceOrThrow(right).getRowType();
-      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-      List<String> naturalColumnNames =
-          SqlValidatorUtil.deriveNaturalJoinColumnList(nameMatcher,
-              leftRowType, rightRowType);
-
+      // Join on fields that occur on each side.
       // Check compatibility of the chosen columns.
-      for (String name : naturalColumnNames) {
-        final RelDataType leftColType = requireNonNull(
-            nameMatcher.field(leftRowType, name),
-            () -> "unable to find left field " + name + " in " + leftRowType).getType();
-        final RelDataType rightColType = requireNonNull(
-            nameMatcher.field(rightRowType, name),
-            () -> "unable to find right field " + name + " in " + rightRowType).getType();
-        if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
-          throw newValidationError(join,
-              RESOURCE.naturalOrUsingColumnNotCompatible(name,
-                  leftColType.toString(), rightColType.toString()));
-        }
+      for (String name : deriveNaturalJoinColumnList(join)) {
+        final SqlIdentifier id =
+            new SqlIdentifier(name, join.isNaturalNode().getParserPosition());
+        validateCommonJoinColumn(id, left, right, scope);
       }
     }
 
@@ -3501,13 +3473,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case LEFT:
     case RIGHT:
     case FULL:
-      if ((condition == null) && !natural) {
+      if ((join.getCondition() == null) && !natural) {
         throw newValidationError(join, RESOURCE.joinRequiresCondition());
       }
       break;
     case COMMA:
     case CROSS:
-      if (condition != null) {
+      if (join.getCondition() != null) {
         throw newValidationError(join.getConditionTypeNode(),
             RESOURCE.crossJoinDisallowsCondition());
       }
@@ -3548,22 +3520,42 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private RelDataType validateUsingCol(SqlIdentifier id, SqlNode leftOrRight) {
-    if (id.names.size() == 1) {
-      String name = id.names.get(0);
-      final SqlValidatorNamespace namespace = getNamespaceOrThrow(leftOrRight);
-      final RelDataType rowType = namespace.getRowType();
-      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-      final RelDataTypeField field = nameMatcher.field(rowType, name);
-      if (field != null) {
-        if (nameMatcher.frequency(rowType.getFieldNames(), name) > 1) {
-          throw newValidationError(id,
-              RESOURCE.columnInUsingNotUnique(id.toString()));
-        }
-        return field.getType();
-      }
+  /** Validates a column in a USING clause, or an inferred join key in a
+   * NATURAL join. */
+  private void validateCommonJoinColumn(SqlIdentifier id, SqlNode left,
+      SqlNode right, SqlValidatorScope scope) {
+    if (id.names.size() != 1) {
+      throw newValidationError(id, RESOURCE.columnNotFound(id.toString()));
     }
-    throw newValidationError(id, RESOURCE.columnNotFound(id.toString()));
+
+    final RelDataType leftColType = validateCommonInputJoinColumn(id, left, scope);
+    final RelDataType rightColType = validateCommonInputJoinColumn(id, right, scope);
+    if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
+      throw newValidationError(id,
+          RESOURCE.naturalOrUsingColumnNotCompatible(id.getSimple(),
+              leftColType.toString(), rightColType.toString()));
+    }
+  }
+
+  /** Validates a column in a USING clause, or an inferred join key in a
+   * NATURAL join, in the left or right input to the join. */
+  private RelDataType validateCommonInputJoinColumn(SqlIdentifier id,
+      SqlNode leftOrRight, SqlValidatorScope scope) {
+    Preconditions.checkArgument(id.names.size() == 1);
+    final String name = id.names.get(0);
+    final SqlValidatorNamespace namespace = getNamespaceOrThrow(leftOrRight);
+    final RelDataType rowType = namespace.getRowType();
+    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+    final RelDataTypeField field = nameMatcher.field(rowType, name);
+    if (field == null) {
+      throw newValidationError(id, RESOURCE.columnNotFound(name));
+    }
+    if (nameMatcher.frequency(rowType.getFieldNames(), name) > 1) {
+      throw newValidationError(id,
+          RESOURCE.columnInUsingNotUnique(name));
+    }
+    checkRollUpInUsing(id, leftOrRight, scope);
+    return field.getType();
   }
 
   /**
