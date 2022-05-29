@@ -222,15 +222,13 @@ from dept as d
 
 # Similar to previous; should be invalid because emp-join-clerk
 # returns duplicate "deptno" columns but Calcite currently allows it.
-!if (false) {
 with clerk as (select * from emp where job = 'CLERK')
 select e.ename, d.dname, c.ename
 from dept as d
  natural left join (emp as e
  left join clerk as c using (empno));
-ERROR: common column name "deptno" appears more than once in right table
+Column name 'DEPTNO' in NATURAL join or USING clause is not unique on one side of join
 !error
-!}
 
 with clerk as (select * from emp where job = 'CLERK')
 select e.ename, d.dname, c.ename
