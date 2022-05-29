@@ -6069,7 +6069,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testNaturalJoinIncompatibleDatatype() {
     sql("select *\n"
         + "from (select ename as name, hiredate as deptno from emp)\n"
-        + "natural ^join^\n"
+        + "^natural^ join\n"
         + "(select deptno, name as sal from dept)")
         .fails("Column 'DEPTNO' matched using NATURAL keyword or USING clause "
             + "has incompatible types: "
@@ -6105,9 +6105,72 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'GENDER' not found in any table");
   }
 
-  @Test void testJoinUsingDupColsFails() {
-    sql("select * from emp left join (select deptno, name as deptno from dept) using (^deptno^)")
-        .fails("Column name 'DEPTNO' in USING clause is not unique on one side of join");
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5171">[CALCITE-5171]
+   * NATURAL join and USING should fail if join columns are not unique</a>. */
+  @Test void testNaturalJoinDuplicateColumns() {
+    // NATURAL join and USING should fail if join columns are not unique
+    final String message = "Column name 'DEPTNO' in NATURAL join or "
+        + "USING clause is not unique on one side of join";
+    sql("select e.ename, d.name\n"
+        + "from dept as d\n"
+        + "^natural^ join (select ename, sal as deptno, deptno from emp) as e")
+        .fails(message);
+
+    // A similar query with USING fails with the same error
+    sql("select e.ename, d.name\n"
+        + "from dept as d\n"
+        + "join (select ename, sal as deptno, deptno from emp) as e\n"
+        + "  using (^deptno^)")
+        .fails(message);
+
+    // Also with "*". (Proves that FROM is validated before SELECT.)
+    sql("select *\n"
+        + "from emp\n"
+        + "left join (select deptno, name as deptno from dept)\n"
+        + "  using (^deptno^)")
+        .fails(message);
+
+    // Reversed query gives reversed error message
+    sql("select e.ename, d.name\n"
+        + "from (select ename, sal as deptno, deptno from emp) as e\n"
+        + "join dept as d\n"
+        + "  using (^deptno^)")
+        .fails(message);
+
+    // The error only occurs if the duplicate column is referenced. The
+    // following query has a duplicate hiredate column.
+    sql("select e.ename, d.name\n"
+        + "from dept as d\n"
+        + "join (select ename, sal as hiredate, deptno from emp) as e\n"
+        + "  using (deptno)")
+        .ok();
+  }
+
+  @Test void testNaturalEmptyKey() {
+    // If there are no columns in common, natural join is empty, and that's OK.
+    sql("select *\n"
+        + "from (select ename from emp) as e\n"
+        + "natural join dept as d")
+        .type("RecordType("
+            + "VARCHAR(20) NOT NULL ENAME, "
+            + "INTEGER NOT NULL DEPTNO, "
+            + "VARCHAR(10) NOT NULL NAME) NOT NULL");
+
+    // If there are duplicates on one side, that's OK, because the empty natural
+    // join prevents us from checking.
+    sql("select d.*\n"
+        + "from (select ename, sal as ename from emp) as e\n"
+        + "natural join dept as d")
+        .type("RecordType("
+            + "INTEGER NOT NULL DEPTNO, "
+            + "VARCHAR(10) NOT NULL NAME) NOT NULL");
+    // Cannot expand star if it contains duplicate columns.
+    // (Postgres thinks this query is OK.)
+    sql("select ^e.*^\n"
+        + "from (select ename, sal as ename from emp) as e\n"
+        + "natural join dept as d")
+        .fails("Column 'ENAME' is ambiguous");
   }
 
   @Test void testJoinRowType() {
@@ -6230,8 +6293,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "join dept as d2 using (^deptno^)";
-    final String expected = "Column name 'DEPTNO' in USING clause is not "
-        + "unique on one side of join";
+    final String expected = "Column name 'DEPTNO' in NATURAL join or "
+        + "USING clause is not unique on one side of join";
     sql(sql1).fails(expected);
 
     final String sql2 = "select *\n"
