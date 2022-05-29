@@ -736,9 +736,7 @@ SqlNode LeafQuery(ExprContext exprContext) :
 
 /**
  * Parses a parenthesized query or single row expression.
- *
- * <p>TODO: replace 'ParenthesizedExpression(ACCEPT_QUERY)'
- * with 'ParenthesizedQuery()' (which is the only case used)
+ * Depending on {@code exprContext}, may also accept a join.
  */
 SqlNode ParenthesizedExpression(ExprContext exprContext) :
 {
@@ -2213,7 +2211,8 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
             // Standard SQL (and Postgres) allow applying "AS alias" to a JOIN,
             // e.g. "FROM (a CROSS JOIN b) AS c". The new alias obscures the
             // internal aliases, and columns cannot be referenced if they are
-            // not unique. TODO: Support this behavior.
+            // not unique. TODO: Support this behavior; see
+            // [CALCITE-5168] Allow AS after parenthesized JOIN
             checkNotJoin(tableRef);
             if (columnAliasList == null) {
                 tableRef = SqlStdOperatorTable.AS.createCall(
