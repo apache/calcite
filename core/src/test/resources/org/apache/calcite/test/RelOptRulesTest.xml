@@ -3794,6 +3794,46 @@ LogicalProject(SUM1=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)], SUM2=[SUM(+($7
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExpressionSimplification1">
+    <Resource name="sql">
+      <![CDATA[select * from emp
+where ename <> '' and ename <> '3']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(<>($1, ''), <>($1, '3'))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[SEARCH($1, Sarg[(-∞..'':VARCHAR(20)), ('':VARCHAR(20)..'3':VARCHAR(20)), ('3':VARCHAR(20)..+∞)]:VARCHAR(20))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testExpressionSimplification2">
+    <Resource name="sql">
+      <![CDATA[select * from emp
+where (ename < '' or ename > '') and (ename < '3' or ename > '3')]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(OR(<($1, ''), >($1, '')), OR(<($1, '3'), >($1, '3')))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[SEARCH($1, Sarg[(-∞..'':CHAR(1)), ('':CHAR(1)..'3'), ('3'..+∞)]:CHAR(1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExtractJoinFilterRule">
     <Resource name="sql">
       <![CDATA[select 1 from emp inner join dept on emp.deptno=dept.deptno]]>

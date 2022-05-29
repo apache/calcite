@@ -2919,7 +2919,9 @@ public class RexSimplify {
      * the IN call or single comparison.
      */
     private static boolean simpleSarg(Sarg sarg) {
-      return sarg.isPoints() || RangeSets.isOpenInterval(sarg.rangeSet);
+      return sarg.isPoints()
+          || RangeSets.isOpenInterval(sarg.rangeSet)
+          || sarg.isComplementedPoints();
     }
 
     /** If a term is a call to {@code SEARCH} on a {@link RexSargBuilder},
