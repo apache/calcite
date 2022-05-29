@@ -1298,6 +1298,40 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5169">[CALCITE-5169]
+   * 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'</a>.
+   *
+   * <p>{@code ename <> '' and ename <> '3'} should be simplified to Sarg.
+   */
+  @Test void testExpressionSimplification1() {
+    final String sql = "select * from emp\n"
+        + "where ename <> '' and ename <> '3'";
+    sql(sql)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5169">[CALCITE-5169]
+   * 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'</a>.
+   *
+   * <p>{@code (ename < '' or ename > '') and (ename < '3' or ename > '3')} should be
+   * simplified to Sarg too.
+   * The difference between this and {@link #testExpressionSimplification1()} is
+   * that '<' and '<>' have different
+   * {@link org.apache.calcite.sql.type.SqlOperandTypeChecker.Consistency} which
+   * will lead to different type inference result for literals. These two tests
+   * show that the simplification could handle this case.
+   */
+  @Test void testExpressionSimplification2() {
+    final String sql = "select * from emp\n"
+        + "where (ename < '' or ename > '') and (ename < '3' or ename > '3')";
+    sql(sql)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   @Test void testReduceAverage() {
     final String sql = "select name, max(name), avg(deptno), min(name)\n"
         + "from sales.dept group by name";

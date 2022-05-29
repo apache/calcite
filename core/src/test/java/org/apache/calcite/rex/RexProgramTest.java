@@ -1443,11 +1443,16 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
 
     // "a = 1 or a <> 2" could (and should) be simplified to "a <> 2"
-    // but can't do that right now
     checkSimplifyFilter(
         or(eq(aRef, literal1),
             ne(aRef, literal2)),
-        "OR(=(?0.a, 1), <>(?0.a, 2))");
+        "<>(?0.a, 2)");
+
+    // "a < 1 or a > 1" ==> "a <> 1"
+    checkSimplifyFilter(
+        or(lt(aRef, literal1),
+            gt(aRef, literal1)),
+        "<>(?0.a, 1)");
 
     // "(a >= 1 and a <= 3) or a <> 2", or equivalently
     // "a between 1 and 3 or a <> 2" ==> "true"
