@@ -3447,7 +3447,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate NATURAL.
     if (natural) {
       if (join.getCondition() != null) {
-        throw newValidationError(join.getCondition(),
+        throw newValidationError(getCondition(join),
             RESOURCE.naturalDisallowsOnOrUsing());
       }
 
