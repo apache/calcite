@@ -38,10 +38,6 @@ public class SybaseSqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
-
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     // No-op; see unparseTopN.

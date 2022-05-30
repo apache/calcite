@@ -40,8 +40,4 @@ public class H2SqlDialect extends SqlDialect {
   @Override public boolean supportsWindowFunctions() {
     return false;
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

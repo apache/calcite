@@ -31,8 +31,4 @@ public class IngresSqlDialect extends SqlDialect {
   public IngresSqlDialect(Context context) {
     super(context);
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

@@ -31,8 +31,4 @@ public class NeoviewSqlDialect extends SqlDialect {
   public NeoviewSqlDialect(Context context) {
     super(context);
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

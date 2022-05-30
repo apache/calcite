@@ -39,8 +39,4 @@ public class CalciteSqlDialect extends SqlDialect {
   public CalciteSqlDialect(Context context) {
     super(context);
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

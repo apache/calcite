@@ -1195,7 +1195,7 @@ public class SqlDialect {
    * Return whether this dialect requires Column names in the INSERT clause of MERGE statements.
    */
   public boolean requiresColumnsInMergeInsertClause() {
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   /** Returns how NULL values are sorted if an ORDER BY item does not contain

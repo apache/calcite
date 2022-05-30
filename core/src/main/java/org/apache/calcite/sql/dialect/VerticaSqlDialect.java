@@ -38,8 +38,4 @@ public class VerticaSqlDialect extends SqlDialect {
   @Override public boolean supportsNestedAggregations() {
     return false;
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

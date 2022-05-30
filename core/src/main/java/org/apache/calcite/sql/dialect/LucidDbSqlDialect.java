@@ -32,8 +32,4 @@ public class LucidDbSqlDialect extends SqlDialect {
   public LucidDbSqlDialect(Context context) {
     super(context);
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

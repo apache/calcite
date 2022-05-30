@@ -91,10 +91,6 @@ public class MssqlSqlDialect extends SqlDialect {
     top = context.databaseMajorVersion() < 11;
   }
 
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
-
   /** {@inheritDoc}
    *
    * <p>MSSQL does not support NULLS FIRST, so we emulate using CASE

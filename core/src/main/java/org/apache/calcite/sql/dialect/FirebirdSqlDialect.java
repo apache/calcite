@@ -31,8 +31,4 @@ public class FirebirdSqlDialect extends SqlDialect {
   public FirebirdSqlDialect(Context context) {
     super(context);
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

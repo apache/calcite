@@ -36,8 +36,4 @@ public class AccessSqlDialect extends SqlDialect {
   @Override public boolean supportsWindowFunctions() {
     return false;
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

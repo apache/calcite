@@ -36,8 +36,4 @@ public class PhoenixSqlDialect extends SqlDialect {
   @Override public boolean supportsCharSet() {
     return false;
   }
-
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
 }

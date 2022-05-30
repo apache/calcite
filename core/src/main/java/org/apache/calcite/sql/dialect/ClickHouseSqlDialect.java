@@ -68,10 +68,6 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean requiresColumnsInMergeInsertClause() {
-    throw new UnsupportedOperationException();
-  }
-
   @Override public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
   }
