@@ -4759,6 +4759,37 @@ public class SqlParserTest {
     sql("select interval '5:6' hour to minute from t").ok(expected4);
   }
 
+  /** Tests that on BigQuery, DATE, TIME and TIMESTAMP literals can use
+   * single- or double-quoted strings. */
+  @Test void testDateLiteralBigQuery() {
+    final SqlParserFixture f = fixture().withDialect(BIG_QUERY);
+    f.sql("select date '2020-10-10'")
+        .ok("SELECT DATE '2020-10-10'");
+    f.sql("select date\"2020-10-10\"")
+        .ok("SELECT DATE '2020-10-10'");
+    f.sql("select timestamp '2018-02-17 13:22:04'")
+        .ok("SELECT TIMESTAMP '2018-02-17 13:22:04'");
+    f.sql("select timestamp \"2018-02-17 13:22:04\"")
+        .ok("SELECT TIMESTAMP '2018-02-17 13:22:04'");
+    f.sql("select time '13:22:04'")
+        .ok("SELECT TIME '13:22:04'");
+    f.sql("select time \"13:22:04\"")
+        .ok("SELECT TIME '13:22:04'");
+  }
+
+  @Test void testIntervalLiteralBigQuery() {
+    final SqlParserFixture f = fixture().withDialect(BIG_QUERY)
+        .expression(true);
+    f.sql("interval '1' day")
+        .ok("INTERVAL '1' DAY");
+    f.sql("interval \"1\" day")
+        .ok("INTERVAL '1' DAY");
+    f.sql("interval '1:2:3' hour to second")
+        .ok("INTERVAL '1:2:3' HOUR TO SECOND");
+    f.sql("interval \"1:2:3\" hour to second")
+        .ok("INTERVAL '1:2:3' HOUR TO SECOND");
+  }
+
   // check date/time functions.
   @Test void testTimeDate() {
     // CURRENT_TIME - returns time w/ timezone

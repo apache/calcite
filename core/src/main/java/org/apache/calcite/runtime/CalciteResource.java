@@ -51,7 +51,7 @@ public interface CalciteResource {
   @BaseMessage("JSON path expression must be specified after the JSON value expression")
   ExInst<CalciteException> jsonPathMustBeSpecified();
 
-  @BaseMessage("Illegal {0} literal {1}: {2}")
+  @BaseMessage("Illegal {0} literal ''{1}'': {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 
   @BaseMessage("Length of identifier ''{0}'' must be less than or equal to {1,number,#} characters")
