@@ -9327,6 +9327,74 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testTimeTruncWithMinute() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("MINUTE"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'MINUTE') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MINUTE) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeTruncWithSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("SECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'SECOND') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', SECOND) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeTruncWithMiliSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("MILLISECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'MILLISECOND') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MILLISECOND) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeTruncWithMicroSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("MICROSECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'MICROSECOND') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MICROSECOND) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testhashrow() {
     final RelBuilder builder = relBuilder();
     final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
