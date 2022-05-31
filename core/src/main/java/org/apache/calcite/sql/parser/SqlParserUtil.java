@@ -139,28 +139,31 @@ public final class SqlParserUtil {
     return java.sql.Timestamp.valueOf(s);
   }
 
-  public static SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
-    final String dateStr = parseString(s);
+  public static SqlDateLiteral parseDateLiteralWithoutQuote(String dateStr, SqlParserPos pos) {
     final Calendar cal =
         DateTimeUtils.parseDateFormat(dateStr, Format.get().date,
             DateTimeUtils.UTC_ZONE);
     if (cal == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("DATE", s,
+          RESOURCE.illegalLiteral("DATE", dateStr,
               RESOURCE.badFormat(DateTimeUtils.DATE_FORMAT_STRING).str()));
     }
     final DateString d = DateString.fromCalendarFields(cal);
     return SqlLiteral.createDate(d, pos);
   }
 
-  public static SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
+  public static SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
     final String dateStr = parseString(s);
+    return parseDateLiteralWithoutQuote(dateStr, pos);
+  }
+
+  public static SqlTimeLiteral parseTimeLiteralWithoutQuote(String dateStr, SqlParserPos pos) {
     final DateTimeUtils.PrecisionTime pt =
         DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
             Format.get().time, DateTimeUtils.UTC_ZONE, -1);
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("TIME", s,
+          RESOURCE.illegalLiteral("TIME", dateStr,
               RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING).str()));
     }
     final TimeString t = TimeString.fromCalendarFields(pt.getCalendar())
@@ -168,9 +171,13 @@ public final class SqlParserUtil {
     return SqlLiteral.createTime(t, pt.getPrecision(), pos);
   }
 
-  public static SqlTimestampLiteral parseTimestampLiteral(String s,
-      SqlParserPos pos) {
+  public static SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
     final String dateStr = parseString(s);
+    return parseTimeLiteralWithoutQuote(dateStr, pos);
+  }
+
+  public static SqlTimestampLiteral parseTimestampLiteralWithoutQuote(
+      String dateStr, SqlParserPos pos) {
     final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
@@ -185,7 +192,7 @@ public final class SqlParserUtil {
     }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("TIMESTAMP", s,
+          RESOURCE.illegalLiteral("TIMESTAMP", dateStr,
               RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
     }
     final TimestampString ts =
@@ -194,12 +201,17 @@ public final class SqlParserUtil {
     return SqlLiteral.createTimestamp(ts, pt.getPrecision(), pos);
   }
 
-  public static SqlIntervalLiteral parseIntervalLiteral(SqlParserPos pos,
-      int sign, String s, SqlIntervalQualifier intervalQualifier) {
-    final String intervalStr = parseString(s);
+  public static SqlTimestampLiteral parseTimestampLiteral(String s,
+      SqlParserPos pos) {
+    final String dateStr = parseString(s);
+    return parseTimestampLiteralWithoutQuote(dateStr, pos);
+  }
+
+  public static SqlIntervalLiteral parseIntervalLiteralWithoutQuote(SqlParserPos pos,
+      int sign, String intervalStr, SqlIntervalQualifier intervalQualifier) {
     if (intervalStr.equals("")) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalIntervalLiteral(s + " "
+          RESOURCE.illegalIntervalLiteral(intervalStr + " "
               + intervalQualifier.toString(), pos.toString()));
     }
     return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, pos);

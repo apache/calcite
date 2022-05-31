@@ -191,10 +191,10 @@ class BabelParserTest extends SqlParserTest {
         .ok("SELECT TIMESTAMP '1969-07-20 00:00:00'");
     // PostgreSQL allows the following. We should too.
     sql("select ^timestamp '1969-07-20 1:2'^")
-        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
+        .fails("Illegal TIMESTAMP literal 1969-07-20 1:2: not in format "
             + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
     sql("select ^timestamp '1969-07-20:23:'^")
-        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
+        .fails("Illegal TIMESTAMP literal 1969-07-20:23:: not in format "
             + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
   }
 

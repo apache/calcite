@@ -736,6 +736,27 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"\\*\" at .*");
   }
 
+  @Test void testBigQueryTimeLiteral() {
+    sql("select date '2020-10-10'")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT DATE '2020-10-10'");
+    sql("select date\"2020-10-10\"")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT DATE '2020-10-10'");
+    sql("select timestamp '2018-02-17 13:22:04'")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT TIMESTAMP '2018-02-17 13:22:04'");
+    sql("select timestamp \"2018-02-17 13:22:04\"")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT TIMESTAMP '2018-02-17 13:22:04'");
+    sql("select time '13:22:04'")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT TIME '13:22:04'");
+    sql("select time \"13:22:04\"")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT TIME '13:22:04'");
+  }
+
   @Test void testHyphenatedTableName() {
     sql("select * from bigquery^-^foo-bar.baz")
         .fails("(?s)Encountered \"-\" at .*")
@@ -5420,8 +5441,8 @@ public class SqlParserTest {
    */
   public void subTestIntervalYearToMonthPositive() {
     // default precision
-    expr("interval '1-2' year to month")
-        .ok("INTERVAL '1-2' YEAR TO MONTH");
+    expr("interval '1:2' year to month")
+        .ok("INTERVAL '1:2' YEAR TO MONTH");
     expr("interval '99-11' year to month")
         .ok("INTERVAL '99-11' YEAR TO MONTH");
     expr("interval '99-0' year to month")
@@ -7062,6 +7083,21 @@ public class SqlParserTest {
     subTestIntervalMinuteFailsValidation();
     subTestIntervalMinuteToSecondFailsValidation();
     subTestIntervalSecondFailsValidation();
+  }
+
+  @Test void testBigQueryIntervalLiterals() {
+    expr("interval '1' day")
+        .withDialect(BIG_QUERY)
+        .ok("INTERVAL '1' DAY");
+    expr("interval \"1\" day")
+        .withDialect(BIG_QUERY)
+        .ok("INTERVAL '1' DAY");
+    expr("interval '1:2:3' hour to second")
+        .withDialect(BIG_QUERY)
+        .ok("INTERVAL '1:2:3' HOUR TO SECOND");
+    expr("interval \"1:2:3\" hour to second")
+        .withDialect(BIG_QUERY)
+        .ok("INTERVAL '1:2:3' HOUR TO SECOND");
   }
 
   @Test void testUnparseableIntervalQualifiers() {

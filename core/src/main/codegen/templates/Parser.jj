@@ -4528,17 +4528,50 @@ SqlLiteral DateTimeLiteral() :
         return SqlParserUtil.parseTimestampLiteral(p, s.end(this));
     }
 |
-    <DATE> { s = span(); } <QUOTED_STRING> {
-        return SqlParserUtil.parseDateLiteral(token.image, s.end(this));
-    }
+    <DATE> { s = span(); } ((<QUOTED_STRING> | <BIG_QUERY_QUOTED_STRING>)
+      {
+          p = SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'",
+              Casing.UNCHANGED);
+          return SqlParserUtil.parseDateLiteralWithoutQuote(p, s.end(this));
+      }
+     | <BIG_QUERY_DOUBLE_QUOTED_STRING>
+      {
+          p = SqlParserUtil.stripQuotes(token.image, DQ, DQ, "\\\"",
+              Casing.UNCHANGED);
+          return SqlParserUtil.parseDateLiteralWithoutQuote(p, s.end(this));
+      }
+
+    )
 |
-    <TIME> { s = span(); } <QUOTED_STRING> {
-        return SqlParserUtil.parseTimeLiteral(token.image, s.end(this));
-    }
+    <TIME> { s = span(); } ((<QUOTED_STRING> | <BIG_QUERY_QUOTED_STRING>)
+      {
+          p = SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'",
+              Casing.UNCHANGED);
+          return SqlParserUtil.parseTimeLiteralWithoutQuote(p, s.end(this));
+      }
+     | <BIG_QUERY_DOUBLE_QUOTED_STRING>
+      {
+          p = SqlParserUtil.stripQuotes(token.image, DQ, DQ, "\\\"",
+              Casing.UNCHANGED);
+          return SqlParserUtil.parseTimeLiteralWithoutQuote(p, s.end(this));
+      }
+
+    )
 |
-    <TIMESTAMP> { s = span(); } <QUOTED_STRING> {
-        return SqlParserUtil.parseTimestampLiteral(token.image, s.end(this));
-    }
+    <TIMESTAMP> { s = span(); } ((<QUOTED_STRING> | <BIG_QUERY_QUOTED_STRING>)
+      {
+          p = SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'",
+              Casing.UNCHANGED);
+          return SqlParserUtil.parseTimestampLiteralWithoutQuote(p, s.end(this));
+      }
+     | <BIG_QUERY_DOUBLE_QUOTED_STRING>
+      {
+          p = SqlParserUtil.stripQuotes(token.image, DQ, DQ, "\\\"",
+              Casing.UNCHANGED);
+          return SqlParserUtil.parseTimestampLiteralWithoutQuote(p, s.end(this));
+      }
+
+    )
 }
 
 /** Parses a MULTISET constructor */
@@ -4678,9 +4711,13 @@ SqlLiteral IntervalLiteral() :
     |
         <PLUS> { sign = 1; }
     ]
-    <QUOTED_STRING> { p = token.image; }
+    ( (<QUOTED_STRING> | <BIG_QUERY_QUOTED_STRING>) {
+        p = SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'", Casing.UNCHANGED);}
+    | <BIG_QUERY_DOUBLE_QUOTED_STRING> {
+        p = SqlParserUtil.stripQuotes(token.image, DQ, DQ, "\\\"", Casing.UNCHANGED);}
+    )
     intervalQualifier = IntervalQualifier() {
-        return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+        return SqlParserUtil.parseIntervalLiteralWithoutQuote(s.end(intervalQualifier),
             sign, p, intervalQualifier);
     }
 }
@@ -4705,9 +4742,13 @@ SqlNode IntervalLiteralOrExpression() :
     ]
     (
         // literal (with quoted string)
-        <QUOTED_STRING> { p = token.image; }
+        ( (<QUOTED_STRING> | <BIG_QUERY_QUOTED_STRING>) {
+            p = SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'", Casing.UNCHANGED);}
+        | <BIG_QUERY_DOUBLE_QUOTED_STRING> {
+            p = SqlParserUtil.stripQuotes(token.image, DQ, DQ, "\\\"", Casing.UNCHANGED);}
+        )
         intervalQualifier = IntervalQualifier() {
-            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+            return SqlParserUtil.parseIntervalLiteralWithoutQuote(s.end(intervalQualifier),
                 sign, p, intervalQualifier);
         }
     |
