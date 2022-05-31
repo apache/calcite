@@ -6214,25 +6214,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " VARCHAR(10) NAME) NOT NULL");
   }
 
-  // todo: Cannot handle '(a join b)' yet -- we see the '(' and expect to
-  // see 'select'.
-  public void _testJoinUsing() {
+  @Test void testJoinUsingWithParentheses() {
     sql("select * from (emp join bonus using (job))\n"
         + "join dept using (deptno)").ok();
 
-    // cannot alias a JOIN (actually this is a parser error, but who's
-    // counting?)
-    sql("select * from (emp join bonus using (job)) as x\n"
+    // Cannot alias a JOIN (until
+    // [CALCITE-5168] Allow AS after parenthesized JOIN
+    // is fixed).
+    sql("select * from (emp ^join^ bonus using (job)) as x\n"
         + "join dept using (deptno)")
-        .fails("as wrong here");
+        .fails("Join expression encountered in illegal context");
     sql("select * from (emp join bonus using (job))\n"
         + "join dept using (^dname^)")
-        .fails("dname not found in lhs");
+        .fails("Column 'DNAME' not found in any table");
 
     // Needs real Error Message and error marks in query
     sql("select * from (emp join bonus using (job))\n"
-        + "join (select 1 as job from (true)) using (job)")
-        .fails("ambig");
+        + "join (select 1 as job from ^(^true)) using (job)")
+        .fails("(?s).*Encountered \"\\( true\" at .*");
   }
 
   @Disabled("bug: should fail if sub-query does not have alias")
