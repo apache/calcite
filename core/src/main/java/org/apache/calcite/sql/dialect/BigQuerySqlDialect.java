@@ -1535,7 +1535,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlTypeName typeName = type.getSqlTypeName();
       final int precision = type.getPrecision();
       final int scale = type.getScale();
-      boolean isContainsPrecision = type.toString().matches("\\w+\\(\\d+(, \\d+)?\\)$");
+      boolean isContainsPrecision = type.toString().matches("\\w+\\(\\d+(, (-)?\\d+)?\\)");
       boolean isContainsScale = type.toString().contains(",");
       boolean isContainsNegativePrecisionOrScale = type.toString().contains("-");
       String typeAlias;
