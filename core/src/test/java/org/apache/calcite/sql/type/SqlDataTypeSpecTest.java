@@ -97,7 +97,7 @@ class SqlDataTypeSpecTest {
   }
 
   @Test void testDecimalWithoutPrecisionAndNegativeScale() {
-    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 39 , -2);
+    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 39, -2);
     SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
 
     String dataTypeSpec = "NUMERIC";
