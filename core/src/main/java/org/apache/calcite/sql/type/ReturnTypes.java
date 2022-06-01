@@ -424,6 +424,13 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference COLUMN_LIST =
       explicit(SqlTypeName.COLUMN_LIST);
 
+
+  /**
+   * Type-inference strategy that always returns "VARIANT".
+   */
+  public static final SqlReturnTypeInference VARIANT =
+      explicit(SqlTypeName.VARIANT);
+
   /**
    * Type-inference strategy whereby the result type of a call is using its
    * operands biggest type, using the SQL:1999 rules described in "Data types

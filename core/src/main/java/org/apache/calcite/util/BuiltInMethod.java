@@ -374,6 +374,7 @@ public enum BuiltInMethod {
       SqlJsonQueryEmptyOrErrorBehavior.class),
   JSON_OBJECT(JsonFunctions.class, "jsonObject",
       SqlJsonConstructorNullClause.class),
+  PARSE_JSON(JsonFunctions.class, "parseJson", String.class),
   JSON_TYPE(JsonFunctions.class, "jsonType", String.class),
   JSON_DEPTH(JsonFunctions.class, "jsonDepth", String.class),
   JSON_KEYS(JsonFunctions.class, "jsonKeys", String.class),

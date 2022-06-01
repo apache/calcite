@@ -126,12 +126,15 @@ class SqlItemOperator extends SqlSpecialOperator {
   @Override public String getAllowedSignatures(String name) {
     return "<ARRAY>[<INTEGER>]\n"
         + "<MAP>[<ANY>]\n"
-        + "<ROW>[<CHARACTER>|<INTEGER>]";
+        + "<ROW>[<CHARACTER>|<INTEGER>]\n"
+        + "<VARIANT>[<INTEGER>|<ANY>]";
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType operandType = opBinding.getOperandType(0);
+    RelDataType fieldType;
+    RelDataType indexType = opBinding.getOperandType(1);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
       return typeFactory.createTypeWithNullability(
@@ -142,9 +145,6 @@ class SqlItemOperator extends SqlSpecialOperator {
               () -> "operandType.getValueType() is null for " + operandType),
           true);
     case ROW:
-      RelDataType fieldType;
-      RelDataType indexType = opBinding.getOperandType(1);
-
       if (SqlTypeUtil.isString(indexType)) {
         final String fieldName = getOperandLiteralValueOrThrow(opBinding, 1, String.class);
         RelDataTypeField field = operandType.getField(fieldName, false, false);
@@ -163,8 +163,32 @@ class SqlItemOperator extends SqlSpecialOperator {
           fieldType = operandType.getFieldList().get(index - 1).getType(); // 1 indexed
         }
       } else {
-        throw new AssertionError("Unsupported field identifier type: '"
-            + indexType + "'");
+        throw new AssertionError("Unsupported field identifier type: '" + indexType + "'");
+      }
+      if (fieldType != null && operandType.isNullable()) {
+        fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+      }
+      return fieldType;
+    case VARIANT:
+      if (SqlTypeUtil.isString(indexType)) {
+        final String fieldName = getOperandLiteralValueOrThrow(opBinding, 1, String.class);
+        RelDataTypeField field = operandType.getField(fieldName, false, false);
+        if (field == null) {
+          throw new AssertionError("Cannot infer type of field '"
+              + fieldName + "' within ROW type: " + operandType);
+        } else {
+          fieldType = field.getType();
+        }
+      } else if (SqlTypeUtil.isIntType(indexType)) {
+        Integer index = opBinding.getOperandLiteralValue(1, Integer.class);
+        if (index == null || index < 1 || index > operandType.getFieldCount()) {
+          throw new AssertionError("Cannot infer type of field at position "
+              + index + " within ROW type: " + operandType);
+        } else {
+          fieldType = operandType.getFieldList().get(index - 1).getType(); // 1 indexed
+        }
+      } else {
+        throw new AssertionError("Unsupported field identifier type: '" + indexType + "'");
       }
       if (fieldType != null && operandType.isNullable()) {
         fieldType = typeFactory.createTypeWithNullability(fieldType, true);

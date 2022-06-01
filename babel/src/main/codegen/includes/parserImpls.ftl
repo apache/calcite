@@ -206,3 +206,20 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
     }
     Expression2b(ExprContext.ACCEPT_SUB_QUERY, list)
 }
+
+/** Parses the infix ":" field reference operator used in Snowflake. */
+void InfixFieldReference(List<Object> list, ExprContext exprContext, Span s) :
+{
+    final SqlDataTypeSpec dt;
+}
+{
+    <INFIX_FIELD_REFERENCE> {
+        checkNonQueryExpression(exprContext);
+    }
+    dt = DataType() {
+        list.add(
+            new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_FIELD_REFERENCE,
+                s.pos()));
+        list.add(dt);
+    }
+}

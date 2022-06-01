@@ -47,12 +47,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
-import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
-import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
-import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlLibrary.*;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -721,3 +716,9 @@ public abstract class SqlLibraryOperators {
           InferTypes.FIRST_KNOWN,
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 }
+
+  /** Infix ":" field reference operator used by Snowflake, for example
+   * {@code JSON:foo}. */
+  @LibraryOperator(libraries = { SNOWFLAKE })
+  public static final SqlOperator INFIX_FIELD_REFERENCE =
+      new SqlFieldReferenceOperator();

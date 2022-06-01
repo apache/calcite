@@ -62,7 +62,11 @@ public enum SqlLibrary {
   POSTGRESQL("p", "postgresql"),
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
-  SPARK("s", "spark");
+  SPARK("s", "spark"),
+  /** A collection of operators that are in Snowflake but not in standard
+   * SQL. */
+  SNOWFLAKE("sf", "snowflake");
+
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;

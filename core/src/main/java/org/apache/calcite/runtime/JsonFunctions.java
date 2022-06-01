@@ -396,6 +396,10 @@ public class JsonFunctions {
     return jsonize(map);
   }
 
+  public static String parseJson(String str) {
+    return str;
+  }
+
   public static void jsonObjectAggAdd(Map map, String k, @Nullable Object v,
       SqlJsonConstructorNullClause nullClause) {
     if (k == null) {

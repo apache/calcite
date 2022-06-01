@@ -546,6 +546,7 @@ data: {
     binaryOperatorsTokens: [
       "< INFIX_CAST: \"::\" >"
       "< NULL_SAFE_EQUAL: \"<=>\" >"
+      "< INFIX_FIELD_REFERENCE: \":\" >"
     ]
 
     # Binary operators initialization.
@@ -553,6 +554,7 @@ data: {
     extraBinaryExpressions: [
       "InfixCast"
       "NullSafeEqual"
+      "InfixFieldReference"
     ]
 
     # List of files in @includes directory that have parser method

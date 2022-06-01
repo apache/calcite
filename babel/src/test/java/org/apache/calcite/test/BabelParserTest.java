@@ -252,6 +252,13 @@ class BabelParserTest extends SqlParserTest {
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
   }
 
+  @Test void checkParseInfixFieldReference() {
+    String sql = "SELECT x:field FROM (PARSE_JSON('{\"field\": 1}')) as tbl(x)";
+    String expected = "SELECT `X` : FIELD\n"
+        + "FROM (PARSE_JSON('{\"field\": 1}')) AS `TBL` (`X`, `Y`)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testCreateTableWithNoCollectionTypeSpecified() {
     final String sql = "create table foo (bar integer not null, baz varchar(30))";
     final String expected = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
