@@ -253,9 +253,9 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test void checkParseInfixFieldReference() {
-    String sql = "SELECT x:field FROM (PARSE_JSON('{\"field\": 1}')) as tbl(x)";
-    String expected = "SELECT `X` : FIELD\n"
-        + "FROM (PARSE_JSON('{\"field\": 1}')) AS `TBL` (`X`, `Y`)";
+    //String sql = "SELECT x::field FROM (PARSE_JSON('{\"field\": 1}')) as tbl(x)";
+    String sql = "SELECT x~~subfield FROM (PARSE_JSON(\"asdf\")) as dingle";
+    String expected = "SELECT (`X` : subfield)\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 

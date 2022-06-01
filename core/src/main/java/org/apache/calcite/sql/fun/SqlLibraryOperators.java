@@ -715,10 +715,11 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN,
           InferTypes.FIRST_KNOWN,
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
-}
 
   /** Infix ":" field reference operator used by Snowflake, for example
    * {@code JSON:foo}. */
   @LibraryOperator(libraries = { SNOWFLAKE })
   public static final SqlOperator INFIX_FIELD_REFERENCE =
       new SqlFieldReferenceOperator();
+
+}

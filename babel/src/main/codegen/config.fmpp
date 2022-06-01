@@ -546,7 +546,7 @@ data: {
     binaryOperatorsTokens: [
       "< INFIX_CAST: \"::\" >"
       "< NULL_SAFE_EQUAL: \"<=>\" >"
-      "< INFIX_FIELD_REFERENCE: \":\" >"
+      "< INFIX_FIELD_REFERENCE: \"~~\" >"
     ]
 
     # Binary operators initialization.
