@@ -218,7 +218,15 @@ void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
         list.add(
             new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_FIELD_REFERENCE,
                 s.pos()));
-        String keyVal = SqlParserUtil.trim(token.image, "'");
-        list.add(new SqlJsonFieldReference(keyVal, getPos()));
+
+        String keyVal = SqlParserUtil.trim(token.image, "'\"");
+        SqlJsonFieldReference ref = new SqlJsonFieldReference(keyVal, getPos());
+        list.add(ref);
     }
+    (
+        LOOKAHEAD(2) <DOT>
+        SimpleIdentifier() {
+            ref.addSubkey(SqlParserUtil.trim(token.image, "'\""));
+        }
+    )*
 }

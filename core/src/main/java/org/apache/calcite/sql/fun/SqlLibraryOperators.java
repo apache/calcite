@@ -720,6 +720,12 @@ public abstract class SqlLibraryOperators {
    * {@code JSON:foo}. */
   @LibraryOperator(libraries = { SNOWFLAKE })
   public static final SqlOperator INFIX_FIELD_REFERENCE =
-      new SqlFieldReferenceOperator();
+      new SqlFieldReferenceOperator(true);
+
+  /** Infix "." field reference operator used by Snowflake, for example
+   * {@code JSON:foo.bar}. */
+  @LibraryOperator(libraries = { SNOWFLAKE })
+  public static final SqlOperator INFIX_FIELD_REFERENCE_SUBFIELD =
+      new SqlFieldReferenceOperator(false);
 
 }

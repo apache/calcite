@@ -58,6 +58,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlJsonFieldReference;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
@@ -6224,6 +6225,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @Override public Void visit(SqlLiteral literal) {
       return null;
     }
+    @Override public Void visit(SqlJsonFieldReference literal) {
+      return null;
+    }
 
     @Override public Void visit(SqlCall call) {
       for (int i = 0; i < call.getOperandList().size(); i++) {
@@ -6270,6 +6274,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     @Override public RelDataType visit(SqlLiteral literal) {
       return literal.createSqlType(typeFactory);
+    }
+    @Override public RelDataType visit(SqlJsonFieldReference literal) {
+      return null;
     }
 
     @Override public RelDataType visit(SqlCall call) {

@@ -38,8 +38,8 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
  * {@code SqlCastFunction}.
  */
 class SqlFieldReferenceOperator extends SqlBinaryOperator {
-  SqlFieldReferenceOperator() {
-    super(":", SqlKind.OTHER, 94, true, null, InferTypes.RETURN_TYPE, null);
+  SqlFieldReferenceOperator(boolean isColonVsDot) {
+    super(isColonVsDot ? ":" : ".", SqlKind.OTHER, 94, true, null, InferTypes.RETURN_TYPE, null);
   }
 
   @Override public RelDataType inferReturnType(

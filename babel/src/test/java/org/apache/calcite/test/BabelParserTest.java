@@ -252,18 +252,12 @@ class BabelParserTest extends SqlParserTest {
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
   }
 
-  @Test void checkParseInfixFieldReferenceWrongButTest() {
-    String sql = "SELECT x:subfield FROM dingle";
-    String expected = "SELECT (`X` : subfield)\nFROM `DINGLE`";
-    sql(sql).ok(expected);
-  }
-
   @Test void checkParseInfixFieldReferenceBasic() {
-    String sql = "SELECT x:\"subfield\" FROM dingle";
+    String sql = "SELECT x:subfield FROM dingle";
     String expected = "SELECT (`X` : \"subfield\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
 
-    sql = "SELECT x:\"subfield_with_underscores\" FROM dingle";
+    sql = "SELECT x:subfield_with_underscores FROM dingle";
     expected = "SELECT (`X` : \"subfield_with_underscores\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
@@ -277,6 +271,12 @@ class BabelParserTest extends SqlParserTest {
   @Test void checkParseInfixFieldReferencePreserveCaseSensitivity() {
     String sql = "SELECT x:\"CaSeSensitive\" FROM dingle";
     String expected = "SELECT (`X` : \"CaSeSensitive\")\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void checkParseInfixFieldReferenceSubkeys() {
+    String sql = "SELECT x:key.childKey1.\"childKey2 here\".childKey3 FROM dingle";
+    String expected = "SELECT (`X` : \"key\".\"childKey1\".\"childKey2 here\".\"childKey3\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 

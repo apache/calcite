@@ -105,6 +105,7 @@ import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJsonFieldReference;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -5337,6 +5338,10 @@ public class SqlToRelConverter {
       return exprConverter.convertLiteral(this, literal);
     }
 
+    @Override public RexNode visit(SqlJsonFieldReference literal) {
+      return null;
+    }
+
     @Override public RexNode visit(SqlCall call) {
       if (agg != null) {
         final SqlOperator op = call.getOperator();
@@ -5574,6 +5579,10 @@ public class SqlToRelConverter {
     }
 
     @Override public Void visit(SqlIdentifier id) {
+      return null;
+    }
+
+    @Override public Void visit(SqlJsonFieldReference id) {
       return null;
     }
 
@@ -6209,7 +6218,9 @@ public class SqlToRelConverter {
     @Override public Boolean visit(SqlLiteral literal) {
       return false;
     }
-
+    @Override public Boolean visit(SqlJsonFieldReference id) {
+      return false;
+    }
     @Override public Boolean visit(SqlDataTypeSpec type) {
       return false;
     }

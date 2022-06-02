@@ -58,3 +58,4 @@ nb-configuration.xml
 local.properties
 
 linq4j/bin
+.vscode
