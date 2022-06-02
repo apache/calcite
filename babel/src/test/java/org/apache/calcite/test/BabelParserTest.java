@@ -252,10 +252,25 @@ class BabelParserTest extends SqlParserTest {
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
   }
 
-  @Test void checkParseInfixFieldReference() {
-    //String sql = "SELECT x::field FROM (PARSE_JSON('{\"field\": 1}')) as tbl(x)";
-    String sql = "SELECT x~~subfield FROM dingle";
-    String expected = "SELECT (`X` : subfield)\nFROM `DINGLE`";
+  @Test void checkParseInfixFieldReferenceBasic() {
+    String sql = "SELECT x:\"subfield\" FROM dingle";
+    String expected = "SELECT (`X` : \"subfield\")\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT x:\"subfield_with_underscores\" FROM dingle";
+    expected = "SELECT (`X` : \"subfield_with_underscores\")\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void checkParseInfixFieldReferenceQuoted() {
+    String sql = "SELECT x:\"subfield with spaces\" FROM dingle";
+    String expected = "SELECT (`X` : \"subfield with spaces\")\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void checkParseInfixFieldReferencePreserveCaseSensitivity() {
+    String sql = "SELECT x:\"CaSeSensitive\" FROM dingle";
+    String expected = "SELECT (`X` : \"CaSeSensitive\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 

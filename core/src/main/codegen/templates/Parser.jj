@@ -3482,6 +3482,18 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
     )*
 }
 
+/** Parses the Snowflake field reference "a:b" */
+SqlNode InfixFieldReference() :
+{
+}
+{
+    <BIG_QUERY_DOUBLE_QUOTED_STRING> {
+        String keyName = SqlParserUtil.trim(token.image, "'"); // no embedded quotes
+        // return SqlLiteral.createCharString(keyName, "UTF8", getPos());
+        return IntervalLiteralOrExpression();
+    }
+}
+
 /**
  * Parses a binary row expression, or a parenthesized expression of any
  * kind.
@@ -3631,6 +3643,18 @@ List<Object> Expression2(ExprContext exprContext) :
                         list.add(e);
                     }
                 ]
+            |
+            (
+                LOOKAHEAD(2) <COLON>
+                InfixFieldReference() {
+                    list.add(
+                        new SqlParserUtil.ToTreeListItem(
+                            SqlStdOperatorTable.DOT, getPos()));
+                    /*
+                    list.add(p);
+                    */
+                }
+            )*
             |
             <#list (parser.extraBinaryExpressions!default.parser.extraBinaryExpressions) as extra >
                 ${extra}(list, exprContext, s)
@@ -8117,8 +8141,8 @@ void NonReservedKeyWord2of3() :
     < EQ: "=" >
 |   < GT: ">" >
 |   < LT: "<" >
-|   < HOOK: "?" >
 |   < COLON: ":" >
+|   < HOOK: "?" >
 |   < LE: "<=" >
 |   < GE: ">=" >
 |   < NE: "<>" >
@@ -8140,7 +8164,6 @@ void NonReservedKeyWord2of3() :
 |   ${operator}
 </#list>
 }
-
 
 /*****************************************
  * Lexical Descriptions                  *
