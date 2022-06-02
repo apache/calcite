@@ -3488,9 +3488,8 @@ SqlNode InfixFieldReference() :
 }
 {
     <BIG_QUERY_DOUBLE_QUOTED_STRING> {
-        // String keyName = SqlParserUtil.trim(token.image, "'"); // no embedded quotes
-        // return SqlLiteral.createCharString(keyName, "UTF8", getPos());
-        return IntervalLiteralOrExpression();
+        String keyName = SqlParserUtil.trim(token.image, "'"); // no embedded quotes
+        return SqlLiteral.createCharString(keyName, "UTF8", getPos());
     }
 }
 

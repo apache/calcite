@@ -214,11 +214,11 @@ void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
 }
 {
     <COLON>
-    keyNode = StringLiteral() {
+    keyNode = SimpleIdentifier() {
         list.add(
             new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_FIELD_REFERENCE,
                 s.pos()));
         String keyVal = SqlParserUtil.trim(token.image, "'");
-        list.add(SqlLiteral.createCharString(keyVal, "UTF16", getPos()));
+        list.add(new SqlJsonFieldReference(keyVal, getPos()));
     }
 }

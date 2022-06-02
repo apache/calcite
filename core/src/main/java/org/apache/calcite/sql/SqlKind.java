@@ -120,6 +120,9 @@ public enum SqlKind {
   /** A literal. */
   LITERAL,
 
+  /** A JSON field reference */
+  JSON_FIELD_REFERENCE,
+
   /** Interval qualifier. */
   INTERVAL_QUALIFIER,
 

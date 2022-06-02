@@ -20,6 +20,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJsonFieldReference;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -50,6 +51,14 @@ public interface SqlVisitor<R> {
    * @see SqlLiteral#accept(SqlVisitor)
    */
   R visit(SqlLiteral literal);
+
+  /**
+   * Visits a JSON field reference.
+   *
+   * @param literal Literal
+   * @see SqlLiteral#accept(SqlVisitor)
+   */
+  R visit(SqlJsonFieldReference fieldReference);
 
   /**
    * Visits a call to a {@link SqlOperator}.
