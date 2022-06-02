@@ -5441,8 +5441,8 @@ public class SqlParserTest {
    */
   public void subTestIntervalYearToMonthPositive() {
     // default precision
-    expr("interval '1:2' year to month")
-        .ok("INTERVAL '1:2' YEAR TO MONTH");
+    expr("interval '1-2' year to month")
+        .ok("INTERVAL '1-2' YEAR TO MONTH");
     expr("interval '99-11' year to month")
         .ok("INTERVAL '99-11' YEAR TO MONTH");
     expr("interval '99-0' year to month")
