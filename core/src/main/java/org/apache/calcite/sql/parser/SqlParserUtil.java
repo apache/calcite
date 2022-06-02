@@ -203,6 +203,12 @@ public final class SqlParserUtil {
     return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
   }
 
+  public static SqlNode parseArrayLiteral(String s) throws Exception {
+    SqlAbstractParserImpl parser = SqlParserImpl.FACTORY.getParser(
+        new StringReader(s));
+    return parser.parseArray();
+  }
+
   /**
    * Parses string to array literal
    * using {@link org.apache.calcite.sql.parser.impl.SqlParserImpl} parser.
