@@ -553,6 +553,7 @@ data: {
     extraBinaryExpressions: [
       "InfixCast"
       "NullSafeEqual"
+      "VariantFieldReference"
     ]
 
     # List of files in @includes directory that have parser method

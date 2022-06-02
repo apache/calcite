@@ -3488,7 +3488,7 @@ SqlNode InfixFieldReference() :
 }
 {
     <BIG_QUERY_DOUBLE_QUOTED_STRING> {
-        String keyName = SqlParserUtil.trim(token.image, "'"); // no embedded quotes
+        // String keyName = SqlParserUtil.trim(token.image, "'"); // no embedded quotes
         // return SqlLiteral.createCharString(keyName, "UTF8", getPos());
         return IntervalLiteralOrExpression();
     }
@@ -3643,18 +3643,6 @@ List<Object> Expression2(ExprContext exprContext) :
                         list.add(e);
                     }
                 ]
-            |
-            (
-                LOOKAHEAD(2) <COLON>
-                InfixFieldReference() {
-                    list.add(
-                        new SqlParserUtil.ToTreeListItem(
-                            SqlStdOperatorTable.DOT, getPos()));
-                    /*
-                    list.add(p);
-                    */
-                }
-            )*
             |
             <#list (parser.extraBinaryExpressions!default.parser.extraBinaryExpressions) as extra >
                 ${extra}(list, exprContext, s)

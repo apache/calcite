@@ -206,3 +206,11 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
     }
     Expression2b(ExprContext.ACCEPT_SUB_QUERY, list)
 }
+
+/** Parses the NULL-safe "<=>" equal operator used in MySQL. */
+void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
+{
+}
+{
+    <COLON>
+}
