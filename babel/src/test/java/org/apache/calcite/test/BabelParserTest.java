@@ -252,6 +252,16 @@ class BabelParserTest extends SqlParserTest {
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
   }
 
+  @Test void checkParseInfixFieldReferenceWrongButTest() {
+    String sql = "SELECT x:'subfield' FROM dingle";
+    String expected = "SELECT (`X` : 'subfield')\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT x:\"subfield_with_underscores\" FROM dingle";
+    expected = "SELECT (`X` : \"subfield_with_underscores\")\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+  }
+
   @Test void checkParseInfixFieldReferenceBasic() {
     String sql = "SELECT x:\"subfield\" FROM dingle";
     String expected = "SELECT (`X` : \"subfield\")\nFROM `DINGLE`";
