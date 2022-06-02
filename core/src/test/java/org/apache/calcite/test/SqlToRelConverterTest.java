@@ -1295,10 +1295,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
       sql(sql).withExpand(false).withDecorrelate(false)
           .convertsTo("${planNotExpanded}");
     };
-    fn.accept("select e.deptno,\n"
-        + "  (select count(*) from emp where e.deptno > 0),\n"
-        + "  (select count(*) from emp where e.deptno > 0 and e.deptno < 10)\n"
-        + "from emp e");
+    fn.accept("select deptno,\n"
+       +  "  (select min(1) from emp where empno > d.deptno) as i0,\n"
+       +  "  (select min(0) from emp where deptno = d.deptno and ename = 'SMITH') as i1\n"
+       +  "from dept as d");
   }
 
   @Test void testCorrelationLateralSubQuery() {
