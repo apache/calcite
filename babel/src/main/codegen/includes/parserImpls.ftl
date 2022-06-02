@@ -210,7 +210,14 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
 /** Parses the NULL-safe "<=>" equal operator used in MySQL. */
 void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
 {
+    final SqlNode keyNode;
 }
 {
     <COLON>
+    keyNode = JsonName() {
+        list.add(
+            new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_FIELD_REFERENCE,
+                s.pos()));
+        list.add(keyNode);
+    }
 }
