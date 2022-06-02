@@ -120,7 +120,6 @@ class BabelQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.CONFORMANCE,
                   SqlConformanceEnum.BABEL)
               .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
-              .with(CalciteConnectionProperty.TYPE_COERCION_STRING_TO_ARRAY, true)
               .connect();
         default:
           return super.connect(name, reference);

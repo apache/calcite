@@ -38,6 +38,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -306,6 +308,22 @@ class BabelParserTest extends SqlParserTest {
     final String expected = "CREATE VOLATILE TABLE `FOO` "
         + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
     sql(sql).ok(expected);
+  }
+
+  @Test void testArrayLiteralFromString() {
+    sql("select array '{1,2,3}'").ok("SELECT (ARRAY[1, 2, 3])");
+    sql("select array '{{1,2,5}, {3,4,7}}'")
+        .ok("SELECT (ARRAY[(ARRAY[1, 2, 5]), (ARRAY[3, 4, 7])])");
+    sql("select array '{}'").ok("SELECT (ARRAY[])");
+    sql("select array '{\"1\", \"2\", \"3\"}'")
+        .ok("SELECT (ARRAY['1', '2', '3'])");
+    sql("select array '{null, 1, null, 2}'")
+        .ok("SELECT (ARRAY[NULL, 1, NULL, 2])");
+
+    // How to fix java.lang.AssertionError:
+    // Actual error had a position, but expected error did not. Add error position carets to sql: ?
+//    sql("select array 'null, 1, null, 2'")
+//        .fails(RESOURCE.illegalArrayExpression("null, 1, null, 2").str());
   }
 
   /** Similar to {@link #testHoist()} but using custom parser. */

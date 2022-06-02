@@ -418,4 +418,12 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean allowCoercionStringToArray() {
+    switch (this) {
+    case BABEL:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

@@ -730,8 +730,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
         .withConformance(connectionConfig.conformance())
         .withDefaultNullCollation(connectionConfig.defaultNullCollation())
-        .withIdentifierExpansion(true)
-        .withTypeCoercionStringToArrayEnabled(connectionConfig.typeCoercionStringToArray());
+        .withIdentifierExpansion(true);
     return new CalciteSqlValidator(opTab, catalogReader, typeFactory,
         config);
   }

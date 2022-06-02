@@ -22,8 +22,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.sql.SqlArrayCharStringLiteral;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -531,7 +532,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return type2;
     }
 
-    if (validator.config().typeCoercionStringToArrayEnabled()) {
+    if (validator.config().conformance().allowCoercionStringToArray()) {
       if (SqlTypeUtil.isString(type1) && SqlTypeUtil.isArray(type2)) {
         return type2;
       }
@@ -747,14 +748,19 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       int index,
       RelDataType fromType,
       RelDataType targetType) {
-    if (validator.config().typeCoercionStringToArrayEnabled()
+    if (validator.config().conformance().allowCoercionStringToArray()
         && SqlTypeUtil.isString(fromType)
         && SqlTypeUtil.isArray(targetType)
-        && operand instanceof SqlArrayCharStringLiteral
+        && operand instanceof SqlCharStringLiteral
     ) {
-      SqlCall arrayValue = ((SqlArrayCharStringLiteral) operand).asArrayValue();
-      call.setOperand(index, arrayValue);
-      updateInferredType(arrayValue, targetType);
+      try {
+        SqlNode arrayValue = SqlParserUtil.parseArrayLiteral(
+            ((SqlCharStringLiteral) operand).getValueAs(String.class));
+        call.setOperand(index, arrayValue);
+        updateInferredType(arrayValue, targetType);
+      } catch (Throwable e) {
+        return false;
+      }
       return true;
     }
     return false;

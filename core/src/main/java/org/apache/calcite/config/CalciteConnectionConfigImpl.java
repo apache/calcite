@@ -208,8 +208,4 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   @Override public boolean topDownOpt() {
     return CalciteConnectionProperty.TOPDOWN_OPT.wrap(properties).getBoolean();
   }
-
-  @Override public boolean typeCoercionStringToArray() {
-    return CalciteConnectionProperty.TYPE_COERCION_STRING_TO_ARRAY.wrap(properties).getBoolean();
-  }
 }

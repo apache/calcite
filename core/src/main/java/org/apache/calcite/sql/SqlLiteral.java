@@ -996,22 +996,6 @@ public class SqlLiteral extends SqlNode {
   }
 
   /**
-   * Creates composition of a string literal and an array value.
-   *
-   * @param s           a string (without the sql single quotes)
-   * @param arrayValue  array value gotten from s
-   * @param pos         Parser position
-   * @return A string literal
-   */
-  public static SqlCharStringLiteral createArrayStringLiteral(
-      NlsString s,
-      SqlCall arrayValue,
-      SqlParserPos pos
-  ) {
-    return new SqlArrayCharStringLiteral(arrayValue, s, pos);
-  }
-
-  /**
    * Transforms this literal (which must be of type character) into a new one
    * in which 4-digit Unicode escape sequences have been replaced with the
    * corresponding Unicode characters.

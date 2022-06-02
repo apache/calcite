@@ -173,10 +173,6 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * for validation, default true. */
   TYPE_COERCION("typeCoercion", Type.BOOLEAN, true, false),
 
-  /** Whether to make implicit type coercion string to array when type mismatch
-   * for validation, default true. */
-  TYPE_COERCION_STRING_TO_ARRAY("typeCoercionStringToArray", Type.BOOLEAN, false, false),
-
   /** Whether to make create implicit functions if functions do not exist
    * in the operator table, default false. */
   LENIENT_OPERATOR_LOOKUP("lenientOperatorLookup", Type.BOOLEAN, false, false),
