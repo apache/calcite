@@ -38,8 +38,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.apache.calcite.util.Static.RESOURCE;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
