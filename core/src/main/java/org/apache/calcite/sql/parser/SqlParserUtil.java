@@ -157,13 +157,13 @@ public final class SqlParserUtil {
     return parseDateLiteralWithoutQuote(dateStr, pos);
   }
 
-  public static SqlTimeLiteral parseTimeLiteralWithoutQuote(String dateStr, SqlParserPos pos) {
+  public static SqlTimeLiteral parseTimeLiteralWithoutQuote(String timeStr, SqlParserPos pos) {
     final DateTimeUtils.PrecisionTime pt =
-        DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
+        DateTimeUtils.parsePrecisionDateTimeLiteral(timeStr,
             Format.get().time, DateTimeUtils.UTC_ZONE, -1);
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("TIME", dateStr,
+          RESOURCE.illegalLiteral("TIME", timeStr,
               RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING).str()));
     }
     final TimeString t = TimeString.fromCalendarFields(pt.getCalendar())
@@ -177,14 +177,14 @@ public final class SqlParserUtil {
   }
 
   public static SqlTimestampLiteral parseTimestampLiteralWithoutQuote(
-      String dateStr, SqlParserPos pos) {
+      String timestampStr, SqlParserPos pos) {
     final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
     // PostgreSQL); TODO: require time fields except in Babel's lenient mode
     final DateFormat[] dateFormats = {format.timestamp, format.date};
     for (DateFormat dateFormat : dateFormats) {
-      pt = DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
+      pt = DateTimeUtils.parsePrecisionDateTimeLiteral(timestampStr,
           dateFormat, DateTimeUtils.UTC_ZONE, -1);
       if (pt != null) {
         break;
@@ -192,7 +192,7 @@ public final class SqlParserUtil {
     }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("TIMESTAMP", dateStr,
+          RESOURCE.illegalLiteral("TIMESTAMP", timestampStr,
               RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
     }
     final TimestampString ts =
