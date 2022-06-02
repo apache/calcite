@@ -146,7 +146,7 @@ public abstract class Project extends SingleRel implements Hintable {
             Util.transform(
                 Optional.ofNullable(input.getIntegerList("correlation"))
                     .orElse(ImmutableList.of()),
-                CorrelationId::new
+                id -> new CorrelationId(id)
             )
         ));
   }
