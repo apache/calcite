@@ -664,6 +664,46 @@ LogicalProject(EMPNO=[$0], JOB=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelatedScalarSubQueryInSelectList">
+    <Resource name="planNotExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], I0=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[>($0, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], I1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($1, 'SMITH'), >($cor0.DEPTNO, 0))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], I0=[$2], I1=[$3])
+  LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+        LogicalProject($f0=[1])
+          LogicalFilter(condition=[>($0, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+      LogicalProject($f0=[0])
+        LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), =($1, 'SMITH'), >($cor1.DEPTNO, 0))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  (select min(1) from emp where empno > d.deptno) as i0,
+  (select min(0) from emp where deptno = d.deptno                             and ename = 'SMITH'                            and d.deptno > 0) as i1
+from dept as d]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelatedSubQueryInAggregate">
     <Resource name="sql">
       <![CDATA[SELECT SUM(
@@ -7258,11 +7298,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })], EMP_MULTISET=[MULTISET({
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[=($7, $cor1.DEPTNO)])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })], JOB_MAP=[MAP({
 LogicalProject(EMPNO=[$0], JOB=[$2])
-  LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
