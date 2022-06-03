@@ -1297,7 +1297,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     };
     fn.accept("select deptno,\n"
         + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
-        + "  (select min(0) from emp where deptno = d.deptno and ename = 'SMITH') as i1\n"
+        + "  (select min(0) from emp where deptno = d.deptno "
+        + "                            and ename = 'SMITH'"
+        + "                            and d.deptno > 0) as i1\n"
         + "from dept as d");
   }
 

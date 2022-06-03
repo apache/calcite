@@ -675,7 +675,7 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
 })], I1=[$SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
   LogicalProject($f0=[0])
-    LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($1, 'SMITH'))])
+    LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($1, 'SMITH'), >($cor0.DEPTNO, 0))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -693,7 +693,7 @@ LogicalProject(DEPTNO=[$0], I0=[$2], I1=[$3])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
       LogicalProject($f0=[0])
-        LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), =($1, 'SMITH'))])
+        LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), =($1, 'SMITH'), >($cor1.DEPTNO, 0))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
