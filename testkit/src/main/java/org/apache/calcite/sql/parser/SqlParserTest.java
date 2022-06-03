@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
@@ -30,6 +31,7 @@ import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
@@ -59,7 +61,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1618,16 +1619,9 @@ public class SqlParserTest {
   }
 
   @Test void testFloorCeilTimeUnitAbbreviation() {
-    Map<String, String> unitAbbreviationMap = new HashMap();
-    unitAbbreviationMap.put("Y", "YEAR");
-    unitAbbreviationMap.put("M", "MONTH");
-    unitAbbreviationMap.put("D", "DAY");
-    unitAbbreviationMap.put("H", "HOUR");
-    unitAbbreviationMap.put("N", "MINUTE");
-    unitAbbreviationMap.put("S", "SECOND");
-    for (Map.Entry<String, String> entry : unitAbbreviationMap.entrySet()) {
+    for (Map.Entry<String, TimeUnit> entry : Config.DEFAULT.identifierTimeUnitMap().entrySet()) {
       String unitAbbreviation = entry.getKey();
-      String unit = entry.getValue();
+      String unit = entry.getValue().name();
       expr("FLOOR(x to " + unitAbbreviation + ")")
           .ok("FLOOR(`X` TO " + unit + ")");
       expr("CEIL(x to " + unitAbbreviation + ")")
@@ -7613,17 +7607,9 @@ public class SqlParserTest {
   }
 
   @Test void testExtractTimeUnitAbbreviation() {
-    Map<String, String> unitAbbreviationMap = new HashMap();
-    unitAbbreviationMap.put("Y", "YEAR");
-    unitAbbreviationMap.put("M", "MONTH");
-    unitAbbreviationMap.put("D", "DAY");
-    unitAbbreviationMap.put("H", "HOUR");
-    unitAbbreviationMap.put("N", "MINUTE");
-    unitAbbreviationMap.put("S", "SECOND");
-    for (Map.Entry<String, String> entry : unitAbbreviationMap.entrySet()) {
-      String unitAbbreviation = entry.getKey();
-      expr("extract(" + unitAbbreviation + " from x)")
-          .ok("EXTRACT(" + entry.getValue() + " FROM `X`)");
+    for (Map.Entry<String, TimeUnit> entry : Config.DEFAULT.identifierTimeUnitMap().entrySet()) {
+      expr("extract(" + entry.getKey() + " from x)")
+          .ok("EXTRACT(" + entry.getValue().name() + " FROM `X`)");
     }
     expr("extract(^A^ from x)")
         .fails("'A' is not a valid datetime format");

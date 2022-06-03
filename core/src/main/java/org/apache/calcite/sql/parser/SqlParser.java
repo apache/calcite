@@ -18,6 +18,7 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.runtime.CalciteContextException;
@@ -29,6 +30,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.util.SourceStringReader;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
@@ -36,6 +38,7 @@ import org.immutables.value.Value;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -45,6 +48,15 @@ import java.util.Set;
 @SuppressWarnings("deprecation")
 public class SqlParser {
   public static final int DEFAULT_IDENTIFIER_MAX_LENGTH = 128;
+  public static final Map<String, TimeUnit> DEFAULT_IDENTIFIER_TIMEUNIT_MAP =
+      ImmutableMap.of(
+          "Y", TimeUnit.YEAR,
+          "M", TimeUnit.MONTH,
+          "D", TimeUnit.DAY,
+          "H", TimeUnit.HOUR,
+          "N", TimeUnit.MINUTE,
+          "S", TimeUnit.SECOND
+      );
   @Deprecated // to be removed before 2.0
   public static final boolean DEFAULT_ALLOW_BANG_EQUAL =
       SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
@@ -60,6 +72,7 @@ public class SqlParser {
     parser.setQuotedCasing(config.quotedCasing());
     parser.setUnquotedCasing(config.unquotedCasing());
     parser.setIdentifierMaxLength(config.identifierMaxLength());
+    parser.setIdentifierTimeUnitMap(config.identifierTimeUnitMap());
     parser.setConformance(config.conformance());
     parser.switchTo(SqlAbstractParserImpl.LexicalState.forConfig(config));
   }
@@ -256,9 +269,15 @@ public class SqlParser {
     @Value.Default default int identifierMaxLength() {
       return DEFAULT_IDENTIFIER_MAX_LENGTH;
     }
-
     /** Sets {@link #identifierMaxLength()}. */
     Config withIdentifierMaxLength(int identifierMaxLength);
+
+    @Value.Default default Map<String, TimeUnit> identifierTimeUnitMap() {
+      return DEFAULT_IDENTIFIER_TIMEUNIT_MAP;
+    }
+
+    /** Sets {@link #identifierTimeUnitMap()}. */
+    Config withIdentifierTimeUnitMap(Map<String, ? extends TimeUnit> identifierTimeUnitMap);
 
     @Value.Default default Casing quotedCasing() {
       return Casing.UNCHANGED;
@@ -356,6 +375,10 @@ public class SqlParser {
 
     public ConfigBuilder setIdentifierMaxLength(int identifierMaxLength) {
       return setConfig(config.withIdentifierMaxLength(identifierMaxLength));
+    }
+
+    public ConfigBuilder setIdentifierTimeUnitMap(Map<String, TimeUnit> identifierTimeUnitMap) {
+      return setConfig(config.withIdentifierTimeUnitMap(identifierTimeUnitMap));
     }
 
     @SuppressWarnings("unused")

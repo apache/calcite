@@ -137,6 +137,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -161,6 +162,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing unquotedCasing;
     private Casing quotedCasing;
     private int identifierMaxLength;
+    private Map<String, TimeUnit> identifierTimeUnitMap;
     private SqlConformance conformance;
 
     /**
@@ -220,6 +222,10 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     public void setIdentifierMaxLength(int identifierMaxLength) {
         this.identifierMaxLength = identifierMaxLength;
+    }
+
+    public void setIdentifierTimeUnitMap(Map<String, TimeUnit> identifierTimeUnitMap) {
+        this.identifierTimeUnitMap = identifierTimeUnitMap;
     }
 
     public void setConformance(SqlConformance conformance) {
@@ -4916,43 +4922,9 @@ TimeUnit TimeUnitIdentifier() :
 }
 {
     IdentifierSegment(names, positions) {
-        switch(names.get(0)) {
-            case "Y":
-            case "YY":
-            case "YYYY":
-                return TimeUnit.YEAR;
-            case "Q":
-            case "QQ":
-                return TimeUnit.QUARTER;
-            case "M":
-            case "MM":
-                return TimeUnit.MONTH;
-            case "W":
-            case "WK":
-            case "WW":
-                return TimeUnit.WEEK;
-            case "DY":
-                return TimeUnit.DOY;
-            case "DW":
-                return TimeUnit.DOW;
-            case "D":
-            case "DD":
-                return TimeUnit.DAY;
-            case "H":
-            case "HH":
-                return TimeUnit.HOUR;
-            case "N":
-            case "MI":
-                return TimeUnit.MINUTE;
-            case "S":
-            case "SS":
-                return TimeUnit.SECOND;
-            case "MS":
-                return TimeUnit.MILLISECOND;
-            case "MCS":
-                return TimeUnit.MICROSECOND;
-            case "NS":
-                return TimeUnit.NANOSECOND;
+        TimeUnit unit = identifierTimeUnitMap.get(names.get(0));
+        if (unit != null) {
+          return unit;
         }
         throw SqlUtil.newContextException(positions.get(0),
         RESOURCE.invalidDatetimeFormat(SqlIdentifier.getString(names)));

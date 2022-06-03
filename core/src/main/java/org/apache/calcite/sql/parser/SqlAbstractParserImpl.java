@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.sql.parser;
 
+import java.util.Map;
+
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCall;
@@ -488,6 +491,11 @@ public abstract class SqlAbstractParserImpl {
    * Sets the maximum length for sql identifier.
    */
   public abstract void setIdentifierMaxLength(int identifierMaxLength);
+
+  /**
+   * Sets the map from identifier to time unit.
+   */
+  public abstract void setIdentifierTimeUnitMap(Map<String, TimeUnit> identifierTimeUnitMap);
 
   /**
    * Sets the SQL language conformance level.
