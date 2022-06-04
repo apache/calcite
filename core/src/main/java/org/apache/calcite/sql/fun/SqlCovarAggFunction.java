@@ -30,7 +30,7 @@ import com.google.common.base.Preconditions;
  * <code>Covar</code> is an aggregator which returns the Covariance of the
  * values which go into it. It has precisely two arguments of numeric type
  * (<code>int</code>, <code>long</code>, <code>float</code>, <code>
- * double</code>), and the result is the same type.
+ * double</code>), and the result is the <code>decimal</code> type.
  */
 public class SqlCovarAggFunction extends SqlAggFunction {
   //~ Instance fields --------------------------------------------------------
