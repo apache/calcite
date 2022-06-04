@@ -5205,6 +5205,23 @@ class RelToSqlConverterTest {
         .withSnowflake().ok(expectedSnowflake);
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5179">[CALCITE-5179]
+   * In RelToSqlConverter, AssertionError for values with more than two items
+   * when SqlDialect#supportsAliasedValues is false</a>.
+   */
+  @Test void testThreeValues() {
+    final String sql = "select * from (values (1), (2), (3)) as t(\"a\")\n";
+    sql(sql)
+        .withRedshift().ok("SELECT *\n"
+            + "FROM (SELECT 1 AS \"a\"\n"
+            + "UNION ALL\n"
+            + "SELECT 2 AS \"a\"\n"
+            + "UNION ALL\n"
+            + "SELECT 3 AS \"a\")");
+  }
+
   @Test void testValuesEmpty() {
     final String sql = "select *\n"
         + "from (values (1, 'a'), (2, 'bb')) as t(x, y)\n"
