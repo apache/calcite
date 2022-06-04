@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.Contexts;
@@ -105,6 +106,7 @@ class BabelQuidemTest extends QuidemTest {
           return CalciteAssert.that()
               .with(CalciteAssert.Config.SCOTT)
               .with(CalciteConnectionProperty.FUN, "standard,bigquery")
+              .with(CalciteConnectionProperty.LEX, Lex.BIG_QUERY)
               .with(CalciteConnectionProperty.PARSER_FACTORY,
                   SqlBabelParserImpl.class.getName() + "#FACTORY")
               .with(CalciteConnectionProperty.CONFORMANCE,
