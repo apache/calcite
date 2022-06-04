@@ -980,7 +980,7 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference COVAR_REGR_FUNCTION = opBinding -> {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType relDataType =
-        typeFactory.getTypeSystem().deriveCovarType(typeFactory,
+        typeFactory.getTypeSystem().deriveCovarType(typeFactory, opBinding.getOperator().getKind(),
             opBinding.getOperandType(0), opBinding.getOperandType(1));
     if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
       return typeFactory.createTypeWithNullability(relDataType, true);
