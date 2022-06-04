@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Glossary;
@@ -86,7 +87,7 @@ public interface RelDataTypeSystem {
 
   /** Returns the return type of a call to the {@code COVAR} aggregate function,
    * inferred from its argument types. */
-  RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
+  RelDataType deriveCovarType(RelDataTypeFactory typeFactory, SqlKind sqlKind,
       RelDataType arg0Type, RelDataType arg1Type);
 
   /** Returns the return type of the {@code CUME_DIST} and {@code PERCENT_RANK}

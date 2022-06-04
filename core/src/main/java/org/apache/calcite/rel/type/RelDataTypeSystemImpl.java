@@ -16,11 +16,24 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorException;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
@@ -240,11 +253,79 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
-    return argumentType;
+    // AVG(x) → SUM(x) / COUNT(x)
+    RelDataType sumX =
+        getOperatorRelDataType(typeFactory, SqlStdOperatorTable.SUM, argumentType);
+    RelDataType countX =
+        getOperatorRelDataType(typeFactory, SqlStdOperatorTable.COUNT, argumentType);
+    return getOperatorRelDataType(typeFactory, SqlStdOperatorTable.DIVIDE, sumX, countX);
   }
 
-  @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
+  @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory, SqlKind sqlKind,
       RelDataType arg0Type, RelDataType arg1Type) {
+    switch (sqlKind) {
+    case REGR_SXX:
+      // REGR_SXX(x, y) → REGR_COUNT(x, y) * VAR_POP(y)
+
+      // REGR_COUNT(x, y)
+      RelDataType regrCountTypeSXX =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.REGR_COUNT, arg0Type, arg1Type);
+      // VAR_POP(y)
+      RelDataType varPopTypeY =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.VAR_POP, arg1Type);
+      // REGR_COUNT(x, y) * VAR_POP(y)
+      return getOperatorRelDataType(
+          typeFactory, SqlStdOperatorTable.MULTIPLY, regrCountTypeSXX, varPopTypeY);
+
+    case REGR_SYY:
+      // REGR_SYY(x, y) → REGR_COUNT(x, y) * VAR_POP(x)
+
+      // REGR_COUNT(x, y)
+      RelDataType regrCountTypeSYY =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.REGR_COUNT, arg0Type, arg1Type);
+      // VAR_POP(x)
+      RelDataType varPopTypeX =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.VAR_POP, arg0Type);
+      // REGR_COUNT(x, y) * VAR_POP(y)
+      return getOperatorRelDataType(
+          typeFactory, SqlStdOperatorTable.MULTIPLY, regrCountTypeSYY, varPopTypeX);
+
+    case COVAR_POP:
+    case COVAR_SAMP:
+      // COVAR_POP(x, y) → (SUM(x * y) - SUM(x) * SUM(y) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
+      // COVAR_SAMP(x, y) → (SUM(x *  y) - SUM(x) * SUM(y) / REGR_COUNT(x, y)) /
+      //                    CASE REGR_COUNT(x, y) WHEN 1 THEN NULL ELSE REGR_COUNT(x, y) - 1 END
+
+      // (x *  y)
+      RelDataType  multiplyXY =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.MULTIPLY, arg0Type, arg1Type);
+      // SUM(x *  y)
+      RelDataType sumMultiplyXY =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.SUM, multiplyXY);
+      // SUM(x)
+      RelDataType sumX = getOperatorRelDataType(typeFactory, SqlStdOperatorTable.SUM, arg0Type);
+      // SUM(y)
+      RelDataType sumY = getOperatorRelDataType(typeFactory, SqlStdOperatorTable.SUM, arg1Type);
+      // SUM(x) * SUM(y)
+      RelDataType multiplySumXSumY =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.MULTIPLY, sumX, sumY);
+      // REGR_COUNT(x, y)
+      RelDataType regrCountXY =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.REGR_COUNT, arg0Type, arg1Type);
+      // SUM(x) * SUM(y) / REGR_COUNT(x, y)
+      RelDataType divide = getOperatorRelDataType(
+          typeFactory, SqlStdOperatorTable.DIVIDE, multiplySumXSumY, regrCountXY);
+      // SUM(x *  y) - SUM(x) * SUM(y) / REGR_COUNT(x, y)
+      RelDataType minus =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.MINUS, sumMultiplyXY, divide);
+      // (sum(x * y) - sum(x) * sum(y) / regr_count(x, y)) / regr_count(x, y)
+      RelDataType relDataType =
+          getOperatorRelDataType(typeFactory, SqlStdOperatorTable.DIVIDE, minus, regrCountXY);
+      if (sqlKind == SqlKind.COVAR_POP) {
+        return relDataType;
+      }
+      return typeFactory.createTypeWithNullability(relDataType, true);
+    }
     return arg0Type;
   }
 
@@ -266,4 +347,37 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return false;
   }
 
+  /**
+   * Implementation of the {@link SqlOperatorBinding} interface.
+   */
+  public static class TypeCallBinding extends SqlOperatorBinding {
+    private final List<RelDataType> operands;
+
+    public TypeCallBinding(RelDataTypeFactory typeFactory,
+        SqlOperator sqlOperator, List<RelDataType> operands) {
+      super(typeFactory, sqlOperator);
+      this.operands = operands;
+    }
+
+    @Override public int getOperandCount() {
+      return operands.size();
+    }
+
+    @Override public RelDataType getOperandType(int ordinal) {
+      return operands.get(ordinal);
+    }
+
+    @Override public CalciteException newError(
+        Resources.ExInst<SqlValidatorException> e) {
+      return SqlUtil.newContextException(SqlParserPos.ZERO, e);
+    }
+  }
+
+  private RelDataType getOperatorRelDataType(RelDataTypeFactory typeFactory,
+      SqlOperator sqlOperator, RelDataType... argumentTypes) {
+    ImmutableList<RelDataType> operatorTypeList = ImmutableList.copyOf(argumentTypes);
+    TypeCallBinding operatorBinding =
+        new TypeCallBinding(typeFactory, sqlOperator, operatorTypeList);
+    return sqlOperator.getReturnTypeInference().inferReturnType(operatorBinding);
+  }
 }

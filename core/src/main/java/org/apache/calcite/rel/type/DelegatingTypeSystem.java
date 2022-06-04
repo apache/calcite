@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -76,9 +77,9 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     return typeSystem.deriveAvgAggType(typeFactory, argumentType);
   }
 
-  @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
+  @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory, SqlKind sqlKind,
       RelDataType arg0Type, RelDataType arg1Type) {
-    return typeSystem.deriveCovarType(typeFactory, arg0Type, arg1Type);
+    return typeSystem.deriveCovarType(typeFactory, sqlKind, arg0Type, arg1Type);
   }
 
   @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {
