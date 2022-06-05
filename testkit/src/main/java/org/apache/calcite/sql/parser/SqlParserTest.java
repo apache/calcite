@@ -45,6 +45,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -586,7 +587,7 @@ public class SqlParserTest {
           .withFromFolding(SqlWriterConfig.LineFolding.TALL)
           .withIndentation(0);
 
-  private static final SqlDialect BIG_QUERY =
+  protected static final SqlDialect BIG_QUERY =
       SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
   private static final SqlDialect CALCITE =
       SqlDialect.DatabaseProduct.CALCITE.getDialect();
@@ -4746,7 +4747,8 @@ public class SqlParserTest {
     };
   }
 
-  @Test void testCaseExpression() {
+  @VisibleForTesting
+  @Test public void testCaseExpression() {
     // implicit simple "ELSE NULL" case
     expr("case \t col1 when 1 then 'one' end")
         .ok("(CASE WHEN (`COL1` = 1) THEN 'one' ELSE NULL END)");
