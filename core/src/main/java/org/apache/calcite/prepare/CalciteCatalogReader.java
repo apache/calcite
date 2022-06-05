@@ -91,7 +91,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
 
   public CalciteCatalogReader(CalciteSchema rootSchema,
       List<String> defaultSchema, RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
-    this(rootSchema, SqlNameMatchers.withCaseSensitive(config != null && config.caseSensitive()),
+    this(rootSchema,
+        // TODO: BigQuery has case-insensitive functions
+        SqlNameMatchers.withCaseSensitive(config != null
+            && config.caseSensitive() && false),
         ImmutableList.of(Objects.requireNonNull(defaultSchema, "defaultSchema"),
             ImmutableList.of()),
         typeFactory, config);

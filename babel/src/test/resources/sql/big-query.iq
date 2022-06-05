@@ -20,12 +20,16 @@
 
 # TODO: create a means to set the current date/time/timestamp for the
 #   current session CURRENT_TIMESTAMP etc. will return those values.
+#   Then enable the CURRENT_x tests.
+!if (false) {
+!set timestamp '2022-06-03 12:15:48.678'
+!}
+
 # TODO: create a means to set the session timezone.
 # They will affect all queries that are tagged as follows:
 #   Display of results may differ, depending upon the environment and
 #   time zone where this query was executed.
 !if (false) {
-!set timestamp '2022-06-03 12:15:48.678'
 !set timezone 'America/Pacific'
 !}
 
@@ -63,6 +67,7 @@ from date;
 #
 # Returns DATE
 
+!if (false) {
 SELECT CURRENT_DATE() AS the_date;
 +--------------+
 | the_date     |
@@ -70,7 +75,9 @@ SELECT CURRENT_DATE() AS the_date;
 | 2016-12-25   |
 +--------------+
 !ok
+!}
 
+!if (false) {
 SELECT CURRENT_DATE AS the_date;
 +--------------+
 | the_date     |
@@ -78,6 +85,7 @@ SELECT CURRENT_DATE AS the_date;
 | 2016-12-25   |
 +--------------+
 !ok
+!}
 
 !if (false) {
 SELECT CURRENT_DATE("Europe/Moscow") AS the_date;
@@ -104,6 +112,7 @@ SELECT CURRENT_DATE(null) AS the_date;
 # select the function in the the_date column and the table column in
 # the current_date column.
 
+!if (false) {
 WITH t AS (SELECT 'column value' AS `current_date`)
 SELECT current_date() AS the_date, t.current_date FROM t;
 +------------+--------------+
@@ -112,6 +121,7 @@ SELECT current_date() AS the_date, t.current_date FROM t;
 | 2016-12-25 | column value |
 +------------+--------------+
 !ok
+!}
 
 #####################################################################
 # CURRENT_DATETIME
@@ -209,6 +219,7 @@ SELECT current_time() as now, t.current_time FROM t;
 #####################################################################
 # CURRENT_TIMESTAMP
 # Parentheses are optional
+!if (false) {
 select current_timestamp() as now;
 +---------------------+
 | now                 |
@@ -218,6 +229,9 @@ select current_timestamp() as now;
 (1 row)
 
 !ok
+!}
+
+!if (false) {
 select current_timestamp as now;
 +---------------------+
 | now                 |
@@ -227,6 +241,7 @@ select current_timestamp as now;
 (1 row)
 
 !ok
+!}
 
 # When a column named current_timestamp is present, the column name
 # and the function call without parentheses are ambiguous. To ensure
@@ -234,6 +249,7 @@ select current_timestamp as now;
 # qualify it with its range variable. For example, the following query
 # will select the function in the now column and the table column in
 # the current_timestamp column.
+!if (false) {
 WITH t AS (SELECT 'column value' AS `current_timestamp`)
 SELECT current_timestamp() AS now, t.current_timestamp FROM t;
 +--------------------------------+-------------------+
@@ -242,6 +258,7 @@ SELECT current_timestamp() AS now, t.current_timestamp FROM t;
 | 2020-06-02 23:57:12.120174 UTC | column value      |
 +--------------------------------+-------------------+
 !ok
+!}
 
 #####################################################################
 # EXTRACT
@@ -332,6 +349,7 @@ SELECT current_timestamp() AS now, t.current_timestamp FROM t;
 # In the following example, EXTRACT returns a value corresponding to
 # the DAY date part.
 
+!if (false) {
 SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
 +---------+
 | the_day |
@@ -339,11 +357,13 @@ SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
 | 25      |
 +---------+
 !ok
+!}
 
 # In the following example, EXTRACT returns values corresponding to
 # different date parts from a column of dates near the end of the
 # year.
 
+!if (false) {
 SELECT
   d,
   EXTRACT(ISOYEAR FROM d) AS isoyear,
@@ -393,6 +413,7 @@ ORDER BY d;
 | 2016-01-09 | 2016    | 1       | 2016 | 1    |
 +------------+---------+---------+------+------+
 !ok
+!}
 
 # In the following example, date_expression falls on a Sunday. EXTRACT
 # calculates the first column using weeks that begin on Sunday, and it
@@ -426,6 +447,7 @@ SELECT EXTRACT(HOUR FROM DATETIME(2008, 12, 25, 15, 30, 00)) as hour;
 
 # In the following example, EXTRACT returns values corresponding to
 # different time parts from a column of datetimes.
+!if (false) {
 WITH Datetimes AS (
   SELECT DATETIME '2005-01-03 12:34:56' AS dt UNION ALL
   SELECT DATETIME '2007-12-31' UNION ALL
@@ -453,6 +475,7 @@ ORDER BY dt;
 | 2017-05-26T00:00:00 | 2017    | 21      | 2017 | 21   |
 +---------------------+---------+---------+------+------+
 !ok
+!}
 
 # In the following example, datetime_expression falls on a
 # Sunday. EXTRACT calculates the first column using weeks that begin
@@ -804,7 +827,7 @@ from (values cast(0 as bigint),
    cast(-1230219000 as bigint)) as t (v)
 order by v;
 +-------------+---------------------+---------------------+---------------------+
-| V           | T0                  | T1                  | T2                  |
+| v           | t0                  | t1                  | t2                  |
 +-------------+---------------------+---------------------+---------------------+
 | -1230219000 | 1931-01-07 08:30:00 | 1931-01-07 08:30:00 | 1931-01-07 08:30:00 |
 |           0 | 1970-01-01 00:00:00 | 1970-01-01 00:00:00 | 1970-01-01 00:00:00 |
@@ -817,7 +840,7 @@ order by v;
 
 select timestamp_seconds(1234567890) as t;
 +---------------------+
-| T                   |
+| t                   |
 +---------------------+
 | 2009-02-13 23:31:30 |
 +---------------------+
@@ -827,7 +850,7 @@ select timestamp_seconds(1234567890) as t;
 
 select timestamp_millis(1234567890) as t;
 +---------------------+
-| T                   |
+| t                   |
 +---------------------+
 | 1970-01-15 06:56:07 |
 +---------------------+
@@ -837,7 +860,7 @@ select timestamp_millis(1234567890) as t;
 
 select timestamp_micros(1234567890) as t;
 +---------------------+
-| T                   |
+| t                   |
 +---------------------+
 | 1970-01-01 00:20:34 |
 +---------------------+
@@ -910,7 +933,7 @@ from (values TIMESTAMP '1970-01-01 00:00:00',
    TIMESTAMP '1931-01-07 08:30:00') as t (v)
 order by v;
 +---------------------+-------------+----------------+-------------------+
-| V                   | T0          | T1             | T2                |
+| v                   | t0          | t1             | t2                |
 +---------------------+-------------+----------------+-------------------+
 | 1931-01-07 08:30:00 | -1230219000 | -1230219000000 | -1230219000000000 |
 | 1970-01-01 00:00:00 |           0 |              0 |                 0 |
@@ -961,7 +984,7 @@ from (values 0,
    -1230219000 / 86400) as t (v)
 order by v;
 +--------+------------+
-| V      | D          |
+| v      | d          |
 +--------+------------+
 | -14238 | 1931-01-08 |
 |      0 | 1970-01-01 |
@@ -992,7 +1015,7 @@ from (values date '1970-01-01',
    DATE '1931-01-07') as t (v)
 order by v;
 +------------+--------+
-| V          | D      |
+| v          | d      |
 +------------+--------+
 | 1931-01-07 | -14239 |
 | 1970-01-01 |      0 |
@@ -1003,12 +1026,12 @@ order by v;
 
 !ok
 
-select unix_date(timestamp '2008-12-25');
-+--------+
-| EXPR$0 |
-+--------+
-|  14238 |
-+--------+
+select unix_date(timestamp '2008-12-25') as d;
++-------+
+| d     |
++-------+
+| 14238 |
++-------+
 (1 row)
 
 !ok
@@ -1017,7 +1040,7 @@ select unix_date(timestamp '2008-12-25');
 # 'date(x) is shorthand for 'cast(x as date)'
 select date('1970-01-01') as d;
 +------------+
-| D          |
+| d          |
 +------------+
 | 1970-01-01 |
 +------------+
@@ -1025,6 +1048,7 @@ select date('1970-01-01') as d;
 
 !ok
 
+!if (false) {
 select date(cast(null as varchar(10))) as d;
 +---+
 | D |
@@ -1034,6 +1058,7 @@ select date(cast(null as varchar(10))) as d;
 (1 row)
 
 !ok
+!}
 
 #####################################################################
 # DATE_ADD
@@ -1796,6 +1821,7 @@ SELECT
 +----------------------------+------------------------+
 | 15:30:00                   | 15:00:00               |
 +----------------------------+------------------------+
+!ok
 !}
 
 #####################################################################

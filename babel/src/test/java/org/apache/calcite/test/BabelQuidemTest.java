@@ -107,7 +107,6 @@ class BabelQuidemTest extends QuidemTest {
           return CalciteAssert.that()
               .with(CalciteAssert.Config.SCOTT)
               .with(CalciteConnectionProperty.FUN, "standard,bigquery")
-              .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.UNCHANGED)
               .with(CalciteConnectionProperty.LEX, Lex.BIG_QUERY)
               .with(CalciteConnectionProperty.PARSER_FACTORY,
                   SqlBabelParserImpl.class.getName() + "#FACTORY")
