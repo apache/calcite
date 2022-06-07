@@ -198,6 +198,72 @@ EnumerableProject(ENAME=[$3], JOB=[$4], SAL=[$7], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testHintsPropagationInVolcanoPlannerRules2">
+    <Resource name="sql">
+      <![CDATA[select /*+ my_hint */ ename, job
+from emp where not exists (select 1 from dept where emp.deptno = dept.deptno)
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1])
+  LogicalFilter(condition=[IS NULL($4)])
+    LogicalJoin(condition=[=($2, $3)], joinType=[left])
+      LogicalProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$0], $f0=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1])
+  EnumerableFilter(condition=[IS NULL($4)])
+    EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
+      EnumerableSort(sort0=[$2], dir0=[ASC])
+        EnumerableProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableSort(sort0=[$0], dir0=[ASC])
+        EnumerableProject(DEPTNO=[$0], $f0=[true])
+          EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHintsPropagationInVolcanoPlannerRules3">
+    <Resource name="sql">
+      <![CDATA[select /*+ my_hint */ ename, job
+from emp where not exists (select 1 from dept where emp.deptno = dept.deptno) order by ename
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(ENAME=[$0], JOB=[$1])
+    LogicalFilter(condition=[IS NULL($4)])
+      LogicalJoin(condition=[=($2, $3)], joinType=[left])
+        LogicalProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject(DEPTNO=[$0], $f0=[true])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableProject(ENAME=[$0], JOB=[$1])
+    EnumerableFilter(condition=[IS NULL($4)])
+      EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
+        EnumerableSort(sort0=[$2], dir0=[ASC])
+          EnumerableProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+        EnumerableSort(sort0=[$0], dir0=[ASC])
+          EnumerableProject(DEPTNO=[$0], $f0=[true])
+            EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIntersectHints">
     <Resource name="sql">
       <![CDATA[select /*+ breakable */ deptno from

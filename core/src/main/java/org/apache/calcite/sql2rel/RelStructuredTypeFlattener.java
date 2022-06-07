@@ -272,6 +272,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   protected void setNewForOldRel(RelNode oldRel, RelNode newRel) {
+    newRel = RelOptUtil.copyRelHints(oldRel, newRel);
     oldToNewRelMap.put(oldRel, newRel);
   }
 
@@ -757,8 +758,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RelNode newRel = rel.getTable().toRel(toRelContext);
     if (!SqlTypeUtil.isFlat(rel.getRowType())) {
       newRel = coverNewRelByFlatteningProjection(rel, newRel);
-    } else {
-      newRel = RelOptUtil.copyRelHints(rel, newRel);
     }
     setNewForOldRel(rel, newRel);
   }
@@ -774,7 +773,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     newRel = relBuilder.push(newRel)
         .projectNamed(projects, fieldNames, true)
         .build();
-    newRel = RelOptUtil.copyRelHints(rel, newRel);
     return newRel;
   }
 
