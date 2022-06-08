@@ -2923,20 +2923,6 @@ LIMIT 500;
 
 !ok
 
-# [CALCITE-2266] JSON_OBJECTAGG, JSON_ARRAYAGG
-!use post
-
-select gender, json_objectagg(ename: deptno absent on null) from emp group by gender;
-+--------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                |
-+--------+-------------------------------------------------------+
-| F      | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
-| M      | {"Adam":50,"Bob":10,"Eric":20}                        |
-+--------+-------------------------------------------------------+
-(2 rows)
-
-!ok
-
 select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) format json) from emp group by gender;
 +--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | GENDER | EXPR$1                                                                                                                                                                               |
@@ -2994,36 +2980,6 @@ from emp group by gender;
 | M      | [10,20,50]       | [10,20,50]            |
 +--------+------------------+-----------------------+
 (2 rows)
-
-!ok
-EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)], EXPR$2=[JSON_ARRAYAGG_NULL_ON_NULL($0)])
-  EnumerableValues(tuples=[[{ 10, 'F' }, { 10, 'M' }, { 20, 'M' }, { 30, 'F' }, { 30, 'F' }, { 50, 'M' }, { 50, 'F' }, { 60, 'F' }, { null, 'F' }]])
-!plan
-
-select gender,
-json_objectagg(ename: deptno),
-json_objectagg(ename: deptno absent on null)
-from emp group by gender;
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                             | EXPR$2                                                |
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
-| F      | {"Eve":50,"Grace":60,"Wilma":null,"Susan":30,"Alice":30,"Jane":10} | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
-| M      | {"Adam":50,"Bob":10,"Eric":20}                                     | {"Adam":50,"Bob":10,"Eric":20}                        |
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
-(2 rows)
-
-!ok
-EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($0, $1)])
-  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
-!plan
-
-select listagg(ename) as combined_name from emp;
-+------------------------------------------------+
-| COMBINED_NAME                                  |
-+------------------------------------------------+
-| Jane,Bob,Eric,Susan,Alice,Adam,Eve,Grace,Wilma |
-+------------------------------------------------+
-(1 row)
 
 !ok
 

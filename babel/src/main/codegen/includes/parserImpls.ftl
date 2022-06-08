@@ -207,10 +207,11 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
     Expression2b(ExprContext.ACCEPT_SUB_QUERY, list)
 }
 
-/** Parses the NULL-safe "<=>" equal operator used in MySQL. */
+/** Parses the ":" field reference operator used in Snowflake */
 void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
 {
     final SqlNode keyNode;
+    SqlNode e;
 }
 {
     <COLON>
@@ -224,9 +225,19 @@ void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
         list.add(ref);
     }
     (
-        LOOKAHEAD(2) <DOT>
-        SimpleIdentifier() {
-            ref.addSubkey(SqlParserUtil.trim(token.image, "'\""));
-        }
+        (
+            <DOT>
+            SimpleIdentifier() {
+                ref.addSubkey(SqlLiteral.createCharString(SqlParserUtil.trim(token.image, "'\""), "UTF8", getPos()));
+            }
+        )
+        |
+        (
+            <LBRACKET>
+            e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+                ref.addSubkey(e);
+            }
+            <RBRACKET>
+        )
     )*
 }

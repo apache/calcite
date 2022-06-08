@@ -5957,20 +5957,6 @@ SqlNode BuiltinFunctionCall() :
 </#list>
         node = MatchRecognizeFunctionCall() { return node; }
     |
-        node = JsonExistsFunctionCall() { return node; }
-    |
-        node = JsonValueFunctionCall() { return node; }
-    |
-        node = JsonQueryFunctionCall() { return node; }
-    |
-        node = JsonObjectFunctionCall() { return node; }
-    |
-        node = JsonObjectAggFunctionCall() { return node; }
-    |
-        node = JsonArrayFunctionCall() { return node; }
-    |
-        node = JsonArrayAggFunctionCall() { return node; }
-    |
         node = GroupByWindowingCall() { return node; }
     )
 }

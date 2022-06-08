@@ -280,6 +280,26 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void checkParseInfixFieldReferenceBracketSimple() {
+    String sql = "SELECT x:key['childKey1'] FROM dingle";
+    String expected = "SELECT (`X` : \"key\".\"childKey1\")\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT x:key[1] FROM dingle";
+    expected = "SELECT (`X` : \"key\"[1])\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT x:key.subkey[1] FROM dingle";
+    expected = "SELECT (`X` : \"key\".\"subkey\"[1])\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void checkParseInfixFieldReferenceBracketExpression() {
+    String sql = "SELECT x:key.subkey[collect(x:key.subkey2) - 1] FROM dingle";
+    String expected = "SELECT (`X` : \"key\".\"subkey\"[(COLLECT((`X` : \"key\".\"subkey2\")) - 1)])\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testCreateTableWithNoCollectionTypeSpecified() {
     final String sql = "create table foo (bar integer not null, baz varchar(30))";
     final String expected = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
