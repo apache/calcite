@@ -1012,7 +1012,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(farm_fingerprint);
       break;
     case "TRUNC":
-      final SqlWriter.Frame trunc = writer.startFunCall("DATE_TRUNC");
+      final SqlWriter.Frame trunc = getTruncFrame(writer, call);
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));
@@ -1530,13 +1530,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  @Override public @Nullable SqlNode getCastSpecWithPrecision(final RelDataType type,
-      final boolean isColumnLengthPresent) {
+  @Override public @Nullable SqlNode getCastSpecWithPrecisionAndScale(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       final int precision = type.getPrecision();
       final int scale = type.getScale();
-      boolean isContainsPrecision = type.toString().matches("^.*[\\(\\)].*");
+      boolean isContainsPrecision = type.toString().matches("\\w+\\(\\d+(, (-)?\\d+)?\\)");
       boolean isContainsScale = type.toString().contains(",");
       boolean isContainsNegativePrecisionOrScale = type.toString().contains("-");
       String typeAlias;
@@ -1556,7 +1555,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName(typeAlias, typeName);
       case CHAR:
       case VARCHAR:
-        if (isColumnLengthPresent) {
+        if (isContainsPrecision) {
           typeAlias =  precision > 0 ? "STRING(" + precision + ")" : "STRING";
         } else {
           typeAlias = "STRING";
@@ -1595,5 +1594,28 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static String removeSingleQuotes(SqlNode sqlNode) {
     return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
         "");
+  }
+
+  private SqlWriter.Frame getTruncFrame(SqlWriter writer, SqlCall call) {
+    SqlWriter.Frame frame = null;
+    String dateFormatOperand = call.operand(1).toString();
+    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
+    if (isDateTimeOperand) {
+      frame = writer.startFunCall("DATETIME_TRUNC");
+    } else {
+      switch (dateFormatOperand) {
+      case "'HOUR'":
+      case "'MINUTE'":
+      case "'SECOND'":
+      case "'MILLISECOND'":
+      case "'MICROSECOND'":
+        frame = writer.startFunCall("TIME_TRUNC");
+        break;
+      default:
+        frame = writer.startFunCall("DATE_TRUNC");
+
+      }
+    }
+    return frame;
   }
 }

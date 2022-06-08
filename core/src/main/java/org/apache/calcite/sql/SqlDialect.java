@@ -945,8 +945,7 @@ public class SqlDialect {
     return SqlTypeUtil.convertTypeToSpec(type);
   }
 
-  public @Nullable SqlNode getCastSpecWithPrecision(RelDataType type,
-      boolean isColumnLengthPresent) {
+  public @Nullable SqlNode getCastSpecWithPrecisionAndScale(RelDataType type) {
     return this.getCastSpec(type);
   }
 
