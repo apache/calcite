@@ -48,15 +48,8 @@ import java.util.Set;
 @SuppressWarnings("deprecation")
 public class SqlParser {
   public static final int DEFAULT_IDENTIFIER_MAX_LENGTH = 128;
-  public static final Map<String, TimeUnit> DEFAULT_IDENTIFIER_TIMEUNIT_MAP =
-      ImmutableMap.of(
-          "Y", TimeUnit.YEAR,
-          "M", TimeUnit.MONTH,
-          "D", TimeUnit.DAY,
-          "H", TimeUnit.HOUR,
-          "N", TimeUnit.MINUTE,
-          "S", TimeUnit.SECOND
-      );
+  public static final ImmutableMap<String, TimeUnit> DEFAULT_IDENTIFIER_TIMEUNIT_MAP =
+      ImmutableMap.of();
   @Deprecated // to be removed before 2.0
   public static final boolean DEFAULT_ALLOW_BANG_EQUAL =
       SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
@@ -272,7 +265,7 @@ public class SqlParser {
     /** Sets {@link #identifierMaxLength()}. */
     Config withIdentifierMaxLength(int identifierMaxLength);
 
-    @Value.Default default Map<String, TimeUnit> identifierTimeUnitMap() {
+    @Value.Default default ImmutableMap<String, TimeUnit> identifierTimeUnitMap() {
       return DEFAULT_IDENTIFIER_TIMEUNIT_MAP;
     }
 
@@ -377,7 +370,8 @@ public class SqlParser {
       return setConfig(config.withIdentifierMaxLength(identifierMaxLength));
     }
 
-    public ConfigBuilder setIdentifierTimeUnitMap(Map<String, TimeUnit> identifierTimeUnitMap) {
+    public ConfigBuilder setIdentifierTimeUnitMap(
+        ImmutableMap<String, TimeUnit> identifierTimeUnitMap) {
       return setConfig(config.withIdentifierTimeUnitMap(identifierTimeUnitMap));
     }
 

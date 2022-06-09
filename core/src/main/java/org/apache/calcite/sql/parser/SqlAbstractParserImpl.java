@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.parser;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.Map;
 
 import org.apache.calcite.avatica.util.Casing;
@@ -495,7 +497,7 @@ public abstract class SqlAbstractParserImpl {
   /**
    * Sets the map from identifier to time unit.
    */
-  public abstract void setIdentifierTimeUnitMap(Map<String, TimeUnit> identifierTimeUnitMap);
+  public abstract void setIdentifierTimeUnitMap(ImmutableMap<String, TimeUnit> identifierTimeUnitMap);
 
   /**
    * Sets the SQL language conformance level.

@@ -127,6 +127,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 
 import java.io.Reader;
@@ -137,7 +138,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -162,7 +162,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing unquotedCasing;
     private Casing quotedCasing;
     private int identifierMaxLength;
-    private Map<String, TimeUnit> identifierTimeUnitMap;
+    private ImmutableMap<String, TimeUnit> identifierTimeUnitMap;
     private SqlConformance conformance;
 
     /**
@@ -224,7 +224,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
         this.identifierMaxLength = identifierMaxLength;
     }
 
-    public void setIdentifierTimeUnitMap(Map<String, TimeUnit> identifierTimeUnitMap) {
+    public void setIdentifierTimeUnitMap(ImmutableMap<String, TimeUnit> identifierTimeUnitMap) {
         this.identifierTimeUnitMap = identifierTimeUnitMap;
     }
 

@@ -1619,17 +1619,27 @@ public class SqlParserTest {
   }
 
   @Test void testFloorCeilTimeUnitAbbreviation() {
+    ImmutableMap identifierTimeUnitMap = ImmutableMap.of(
+        "Y", TimeUnit.YEAR,
+        "M", TimeUnit.MONTH,
+        "D", TimeUnit.DAY,
+        "H", TimeUnit.HOUR,
+        "N", TimeUnit.MINUTE,
+        "S", TimeUnit.SECOND
+    );
+    SqlParserFixture fixture = fixture()
+        .withConfig(config -> config.withIdentifierTimeUnitMap(identifierTimeUnitMap));
     for (Map.Entry<String, TimeUnit> entry : Config.DEFAULT.identifierTimeUnitMap().entrySet()) {
       String unitAbbreviation = entry.getKey();
       String unit = entry.getValue().name();
-      expr("FLOOR(x to " + unitAbbreviation + ")")
-          .ok("FLOOR(`X` TO " + unit + ")");
-      expr("CEIL(x to " + unitAbbreviation + ")")
-          .ok("CEIL(`X` TO " + unit + ")");
+      fixture.sql("select floor(x to " + unitAbbreviation + ")")
+          .ok("SELECT FLOOR(`X` TO " + unit + ")");
+      fixture.sql("select ceil(x to " + unitAbbreviation + ")")
+          .ok("SELECT CEIL(`X` TO " + unit + ")");
     }
-    expr("FLOOR(x to ^A^)")
+    fixture.sql("SELECT FLOOR(x to ^A^)")
         .fails("'A' is not a valid datetime format");
-    expr("CEIL(x to ^A^)")
+    fixture.sql("SELECT CEIL(x to ^A^)")
         .fails("'A' is not a valid datetime format");
   }
 
@@ -7607,11 +7617,21 @@ public class SqlParserTest {
   }
 
   @Test void testExtractTimeUnitAbbreviation() {
+    ImmutableMap identifierTimeUnitMap = ImmutableMap.of(
+        "Y", TimeUnit.YEAR,
+        "M", TimeUnit.MONTH,
+        "D", TimeUnit.DAY,
+        "H", TimeUnit.HOUR,
+        "N", TimeUnit.MINUTE,
+        "S", TimeUnit.SECOND
+    );
+    SqlParserFixture fixture = fixture()
+        .withConfig(config -> config.withIdentifierTimeUnitMap(identifierTimeUnitMap));
     for (Map.Entry<String, TimeUnit> entry : Config.DEFAULT.identifierTimeUnitMap().entrySet()) {
-      expr("extract(" + entry.getKey() + " from x)")
-          .ok("EXTRACT(" + entry.getValue().name() + " FROM `X`)");
+      fixture.sql("select extract(" + entry.getKey() + " from x)")
+          .ok("SELECT EXTRACT(" + entry.getValue().name() + " FROM `X`)");
     }
-    expr("extract(^A^ from x)")
+    fixture.sql("select extract(^A^ from x)")
         .fails("'A' is not a valid datetime format");
   }
 
