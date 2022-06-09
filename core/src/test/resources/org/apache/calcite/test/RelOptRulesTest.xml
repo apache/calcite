@@ -3794,7 +3794,7 @@ LogicalProject(SUM1=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)], SUM2=[SUM(+($7
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testExpressionSimplication1">
+  <TestCase name="testExpressionSimplification1">
     <Resource name="sql">
       <![CDATA[select * from emp
 where ename <> '' and ename <> '3']]>
@@ -3814,7 +3814,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testExpressionSimplication2">
+  <TestCase name="testExpressionSimplification2">
     <Resource name="sql">
       <![CDATA[select * from emp
 where (ename < '' or ename > '') and (ename < '3' or ename > '3')]]>
