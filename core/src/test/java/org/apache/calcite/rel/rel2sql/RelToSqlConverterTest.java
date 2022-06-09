@@ -10027,7 +10027,8 @@ class RelToSqlConverterTest {
         .project(castTimestampTimeZoneCall)
         .build();
 
-    final String expectedBigQuery = "SELECT CAST(CURRENT_DATETIME() AS TIMESTAMP) AS `$f0`";
+    final String expectedBigQuery =
+        "SELECT CAST(CURRENT_DATETIME() AS TIMESTAMP_WITH_LOCAL_TIME_ZONE) AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
