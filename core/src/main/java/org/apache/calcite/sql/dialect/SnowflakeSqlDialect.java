@@ -115,6 +115,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    return false;
+  }
+
   @Override public SqlOperator getTargetFunc(RexCall call) {
     switch (call.type.getSqlTypeName()) {
     case DATE:

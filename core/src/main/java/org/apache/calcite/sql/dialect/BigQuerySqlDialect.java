@@ -351,6 +351,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    return false;
+  }
+
   @Override public JoinType emulateJoinTypeForCrossJoin() {
     return JoinType.INNER;
   }
