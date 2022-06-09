@@ -1321,8 +1321,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * The difference between this and {@link #testExpressionSimplification1()} is
    * that '<' and '<>' have different
    * {@link org.apache.calcite.sql.type.SqlOperandTypeChecker.Consistency} which
-   * will leads to different type inference result for literals. These two tests
-   * shows that the simplification could handle this case.
+   * will lead to different type inference result for literals. These two tests
+   * show that the simplification could handle this case.
    */
   @Test void testExpressionSimplification2() {
     final String sql = "select * from emp\n"
