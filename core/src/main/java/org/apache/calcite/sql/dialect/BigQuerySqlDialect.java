@@ -1016,7 +1016,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(farm_fingerprint);
       break;
     case "TRUNC":
-      final SqlWriter.Frame trunc = getTruncFrame(writer, call);
+      final SqlWriter.Frame trunc = writer.startFunCall("DATE_TRUNC");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));
@@ -1598,19 +1598,5 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static String removeSingleQuotes(SqlNode sqlNode) {
     return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
         "");
-  }
-
-  private SqlWriter.Frame getTruncFrame(SqlWriter writer, SqlCall call) {
-    String dateFormatOperand = call.operand(1).toString();
-    switch (dateFormatOperand) {
-    case "'HOUR'":
-    case "'MINUTE'":
-    case "'SECOND'":
-    case "'MILLISECOND'":
-    case "'MICROSECOND'":
-      return writer.startFunCall("TIME_TRUNC");
-    default:
-      return writer.startFunCall("DATE_TRUNC");
-    }
   }
 }
