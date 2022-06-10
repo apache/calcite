@@ -203,7 +203,16 @@ public final class SqlParserUtil {
     return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
   }
 
-  public static SqlNode parseArrayLiteral(String s) throws Exception {
+  /**
+   * Parses string to array literal
+   * using {@link org.apache.calcite.sql.parser.impl.SqlParserImpl} parser.
+   * String format description can be found at the
+   * <a href="https://www.postgresql.org/docs/current/arrays.html#ARRAYS-INPUT">link</a>
+   *
+   * @param s a string to parse
+   * @return a array value
+   */
+  public static SqlNode parseArrayLiteral(String s) throws Exception, Error {
     SqlAbstractParserImpl parser = SqlParserImpl.FACTORY.getParser(
         new StringReader(s));
     return parser.parseArray();
