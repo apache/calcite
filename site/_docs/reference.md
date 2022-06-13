@@ -1281,9 +1281,9 @@ completeness.
 | value NOT IN (value [, value]*)                   | Whether *value* is not equal to every value in a list
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
-| value comparison SOME (sub-query)                 | Whether *value* *comparison* at least one row returned by *sub-query*
-| value comparison ANY (sub-query)                  | Synonym for `SOME`
-| value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
+| value comparison SOME (sub-query or collection)   | Whether *value* *comparison* at least one row returned by *sub-query* or *collection*
+| value comparison ANY (sub-query or collection)    | Synonym for `SOME`
+| value comparison ALL (sub-query or collection)    | Whether *value* *comparison* every row returned by *sub-query* or *collection*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
 | UNIQUE (sub-query)                                | Whether the rows returned by *sub-query* are unique (ignoring null values)
 
