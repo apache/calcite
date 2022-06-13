@@ -19,6 +19,8 @@ package org.apache.calcite.test;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
@@ -109,6 +111,7 @@ import java.util.stream.Stream;
 import static org.apache.calcite.linq4j.tree.Expressions.list;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.QUANTIFY_OPERATORS;
 import static org.apache.calcite.sql.test.ResultCheckers.isExactly;
 import static org.apache.calcite.sql.test.ResultCheckers.isNullValue;
 import static org.apache.calcite.sql.test.ResultCheckers.isSet;
@@ -9601,6 +9604,99 @@ public class SqlOperatorTest {
     f.checkAgg("some(x = 2)", values, isSingle("true"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5160">[CALCITE-5160]
+   * ANY/SOME, ALL operators should support collection expressions</a>. */
+  @Test void testQuantifyCollectionOperators() {
+    final SqlOperatorFixture f = fixture();
+    QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
+
+    Function2<String, Boolean, Void> checkBoolean = (sql, result) -> {
+      f.checkBoolean(sql.replace("COLLECTION", "ARRAY"), result);
+      f.checkBoolean(sql.replace("COLLECTION", "MULTISET"), result);
+      return null;
+    };
+
+    Function1<String, Void> checkNull = sql -> {
+      f.checkNull(sql.replace("COLLECTION", "ARRAY"));
+      f.checkNull(sql.replace("COLLECTION", "MULTISET"));
+      return null;
+    };
+
+    checkNull.apply("1 = some (COLLECTION[2,3,null])");
+    checkNull.apply("null = some (COLLECTION[1,2,3])");
+    checkNull.apply("null = some (COLLECTION[1,2,null])");
+    checkNull.apply("1 = some (COLLECTION[null,null,null])");
+    checkNull.apply("null = some (COLLECTION[null,null,null])");
+
+    checkBoolean.apply("1 = some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("3 = some (COLLECTION[1,2])", false);
+
+    checkBoolean.apply("1 <> some (COLLECTION[1])", false);
+    checkBoolean.apply("2 <> some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("3 <> some (COLLECTION[1,2,null])", true);
+
+    checkBoolean.apply("1 < some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("0 < some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("2 < some (COLLECTION[1,2])", false);
+
+    checkBoolean.apply("2 <= some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("0 <= some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("3 <= some (COLLECTION[1,2])", false);
+
+    checkBoolean.apply("2 > some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("3 > some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("1 > some (COLLECTION[1,2])", false);
+
+    checkBoolean.apply("2 >= some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("3 >= some (COLLECTION[1,2,null])", true);
+    checkBoolean.apply("0 >= some (COLLECTION[1,2])", false);
+
+    f.check("SELECT 3 = some(x.t) FROM (SELECT ARRAY[1,2,3,null] as t) as x",
+        "BOOLEAN", true);
+    f.check("SELECT 4 = some(x.t) FROM (SELECT ARRAY[1,2,3] as t) as x",
+        "BOOLEAN NOT NULL", false);
+    f.check("SELECT 4 = some(x.t) FROM (SELECT ARRAY[1,2,3,null] as t) as x",
+        "BOOLEAN", isNullValue());
+    f.check("SELECT (SELECT * FROM UNNEST(ARRAY[3]) LIMIT 1) = "
+            + "some(x.t) FROM (SELECT ARRAY[1,2,3,null] as t) as x",
+        "BOOLEAN", true);
+
+
+    checkNull.apply("1 = all (COLLECTION[1,1,null])");
+    checkNull.apply("null = all (COLLECTION[1,2,3])");
+    checkNull.apply("null = all (COLLECTION[1,2,null])");
+    checkNull.apply("1 = all (COLLECTION[null,null,null])");
+    checkNull.apply("null = all (COLLECTION[null,null,null])");
+
+    checkBoolean.apply("1 = all (COLLECTION[1,1])", true);
+    checkBoolean.apply("3 = all (COLLECTION[1,3,null])", false);
+
+    checkBoolean.apply("1 <> all (COLLECTION[2,3,4])", true);
+    checkBoolean.apply("2 <> all (COLLECTION[2,null])", false);
+
+    checkBoolean.apply("1 < all (COLLECTION[2,3,4])", true);
+    checkBoolean.apply("2 < all (COLLECTION[1,2,null])", false);
+
+    checkBoolean.apply("2 <= all (COLLECTION[2,3,4])", true);
+    checkBoolean.apply("1 <= all (COLLECTION[0,1,null])", false);
+
+    checkBoolean.apply("2 > all (COLLECTION[0,1])", true);
+    checkBoolean.apply("3 > all (COLLECTION[1,3,null])", false);
+
+    checkBoolean.apply("2 >= all (COLLECTION[0,1,2])", true);
+    checkBoolean.apply("3 >= all (COLLECTION[3,4,null])", false);
+
+    f.check("SELECT 3 >= all(x.t) FROM (SELECT ARRAY[1,2,3] as t) as x",
+        "BOOLEAN NOT NULL", true);
+    f.check("SELECT 4 = all(x.t) FROM (SELECT ARRAY[1,2,3,null] as t) as x",
+        "BOOLEAN", false);
+    f.check("SELECT 4 = all(x.t) FROM (SELECT ARRAY[4,4,null] as t) as x",
+        "BOOLEAN", isNullValue());
+    f.check("SELECT (SELECT * FROM UNNEST(ARRAY[3]) LIMIT 1) = "
+            + "all(x.t) FROM (SELECT ARRAY[3,3] as t) as x",
+        "BOOLEAN", true);
+  }
 
   @Test void testAnyValueFunc() {
     final SqlOperatorFixture f = fixture();

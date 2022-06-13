@@ -478,6 +478,21 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlQuantifyOperator ALL_NE =
       new SqlQuantifyOperator(SqlKind.ALL, SqlKind.NOT_EQUALS);
 
+  public static final List<SqlQuantifyOperator> QUANTIFY_OPERATORS =
+      ImmutableList.of(SqlStdOperatorTable.SOME_EQ,
+          SqlStdOperatorTable.SOME_GT,
+          SqlStdOperatorTable.SOME_GE,
+          SqlStdOperatorTable.SOME_LE,
+          SqlStdOperatorTable.SOME_LT,
+          SqlStdOperatorTable.SOME_NE,
+
+          SqlStdOperatorTable.ALL_EQ,
+          SqlStdOperatorTable.ALL_GT,
+          SqlStdOperatorTable.ALL_GE,
+          SqlStdOperatorTable.ALL_LE,
+          SqlStdOperatorTable.ALL_LT,
+          SqlStdOperatorTable.ALL_NE);
+
   /**
    * Logical less-than operator, '<code>&lt;</code>'.
    */

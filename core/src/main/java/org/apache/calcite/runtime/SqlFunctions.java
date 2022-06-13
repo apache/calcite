@@ -3682,6 +3682,46 @@ public class SqlFunctions {
     return args;
   }
 
+  /**
+   * Returns whether there is an element in {@code list} for which {@code predicate} is true.
+   * Also, if {@code predicate} returns null for any element of {@code list}
+   * and does not return {@code true} for any element of {@code list},
+   * the result will be {@code null}, not {@code false}.
+   */
+  public static @Nullable <E> Boolean nullableExists(List<? extends E> list,
+      Function1<E, Boolean> predicate) {
+    boolean nullExists = false;
+    for (E e : list) {
+      Boolean res = predicate.apply(e);
+      if (res == null) {
+        nullExists = true;
+      } else if (res) {
+        return true;
+      }
+    }
+    return nullExists ? null : false;
+  }
+
+  /**
+   * Returns whether {@code predicate} is true for all elements of {@code list}.
+   * Also, if {@code predicate} returns null for any element of {@code list}
+   * and does not return {@code false} for any element,
+   * the result will be {@code null}, not {@code true}.
+   */
+  public static @Nullable <E> Boolean nullableAll(List<? extends E> list,
+      Function1<E, Boolean> predicate) {
+    boolean nullExists = false;
+    for (E e : list) {
+      Boolean res = predicate.apply(e);
+      if (res == null) {
+        nullExists = true;
+      } else if (!res) {
+        return false;
+      }
+    }
+    return nullExists ? null : true;
+  }
+
   /** Similar to {@link Linq4j#product(Iterable)} but each resulting list
    * implements {@link FlatLists.ComparableList}. */
   public static <E extends Comparable> Enumerable<FlatLists.ComparableList<E>> product(
