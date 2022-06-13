@@ -297,7 +297,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       assert newFieldCount > 0 : "rel has no fields after trim: " + rel;
     }
     if (newRel.equals(rel)) {
-      return result(rel, mapping, rel);
+      return result(rel, mapping);
     }
     return trimResult;
   }
