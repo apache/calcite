@@ -29,7 +29,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.RavenDistinctProject;
@@ -2045,40 +2044,46 @@ public abstract class SqlImplementor {
       return operandList;
     }
 
-    RexNode getRexInputRefFromCondition(RexNode condition) {
+    /** Returns list of all RexInputRef objects from the given condition. */
+    List<RexNode> getRexInputRefListFromCondition(RexNode condition,
+        List<RexNode> inputRefRexList) {
       if (condition instanceof RexInputRef) {
-        return condition;
+        inputRefRexList.add(condition);
       } else if (condition instanceof RexCall) {
         for (RexNode operand : ((RexCall) condition).getOperands()) {
           if (operand instanceof  RexLiteral) {
             continue;
           } else {
-            return getRexInputRefFromCondition(operand);
+            getRexInputRefListFromCondition(operand, inputRefRexList);
           }
         }
       }
-      return condition;
+      return inputRefRexList;
     }
 
     /** Returns whether an Analytical Function is present in filter condition. */
-    private boolean hasAnalyticalFunctionPresentInFilter(RelNode rel) {
+    private boolean hasAnalyticalFunctionInFilter(Filter rel) {
       Integer rexOperandIndex = null;
       if (node instanceof SqlSelect) {
-        RexNode filterCondition = ((LogicalFilter) rel).getCondition();
+        RexNode filterCondition = rel.getCondition();
         if (filterCondition instanceof RexCall) {
-          for (int i = 0; i < ((RexCall) filterCondition).getOperands().size(); i++) {
-            if (((RexCall) filterCondition).
-                getOperands().get(i) instanceof  RexLiteral) {
+          for (RexNode conditionRex : ((RexCall) filterCondition).getOperands()) {
+            if (conditionRex instanceof  RexLiteral) {
               continue;
             }
-            RexNode rexOperand = getRexInputRefFromCondition(((RexCall) filterCondition).
-                getOperands().get(i));
-            if (rexOperand instanceof RexInputRef) {
-              rexOperandIndex = Integer.parseInt(rexOperand.toString().
-                  replace("$", ""));
-              Project projectRel = (Project) rel.getInput(0);
-              if (projectRel.getChildExps().get(rexOperandIndex) instanceof RexOver) {
-                return true;
+
+            List<RexNode> inputRefRexList = new ArrayList<>();
+            List<RexNode> rexOperandList =
+                getRexInputRefListFromCondition(conditionRex, inputRefRexList);
+
+            for (RexNode rexOperand : rexOperandList) {
+              if (rexOperand instanceof RexInputRef) {
+                rexOperandIndex = Integer.parseInt(rexOperand.toString().
+                    replace("$", ""));
+                Project projectRel = (Project) rel.getInput(0);
+                if (projectRel.getChildExps().get(rexOperandIndex) instanceof RexOver) {
+                  return true;
+                }
               }
             }
           }
@@ -2087,8 +2092,14 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean hasAnalyticalFunctionPresentInProjection(Project projectRel) {
-      return projectRel.toString().contains("ROW_NUMBER()");
+    /** Returns whether any Analytical Function (RexOver) is present in projection. */
+    private boolean isAnalyticalFunctionPresentInProjection(Project projectRel) {
+      for (RexNode currentRex : projectRel.getChildExps()) {
+        if (isAnalyticalRex(currentRex)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     /** Returns whether a new sub-query is required. */
@@ -2103,11 +2114,11 @@ public abstract class SqlImplementor {
 
       // New SELECT wrap is not required -
       // If REL is an instanceof filter specified on normal column type except any analytical
-      // function and if that filter has any projection with ROW_NUMBER() function present
+      // function and if that filter has any projection with Analytical function present
       if (rel instanceof Filter
           && rel.getInput(0) instanceof Project
-          && hasAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
-          && !hasAnalyticalFunctionPresentInFilter(rel)) {
+          && isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
+          && !hasAnalyticalFunctionInFilter((Filter) rel)) {
         if (maxClause == Clause.SELECT) {
           return false;
         }
