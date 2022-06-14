@@ -6710,6 +6710,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 'foo' as empno from emp order by empno + 5").ok();
   }
 
+  /** Tests that you can reference a column alias in the ORDER BY clause if
+   * {@link SqlConformance#isSortByAlias()}. */
+  @Test void testOrderByAlias() {
+    sql("select count(*) as total from emp order by ^total^")
+        .ok()
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok()
+        .withConformance(SqlConformanceEnum.STRICT_2003)
+        .fails("Column 'TOTAL' not found in any table");
+  }
+
   @Test void testOrderJoin() {
     sql("select * from emp as e, dept as d order by e.empno").ok();
   }
