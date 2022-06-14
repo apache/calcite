@@ -171,6 +171,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case ORACLE_12:
     case STRICT_92:
     case SQL_SERVER_2008:
+    case BIG_QUERY:
       return true;
     default:
       return false;

@@ -78,6 +78,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import static org.apache.calcite.sql.validate.SqlConformanceEnum.BIG_QUERY;
 import static org.apache.calcite.test.Matchers.isCharset;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -369,7 +370,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testNiladicForBigQuery() {
     sql("select current_time, current_time(), current_date, "
         + "current_date(), current_timestamp, current_timestamp()")
-        .withConformance(SqlConformanceEnum.BIG_QUERY).ok();
+        .withConformance(BIG_QUERY).ok();
   }
 
   @Test void testEqualNotEqual() {
@@ -1533,7 +1534,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testCurrentDatetime() throws SqlParseException, ValidationException {
     final String currentDateTimeExpr = "select ^current_datetime^";
     SqlValidatorFixture shouldFail = sql(currentDateTimeExpr)
-        .withConformance(SqlConformanceEnum.BIG_QUERY);
+        .withConformance(BIG_QUERY);
     final String expectedError = "query [select CURRENT_DATETIME]; exception "
         + "[Column 'CURRENT_DATETIME' not found in any table]; class "
         + "[class org.apache.calcite.sql.validate.SqlValidatorException]; pos [line 1 col 8 thru line 1 col 8]";
@@ -1541,13 +1542,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
     sql("select current_datetime()")
-        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withConformance(BIG_QUERY)
         .withOperatorTable(opTable).ok();
     sql("select CURRENT_DATETIME('America/Los_Angeles')")
-        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withConformance(BIG_QUERY)
         .withOperatorTable(opTable).ok();
     sql("select CURRENT_DATETIME(CAST(NULL AS VARCHAR(20)))")
-        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withConformance(BIG_QUERY)
         .withOperatorTable(opTable).ok();
   }
 
@@ -7353,6 +7354,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // alias in GROUP BY query has been known to cause problems
     sql("select deptno as d, count(*) as c from emp group by deptno").ok();
   }
+
+  @Test void testSortByAliasColumnBigQuery() {
+    sql("select count(*) as total from emp order by total").withConformance(BIG_QUERY).ok();
+  }
+
 
   @Test void testNestedAggFails() {
     // simple case
