@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.adapter.file.JsonTable;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -107,13 +106,6 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
             getRowType(),
             pref.preferArray());
 
-    if (table instanceof JsonTable) {
-      return implementor.result(
-          physType,
-          Blocks.toBlock(
-              Expressions.call(table.getExpression(JsonTable.class),
-                  "enumerable")));
-    }
     return implementor.result(
         physType,
         Blocks.toBlock(
