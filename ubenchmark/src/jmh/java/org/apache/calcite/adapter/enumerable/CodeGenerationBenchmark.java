@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * A benchmark of the main methods that are dynamically generating and compiling
@@ -183,23 +184,25 @@ public class CodeGenerationBenchmark {
         info.javaCode =
             Expressions.toString(info.classExpr.memberDeclarations, "\n", false);
 
-        ICompilerFactory compilerFactory;
-        try {
-          compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
-              CodeGenerationBenchmark.class.getClassLoader());
-        } catch (Exception e) {
-          throw new IllegalStateException(
-              "Unable to instantiate java compiler", e);
-        }
-        IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
-        cbe.setClassName(info.classExpr.name);
-        cbe.setExtendedClass(Utilities.class);
-        cbe.setImplementedInterfaces(
-            plan.getRowType().getFieldCount() == 1
-                ? new Class[]{Bindable.class, Typed.class}
-                : new Class[]{ArrayBindable.class});
-        cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
-        info.cbe = cbe;
+        info.cbeSupplier = () -> {
+          ICompilerFactory compilerFactory;
+          try {
+            compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
+                CodeGenerationBenchmark.class.getClassLoader());
+          } catch (Exception e) {
+            throw new IllegalStateException(
+                "Unable to instantiate java compiler", e);
+          }
+          IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
+          cbe.setClassName(info.classExpr.name);
+          cbe.setExtendedClass(Utilities.class);
+          cbe.setImplementedInterfaces(
+              plan.getRowType().getFieldCount() == 1
+                  ? new Class[]{Bindable.class, Typed.class}
+                  : new Class[]{ArrayBindable.class});
+          cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
+          return cbe;
+        };
         planInfos[i] = info;
       }
 
@@ -215,7 +218,7 @@ public class CodeGenerationBenchmark {
   /** Plan information. */
   private static class PlanInfo {
     ClassDeclaration classExpr;
-    IClassBodyEvaluator cbe;
+    Supplier<IClassBodyEvaluator> cbeSupplier;
     String javaCode;
   }
 
@@ -246,7 +249,7 @@ public class CodeGenerationBenchmark {
   @Benchmark
   public Bindable<?> getBindableNoCache(QueryState state) throws Exception {
     PlanInfo info = state.planInfos[state.nextPlan()];
-    return (Bindable) info.cbe.createInstance(new StringReader(info.javaCode));
+    return (Bindable) info.cbeSupplier.get().createInstance(new StringReader(info.javaCode));
   }
 
   /**
@@ -267,7 +270,7 @@ public class CodeGenerationBenchmark {
     if (!detector.containsStaticField) {
       return cache.get(
           info.javaCode,
-          () -> (Bindable) info.cbe.createInstance(new StringReader(info.javaCode)));
+          () -> (Bindable) info.cbeSupplier.get().createInstance(new StringReader(info.javaCode)));
     }
     throw new IllegalStateException("Benchmark queries should not arrive here");
   }
