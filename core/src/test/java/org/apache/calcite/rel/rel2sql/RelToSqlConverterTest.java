@@ -9326,6 +9326,327 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+  @Test public void testdatetruncWithYear() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("2008-19-12"), builder.literal("YEAR"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('2008-19-12', 'YEAR') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', YEAR) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testdatetruncWithQuarter() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("2008-19-12"), builder.literal("QUARTER"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('2008-19-12', 'QUARTER') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', QUARTER) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testdatetruncWithMonth() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("2008-19-12"), builder.literal("MONTH"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('2008-19-12', 'MONTH') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', MONTH) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testdatetruncWithWeek() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("2008-19-12"), builder.literal("WEEK"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('2008-19-12', 'WEEK') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', WEEK) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithYear() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("YEAR"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'YEAR') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " YEAR) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithMonth() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("MONTH"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'MONTH') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " MONTH) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithQuarter() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("QUARTER"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'QUARTER') AS \"FD\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " QUARTER) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithWeek() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("WEEK"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'WEEK') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " WEEK) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithDay() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("DAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'DAY') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " DAY) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithHour() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("HOUR"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'HOUR') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " HOUR) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithMinute() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("MINUTE"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'MINUTE') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " MINUTE) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("SECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'SECOND') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " SECOND) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithMilliSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("MILLISECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'MILLISECOND')"
+        + " AS \"FD\"\nFROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " MILLISECOND) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateTimeTruncWithMicroSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("MICROSECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'MICROSECOND')"
+        + " AS \"FD\"\nFROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
+        + " MICROSECOND) AS FD\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeTruncWithHour() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("HOUR"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'HOUR') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', HOUR) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+  @Test public void testTimeTruncWithMinute() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("MINUTE"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'MINUTE') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MINUTE) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeTruncWithSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("SECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'SECOND') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', SECOND) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeTruncWithMiliSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("MILLISECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'MILLISECOND') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MILLISECOND) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeTruncWithMicroSecond() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.literal("20:48:18"), builder.literal("MICROSECOND"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedSql = "SELECT TRUNC('20:48:18', 'MICROSECOND') AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MICROSECOND) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 
   @Test public void testhashrow() {
     final RelBuilder builder = relBuilder();
@@ -9705,7 +10026,8 @@ class RelToSqlConverterTest {
         .project(castTimestampTimeZoneCall)
         .build();
 
-    final String expectedBigQuery = "SELECT CAST(CURRENT_DATETIME() AS TIMESTAMP) AS `$f0`";
+    final String expectedBigQuery =
+        "SELECT CAST(CURRENT_DATETIME() AS TIMESTAMP_WITH_LOCAL_TIME_ZONE) AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }

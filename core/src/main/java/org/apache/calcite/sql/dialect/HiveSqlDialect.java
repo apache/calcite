@@ -180,6 +180,10 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean requiresColumnsInMergeInsertClause() {
+    return false;
+  }
+
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
