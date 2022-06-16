@@ -62,12 +62,10 @@ import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
-import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -141,19 +139,15 @@ class RelToSqlConverterTest {
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
       RelDataTypeSystem typeSystem, Program... programs) {
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(
-            SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
-                SqlLibraryOperatorTableFactory.INSTANCE
-                    .getOperatorTable(librarySet)));
-    MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
-        .operatorTable(operatorTable)
+        .operatorTable(MockSqlOperatorTable.standard()
+            .plus(librarySet)
+            .extend())
         .typeSystem(typeSystem)
         .build();
     return Frameworks.getPlanner(config);
@@ -2454,6 +2448,30 @@ class RelToSqlConverterTest {
         + "from \"product\" ";
     final String expected = "SELECT CAST(`product_id` AS CHAR(255)), `product_id`\n"
         + "FROM `foodmart`.`product`";
+    sql(query).withMysql().ok(expected);
+  }
+
+  @Test void testMySqlUnparseListAggCall() {
+    final String query = "select\n"
+        + "listagg(distinct \"product_name\", ',') within group(order by \"cases_per_pallet\"),\n"
+        + "listagg(\"product_name\", ',') within group(order by \"cases_per_pallet\"),\n"
+        + "listagg(distinct \"product_name\") within group(order by \"cases_per_pallet\" desc),\n"
+        + "listagg(distinct \"product_name\", ',') within group(order by \"cases_per_pallet\"),\n"
+        + "listagg(\"product_name\"),\n"
+        + "listagg(\"product_name\", ',')\n"
+        + "from \"product\"\n"
+        + "group by \"product_id\"\n";
+    final String expected = "SELECT GROUP_CONCAT(DISTINCT `product_name` "
+        + "ORDER BY `cases_per_pallet` IS NULL, `cases_per_pallet` SEPARATOR ','), "
+        + "GROUP_CONCAT(`product_name` "
+        + "ORDER BY `cases_per_pallet` IS NULL, `cases_per_pallet` SEPARATOR ','), "
+        + "GROUP_CONCAT(DISTINCT `product_name` "
+        + "ORDER BY `cases_per_pallet` IS NULL DESC, `cases_per_pallet` DESC), "
+        + "GROUP_CONCAT(DISTINCT `product_name` "
+        + "ORDER BY `cases_per_pallet` IS NULL, `cases_per_pallet` SEPARATOR ','), "
+        + "GROUP_CONCAT(`product_name`), GROUP_CONCAT(`product_name` SEPARATOR ',')\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_id`";
     sql(query).withMysql().ok(expected);
   }
 
@@ -5187,6 +5205,23 @@ class RelToSqlConverterTest {
         .withSnowflake().ok(expectedSnowflake);
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5179">[CALCITE-5179]
+   * In RelToSqlConverter, AssertionError for values with more than two items
+   * when SqlDialect#supportsAliasedValues is false</a>.
+   */
+  @Test void testThreeValues() {
+    final String sql = "select * from (values (1), (2), (3)) as t(\"a\")\n";
+    sql(sql)
+        .withRedshift().ok("SELECT *\n"
+            + "FROM (SELECT 1 AS \"a\"\n"
+            + "UNION ALL\n"
+            + "SELECT 2 AS \"a\"\n"
+            + "UNION ALL\n"
+            + "SELECT 3 AS \"a\")");
+  }
+
   @Test void testValuesEmpty() {
     final String sql = "select *\n"
         + "from (values (1, 'a'), (2, 'bb')) as t(x, y)\n"
@@ -5858,8 +5893,8 @@ class RelToSqlConverterTest {
         + "(SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"department_id\") \"t1\"\n"
-        + "GROUP BY \"t1\".\"department_id\") \"t3\" ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
+        + "GROUP BY \"t1\".\"department_id\"\n"
+        + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     sql(query).withOracle().ok(expected);
   }
 
@@ -5869,18 +5904,15 @@ class RelToSqlConverterTest {
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\","
-        + " MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\", MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
         + "FROM (SELECT *\n"
-        + "FROM (VALUES (NULL, NULL))"
-        + " AS \"t\" (\"department_id\", \"department_description\")\n"
+        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"department_id\", \"department_description\")\n"
         + "WHERE 1 = 0) AS \"t\",\n"
         + "(SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"department_id\") AS \"t1\"\n"
-        + "GROUP BY \"t1\".\"department_id\") AS \"t3\" "
-        + "ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
+        + "GROUP BY \"t1\".\"department_id\"\n"
+        + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) AS \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     sql(query).ok(expected);
   }
 

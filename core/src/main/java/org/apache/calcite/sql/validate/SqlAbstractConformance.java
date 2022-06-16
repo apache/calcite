@@ -101,6 +101,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isLimitStartCountAllowed();
   }
 
+  @Override public boolean isOffsetLimitAllowed() {
+    return SqlConformanceEnum.DEFAULT.isOffsetLimitAllowed();
+  }
+
   @Override public boolean isPercentRemainderAllowed() {
     return SqlConformanceEnum.DEFAULT.isPercentRemainderAllowed();
   }

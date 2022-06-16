@@ -23,10 +23,12 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -35,42 +37,60 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
-import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
  * table, plus a list of operators.
  */
 public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
-  private final ListSqlOperatorTable listOpTab;
-
-  public MockSqlOperatorTable(SqlOperatorTable parentTable) {
-    super(ImmutableList.of(parentTable, new ListSqlOperatorTable()));
-    listOpTab = (ListSqlOperatorTable) tableList.get(1);
+  /** Internal constructor; call {@link #standard()},
+   * {@link #of(SqlOperatorTable)},
+   * {@link #plus(Iterable)}, or
+   * {@link #extend()}. */
+  private MockSqlOperatorTable(SqlOperatorTable parentTable) {
+    super(ImmutableList.of(parentTable));
   }
 
-  /**
-   * Adds an operator to this table.
-   */
-  public void addOperator(SqlOperator op) {
-    listOpTab.add(op);
+  /** Returns the operator table that contains only the standard operators. */
+  public static MockSqlOperatorTable standard() {
+    return of(SqlStdOperatorTable.instance());
   }
 
-  public static void addRamp(MockSqlOperatorTable opTab) {
+  /** Returns a mock operator table based on the given operator table. */
+  public static MockSqlOperatorTable of(SqlOperatorTable operatorTable) {
+    return new MockSqlOperatorTable(operatorTable);
+  }
+
+  /** Returns this table with a few mock operators added. */
+  public MockSqlOperatorTable extend() {
     // Don't use anonymous inner classes. They can't be instantiated
     // using reflection when we are deserializing from JSON.
-    opTab.addOperator(new RampFunction());
-    opTab.addOperator(new DedupFunction());
-    opTab.addOperator(new MyFunction());
-    opTab.addOperator(new MyAvgAggFunction());
-    opTab.addOperator(new RowFunction());
-    opTab.addOperator(new NotATableFunction());
-    opTab.addOperator(new BadTableFunction());
-    opTab.addOperator(new StructuredFunction());
-    opTab.addOperator(new CompositeFunction());
+    final SqlOperatorTable parentTable = Iterables.getOnlyElement(tableList);
+    return new MockSqlOperatorTable(
+        SqlOperatorTables.chain(parentTable,
+            SqlOperatorTables.of(new RampFunction(),
+                new DedupFunction(),
+                new MyFunction(),
+                new MyAvgAggFunction(),
+                new RowFunction(),
+                new NotATableFunction(),
+                new BadTableFunction(),
+                new StructuredFunction(),
+                new CompositeFunction())));
+  }
+
+  /** Adds a library set. */
+  public MockSqlOperatorTable plus(Iterable<SqlLibrary> librarySet) {
+    final SqlOperatorTable parentTable = Iterables.getOnlyElement(tableList);
+    return new MockSqlOperatorTable(
+        SqlOperatorTables.chain(parentTable,
+            SqlLibraryOperatorTableFactory.INSTANCE
+                .getOperatorTable(librarySet)));
   }
 
   /** "RAMP" user-defined table function. */

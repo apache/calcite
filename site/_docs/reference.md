@@ -186,7 +186,7 @@ query:
       |   query INTERSECT [ ALL | DISTINCT ] query
       }
       [ ORDER BY orderItem [, orderItem ]* ]
-      [ LIMIT [ start, ] { count | ALL } ]
+      [ LIMIT { [ start, ] count | ALL } ]
       [ OFFSET start { ROW | ROWS } ]
       [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
 
@@ -203,7 +203,7 @@ select:
           { * | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
-      [ GROUP BY { groupItem [, groupItem ]* } ]
+      [ GROUP BY [ ALL | DISTINCT ] { groupItem [, groupItem ]* } ]
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
 
@@ -370,6 +370,11 @@ function).
 An IN, EXISTS, UNIQUE or scalar sub-query may be correlated; that is, it
 may refer to tables in the FROM clause of an enclosing query.
 
+GROUP BY DISTINCT removes duplicate grouping sets (for example,
+"GROUP BY DISTINCT GROUPING SETS ((a), (a, b), (a))" is equivalent to
+"GROUP BY GROUPING SETS ((a), (a, b))");
+GROUP BY ALL is equivalent to GROUP BY.
+
 *selectWithoutFrom* is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isFromRequired--).
@@ -384,6 +389,9 @@ CROSS APPLY and OUTER APPLY are only allowed in certain
 "LIMIT start, count" is equivalent to "LIMIT count OFFSET start"
 but is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isLimitStartCountAllowed--).
+
+"OFFSET start" may occur before "LIMIT count" in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isOffsetLimitAllowed--).
 
 ## Keywords
 

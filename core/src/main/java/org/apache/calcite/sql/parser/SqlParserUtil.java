@@ -140,9 +140,8 @@ public final class SqlParserUtil {
   }
 
   public static SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
-    final String dateStr = parseString(s);
     final Calendar cal =
-        DateTimeUtils.parseDateFormat(dateStr, Format.get().date,
+        DateTimeUtils.parseDateFormat(s, Format.get().date,
             DateTimeUtils.UTC_ZONE);
     if (cal == null) {
       throw SqlUtil.newContextException(pos,
@@ -154,9 +153,8 @@ public final class SqlParserUtil {
   }
 
   public static SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
-    final String dateStr = parseString(s);
     final DateTimeUtils.PrecisionTime pt =
-        DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
+        DateTimeUtils.parsePrecisionDateTimeLiteral(s,
             Format.get().time, DateTimeUtils.UTC_ZONE, -1);
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
@@ -170,14 +168,13 @@ public final class SqlParserUtil {
 
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
-    final String dateStr = parseString(s);
     final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
     // PostgreSQL); TODO: require time fields except in Babel's lenient mode
     final DateFormat[] dateFormats = {format.timestamp, format.date};
     for (DateFormat dateFormat : dateFormats) {
-      pt = DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
+      pt = DateTimeUtils.parsePrecisionDateTimeLiteral(s,
           dateFormat, DateTimeUtils.UTC_ZONE, -1);
       if (pt != null) {
         break;
@@ -196,13 +193,12 @@ public final class SqlParserUtil {
 
   public static SqlIntervalLiteral parseIntervalLiteral(SqlParserPos pos,
       int sign, String s, SqlIntervalQualifier intervalQualifier) {
-    final String intervalStr = parseString(s);
-    if (intervalStr.equals("")) {
+    if (s.equals("")) {
       throw SqlUtil.newContextException(pos,
           RESOURCE.illegalIntervalLiteral(s + " "
               + intervalQualifier.toString(), pos.toString()));
     }
-    return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, pos);
+    return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
   }
 
   /**

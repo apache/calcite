@@ -53,6 +53,11 @@ class SqlRollupOperator extends SqlInternalOperator {
         return;
       }
       break;
+    case GROUP_BY_DISTINCT:
+      writer.keyword(call.getOperator().getName());
+      SqlNodeList groupBy = new SqlNodeList(call.getOperandList(), call.getParserPosition());
+      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA, groupBy);
+      return;
     default:
       break;
     }

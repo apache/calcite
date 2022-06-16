@@ -59,7 +59,7 @@
   apacheId: chunwei
   githubId: chunweilei
   org: Alibaba
-  role: Committer
+  role: PMC
 - name: Danny Chan
   apacheId: danny0405
   githubId: danny0405
@@ -268,7 +268,7 @@
   apacheId: vozerov
   githubId: devozerov
   org: Querify Labs
-  role: Committer
+  role: PMC
 - name: Volodymyr Vysotskyi
   apacheId: volodymyr
   githubId: vvysotskyi

@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
@@ -30,6 +31,7 @@ import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
@@ -65,6 +67,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -2122,6 +2125,29 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testGroupByAllOrDistinct() {
+    final String sql = "select deptno from emp\n"
+        + "group by all cube (a, b), rollup (a, b)";
+    final String expected = "SELECT `DEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
+    sql(sql).ok(expected);
+
+    final String sql1 = "select deptno from emp\n"
+        + "group by distinct cube (a, b), rollup (a, b)";
+    final String expected1 = "SELECT `DEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY DISTINCT CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "select deptno from emp\n"
+        + "group by cube (a, b), rollup (a, b)";
+    final String expected2 = "SELECT `DEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY CUBE(`A`, `B`), ROLLUP(`A`, `B`)";
+    sql(sql2).ok(expected2);
+  }
+
   @Test void testGroupByCube2() {
     final String sql = "select deptno from emp\n"
         + "group by cube ((a, b), (c, d)) order by a";
@@ -2769,7 +2795,7 @@ public class SqlParserTest {
   @Test void testFullInnerJoinFails() {
     // cannot have more than one of INNER, FULL, LEFT, RIGHT, CROSS
     sql("select * from a ^full^ inner join b")
-        .fails("(?s).*Encountered \"full inner\" at line 1, column 17.*");
+        .fails("(?s).*Encountered \"full inner\" at line .*");
   }
 
   @Test void testFullOuterJoin() {
@@ -2782,26 +2808,39 @@ public class SqlParserTest {
 
   @Test void testInnerOuterJoinFails() {
     sql("select * from a ^inner^ outer join b")
-        .fails("(?s).*Encountered \"inner outer\" at line 1, column 17.*");
+        .fails("(?s).*Encountered \"inner outer\" at line .*");
   }
 
-  @Disabled
   @Test void testJoinAssociativity() {
     // joins are left-associative
     // 1. no parens needed
+    String expected = "SELECT *\n"
+        + "FROM `A`\n"
+        + "NATURAL LEFT JOIN `B`\n"
+        + "LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)";
     sql("select * from (a natural left join b) left join c on b.c1 = c.c1")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected);
 
     // 2. parens needed
+    String expected2 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "NATURAL LEFT JOIN (`B` LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`))";
     sql("select * from a natural left join (b left join c on b.c1 = c.c1)")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected2);
 
     // 3. same as 1
     sql("select * from a natural left join b left join c on b.c1 = c.c1")
-        .ok("SELECT *\n"
-            + "FROM (`A` NATURAL LEFT JOIN `B`) LEFT JOIN `C` ON (`B`.`C1` = `C`.`C1`)\n");
+        .ok(expected);
+
+    // bushy
+    String sql4 = "select *\n"
+        + "from (a cross join b)\n"
+        + "cross join (c cross join d)";
+    String expected4 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "CROSS JOIN `B`\n"
+        + "CROSS JOIN (`C` CROSS JOIN `D`)";
+    sql(sql4).ok(expected4);
   }
 
   // Note: "select * from a natural cross join b" is actually illegal SQL
@@ -3066,7 +3105,6 @@ public class SqlParserTest {
   }
 
   @Test void testMixedFrom() {
-    // REVIEW: Is this syntax even valid?
     sql("select * from a join b using (x), c join d using (y)")
         .ok("SELECT *\n"
             + "FROM `A`\n"
@@ -3319,7 +3357,7 @@ public class SqlParserTest {
   @Test void testLimitStartCount() {
     final String error = "'LIMIT start, count' is not allowed under the "
         + "current SQL conformance level";
-    sql("select a from foo limit 1,^2^")
+    sql("select a from foo ^limit 1,2^")
         .withConformance(SqlConformanceEnum.DEFAULT)
         .fails(error);
 
@@ -3354,17 +3392,51 @@ public class SqlParserTest {
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected3);
 
-    // "fetch next 4" overrides the earlier "limit 3"
-    final String expected4 = "SELECT `A`\n"
-        + "FROM `FOO`\n"
-        + "OFFSET 2 ROWS\n"
-        + "FETCH NEXT 4 ROWS ONLY";
-    sql("select a from foo limit 2,3 fetch next 4 rows only")
+    // "fetch next 4" is invalid after "limit 3"
+    sql("select a from foo limit 2,3 ^fetch^ next 4 rows only")
         .withConformance(SqlConformanceEnum.LENIENT)
-        .ok(expected4);
+        .fails("(?s).*Encountered \"fetch\" at line 1.*");
 
     // "limit start, all" is not valid
     sql("select a from foo limit 2, ^all^")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Encountered \"all\" at line 1.*");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5086">[CALCITE-5086]
+   * Calcite supports OFFSET start LIMIT count expression</a>. */
+  @Test void testOffsetStartLimitCount() {
+    final String error = "'OFFSET start LIMIT count' is not allowed under the "
+        + "current SQL conformance level";
+    sql("select a from foo order by b, c offset 1 limit 2")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "OFFSET 1 ROWS\n"
+            + "FETCH NEXT 2 ROWS ONLY");
+
+    sql("select a from foo order by b, c ^offset 1 limit 2^")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails(error);
+
+    // "limit 2" overrides the earlier "offset 4"
+    final String expected3 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 2 ROWS\n"
+        + "FETCH NEXT 3 ROWS ONLY";
+    sql("select a from foo offset 4 limit 2,3")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok(expected3);
+
+    // "fetch next 4" is illegal following "limit 3"
+    sql("select a from foo offset 2 limit 3 ^fetch^ next 4 rows only")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .fails("(?s).*Encountered \"fetch\" at line 1.*");
+
+    // "limit start, all" is not valid
+    sql("select a from foo offset 1 limit 2, ^all^")
         .withConformance(SqlConformanceEnum.LENIENT)
         .fails("(?s).*Encountered \"all\" at line 1.*");
   }
@@ -3840,8 +3912,8 @@ public class SqlParserTest {
     sql("select * from table ^emp^")
         .fails("(?s).*Encountered \"emp\" at .*");
 
-    sql("select * from (table ^(^select empno from emp))")
-        .fails("(?s)Encountered \"\\(\".*");
+    sql("select * from (table (^select^ empno from emp))")
+        .fails("(?s)Encountered \"select\".*");
   }
 
   @Test void testCollectionTable() {
@@ -3898,8 +3970,8 @@ public class SqlParserTest {
     sql("select * from lateral table(ramp(1)) as t(x)")
         .ok(expected + " AS `T` (`X`)");
     // Bad: Parentheses make it look like a sub-query
-    sql("select * from lateral (table^(^ramp(1)))")
-        .fails("(?s)Encountered \"\\(\" at .*");
+    sql("select * from lateral (^table (ramp(1))^)")
+        .fails("Expected query or join");
 
     // Good: LATERAL (subQuery)
     final String expected2 = "SELECT *\n"
@@ -4690,6 +4762,37 @@ public class SqlParserTest {
     sql("select interval '5:6' hour to minute from t").ok(expected4);
   }
 
+  /** Tests that on BigQuery, DATE, TIME and TIMESTAMP literals can use
+   * single- or double-quoted strings. */
+  @Test void testDateLiteralBigQuery() {
+    final SqlParserFixture f = fixture().withDialect(BIG_QUERY);
+    f.sql("select date '2020-10-10'")
+        .ok("SELECT DATE '2020-10-10'");
+    f.sql("select date\"2020-10-10\"")
+        .ok("SELECT DATE '2020-10-10'");
+    f.sql("select timestamp '2018-02-17 13:22:04'")
+        .ok("SELECT TIMESTAMP '2018-02-17 13:22:04'");
+    f.sql("select timestamp \"2018-02-17 13:22:04\"")
+        .ok("SELECT TIMESTAMP '2018-02-17 13:22:04'");
+    f.sql("select time '13:22:04'")
+        .ok("SELECT TIME '13:22:04'");
+    f.sql("select time \"13:22:04\"")
+        .ok("SELECT TIME '13:22:04'");
+  }
+
+  @Test void testIntervalLiteralBigQuery() {
+    final SqlParserFixture f = fixture().withDialect(BIG_QUERY)
+        .expression(true);
+    f.sql("interval '1' day")
+        .ok("INTERVAL '1' DAY");
+    f.sql("interval \"1\" day")
+        .ok("INTERVAL '1' DAY");
+    f.sql("interval '1:2:3' hour to second")
+        .ok("INTERVAL '1:2:3' HOUR TO SECOND");
+    f.sql("interval \"1:2:3\" hour to second")
+        .ok("INTERVAL '1:2:3' HOUR TO SECOND");
+  }
+
   // check date/time functions.
   @Test void testTimeDate() {
     // CURRENT_TIME - returns time w/ timezone
@@ -5275,6 +5378,16 @@ public class SqlParserTest {
         .ok("(ARRAY[])");
     expr("array[(1, 'a'), (2, 'b')]")
         .ok("(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
+  }
+
+  @Test void testArrayQueryConstructor() {
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x)")
+        .ok("SELECT (ARRAY ((SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`)))");
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x ORDER BY x)")
+        .ok("SELECT (ARRAY (SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`\n"
+            + "ORDER BY `X`))");
   }
 
   @Test void testCastAsCollectionType() {
@@ -7566,6 +7679,93 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"to\".*");
   }
 
+  /** Tests that EXTRACT, FLOOR, CEIL functions accept abbreviations for
+   * time units (such as "Y" for "YEAR") when configured via
+   * {@link Config#timeUnitCodes()}. */
+  @Test void testTimeUnitCodes() {
+    final Map<String, TimeUnit> simpleCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("M", TimeUnit.MONTH)
+            .put("D", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .build();
+
+    // Time unit abbreviations for Microsoft SQL Server
+    final Map<String, TimeUnit> mssqlCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("YY", TimeUnit.YEAR)
+            .put("YYYY", TimeUnit.YEAR)
+            .put("Q", TimeUnit.QUARTER)
+            .put("QQ", TimeUnit.QUARTER)
+            .put("M", TimeUnit.MONTH)
+            .put("MM", TimeUnit.MONTH)
+            .put("W", TimeUnit.WEEK)
+            .put("WK", TimeUnit.WEEK)
+            .put("WW", TimeUnit.WEEK)
+            .put("DY", TimeUnit.DOY)
+            .put("DW", TimeUnit.DOW)
+            .put("D", TimeUnit.DAY)
+            .put("DD", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("HH", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("MI", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .put("SS", TimeUnit.SECOND)
+            .put("MS", TimeUnit.MILLISECOND)
+            .build();
+
+    checkTimeUnitCodes(Config.DEFAULT.timeUnitCodes());
+    checkTimeUnitCodes(simpleCodes);
+    checkTimeUnitCodes(mssqlCodes);
+  }
+
+  /** Checks parsing of built-in functions that accept time unit
+   * abbreviations.
+   *
+   * <p>For example, {@code EXTRACT(Y FROM orderDate)} is using
+   * "Y" as an abbreviation for "YEAR".
+   *
+   * <p>Override if your parser supports more such functions. */
+  protected void checkTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
+    SqlParserFixture f = fixture()
+        .withConfig(config -> config.withTimeUnitCodes(timeUnitCodes));
+    BiConsumer<String, TimeUnit> validConsumer = (abbrev, timeUnit) -> {
+      f.sql("select extract(" + abbrev + " from x)")
+          .ok("SELECT EXTRACT(" + timeUnit + " FROM `X`)");
+      f.sql("select floor(x to " + abbrev + ")")
+          .ok("SELECT FLOOR(`X` TO " + timeUnit + ")");
+      f.sql("select ceil(x to " + abbrev + ")")
+          .ok("SELECT CEIL(`X` TO " + timeUnit + ")");
+    };
+    BiConsumer<String, TimeUnit> invalidConsumer = (abbrev, timeUnit) -> {
+      final String upAbbrev = abbrev.toUpperCase(Locale.ROOT);
+      f.sql("select extract(^" + abbrev + "^ from x)")
+          .fails("'" + upAbbrev + "' is not a valid datetime format");
+      f.sql("SELECT FLOOR(x to ^" + abbrev + "^)")
+          .fails("'" + upAbbrev + "' is not a valid datetime format");
+      f.sql("SELECT CEIL(x to ^" + abbrev + "^)")
+          .fails("'" + upAbbrev + "' is not a valid datetime format");
+    };
+
+    // Check that each valid code passes each query that it should.
+    timeUnitCodes.forEach(validConsumer);
+
+    // If "M" is a valid code then "m" should be also.
+    timeUnitCodes.forEach((abbrev, timeUnit) ->
+        validConsumer.accept(abbrev.toLowerCase(Locale.ROOT), timeUnit));
+
+    // Check that invalid codes generate the right error messages.
+    final Map<String, TimeUnit> invalidCodes =
+        ImmutableMap.of("A", TimeUnit.YEAR,
+            "a", TimeUnit.YEAR);
+    invalidCodes.forEach(invalidConsumer);
+  }
+
   @Test void testGeometry() {
     expr("cast(null as ^geometry^)")
         .fails("Geo-spatial extensions and the GEOMETRY data type are not enabled");
@@ -7770,28 +7970,130 @@ public class SqlParserTest {
   @Test void testParensInFrom() {
     // UNNEST may not occur within parentheses.
     // FIXME should fail at "unnest"
-    sql("select *from ^(^unnest(x))")
-        .fails("(?s)Encountered \"\\( unnest\" at .*");
+    sql("select *from (^unnest(x)^)")
+        .fails("Expected query or join");
 
     // <table-name> may not occur within parentheses.
+    // TODO: Postgres gives "syntax error at ')'", which might be better
     sql("select * from (^emp^)")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+        .fails("(?s)Expected query or join.*");
 
     // <table-name> may not occur within parentheses.
-    sql("select * from (^emp^ as x)")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+    // TODO: Postgres gives "syntax error at ')'", which might be better
+    sql("select * from (^emp as x^)")
+        .fails("Expected query or join");
 
     // <table-name> may not occur within parentheses.
     sql("select * from (^emp^) as x")
-        .fails("(?s)Non-query expression encountered in illegal context.*");
+        .fails("Expected query or join");
 
     // Parentheses around JOINs are OK, and sometimes necessary.
-    if (false) {
-      // todo:
-      sql("select * from (emp join dept using (deptno))").ok("xx");
+    String sql1 = "select *\n"
+        + "from (emp join dept using (deptno))";
+    String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "INNER JOIN `DEPT` USING (`DEPTNO`)";
+    sql(sql1).ok(expected);
 
-      sql("select * from (emp join dept using (deptno)) join foo using (x)").ok("xx");
-    }
+    String sql2 = "select *\n"
+        + "from (emp join dept using (deptno))\n"
+        + "join foo using (x)";
+    String expected2 = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "INNER JOIN `DEPT` USING (`DEPTNO`)\n"
+        + "INNER JOIN `FOO` USING (`X`)";
+    sql(sql2).ok(expected2);
+
+    // In Postgres and Standard SQL, you can alias a join:
+    //   "select x.i from (t cross join u) as x"
+    // is syntactically and semantically valid; but
+    //   "select t.i from (t cross join u) as x"
+    // is semantically invalid.
+    // TODO: Support this in Calcite.
+    sql("select * from (t cross ^join^ u) as x")
+        .fails("Join expression encountered in illegal context");
+    sql("select *\n"
+        + "from (t cross ^join^ u)\n"
+        + "  tablesample substitute('medium')")
+        .fails("Join expression encountered in illegal context");
+    sql("select *\n"
+        + "from (t cross ^join^ u)\n"
+        + "PIVOT (sum(sal) AS sal FOR job in ('CLERK' AS c))")
+        .fails("Join expression encountered in illegal context");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-35">[CALCITE-35]
+   * Support parenthesized sub-clause in JOIN</a>. */
+  @Test void testParenthesizedJoins() {
+    final String sql = "SELECT * FROM "
+        + "(((S.C c INNER JOIN S.N n ON n.id = c.id) "
+        + "INNER JOIN S.A a ON (NOT a.isactive)) "
+        + "INNER JOIN S.T t ON t.id = a.id)";
+    final String expected = "SELECT *\n"
+        + "FROM `S`.`C` AS `C`\n"
+        + "INNER JOIN `S`.`N` AS `N` ON (`N`.`ID` = `C`.`ID`)\n"
+        + "INNER JOIN `S`.`A` AS `A` ON (NOT `A`.`ISACTIVE`)\n"
+        + "INNER JOIN `S`.`T` AS `T` ON (`T`.`ID` = `A`.`ID`)";
+    sql(sql).ok(expected);
+
+    final String sql2 = "select *\n"
+        + "from a\n"
+        + " join (b join c on b.x = c.x)\n"
+        + " on a.y = c.y";
+    final String expected2 = "SELECT *\n"
+        + "FROM `A`\n"
+        + "INNER JOIN (`B` INNER JOIN `C` ON (`B`.`X` = `C`.`X`))"
+        + " ON (`A`.`Y` = `C`.`Y`)";
+    sql(sql2).ok(expected2);
+  }
+
+  @Test void testFromExpr() {
+    String sql0 = "select * from a cross join b";
+    String sql1 = "select * from (a cross join b)";
+    String expected = "SELECT *\n"
+        + "FROM `A`\n"
+        + "CROSS JOIN `B`";
+    sql(sql0).ok(expected);
+    sql(sql1).ok(expected);
+  }
+
+  /** Tests parsing parenthesized queries. */
+  @Test void testParenthesizedQueries() {
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `TAB`) AS `X`";
+    final String sql1 = "SELECT *\n"
+        + "FROM (((SELECT * FROM tab))) X";
+    final String sql2 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM tab)))))))))))) X";
+    sql(sql1).ok(expected);
+    sql(sql2).ok(expected);
+
+    final String sql3 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross join ((table t2)))))))))))";
+    final String expected3 = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `T`)\n"
+        + "CROSS JOIN (TABLE `T2`)";
+    sql(sql3).ok(expected3);
+
+    // Adding an alias to the previous query makes it invalid
+    // (The error message and location could be improved)
+    final String sql4 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) X";
+    final String sql5 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) as X";
+    final String sql6 = "SELECT *\n"
+        + "FROM ((((((((((((SELECT * FROM t)))\n"
+        + "  cross ^join^ ((table t2))))))))))) as X (a, b, c)";
+    final String message = "Join expression encountered in illegal context";
+    sql(sql4).fails(message);
+    sql(sql5).fails(message);
+    sql(sql6).fails(message);
   }
 
   @Test void testProcedureCall() {
@@ -9873,7 +10175,7 @@ public class SqlParserTest {
           .withClauseEndsLine(random.nextBoolean());
     }
 
-    private String toSqlString(SqlNodeList sqlNodeList,
+    static String toSqlString(SqlNodeList sqlNodeList,
         UnaryOperator<SqlWriterConfig> transform) {
       return sqlNodeList.stream()
           .map(node -> node.toSqlString(transform).getSql())
@@ -9889,7 +10191,7 @@ public class SqlParserTest {
       return constants[random.nextInt(constants.length)];
     }
 
-    private void checkList(SqlNodeList sqlNodeList,
+    static void checkList(SqlNodeList sqlNodeList,
         UnaryOperator<String> converter, List<String> expected) {
       assertThat(sqlNodeList.size(), is(expected.size()));
 

@@ -114,9 +114,10 @@ public class StreamTest {
         .query("select stream product from orders where units > 6")
         .convertContains(
             "LogicalDelta\n"
-                + "  LogicalProject(PRODUCT=[$2])\n"
-                + "    LogicalFilter(condition=[>($3, 6)])\n"
-                + "      LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
+                + "  LogicalProject(PRODUCT=[$1])\n"
+                + "    LogicalFilter(condition=[>($2, 6)])\n"
+                + "      LogicalProject(ROWTIME=[$0], PRODUCT=[$2], UNITS=[$3])\n"
+                + "        LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
             "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[6], expr#5=[>($t3, $t4)], PRODUCT=[$t2], $condition=[$t5])\n"
                 + "  EnumerableInterpreter\n"
@@ -260,16 +261,16 @@ public class StreamTest {
             + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
             + "from orders join products on orders.product = products.id")
         .convertContains("LogicalDelta\n"
-            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$6])\n"
-            + "    LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) NOT NULL])\n"
+            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$4])\n"
+            + "    LogicalJoin(condition=[=($2, $3)], joinType=[inner])\n"
+            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT0=[CAST($2):VARCHAR(32) NOT NULL])\n"
             + "        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
             + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
-            + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
-            + "  EnumerableMergeJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "    EnumerableSort(sort0=[$4], dir0=[ASC])\n"
-            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t4])\n"
+            + "  EnumerableMergeJoin(condition=[=($2, $3)], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[$2], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..1=[{exprs}], PRODUCT0=[$t4])\n"
             + "        EnumerableInterpreter\n"
             + "          BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
             + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"

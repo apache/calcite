@@ -969,6 +969,14 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5162">[CALCITE-5162]
+   * RelMdUniqueKeys can return more precise unique keys for Aggregate</a>. */
+  @Test void testGroupByPreciseUniqueKeys() {
+    sql("select empno, ename from emp group by empno, ename")
+        .assertThatUniqueKeysAre(bitSetOf(0));
+  }
+
   @Test void testFullOuterJoinUniqueness1() {
     final String sql = "select e.empno, d.deptno\n"
         + "from (select cast(null as int) empno from sales.emp "
@@ -1114,6 +1122,24 @@ public class RelMetadataTest {
               .build();
         })
         .assertThatAreColumnsUnique(bitSetOf(0), is(true));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5149">[CALCITE-5149]
+   * Refine RelMdColumnUniqueness for Aggregate by considering intersect keys
+   * between target keys and group keys</a>. */
+  @Test void testColumnUniquenessForAggregate() {
+    sql("select empno, ename, count(1) as cnt from emp group by empno, ename")
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true));
+
+    sql("select empno, ename, count(1) as cnt from emp group by empno, ename")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true));
+
+    sql("select ename, empno, count(1) as cnt from emp group by ename, empno")
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true));
+
+    sql("select empno, ename, count(1) as cnt from emp group by empno, ename")
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false));
   }
 
   @Test void testGroupBy() {

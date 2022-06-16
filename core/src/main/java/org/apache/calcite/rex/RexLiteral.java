@@ -446,7 +446,7 @@ public class RexLiteral extends RexNode {
   }
 
   /**
-   * Computes if data type can be omitted from the digset.
+   * Computes if data type can be omitted from the digest.
    * <p>For instance, {@code 1:BIGINT} has to keep data type while {@code 1:INT}
    * should be represented as just {@code 1}.
    *
