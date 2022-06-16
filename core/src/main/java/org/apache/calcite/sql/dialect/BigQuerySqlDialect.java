@@ -893,8 +893,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "PARSE_DATE":
     case "PARSE_TIME":
-    case "PARSE_TIMESTAMP":
     case "PARSE_DATETIME":
+    case "PARSE_TIMESTAMP":
       unParseDateTime(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIME":
