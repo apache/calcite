@@ -927,6 +927,15 @@ public abstract class SqlLibraryOperators {
         SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARSE_TIME =
+      new SqlFunction(
+          "PARSE_TIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE, null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_TIMESTAMP =
       new SqlFunction("PARSE_TIMESTAMP",
         SqlKind.OTHER_FUNCTION,

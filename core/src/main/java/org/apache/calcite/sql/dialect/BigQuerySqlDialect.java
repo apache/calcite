@@ -140,6 +140,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
@@ -890,14 +891,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_DATETIME":
       unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       break;
+    case "PARSE_DATE":
+    case "PARSE_TIME":
     case "PARSE_TIMESTAMP":
-      String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
-          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
-          .getValue()
-          : call.operand(0).toString();
-      SqlCall formatCall = PARSE_DATETIME.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
-      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+    case "PARSE_DATETIME":
+      unParseDateTime(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIME":
       unparseFormatCall(writer, call, leftPrec, rightPrec);
@@ -1057,6 +1055,34 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unParseDateTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
+        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+        .getValue() : call.operand(0).toString();
+    SqlCall formatCall = null;
+    switch (call.getOperator().getName()) {
+    case "PARSE_DATE":
+      formatCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      break;
+    case "PARSE_TIME":
+      formatCall = PARSE_TIME.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      break;
+    case "PARSE_TIMESTAMP":
+      formatCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      break;
+    case "PARSE_DATETIME":
+      formatCall = PARSE_DATETIME.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      break;
+    default:
+      unparseOtherFunction(writer, call, leftPrec, rightPrec);
+    }
+    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
