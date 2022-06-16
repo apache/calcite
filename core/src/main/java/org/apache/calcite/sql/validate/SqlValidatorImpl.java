@@ -117,6 +117,7 @@ import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.dataflow.qual.Pure;
@@ -3702,15 +3703,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private static @Nullable SqlNode stripDot(@Nullable SqlNode node) {
-    if (node != null && node.getKind() == SqlKind.DOT) {
-      return stripDot(((SqlCall) node).operand(0));
+  /**
+   * If the {@code node} is a DOT call, returns its first operand. Recurse, if
+   * the first operand is another DOT call.
+   *
+   * <p>In other words, it converts {@code a DOT b DOT c} to {@code a}.
+   *
+   * @param node The node to strip DOT
+   * @return the DOT's first operand
+   */
+  private static @NonNull SqlNode stripDot(@NonNull SqlNode node) {
+    SqlNode res = node;
+    while (res.getKind() == SqlKind.DOT) {
+      res = ((SqlCall) res).operand(0);
     }
-    return node;
+    return res;
   }
 
   private void checkRollUp(@Nullable SqlNode grandParent, @Nullable SqlNode parent,
-      @Nullable SqlNode current, SqlValidatorScope scope, @Nullable String optionalClause) {
+      @Nullable SqlNode current, SqlValidatorScope scope, @Nullable String contextClause) {
     current = stripAs(current);
     if (current instanceof SqlCall && !(current instanceof SqlSelect)) {
       // Validate OVER separately
@@ -3719,12 +3730,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       SqlNode stripDot = requireNonNull(stripDot(current), "stripDot(current)");
       if (stripDot != current) {
-        checkRollUp(grandParent, parent, stripDot, scope, optionalClause);
+        // we stripped the field access. Recurse to this method, the DOT's operand
+        // can be another SqlCall, or an SqlIdentifier.
+        checkRollUp(grandParent, parent, stripDot, scope, contextClause);
       } else {
-        List<? extends @Nullable SqlNode> children =
-            ((SqlCall) stripAs(stripDot)).getOperandList();
+        List<? extends @Nullable SqlNode> children = ((SqlCall) stripDot).getOperandList();
         for (SqlNode child : children) {
-          checkRollUp(parent, current, child, scope, optionalClause);
+          checkRollUp(parent, current, child, scope, contextClause);
         }
       }
     } else if (current instanceof SqlIdentifier) {
@@ -3732,7 +3744,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (!id.isStar() && isRolledUpColumn(id, scope)) {
         if (!isAggregation(requireNonNull(parent, "parent").getKind())
             || !isRolledUpColumnAllowedInAgg(id, scope, (SqlCall) parent, grandParent)) {
-          String context = optionalClause != null ? optionalClause : parent.getKind().toString();
+          String context = contextClause != null ? contextClause : parent.getKind().toString();
           throw newValidationError(id,
               RESOURCE.rolledUpNotAllowed(deriveAliasNonNull(id, 0), context));
         }
@@ -3745,7 +3757,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     checkRollUp(grandParent, parent, current, scope, null);
   }
 
-  private static @Nullable SqlWindow getWindowInOver(SqlNode over) {
+  private static @Nullable SqlWindow getWindowInOver(@NonNull SqlNode over) {
     if (over.getKind() == SqlKind.OVER) {
       SqlNode window = ((SqlCall) over).getOperandList().get(1);
       if (window instanceof SqlWindow) {

@@ -1707,6 +1707,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Incompatible types.*");
   }
 
+  @Test void testDotAfterParenthesizedIdentifier() {
+    sql("select (home_address).city from emp_address")
+        .columnType("VARCHAR(20) NOT NULL");
+  }
+
   @Test void testMultiset() {
     expr("multiset[1]")
         .columnType("INTEGER NOT NULL MULTISET NOT NULL");

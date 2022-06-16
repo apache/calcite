@@ -1393,6 +1393,17 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDotAfterParenthesizedIdentifier">
+    <Resource name="sql">
+      <![CDATA[select (home_address).city from emp_address]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1.CITY])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDotLiteralAfterNestedRow">
     <Resource name="sql">
       <![CDATA[select ((1,2),(3,4,5))."EXPR$1"."EXPR$2" from emp]]>
@@ -3498,7 +3509,8 @@ LogicalProject(EXPR$0=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
     <Resource name="sql">
       <![CDATA[SELECT emp.deptno, emp.sal
 FROM dept
-         LEFT JOIN emp ON (SELECT AVG(emp.sal) > 0 FROM emp)]]>
+JOIN emp
+ON (SELECT AVG(emp.sal) > 0 FROM emp)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3655,8 +3667,7 @@ json_object(
     json_object(
       ename :
       deptno)))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3677,8 +3688,7 @@ json_array(
       'key2' :
        ename)),
   json_array(12, 'hello', deptno))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3697,8 +3707,7 @@ json_object(
     json_object(
       'k1' :
       deptno)))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3720,8 +3729,7 @@ json_object(
   json_object(
     'key3' :
     json_array(12, 'hello', deptno))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[

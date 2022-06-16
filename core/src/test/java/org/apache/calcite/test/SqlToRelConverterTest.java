@@ -88,6 +88,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testDotAfterParenthesizedIdentifier() {
+    final String sql = "select (home_address).city from emp_address";
+    sql(sql).ok();
+  }
+
   @Test void testRowValueConstructorWithSubquery() {
     final String sql = "select ROW("
         + "(select deptno\n"

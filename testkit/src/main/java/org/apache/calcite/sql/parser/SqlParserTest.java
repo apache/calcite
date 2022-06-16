@@ -1294,6 +1294,11 @@ public class SqlParserTest {
         .ok("SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`)\nFROM `TBL`");
   }
 
+  @Test void testDotAfterParenthesizedIdentifier() {
+    sql("select (a).c.d from c.t")
+        .ok("SELECT ((`A`.`C`).`D`)\nFROM `C`.`T`");
+  }
+
   @Test void testPeriod() {
     // We don't have a PERIOD constructor currently;
     // ROW constructor is sufficient for now.
