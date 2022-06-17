@@ -139,8 +139,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
@@ -1061,24 +1059,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
         ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
         .getValue() : call.operand(0).toString();
-    SqlCall formatCall = null;
-    switch (call.getOperator().getName()) {
-    case "PARSE_DATE":
-      formatCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
+    SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
           createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
-      break;
-    case "PARSE_TIME":
-      formatCall = PARSE_TIME.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
-      break;
-    case "PARSE_DATETIME":
-    case "PARSE_TIMESTAMP":
-      formatCall = PARSE_DATETIME.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
-      break;
-    default:
-      unparseOtherFunction(writer, call, leftPrec, rightPrec);
-    }
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
