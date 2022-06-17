@@ -844,7 +844,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     return intervalOperand.operand(0);
   }
 
-  public void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  protected void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "CURRENT_TIMESTAMP":
       if (((SqlBasicCall) call).getOperands().length > 0) {
@@ -1057,7 +1057,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  public void unParseDateTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  protected void unParseDateTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
         ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
         .getValue() : call.operand(0).toString();
