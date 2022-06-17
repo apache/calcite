@@ -931,7 +931,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "PARSE_TIME",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE, null,
+          ReturnTypes.TIME_NULLABLE, null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
