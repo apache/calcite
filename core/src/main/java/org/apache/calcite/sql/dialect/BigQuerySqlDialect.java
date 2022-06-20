@@ -1059,8 +1059,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
         ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
         .getValue() : call.operand(0).toString();
-    SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+    SqlOperator function = call.getOperator();
+    if (function == SqlLibraryOperators.PARSE_DATETIME
+        || function == SqlLibraryOperators.PARSE_TIMESTAMP) {
+      function = SqlLibraryOperators.PARSE_DATETIME;
+    }
+    SqlCall formatCall = function.createCall(SqlParserPos.ZERO,
+        createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
