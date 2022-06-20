@@ -10031,4 +10031,12 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
+  @Test void testCastTimestampWithLiteral() {
+    final String query = "SELECT cast(\'99991231 122333\' as TIMESTAMP) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expected = "SELECT CAST('99991231 122333' AS TIMESTAMP(0))\n" +
+        "FROM \"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
 }
