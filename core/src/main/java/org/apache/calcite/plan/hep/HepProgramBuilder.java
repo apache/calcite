@@ -160,6 +160,7 @@ public class HepProgramBuilder {
    * @param guaranteed if true, use only guaranteed converters; if false, use
    *                   only non-guaranteed converters
    */
+  @SuppressWarnings("unused")
   public HepProgramBuilder addConverters(boolean guaranteed) {
     checkArgument(group < 0);
     return addInstruction(new HepInstruction.ConverterRules(guaranteed));
@@ -170,11 +171,11 @@ public class HepProgramBuilder {
    * {@link CommonRelSubExprRule}, but only in cases where vertices have more
    * than one parent.
    */
+  @SuppressWarnings("unused")
   public HepProgramBuilder addCommonRelSubExprInstruction() {
     checkArgument(group < 0);
     return addInstruction(new HepInstruction.CommonRelSubExprRules());
   }
-
   /**
    * Adds an instruction to change the order of pattern matching for
    * subsequent instructions. The new order will take effect for the rest of
