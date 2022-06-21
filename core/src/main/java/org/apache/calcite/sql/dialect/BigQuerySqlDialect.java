@@ -139,6 +139,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
@@ -889,11 +890,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_DATETIME":
       unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       break;
-    case "PARSE_DATE":
-    case "PARSE_TIME":
-    case "PARSE_DATETIME":
     case "PARSE_TIMESTAMP":
-      unParseDateTime(writer, call, leftPrec, rightPrec);
+      String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
+          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+          .getValue()
+          : call.operand(0).toString();
+      SqlCall formatCall = PARSE_DATETIME.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
       break;
     case "FORMAT_TIME":
       unparseFormatCall(writer, call, leftPrec, rightPrec);
@@ -1053,20 +1057,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  protected void unParseDateTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
-        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
-        .getValue() : call.operand(0).toString();
-    SqlOperator function = call.getOperator();
-    if (function == SqlLibraryOperators.PARSE_DATETIME
-        || function == SqlLibraryOperators.PARSE_TIMESTAMP) {
-      function = SqlLibraryOperators.PARSE_DATETIME;
-    }
-    SqlCall formatCall = function.createCall(SqlParserPos.ZERO,
-        createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
-    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1292,7 +1282,7 @@ public class BigQuerySqlDialect extends SqlDialect {
             : operatorName;
   }
 
-  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
+  protected SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
