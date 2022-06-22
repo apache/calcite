@@ -2216,6 +2216,88 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Similar to {@link #testJoinConditionPushdown1()} but full join
+   * from which more equality conditions can not be inferred. */
+  @Test void testJoinConditionPushdown3() {
+    final String sql = "select *\n"
+        + "from emp e full join dept d\n"
+        + "on e.deptno = d.deptno and e.empno = d.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  /** Similar to {@link #testJoinConditionPushdown1()} but semi join
+   * from which more equality conditions can be inferred. */
+  @Test void testJoinConditionPushdown4() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("EMP")
+          .project(
+              b.field("DEPTNO"),
+              b.field("ENAME"))
+          .build();
+      RelNode right = b.scan("DEPT")
+          .project(
+              b.field("DEPTNO"),
+              b.field("DNAME"))
+          .build();
+
+      b.push(left).push(right);
+
+      RexInputRef ref1 = b.field(2, 0, "DEPTNO");
+      RexInputRef ref2 = b.field(2, 1, "DEPTNO");
+      RexInputRef ref3 = b.field(2, 1, "DNAME");
+
+      RexCall cond1 = (RexCall) b.equals(ref1, ref2);
+      RexCall cond2 = (RexCall) b.equals(ref1, ref3);
+
+      RexNode cond = b.and(cond1, cond2);
+      return b.semiJoin(cond)
+          .project(b.field(0))
+          .build();
+    };
+
+    relFn(relFn)
+        .withRule(
+            CoreRules.JOIN_PUSH_EXPRESSIONS,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE,
+            CoreRules.JOIN_REDUCE_EXPRESSIONS,
+            CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Similar to {@link #testJoinConditionPushdown1()} but left join
+   * from which more equality conditions can not be inferred. */
+  @Test void testJoinConditionPushdown5() {
+    final String sql = "select *\n"
+        + "from emp e left join dept d\n"
+        + "on e.deptno = d.deptno and e.empno = d.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  /** Similar to {@link #testJoinConditionPushdown1()} but right join
+   * from which more equality conditions can be inferred. */
+  @Test void testJoinConditionPushdown6() {
+    final String sql = "select *\n"
+        + "from emp e right join dept d\n"
+        + "on e.deptno = d.deptno and e.empno = d.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .check();
+  }
+
   /** Tests that filters are combined if they are identical. */
   @Test void testMergeFilter() {
     final String sql = "select name from (\n"
