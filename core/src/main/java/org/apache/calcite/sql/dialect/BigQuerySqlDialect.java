@@ -1054,8 +1054,34 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "INTERVAL_SECONDS":
       unparseIntervalSeconds(writer, call, leftPrec, rightPrec);
       break;
+    case "PARSE_DATE":
+    case "PARSE_TIME":
+      unparseDateTime(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  protected void unparseDateTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall formatCall;
+    switch (call.getOperator().getName()) {
+    case "PARSE_DATE":
+    case "PARSE_TIME":
+      String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
+          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+          .getValue() : call.operand(0).toString();
+      SqlOperator function = call.getOperator();
+      if (!dateFormat.contains("%")) {
+        formatCall = function.createCall(SqlParserPos.ZERO,
+            createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+        function.unparse(writer, formatCall, leftPrec, rightPrec);
+      } else {
+        function.unparse(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    default:
+      unparseOtherFunction(writer, call, leftPrec, rightPrec);
     }
   }
 
