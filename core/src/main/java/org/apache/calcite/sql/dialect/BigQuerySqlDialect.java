@@ -1282,7 +1282,7 @@ public class BigQuerySqlDialect extends SqlDialect {
             : operatorName;
   }
 
-  protected SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
+  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
