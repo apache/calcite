@@ -302,22 +302,6 @@ public class RelSubset extends AbstractRelNode {
     return list;
   }
 
-  /**
-   * Returns the collection of distinct subsets that contain a RelNode one
-   * of whose inputs is in this subset.
-   */
-  Set<RelSubset> getParentSubsets(VolcanoPlanner planner) {
-    final Set<RelSubset> list = new LinkedHashSet<>();
-    for (RelNode parent : set.getParentRels()) {
-      for (RelSubset rel : inputSubsets(parent)) {
-        if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
-          list.add(planner.getSubsetNonNull(parent));
-        }
-      }
-    }
-    return list;
-  }
-
   private static List<RelSubset> inputSubsets(RelNode parent) {
     //noinspection unchecked
     return (List<RelSubset>) (List) parent.getInputs();
