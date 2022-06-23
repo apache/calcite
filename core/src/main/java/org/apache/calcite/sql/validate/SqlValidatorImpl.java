@@ -1445,7 +1445,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         orderList = orderBy.orderList;
       }
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, orderBy.query,
-          null, null, null, null, orderList, orderBy.offset,
+          null, null, null, null, null, orderList, orderBy.offset,
           orderBy.fetch, null);
     }
 
@@ -1455,7 +1455,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
       selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, call.operand(0),
-          null, null, null, null, null, null, null, null);
+          null, null, null, null, null, null, null, null, null);
     }
 
     case DELETE: {
@@ -1552,7 +1552,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             call.getCondition());
     SqlSelect select =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, outerJoin, null,
-            null, null, null, null, null, null, null);
+            null, null, null, null, null, null, null, null);
     call.setSourceSelect(select);
 
     // Source for the insert call is a select of the source table
@@ -1570,7 +1570,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNode insertSource = SqlNode.clone(sourceTableRef);
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
-              null, null, null, null, null, null, null);
+              null, null, null, null, null, null, null, null);
       insertCall.setSource(select);
     }
   }
@@ -1637,7 +1637,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     source =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, source, null, null,
-            null, null, null, null, null, null);
+            null, null, null, null, null, null, null);
     source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
     SqlMerge mergeCall =
         new SqlMerge(updateCall.getParserPosition(), target, condition, source,
@@ -1693,7 +1693,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               alias.getSimple());
     }
     return new SqlSelect(SqlParserPos.ZERO, null, selectList, sourceTable,
-        call.getCondition(), null, null, null, null, null, null, null);
+        call.getCondition(), null, null, null, null, null, null, null, null);
   }
 
   /**
@@ -1715,7 +1715,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               alias.getSimple());
     }
     return new SqlSelect(SqlParserPos.ZERO, null, selectList, sourceTable,
-        call.getCondition(), null, null, null, null, null, null, null);
+        call.getCondition(), null, null, null, null, null, null, null, null);
   }
 
   /**

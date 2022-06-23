@@ -34,7 +34,9 @@ import static java.util.Objects.requireNonNull;
 /**
  * An operator describing a query. (Not a query itself.)
  *
- * <p>Operands are:</p>
+ * <p>
+ * Operands are:
+ * </p>
  *
  * <ul>
  * <li>0: distinct ({@link SqlLiteral})</li>
@@ -48,22 +50,23 @@ import static java.util.Objects.requireNonNull;
  * </ul>
  */
 public class SqlSelectOperator extends SqlOperator {
-  public static final SqlSelectOperator INSTANCE =
-      new SqlSelectOperator();
+  public static final SqlSelectOperator INSTANCE = new SqlSelectOperator();
 
-  //~ Constructors -----------------------------------------------------------
+  // ~ Constructors -----------------------------------------------------------
 
   private SqlSelectOperator() {
     super("SELECT", SqlKind.SELECT, 2, true, ReturnTypes.SCOPE, null, null);
   }
 
-  //~ Methods ----------------------------------------------------------------
+  // ~ Methods ----------------------------------------------------------------
 
-  @Override public SqlSyntax getSyntax() {
+  @Override
+  public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  @Override public SqlCall createCall(
+  @Override
+  public SqlCall createCall(
       @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
@@ -75,11 +78,12 @@ public class SqlSelectOperator extends SqlOperator {
         operands[3],
         (SqlNodeList) operands[4],
         operands[5],
-        (SqlNodeList) operands[6],
+        operands[6],
         (SqlNodeList) operands[7],
-        operands[8],
+        (SqlNodeList) operands[8],
         operands[9],
-        (SqlNodeList) operands[10]);
+        operands[10],
+        (SqlNodeList) operands[11]);
   }
 
   /**
@@ -95,6 +99,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNode whereClause,
       SqlNodeList groupBy,
       SqlNode having,
+      SqlNode qualify,
       SqlNodeList windowDecls,
       SqlNodeList orderBy,
       SqlNode offset,
@@ -109,6 +114,7 @@ public class SqlSelectOperator extends SqlOperator {
         whereClause,
         groupBy,
         having,
+        qualify,
         windowDecls,
         orderBy,
         offset,
@@ -116,7 +122,8 @@ public class SqlSelectOperator extends SqlOperator {
         hints);
   }
 
-  @Override public <R> void acceptCall(
+  @Override
+  public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -128,14 +135,14 @@ public class SqlSelectOperator extends SqlOperator {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public void unparse(
+  @Override
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
       int rightPrec) {
     SqlSelect select = (SqlSelect) call;
-    final SqlWriter.Frame selectFrame =
-        writer.startList(SqlWriter.FrameTypeEnum.SELECT);
+    final SqlWriter.Frame selectFrame = writer.startList(SqlWriter.FrameTypeEnum.SELECT);
     writer.sep("SELECT");
 
     if (select.hasHints()) {
@@ -161,8 +168,7 @@ public class SqlSelectOperator extends SqlOperator {
       // for FROM clause, use precedence just below join operator to make
       // sure that an un-joined nested select will be properly
       // parenthesized
-      final SqlWriter.Frame fromFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
+      final SqlWriter.Frame fromFrame = writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
       select.from.unparse(
           writer,
           SqlJoin.OPERATOR.getLeftPrec() - 1,
@@ -203,9 +209,8 @@ public class SqlSelectOperator extends SqlOperator {
     }
     if (select.groupBy != null) {
       writer.sep("GROUP BY");
-      final SqlNodeList groupBy =
-          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
-              : select.groupBy;
+      final SqlNodeList groupBy = select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
+          : select.groupBy;
       writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
           groupBy);
     }
@@ -227,7 +232,8 @@ public class SqlSelectOperator extends SqlOperator {
     writer.endList(selectFrame);
   }
 
-  @Override public boolean argumentMustBeScalar(int ordinal) {
+  @Override
+  public boolean argumentMustBeScalar(int ordinal) {
     return ordinal == SqlSelect.WHERE_OPERAND;
   }
 }

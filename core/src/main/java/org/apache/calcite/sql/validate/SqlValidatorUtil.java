@@ -91,9 +91,10 @@ import static java.util.Objects.requireNonNull;
  * Utility methods related to validation.
  */
 public class SqlValidatorUtil {
-  private SqlValidatorUtil() {}
+  private SqlValidatorUtil() {
+  }
 
-  //~ Methods ----------------------------------------------------------------
+  // ~ Methods ----------------------------------------------------------------
 
   /**
    * Converts a {@link SqlValidatorScope} into a {@link RelOptTable}. This is
@@ -113,8 +114,7 @@ public class SqlValidatorUtil {
       @Nullable String datasetName,
       boolean @Nullable [] usedDataset) {
     if (namespace.isWrapperFor(TableNamespace.class)) {
-      final TableNamespace tableNamespace =
-          namespace.unwrap(TableNamespace.class);
+      final TableNamespace tableNamespace = namespace.unwrap(TableNamespace.class);
       return getRelOptTable(tableNamespace,
           requireNonNull(catalogReader, "catalogReader"), datasetName, usedDataset,
           tableNamespace.extendedFields);
@@ -146,8 +146,7 @@ public class SqlValidatorUtil {
     RelOptTable table;
     if (datasetName != null
         && catalogReader instanceof RelOptSchemaWithSampling) {
-      final RelOptSchemaWithSampling reader =
-          (RelOptSchemaWithSampling) catalogReader;
+      final RelOptSchemaWithSampling reader = (RelOptSchemaWithSampling) catalogReader;
       table = reader.getTableForMember(names, datasetName, usedDataset);
     } else {
       // Schema does not support substitution. Ignore the data set, if any.
@@ -164,13 +163,11 @@ public class SqlValidatorUtil {
    */
   public static List<RelDataTypeField> getExtendedColumns(
       @Nullable SqlValidator validator, SqlValidatorTable table, SqlNodeList extendedColumns) {
-    final ImmutableList.Builder<RelDataTypeField> extendedFields =
-        ImmutableList.builder();
+    final ImmutableList.Builder<RelDataTypeField> extendedFields = ImmutableList.builder();
     final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
-    int extendedFieldOffset =
-        extTable == null
-            ? table.getRowType().getFieldCount()
-            : extTable.getExtendedColumnOffset();
+    int extendedFieldOffset = extTable == null
+        ? table.getRowType().getFieldCount()
+        : extTable.getExtendedColumnOffset();
     for (final Pair<SqlIdentifier, SqlDataTypeSpec> pair : pairs(extendedColumns)) {
       final SqlIdentifier identifier = pair.left;
       final SqlDataTypeSpec type = pair.right;
@@ -182,10 +179,12 @@ public class SqlValidatorUtil {
     return extendedFields.build();
   }
 
-  /** Converts a list of extended columns
+  /**
+   * Converts a list of extended columns
    * (of the form [name0, type0, name1, type1, ...])
-   * into a list of (name, type) pairs. */
-  @SuppressWarnings({"unchecked", "rawtypes"})
+   * into a list of (name, type) pairs.
+   */
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   private static List<Pair<SqlIdentifier, SqlDataTypeSpec>> pairs(
       SqlNodeList extendedColumns) {
     return Util.pairs((List) extendedColumns);
@@ -201,8 +200,7 @@ public class SqlValidatorUtil {
   public static ImmutableMap<Integer, RelDataTypeField> getIndexToFieldMap(
       List<RelDataTypeField> sourceFields,
       RelDataType targetFields) {
-    final ImmutableMap.Builder<Integer, RelDataTypeField> output =
-        ImmutableMap.builder();
+    final ImmutableMap.Builder<Integer, RelDataTypeField> output = ImmutableMap.builder();
     for (final RelDataTypeField source : sourceFields) {
       final RelDataTypeField target = targetFields.getField(source.getName(), true, false);
       if (target != null) {
@@ -213,14 +211,16 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Gets the bit-set to the column ordinals in the source for columns that intersect in the target.
+   * Gets the bit-set to the column ordinals in the source for columns that
+   * intersect in the target.
+   * 
    * @param sourceRowType The source upon which to ordinate the bit set.
-   * @param targetRowType The target to overlay on the source to create the bit set.
+   * @param targetRowType The target to overlay on the source to create the bit
+   *                      set.
    */
   public static ImmutableBitSet getOrdinalBitSet(
       RelDataType sourceRowType, RelDataType targetRowType) {
-    Map<Integer, RelDataTypeField> indexToField =
-        getIndexToFieldMap(sourceRowType.getFieldList(), targetRowType);
+    Map<Integer, RelDataTypeField> indexToField = getIndexToFieldMap(sourceRowType.getFieldList(), targetRowType);
     return getOrdinalBitSet(sourceRowType, indexToField);
   }
 
@@ -236,10 +236,9 @@ public class SqlValidatorUtil {
       Map<Integer, RelDataTypeField> indexToField) {
     ImmutableBitSet source = ImmutableBitSet.of(
         Util.transform(sourceRowType.getFieldList(), RelDataTypeField::getIndex));
-    // checkerframework: found   : Set<@KeyFor("indexToField") Integer>
-    //noinspection RedundantCast
-    ImmutableBitSet target =
-        ImmutableBitSet.of((Iterable<Integer>) indexToField.keySet());
+    // checkerframework: found : Set<@KeyFor("indexToField") Integer>
+    // noinspection RedundantCast
+    ImmutableBitSet target = ImmutableBitSet.of((Iterable<Integer>) indexToField.keySet());
     return source.intersect(target);
   }
 
@@ -267,7 +266,7 @@ public class SqlValidatorUtil {
       if (!strCharset.equals(colCharset)) {
         if (false) {
           // todo: enable this checking when we have a charset to
-          //   collation mapping
+          // collation mapping
           throw new Error(type.toString()
               + " was found to have charset '" + strCharset.name()
               + "' and a mismatched collation charset '"
@@ -307,7 +306,8 @@ public class SqlValidatorUtil {
    * Derives an alias for a node, and invents a mangled identifier if it
    * cannot.
    *
-   * <p>Examples:
+   * <p>
+   * Examples:
    *
    * <ul>
    * <li>Alias: "1 + 2 as foo" yields "foo"
@@ -316,28 +316,28 @@ public class SqlValidatorUtil {
    * </ul>
    *
    * @return An alias, if one can be derived; or a synthetic alias
-   * "expr$<i>ordinal</i>" if ordinal &lt; 0; otherwise null
+   *         "expr$<i>ordinal</i>" if ordinal &lt; 0; otherwise null
    */
   public static @Nullable String getAlias(SqlNode node, int ordinal) {
     switch (node.getKind()) {
-    case AS:
-      // E.g. "1 + 2 as foo" --> "foo"
-      return ((SqlCall) node).operand(1).toString();
+      case AS:
+        // E.g. "1 + 2 as foo" --> "foo"
+        return ((SqlCall) node).operand(1).toString();
 
-    case OVER:
-      // E.g. "bids over w" --> "bids"
-      return getAlias(((SqlCall) node).operand(0), ordinal);
+      case OVER:
+        // E.g. "bids over w" --> "bids"
+        return getAlias(((SqlCall) node).operand(0), ordinal);
 
-    case IDENTIFIER:
-      // E.g. "foo.bar" --> "bar"
-      return Util.last(((SqlIdentifier) node).names);
+      case IDENTIFIER:
+        // E.g. "foo.bar" --> "bar"
+        return Util.last(((SqlIdentifier) node).names);
 
-    default:
-      if (ordinal < 0) {
-        return null;
-      } else {
-        return SqlUtil.deriveAliasFromOrdinal(ordinal);
-      }
+      default:
+        if (ordinal < 0) {
+          return null;
+        } else {
+          return SqlUtil.deriveAliasFromOrdinal(ordinal);
+        }
     }
   }
 
@@ -370,7 +370,7 @@ public class SqlValidatorUtil {
    * it to the list, and returns it.
    *
    * @param name      Suggested name, may not be unique
-   * @param usedNames  Collection of names already used
+   * @param usedNames Collection of names already used
    * @param suggester Base for name when input name is null
    * @return Unique name
    */
@@ -393,8 +393,10 @@ public class SqlValidatorUtil {
   /**
    * Makes sure that the names in a list are unique.
    *
-   * <p>Does not modify the input list. Returns the input list if the strings
-   * are unique, otherwise allocates a new list. Deprecated in favor of caseSensitive
+   * <p>
+   * Does not modify the input list. Returns the input list if the strings
+   * are unique, otherwise allocates a new list. Deprecated in favor of
+   * caseSensitive
    * aware version.
    *
    * @param nameList List of strings
@@ -405,16 +407,16 @@ public class SqlValidatorUtil {
     return uniquify(nameList, EXPR_SUGGESTER, true);
   }
 
-
   /**
    * Makes sure that the names in a list are unique.
    *
-   * <p>Does not modify the input list. Returns the input list if the strings
+   * <p>
+   * Does not modify the input list. Returns the input list if the strings
    * are unique, otherwise allocates a new list.
    *
    * @deprecated Use {@link #uniquify(List, Suggester, boolean)}
    *
-   * @param nameList List of strings
+   * @param nameList  List of strings
    * @param suggester How to generate new names if duplicate names are found
    * @return List of unique strings
    */
@@ -426,12 +428,13 @@ public class SqlValidatorUtil {
   /**
    * Makes sure that the names in a list are unique.
    *
-   * <p>Does not modify the input list. Returns the input list if the strings
+   * <p>
+   * Does not modify the input list. Returns the input list if the strings
    * are unique, otherwise allocates a new list.
    *
-   * @param nameList List of strings
+   * @param nameList      List of strings
    * @param caseSensitive Whether upper and lower case names are considered
-   *     distinct
+   *                      distinct
    * @return List of unique strings
    */
   public static List<String> uniquify(List<String> nameList,
@@ -442,13 +445,14 @@ public class SqlValidatorUtil {
   /**
    * Makes sure that the names in a list are unique.
    *
-   * <p>Does not modify the input list. Returns the input list if the strings
+   * <p>
+   * Does not modify the input list. Returns the input list if the strings
    * are unique, otherwise allocates a new list.
    *
-   * @param nameList List of strings
-   * @param suggester How to generate new names if duplicate names are found
+   * @param nameList      List of strings
+   * @param suggester     How to generate new names if duplicate names are found
    * @param caseSensitive Whether upper and lower case names are considered
-   *     distinct
+   *                      distinct
    * @return List of unique strings
    */
   public static List<String> uniquify(
@@ -495,24 +499,24 @@ public class SqlValidatorUtil {
       List<RelDataTypeField> systemFieldList) {
     assert systemFieldList != null;
     switch (joinType) {
-    case LEFT:
-      rightType = typeFactory.createTypeWithNullability(
-          requireNonNull(rightType, "rightType"), true);
-      break;
-    case RIGHT:
-      leftType = typeFactory.createTypeWithNullability(leftType, true);
-      break;
-    case FULL:
-      leftType = typeFactory.createTypeWithNullability(leftType, true);
-      rightType = typeFactory.createTypeWithNullability(
-          requireNonNull(rightType, "rightType"), true);
-      break;
-    case SEMI:
-    case ANTI:
-      rightType = null;
-      break;
-    default:
-      break;
+      case LEFT:
+        rightType = typeFactory.createTypeWithNullability(
+            requireNonNull(rightType, "rightType"), true);
+        break;
+      case RIGHT:
+        leftType = typeFactory.createTypeWithNullability(leftType, true);
+        break;
+      case FULL:
+        leftType = typeFactory.createTypeWithNullability(leftType, true);
+        rightType = typeFactory.createTypeWithNullability(
+            requireNonNull(rightType, "rightType"), true);
+        break;
+      case SEMI:
+      case ANTI:
+        rightType = null;
+        break;
+      default:
+        break;
     }
     return createJoinType(typeFactory, leftType, rightType, fieldNameList,
         systemFieldList);
@@ -521,7 +525,8 @@ public class SqlValidatorUtil {
   /**
    * Returns the type the row which results when two relations are joined.
    *
-   * <p>The resulting row type consists of
+   * <p>
+   * The resulting row type consists of
    * the system fields (if any), followed by
    * the fields of the left type, followed by
    * the fields of the right type. The field name list, if present, overrides
@@ -544,10 +549,9 @@ public class SqlValidatorUtil {
       @Nullable List<String> fieldNameList,
       List<RelDataTypeField> systemFieldList) {
     assert (fieldNameList == null)
-        || (fieldNameList.size()
-        == (systemFieldList.size()
-        + leftType.getFieldCount()
-        + (rightType == null ? 0 : rightType.getFieldCount())));
+        || (fieldNameList.size() == (systemFieldList.size()
+            + leftType.getFieldCount()
+            + (rightType == null ? 0 : rightType.getFieldCount())));
     List<String> nameList = new ArrayList<>();
     final List<RelDataType> typeList = new ArrayList<>();
 
@@ -555,10 +559,9 @@ public class SqlValidatorUtil {
     // to ensure that the contains() call to check for name uniqueness
     // runs in constant time; otherwise, if the number of fields is large,
     // doing a contains() on a list can be expensive.
-    final Set<String> uniqueNameList =
-        typeFactory.getTypeSystem().isSchemaCaseSensitive()
-            ? new HashSet<>()
-            : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    final Set<String> uniqueNameList = typeFactory.getTypeSystem().isSchemaCaseSensitive()
+        ? new HashSet<>()
+        : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     addFields(systemFieldList, typeList, nameList, uniqueNameList);
     addFields(leftType.getFieldList(), typeList, nameList, uniqueNameList);
     if (rightType != null) {
@@ -612,17 +615,16 @@ public class SqlValidatorUtil {
       return nameMatcher.field(rowType, id.getSimple());
     }
 
-    final List<Pair<RelDataTypeField, List<String>>> entries =
-        ((CustomColumnResolvingTable) t).resolveColumn(
-            rowType, typeFactory, id.names);
+    final List<Pair<RelDataTypeField, List<String>>> entries = ((CustomColumnResolvingTable) t).resolveColumn(
+        rowType, typeFactory, id.names);
     switch (entries.size()) {
-    case 1:
-      if (!entries.get(0).getValue().isEmpty()) {
+      case 1:
+        if (!entries.get(0).getValue().isEmpty()) {
+          return null;
+        }
+        return entries.get(0).getKey();
+      default:
         return null;
-      }
-      return entries.get(0).getKey();
-    default:
-      return null;
     }
   }
 
@@ -635,10 +637,8 @@ public class SqlValidatorUtil {
       SqlValidatorScope scope,
       List<String> names) {
     assert names.size() > 0;
-    final SqlNameMatcher nameMatcher =
-        scope.getValidator().getCatalogReader().nameMatcher();
-    final SqlValidatorScope.ResolvedImpl resolved =
-        new SqlValidatorScope.ResolvedImpl();
+    final SqlNameMatcher nameMatcher = scope.getValidator().getCatalogReader().nameMatcher();
+    final SqlValidatorScope.ResolvedImpl resolved = new SqlValidatorScope.ResolvedImpl();
     scope.resolve(ImmutableList.of(names.get(0)), nameMatcher, false, resolved);
     assert resolved.count() == 1;
     SqlValidatorNamespace namespace = resolved.only().namespace;
@@ -658,8 +658,7 @@ public class SqlValidatorUtil {
 
     // Try successively with catalog.schema, catalog and no prefix
     for (List<String> x : catalogReader.getSchemaPaths()) {
-      final List<String> names2 =
-          ImmutableList.<String>builder().addAll(x).addAll(subNames).build();
+      final List<String> names2 = ImmutableList.<String>builder().addAll(x).addAll(subNames).build();
       hints.addAll(catalogReader.getAllSchemaObjectNames(names2));
     }
   }
@@ -689,7 +688,7 @@ public class SqlValidatorUtil {
    * Derives the list of column names suitable for NATURAL JOIN. These are the
    * columns that occur exactly once on each side of the join.
    *
-   * @param nameMatcher Whether matches are case-sensitive
+   * @param nameMatcher  Whether matches are case-sensitive
    * @param leftRowType  Row type of left input to the join
    * @param rightRowType Row type of right input to the join
    * @return List of columns that occur once on each side
@@ -716,8 +715,7 @@ public class SqlValidatorUtil {
     // If the names in columnNameList and type have case-sensitive differences,
     // the resulting type will use those from type. These are presumably more
     // canonical.
-    final List<RelDataTypeField> fields =
-        new ArrayList<>(columnNameList.size());
+    final List<RelDataTypeField> fields = new ArrayList<>(columnNameList.size());
     for (String name : columnNameList) {
       RelDataTypeField field = type.getField(name, caseSensitive, false);
       assert field != null : "field " + name + (caseSensitive ? " (caseSensitive)" : "")
@@ -727,55 +725,58 @@ public class SqlValidatorUtil {
     return typeFactory.createStructType(fields);
   }
 
-  /** Analyzes an expression in a GROUP BY clause.
+  /**
+   * Analyzes an expression in a GROUP BY clause.
    *
-   * <p>It may be an expression, an empty list (), or a call to
+   * <p>
+   * It may be an expression, an empty list (), or a call to
    * {@code GROUPING SETS}, {@code CUBE}, {@code ROLLUP},
    * {@code TUMBLE}, {@code HOP} or {@code SESSION}.
    *
-   * <p>Each group item produces a list of group sets, which are written to
+   * <p>
+   * Each group item produces a list of group sets, which are written to
    * {@code topBuilder}. To find the grouping sets of the query, we will take
-   * the cartesian product of the group sets. */
+   * the cartesian product of the group sets.
+   */
   public static void analyzeGroupItem(SqlValidatorScope scope,
       GroupAnalyzer groupAnalyzer,
       ImmutableList.Builder<ImmutableList<ImmutableBitSet>> topBuilder,
       SqlNode groupExpr) {
     final ImmutableList.Builder<ImmutableBitSet> builder;
     switch (groupExpr.getKind()) {
-    case CUBE:
-    case ROLLUP:
-      // E.g. ROLLUP(a, (b, c)) becomes [{0}, {1, 2}]
-      // then we roll up to [(0, 1, 2), (0), ()]  -- note no (0, 1)
-      List<ImmutableBitSet> bitSets =
-          analyzeGroupTuple(scope, groupAnalyzer,
-              ((SqlCall) groupExpr).getOperandList());
-      switch (groupExpr.getKind()) {
+      case CUBE:
       case ROLLUP:
-        topBuilder.add(rollup(bitSets));
-        return;
-      default:
-        topBuilder.add(cube(bitSets));
-        return;
-      }
-    case OTHER:
-      if (groupExpr instanceof SqlNodeList) {
-        SqlNodeList list = (SqlNodeList) groupExpr;
-        for (SqlNode node : list) {
-          analyzeGroupItem(scope, groupAnalyzer, topBuilder,
-              node);
+        // E.g. ROLLUP(a, (b, c)) becomes [{0}, {1, 2}]
+        // then we roll up to [(0, 1, 2), (0), ()] -- note no (0, 1)
+        List<ImmutableBitSet> bitSets = analyzeGroupTuple(scope, groupAnalyzer,
+            ((SqlCall) groupExpr).getOperandList());
+        switch (groupExpr.getKind()) {
+          case ROLLUP:
+            topBuilder.add(rollup(bitSets));
+            return;
+          default:
+            topBuilder.add(cube(bitSets));
+            return;
         }
-        return;
-      }
-      // fall through
-    case HOP:
-    case TUMBLE:
-    case SESSION:
-    case GROUPING_SETS:
-    default:
-      builder = ImmutableList.builder();
-      convertGroupSet(scope, groupAnalyzer, builder,
-          groupExpr);
-      topBuilder.add(builder.build());
+      case OTHER:
+        if (groupExpr instanceof SqlNodeList) {
+          SqlNodeList list = (SqlNodeList) groupExpr;
+          for (SqlNode node : list) {
+            analyzeGroupItem(scope, groupAnalyzer, topBuilder,
+                node);
+          }
+          return;
+        }
+        // fall through
+      case HOP:
+      case TUMBLE:
+      case SESSION:
+      case GROUPING_SETS:
+      default:
+        builder = ImmutableList.builder();
+        convertGroupSet(scope, groupAnalyzer, builder,
+            groupExpr);
+        topBuilder.add(builder.build());
     }
   }
 
@@ -784,53 +785,55 @@ public class SqlValidatorUtil {
       GroupAnalyzer groupAnalyzer,
       ImmutableList.Builder<ImmutableBitSet> builder, SqlNode groupExpr) {
     switch (groupExpr.getKind()) {
-    case GROUPING_SETS:
-      final SqlCall call = (SqlCall) groupExpr;
-      for (SqlNode node : call.getOperandList()) {
-        convertGroupSet(scope, groupAnalyzer, builder, node);
-      }
-      return;
-    case ROW:
-      final List<ImmutableBitSet> bitSets =
-          analyzeGroupTuple(scope, groupAnalyzer,
-              ((SqlCall) groupExpr).getOperandList());
-      builder.add(ImmutableBitSet.union(bitSets));
-      return;
-    case ROLLUP:
-    case CUBE: {
-      // GROUPING SETS ( (a), ROLLUP(c,b), CUBE(d,e) )
-      // is EQUIVALENT to
-      // GROUPING SETS ( (a), (c,b), (b) ,(), (d,e), (d), (e) ).
-      // Expand all ROLLUP/CUBE nodes
-      List<ImmutableBitSet> operandBitSet =
-          analyzeGroupTuple(scope, groupAnalyzer,
-              ((SqlCall) groupExpr).getOperandList());
-      switch (groupExpr.getKind()) {
+      case GROUPING_SETS:
+        final SqlCall call = (SqlCall) groupExpr;
+        for (SqlNode node : call.getOperandList()) {
+          convertGroupSet(scope, groupAnalyzer, builder, node);
+        }
+        return;
+      case ROW:
+        final List<ImmutableBitSet> bitSets = analyzeGroupTuple(scope, groupAnalyzer,
+            ((SqlCall) groupExpr).getOperandList());
+        builder.add(ImmutableBitSet.union(bitSets));
+        return;
       case ROLLUP:
-        builder.addAll(rollup(operandBitSet));
-        return;
-      default:
-        builder.addAll(cube(operandBitSet));
-        return;
+      case CUBE: {
+        // GROUPING SETS ( (a), ROLLUP(c,b), CUBE(d,e) )
+        // is EQUIVALENT to
+        // GROUPING SETS ( (a), (c,b), (b) ,(), (d,e), (d), (e) ).
+        // Expand all ROLLUP/CUBE nodes
+        List<ImmutableBitSet> operandBitSet = analyzeGroupTuple(scope, groupAnalyzer,
+            ((SqlCall) groupExpr).getOperandList());
+        switch (groupExpr.getKind()) {
+          case ROLLUP:
+            builder.addAll(rollup(operandBitSet));
+            return;
+          default:
+            builder.addAll(cube(operandBitSet));
+            return;
+        }
       }
-    }
-    default:
-      builder.add(
-          analyzeGroupExpr(scope, groupAnalyzer, groupExpr));
-      return;
+      default:
+        builder.add(
+            analyzeGroupExpr(scope, groupAnalyzer, groupExpr));
+        return;
     }
   }
 
-  /** Analyzes a tuple in a GROUPING SETS clause.
+  /**
+   * Analyzes a tuple in a GROUPING SETS clause.
    *
-   * <p>For example, in {@code GROUP BY GROUPING SETS ((a, b), a, c)},
+   * <p>
+   * For example, in {@code GROUP BY GROUPING SETS ((a, b), a, c)},
    * {@code (a, b)} is a tuple.
    *
-   * <p>Gathers into {@code groupExprs} the set of distinct expressions being
+   * <p>
+   * Gathers into {@code groupExprs} the set of distinct expressions being
    * grouped, and returns a bitmap indicating which expressions this tuple
-   * is grouping. */
+   * is grouping.
+   */
   private static List<ImmutableBitSet> analyzeGroupTuple(SqlValidatorScope scope,
-       GroupAnalyzer groupAnalyzer, List<SqlNode> operandList) {
+      GroupAnalyzer groupAnalyzer, List<SqlNode> operandList) {
     List<ImmutableBitSet> list = new ArrayList<>();
     for (SqlNode operand : operandList) {
       list.add(
@@ -843,22 +846,21 @@ public class SqlValidatorUtil {
   private static ImmutableBitSet analyzeGroupExpr(SqlValidatorScope scope,
       GroupAnalyzer groupAnalyzer,
       SqlNode groupExpr) {
-    final SqlNode expandedGroupExpr =
-        scope.getValidator().expand(groupExpr, scope);
+    final SqlNode expandedGroupExpr = scope.getValidator().expand(groupExpr, scope);
 
     switch (expandedGroupExpr.getKind()) {
-    case ROW:
-      return ImmutableBitSet.union(
-          analyzeGroupTuple(scope, groupAnalyzer,
-              ((SqlCall) expandedGroupExpr).getOperandList()));
-    case OTHER:
-      if (expandedGroupExpr instanceof SqlNodeList
-          && ((SqlNodeList) expandedGroupExpr).size() == 0) {
-        return ImmutableBitSet.of();
-      }
-      break;
-    default:
-      break;
+      case ROW:
+        return ImmutableBitSet.union(
+            analyzeGroupTuple(scope, groupAnalyzer,
+                ((SqlCall) expandedGroupExpr).getOperandList()));
+      case OTHER:
+        if (expandedGroupExpr instanceof SqlNodeList
+            && ((SqlNodeList) expandedGroupExpr).size() == 0) {
+          return ImmutableBitSet.of();
+        }
+        break;
+      default:
+        break;
     }
 
     final int ref = lookupGroupExpr(groupAnalyzer, expandedGroupExpr);
@@ -871,10 +873,8 @@ public class SqlValidatorUtil {
       String originalRelName = expr.names.get(0);
       String originalFieldName = expr.names.get(1);
 
-      final SqlNameMatcher nameMatcher =
-          scope.getValidator().getCatalogReader().nameMatcher();
-      final SqlValidatorScope.ResolvedImpl resolved =
-          new SqlValidatorScope.ResolvedImpl();
+      final SqlNameMatcher nameMatcher = scope.getValidator().getCatalogReader().nameMatcher();
+      final SqlValidatorScope.ResolvedImpl resolved = new SqlValidatorScope.ResolvedImpl();
       scope.resolve(ImmutableList.of(originalRelName), nameMatcher, false,
           resolved);
 
@@ -890,12 +890,10 @@ public class SqlValidatorUtil {
         // output types from all the preceding namespaces
         final SqlValidatorScope ancestorScope = resolve.scope;
         assert ancestorScope instanceof ListScope;
-        List<SqlValidatorNamespace> children =
-            ((ListScope) ancestorScope).getChildren();
+        List<SqlValidatorNamespace> children = ((ListScope) ancestorScope).getChildren();
 
         for (int j = 0; j < childNamespaceIndex; j++) {
-          namespaceOffset +=
-              children.get(j).getRowType().getFieldCount();
+          namespaceOffset += children.get(j).getRowType().getFieldCount();
         }
       }
 
@@ -920,26 +918,30 @@ public class SqlValidatorUtil {
     }
 
     switch (expr.getKind()) {
-    case HOP:
-    case TUMBLE:
-    case SESSION:
-      groupAnalyzer.extraExprs.add(expr);
-      break;
-    default:
-      break;
+      case HOP:
+      case TUMBLE:
+      case SESSION:
+        groupAnalyzer.extraExprs.add(expr);
+        break;
+      default:
+        break;
     }
     groupAnalyzer.groupExprs.add(expr);
     return groupAnalyzer.groupExprs.size() - 1;
   }
 
-  /** Computes the rollup of bit sets.
+  /**
+   * Computes the rollup of bit sets.
    *
-   * <p>For example, <code>rollup({0}, {1})</code>
+   * <p>
+   * For example, <code>rollup({0}, {1})</code>
    * returns <code>({0, 1}, {0}, {})</code>.
    *
-   * <p>Bit sets are not necessarily singletons:
+   * <p>
+   * Bit sets are not necessarily singletons:
    * <code>rollup({0, 2}, {3, 5})</code>
-   * returns <code>({0, 2, 3, 5}, {0, 2}, {})</code>. */
+   * returns <code>({0, 2, 3, 5}, {0, 2}, {})</code>.
+   */
   @VisibleForTesting
   public static ImmutableList<ImmutableBitSet> rollup(
       List<ImmutableBitSet> bitSets) {
@@ -955,14 +957,18 @@ public class SqlValidatorUtil {
     return ImmutableList.copyOf(builder);
   }
 
-  /** Computes the cube of bit sets.
+  /**
+   * Computes the cube of bit sets.
    *
-   * <p>For example,  <code>rollup({0}, {1})</code>
+   * <p>
+   * For example, <code>rollup({0}, {1})</code>
    * returns <code>({0, 1}, {0}, {})</code>.
    *
-   * <p>Bit sets are not necessarily singletons:
+   * <p>
+   * Bit sets are not necessarily singletons:
    * <code>rollup({0, 2}, {3, 5})</code>
-   * returns <code>({0, 2, 3, 5}, {0, 2}, {})</code>. */
+   * returns <code>({0, 2, 3, 5}, {0, 2}, {})</code>.
+   */
   @VisibleForTesting
   public static ImmutableList<ImmutableBitSet> cube(
       List<ImmutableBitSet> bitSets) {
@@ -984,7 +990,7 @@ public class SqlValidatorUtil {
    * given schema whose type has the given name, possibly qualified.
    *
    * @param rootSchema root schema
-   * @param typeName name of the type, may be qualified or fully-qualified
+   * @param typeName   name of the type, may be qualified or fully-qualified
    *
    * @return TypeEntry with a table with the given name, or null
    */
@@ -1017,12 +1023,14 @@ public class SqlValidatorUtil {
    * Finds a {@link org.apache.calcite.jdbc.CalciteSchema.TableEntry} in a
    * given catalog reader whose table has the given name, possibly qualified.
    *
-   * <p>Uses the case-sensitivity policy of the specified catalog reader.
+   * <p>
+   * Uses the case-sensitivity policy of the specified catalog reader.
    *
-   * <p>If not found, returns null.
+   * <p>
+   * If not found, returns null.
    *
    * @param catalogReader accessor to the table metadata
-   * @param names Name of table, may be qualified or fully-qualified
+   * @param names         Name of table, may be qualified or fully-qualified
    *
    * @return TableEntry with a table with the given name, or null
    */
@@ -1031,16 +1039,14 @@ public class SqlValidatorUtil {
     // First look in the default schema, if any.
     // If not found, look in the root schema.
     for (List<String> schemaPath : catalogReader.getSchemaPaths()) {
-      CalciteSchema schema =
-          getSchema(catalogReader.getRootSchema(),
-              Iterables.concat(schemaPath, Util.skipLast(names)),
-              catalogReader.nameMatcher());
+      CalciteSchema schema = getSchema(catalogReader.getRootSchema(),
+          Iterables.concat(schemaPath, Util.skipLast(names)),
+          catalogReader.nameMatcher());
       if (schema == null) {
         continue;
       }
-      CalciteSchema.TableEntry entry =
-          getTableEntryFrom(schema, Util.last(names),
-              catalogReader.nameMatcher().isCaseSensitive());
+      CalciteSchema.TableEntry entry = getTableEntryFrom(schema, Util.last(names),
+          catalogReader.nameMatcher().isCaseSensitive());
       if (entry != null) {
         return entry;
       }
@@ -1052,12 +1058,14 @@ public class SqlValidatorUtil {
    * Finds and returns {@link CalciteSchema} nested to the given rootSchema
    * with specified schemaPath.
    *
-   * <p>Uses the case-sensitivity policy of specified nameMatcher.
+   * <p>
+   * Uses the case-sensitivity policy of specified nameMatcher.
    *
-   * <p>If not found, returns null.
+   * <p>
+   * If not found, returns null.
    *
-   * @param rootSchema root schema
-   * @param schemaPath full schema path of required schema
+   * @param rootSchema  root schema
+   * @param schemaPath  full schema path of required schema
    * @param nameMatcher name matcher
    *
    * @return CalciteSchema that corresponds specified schemaPath
@@ -1081,8 +1089,7 @@ public class SqlValidatorUtil {
 
   private static CalciteSchema.@Nullable TableEntry getTableEntryFrom(
       CalciteSchema schema, String name, boolean caseSensitive) {
-    CalciteSchema.TableEntry entry =
-        schema.getTable(name, caseSensitive);
+    CalciteSchema.TableEntry entry = schema.getTable(name, caseSensitive);
     if (entry == null) {
       entry = schema.getTableBasedOnNullaryFunction(name,
           caseSensitive);
@@ -1093,7 +1100,8 @@ public class SqlValidatorUtil {
   /**
    * Returns whether there are any input columns that are sorted.
    *
-   * <p>If so, it can be the default ORDER BY clause for a WINDOW specification.
+   * <p>
+   * If so, it can be the default ORDER BY clause for a WINDOW specification.
    * (This is an extension to the SQL standard for streaming.)
    */
   public static boolean containsMonotonic(SqlValidatorScope scope) {
@@ -1118,7 +1126,8 @@ public class SqlValidatorUtil {
   /**
    * Returns whether any of the given expressions are sorted.
    *
-   * <p>If so, it can be the default ORDER BY clause for a WINDOW specification.
+   * <p>
+   * If so, it can be the default ORDER BY clause for a WINDOW specification.
    * (This is an extension to the SQL standard for streaming.)
    */
   static boolean containsMonotonic(SelectScope scope, SqlNodeList nodes) {
@@ -1136,7 +1145,8 @@ public class SqlValidatorUtil {
    * @param opTab    operator table to look up
    * @param funName  function name
    * @param funcType function category
-   * @return A sql function if and only if there is one operator matches, else null
+   * @return A sql function if and only if there is one operator matches, else
+   *         null
    */
   public static @Nullable SqlOperator lookupSqlFunctionByID(SqlOperatorTable opTab,
       SqlIdentifier funName,
@@ -1153,16 +1163,18 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Validate the sql node with specified base table row type. For "base table", we mean the
+   * Validate the sql node with specified base table row type. For "base table",
+   * we mean the
    * table that the sql node expression references fields with.
    *
    * @param caseSensitive whether to match the catalog case-sensitively
    * @param operatorTable operator table
    * @param typeFactory   type factory
-   * @param rowType       the table row type that has fields referenced by the expression
+   * @param rowType       the table row type that has fields referenced by the
+   *                      expression
    * @param expr          the expression to validate
    * @return pair of a validated expression sql node and its data type,
-   * usually a SqlUnresolvedFunction is converted to a resolved function
+   *         usually a SqlUnresolvedFunction is converted to a resolved function
    */
   public static Pair<SqlNode, RelDataType> validateExprWithRowType(
       boolean caseSensitive,
@@ -1174,7 +1186,7 @@ public class SqlValidatorUtil {
     final SqlSelect select0 = new SqlSelect(SqlParserPos.ZERO, null,
         new SqlNodeList(Collections.singletonList(expr), SqlParserPos.ZERO),
         new SqlIdentifier(tableName, SqlParserPos.ZERO),
-        null, null, null, null, null, null, null, null);
+        null, null, null, null, null, null, null, null, null);
     Prepare.CatalogReader catalogReader = createSingleTableCatalogReader(
         caseSensitive,
         tableName,
@@ -1197,10 +1209,12 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Creates a catalog reader that contains a single {@link Table} with temporary table name
+   * Creates a catalog reader that contains a single {@link Table} with temporary
+   * table name
    * and specified {@code rowType}.
    *
-   * <p>Make this method public so that other systems can also use it.
+   * <p>
+   * Make this method public so that other systems can also use it.
    *
    * @param caseSensitive whether to match case sensitively
    * @param tableName     table name to register with
@@ -1247,21 +1261,21 @@ public class SqlValidatorUtil {
       @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall,
       SqlCall call) {
     switch (call.getKind()) {
-    case FILTER:
-      assert filterCall == null;
-      return flattenRecurse(call, distinctCall, orderCall, call.operand(0));
-    case WITHIN_DISTINCT:
-      assert distinctCall == null;
-      return flattenRecurse(filterCall, call, orderCall, call.operand(0));
-    case WITHIN_GROUP:
-      assert orderCall == null;
-      return flattenRecurse(filterCall, distinctCall, call, call.operand(0));
-    default:
-      return new FlatAggregate(call, filterCall, distinctCall, orderCall);
+      case FILTER:
+        assert filterCall == null;
+        return flattenRecurse(call, distinctCall, orderCall, call.operand(0));
+      case WITHIN_DISTINCT:
+        assert distinctCall == null;
+        return flattenRecurse(filterCall, call, orderCall, call.operand(0));
+      case WITHIN_GROUP:
+        assert orderCall == null;
+        return flattenRecurse(filterCall, distinctCall, call, call.operand(0));
+      default:
+        return new FlatAggregate(call, filterCall, distinctCall, orderCall);
     }
   }
 
-  //~ Inner Classes ----------------------------------------------------------
+  // ~ Inner Classes ----------------------------------------------------------
 
   /**
    * Walks over an expression, copying every node, and fully-qualifying every
@@ -1275,11 +1289,12 @@ public class SqlValidatorUtil {
 
     /** Copies a list of nodes. */
     public static @Nullable SqlNodeList copy(SqlValidatorScope scope, SqlNodeList list) {
-      //noinspection deprecation
+      // noinspection deprecation
       return (@Nullable SqlNodeList) list.accept(new DeepCopier(scope));
     }
 
-    @Override public SqlNode visit(SqlNodeList list) {
+    @Override
+    public SqlNode visit(SqlNodeList list) {
       SqlNodeList copy = new SqlNodeList(list.getParserPosition());
       for (SqlNode node : list) {
         copy.add(node.accept(this));
@@ -1289,18 +1304,20 @@ public class SqlValidatorUtil {
 
     // Override to copy all arguments regardless of whether visitor changes
     // them.
-    @Override protected SqlNode visitScoped(SqlCall call) {
-      CallCopyingArgHandler argHandler =
-          new CallCopyingArgHandler(call, true);
+    @Override
+    protected SqlNode visitScoped(SqlCall call) {
+      CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
       call.getOperator().acceptCall(this, call, false, argHandler);
       return argHandler.result();
     }
 
-    @Override public SqlNode visit(SqlLiteral literal) {
+    @Override
+    public SqlNode visit(SqlLiteral literal) {
       return SqlNode.clone(literal);
     }
 
-    @Override public SqlNode visit(SqlIdentifier id) {
+    @Override
+    public SqlNode visit(SqlIdentifier id) {
       // First check for builtin functions which don't have parentheses,
       // like "LOCALTIME".
       SqlValidator validator = getScope().getValidator();
@@ -1312,40 +1329,44 @@ public class SqlValidatorUtil {
       return getScope().fullyQualify(id).identifier;
     }
 
-    @Override public SqlNode visit(SqlDataTypeSpec type) {
+    @Override
+    public SqlNode visit(SqlDataTypeSpec type) {
       return SqlNode.clone(type);
     }
 
-    @Override public SqlNode visit(SqlDynamicParam param) {
+    @Override
+    public SqlNode visit(SqlDynamicParam param) {
       return SqlNode.clone(param);
     }
 
-    @Override public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
+    @Override
+    public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
       return SqlNode.clone(intervalQualifier);
     }
   }
 
-  /** Suggests candidates for unique names, given the number of attempts so far
-   * and the number of expressions in the project list. */
+  /**
+   * Suggests candidates for unique names, given the number of attempts so far
+   * and the number of expressions in the project list.
+   */
   public interface Suggester {
     String apply(@Nullable String original, int attempt, int size);
   }
 
-  public static final Suggester EXPR_SUGGESTER =
-      (original, attempt, size) ->
-          Util.first(original, SqlUtil.GENERATED_EXPR_ALIAS_PREFIX) + attempt;
+  public static final Suggester EXPR_SUGGESTER = (original, attempt,
+      size) -> Util.first(original, SqlUtil.GENERATED_EXPR_ALIAS_PREFIX) + attempt;
 
-  public static final Suggester F_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "$f")
-          + Math.max(size, attempt);
+  public static final Suggester F_SUGGESTER = (original, attempt, size) -> Util.first(original, "$f")
+      + Math.max(size, attempt);
 
-  public static final Suggester ATTEMPT_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "$") + attempt;
+  public static final Suggester ATTEMPT_SUGGESTER = (original, attempt, size) -> Util.first(original, "$") + attempt;
 
   /** Builds a list of GROUP BY expressions. */
   static class GroupAnalyzer {
-    /** Extra expressions, computed from the input as extra GROUP BY
-     * expressions. For example, calls to the {@code TUMBLE} functions. */
+    /**
+     * Extra expressions, computed from the input as extra GROUP BY
+     * expressions. For example, calls to the {@code TUMBLE} functions.
+     */
     final List<SqlNode> extraExprs = new ArrayList<>();
     final List<SqlNode> groupExprs = new ArrayList<>();
     final Map<Integer, Integer> groupExprProjection = new HashMap<>();
@@ -1361,7 +1382,8 @@ public class SqlValidatorUtil {
       this.rowType = requireNonNull(rowType, "rowType");
     }
 
-    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return this.rowType;
     }
   }
@@ -1376,13 +1398,16 @@ public class SqlValidatorUtil {
       this.tableMap = requireNonNull(tableMap, "tableMap");
     }
 
-    @Override protected Map<String, Table> getTableMap() {
+    @Override
+    protected Map<String, Table> getTableMap() {
       return tableMap;
     }
   }
 
-  /** Flattens any FILTER, WITHIN DISTINCT, WITHIN GROUP surrounding a call to
-   * an aggregate function. */
+  /**
+   * Flattens any FILTER, WITHIN DISTINCT, WITHIN GROUP surrounding a call to
+   * an aggregate function.
+   */
   public static class FlatAggregate {
     public final SqlCall aggregateCall;
     public final @Nullable SqlCall filterCall;
@@ -1394,8 +1419,7 @@ public class SqlValidatorUtil {
 
     FlatAggregate(SqlCall aggregateCall, @Nullable SqlCall filterCall,
         @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall) {
-      this.aggregateCall =
-          Objects.requireNonNull(aggregateCall, "aggregateCall");
+      this.aggregateCall = Objects.requireNonNull(aggregateCall, "aggregateCall");
       Preconditions.checkArgument(filterCall == null
           || filterCall.getKind() == SqlKind.FILTER);
       Preconditions.checkArgument(distinctCall == null

@@ -35,7 +35,7 @@ import static java.util.Objects.requireNonNull;
  * methods to put somewhere.
  */
 public class SqlSelect extends SqlCall {
-  //~ Static fields/initializers ---------------------------------------------
+  // ~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions
   public static final int FROM_OPERAND = 2;
@@ -44,17 +44,27 @@ public class SqlSelect extends SqlCall {
 
   SqlNodeList keywordList;
   SqlNodeList selectList;
-  @Nullable SqlNode from;
-  @Nullable SqlNode where;
-  @Nullable SqlNodeList groupBy;
-  @Nullable SqlNode having;
+  @Nullable
+  SqlNode from;
+  @Nullable
+  SqlNode where;
+  @Nullable
+  SqlNodeList groupBy;
+  @Nullable
+  SqlNode having;
+  @Nullable
+  SqlNode qualify;
   SqlNodeList windowDecls;
-  @Nullable SqlNodeList orderBy;
-  @Nullable SqlNode offset;
-  @Nullable SqlNode fetch;
-  @Nullable SqlNodeList hints;
+  @Nullable
+  SqlNodeList orderBy;
+  @Nullable
+  SqlNode offset;
+  @Nullable
+  SqlNode fetch;
+  @Nullable
+  SqlNodeList hints;
 
-  //~ Constructors -----------------------------------------------------------
+  // ~ Constructors -----------------------------------------------------------
 
   public SqlSelect(SqlParserPos pos,
       @Nullable SqlNodeList keywordList,
@@ -63,6 +73,7 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNode where,
       @Nullable SqlNodeList groupBy,
       @Nullable SqlNode having,
+      @Nullable SqlNode qualify,
       @Nullable SqlNodeList windowDecls,
       @Nullable SqlNodeList orderBy,
       @Nullable SqlNode offset,
@@ -70,70 +81,80 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNodeList hints) {
     super(pos);
     this.keywordList = requireNonNull(keywordList != null
-        ? keywordList : new SqlNodeList(pos));
+        ? keywordList
+        : new SqlNodeList(pos));
     this.selectList = requireNonNull(selectList, "selectList");
     this.from = from;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
+    this.qualify = qualify;
     this.windowDecls = requireNonNull(windowDecls != null
-        ? windowDecls : new SqlNodeList(pos));
+        ? windowDecls
+        : new SqlNodeList(pos));
     this.orderBy = orderBy;
     this.offset = offset;
     this.fetch = fetch;
     this.hints = hints;
   }
 
-  //~ Methods ----------------------------------------------------------------
+  // ~ Methods ----------------------------------------------------------------
 
-  @Override public SqlOperator getOperator() {
+  @Override
+  public SqlOperator getOperator() {
     return SqlSelectOperator.INSTANCE;
   }
 
-  @Override public SqlKind getKind() {
+  @Override
+  public SqlKind getKind() {
     return SqlKind.SELECT;
   }
 
   @SuppressWarnings("nullness")
-  @Override public List<SqlNode> getOperandList() {
+  @Override
+  public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch, hints);
+        groupBy, having, qualify, windowDecls, orderBy, offset, fetch, hints);
   }
 
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override
+  public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
-    case 0:
-      keywordList = requireNonNull((SqlNodeList) operand);
-      break;
-    case 1:
-      selectList = requireNonNull((SqlNodeList) operand);
-      break;
-    case 2:
-      from = operand;
-      break;
-    case 3:
-      where = operand;
-      break;
-    case 4:
-      groupBy = (SqlNodeList) operand;
-      break;
-    case 5:
-      having = operand;
-      break;
-    case 6:
-      windowDecls = requireNonNull((SqlNodeList) operand);
-      break;
-    case 7:
-      orderBy = (SqlNodeList) operand;
-      break;
-    case 8:
-      offset = operand;
-      break;
-    case 9:
-      fetch = operand;
-      break;
-    default:
-      throw new AssertionError(i);
+      case 0:
+        keywordList = requireNonNull((SqlNodeList) operand);
+        break;
+      case 1:
+        selectList = requireNonNull((SqlNodeList) operand);
+        break;
+      case 2:
+        from = operand;
+        break;
+      case 3:
+        where = operand;
+        break;
+      case 4:
+        groupBy = (SqlNodeList) operand;
+        break;
+      case 5:
+        having = operand;
+        break;
+      case 6:
+        qualify = operand;
+        break;
+      case 7:
+        windowDecls = requireNonNull((SqlNodeList) operand);
+        break;
+      case 8:
+        orderBy = (SqlNodeList) operand;
+        break;
+      case 9:
+        offset = operand;
+        break;
+      case 10:
+        fetch = operand;
+        break;
+      default:
+        throw new AssertionError(i);
     }
   }
 
@@ -143,8 +164,7 @@ public class SqlSelect extends SqlCall {
 
   public final @Nullable SqlNode getModifierNode(SqlSelectKeyword modifier) {
     for (SqlNode keyword : keywordList) {
-      SqlSelectKeyword keyword2 =
-          ((SqlLiteral) keyword).symbolValue(SqlSelectKeyword.class);
+      SqlSelectKeyword keyword2 = ((SqlLiteral) keyword).symbolValue(SqlSelectKeyword.class);
       if (keyword2 == modifier) {
         return keyword;
       }
@@ -177,6 +197,15 @@ public class SqlSelect extends SqlCall {
 
   public void setHaving(@Nullable SqlNode having) {
     this.having = having;
+  }
+
+  @Pure
+  public final @Nullable SqlNode getQualify() {
+    return qualify;
+  }
+
+  public void setQualify(@Nullable SqlNode qualify) {
+    this.qualify = qualify;
   }
 
   @Pure
@@ -243,18 +272,19 @@ public class SqlSelect extends SqlCall {
     return this.hints != null && this.hints.size() > 0;
   }
 
-  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override
+  public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateQuery(this, scope, validator.getUnknownType());
   }
 
   // Override SqlCall, to introduce a sub-query frame.
-  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+  @Override
+  public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     if (!writer.inQuery()) {
       // If this SELECT is the topmost item in a sub-query, introduce a new
       // frame. (The topmost item in the sub-query might be a UNION or
       // ORDER. In this case, we don't need a wrapper frame.)
-      final SqlWriter.Frame frame =
-          writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");
+      final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");
       writer.getDialect().unparseCall(writer, this, 0, 0);
       writer.endList(frame);
     } else {

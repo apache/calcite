@@ -69,18 +69,19 @@ import static java.util.Objects.requireNonNull;
 /**
  * Queryable that gets its data from a table within a JDBC connection.
  *
- * <p>The idea is not to read the whole table, however. The idea is to use
+ * <p>
+ * The idea is not to read the whole table, however. The idea is to use
  * this as a building block for a query, by applying Queryable operators
  * such as
  * {@link org.apache.calcite.linq4j.Queryable#where(org.apache.calcite.linq4j.function.Predicate2)}.
  * The resulting queryable can then be converted to a SQL query, which can be
- * executed efficiently on the JDBC server.</p>
+ * executed efficiently on the JDBC server.
+ * </p>
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
   @SuppressWarnings("methodref.receiver.bound.invalid")
-  private final Supplier<RelProtoDataType> protoRowTypeSupplier =
-      Suppliers.memoize(this::supplyProto)::get;
+  private final Supplier<RelProtoDataType> protoRowTypeSupplier = Suppliers.memoize(this::supplyProto)::get;
   public final JdbcSchema jdbcSchema;
   public final String jdbcCatalogName;
   public final String jdbcSchemaName;
@@ -98,15 +99,18 @@ public class JdbcTable extends AbstractQueryableTable
     this.jdbcTableType = requireNonNull(jdbcTableType, "jdbcTableType");
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "JdbcTable {" + jdbcTableName + "}";
   }
 
-  @Override public Schema.TableType getJdbcTableType() {
+  @Override
+  public Schema.TableType getJdbcTableType() {
     return jdbcTableType;
   }
 
-  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
+  @Override
+  public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(jdbcSchema.getDataSource())) {
       return aClass.cast(jdbcSchema.getDataSource());
     } else if (aClass.isInstance(jdbcSchema.dialect)) {
@@ -116,7 +120,8 @@ public class JdbcTable extends AbstractQueryableTable
     }
   }
 
-  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return protoRowTypeSupplier.get().apply(typeFactory);
   }
 
@@ -129,7 +134,8 @@ public class JdbcTable extends AbstractQueryableTable
     } catch (SQLException e) {
       throw new RuntimeException(
           "Exception while reading definition of table '" + jdbcTableName
-              + "'", e);
+              + "'",
+          e);
     }
   }
 
@@ -139,18 +145,16 @@ public class JdbcTable extends AbstractQueryableTable
     return Util.transform(rowType.getFieldList(), f -> {
       final RelDataType type = f.getType();
       final Class clazz = (Class) typeFactory.getJavaClass(type);
-      final ColumnMetaData.Rep rep =
-          Util.first(ColumnMetaData.Rep.of(clazz),
-              ColumnMetaData.Rep.OBJECT);
+      final ColumnMetaData.Rep rep = Util.first(ColumnMetaData.Rep.of(clazz),
+          ColumnMetaData.Rep.OBJECT);
       return Pair.of(rep, type.getSqlTypeName().getJdbcOrdinal());
     });
   }
 
   SqlString generateSql() {
     final SqlNodeList selectList = SqlNodeList.SINGLETON_STAR;
-    SqlSelect node =
-        new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
-            tableName(), null, null, null, null, null, null, null, null);
+    SqlSelect node = new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
+        tableName(), null, null, null, null, null, null, null, null, null);
     final SqlWriterConfig config = SqlPrettyWriter.config()
         .withAlwaysUseParentheses(true)
         .withDialect(jdbcSchema.dialect);
@@ -159,8 +163,10 @@ public class JdbcTable extends AbstractQueryableTable
     return writer.toSqlString();
   }
 
-  /** Returns the table name, qualified with catalog and schema name if
-   * applicable, as a parse tree node ({@link SqlIdentifier}). */
+  /**
+   * Returns the table name, qualified with catalog and schema name if
+   * applicable, as a parse tree node ({@link SqlIdentifier}).
+   */
   public SqlIdentifier tableName() {
     final List<String> names = new ArrayList<>(3);
     if (jdbcSchema.catalog != null) {
@@ -173,29 +179,34 @@ public class JdbcTable extends AbstractQueryableTable
     return new SqlIdentifier(names, SqlParserPos.ZERO);
   }
 
-  @Override public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override
+  public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     return new JdbcTableScan(context.getCluster(), context.getTableHints(), relOptTable, this,
         jdbcSchema.convention);
   }
 
-  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new JdbcTableQueryable<>(queryProvider, schema, tableName);
   }
 
-  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+  @Override
+  public Enumerable<@Nullable Object[]> scan(DataContext root) {
     JavaTypeFactory typeFactory = root.getTypeFactory();
     final SqlString sql = generateSql();
     return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
         JdbcUtils.rowBuilderFactory2(fieldClasses(typeFactory)));
   }
 
-  @Override public @Nullable Collection getModifiableCollection() {
+  @Override
+  public @Nullable Collection getModifiableCollection() {
     return null;
   }
 
-  @Override public TableModify toModificationRel(RelOptCluster cluster,
+  @Override
+  public TableModify toModificationRel(RelOptCluster cluster,
       RelOptTable table, CatalogReader catalogReader, RelNode input,
       Operation operation, @Nullable List<String> updateColumnList,
       @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
@@ -206,30 +217,31 @@ public class JdbcTable extends AbstractQueryableTable
         sourceExpressionList, flattened);
   }
 
-  /** Enumerable that returns the contents of a {@link JdbcTable} by connecting
+  /**
+   * Enumerable that returns the contents of a {@link JdbcTable} by connecting
    * to the JDBC data source.
    *
-   * @param <T> element type */
+   * @param <T> element type
+   */
   private class JdbcTableQueryable<T> extends AbstractTableQueryable<T> {
     JdbcTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
         String tableName) {
       super(queryProvider, schema, JdbcTable.this, tableName);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
       return "JdbcTableQueryable {table: " + tableName + "}";
     }
 
-    @Override public Enumerator<T> enumerator() {
-      final JavaTypeFactory typeFactory =
-          ((CalciteConnection) queryProvider).getTypeFactory();
+    @Override
+    public Enumerator<T> enumerator() {
+      final JavaTypeFactory typeFactory = ((CalciteConnection) queryProvider).getTypeFactory();
       final SqlString sql = generateSql();
-      final List<Pair<ColumnMetaData.Rep, Integer>> pairs =
-          fieldClasses(typeFactory);
-      @SuppressWarnings({"rawtypes", "unchecked"})
-      final Enumerable<T> enumerable =
-          (Enumerable) ResultSetEnumerable.of(jdbcSchema.getDataSource(),
-              sql.getSql(), JdbcUtils.rowBuilderFactory2(pairs));
+      final List<Pair<ColumnMetaData.Rep, Integer>> pairs = fieldClasses(typeFactory);
+      @SuppressWarnings({ "rawtypes", "unchecked" })
+      final Enumerable<T> enumerable = (Enumerable) ResultSetEnumerable.of(jdbcSchema.getDataSource(),
+          sql.getSql(), JdbcUtils.rowBuilderFactory2(pairs));
       return enumerable.enumerator();
     }
   }

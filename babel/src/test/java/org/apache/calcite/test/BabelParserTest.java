@@ -88,6 +88,7 @@ class BabelParserTest extends SqlParserTest {
     assertThat(metadata.isKeyword("KEY"), is(true));
     assertThat(metadata.isKeyword("SELECT"), is(true));
     assertThat(metadata.isKeyword("HAVING"), is(true));
+    assertThat(metadata.isKeyword("QUALIFY"), is(true));
     assertThat(metadata.isKeyword("A"), is(true));
     assertThat(metadata.isKeyword("BAR"), is(false));
 
