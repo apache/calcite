@@ -293,6 +293,9 @@ allprojects {
     repositories {
         // RAT and Autostyle dependencies
         mavenCentral()
+        flatDir {
+            dirs = setOf(file("libs"))
+        }
     }
 
     val javaUsed = file("src/main/java").isDirectory
