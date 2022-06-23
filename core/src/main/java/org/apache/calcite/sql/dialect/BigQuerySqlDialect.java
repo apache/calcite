@@ -843,7 +843,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     return intervalOperand.operand(0);
   }
 
-  protected void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "CURRENT_TIMESTAMP":
       if (((SqlBasicCall) call).getOperands().length > 0) {
@@ -1079,9 +1079,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       } else {
         function.unparse(writer, call, leftPrec, rightPrec);
       }
-      break;
-    default:
-      unparseOtherFunction(writer, call, leftPrec, rightPrec);
     }
   }
 
