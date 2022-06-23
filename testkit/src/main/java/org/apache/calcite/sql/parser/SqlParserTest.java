@@ -8186,6 +8186,102 @@ public class SqlParserTest {
     sql(sql2).ok(expected2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5194">[CALCITE-5194]
+   * Cannot parse parenthesized UNION in FROM</a>. */
+  @Test void testParenthesizedUnionInFrom() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a)\n"
+        + "  union\n"
+        + "  (select y from b))";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testParenthesizedUnionAndJoinInFrom() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a) as a"
+        + "  cross join\n"
+        + "  (select x from a\n"
+        + "  union\n"
+        + "  select y from b) as b)";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`) AS `A`\n"
+        + "CROSS JOIN (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`) AS `B`";
+    sql(sql).ok(expected);
+  }
+
+  /** As {@link #testParenthesizedUnionAndJoinInFrom()}
+   * but the UNION is the first input to the JOIN. */
+  @Test void testParenthesizedUnionAndJoinInFrom2() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a\n"
+        + "  union\n"
+        + "  select y from b) as b\n"
+        + "  cross join\n"
+        + "  (select x from a) as a)";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`) AS `B`\n"
+        + "CROSS JOIN (SELECT `X`\n"
+        + "FROM `A`) AS `A`";
+    sql(sql).ok(expected);
+  }
+
+  /** As {@link #testParenthesizedUnionAndJoinInFrom2()}
+   * but INNER JOIN rather than CROSS JOIN. */
+  @Test void testParenthesizedUnionAndJoinInFrom3() {
+    final String sql = "select *\n"
+        + "from (\n"
+        + "  (select x from a\n"
+        + "  union\n"
+        + "  select y from b) as b\n"
+        + "  join\n"
+        + "  (select x from a) as a on b.x = a.x)";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`) AS `B`\n"
+        + "INNER JOIN (SELECT `X`\n"
+        + "FROM `A`) AS `A` ON (`B`.`X` = `A`.`X`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testParenthesizedUnion() {
+    final String sql = "(select x from a\n"
+        + "  union\n"
+        + "  select y from b)\n"
+        + "except\n"
+        + "(select z from c)";
+    final String expected = "((SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT `Y`\n"
+        + "FROM `B`)\n"
+        + "EXCEPT\n"
+        + "SELECT `Z`\n"
+        + "FROM `C`)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testFromExpr() {
     String sql0 = "select * from a cross join b";
     String sql1 = "select * from (a cross join b)";

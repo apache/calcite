@@ -612,6 +612,7 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
 SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
 {
     SqlNode e;
+    final List<Object> list = new ArrayList<Object>();
 }
 {
     // Lookhead to distinguish between "TABLE emp" (which will be
@@ -621,11 +622,14 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
         LOOKAHEAD(2)
         e = Query(exprContext)
         e = OrderByLimitOpt(e)
+        { return e; }
     |
         e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
         ( e = JoinTable(e) )*
+        { list.add(e); }
+        ( AddSetOpQuery(list, exprContext) )*
+        { return SqlParserUtil.toTree(list); }
     )
-    { return e; }
 }
 
 /**
