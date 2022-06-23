@@ -34,6 +34,9 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Util;
+
+import com.google.common.primitives.Ints;
 
 import java.lang.reflect.Type;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,7 +91,7 @@ public class CsvTranslatableTable extends CsvTable
       RelOptTable relOptTable) {
     // Request all fields.
     final int fieldCount = relOptTable.getRowType().getFieldCount();
-    final int[] fields = CsvEnumerator.identityList(fieldCount);
+    final int[] fields = Ints.toArray(Util.range(fieldCount));
     return new CsvTableScan(context.getCluster(), relOptTable, this, fields);
   }
 }

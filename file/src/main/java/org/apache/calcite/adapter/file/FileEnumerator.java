@@ -17,6 +17,9 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.util.Util;
+
+import com.google.common.primitives.Ints;
 
 import org.jsoup.select.Elements;
 
@@ -33,7 +36,7 @@ class FileEnumerator implements Enumerator<Object> {
   private Object current;
 
   FileEnumerator(Iterator<Elements> iterator, FileRowConverter converter) {
-    this(iterator, converter, identityList(converter.width()));
+    this(iterator, converter, Ints.toArray(Util.range(converter.width())));
   }
 
   FileEnumerator(Iterator<Elements> iterator, FileRowConverter converter,
@@ -74,17 +77,6 @@ class FileEnumerator implements Enumerator<Object> {
 
   // required by linq4j Enumerator interface
   @Override public void close() {
-  }
-
-  /** Returns an array of integers {0, ..., n - 1}. */
-  private static int[] identityList(int n) {
-    int[] integers = new int[n];
-
-    for (int i = 0; i < n; i++) {
-      integers[i] = i;
-    }
-
-    return integers;
   }
 
 }

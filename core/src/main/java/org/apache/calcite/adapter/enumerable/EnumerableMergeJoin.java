@@ -95,8 +95,9 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     final List<RelCollation> collations =
         traits.getTraits(RelCollationTraitDef.INSTANCE);
     assert collations != null && collations.size() > 0;
-    ImmutableIntList rightKeys = joinInfo.rightKeys
-        .incr(left.getRowType().getFieldCount());
+    final int leftInputFieldCount = left.getRowType().getFieldCount();
+    ImmutableIntList rightKeys =
+        joinInfo.rightKeys.map(i -> i + leftInputFieldCount);
     // Currently it has very limited ability to represent the equivalent traits
     // due to the flaw of RelCompositeTrait, so the following case is totally
     // legit, but not yet supported:
@@ -193,9 +194,9 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     int leftInputFieldCount = left.getRowType().getFieldCount();
 
     List<Integer> reqKeys = RelCollations.ordinals(collation);
-    List<Integer> leftKeys = joinInfo.leftKeys.toIntegerList();
+    List<Integer> leftKeys = joinInfo.leftKeys;
     List<Integer> rightKeys =
-        joinInfo.rightKeys.incr(leftInputFieldCount).toIntegerList();
+        joinInfo.rightKeys.map(i -> i + leftInputFieldCount);
 
     ImmutableBitSet reqKeySet = ImmutableBitSet.of(reqKeys);
     ImmutableBitSet leftKeySet = ImmutableBitSet.of(joinInfo.leftKeys);

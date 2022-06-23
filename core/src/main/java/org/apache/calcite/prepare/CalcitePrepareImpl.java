@@ -283,7 +283,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     List<Integer> columnMapping;
     final Map<Integer, RexNode> projectMap = new HashMap<>();
     if (project == null) {
-      columnMapping = ImmutableIntList.range(0, targetRowType.getFieldCount());
+      columnMapping = Util.range(targetRowType.getFieldCount());
     } else {
       columnMapping = new ArrayList<>();
       for (Ord<RexNode> node : Ord.zip(project.getProjects())) {

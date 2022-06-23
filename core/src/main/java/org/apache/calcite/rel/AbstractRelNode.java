@@ -126,8 +126,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   @Pure
   @Override public final @Nullable Convention getConvention(
-      @UnknownInitialization AbstractRelNode this
-  ) {
+      @UnknownInitialization AbstractRelNode this) {
     return traitSet == null ? null : traitSet.getTrait(ConventionTraitDef.INSTANCE);
   }
 

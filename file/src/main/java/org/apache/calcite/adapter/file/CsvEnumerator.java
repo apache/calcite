@@ -25,6 +25,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -32,6 +33,7 @@ import org.apache.commons.lang3.time.FastDateFormat;
 import au.com.bytecode.opencsv.CSVReader;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
@@ -277,12 +279,9 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   /** Returns an array of integers {0, ..., n - 1}. */
+  @Deprecated // to be removed before 2.0
   public static int[] identityList(int n) {
-    int[] integers = new int[n];
-    for (int i = 0; i < n; i++) {
-      integers[i] = i;
-    }
-    return integers;
+    return Ints.toArray(Util.range(n));
   }
 
   private static RelDataType toNullableRelDataType(JavaTypeFactory typeFactory,
