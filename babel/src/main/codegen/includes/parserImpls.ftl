@@ -241,3 +241,15 @@ void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
         )
     )*
 }
+
+/** Parses the REGEXP operator in Snowflake */
+void Regexp(List<Object> list, ExprContext exprContext, Span s) :
+{
+}
+{
+    <REGEXP> {
+        checkNonQueryExpression(exprContext);
+        list.add(new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.RLIKE, getPos()));
+    }
+    Expression2b(ExprContext.ACCEPT_SUB_QUERY, list)
+}

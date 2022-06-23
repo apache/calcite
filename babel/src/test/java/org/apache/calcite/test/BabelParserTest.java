@@ -44,21 +44,27 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 class BabelParserTest extends SqlParserTest {
 
-  @Override public SqlParserFixture fixture() {
+  @Override
+  public SqlParserFixture fixture() {
     return super.fixture()
         .withTester(new BabelTesterImpl())
         .withConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY));
   }
 
-  @Test void testReservedWords() {
+  @Test
+  void testReservedWords() {
     assertThat(isReserved("escape"), is(false));
   }
 
-  /** {@inheritDoc}
+  /**
+   * {@inheritDoc}
    *
-   * <p>Copy-pasted from base method, but with some key differences.
+   * <p>
+   * Copy-pasted from base method, but with some key differences.
    */
-  @Override @Test protected void testMetadata() {
+  @Override
+  @Test
+  protected void testMetadata() {
     SqlAbstractParserImpl.Metadata metadata = fixture().parser().getMetadata();
     assertThat(metadata.isReservedFunctionName("ABS"), is(true));
     assertThat(metadata.isReservedFunctionName("FOO"), is(false));
@@ -95,14 +101,16 @@ class BabelParserTest extends SqlParserTest {
     assertThat(!jdbcKeywords.contains(",SELECT,"), is(true));
   }
 
-  @Test void testSelect() {
+  @Test
+  void testSelect() {
     final String sql = "select 1 from t";
     final String expected = "SELECT 1\n"
         + "FROM `T`";
     sql(sql).ok(expected);
   }
 
-  @Test void testYearIsNotReserved() {
+  @Test
+  void testYearIsNotReserved() {
     final String sql = "select 1 as year from t";
     final String expected = "SELECT 1 AS `YEAR`\n"
         + "FROM `T`";
@@ -111,8 +119,9 @@ class BabelParserTest extends SqlParserTest {
 
   /** Tests that there are no reserved keywords. */
   @Disabled
-  @Test void testKeywords() {
-    final String[] reserved = {"AND", "ANY", "END-EXEC"};
+  @Test
+  void testKeywords() {
+    final String[] reserved = { "AND", "ANY", "END-EXEC" };
     final StringBuilder sql = new StringBuilder("select ");
     final StringBuilder expected = new StringBuilder("SELECT ");
     for (String keyword : keywords(null)) {
@@ -131,14 +140,16 @@ class BabelParserTest extends SqlParserTest {
   }
 
   /** In Babel, AS is not reserved. */
-  @Test void testAs() {
+  @Test
+  void testAs() {
     final String expected = "SELECT `AS`\n"
         + "FROM `T`";
     sql("select as from t").ok(expected);
   }
 
   /** In Babel, DESC is not reserved. */
-  @Test void testDesc() {
+  @Test
+  void testDesc() {
     final String sql = "select desc\n"
         + "from t\n"
         + "order by desc asc, desc desc";
@@ -149,31 +160,40 @@ class BabelParserTest extends SqlParserTest {
   }
 
   /**
-   * This is a failure test making sure the LOOKAHEAD for WHEN clause is 2 in Babel, where
+   * This is a failure test making sure the LOOKAHEAD for WHEN clause is 2 in
+   * Babel, where
    * in core parser this number is 1.
    *
    * @see SqlParserTest#testCaseExpression()
-   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-2847">[CALCITE-2847]
-   * Optimize global LOOKAHEAD for SQL parsers</a>
+   * @see <a href=
+   *      "https://issues.apache.org/jira/browse/CALCITE-2847">[CALCITE-2847]
+   *      Optimize global LOOKAHEAD for SQL parsers</a>
    */
-  @Test void testCaseExpressionBabel() {
+  @Test
+  void testCaseExpressionBabel() {
     sql("case x when 2, 4 then 3 ^when^ then 5 else 4 end")
         .fails("(?s)Encountered \"when then\" at .*");
   }
 
-  /** In Redshift, DATE is a function. It requires special treatment in the
+  /**
+   * In Redshift, DATE is a function. It requires special treatment in the
    * parser because it is a reserved keyword.
-   * (Curiously, TIMESTAMP and TIME are not functions.) */
-  @Test void testDateFunction() {
+   * (Curiously, TIMESTAMP and TIME are not functions.)
+   */
+  @Test
+  void testDateFunction() {
     final String expected = "SELECT `DATE`(`X`)\n"
         + "FROM `T`";
     sql("select date(x) from t").ok(expected);
   }
 
-  /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
+  /**
+   * In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
    * ordinary function syntax except that its first argument is a time unit
-   * (e.g. DAY). We must not parse that first argument as an identifier. */
-  @Test void testRedshiftFunctionsWithDateParts() {
+   * (e.g. DAY). We must not parse that first argument as an identifier.
+   */
+  @Test
+  void testRedshiftFunctionsWithDateParts() {
     final String sql = "SELECT DATEADD(day, 1, t),\n"
         + " DATEDIFF(week, 2, t),\n"
         + " DATE_PART(year, t) FROM mytable";
@@ -184,9 +204,12 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
-   * date part. */
-  @Test void testShortTimestampLiteral() {
+  /**
+   * PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
+   * date part.
+   */
+  @Test
+  void testShortTimestampLiteral() {
     sql("select timestamp '1969-07-20'")
         .ok("SELECT TIMESTAMP '1969-07-20 00:00:00'");
     // PostgreSQL allows the following. We should too.
@@ -199,7 +222,8 @@ class BabelParserTest extends SqlParserTest {
   }
 
   /** Tests parsing PostgreSQL-style "::" cast operator. */
-  @Test void testParseInfixCast()  {
+  @Test
+  void testParseInfixCast() {
     checkParseInfixCast("integer");
     checkParseInfixCast("varchar");
     checkParseInfixCast("boolean");
@@ -222,7 +246,8 @@ class BabelParserTest extends SqlParserTest {
   }
 
   /** Tests parsing MySQL-style "<=>" equal operator. */
-  @Test void testParseNullSafeEqual()  {
+  @Test
+  void testParseNullSafeEqual() {
     // x <=> y
     final String projectSql = "SELECT x <=> 3 FROM (VALUES (1, 2)) as tbl(x,y)";
     sql(projectSql).ok("SELECT (`X` <=> 3)\n"
@@ -252,7 +277,15 @@ class BabelParserTest extends SqlParserTest {
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
   }
 
-  @Test void checkParseInfixFieldReferenceBasic() {
+  @Test
+  void checkParseRegexpKeyword() {
+    String sql = "SELECT x regexp 'y' FROM dingle";
+    String expected = "SELECT (`X` RLIKE 'y')\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+  }
+
+  @Test
+  void checkParseInfixFieldReferenceBasic() {
     String sql = "SELECT x:subfield FROM dingle";
     String expected = "SELECT (`X` : \"subfield\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
@@ -262,25 +295,29 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void checkParseInfixFieldReferenceQuoted() {
+  @Test
+  void checkParseInfixFieldReferenceQuoted() {
     String sql = "SELECT x:\"subfield with spaces\" FROM dingle";
     String expected = "SELECT (`X` : \"subfield with spaces\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 
-  @Test void checkParseInfixFieldReferencePreserveCaseSensitivity() {
+  @Test
+  void checkParseInfixFieldReferencePreserveCaseSensitivity() {
     String sql = "SELECT x:\"CaSeSensitive\" FROM dingle";
     String expected = "SELECT (`X` : \"CaSeSensitive\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 
-  @Test void checkParseInfixFieldReferenceSubkeys() {
+  @Test
+  void checkParseInfixFieldReferenceSubkeys() {
     String sql = "SELECT x:key.childKey1.\"childKey2 here\".childKey3 FROM dingle";
     String expected = "SELECT (`X` : \"key\".\"childKey1\".\"childKey2 here\".\"childKey3\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 
-  @Test void checkParseInfixFieldReferenceBracketSimple() {
+  @Test
+  void checkParseInfixFieldReferenceBracketSimple() {
     String sql = "SELECT x:key['childKey1'] FROM dingle";
     String expected = "SELECT (`X` : \"key\".\"childKey1\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
@@ -294,32 +331,37 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void checkParseInfixFieldReferenceBracketExpression() {
+  @Test
+  void checkParseInfixFieldReferenceBracketExpression() {
     String sql = "SELECT x:key.subkey[collect(x:key.subkey2) - 1] FROM dingle";
     String expected = "SELECT (`X` : \"key\".\"subkey\"[(COLLECT((`X` : \"key\".\"subkey2\")) - 1)])\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateTableWithNoCollectionTypeSpecified() {
+  @Test
+  void testCreateTableWithNoCollectionTypeSpecified() {
     final String sql = "create table foo (bar integer not null, baz varchar(30))";
     final String expected = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateSetTable() {
+  @Test
+  void testCreateSetTable() {
     final String sql = "create set table foo (bar int not null, baz varchar(30))";
     final String expected = "CREATE SET TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateMultisetTable() {
+  @Test
+  void testCreateMultisetTable() {
     final String sql = "create multiset table foo (bar int not null, baz varchar(30))";
     final String expected = "CREATE MULTISET TABLE `FOO` "
         + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateVolatileTable() {
+  @Test
+  void testCreateVolatileTable() {
     final String sql = "create volatile table foo (bar int not null, baz varchar(30))";
     final String expected = "CREATE VOLATILE TABLE `FOO` "
         + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
@@ -327,7 +369,8 @@ class BabelParserTest extends SqlParserTest {
   }
 
   /** Similar to {@link #testHoist()} but using custom parser. */
-  @Test void testHoistMySql() {
+  @Test
+  void testHoistMySql() {
     // SQL contains back-ticks, which require MySQL's quoting,
     // and DATEADD, which requires Babel.
     final String sql = "select 1 as x,\n"
@@ -336,12 +379,11 @@ class BabelParserTest extends SqlParserTest {
         + "where deptno < 40\n"
         + "and DATEADD(day, 1, hiredate) > date '2010-05-06'";
     final SqlDialect dialect = MysqlSqlDialect.DEFAULT;
-    final Hoist.Hoisted hoisted =
-        Hoist.create(Hoist.config()
-            .withParserConfig(
-                dialect.configureParser(SqlParser.config())
-                    .withParserFactory(SqlBabelParserImpl::new)))
-            .hoist(sql);
+    final Hoist.Hoisted hoisted = Hoist.create(Hoist.config()
+        .withParserConfig(
+            dialect.configureParser(SqlParser.config())
+                .withParserFactory(SqlBabelParserImpl::new)))
+        .hoist(sql);
 
     // Simple toString converts each variable to '?N'
     final String expected = "select ?0 as x,\n"
@@ -366,11 +408,13 @@ class BabelParserTest extends SqlParserTest {
    * parsers. Here we define a looser error checker for Babel, so that we can
    * reuse failure testing codes from {@link SqlParserTest}.
    *
-   * <p>If a test case is written in this file -- that is, not inherited -- it
+   * <p>
+   * If a test case is written in this file -- that is, not inherited -- it
    * is still checked by {@link SqlParserTest}'s checker.
    */
   public static class BabelTesterImpl extends TesterImpl {
-    @Override protected void checkEx(String expectedMsgPattern,
+    @Override
+    protected void checkEx(String expectedMsgPattern,
         StringAndPos sap, @Nullable Throwable thrown) {
       if (thrown != null && thrownByBabelTest(thrown)) {
         super.checkEx(expectedMsgPattern, sap, thrown);
