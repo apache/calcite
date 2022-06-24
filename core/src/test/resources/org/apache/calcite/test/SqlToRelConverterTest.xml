@@ -315,6 +315,20 @@ from dept_nested_expanded as d,
  UNNEST(d.employees) as t(employee)]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasWithinGroupingSets">
+    <Resource name="sql">
+      <![CDATA[SELECT empno / 2 AS x
+FROM emp
+GROUP BY ROLLUP(x)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], groups=[[{0}, {}]])
+  LogicalProject(X=[/($0, 2)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAllValueList">
     <Resource name="sql">
       <![CDATA[select empno from emp where deptno > all (10, 20)]]>
@@ -419,6 +433,42 @@ LogicalValues(tuples=[[{ 1 }]])
     </Resource>
     <Resource name="sql">
       <![CDATA[values (case 'a' when 'a' then 1 end)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCaseAliasWithinGroupingSets">
+    <Resource name="sql">
+      <![CDATA[SELECT empno,
+CASE
+WHEN ename in ('Fred','Eric') THEN 'CEO'
+ELSE 'Other'
+END AS derived_col
+FROM emp
+GROUP BY GROUPING SETS ((empno, derived_col),(empno))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]])
+  LogicalProject(EMPNO=[$0], DERIVED_COL=[CASE(SEARCH($1, Sarg['Eric', 'Fred']:CHAR(4)), 'CEO  ', 'Other')])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCaseWithinGroupingSets">
+    <Resource name="sql">
+      <![CDATA[SELECT empno,
+CASE WHEN ename IN ('Fred','Eric') THEN 'Manager' ELSE 'Other' END
+FROM emp
+GROUP BY GROUPING SETS (
+(empno, CASE WHEN ename IN ('Fred','Eric') THEN 'Manager' ELSE 'Other' END),
+(empno)
+)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]])
+  LogicalProject(EMPNO=[$0], EXPR$1=[CASE(SEARCH($1, Sarg['Eric', 'Fred']:CHAR(4)), 'Manager', 'Other  ')])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testCharLength">
