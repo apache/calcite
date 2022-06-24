@@ -52,7 +52,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * any local info in the class and hence the return type data is maintained in
  * operand[1] through the validation phase.
  *
- * <p>Can be used for both {@link SqlCall} and
+ * <p>
+ * Can be used for both {@link SqlCall} and
  * {@link org.apache.calcite.rex.RexCall}.
  * Note that the {@code SqlCall} has two operands (expression and type),
  * while the {@code RexCall} has one operand (expression) and the type is
@@ -61,29 +62,32 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * @see SqlCastOperator
  */
 public class SqlCastFunction extends SqlFunction {
-  //~ Instance fields --------------------------------------------------------
+  // ~ Instance fields --------------------------------------------------------
 
   /** Map of all casts that do not preserve monotonicity. */
-  private final SetMultimap<SqlTypeFamily, SqlTypeFamily> nonMonotonicCasts =
-      ImmutableSetMultimap.<SqlTypeFamily, SqlTypeFamily>builder()
-          .put(SqlTypeFamily.EXACT_NUMERIC, SqlTypeFamily.CHARACTER)
-          .put(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
-          .put(SqlTypeFamily.APPROXIMATE_NUMERIC, SqlTypeFamily.CHARACTER)
-          .put(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.CHARACTER)
-          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.EXACT_NUMERIC)
-          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC)
-          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.APPROXIMATE_NUMERIC)
-          .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL)
-          .put(SqlTypeFamily.DATETIME, SqlTypeFamily.TIME)
-          .put(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIME)
-          .put(SqlTypeFamily.TIME, SqlTypeFamily.DATETIME)
-          .put(SqlTypeFamily.TIME, SqlTypeFamily.TIMESTAMP)
-          .build();
+  private final SetMultimap<SqlTypeFamily, SqlTypeFamily> nonMonotonicCasts = ImmutableSetMultimap
+      .<SqlTypeFamily, SqlTypeFamily>builder()
+      .put(SqlTypeFamily.EXACT_NUMERIC, SqlTypeFamily.CHARACTER)
+      .put(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER)
+      .put(SqlTypeFamily.APPROXIMATE_NUMERIC, SqlTypeFamily.CHARACTER)
+      .put(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.CHARACTER)
+      .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.EXACT_NUMERIC)
+      .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.NUMERIC)
+      .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.APPROXIMATE_NUMERIC)
+      .put(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME_INTERVAL)
+      .put(SqlTypeFamily.DATETIME, SqlTypeFamily.TIME)
+      .put(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIME)
+      .put(SqlTypeFamily.TIME, SqlTypeFamily.DATETIME)
+      .put(SqlTypeFamily.TIME, SqlTypeFamily.TIMESTAMP)
+      .build();
 
-  //~ Constructors -----------------------------------------------------------
-
+  // ~ Constructors -----------------------------------------------------------
   public SqlCastFunction() {
-    super("CAST",
+    this(false);
+  }
+
+  public SqlCastFunction(boolean isTryCast) {
+    super(isTryCast ? "TRY_CAST" : "CAST",
         SqlKind.CAST,
         null,
         InferTypes.FIRST_KNOWN,
@@ -91,17 +95,17 @@ public class SqlCastFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 
-  //~ Methods ----------------------------------------------------------------
+  // ~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(
+  @Override
+  public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     assert opBinding.getOperandCount() == 2;
     RelDataType ret = opBinding.getOperandType(1);
     RelDataType firstType = opBinding.getOperandType(0);
-    ret =
-        opBinding.getTypeFactory().createTypeWithNullability(
-            ret,
-            firstType.isNullable());
+    ret = opBinding.getTypeFactory().createTypeWithNullability(
+        ret,
+        firstType.isNullable());
     if (opBinding instanceof SqlCallBinding) {
       SqlCallBinding callBinding = (SqlCallBinding) opBinding;
       SqlNode operand0 = callBinding.operand(0);
@@ -110,20 +114,21 @@ public class SqlCastFunction extends SqlFunction {
       // to them using the type they are casted to.
       if (SqlUtil.isNullLiteral(operand0, false)
           || (operand0 instanceof SqlDynamicParam)) {
-        final SqlValidatorImpl validator =
-            (SqlValidatorImpl) callBinding.getValidator();
+        final SqlValidatorImpl validator = (SqlValidatorImpl) callBinding.getValidator();
         validator.setValidatedNodeType(operand0, ret);
       }
     }
     return ret;
   }
 
-  @Override public String getSignatureTemplate(final int operandsCount) {
+  @Override
+  public String getSignatureTemplate(final int operandsCount) {
     assert operandsCount == 2;
     return "{0}({1} AS {2})";
   }
 
-  @Override public SqlOperandCountRange getOperandCountRange() {
+  @Override
+  public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 
@@ -132,7 +137,8 @@ public class SqlCastFunction extends SqlFunction {
    * Operators (such as "ROW" and "AS") which do not check their arguments can
    * override this method.
    */
-  @Override public boolean checkOperandTypes(
+  @Override
+  public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final SqlNode left = callBinding.operand(0);
@@ -141,8 +147,7 @@ public class SqlCastFunction extends SqlFunction {
         || left instanceof SqlDynamicParam) {
       return true;
     }
-    RelDataType validatedNodeType =
-        callBinding.getValidator().getValidatedNodeType(left);
+    RelDataType validatedNodeType = callBinding.getValidator().getValidatedNodeType(left);
     RelDataType returnType = SqlTypeUtil.deriveType(callBinding, right);
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true)) {
       if (throwOnFailure) {
@@ -167,11 +172,13 @@ public class SqlCastFunction extends SqlFunction {
     return true;
   }
 
-  @Override public SqlSyntax getSyntax() {
+  @Override
+  public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  @Override public void unparse(
+  @Override
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -187,7 +194,8 @@ public class SqlCastFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+  @Override
+  public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     final RelDataType castFromType = call.getOperandType(0);
     final RelDataTypeFamily castFromFamily = castFromType.getFamily();
     final Collator castFromCollator = castFromType.getCollation() == null

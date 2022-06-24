@@ -4918,6 +4918,7 @@ TimeUnit TimeUnit() :
 |   <EPOCH> { return TimeUnit.EPOCH; }
 |   <DECADE> { return TimeUnit.DECADE; }
 |   <CENTURY> { return TimeUnit.CENTURY; }
+|   <EPOCH_SECOND> { return TimeUnit.EPOCH; }
 |   <MILLENNIUM> { return TimeUnit.MILLENNIUM; }
 }
 
@@ -5787,6 +5788,18 @@ SqlNode BuiltinFunctionCall() :
         )
         <RPAREN> {
             return SqlStdOperatorTable.CAST.createCall(s.end(this), args);
+        }
+    |
+        <TRY_CAST> { s = span(); }
+        <LPAREN> e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args = startList(e); }
+        <AS>
+        (
+            dt = DataType() { args.add(dt); }
+        |
+            <INTERVAL> e = IntervalQualifier() { args.add(e); }
+        )
+        <RPAREN> {
+            return SqlStdOperatorTable.TRY_CAST.createCall(s.end(this), args);
         }
     |
         <EXTRACT> {
@@ -7452,6 +7465,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < END_FRAME: "END_FRAME" >
 |   < END_PARTITION: "END_PARTITION" >
 |   < EPOCH: "EPOCH" >
+|   < EPOCH_SECOND: "EPOCH_SECOND" >
 |   < EQUALS: "EQUALS" >
 |   < ERROR: "ERROR" >
 |   < ESCAPE: "ESCAPE" >
@@ -7901,6 +7915,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TRY_CAST: "TRY_CAST" >
 |   < TUMBLE: "TUMBLE" >
 |   < TYPE: "TYPE" >
 |   < UESCAPE: "UESCAPE" >

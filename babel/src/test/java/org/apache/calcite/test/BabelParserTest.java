@@ -285,6 +285,22 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Tests Snowflake's TRY_CAST operator. */
+  @Test
+  void checkTryCast() {
+    String sql = "SELECT TRY_CAST(x AS INT) FROM y";
+    String expected = "SELECT TRY_CAST(`X` AS INTEGER)\nFROM `Y`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT TRY_CAST(x:z AS INT) FROM y";
+    expected = "SELECT TRY_CAST((`X` : \"z\") AS INTEGER)\nFROM `Y`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT TRY_CAST(columns:parent_time::VARCHAR as TIMESTAMP_LTZ)";
+    expected = "SELECT TRY_CAST((`COLUMNS` : \"parent_time\") :: VARCHAR AS `TIMESTAMP_LTZ`)";
+    sql(sql).ok(expected);
+  }
+
   @Test
   void checkParseInfixFieldReferenceBasic() {
     String sql = "SELECT x:subfield FROM dingle";
@@ -313,7 +329,8 @@ class BabelParserTest extends SqlParserTest {
   @Test
   void checkParseInfixFieldReferenceSubkeys() {
     String sql = "SELECT x:key.childKey1.\"childKey2 here\".childKey3 FROM dingle";
-    String expected = "SELECT (`X` : \"key\".\"childKey1\".\"childKey2 here\".\"childKey3\")\nFROM `DINGLE`";
+    String expected = "SELECT (`X` : \"key\".\"childKey1\".\"childKey2 here\""
+        + ".\"childKey3\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 
@@ -335,7 +352,8 @@ class BabelParserTest extends SqlParserTest {
   @Test
   void checkParseInfixFieldReferenceBracketExpression() {
     String sql = "SELECT x:key.subkey[collect(x:key.subkey2) - 1] FROM dingle";
-    String expected = "SELECT (`X` : \"key\".\"subkey\"[(COLLECT((`X` : \"key\".\"subkey2\")) - 1)])\nFROM `DINGLE`";
+    String expected = "SELECT (`X` : \"key\".\"subkey\"[(COLLECT((`X` : \"key\""
+        + ".\"subkey2\")) - 1)])\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }
 
@@ -408,6 +426,8 @@ class BabelParserTest extends SqlParserTest {
    * parser's. This causes different parse error message between these two
    * parsers. Here we define a looser error checker for Babel, so that we can
    * reuse failure testing codes from {@link SqlParserTest}.
+   *
+   *
    *
    * <p>
    * If a test case is written in this file -- that is, not inherited -- it
