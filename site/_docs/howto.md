@@ -32,7 +32,7 @@ adapters.
 ## Building from a source distribution
 
 Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 or 18)
-and Gradle (version 7.3) on your path.
+and Gradle (version 7.4.2) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
@@ -88,6 +88,18 @@ be impedance mismatch between different versions.
 For more information about Gradle, check the following links:
 [Gradle five things](https://docs.gradle.org/current/userguide/what_is_gradle.html#five_things);
 [Gradle multi-project builds](https://docs.gradle.org/current/userguide/intro_multi_project_builds.html).
+
+## Upgrade Gradle and Gradle wrapper
+
+Gradle provides detailed information about upgrade Gradle from different version at [Gradle documentation](https://docs.gradle.org/current/userguide/upgrading_version_7.html)
+Here it is a list of steps to be done
+
+1. Run `./gradlew help --warning-mode=all` to see deprecations if present
+2. Fix deprecations and repeat previous step to confirm they are fixed. This is a step where Gradle doc could be very helpful since it contains info about deprecations and how to cope with them.
+3. Run `./gradlew wrapper --gradle-version <new_gradle_version>`. In case of necessity it will upgrade not only Gradle but Gradle wrapper as well. This step will also update `gradle/wrapper/gradle-wrapper.properties` including checksum.
+4. Since during upgrade in step 3 it will remove license from `gradle/wrapper/gradle-wrapper.properties` run `./gradlew autostyleApply` to have it back
+5. Check updated Gradle version and checksum from `gradle/wrapper/gradle-wrapper.properties` against official at [Gradle release checksums](https://gradle.org/release-checksums/)
+6. Try to build the project, run tests and debug any errors using the [Troubleshooting Guide](https://docs.gradle.org/current/userguide/troubleshooting.html#troubleshooting).
 
 ## Running tests
 
