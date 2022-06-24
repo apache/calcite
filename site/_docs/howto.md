@@ -100,6 +100,7 @@ Here it is a list of steps to be done
 4. Since during upgrade in step 3 it will remove license from `gradle/wrapper/gradle-wrapper.properties` run `./gradlew autostyleApply` to have it back
 5. Check updated Gradle version and checksum from `gradle/wrapper/gradle-wrapper.properties` against official at [Gradle release checksums](https://gradle.org/release-checksums/)
 6. Try to build the project, run tests and debug any errors using the [Troubleshooting Guide](https://docs.gradle.org/current/userguide/troubleshooting.html#troubleshooting).
+7. Update Gradle's version in this howto
 
 ## Running tests
 
