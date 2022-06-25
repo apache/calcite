@@ -1442,6 +1442,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     /** The "TRIM" function. */
     public static final SqlFunction TRIM = SqlTrimFunction.INSTANCE;
 
+    public static final SqlFunction FLATTEN = new SqlFlattenFunction();
+
     public static final SqlFunction POSITION = new SqlPositionFunction();
 
     public static final SqlFunction CHAR_LENGTH = new SqlFunction(

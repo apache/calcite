@@ -5863,6 +5863,31 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.EXTRACT.createCall(s.end(this), args);
         }
     |
+        <FLATTEN> {
+            String beforeArrow = null;
+            SqlNode afterArrow = null;
+            SqlNode flattenExpr = null;
+            s = span();
+        }
+        <LPAREN>
+        (
+            (<OUTER><EQ><GT> ( <TRUE> | <FALSE> ) { beforeArrow = "OUTER"; } )
+            | (<RECURSIVE><EQ><GT> ( <TRUE> { afterArrow = "TRUE"; } | <FALSE> { afterArrow = "FALSE"; } ) { beforeArrow = "RECURSIVE"; })
+            | (<MODE><EQ><GT> (<OBJECT> { afterArrow = "OBJECT"; } | <ARRAY> { afterArrow = "ARRAY"; } | <BOTH> { afterArrow = "BOTH"; }) { beforeArrow = "MODE"; })
+            | (<PATH><EQ><GT> { beforeArrow = "PATH"; flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); })
+            | (<INPUT><EQ><GT> { beforeArrow = "INPUT"; flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); } )
+        )
+        <RPAREN> {
+            ArrayList<SqlNode> ops = new ArrayList<SqlNode>();
+            ops.add(beforeArrow);
+            if (afterArrow != null) {
+                ops.add(afterArrow);
+            } else {
+                ops.add(flattenExpr);
+            }
+            return SqlStdOperatorTable.FLATTEN.createCall(s.end(this), ops);
+        }
+    |
         <POSITION> { s = span(); }
         <LPAREN>
         // FIXME jvs 31-Aug-2006:  FRG-192:  This should be
@@ -7470,6 +7495,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < EXTRACT: "EXTRACT" >
 |   < FALSE: "FALSE" >
 |   < FETCH: "FETCH" >
+|   < FLATTEN: "FLATTEN" >
 |   < FILTER: "FILTER" >
 |   < FINAL: "FINAL" >
 |   < FIRST: "FIRST" >
@@ -7601,6 +7627,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MINUTES: "MINUTES" >
 |   < MINVALUE: "MINVALUE" >
 |   < MOD: "MOD" >
+|   < MODE: "MODE" >
 |   < MODIFIES: "MODIFIES" >
 |   < MODULE: "MODULE" >
 |   < MONTH: "MONTH" >

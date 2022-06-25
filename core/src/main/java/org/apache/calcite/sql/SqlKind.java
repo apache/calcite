@@ -28,21 +28,28 @@ import java.util.Set;
 /**
  * Enumerates the possible types of {@link SqlNode}.
  *
- * <p>The values are immutable, canonical constants, so you can use Kinds to
+ * <p>
+ * The values are immutable, canonical constants, so you can use Kinds to
  * find particular types of expressions quickly. To identity a call to a common
- * operator such as '=', use {@link org.apache.calcite.sql.SqlNode#isA}:</p>
+ * operator such as '=', use {@link org.apache.calcite.sql.SqlNode#isA}:
+ * </p>
  *
  * <blockquote>
  * exp.{@link org.apache.calcite.sql.SqlNode#isA isA}({@link #EQUALS})
  * </blockquote>
  *
- * <p>Only commonly-used nodes have their own type; other nodes are of type
+ * <p>
+ * Only commonly-used nodes have their own type; other nodes are of type
  * {@link #OTHER}. Some of the values, such as {@link #SET_QUERY}, represent
- * aggregates.</p>
+ * aggregates.
+ * </p>
  *
- * <p>To quickly choose between a number of options, use a switch statement:</p>
+ * <p>
+ * To quickly choose between a number of options, use a switch statement:
+ * </p>
  *
  * <blockquote>
+ * 
  * <pre>switch (exp.getKind()) {
  * case {@link #EQUALS}:
  *     ...;
@@ -51,35 +58,48 @@ import java.util.Set;
  * default:
  *     throw new AssertionError("unexpected");
  * }</pre>
+ * 
  * </blockquote>
  *
- * <p>Note that we do not even have to check that a {@code SqlNode} is a
- * {@link SqlCall}.</p>
+ * <p>
+ * Note that we do not even have to check that a {@code SqlNode} is a
+ * {@link SqlCall}.
+ * </p>
  *
- * <p>To identify a category of expressions, use {@code SqlNode.isA} with
+ * <p>
+ * To identify a category of expressions, use {@code SqlNode.isA} with
  * an aggregate SqlKind. The following expression will return <code>true</code>
  * for calls to '=' and '&gt;=', but <code>false</code> for the constant '5', or
- * a call to '+':</p>
+ * a call to '+':
+ * </p>
  *
  * <blockquote>
+ * 
  * <pre>exp.isA({@link #COMPARISON SqlKind.COMPARISON})</pre>
+ * 
  * </blockquote>
  *
- * <p>RexNode also has a {@code getKind} method; {@code SqlKind} values are
+ * <p>
+ * RexNode also has a {@code getKind} method; {@code SqlKind} values are
  * preserved during translation from {@code SqlNode} to {@code RexNode}, where
- * applicable.</p>
+ * applicable.
+ * </p>
  *
- * <p>There is no water-tight definition of "common", but that's OK. There will
+ * <p>
+ * There is no water-tight definition of "common", but that's OK. There will
  * always be operators that don't have their own kind, and for these we use the
  * {@code SqlOperator}. But for really the common ones, e.g. the many places
  * where we are looking for {@code AND}, {@code OR} and {@code EQUALS}, the enum
- * helps.</p>
+ * helps.
+ * </p>
  *
- * <p>(If we were using Scala, {@link SqlOperator} would be a case
- * class, and we wouldn't need {@code SqlKind}. But we're not.)</p>
+ * <p>
+ * (If we were using Scala, {@link SqlOperator} would be a case
+ * class, and we wouldn't need {@code SqlKind}. But we're not.)
+ * </p>
  */
 public enum SqlKind {
-  //~ Static fields/initializers ---------------------------------------------
+  // ~ Static fields/initializers ---------------------------------------------
 
   // the basics
 
@@ -108,9 +128,11 @@ public enum SqlKind {
   /**
    * JOIN operator or compound FROM clause.
    *
-   * <p>A FROM clause with more than one table is represented as if it were a
+   * <p>
+   * A FROM clause with more than one table is represented as if it were a
    * join. For example, "FROM x, y, z" is represented as
-   * "JOIN(x, JOIN(x, y))".</p>
+   * "JOIN(x, JOIN(x, y))".
+   * </p>
    */
   JOIN,
 
@@ -181,8 +203,10 @@ public enum SqlKind {
   /** {@code UNION} relational operator. */
   UNION,
 
-  /** {@code EXCEPT} relational operator (known as {@code MINUS} in some SQL
-   * dialects). */
+  /**
+   * {@code EXCEPT} relational operator (known as {@code MINUS} in some SQL
+   * dialects).
+   */
   EXCEPT,
 
   /** {@code INTERSECT} relational operator. */
@@ -281,7 +305,8 @@ public enum SqlKind {
   /**
    * {@code NOT IN} operator.
    *
-   * <p>Only occurs in SqlNode trees. Is expanded to NOT(IN ...) before
+   * <p>
+   * Only occurs in SqlNode trees. Is expanded to NOT(IN ...) before
    * entering RelNode land.
    */
   NOT_IN("NOT IN"),
@@ -319,8 +344,10 @@ public enum SqlKind {
   /** {@code IS NOT DISTINCT FROM} operator. */
   IS_NOT_DISTINCT_FROM,
 
-  /** {@code SEARCH} operator. (Analogous to scalar {@code IN}, used only in
-   * RexNode, not SqlNode.) */
+  /**
+   * {@code SEARCH} operator. (Analogous to scalar {@code IN}, used only in
+   * RexNode, not SqlNode.)
+   */
   SEARCH,
 
   /** Logical "OR" operator. */
@@ -367,8 +394,10 @@ public enum SqlKind {
   /** {@code ~} operator (for POSIX-style regular expressions). */
   POSIX_REGEX_CASE_SENSITIVE,
 
-  /** {@code ~*} operator (for case-insensitive POSIX-style regular
-   * expressions). */
+  /**
+   * {@code ~*} operator (for case-insensitive POSIX-style regular
+   * expressions).
+   */
   POSIX_REGEX_CASE_INSENSITIVE,
 
   /** {@code BETWEEN} operator. */
@@ -491,26 +520,36 @@ public enum SqlKind {
   /** {@code MATCH_NUMBER} operator in {@code MATCH_RECOGNIZE}. */
   MATCH_NUMBER,
 
-  /** {@code SKIP TO FIRST} qualifier of restarting point in a
-   * {@code MATCH_RECOGNIZE} clause. */
+  /**
+   * {@code SKIP TO FIRST} qualifier of restarting point in a
+   * {@code MATCH_RECOGNIZE} clause.
+   */
   SKIP_TO_FIRST,
 
-  /** {@code SKIP TO LAST} qualifier of restarting point in a
-   * {@code MATCH_RECOGNIZE} clause. */
+  /**
+   * {@code SKIP TO LAST} qualifier of restarting point in a
+   * {@code MATCH_RECOGNIZE} clause.
+   */
   SKIP_TO_LAST,
 
   // postfix operators
 
-  /** {@code DESC} operator in {@code ORDER BY}. A parse tree, not a true
-   * expression. */
+  /**
+   * {@code DESC} operator in {@code ORDER BY}. A parse tree, not a true
+   * expression.
+   */
   DESCENDING,
 
-  /** {@code NULLS FIRST} clause in {@code ORDER BY}. A parse tree, not a true
-   * expression. */
+  /**
+   * {@code NULLS FIRST} clause in {@code ORDER BY}. A parse tree, not a true
+   * expression.
+   */
   NULLS_FIRST,
 
-  /** {@code NULLS LAST} clause in {@code ORDER BY}. A parse tree, not a true
-   * expression. */
+  /**
+   * {@code NULLS LAST} clause in {@code ORDER BY}. A parse tree, not a true
+   * expression.
+   */
   NULLS_LAST,
 
   /** {@code IS TRUE} operator. */
@@ -534,54 +573,70 @@ public enum SqlKind {
   /** {@code IS NOT NULL} operator. */
   IS_NOT_NULL,
 
-  /** {@code PRECEDING} qualifier of an interval end-point in a window
-   * specification. */
+  /**
+   * {@code PRECEDING} qualifier of an interval end-point in a window
+   * specification.
+   */
   PRECEDING,
 
-  /** {@code FOLLOWING} qualifier of an interval end-point in a window
-   * specification. */
+  /**
+   * {@code FOLLOWING} qualifier of an interval end-point in a window
+   * specification.
+   */
   FOLLOWING,
 
   /**
    * The field access operator, ".".
    *
-   * <p>(Only used at the RexNode level; at
-   * SqlNode level, a field-access is part of an identifier.)</p>
+   * <p>
+   * (Only used at the RexNode level; at
+   * SqlNode level, a field-access is part of an identifier.)
+   * </p>
    */
   FIELD_ACCESS,
 
   /**
    * Reference to an input field.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>
+   * (Only used at the RexNode level.)
+   * </p>
    */
   INPUT_REF,
 
   /**
    * Reference to an input field, with a qualified name and an identifier.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>
+   * (Only used at the RexNode level.)
+   * </p>
    */
   TABLE_INPUT_REF,
 
   /**
    * Reference to an input field, with pattern var as modifier.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>
+   * (Only used at the RexNode level.)
+   * </p>
    */
   PATTERN_INPUT_REF,
   /**
    * Reference to a sub-expression computed within the current relational
    * operator.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>
+   * (Only used at the RexNode level.)
+   * </p>
    */
   LOCAL_REF,
 
   /**
    * Reference to correlation variable.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>
+   * (Only used at the RexNode level.)
+   * </p>
    */
   CORREL_VARIABLE,
 
@@ -625,6 +680,9 @@ public enum SqlKind {
 
   /** {@code CEIL} function. */
   CEIL,
+
+  /** {@code FLATTEN} function. */
+  FLATTEN,
 
   /** {@code TRIM} function. */
   TRIM,
@@ -705,12 +763,16 @@ public enum SqlKind {
   /** MAP value constructor, e.g. {@code MAP ['washington', 1, 'obama', 44]}. */
   MAP_VALUE_CONSTRUCTOR,
 
-  /** MAP query constructor,
-   * e.g. {@code MAP (SELECT empno, deptno FROM emp)}. */
+  /**
+   * MAP query constructor,
+   * e.g. {@code MAP (SELECT empno, deptno FROM emp)}.
+   */
   MAP_QUERY_CONSTRUCTOR,
 
-  /** {@code CURSOR} constructor, for example, <code>SELECT * FROM
-   * TABLE(udx(CURSOR(SELECT ...), x, y, z))</code>. */
+  /**
+   * {@code CURSOR} constructor, for example, <code>SELECT * FROM
+    * TABLE(udx(CURSOR(SELECT ...), x, y, z))</code>.
+   */
   CURSOR,
 
   // internal operators (evaluated in validator) 200-299
@@ -733,20 +795,28 @@ public enum SqlKind {
    */
   REINTERPRET,
 
-  /** The internal {@code EXTEND} operator that qualifies a table name in the
-   * {@code FROM} clause. */
+  /**
+   * The internal {@code EXTEND} operator that qualifies a table name in the
+   * {@code FROM} clause.
+   */
   EXTEND,
 
-  /** The internal {@code CUBE} operator that occurs within a {@code GROUP BY}
-   * clause. */
+  /**
+   * The internal {@code CUBE} operator that occurs within a {@code GROUP BY}
+   * clause.
+   */
   CUBE,
 
-  /** The internal {@code ROLLUP} operator that occurs within a {@code GROUP BY}
-   * clause. */
+  /**
+   * The internal {@code ROLLUP} operator that occurs within a {@code GROUP BY}
+   * clause.
+   */
   ROLLUP,
 
-  /** The internal {@code GROUPING SETS} operator that occurs within a
-   * {@code GROUP BY} clause. */
+  /**
+   * The internal {@code GROUPING SETS} operator that occurs within a
+   * {@code GROUP BY} clause.
+   */
   GROUPING_SETS,
 
   /** The {@code GROUPING(e, ...)} function. */
@@ -763,8 +833,10 @@ public enum SqlKind {
   /** The internal "permute" function in a MATCH_RECOGNIZE clause. */
   PATTERN_PERMUTE,
 
-  /** The special patterns to exclude enclosing pattern from output in a
-   * MATCH_RECOGNIZE clause. */
+  /**
+   * The special patterns to exclude enclosing pattern from output in a
+   * MATCH_RECOGNIZE clause.
+   */
   PATTERN_EXCLUDED,
 
   // Aggregate functions
@@ -905,36 +977,48 @@ public enum SqlKind {
   TUMBLE,
 
   // Group functions
-  /** The {@code TUMBLE_START} auxiliary function of
-   * the {@link #TUMBLE} group function. */
+  /**
+   * The {@code TUMBLE_START} auxiliary function of
+   * the {@link #TUMBLE} group function.
+   */
   // TODO: deprecate TUMBLE_START.
   TUMBLE_START,
 
-  /** The {@code TUMBLE_END} auxiliary function of
-   * the {@link #TUMBLE} group function. */
+  /**
+   * The {@code TUMBLE_END} auxiliary function of
+   * the {@link #TUMBLE} group function.
+   */
   // TODO: deprecate TUMBLE_END.
   TUMBLE_END,
 
   /** The {@code HOP} group function. */
   HOP,
 
-  /** The {@code HOP_START} auxiliary function of
-   * the {@link #HOP} group function. */
+  /**
+   * The {@code HOP_START} auxiliary function of
+   * the {@link #HOP} group function.
+   */
   HOP_START,
 
-  /** The {@code HOP_END} auxiliary function of
-   * the {@link #HOP} group function. */
+  /**
+   * The {@code HOP_END} auxiliary function of
+   * the {@link #HOP} group function.
+   */
   HOP_END,
 
   /** The {@code SESSION} group function. */
   SESSION,
 
-  /** The {@code SESSION_START} auxiliary function of
-   * the {@link #SESSION} group function. */
+  /**
+   * The {@code SESSION_START} auxiliary function of
+   * the {@link #SESSION} group function.
+   */
   SESSION_START,
 
-  /** The {@code SESSION_END} auxiliary function of
-   * the {@link #SESSION} group function. */
+  /**
+   * The {@code SESSION_END} auxiliary function of
+   * the {@link #SESSION} group function.
+   */
   SESSION_END,
 
   /** Column declaration. */
@@ -971,12 +1055,16 @@ public enum SqlKind {
   /** The {@code ST_MakeLine} function that makes a line. */
   ST_MAKE_LINE,
 
-  /** The {@code ST_Contains} function that tests whether one geometry contains
-   * another. */
+  /**
+   * The {@code ST_Contains} function that tests whether one geometry contains
+   * another.
+   */
   ST_CONTAINS,
 
-  /** The {@code Hilbert} function that converts (x, y) to a position on a
-   * Hilbert space-filling curve. */
+  /**
+   * The {@code Hilbert} function that converts (x, y) to a position on a
+   * Hilbert space-filling curve.
+   */
   HILBERT,
 
   // DDL and session control statements follow. The list is not exhaustive: feel
@@ -1057,16 +1145,18 @@ public enum SqlKind {
   /** {@code DROP FUNCTION} DDL statement. */
   DROP_FUNCTION,
 
-  /** DDL statement not handled above.
+  /**
+   * DDL statement not handled above.
    *
-   * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser
+   * <p>
+   * <b>Note to other projects</b>: If you are extending Calcite's SQL parser
    * and have your own object types you no doubt want to define CREATE and DROP
    * commands for them. Use OTHER_DDL in the short term, but we are happy to add
    * new enum values for your object types. Just ask!
    */
   OTHER_DDL;
 
-  //~ Static fields/initializers ---------------------------------------------
+  // ~ Static fields/initializers ---------------------------------------------
 
   // Most of the static fields are categories, aggregating several kinds into
   // a set.
@@ -1074,66 +1164,66 @@ public enum SqlKind {
   /**
    * Category consisting of set-query node types.
    *
-   * <p>Consists of:
+   * <p>
+   * Consists of:
    * {@link #EXCEPT},
    * {@link #INTERSECT},
    * {@link #UNION}.
    */
-  public static final EnumSet<SqlKind> SET_QUERY =
-      EnumSet.of(UNION, INTERSECT, EXCEPT);
+  public static final EnumSet<SqlKind> SET_QUERY = EnumSet.of(UNION, INTERSECT, EXCEPT);
 
   /**
    * Category consisting of all built-in aggregate functions.
    */
-  public static final EnumSet<SqlKind> AGGREGATE =
-      EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
-          LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
-          AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
-          MODE, FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
-          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
-          PERCENTILE_CONT, PERCENTILE_DISC,
-          INTERSECTION, ANY_VALUE);
+  public static final EnumSet<SqlKind> AGGREGATE = EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
+      LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
+      AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
+      MODE, FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
+      CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
+      LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
+      PERCENTILE_CONT, PERCENTILE_DISC,
+      INTERSECTION, ANY_VALUE);
 
   /**
    * Category consisting of all DML operators.
    *
-   * <p>Consists of:
+   * <p>
+   * Consists of:
    * {@link #INSERT},
    * {@link #UPDATE},
    * {@link #DELETE},
    * {@link #MERGE},
    * {@link #PROCEDURE_CALL}.
    *
-   * <p>NOTE jvs 1-June-2006: For now we treat procedure calls as DML;
+   * <p>
+   * NOTE jvs 1-June-2006: For now we treat procedure calls as DML;
    * this makes it easy for JDBC clients to call execute or
-   * executeUpdate and not have to process dummy cursor results.  If
+   * executeUpdate and not have to process dummy cursor results. If
    * in the future we support procedures which return results sets,
    * we'll need to refine this.
    */
-  public static final EnumSet<SqlKind> DML =
-      EnumSet.of(INSERT, DELETE, UPDATE, MERGE, PROCEDURE_CALL);
+  public static final EnumSet<SqlKind> DML = EnumSet.of(INSERT, DELETE, UPDATE, MERGE, PROCEDURE_CALL);
 
   /**
    * Category consisting of all DDL operators.
    */
-  public static final EnumSet<SqlKind> DDL =
-      EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
-          CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
-          CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
-          CREATE_FUNCTION, DROP_FUNCTION,
-          CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
-          CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
-          DROP_MATERIALIZED_VIEW,
-          CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
-          CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
-          CREATE_TYPE, DROP_TYPE,
-          SET_OPTION, OTHER_DDL);
+  public static final EnumSet<SqlKind> DDL = EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
+      CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
+      CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
+      CREATE_FUNCTION, DROP_FUNCTION,
+      CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
+      CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
+      DROP_MATERIALIZED_VIEW,
+      CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
+      CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
+      CREATE_TYPE, DROP_TYPE,
+      SET_OPTION, OTHER_DDL);
 
   /**
    * Category consisting of query node types.
    *
-   * <p>Consists of:
+   * <p>
+   * Consists of:
    * {@link #SELECT},
    * {@link #EXCEPT},
    * {@link #INTERSECT},
@@ -1142,14 +1232,14 @@ public enum SqlKind {
    * {@link #ORDER_BY},
    * {@link #EXPLICIT_TABLE}.
    */
-  public static final EnumSet<SqlKind> QUERY =
-      EnumSet.of(SELECT, UNION, INTERSECT, EXCEPT, VALUES, WITH, ORDER_BY,
-          EXPLICIT_TABLE);
+  public static final EnumSet<SqlKind> QUERY = EnumSet.of(SELECT, UNION, INTERSECT, EXCEPT, VALUES, WITH, ORDER_BY,
+      EXPLICIT_TABLE);
 
   /**
    * Category consisting of all expression operators.
    *
-   * <p>A node is an expression if it is NOT one of the following:
+   * <p>
+   * A node is an expression if it is NOT one of the following:
    * {@link #AS},
    * {@link #ARGUMENT_ASSIGNMENT},
    * {@link #DEFAULT},
@@ -1169,59 +1259,63 @@ public enum SqlKind {
    * {@link #UNNEST}
    * or an aggregate function, DML or DDL.
    */
-  public static final Set<SqlKind> EXPRESSION =
-      EnumSet.complementOf(
-          concat(
-              EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
-                  RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
-                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
-                  DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
-                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
-                  TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT, INTERVAL,
-                  LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
-                  NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
-                  JSON_VALUE_EXPRESSION, UNNEST),
-              AGGREGATE, DML, DDL));
+  public static final Set<SqlKind> EXPRESSION = EnumSet.complementOf(
+      concat(
+          EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
+              RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
+              FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
+              DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
+              SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
+              TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT, INTERVAL,
+              LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
+              NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
+              VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
+              JSON_VALUE_EXPRESSION, UNNEST),
+          AGGREGATE, DML, DDL));
 
   /**
    * Category of all SQL statement types.
    *
-   * <p>Consists of all types in {@link #QUERY}, {@link #DML} and {@link #DDL}.
+   * <p>
+   * Consists of all types in {@link #QUERY}, {@link #DML} and {@link #DDL}.
    */
   public static final EnumSet<SqlKind> TOP_LEVEL = concat(QUERY, DML, DDL);
 
   /**
    * Category consisting of regular and special functions.
    *
-   * <p>Consists of regular functions {@link #OTHER_FUNCTION} and special
-   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #REVERSE}, {@link #JDBC_FN}.
+   * <p>
+   * Consists of regular functions {@link #OTHER_FUNCTION} and special
+   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #REVERSE},
+   * {@link #JDBC_FN}.
    */
-  public static final Set<SqlKind> FUNCTION =
-      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, REVERSE, JDBC_FN, POSITION);
+  public static final Set<SqlKind> FUNCTION = EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, REVERSE,
+      JDBC_FN, POSITION);
 
   /**
    * Category of SqlAvgAggFunction.
    *
-   * <p>Consists of {@link #AVG}, {@link #STDDEV_POP}, {@link #STDDEV_SAMP},
+   * <p>
+   * Consists of {@link #AVG}, {@link #STDDEV_POP}, {@link #STDDEV_SAMP},
    * {@link #VAR_POP}, {@link #VAR_SAMP}.
    */
-  public static final Set<SqlKind> AVG_AGG_FUNCTIONS =
-      EnumSet.of(AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP);
+  public static final Set<SqlKind> AVG_AGG_FUNCTIONS = EnumSet.of(AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP);
 
   /**
    * Category of SqlCovarAggFunction.
    *
-   * <p>Consists of {@link #COVAR_POP}, {@link #COVAR_SAMP}, {@link #REGR_SXX},
+   * <p>
+   * Consists of {@link #COVAR_POP}, {@link #COVAR_SAMP}, {@link #REGR_SXX},
    * {@link #REGR_SYY}.
    */
-  public static final Set<SqlKind> COVAR_AVG_AGG_FUNCTIONS =
-      EnumSet.of(COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY);
+  public static final Set<SqlKind> COVAR_AVG_AGG_FUNCTIONS = EnumSet.of(COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX,
+      REGR_SYY);
 
   /**
    * Category of comparison operators.
    *
-   * <p>Consists of:
+   * <p>
+   * Consists of:
    * {@link #IN},
    * {@link #EQUALS},
    * {@link #NOT_EQUALS},
@@ -1230,39 +1324,39 @@ public enum SqlKind {
    * {@link #LESS_THAN_OR_EQUAL},
    * {@link #GREATER_THAN_OR_EQUAL}.
    */
-  public static final Set<SqlKind> COMPARISON =
-      EnumSet.of(
-          IN, EQUALS, NOT_EQUALS,
-          LESS_THAN, GREATER_THAN,
-          GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+  public static final Set<SqlKind> COMPARISON = EnumSet.of(
+      IN, EQUALS, NOT_EQUALS,
+      LESS_THAN, GREATER_THAN,
+      GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
 
   /**
    * Category of binary arithmetic.
    *
-   * <p>Consists of:
+   * <p>
+   * Consists of:
    * {@link #PLUS}
    * {@link #MINUS}
    * {@link #TIMES}
    * {@link #DIVIDE}
    * {@link #MOD}.
    */
-  public static final Set<SqlKind> BINARY_ARITHMETIC =
-      EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD);
+  public static final Set<SqlKind> BINARY_ARITHMETIC = EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD);
 
   /**
    * Category of binary equality.
    *
-   * <p>Consists of:
+   * <p>
+   * Consists of:
    * {@link #EQUALS}
    * {@link #NOT_EQUALS}
    */
-  public static final Set<SqlKind> BINARY_EQUALITY =
-      EnumSet.of(EQUALS, NOT_EQUALS);
+  public static final Set<SqlKind> BINARY_EQUALITY = EnumSet.of(EQUALS, NOT_EQUALS);
 
   /**
    * Category of binary comparison.
    *
-   * <p>Consists of:
+   * <p>
+   * Consists of:
    * {@link #EQUALS}
    * {@link #NOT_EQUALS}
    * {@link #GREATER_THAN}
@@ -1272,42 +1366,50 @@ public enum SqlKind {
    * {@link #IS_DISTINCT_FROM}
    * {@link #IS_NOT_DISTINCT_FROM}
    */
-  public static final Set<SqlKind> BINARY_COMPARISON =
-      EnumSet.of(
-          EQUALS, NOT_EQUALS,
-          GREATER_THAN, GREATER_THAN_OR_EQUAL,
-          LESS_THAN, LESS_THAN_OR_EQUAL,
-          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
+  public static final Set<SqlKind> BINARY_COMPARISON = EnumSet.of(
+      EQUALS, NOT_EQUALS,
+      GREATER_THAN, GREATER_THAN_OR_EQUAL,
+      LESS_THAN, LESS_THAN_OR_EQUAL,
+      IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
 
   /**
    * Category of operators that do not depend on the argument order.
    *
-   * <p>For instance: {@link #AND}, {@link #OR}, {@link #EQUALS}, {@link #LEAST}</p>
-   * <p>Note: {@link #PLUS} does depend on the argument oder if argument types are different</p>
+   * <p>
+   * For instance: {@link #AND}, {@link #OR}, {@link #EQUALS}, {@link #LEAST}
+   * </p>
+   * <p>
+   * Note: {@link #PLUS} does depend on the argument oder if argument types are
+   * different
+   * </p>
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  public static final Set<SqlKind> SYMMETRICAL =
-      EnumSet.of(
-          AND, OR, EQUALS, NOT_EQUALS,
-          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM,
-          GREATEST, LEAST);
+  public static final Set<SqlKind> SYMMETRICAL = EnumSet.of(
+      AND, OR, EQUALS, NOT_EQUALS,
+      IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM,
+      GREATEST, LEAST);
 
   /**
-   * Category of operators that do not depend on the argument order if argument types are equal.
+   * Category of operators that do not depend on the argument order if argument
+   * types are equal.
    *
-   * <p>For instance: {@link #PLUS}, {@link #TIMES}</p>
+   * <p>
+   * For instance: {@link #PLUS}, {@link #TIMES}
+   * </p>
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
-  public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE =
-      EnumSet.of(
-          PLUS, TIMES);
+  public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE = EnumSet.of(
+      PLUS, TIMES);
 
   /**
-   * Simple binary operators are those operators which expects operands from the same Domain.
+   * Simple binary operators are those operators which expects operands from the
+   * same Domain.
    *
-   * <p>Example: simple comparisons ({@code =}, {@code <}).
+   * <p>
+   * Example: simple comparisons ({@code =}, {@code <}).
    *
-   * <p>Note: it does not contain {@code IN} because that is defined on D x D^n.
+   * <p>
+   * Note: it does not contain {@code IN} because that is defined on D x D^n.
    */
   @API(since = "1.24", status = API.Status.EXPERIMENTAL)
   public static final Set<SqlKind> SIMPLE_BINARY_OPS;
@@ -1331,68 +1433,77 @@ public enum SqlKind {
     this.sql = sql;
   }
 
-  /** Returns the kind that corresponds to this operator but in the opposite
+  /**
+   * Returns the kind that corresponds to this operator but in the opposite
    * direction. Or returns this, if this kind is not reversible.
    *
-   * <p>For example, {@code GREATER_THAN.reverse()} returns {@link #LESS_THAN}.
+   * <p>
+   * For example, {@code GREATER_THAN.reverse()} returns {@link #LESS_THAN}.
    */
   public SqlKind reverse() {
     switch (this) {
-    case GREATER_THAN:
-      return LESS_THAN;
-    case GREATER_THAN_OR_EQUAL:
-      return LESS_THAN_OR_EQUAL;
-    case LESS_THAN:
-      return GREATER_THAN;
-    case LESS_THAN_OR_EQUAL:
-      return GREATER_THAN_OR_EQUAL;
-    default:
-      return this;
+      case GREATER_THAN:
+        return LESS_THAN;
+      case GREATER_THAN_OR_EQUAL:
+        return LESS_THAN_OR_EQUAL;
+      case LESS_THAN:
+        return GREATER_THAN;
+      case LESS_THAN_OR_EQUAL:
+        return GREATER_THAN_OR_EQUAL;
+      default:
+        return this;
     }
   }
 
-  /** Returns the kind that you get if you apply NOT to this kind.
+  /**
+   * Returns the kind that you get if you apply NOT to this kind.
    *
-   * <p>For example, {@code IS_NOT_NULL.negate()} returns {@link #IS_NULL}.
+   * <p>
+   * For example, {@code IS_NOT_NULL.negate()} returns {@link #IS_NULL}.
    *
-   * <p>For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE},
+   * <p>
+   * For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE},
    * {@link #IS_NOT_FALSE}, nullable inputs need to be treated carefully.
    *
-   * <p>{@code NOT(IS_TRUE(null))} = {@code NOT(false)} = {@code true},
+   * <p>
+   * {@code NOT(IS_TRUE(null))} = {@code NOT(false)} = {@code true},
    * while {@code IS_FALSE(null)} = {@code false},
    * so {@code NOT(IS_TRUE(X))} should be {@code IS_NOT_TRUE(X)}.
    * On the other hand,
    * {@code IS_TRUE(NOT(null))} = {@code IS_TRUE(null)} = {@code false}.
    *
-   * <p>This is why negate() != negateNullSafe() for these operators.
+   * <p>
+   * This is why negate() != negateNullSafe() for these operators.
    */
   public SqlKind negate() {
     switch (this) {
-    case IS_TRUE:
-      return IS_NOT_TRUE;
-    case IS_FALSE:
-      return IS_NOT_FALSE;
-    case IS_NULL:
-      return IS_NOT_NULL;
-    case IS_NOT_TRUE:
-      return IS_TRUE;
-    case IS_NOT_FALSE:
-      return IS_FALSE;
-    case IS_NOT_NULL:
-      return IS_NULL;
-    case IS_DISTINCT_FROM:
-      return IS_NOT_DISTINCT_FROM;
-    case IS_NOT_DISTINCT_FROM:
-      return IS_DISTINCT_FROM;
-    default:
-      return this;
+      case IS_TRUE:
+        return IS_NOT_TRUE;
+      case IS_FALSE:
+        return IS_NOT_FALSE;
+      case IS_NULL:
+        return IS_NOT_NULL;
+      case IS_NOT_TRUE:
+        return IS_TRUE;
+      case IS_NOT_FALSE:
+        return IS_FALSE;
+      case IS_NOT_NULL:
+        return IS_NULL;
+      case IS_DISTINCT_FROM:
+        return IS_NOT_DISTINCT_FROM;
+      case IS_NOT_DISTINCT_FROM:
+        return IS_DISTINCT_FROM;
+      default:
+        return this;
     }
   }
 
-  /** Returns the kind that you get if you negate this kind.
+  /**
+   * Returns the kind that you get if you negate this kind.
    * To conform to null semantics, null value should not be compared.
    *
-   * <p>For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE} and
+   * <p>
+   * For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE} and
    * {@link #IS_NOT_FALSE}, nullable inputs need to be treated carefully:
    *
    * <ul>
@@ -1404,48 +1515,49 @@ public enum SqlKind {
    */
   public SqlKind negateNullSafe() {
     switch (this) {
-    case EQUALS:
-      return NOT_EQUALS;
-    case NOT_EQUALS:
-      return EQUALS;
-    case LESS_THAN:
-      return GREATER_THAN_OR_EQUAL;
-    case GREATER_THAN:
-      return LESS_THAN_OR_EQUAL;
-    case LESS_THAN_OR_EQUAL:
-      return GREATER_THAN;
-    case GREATER_THAN_OR_EQUAL:
-      return LESS_THAN;
-    case IN:
-      return NOT_IN;
-    case NOT_IN:
-      return IN;
-    case DRUID_IN:
-      return DRUID_NOT_IN;
-    case DRUID_NOT_IN:
-      return DRUID_IN;
-    case IS_TRUE:
-      return IS_FALSE;
-    case IS_FALSE:
-      return IS_TRUE;
-    case IS_NOT_TRUE:
-      return IS_NOT_FALSE;
-    case IS_NOT_FALSE:
-      return IS_NOT_TRUE;
-     // (NOT x) IS NULL => x IS NULL
-     // Similarly (NOT x) IS NOT NULL => x IS NOT NULL
-    case IS_NOT_NULL:
-    case IS_NULL:
-      return this;
-    default:
-      return this.negate();
+      case EQUALS:
+        return NOT_EQUALS;
+      case NOT_EQUALS:
+        return EQUALS;
+      case LESS_THAN:
+        return GREATER_THAN_OR_EQUAL;
+      case GREATER_THAN:
+        return LESS_THAN_OR_EQUAL;
+      case LESS_THAN_OR_EQUAL:
+        return GREATER_THAN;
+      case GREATER_THAN_OR_EQUAL:
+        return LESS_THAN;
+      case IN:
+        return NOT_IN;
+      case NOT_IN:
+        return IN;
+      case DRUID_IN:
+        return DRUID_NOT_IN;
+      case DRUID_NOT_IN:
+        return DRUID_IN;
+      case IS_TRUE:
+        return IS_FALSE;
+      case IS_FALSE:
+        return IS_TRUE;
+      case IS_NOT_TRUE:
+        return IS_NOT_FALSE;
+      case IS_NOT_FALSE:
+        return IS_NOT_TRUE;
+      // (NOT x) IS NULL => x IS NULL
+      // Similarly (NOT x) IS NOT NULL => x IS NOT NULL
+      case IS_NOT_NULL:
+      case IS_NULL:
+        return this;
+      default:
+        return this.negate();
     }
   }
 
   /**
    * Returns whether this {@code SqlKind} belongs to a given category.
    *
-   * <p>A category is a collection of kinds, not necessarily disjoint. For
+   * <p>
+   * A category is a collection of kinds, not necessarily disjoint. For
    * example, QUERY is { SELECT, UNION, INTERSECT, EXCEPT, VALUES, ORDER_BY,
    * EXPLICIT_TABLE }.
    *
