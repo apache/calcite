@@ -302,6 +302,13 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test
+  void checkStringInterval() {
+    String sql = "SELECT a >= x - INTERVAL '30 days'";
+    String expected = "SELECT (`A` >= (`X` - INTERVAL '30' DAY))";
+    sql(sql).ok(expected);
+  }
+
+  @Test
   void checkParseInfixFieldReferenceBasic() {
     String sql = "SELECT x:subfield FROM dingle";
     String expected = "SELECT (`X` : \"subfield\")\nFROM `DINGLE`";

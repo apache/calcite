@@ -4708,7 +4708,7 @@ SqlLiteral IntervalLiteral() :
  * or {@code INTERVAL 3 MONTHS}). */
 SqlNode IntervalLiteralOrExpression() :
 {
-    final String p;
+    String p;
     final SqlIntervalQualifier intervalQualifier;
     int sign = 1;
     final Span s;
@@ -4724,9 +4724,54 @@ SqlNode IntervalLiteralOrExpression() :
     (
         // literal (with quoted string)
         <QUOTED_STRING> { p = token.image; }
-        intervalQualifier = IntervalQualifier() {
-            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
-                sign, p, intervalQualifier);
+        [
+            intervalQualifier = IntervalQualifier() {
+                return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+                    sign, p, intervalQualifier);
+            }
+        ]
+        { 
+            TimeUnit start = TimeUnit.DAY;
+
+            String[] parts = SqlParserUtil.parseString(p).split(" ");
+            String lastWord = parts[parts.length - 1].toLowerCase();
+            switch (lastWord) {
+                case "second":
+                case "seconds":
+                    start = TimeUnit.SECOND;
+                    break;
+                case "hour":
+                case "hours":
+                    start = TimeUnit.HOUR;
+                    break;
+                case "day":
+                case "days":
+                    start = TimeUnit.DAY;
+                    break;
+                case "minute":
+                case "minutes":
+                    start = TimeUnit.MINUTE;
+                    break;
+                case "month":
+                case "months":
+                    start = TimeUnit.MONTH;
+                    break;
+                case "year":
+                case "years":
+                    start = TimeUnit.YEAR;
+                    break;
+                default:
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.invalidDatetimeFormat(lastWord));
+            }
+
+            String[] partsWithoutLast = Arrays.copyOf(parts, parts.length - 1);
+            p = "'" + String.join(" ", partsWithoutLast) + "'";
+
+             SqlIntervalQualifier siq = new SqlIntervalQualifier(start, RelDataType.PRECISION_NOT_SPECIFIED, 
+                null, RelDataType.PRECISION_NOT_SPECIFIED, s.end(this));
+            return SqlParserUtil.parseIntervalLiteral(s.end(this),
+                sign, p, siq);
+            
         }
     |
         // To keep parsing simple, any expressions besides numeric literal and
