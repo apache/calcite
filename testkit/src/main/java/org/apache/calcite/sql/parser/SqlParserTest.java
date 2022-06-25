@@ -8592,6 +8592,18 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4746">[CALCITE-4746]
+   * Pivots with pivotAgg without alias fail with Babel Parser Implementation</a>.*/
+  @Test void testPivotWithoutAlias() {
+    final String sql = "SELECT * FROM emp\n"
+        + "PIVOT (sum(sal) FOR job in ('CLERK'))";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP` PIVOT (SUM(`SAL`)"
+        + " FOR `JOB` IN ('CLERK'))";
+    sql(sql).ok(expected);
+  }
+
   /** In PIVOT, FOR clause must contain only simple identifiers. */
   @Test void testPivotErrorExpressionInFor() {
     final String sql = "SELECT * FROM emp\n"
