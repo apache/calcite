@@ -2101,6 +2101,44 @@ SqlNode TableRef() :
     e = TableRef2(false) { return e; }
 }
 
+SqlNode ParseFlatten() : {
+}
+{
+    <FLATTEN> {
+        SqlLiteral beforeArrow = null;
+        SqlNode flattenExpr = null;
+        Span s = span();
+    }
+    <LPAREN>
+    (
+        (
+            <OUTER> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.OUTER.symbol(getPos()); }
+            <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
+        )
+        | (
+            <RECURSIVE> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.RECURSIVE.symbol(getPos()); }
+            <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
+        )
+        | (
+            <MODE> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.MODE.symbol(getPos()); }
+            <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
+        )
+        | (
+            <PATH> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.PATH.symbol(getPos()); }
+            <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
+        )
+        | (
+            <INPUT> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.INPUT.symbol(getPos()); }
+            <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
+        )
+    )
+    <RPAREN> {
+        List<SqlNode> args = startList(beforeArrow);
+        args.add(flattenExpr);
+        return SqlStdOperatorTable.FLATTEN.createCall(s.end(this), args);
+    }
+}
+
 /**
  * Parses a table reference in a FROM clause.
  */
@@ -2163,6 +2201,12 @@ SqlNode TableRef2(boolean lateral) :
             tableRef = MatchRecognize(tableRef)
         ]
     |
+        LOOKAHEAD(2)
+        <LATERAL> { s = span(); }
+        tableRef = ParseFlatten() {
+            tableRef = SqlStdOperatorTable.LATERAL.createCall(s.end(this), tableRef);
+        }
+    |
         <UNNEST> { s = span(); }
         args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUB_QUERY)
         [
@@ -2174,10 +2218,13 @@ SqlNode TableRef2(boolean lateral) :
             tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
         }
     |
+        LOOKAHEAD(2)
         [<LATERAL> { lateral = true; } ]
-        <TABLE> { s = span(); } <LPAREN>
-        tableRef = TableFunctionCall(s.pos())
-        <RPAREN>
+        (
+            <TABLE> { s = span(); } <LPAREN>
+            tableRef = TableFunctionCall(s.pos())
+            <RPAREN>
+        )
         {
             if (lateral) {
                 tableRef = SqlStdOperatorTable.LATERAL.createCall(
@@ -2360,7 +2407,12 @@ SqlNode TableFunctionCall(SqlParserPos pos) :
             funcType = SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
         }
     ]
-    call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+
+    (
+        call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    | 
+        call = ParseFlatten()
+    )
     {
         return SqlStdOperatorTable.COLLECTION_TABLE.createCall(pos, call);
     }
@@ -5862,40 +5914,6 @@ SqlNode BuiltinFunctionCall() :
         e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
         <RPAREN> {
             return SqlStdOperatorTable.EXTRACT.createCall(s.end(this), args);
-        }
-    |
-        <FLATTEN> {
-            SqlLiteral beforeArrow = null;
-            SqlNode flattenExpr = null;
-            s = span();
-        }
-        <LPAREN>
-        (
-            (
-                <OUTER> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.OUTER.symbol(getPos()); }
-                <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
-            )
-            | (
-                <RECURSIVE> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.RECURSIVE.symbol(getPos()); }
-                <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
-            )
-            | (
-                <MODE> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.MODE.symbol(getPos()); }
-                <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
-            )
-            | (
-                <PATH> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.PATH.symbol(getPos()); }
-                <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
-            )
-            | (
-                <INPUT> { s.add(this); beforeArrow = SqlFlattenFunction.FlattenType.INPUT.symbol(getPos()); }
-                <NAMED_ARGUMENT_ASSIGNMENT> { flattenExpr = Expression(ExprContext.ACCEPT_SUB_QUERY); }
-            )
-        )
-        <RPAREN> {
-            args = startList(beforeArrow);
-            args.add(flattenExpr);
-            return SqlStdOperatorTable.FLATTEN.createCall(s.end(this), args);
         }
     |
         <POSITION> { s = span(); }
