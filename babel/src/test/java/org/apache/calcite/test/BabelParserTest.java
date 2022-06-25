@@ -310,7 +310,7 @@ class BabelParserTest extends SqlParserTest {
 
   @Test
   void testFlatten() {
-    String sql = "SELECT flatten(input => computer_info:network_addresses)";
+    String sql = "SELECT flatten(INPUT => computer_info:network_addresses)";
     String expected = "SELECT (`A` >= (`X` - INTERVAL '30' DAY))";
     sql(sql).ok(expected);
   }

@@ -53,6 +53,23 @@ public class SqlFlattenFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 
+  /**
+   * Defines the enumerated values "LEADING", "TRAILING", "BOTH".
+   */
+  public enum FlattenType implements Symbolizable {
+    OUTER("OUTER"), RECURSIVE("RECURSIVE"),
+    MODE("MODE"), PATH("PATH"), INPUT("INPUT");
+
+    private final String type;
+    FlattenType(String type) {
+      this.type = type;
+    }
+
+    public String getType() {
+      return type;
+    }
+  }
+
   // ~ Methods ----------------------------------------------------------------
 
   @Override
