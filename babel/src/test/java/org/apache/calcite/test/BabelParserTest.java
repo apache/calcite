@@ -309,6 +309,17 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test
+  void checkTrimFn() {
+    String sql = "SELECT TRIM(a)";
+    String expected = "SELECT TRIM(`A`)";
+    sql(sql).ok(expected);
+
+    sql = "SELECT TRIM(a, '$')";
+    expected = "SELECT TRIM(`A`, '$')";
+    sql(sql).ok(expected);
+  }
+
+  @Test
   void checkParseInfixFieldReferenceBasic() {
     String sql = "SELECT x:subfield FROM dingle";
     String expected = "SELECT (`X` : \"subfield\")\nFROM `DINGLE`";

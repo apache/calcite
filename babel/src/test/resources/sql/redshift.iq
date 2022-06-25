@@ -1935,13 +1935,6 @@ EXPR$0
 most tin
 !ok
 
-# TRIM( [ BOTH ] ['characters' FROM ] string ] )
--- returns 'dog'
-select trim('"' FROM '"dog"');
-EXPR$0
-dog
-!ok
-
 # UPPER
 select upper('Pop');
 EXPR$0

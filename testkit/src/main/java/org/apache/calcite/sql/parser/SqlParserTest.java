@@ -4808,28 +4808,6 @@ public class SqlParserTest {
         .ok("CAST(DATE '2004-12-21' AS VARCHAR(10))");
   }
 
-  @Test void testTrim() {
-    expr("trim('mustache' FROM 'beard')")
-        .ok("TRIM(BOTH 'mustache' FROM 'beard')");
-    expr("trim('mustache')")
-        .ok("TRIM(BOTH ' ' FROM 'mustache')");
-    expr("trim(TRAILING FROM 'mustache')")
-        .ok("TRIM(TRAILING ' ' FROM 'mustache')");
-    expr("trim(bOth 'mustache' FROM 'beard')")
-        .ok("TRIM(BOTH 'mustache' FROM 'beard')");
-    expr("trim( lEaDing       'mustache' FROM 'beard')")
-        .ok("TRIM(LEADING 'mustache' FROM 'beard')");
-    expr("trim(\r\n\ttrailing\n  'mustache' FROM 'beard')")
-        .ok("TRIM(TRAILING 'mustache' FROM 'beard')");
-    expr("trim (coalesce(cast(null as varchar(2)))||"
-        + "' '||coalesce('junk ',''))")
-        .ok("TRIM(BOTH ' ' FROM ((COALESCE(CAST(NULL AS VARCHAR(2))) || "
-            + "' ') || COALESCE('junk ', '')))");
-
-    sql("trim(^from^ 'beard')")
-        .fails("(?s).*'FROM' without operands preceding it is illegal.*");
-  }
-
   @Test void testConvertAndTranslate() {
     expr("convert('abc' using conversion)")
         .ok("CONVERT('abc' USING `CONVERSION`)");

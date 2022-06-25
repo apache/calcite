@@ -776,31 +776,6 @@ class RelWriterTest {
     return rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000 + input));
   }
 
-  @Test void testTrim() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder b = RelBuilder.create(config);
-    final RelNode rel =
-        b.scan("EMP")
-            .project(
-                b.alias(
-                    b.call(SqlStdOperatorTable.TRIM,
-                        b.literal(SqlTrimFunction.Flag.BOTH),
-                        b.literal(" "),
-                        b.field("ENAME")),
-                    "trimmed_ename"))
-            .build();
-
-    RelJsonWriter jsonWriter = new RelJsonWriter();
-    rel.explain(jsonWriter);
-    String relJson = jsonWriter.asString();
-    final RelOptSchema schema = getSchema(rel);
-    final String s = deserializeAndDumpToTextFormat(schema, relJson);
-    final String expected = ""
-        + "LogicalProject(trimmed_ename=[TRIM(FLAG(BOTH), ' ', $1)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
   @Test void testPlusOperator() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);

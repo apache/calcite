@@ -5962,65 +5962,6 @@ SqlNode BuiltinFunctionCall() :
                 s.end(this), args);
         }
     |
-        <TRIM> {
-            SqlLiteral flag = null;
-            SqlNode trimChars = null;
-            s = span();
-        }
-        <LPAREN>
-        [
-            LOOKAHEAD(2)
-            [
-                <BOTH> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.BOTH.symbol(getPos());
-                }
-            |
-                <TRAILING> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.TRAILING.symbol(getPos());
-                }
-            |
-                <LEADING> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.LEADING.symbol(getPos());
-                }
-            ]
-            [ trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
-            (
-                <FROM> {
-                    if (null == flag && null == trimChars) {
-                        throw SqlUtil.newContextException(getPos(),
-                            RESOURCE.illegalFromEmpty());
-                    }
-                }
-            |
-                <RPAREN> {
-                    // This is to handle the case of TRIM(x)
-                    // (FRG-191).
-                    if (flag == null) {
-                        flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
-                    }
-                    args = startList(flag);
-                    args.add(null); // no trim chars
-                    args.add(trimChars); // reinterpret trimChars as source
-                    return SqlStdOperatorTable.TRIM.createCall(s.end(this),
-                        args);
-                }
-            )
-        ]
-        e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-            if (flag == null) {
-                flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
-            }
-            args = startList(flag);
-            args.add(trimChars);
-            args.add(e);
-        }
-        <RPAREN> {
-            return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
-        }
-    |
         node = TimestampAddFunctionCall() { return node; }
     |
         node = TimestampDiffFunctionCall() { return node; }

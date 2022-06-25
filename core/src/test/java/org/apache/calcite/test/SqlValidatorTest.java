@@ -898,42 +898,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
                 .fails("Parameters must be of the same type");
     }
 
-    @Test
-    void testTrim() {
-        expr("trim('mustache' FROM 'beard')").ok();
-        expr("trim(both 'mustache' FROM 'beard')").ok();
-        expr("trim(leading 'mustache' FROM 'beard')").ok();
-        expr("trim(trailing 'mustache' FROM 'beard')").ok();
-        expr("trim('mustache' FROM 'beard')")
-                .columnType("VARCHAR(5) NOT NULL");
-        expr("trim('beard  ')")
-                .columnType("VARCHAR(7) NOT NULL");
-        expr("trim('mustache' FROM cast(null as varchar(4)))")
-                .columnType("VARCHAR(4)");
-
-        if (TODO) {
-            final SqlCollation.Coercibility expectedCoercibility = null;
-            sql("trim('mustache' FROM 'beard')")
-                    .assertCollation(is("CHAR(5)"), is(expectedCoercibility));
-        }
-    }
-
-    @Test
-    void testTrimFails() {
-        wholeExpr("trim(123 FROM 'beard')")
-                .withTypeCoercion(false)
-                .fails("(?s).*Cannot apply 'TRIM' to arguments of type.*");
-        expr("trim(123 FROM 'beard')")
-                .columnType("VARCHAR(5) NOT NULL");
-        wholeExpr("trim('a' FROM 123)")
-                .withTypeCoercion(false)
-                .fails("(?s).*Cannot apply 'TRIM' to arguments of type.*");
-        expr("trim('a' FROM 123)")
-                .columnType("VARCHAR NOT NULL");
-        wholeExpr("trim('a' FROM _UTF16'b')")
-                .fails("(?s).*not comparable to each other.*");
-    }
-
     public void _testConvertAndTranslate() {
         expr("convert('abc' using conversion)").ok();
         expr("translate('abc' using translation)").ok();
