@@ -2959,6 +2959,8 @@ void PivotAgg(List<SqlNode> list) :
 {
     e = NamedFunctionCall()
     (
+        // Because babel put FOR into non-reserved keyword set.
+        LOOKAHEAD({getToken(1).kind != COMMA && getToken(1).kind != FOR})
         [ <AS> ] alias = SimpleIdentifier() {
             list.add(
                 SqlStdOperatorTable.AS.createCall(Span.of(e).end(this), e,
