@@ -2550,7 +2550,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       };
 
   /** SetSemanticsTable represents as an input table with set semantics. */
-  public static final SqlSpecialOperator SET_SEMANTICS_TABLE = new SqlSetSemanticsTableOperator();
+  public static final SqlInternalOperator SET_SEMANTICS_TABLE = new SqlSetSemanticsTableOperator();
 
   //~ Methods ----------------------------------------------------------------
 

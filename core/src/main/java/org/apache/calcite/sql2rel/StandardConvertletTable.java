@@ -93,7 +93,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static org.apache.calcite.sql.SqlKind.SET_SEMANTICS_TABLE;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
 import static java.util.Objects.requireNonNull;
@@ -966,7 +965,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       // skip set semantic table node of table function
       operandList =
           call.getOperandList().stream().filter(
-              operand -> operand.getKind() != SET_SEMANTICS_TABLE).collect(Collectors.toList());
+              operand -> operand.getKind() != SqlKind.SET_SEMANTICS_TABLE)
+              .collect(Collectors.toList());
     } else {
       operandList = call.getOperandList();
     }

@@ -1368,42 +1368,60 @@ public class SqlToRelConverter {
       if (!config.isExpand()) {
         return;
       }
-      call = (SqlBasicCall) subQuery.node;
-      query = call.operand(0);
-      final SqlValidatorScope innerTableScope =
-          (query instanceof SqlSelect)
-              ? validator().getSelectScope((SqlSelect) query)
-              : null;
-      final Blackboard setSemanticsTableBb = createBlackboard(innerTableScope, null, false);
-      final RelNode inputOfSetSemanticsTable = convertQueryRecursive(query, false, null).project();
-      requireNonNull(inputOfSetSemanticsTable, () -> "input RelNode is null for query " + query);
-      SqlNodeList partitionList = call.operand(1);
-      final ImmutableBitSet partitionKeys = buildPartitionKeys(setSemanticsTableBb, partitionList);
-      // For set semantics table, distribution is singleton if does not specify partition keys
-      RelDistribution distribution = partitionKeys.isEmpty()
-          ? RelDistributions.SINGLETON
-          : RelDistributions.hash(partitionKeys.asList());
-      // ORDER BY
-      final SqlNodeList orderList = call.operand(2);
-      final RelCollation orders = buildCollation(setSemanticsTableBb, orderList);
-      relBuilder.push(inputOfSetSemanticsTable);
-      if (orderList.isEmpty()) {
-        relBuilder.exchange(distribution);
-      } else {
-        relBuilder.sortExchange(distribution, orders);
-      }
-      RelNode tableRel = relBuilder.build();
-      subQuery.expr = bb.register(tableRel, JoinRelType.LEFT);
-      // This is used when converting window table functions:
-      //
-      // select * from table(tumble(table emps, descriptor(deptno), interval '3' DAY))
-      //
-      bb.cursors.add(tableRel);
+      substituteSubQueryOfSetSemanticsInputTable(bb, subQuery);
       return;
     default:
       throw new AssertionError("unexpected kind of sub-query: "
           + subQuery.node);
     }
+  }
+
+  private void substituteSubQueryOfSetSemanticsInputTable(
+      Blackboard bb,
+      SubQuery subQuery) {
+    SqlBasicCall call;
+    SqlNode query;
+    call = (SqlBasicCall) subQuery.node;
+    query = call.operand(0);
+    final SqlValidatorScope innerTableScope =
+        (query instanceof SqlSelect)
+            ? validator().getSelectScope((SqlSelect) query)
+            : null;
+    final Blackboard setSemanticsTableBb = createBlackboard(
+        innerTableScope, null, false);
+    final RelNode inputOfSetSemanticsTable = convertQueryRecursive(
+        query, false, null).project();
+    requireNonNull(
+        inputOfSetSemanticsTable,
+        () -> "input RelNode is null for query " + query);
+    SqlNodeList partitionList = call.operand(1);
+    final ImmutableBitSet partitionKeys = buildPartitionKeys(
+        setSemanticsTableBb,
+        partitionList);
+    // For set semantics table, distribution is singleton if does not specify
+    // partition keys
+    RelDistribution distribution = partitionKeys.isEmpty()
+        ? RelDistributions.SINGLETON
+        : RelDistributions.hash(partitionKeys.asList());
+    // ORDER BY
+    final SqlNodeList orderList = call.operand(2);
+    final RelCollation orders = buildCollation(
+        setSemanticsTableBb,
+        orderList);
+    relBuilder.push(inputOfSetSemanticsTable);
+    if (orderList.isEmpty()) {
+      relBuilder.exchange(distribution);
+    } else {
+      relBuilder.sortExchange(distribution, orders);
+    }
+    RelNode tableRel = relBuilder.build();
+    subQuery.expr = bb.register(tableRel, JoinRelType.LEFT);
+    // This is used when converting window table functions:
+    //
+    // select * from table(tumble(table emps, descriptor(deptno),
+    // interval '3' DAY))
+    //
+    bb.cursors.add(tableRel);
   }
 
   private ImmutableBitSet buildPartitionKeys(Blackboard bb, SqlNodeList partitionList) {

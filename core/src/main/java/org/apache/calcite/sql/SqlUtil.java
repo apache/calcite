@@ -330,35 +330,46 @@ public abstract class SqlUtil {
         break;
       }
     }
-    final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
-    final SqlLiteral quantifier = call.getFunctionQuantifier();
-    if (quantifier != null) {
-      quantifier.unparse(writer, 0, 0);
-    }
-    if (call.operandCount() == 0) {
-      switch (call.getOperator().getSyntax()) {
-      case FUNCTION_STAR:
-        writer.sep("*");
-        break;
-      default:
-        break;
+    if (call.operandCount() == 1
+        && call.operand(0).getKind() == SqlKind.EXPLICIT_TABLE) {
+      // If the function only has one parameter and this parameter is
+      // input table, there is no need to add an extra '()'
+      final SqlLiteral quantifier = call.getFunctionQuantifier();
+      if (quantifier != null) {
+        quantifier.unparse(writer, 0, 0);
       }
-    }
-    for (SqlNode operand : call.getOperandList()) {
-      if (ordered && operand instanceof SqlNodeList) {
-        writer.sep("ORDER BY");
-      } else if (ordered && operand.getKind() == SqlKind.SEPARATOR) {
-        writer.sep("SEPARATOR");
-        ((SqlCall) operand).operand(0).unparse(writer, 0, 0);
-        continue;
-      } else {
-        writer.sep(",");
+      call.operand(0).unparse(writer, 0, 0);
+    } else {
+      final SqlWriter.Frame frame =
+          writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+      final SqlLiteral quantifier = call.getFunctionQuantifier();
+      if (quantifier != null) {
+        quantifier.unparse(writer, 0, 0);
       }
-      operand.unparse(writer, 0, 0);
-    }
+      if (call.operandCount() == 0) {
+        switch (call.getOperator().getSyntax()) {
+        case FUNCTION_STAR:
+          writer.sep("*");
+          break;
+        default:
+          break;
+        }
+      }
+      for (SqlNode operand : call.getOperandList()) {
+        if (ordered && operand instanceof SqlNodeList) {
+          writer.sep("ORDER BY");
+        } else if (ordered && operand.getKind() == SqlKind.SEPARATOR) {
+          writer.sep("SEPARATOR");
+          ((SqlCall) operand).operand(0).unparse(writer, 0, 0);
+          continue;
+        } else {
+          writer.sep(",");
+        }
+        operand.unparse(writer, 0, 0);
+      }
 
-    writer.endList(frame);
+      writer.endList(frame);
+    }
   }
 
   /**

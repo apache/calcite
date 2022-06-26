@@ -3991,7 +3991,7 @@ public class SqlParserTest {
   @Test void testTableFunction() {
     final String sql = "select * from table(score(table orders))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
+        + "FROM TABLE(`SCORE` (TABLE `ORDERS`))";
     sql(sql).ok(expected);
   }
 
@@ -4049,6 +4049,16 @@ public class SqlParserTest {
   }
 
   @Test void testTableFunctionWithSubQuery() {
+    // test partition by clause and order by clause for subquery
+    final String sql =
+        "select * from table(topn(select * from Orders, 3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`((SELECT *\n"
+        + "FROM `ORDERS`), 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithComplexSubQuery() {
     // test partition by clause and order by clause for subquery
     final String sql =
         "select * from table(topn(select * from Orders partition by productid "

@@ -9633,7 +9633,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "$throw -\n"
         + "Reinterpret -\n"
-        + "SET_SEMANTICS_TABLE -\n"
         + "TABLE pre\n"
         + "VALUES -\n"
         + "\n"

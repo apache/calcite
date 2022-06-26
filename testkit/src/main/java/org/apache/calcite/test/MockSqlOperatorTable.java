@@ -46,8 +46,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -182,14 +182,13 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** "Score" user-defined table function. First parameter is input table with row semantics. */
+  /** "Score" user-defined table function. First parameter is input table
+   * with row semantics. */
   public static class ScoreTableFunction extends SqlFunction
       implements SqlTableFunction {
 
-    private static final Map<Integer, TableCharacteristic> TABLE_PARAMS = new HashMap<>();
-    static {
-      TABLE_PARAMS.put(0, TableCharacteristic.withRowSemantic(true));
-    }
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(0, TableCharacteristic.withRowSemantic(true));
 
     public ScoreTableFunction() {
       super("SCORE",
@@ -217,11 +216,11 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
 
     @Override public TableCharacteristic tableCharacteristic(int ordinal) {
-      return TABLE_PARAMS.get(ordinal);
+      return tableParams.get(ordinal);
     }
 
     @Override public boolean argumentMustBeScalar(int ordinal) {
-      return !TABLE_PARAMS.containsKey(ordinal);
+      return !tableParams.containsKey(ordinal);
     }
 
     /** Operand type checker for {@link ScoreTableFunction}. */
@@ -258,16 +257,13 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** "TopN" user-defined table function. First parameter is input table with set semantics. */
+  /** "TopN" user-defined table function. First parameter is input table
+   * with set semantics. */
   public static class TopNTableFunction extends SqlFunction
       implements SqlTableFunction {
 
-    private static final Map<Integer, TableCharacteristic> TABLE_PARAMS = new HashMap<>();
-    static {
-      TABLE_PARAMS.put(
-          0,
-          TableCharacteristic.withSetSemantic(true, true));
-    }
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(0, TableCharacteristic.withSetSemantic(true, true));
 
     public TopNTableFunction() {
       super("TOPN",
@@ -295,11 +291,11 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
 
     @Override public TableCharacteristic tableCharacteristic(int ordinal) {
-      return TABLE_PARAMS.get(ordinal);
+      return tableParams.get(ordinal);
     }
 
     @Override public boolean argumentMustBeScalar(int ordinal) {
-      return !TABLE_PARAMS.containsKey(ordinal);
+      return !tableParams.containsKey(ordinal);
     }
 
     /** Operand type checker for {@link TopNTableFunction}. */
@@ -349,19 +345,17 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** Invalid user-defined table function with multiple input tables with row semantics. */
+  /** Invalid user-defined table function with multiple input tables with
+   * row semantics. */
   public static class InvalidTableFunction extends SqlFunction
       implements SqlTableFunction {
 
-    private static final Map<Integer, TableCharacteristic> TABLE_PARAMS = new HashMap<>();
-    static {
-      TABLE_PARAMS.put(
-          0,
-          TableCharacteristic.withRowSemantic(true));
-      TABLE_PARAMS.put(
-          1,
-          TableCharacteristic.withRowSemantic(true));
-    }
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(
+            0,
+            TableCharacteristic.withRowSemantic(true),
+            1,
+            TableCharacteristic.withRowSemantic(true));
 
     public InvalidTableFunction() {
       super("INVALID",
@@ -379,11 +373,11 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
 
     @Override public TableCharacteristic tableCharacteristic(int ordinal) {
-      return TABLE_PARAMS.get(ordinal);
+      return tableParams.get(ordinal);
     }
 
     @Override public boolean argumentMustBeScalar(int ordinal) {
-      return !TABLE_PARAMS.containsKey(ordinal);
+      return !tableParams.containsKey(ordinal);
     }
   }
 

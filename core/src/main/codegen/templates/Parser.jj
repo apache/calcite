@@ -1636,8 +1636,6 @@ SqlNodeList OrderByInTableParam() :
           list = startList(e);
       }
       (
-          // NOTE jvs 6-Feb-2004:  See comments at top of file for why
-          // hint is necessary here.
           LOOKAHEAD(2)
           <COMMA>
           e = OrderItem()
