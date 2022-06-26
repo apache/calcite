@@ -3462,4 +3462,23 @@ where NOT EXISTS (select count(*) from emp e having false);
 EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
+# Test case about nested row
+select (select (1, 2));
++--------+
+| EXPR$0 |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[ROW($t1, $t2)], EXPR$0=[$t3])
+        EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
 # End sub-query.iq
