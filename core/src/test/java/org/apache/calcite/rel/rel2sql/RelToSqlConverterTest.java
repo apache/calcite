@@ -10040,15 +10040,14 @@ class RelToSqlConverterTest {
     final RexNode parseTSNode2 = builder.call(SqlLibraryOperators.PARSE_TIME,
         builder.literal("HH24MISS"), builder.literal("122333"));
     final RelNode root = builder.scan("EMP").
-        project(builder.alias(parseTSNode1, "date18"), builder.alias(parseTSNode1, "date18"),
-            builder.alias(parseTSNode2, "time19"), builder.alias(parseTSNode2, "time19"))
+        project(builder.alias(parseTSNode1, "date1"),
+            builder.alias(parseTSNode2, "time1"))
         .build();
 
-    final String expectedSql = "SELECT PARSE_DATE('YYYYMMDD', '99991231') AS \"date18\", "
-        + "PARSE_DATE('YYYYMMDD', '99991231') AS \"date180\", PARSE_TIME('HH24MISS', '122333') AS "
-        + "\"time19\", PARSE_TIME('HH24MISS', '122333') AS \"time190\"\n"
+    final String expectedSql = "SELECT PARSE_DATE('YYYYMMDD', '99991231') AS \"date1\", "
+        + "PARSE_TIME('HH24MISS', '122333') AS \"time1\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '99991231') AS date18, PARSE_DATE('%Y%m%d', '99991231') AS date180, PARSE_TIME('%H%M%S', '122333') AS time19, PARSE_TIME('%H%M%S', '122333') AS time190\n"
+    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '99991231') AS date1, PARSE_TIME('%H%M%S', '122333') AS time1\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
