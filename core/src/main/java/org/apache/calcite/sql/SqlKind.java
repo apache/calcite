@@ -130,7 +130,18 @@ public enum SqlKind {
    */
   OTHER_FUNCTION,
 
-  /** Clause of input table with set semantics of Table Function. */
+  /**
+   * Input tables have either row semantics or set semantics.
+   * <ul>
+   * <li>Row semantics means that the the result of the PTF is decided on a
+   * row-by-row basis.
+   * <li>Set semantics means that the outcome of the function depends on how
+   * the data is partitioned.
+   * When the PTF is called from a query, the table argument can optionally be
+   * extended with either a PARTITION BY clause or
+   * an ORDER BY clause or both.
+   * </ul>
+   */
   SET_SEMANTICS_TABLE,
 
   /** POSITION function. */

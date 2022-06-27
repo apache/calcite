@@ -28,8 +28,14 @@ import java.util.List;
 /**
  * SetSemanticsTable appears as an argument in a Table Function.
  * It represents as an input table with set semantics.
+ * Set semantics means that the outcome of the function depends on how
+ * the data is partitioned.
+ * When the PTF is called from a query, the table argument can optionally be
+ * extended with either a PARTITION BY clause or
+ * an ORDER BY clause or both.
+ *
  */
-public class SqlSetSemanticsTableOperator extends SqlSpecialOperator {
+public class SqlSetSemanticsTableOperator extends SqlInternalOperator {
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,7 +55,11 @@ public class SqlSetSemanticsTableOperator extends SqlSpecialOperator {
     return super.createCall(functionQualifier, pos, operands);
   }
 
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparse(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
     call.operand(0).unparse(writer, 0, 0);
 
     SqlNodeList partitionList = call.operand(1);
@@ -62,7 +72,10 @@ public class SqlSetSemanticsTableOperator extends SqlSpecialOperator {
     SqlNodeList orderList = call.operand(2);
     if (orderList.size() > 0) {
       writer.sep("ORDER BY");
-      writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA, orderList);
+      writer.list(
+          SqlWriter.FrameTypeEnum.ORDER_BY_LIST,
+          SqlWriter.COMMA,
+          orderList);
     }
   }
 
