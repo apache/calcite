@@ -10031,4 +10031,37 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
+
+  @Test public void testParseDateTimeFormat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.PARSE_DATE,
+        builder.literal("YYYYMMDD"), builder.literal("99991231"));
+    final RexNode parseTSNode2 = builder.call(SqlLibraryOperators.PARSE_TIME,
+        builder.literal("HH24MISS"), builder.literal("122333"));
+    final RexNode parseTSNode3 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
+        builder.literal("YYYYMMDD HH24MISS"), builder.literal("99991231 122333"));
+    final RexNode parseTSNode4 = builder.call(SqlLibraryOperators.PARSE_DATETIME,
+        builder.literal("YYYYMMDD HH24MISS"), builder.literal("99991231 122333"));
+    final RelNode root = builder.scan("EMP").
+        project(builder.alias(parseTSNode1, "date18"), builder.alias(parseTSNode1, "date18"),
+            builder.alias(parseTSNode2, "time19"), builder.alias(parseTSNode2, "time19"),
+            builder.alias(parseTSNode3, "timestamp20"), builder.alias(parseTSNode3, "timestamp20"),
+            builder.alias(parseTSNode4, "dateTime21"), builder.alias(parseTSNode4, "dateTime21"))
+        .build();
+
+    final String expectedSql = "SELECT PARSE_DATE('YYYYMMDD', '99991231') AS \"date18\", "
+        + "PARSE_DATE('YYYYMMDD', '99991231') AS \"date180\", PARSE_TIME('HH24MISS', '122333') AS "
+        + "\"time19\", PARSE_TIME('HH24MISS', '122333') AS \"time190\", PARSE_TIMESTAMP"
+        + "('YYYYMMDD HH24MISS', '99991231 122333') AS \"timestamp20\", PARSE_TIMESTAMP"
+        + "('YYYYMMDD HH24MISS', '99991231 122333') AS \"timestamp200\", PARSE_DATETIME"
+        + "('YYYYMMDD HH24MISS', '99991231 122333') AS \"dateTime21\", PARSE_DATETIME"
+        + "('YYYYMMDD HH24MISS', '99991231 122333') AS \"dateTime210\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '99991231') AS date18, PARSE_DATE('%Y%m%d', '99991231') AS date180, PARSE_TIME('%H%M%S', '122333') AS time19, PARSE_TIME('%H%M%S', '122333') AS time190, PARSE_DATETIME('%Y%m%d %H%M%S', '99991231 122333') AS timestamp20, PARSE_DATETIME('%Y%m%d %H%M%S', '99991231 122333') AS timestamp200, PARSE_DATETIME('YYYYMMDD HH24MISS', '99991231 122333') AS dateTime21, PARSE_DATETIME('YYYYMMDD HH24MISS', '99991231 122333') AS dateTime210\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
