@@ -3670,22 +3670,52 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
                 (
                     (
-                        <NOT>
                         (
-                            <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
-                        |
-                            <ILIKE> { op = SqlLibraryOperators.NOT_ILIKE; }
-                        |
-                            <RLIKE> { op = SqlLibraryOperators.NOT_RLIKE; }
-                        |
-                            <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
+                            (
+                                (
+                                    <NOT>
+                                    (
+                                            <LIKE> { op = SqlStdOperatorTable.NOT_LIKE; }
+                                        |
+                                            <ILIKE> { op = SqlLibraryOperators.NOT_ILIKE; }
+                                        |
+                                            <RLIKE> { op = SqlLibraryOperators.NOT_RLIKE; }
+                                        |
+                                            <SIMILAR> <TO> { op = SqlStdOperatorTable.NOT_SIMILAR_TO; }
+                                    )
+                                )
+                            |
+                                (
+                                        <LIKE> { op = SqlStdOperatorTable.LIKE; }
+                                    |
+                                        <ILIKE> { op = SqlLibraryOperators.ILIKE; }
+                                    |
+                                        <RLIKE> { op = SqlLibraryOperators.RLIKE; }
+                                )
+                            )
+                            [
+                                <ANY> { 
+                                    if (op == SqlLibraryOperators.NOT_ILIKE) {
+                                        op = SqlLibraryOperators.NOT_ILIKE_ANY;
+                                    } else if (op == SqlLibraryOperators.NOT_RLIKE) {
+                                        op = SqlLibraryOperators.NOT_RLIKE_ANY;
+                                    } else if (op == SqlStdOperatorTable.NOT_LIKE) {
+                                        op = SqlStdOperatorTable.NOT_LIKE_ANY;
+                                    } else if (op == SqlStdOperatorTable.LIKE) {
+                                        op = SqlStdOperatorTable.LIKE_ANY;
+                                    } else if (op == SqlLibraryOperators.ILIKE) {
+                                        op = SqlLibraryOperators.ILIKE_ANY;
+                                    } else if (op == SqlLibraryOperators.RLIKE) {
+                                        op = SqlLibraryOperators.RLIKE_ANY;
+                                    } else {
+                                        throw SqlUtil.newContextException(
+                                            getPos(), 
+                                            RESOURCE.internal("No support for parsing this ANY expression -- ask Erik to fix")
+                                        );
+                                    }
+                                } 
+                            ]
                         )
-                    |
-                        <LIKE> { op = SqlStdOperatorTable.LIKE; }
-                    |
-                        <ILIKE> { op = SqlLibraryOperators.ILIKE; }
-                    |
-                        <RLIKE> { op = SqlLibraryOperators.RLIKE; }
                     |
                         <SIMILAR> <TO> { op = SqlStdOperatorTable.SIMILAR_TO; }
                     )

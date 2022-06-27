@@ -330,6 +330,25 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test
+  void testLikeAny() {
+    String sql = "SELECT a LIKE ANY ('%abc', 'def', '%ghi%' )";
+    String expected = "SELECT (`A` LIKE ANY (ROW('%abc', 'def', '%ghi%')))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a NOT LIKE ANY ('%abc', 'def', '%ghi%' )";
+    expected = "SELECT (`A` NOT LIKE ANY (ROW('%abc', 'def', '%ghi%')))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a NOT ILIKE ANY ('%abc', 'def', '%ghi%' )";
+    expected = "SELECT (`A` NOT ILIKE ANY (ROW('%abc', 'def', '%ghi%')))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a RLIKE ANY ('%abc', 'def', '%ghi%' )";
+    expected = "SELECT (`A` RLIKE ANY (ROW('%abc', 'def', '%ghi%')))";
+    sql(sql).ok(expected);
+  }
+
+  @Test
   void checkTrimFn() {
     String sql = "SELECT TRIM(a)";
     String expected = "SELECT TRIM(`A`)";
