@@ -10035,13 +10035,13 @@ class RelToSqlConverterTest {
 
   @Test public void testParseDateTimeFormat() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.PARSE_DATE,
+    final RexNode parseDateNode = builder.call(SqlLibraryOperators.PARSE_DATE,
         builder.literal("YYYYMMDD"), builder.literal("99991231"));
-    final RexNode parseTSNode2 = builder.call(SqlLibraryOperators.PARSE_TIME,
+    final RexNode parseTimeNode = builder.call(SqlLibraryOperators.PARSE_TIME,
         builder.literal("HH24MISS"), builder.literal("122333"));
     final RelNode root = builder.scan("EMP").
-        project(builder.alias(parseTSNode1, "date1"),
-            builder.alias(parseTSNode2, "time1"))
+        project(builder.alias(parseDateNode, "date1"),
+            builder.alias(parseTimeNode, "time1"))
         .build();
 
     final String expectedSql = "SELECT PARSE_DATE('YYYYMMDD', '99991231') AS \"date1\", "
