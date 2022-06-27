@@ -1064,21 +1064,16 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   protected void unparseDateTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall formatCall;
-    switch (call.getOperator().getName()) {
-    case "PARSE_DATE":
-    case "PARSE_TIME":
-      String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
-          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
-          .getValue() : call.operand(0).toString();
-      SqlOperator function = call.getOperator();
-      if (!dateFormat.contains("%")) {
-        formatCall = function.createCall(SqlParserPos.ZERO,
-            createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
-        function.unparse(writer, formatCall, leftPrec, rightPrec);
-      } else {
-        function.unparse(writer, call, leftPrec, rightPrec);
-      }
+    String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
+        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+        .getValue() : call.operand(0).toString();
+    SqlOperator function = call.getOperator();
+    if (!dateFormat.contains("%")) {
+      SqlCall formatCall = function.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      function.unparse(writer, formatCall, leftPrec, rightPrec);
+    } else {
+      function.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 
