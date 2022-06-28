@@ -26,12 +26,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 
 /**
- * SetSemanticsTable appears as an argument in a Table Function.
+ * SetSemanticsTable appears as an parameter in a table function.
  * It represents as an input table with set semantics.
  * Set semantics means that the outcome of the function depends on how
  * the data is partitioned.
- * When the PTF is called from a query, the table argument can optionally be
- * extended with either a PARTITION BY clause or
+ * When the table function is called from a query, the table parameter can
+ * optionally be extended with either a PARTITION BY clause or
  * an ORDER BY clause or both.
  *
  */

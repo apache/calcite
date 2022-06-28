@@ -1574,7 +1574,7 @@ SqlNode NamedRoutineCall(
 }
 
 /**
- * Table argument of a table function.
+ * Table parameter of a table function.
  * The input table with set semantics may be partitioned/ordered on one or more columns.
  */
 SqlNode TableArg() :
