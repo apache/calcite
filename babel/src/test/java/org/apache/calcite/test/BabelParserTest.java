@@ -283,6 +283,10 @@ class BabelParserTest extends SqlParserTest {
     String sql = "SELECT x regexp 'y' FROM dingle";
     String expected = "SELECT (`X` RLIKE 'y')\nFROM `DINGLE`";
     sql(sql).ok(expected);
+
+    sql = "SELECT x not regexp 'y' FROM dingle";
+    expected = "SELECT (`X` NOT RLIKE 'y')\nFROM `DINGLE`";
+    sql(sql).ok(expected);
   }
 
   /** Tests Snowflake's TRY_CAST operator. */
@@ -318,15 +322,35 @@ class BabelParserTest extends SqlParserTest {
     expected = "SELECT `A`\nFROM LATERAL((FLATTEN(INPUT => (`COMPUTER_INFO` : \"network_addresses\"))))";
     sql(sql).ok(expected);
 
-    /*
-     * sql = "SELECT flatten(outer => true)";
-     * expected = "SELECT (FLATTEN(OUTER => TRUE))";
-     * sql(sql).ok(expected);
-     * 
-     * sql = "SELECT flatten(mode => 'ARRAY')";
-     * expected = "SELECT (FLATTEN(MODE => 'ARRAY'))";
-     * sql(sql).ok(expected);
-     */
+    sql = "SELECT a FROM table(flatten(outer => true))";
+    expected = "SELECT `A`\nFROM TABLE((FLATTEN(OUTER => TRUE)))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a from table(flatten(mode => 'ARRAY'))";
+    expected = "SELECT `A`\nFROM TABLE((FLATTEN(MODE => 'ARRAY')))";
+    sql(sql).ok(expected);
+  }
+
+  @Test
+  void testFlattenMultiple() {
+    String sql = "SELECT a FROM lateral flatten(input => computer_info:network_addresses, outer => true)";
+    String expected = "SELECT `A`\nFROM LATERAL((FLATTEN(INPUT => (`COMPUTER_INFO` : \"network_addresses\"), OUTER => TRUE)))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a FROM lateral flatten(input => true, mode => 'ARRAY', outer => true)";
+    expected = "SELECT `A`\nFROM LATERAL((FLATTEN(INPUT => TRUE, MODE => 'ARRAY', OUTER => TRUE)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test
+  void testEpochTime() {
+    String sql = "SELECT date_part(epoch_millisecond, event_time) FROM B";
+    String expected = "SELECT DATE_PART(EPOCH_MILLISECOND, `EVENT_TIME`) FROM `B`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT date_part(epoch_second, event_time) FROM B";
+    expected = "SELECT DATE_PART(EPOCH_SECOND, `EVENT_TIME`) FROM `B`";
+    sql(sql).ok(expected);
   }
 
   @Test
@@ -388,6 +412,12 @@ class BabelParserTest extends SqlParserTest {
   void checkParseInfixFieldReferenceSubkeys() {
     String sql = "SELECT x:key.childKey1.\"childKey2 here\".childKey3 FROM dingle";
     String expected = "SELECT (`X` : \"key\".\"childKey1\".\"childKey2 here\""
+        + ".\"childKey3\")\nFROM `DINGLE`";
+    sql(sql).ok(expected);
+
+    // convert colons to dots
+    sql = "SELECT x:key.childKey1:\"childKey2 here\":childKey3 FROM dingle";
+    expected = "SELECT (`X` : \"key\".\"childKey1\".\"childKey2 here\""
         + ".\"childKey3\")\nFROM `DINGLE`";
     sql(sql).ok(expected);
   }

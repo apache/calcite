@@ -226,7 +226,7 @@ void VariantFieldReference(List<Object> list, ExprContext exprContext, Span s) :
     }
     (
         (
-            <DOT>
+            (<DOT> | <COLON>)
             SimpleIdentifier() {
                 ref.addSubkey(SqlLiteral.createCharString(SqlParserUtil.trim(token.image, "'\""), "UTF8", getPos()));
             }
@@ -247,9 +247,20 @@ void Regexp(List<Object> list, ExprContext exprContext, Span s) :
 {
 }
 {
-    <REGEXP> {
-        checkNonQueryExpression(exprContext);
-        list.add(new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.RLIKE, getPos()));
-    }
+    (
+        (
+            <NOT><REGEXP> {
+                checkNonQueryExpression(exprContext);
+                list.add(new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.NOT_RLIKE, getPos()));
+            }
+        )
+        |
+        (
+            <REGEXP> {
+                checkNonQueryExpression(exprContext);
+                list.add(new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.RLIKE, getPos()));
+            }
+        )
+    )
     Expression2b(ExprContext.ACCEPT_SUB_QUERY, list)
 }

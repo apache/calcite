@@ -54,13 +54,14 @@ public class SqlFlattenFunction extends SqlFunction {
   }
 
   /**
-   * Defines the enumerated values "LEADING", "TRAILING", "BOTH".
+   * Defines the enumerated values
+   * 
    */
   public enum FlattenType implements Symbolizable {
-    OUTER("OUTER"), RECURSIVE("RECURSIVE"),
-    MODE("MODE"), PATH("PATH"), INPUT("INPUT");
+    OUTER("OUTER"), RECURSIVE("RECURSIVE"), MODE("MODE"), PATH("PATH"), INPUT("INPUT");
 
     private final String type;
+
     FlattenType(String type) {
       this.type = type;
     }
@@ -79,19 +80,35 @@ public class SqlFlattenFunction extends SqlFunction {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep("=>");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    for (int i = 0; i < call.operandCount(); i += 2) {
+      if (i != 0) {
+        writer.sep(",");
+      }
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+      writer.sep("=>");
+      call.operand(i + 1).unparse(writer, leftPrec, rightPrec);
+    }
     writer.endFunCall(frame);
   }
 
   @Override
   public String getSignatureTemplate(final int operandsCount) {
-    switch (operandsCount) {
-      case 2:
-        return "{0}({1} => {2})";
-      default:
-        throw new AssertionError();
+    if (operandsCount % 2 == 0) {
+      throw new AssertionError();
     }
+    StringBuilder template = new StringBuilder();
+    template.append("${0}(");
+    for (int i = 1; i < operandsCount; i += 2) {
+      if (i != 1) {
+        template.append(", ");
+      }
+      template.append("${");
+      template.append(i);
+      template.append("} => {");
+      template.append(i + 1);
+      template.append("}");
+    }
+    template.append(")");
+    return template.toString();
   }
 }
