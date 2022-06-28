@@ -10047,7 +10047,8 @@ class RelToSqlConverterTest {
     final String expectedSql = "SELECT PARSE_DATE('YYYYMMDD', '99991231') AS \"date1\", "
         + "PARSE_TIME('HH24MISS', '122333') AS \"time1\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '99991231') AS date1, PARSE_TIME('%H%M%S', '122333') AS time1\n"
+    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '99991231') AS date1, "
+        + "PARSE_TIME('%H%M%S', '122333') AS time1\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
