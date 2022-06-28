@@ -343,6 +343,17 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test
+  void testFlattenAlias() {
+    String sql = "SELECT a FROM (SELECT 1 as a) b";
+    String expected = "SELECT `A`\nFROM (SELECT 1 AS `A`) AS `B`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a FROM LATERAL FLATTEN(input => split(sc.command_patterns, 'n')) b";
+    expected = "SELECT `A`\nFROM LATERAL((FLATTEN(INPUT => `SPLIT`(`SC`.`COMMAND_PATTERNS`, 'n')))) AS `B`";
+    sql(sql).ok(expected);
+  }
+
+  @Test
   void testEpochTime() {
     String sql = "SELECT date_part(epoch_millisecond, event_time) FROM B";
     String expected = "SELECT DATE_PART(EPOCH_MILLISECOND, `EVENT_TIME`) FROM `B`";
