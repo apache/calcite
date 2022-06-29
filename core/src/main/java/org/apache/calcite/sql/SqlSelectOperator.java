@@ -217,6 +217,10 @@ public class SqlSelectOperator extends SqlOperator {
       writer.sep("HAVING");
       select.having.unparse(writer, 0, 0);
     }
+    if (select.qualify != null) {
+      writer.sep("QUALIFY");
+      select.qualify.unparse(writer, 0, 0);
+    }
     if (select.windowDecls.size() > 0) {
       writer.sep("WINDOW");
       writer.list(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST, SqlWriter.COMMA,
