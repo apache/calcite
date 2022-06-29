@@ -150,7 +150,7 @@ public class JdbcTable extends AbstractQueryableTable
     final SqlNodeList selectList = SqlNodeList.SINGLETON_STAR;
     SqlSelect node =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
-            tableName(), null, null, null, null, null, null, null, null);
+            tableName(), null, null, null, null, null, null, null, null, null);
     final SqlWriterConfig config = SqlPrettyWriter.config()
         .withAlwaysUseParentheses(true)
         .withDialect(jdbcSchema.dialect);

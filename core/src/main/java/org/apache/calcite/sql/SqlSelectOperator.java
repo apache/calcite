@@ -42,9 +42,10 @@ import static java.util.Objects.requireNonNull;
  * <li>2: fromClause ({@link SqlCall} to "join" operator)</li>
  * <li>3: whereClause ({@link SqlNode})</li>
  * <li>4: havingClause ({@link SqlNode})</li>
- * <li>5: groupClause ({@link SqlNode})</li>
- * <li>6: windowClause ({@link SqlNodeList})</li>
- * <li>7: orderClause ({@link SqlNode})</li>
+ * <li>5: qualifyClause ({@link SqlNode})</li>
+ * <li>6: groupClause ({@link SqlNode})</li>
+ * <li>7: windowClause ({@link SqlNodeList})</li>
+ * <li>8: orderClause ({@link SqlNode})</li>
  * </ul>
  */
 public class SqlSelectOperator extends SqlOperator {
@@ -75,11 +76,12 @@ public class SqlSelectOperator extends SqlOperator {
         operands[3],
         (SqlNodeList) operands[4],
         operands[5],
-        (SqlNodeList) operands[6],
+        operands[6],
         (SqlNodeList) operands[7],
-        operands[8],
+        (SqlNodeList) operands[8],
         operands[9],
-        (SqlNodeList) operands[10]);
+        operands[10],
+        (SqlNodeList) operands[11]);
   }
 
   /**
@@ -95,6 +97,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNode whereClause,
       SqlNodeList groupBy,
       SqlNode having,
+      SqlNode qualify,
       SqlNodeList windowDecls,
       SqlNodeList orderBy,
       SqlNode offset,
@@ -109,6 +112,7 @@ public class SqlSelectOperator extends SqlOperator {
         whereClause,
         groupBy,
         having,
+        qualify,
         windowDecls,
         orderBy,
         offset,
