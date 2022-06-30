@@ -212,7 +212,7 @@ data: {
       "FIRST_VALUE"
       "FLOAT"
       "FLOOR"
-#     "FOR" # must be reserved for pivot aggregate function
+      "FOR"
       "FOREIGN"
 #     "FOREVER" # not a keyword in Calcite
       "FOUND"
