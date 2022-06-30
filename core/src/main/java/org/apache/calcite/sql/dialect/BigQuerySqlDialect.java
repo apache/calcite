@@ -37,6 +37,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -182,6 +183,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
+      break;
+    case BETWEEN:
+      SqlBetweenOperator sqlBetweenOperator = (SqlBetweenOperator) call.getOperator();
+      sqlBetweenOperator.unparse(writer, call, leftPrec, rightPrec, false);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -112,6 +113,10 @@ public class SparkSqlDialect extends SqlDialect {
         break;
       case TRIM:
         unparseHiveTrim(writer, call, leftPrec, rightPrec);
+        break;
+      case BETWEEN:
+        SqlBetweenOperator sqlBetweenOperator = (SqlBetweenOperator) call.getOperator();
+        sqlBetweenOperator.unparse(writer, call, leftPrec, rightPrec, false);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
