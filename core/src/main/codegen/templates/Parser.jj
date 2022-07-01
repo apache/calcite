@@ -652,6 +652,16 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
         |
             count = UnsignedNumericLiteralOrParam()
         |
+            <DD_TEMPLATE_VARIABLE> {
+                String templateString = SqlParserUtil.stripTemplateLiteral(getToken(0).image);
+                try {
+                    count = SqlLiteral.createDDTemplateString(templateString, "UTF16", getPos());
+                } catch (java.nio.charset.UnsupportedCharsetException exp) {
+                    throw SqlUtil.newContextException(getPos(),
+                        RESOURCE.unknownCharacterSet("UTF16"));
+                }
+            }
+        |
             <ALL>
         )
     ]
@@ -4585,6 +4595,17 @@ SqlNode StringLiteral() :
         }
     }
 |
+    <DD_TEMPLATE_VARIABLE>
+    {
+        p = SqlParserUtil.stripTemplateLiteral(getToken(0).image);
+        try {
+            return SqlLiteral.createDDTemplateString(p, charSet, getPos());
+        } catch (java.nio.charset.UnsupportedCharsetException e) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.unknownCharacterSet(charSet));
+        }
+    }
+|
     <BIG_QUERY_QUOTED_STRING>
     {
         p = SqlParserUtil.stripQuotes(getToken(0).image, "'", "'", "\\'",
@@ -4637,9 +4658,13 @@ SqlLiteral DateTimeLiteral() :
         return SqlParserUtil.parseTimeLiteral(token.image, s.end(this));
     }
 |
-    <TIMESTAMP> { s = span(); } <QUOTED_STRING> {
-        return SqlParserUtil.parseTimestampLiteral(token.image, s.end(this));
-    }
+
+    <TIMESTAMP> { s = span(); } 
+    (
+        (<QUOTED_STRING> | <DD_TEMPLATE_VARIABLE>) {
+            return SqlParserUtil.parseTimestampLiteral(token.image, s.end(this));
+        }
+    )
 }
 
 /** Parses a MULTISET constructor */
@@ -8156,8 +8181,12 @@ void NonReservedKeyWord2of3() :
 // <QUOTE> ( (~["'"]) | ("''") | ("\\'"))* <QUOTE> 
 <DEFAULT, DQID, BTID> TOKEN :
 {
+    < DD_TEMPLATE_VARIABLE: 
+        (<PERCENT_REMAINDER><LPAREN>(~[")"])*<RPAREN>"s")
+    >
+|
     < QUOTED_STRING: 
-      <QUOTE> ( (~["\\", "'"]) | ("\\" ~[]) | ("''") )* <QUOTE>
+        (<QUOTE> ( (~["\\", "'"]) | ("\\" ~[]) | ("''") )* <QUOTE>)
     >
 |
     < PREFIXED_STRING_LITERAL: ("_" <CHARSETNAME> | "N") <QUOTED_STRING> >

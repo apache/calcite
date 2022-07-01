@@ -99,6 +99,21 @@ public final class SqlParserUtil {
     return s.substring(1, i); // skip prefixed '_'
   }
 
+  public static boolean isDDTemplateLiteral(String s) {
+    return s.charAt(0) == '%' && s.charAt(1) == '(' && s.charAt(s.length() - 1) == 's'
+        && s.charAt(s.length() - 2) == ')';
+  }
+
+  public static String stripTemplateLiteral(String s) {
+    s = s.trim();
+
+    if (!isDDTemplateLiteral(s)) {
+      throw new AssertionError("Template string doesn't have template format?");
+    }
+
+    return s.substring(2, s.length() - 2);
+  }
+
   /**
    * Converts the contents of an sql quoted string literal into the
    * corresponding Java string representation (removing leading and trailing
@@ -173,6 +188,12 @@ public final class SqlParserUtil {
 
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
+
+    if (isDDTemplateLiteral(s)) {
+      s = SqlParserUtil.stripTemplateLiteral(s);
+      SqlTimestampLiteral lit = SqlLiteral.createDDTemplateTimestampLiteral(s, pos);
+      return lit;
+    }
     final String dateStr = parseString(s);
     final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;

@@ -368,6 +368,21 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test
+  void testTemplateStrings() {
+    String sql = "SELECT * FROM email_events WHERE (LOWER(sender) = LOWER(%(email_mailbox)s) OR LOWER(reply_to) = LOWER(%(email_mailbox)s))";
+    String expected = "SELECT *\nFROM `EMAIL_EVENTS`\nWHERE ((LOWER(`SENDER`) = LOWER(%(email_mailbox)s)) OR (LOWER(`REPLY_TO`) = LOWER(%(email_mailbox)s)))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT TIMESTAMP %(start_time)s";
+    expected = "SELECT TIMESTAMP %(start_time)s";
+    sql(sql).ok(expected);
+
+    sql = "SELECT * LIMIT %(doot)s";
+    expected = "SELECT *\nFETCH NEXT %(doot)s ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test
   void testEpochTime() {
     String sql = "SELECT date_part(epoch_millisecond, event_time) FROM B";
     String expected = "SELECT DATE_PART(EPOCH_MILLISECOND, `EVENT_TIME`) FROM `B`";

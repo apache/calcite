@@ -18,14 +18,10 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A character string literal.
@@ -34,41 +30,15 @@ import java.util.Objects;
  * Its {@link #value} field is an {@link NlsString} and
  * {@link #getTypeName typeName} is {@link SqlTypeName#CHAR}.
  */
-public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
+public class SqlDDTemplateStringLiteral extends SqlCharStringLiteral {
 
   // ~ Constructors -----------------------------------------------------------
 
-  protected SqlCharStringLiteral(NlsString val, SqlParserPos pos) {
-    super(val, SqlTypeName.CHAR, pos);
+  protected SqlDDTemplateStringLiteral(NlsString val, SqlParserPos pos) {
+    super(val, pos);
   }
 
   // ~ Methods ----------------------------------------------------------------
-
-  /**
-   * Returns the underlying NlsString.
-   *
-   * @deprecated Use {@link #getValueAs getValueAs(NlsString.class)}
-   */
-  @Deprecated // to be removed before 2.0
-  public NlsString getNlsString() {
-    return getValueNonNull();
-  }
-
-  protected NlsString getValueNonNull() {
-    return (NlsString) Objects.requireNonNull(value, "value");
-  }
-
-  /**
-   * Returns the collation.
-   */
-  public @Nullable SqlCollation getCollation() {
-    return getValueNonNull().getCollation();
-  }
-
-  @Override
-  public SqlCharStringLiteral clone(SqlParserPos pos) {
-    return new SqlCharStringLiteral(getValueNonNull(), pos);
-  }
 
   @Override
   public void unparse(
@@ -76,13 +46,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
       int leftPrec,
       int rightPrec) {
     final NlsString nlsString = getValueNonNull();
-    if (false) {
-      Util.discard(Bug.FRG78_FIXED);
-      String stringValue = nlsString.getValue();
-      writer.literal(
-          writer.getDialect().quoteStringLiteral(stringValue));
-    }
-    writer.literal(nlsString.asSql(true, true, writer.getDialect()));
+    writer.literal("%(" + nlsString.getValue() + ")s");
   }
 
   @Override
