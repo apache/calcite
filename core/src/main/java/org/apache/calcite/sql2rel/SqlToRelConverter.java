@@ -736,6 +736,7 @@ public class SqlToRelConverter {
     final RelCollation collation =
         cluster.traitSet().canonize(RelCollations.of(collationList));
 
+
     if (validator().isAggregate(select)) {
       convertAgg(
           bb,
@@ -746,6 +747,10 @@ public class SqlToRelConverter {
           bb,
           select,
           orderExprList);
+    }
+
+    if (select.hasQualify()){
+      handleQualifyClause(bb, select);
     }
 
     if (select.isDistinct()) {
@@ -777,8 +782,57 @@ public class SqlToRelConverter {
     }
   }
 
+
   /**
-   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
+   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]',
+   * handles the Qualify Expression.
+   *
+   * @param bb               Blackboard
+   * @param select           Select Statment
+   */
+  private void handleQualifyClause(
+      Blackboard bb, SqlSelect select){
+    RelNode rel = bb.root;
+    //If we had a qualify clause, we know it's the last item in the select list, as we place it there.
+
+    final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+    final RexNode filterVal = RexInputRef.of(fields.size() - 1, fields);
+
+    // I'm not entirly certain why we do this, but the normal path that handles WHERE does this,
+    // So I'm going to leave it.
+    final RexNode filterValWithoutNullability = RexUtil.removeNullabilityCast(typeFactory, filterVal);
+
+    if (filterValWithoutNullability.isAlwaysTrue()) {
+      return;
+    }
+
+    final RelFactories.FilterFactory filterFactory =
+        RelFactories.DEFAULT_FILTER_FACTORY;
+    RelNode filterRelNode = filterFactory.createFilter(bb.root(), filterValWithoutNullability, ImmutableSet.of());
+
+
+    final CorrelationUse p = getCorrelationUse(bb, filterRelNode);
+    if (p != null) {
+      assert p.r instanceof Filter;
+      Filter f = (Filter) p.r;
+      filterRelNode = LogicalFilter.create(f.getInput(), f.getCondition(),
+          ImmutableSet.of(p.id));
+    }
+
+
+    //Generate a projection to remove the qualify filter column from table
+    //TODO: this only needs to happen if this is the topmost node, otherwise we can just leave the column in at no cost.
+    final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
+    for (int i = 0; i < fields.size() - 1; i++) {
+        newProjects.add(RexInputRef.of2(i, fields));
+      }
+    final RelNode projectRel = LogicalProject.create(filterRelNode, ImmutableList.of(), Pair.left(newProjects), Pair.right(newProjects));
+    bb.setRoot(projectRel, false);
+    return;
+  }
+
+  /**
+   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...] [QUALIFY ...]', adds
    * a relational expression to make the results unique.
    *
    * <p>If the SELECT clause contains duplicate expressions, adds
@@ -3198,7 +3252,7 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Converts the SELECT, GROUP BY and HAVING clauses of an aggregate query.
+   * Converts the SELECT, GROUP BY, and HAVING clauses of an aggregate query.
    *
    * <p>This method extracts SELECT, GROUP BY and HAVING clauses, and creates
    * an {@link AggConverter}, then delegates to {@link #createAggImpl}.
@@ -3216,6 +3270,10 @@ public class SqlToRelConverter {
     assert bb.root != null : "precondition: child != null";
     SqlNodeList groupList = select.getGroup();
     SqlNodeList selectList = select.getSelectList();
+    //TODO: Right now
+    if (select.hasQualify()) {
+      selectList.add(select.getQualify());
+    }
     SqlNode having = select.getHaving();
 
     final AggConverter aggConverter = new AggConverter(bb, select);
@@ -4389,7 +4447,12 @@ public class SqlToRelConverter {
       SqlSelect select,
       List<SqlNode> orderList) {
     SqlNodeList selectList = select.getSelectList();
+    if (select.hasQualify()) {
+      selectList.add(select.getQualify());
+    }
     selectList = validator().expandStar(selectList, select, false);
+    //If the select has
+
 
     replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 

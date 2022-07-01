@@ -571,7 +571,59 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testHaving() {
     // empty group-by clause, having
-    final String sql = "select sum(sal + sal) from emp having sum(sal) > 10";
+    final String sql = "select sum(sal + sal), sum(sal) from emp having sum(sal) > 10";
+    sql(sql).ok();
+  }
+
+  @Test void testHavingWithWindow() {
+    // empty group-by clause, having
+    final String sql = "select sum(sal + sal), MAX(sal) OVER (Partition by empno ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) GROUP BY deptno from emp having sum(sal) > 10";
+    sql(sql).ok();
+  }
+
+  @Test void testQualify() {
+    // test qualify clause
+    // deptno, empno, sal
+    final String sql = "select empno from emp QUALIFY ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) > 10";
+    sql(sql).ok();
+  }
+
+  @Test void testQualifyWithAlias() {
+    // test qualify clause, with an Alias
+    // deptno, empno, sal
+    final String sql = "select empno, ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) as row_num from emp QUALIFY row_num > 10";
+    sql(sql).ok();
+  }
+
+  @Test void testQualifyfullWithAlias() {
+    // test qualify clause, with an Alias
+    // deptno, empno, sal
+    final String sql = "SELECT deptno, SUM(empno) OVER (PARTITION BY deptno) as r\n" +
+        "  FROM t1\n" +
+        "  WHERE empno < 4\n" +
+        "  GROUP BY deptno, empno\n" +
+        "  HAVING SUM(sal) > 3\n" +
+        "  QUALIFY r IN (\n" +
+        "    SELECT MIN(sal)\n" +
+        "      FROM test\n" +
+        "      GROUP BY deptno\n" +
+        "      HAVING MIN(sal) > 3);";
+    sql(sql).ok();
+  }
+
+  @Test void testQualifyfullNoAlias() {
+    // test qualify clause, with an Alias
+    // deptno, empno, sal
+    final String sql = "SELECT deptno\n" +
+        "  FROM t1\n" +
+        "  WHERE empno < 4\n" +
+        "  GROUP BY deptno, empno\n" +
+        "  HAVING SUM(sal) > 3\n" +
+        "  QUALIFY SUM(empno) OVER (PARTITION BY deptno) IN (\n" +
+        "    SELECT MIN(sal)\n" +
+        "      FROM test\n" +
+        "      GROUP BY deptno\n" +
+        "      HAVING MIN(sal) > 3);";
     sql(sql).ok();
   }
 

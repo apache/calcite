@@ -393,6 +393,17 @@ public interface SqlValidator {
    */
   boolean isAggregate(SqlSelect select);
 
+//  /**
+//   * Returns whether a SELECT statement is an aggregation. Criteria are: (1)
+//   * contains GROUP BY, or (2) contains HAVING, (3) contains QUALIFY or (4) SELECT or ORDER BY
+//   * clause contains aggregate functions. (Windowed aggregate functions, such
+//   * as <code>SUM(x) OVER w</code>, don't count.)
+//   *
+//   * @param select SELECT statement
+//   * @return whether SELECT statement is an aggregation
+//   */
+//  boolean isQualfiyFilter(SqlSelect select);
+
   /**
    * Returns whether a select list expression is an aggregate function.
    *

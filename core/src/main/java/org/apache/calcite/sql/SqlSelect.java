@@ -188,6 +188,11 @@ public class SqlSelect extends SqlCall {
     return qualify;
   }
 
+  @Pure
+  public boolean hasQualify() {
+    return this.qualify != null;
+  }
+
   public void setQualify(@Nullable SqlNode qualify) {
     this.qualify = qualify;
   }
