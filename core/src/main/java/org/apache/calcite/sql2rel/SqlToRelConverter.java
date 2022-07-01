@@ -1443,31 +1443,68 @@ public class SqlToRelConverter {
     return partitionKeys.build();
   }
 
+  /**
+   * Note: The ORDER BY clause for input table parameter differs from the
+   * ORDER BY clause in some other contexts in that only columns may be sorted
+   * (not arbitrary expressions).
+   *
+   * @param bb              Scope within which to resolve identifiers
+   * @param orderList       Order by clause, may be null
+   * @return ordering of input table
+   */
   private RelCollation buildCollation(Blackboard bb, SqlNodeList orderList) {
     final List<RelFieldCollation> orderKeys = new ArrayList<>();
-    for (SqlNode order : orderList) {
-      final RelFieldCollation.Direction direction;
-      switch (order.getKind()) {
-      case DESCENDING:
-        direction = RelFieldCollation.Direction.DESCENDING;
-        order = ((SqlCall) order).operand(0);
-        break;
-      case NULLS_FIRST:
-      case NULLS_LAST:
-        throw new AssertionError();
-      default:
-        direction = RelFieldCollation.Direction.ASCENDING;
-        break;
-      }
-      final RelFieldCollation.NullDirection nullDirection =
-          validator().config().defaultNullCollation().last(desc(direction))
-              ? RelFieldCollation.NullDirection.LAST
-              : RelFieldCollation.NullDirection.FIRST;
-      RexNode e = bb.convertExpression(order);
+    for (SqlNode orderItem : orderList) {
       orderKeys.add(
-          new RelFieldCollation(parseFieldIdx(e), direction, nullDirection));
+          convertOrderItem(
+              bb,
+              orderItem,
+              RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.UNSPECIFIED));
     }
     return cluster.traitSet().canonize(RelCollations.of(orderKeys));
+  }
+
+  private RelFieldCollation convertOrderItem(
+      Blackboard bb,
+      SqlNode orderItem,
+      RelFieldCollation.Direction direction,
+      RelFieldCollation.NullDirection nullDirection) {
+    switch (orderItem.getKind()) {
+    case DESCENDING:
+      return convertOrderItem(
+          bb,
+          ((SqlCall) orderItem).operand(0),
+          RelFieldCollation.Direction.DESCENDING,
+          nullDirection);
+    case NULLS_FIRST:
+      return convertOrderItem(
+          bb,
+          ((SqlCall) orderItem).operand(0),
+          direction,
+          RelFieldCollation.NullDirection.FIRST);
+    case NULLS_LAST:
+      return convertOrderItem(
+          bb,
+          ((SqlCall) orderItem).operand(0),
+          direction,
+          RelFieldCollation.NullDirection.LAST);
+    default:
+      break;
+    }
+
+    switch (nullDirection) {
+    case UNSPECIFIED:
+      nullDirection = validator().config().defaultNullCollation().last(desc(direction))
+          ? RelFieldCollation.NullDirection.LAST
+          : RelFieldCollation.NullDirection.FIRST;
+      break;
+    default:
+      break;
+    }
+
+    RexNode e = bb.convertExpression(orderItem);
+    return new RelFieldCollation(parseFieldIdx(e), direction, nullDirection);
   }
 
   private static int parseFieldIdx(RexNode e) {
@@ -2438,8 +2475,33 @@ public class SqlToRelConverter {
     final ImmutableBitSet partitionKeys = buildPartitionKeys(matchBb, partitionList);
 
     // ORDER BY
+    // TODO combine with buildCollation method after support NULLS_FIRST/NULLS_LAST
     final SqlNodeList orderList = matchRecognize.getOrderList();
-    final RelCollation orders = buildCollation(matchBb, orderList);
+    final List<RelFieldCollation> orderKeys = new ArrayList<>();
+    for (SqlNode order : orderList) {
+      final RelFieldCollation.Direction direction;
+      switch (order.getKind()) {
+      case DESCENDING:
+        direction = RelFieldCollation.Direction.DESCENDING;
+        order = ((SqlCall) order).operand(0);
+        break;
+      case NULLS_FIRST:
+      case NULLS_LAST:
+        throw new AssertionError();
+      default:
+        direction = RelFieldCollation.Direction.ASCENDING;
+        break;
+      }
+      final RelFieldCollation.NullDirection nullDirection =
+          validator().config().defaultNullCollation().last(desc(direction))
+              ? RelFieldCollation.NullDirection.LAST
+              : RelFieldCollation.NullDirection.FIRST;
+      RexNode e = matchBb.convertExpression(order);
+      orderKeys.add(
+          new RelFieldCollation(((RexInputRef) e).getIndex(), direction,
+              nullDirection));
+    }
+    final RelCollation orders = cluster.traitSet().canonize(RelCollations.of(orderKeys));
 
     // convert pattern
     final Set<String> patternVarsSet = new HashSet<>();

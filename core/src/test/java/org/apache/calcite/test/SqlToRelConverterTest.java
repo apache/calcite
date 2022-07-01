@@ -2243,7 +2243,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testTableFunctionWithComplexOrderBy() {
     final String sql = "select *\n"
-        + "from table(topn(table orders order by (orderId desc, productid desc), 3))";
+        + "from table(topn(table orders order by (orderId desc, productid desc nulls last), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithOrderByWithNullLast() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by orderId desc nulls last, 3))";
     sql(sql).ok();
   }
 
@@ -2264,7 +2270,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testTableFunctionWithSubQuery() {
     final String sql = "select *\n"
-        + "from table(topn(select * from orders partition by productid order by orderId, 3))";
+        + "from table(topn("
+        + "select * from orders partition by productid order by orderId desc nulls last, 3))";
     sql(sql).ok();
   }
 
@@ -2272,7 +2279,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select *\n"
         + "from table(\n"
         + "topn(\n"
-        + "  DATA => select * from orders partition by productid order by orderId,\n"
+        + "  DATA => select * from orders partition by productid order by orderId nulls first,\n"
         + "  COL => 3))";
     sql(sql).ok();
   }
