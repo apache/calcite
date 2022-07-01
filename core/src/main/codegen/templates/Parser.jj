@@ -8153,9 +8153,12 @@ void NonReservedKeyWord2of3() :
 
 // All databases except BigQuery support standard single-quoted literals,
 // which use single-quote as the escape character.
+// <QUOTE> ( (~["'"]) | ("''") | ("\\'"))* <QUOTE> 
 <DEFAULT, DQID, BTID> TOKEN :
 {
-    < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+    < QUOTED_STRING: 
+      <QUOTE> ( (~["\\", "'"]) | ("\\" ~[]) | ("''") )* <QUOTE>
+    >
 |
     < PREFIXED_STRING_LITERAL: ("_" <CHARSETNAME> | "N") <QUOTED_STRING> >
 |
@@ -8383,6 +8386,8 @@ MORE :
         (~["\"","\n","\r"])
     |
         ("\"\"")
+    |   
+        ("\\\"")
     )+
     "\""
     >
@@ -8396,6 +8401,8 @@ MORE :
         (~["`","\n","\r"])
     |
         ("``")
+    |   
+        ("\\`")
     )+
     "`"
     >

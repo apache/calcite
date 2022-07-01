@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -24,6 +26,7 @@ import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.tools.Hoist;
 
 import com.google.common.base.Throwables;
@@ -350,6 +353,17 @@ class BabelParserTest extends SqlParserTest {
 
     sql = "SELECT a FROM LATERAL FLATTEN(input => split(sc.command_patterns, 'n')) b";
     expected = "SELECT `A`\nFROM LATERAL((FLATTEN(INPUT => `SPLIT`(`SC`.`COMMAND_PATTERNS`, 'n')))) AS `B`";
+    sql(sql).ok(expected);
+  }
+
+  @Test
+  void testEscapeQuotes() {
+    String sql = "SELECT '''deet''' as a";
+    String expected = "SELECT '''deet''' AS `A`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT '\\'hello\\'' as a";
+    expected = "SELECT '''hello''' AS `A`";
     sql(sql).ok(expected);
   }
 
