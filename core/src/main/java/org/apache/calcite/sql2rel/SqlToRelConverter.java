@@ -686,6 +686,9 @@ public class SqlToRelConverter {
         bb,
         select.getFrom());
 
+
+    expandQualify(bb, select);
+
     // We would like to remove ORDER BY clause from an expanded view, except if
     // it is top-level or affects semantics.
     //
@@ -749,7 +752,7 @@ public class SqlToRelConverter {
           orderExprList);
     }
 
-    if (select.hasQualify()){
+    if (select.hasQualify()) {
       handleQualifyClause(bb, select);
     }
 
@@ -788,19 +791,63 @@ public class SqlToRelConverter {
    * handles the Qualify Expression.
    *
    * @param bb               Blackboard
+   * @param select           Select Statement
+   */
+  private void expandQualify(Blackboard bb, SqlSelect select) {
+    final Map<String, SqlNode> selectIdentifierMap = new HashMap<>();
+
+    //Find all the aliases
+    final SqlNodeList selectList = select.getSelectList();
+    for (int i = 0; i < selectList.size(); i++) {
+      SqlNode selectItem = selectList.get(i);
+      SqlIdentifier name = null;
+      if (SqlUtil.isCallTo(
+          selectItem,
+          SqlStdOperatorTable.AS)) {
+        final SqlCall call = (SqlCall) selectItem;
+        selectItem = call.operand(0);
+        name = (SqlIdentifier) call.operand(1);
+        selectIdentifierMap.put(name.toString(), selectItem);
+      }
+    }
+    QualifyConverter converter = new QualifyConverter(selectIdentifierMap);
+
+    SqlNode newQualify = select.getQualify().accept(converter);
+
+    List<String> replacedIdentifiers = new ArrayList<>(converter.getConvertedIdentifiers());
+//    Set<SqlNode> inputTableColNames = null;//bb.scope()
+
+//    for (int i = 0; i < replacedIdentifiers.size(); i++){
+//      SqlNode replacedIdentifier = replacedIdentifiers.get(i);
+//      if (inputTableColNames.contains(replacedIdentifier)) {
+//        System.out.println("ERROR"); //throw new Exception("Error, Qualify contains a stmt");
+//      }
+//    }
+
+    select.setQualify(newQualify);
+  }
+
+
+  /**
+   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]',
+   * handles the Qualify Expression.
+   *
+   * @param bb               Blackboard
    * @param select           Select Statment
    */
   private void handleQualifyClause(
-      Blackboard bb, SqlSelect select){
+      Blackboard bb, SqlSelect select) {
     RelNode rel = bb.root;
-    //If we had a qualify clause, we know it's the last item in the select list, as we place it there.
+    // If we had a qualify clause, we know it's the last item in the select list,
+    // as we place it there.
 
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final RexNode filterVal = RexInputRef.of(fields.size() - 1, fields);
 
     // I'm not entirly certain why we do this, but the normal path that handles WHERE does this,
     // So I'm going to leave it.
-    final RexNode filterValWithoutNullability = RexUtil.removeNullabilityCast(typeFactory, filterVal);
+    final RexNode filterValWithoutNullability = RexUtil.removeNullabilityCast(typeFactory,
+        filterVal);
 
     if (filterValWithoutNullability.isAlwaysTrue()) {
       return;
@@ -808,7 +855,8 @@ public class SqlToRelConverter {
 
     final RelFactories.FilterFactory filterFactory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    RelNode filterRelNode = filterFactory.createFilter(bb.root(), filterValWithoutNullability, ImmutableSet.of());
+    RelNode filterRelNode = filterFactory.createFilter(bb.root(), filterValWithoutNullability,
+        ImmutableSet.of());
 
 
     final CorrelationUse p = getCorrelationUse(bb, filterRelNode);
@@ -1955,6 +2003,114 @@ public class SqlToRelConverter {
    *                                     sub-query
    */
   private void findSubQueries(
+      Blackboard bb,
+      SqlNode node,
+      RelOptUtil.Logic logic,
+      boolean registerOnlyScalarSubQueries) {
+    final SqlKind kind = node.getKind();
+    switch (kind) {
+    case EXISTS:
+    case UNIQUE:
+    case SELECT:
+    case MULTISET_QUERY_CONSTRUCTOR:
+    case MULTISET_VALUE_CONSTRUCTOR:
+    case ARRAY_QUERY_CONSTRUCTOR:
+    case MAP_QUERY_CONSTRUCTOR:
+    case CURSOR:
+    case SCALAR_QUERY:
+      if (!registerOnlyScalarSubQueries
+          || (kind == SqlKind.SCALAR_QUERY)) {
+        bb.registerSubQuery(node, RelOptUtil.Logic.TRUE_FALSE);
+      }
+      return;
+    case IN:
+      break;
+    case NOT_IN:
+    case NOT:
+      logic = logic.negate();
+      break;
+    default:
+      break;
+    }
+    if (node instanceof SqlCall) {
+      switch (kind) {
+      // Do no change logic for AND, IN and NOT IN expressions;
+      // but do change logic for OR, NOT and others;
+      // EXISTS was handled already.
+      case AND:
+      case IN:
+      case NOT_IN:
+        break;
+      default:
+        logic = RelOptUtil.Logic.TRUE_FALSE_UNKNOWN;
+        break;
+      }
+      for (SqlNode operand : ((SqlCall) node).getOperandList()) {
+        if (operand != null) {
+          // In the case of an IN expression, locate scalar
+          // sub-queries so we can convert them to constants
+          findSubQueries(bb, operand, logic,
+              kind == SqlKind.IN || kind == SqlKind.NOT_IN
+                  || kind == SqlKind.SOME || kind == SqlKind.ALL
+                  || registerOnlyScalarSubQueries);
+        }
+      }
+    } else if (node instanceof SqlNodeList) {
+      for (SqlNode child : (SqlNodeList) node) {
+        findSubQueries(bb, child, logic,
+            kind == SqlKind.IN || kind == SqlKind.NOT_IN
+                || kind == SqlKind.SOME || kind == SqlKind.ALL
+                || registerOnlyScalarSubQueries);
+      }
+    }
+
+    // Now that we've located any scalar sub-queries inside the IN
+    // expression, register the IN expression itself. We need to
+    // register the scalar sub-queries first so they can be converted
+    // before the IN expression is converted.
+    switch (kind) {
+    case IN:
+    case NOT_IN:
+    case SOME:
+    case ALL:
+      switch (logic) {
+      case TRUE_FALSE_UNKNOWN:
+        RelDataType type = validator().getValidatedNodeTypeIfKnown(node);
+        if (type == null) {
+          // The node might not be validated if we still don't know type of the node.
+          // Therefore return directly.
+          return;
+        } else {
+          break;
+        }
+      case UNKNOWN_AS_FALSE:
+        logic = RelOptUtil.Logic.TRUE;
+        break;
+      default:
+        break;
+      }
+      bb.registerSubQuery(node, logic);
+      break;
+    default:
+      break;
+    }
+  }
+
+  /**
+   * Builds a list of all <code>IN</code> or <code>EXISTS</code> operators
+   * inside SQL parse tree. Does not traverse inside queries.
+   *
+   * @param bb                           blackboard
+   * @param node                         the SQL parse tree
+   * @param logic Whether the answer needs to be in full 3-valued logic (TRUE,
+   *              FALSE, UNKNOWN) will be required, or whether we can accept
+   *              an approximation (say representing UNKNOWN as FALSE)
+   * @param registerOnlyScalarSubQueries if set to true and the parse tree
+   *                                     corresponds to a variation of a select
+   *                                     node, only register it if it's a scalar
+   *                                     sub-query
+   */
+  private void findColumnUses(
       Blackboard bb,
       SqlNode node,
       RelOptUtil.Logic logic,
@@ -5535,6 +5691,129 @@ public class SqlToRelConverter {
     }
   }
 
+
+  protected class QualifyConverter implements SqlVisitor<SqlNode> {
+    private final Map<String, SqlNode> selectIdentifierMap;
+    private final Set<String> replacedIdentifiers;
+
+    public QualifyConverter(Map<String, SqlNode> selectIdentifierMap){
+      this.selectIdentifierMap = selectIdentifierMap;
+      this.replacedIdentifiers = new HashSet<>();
+    }
+
+    //~ Methods ----------------------------------------------------------------
+
+
+    public Set<String> getConvertedIdentifiers(){
+      return this.replacedIdentifiers;
+    }
+
+    /**
+     * Visits a literal.
+     *
+     * @param literal Literal
+     * @see SqlLiteral#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlLiteral literal){
+      return literal;
+    }
+
+    /**
+     * Visits a call to a {@link SqlOperator}.
+     *
+     * @param call Call
+     * @see SqlCall#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlCall call) {
+
+      // If we encounter a nested subquery, just return it. No need to replace identifiers within
+      // subqueries.
+      if (call instanceof SqlSelect) {
+        return call;
+      }
+      List<SqlNode> operands = call.getOperandList();
+      for (int i = 0; i < operands.size(); i++){
+        // For specifically SqlWindow, some operands may be null
+        // There may be other cases, but our only purpose is to
+        // change identifiers, so we can ignore these null values
+        if (operands.get(i) != null){
+          call.setOperand(i, operands.get(i).accept(this));
+        }
+      }
+      return call;
+    }
+
+    /**
+     * Visits a list of {@link SqlNode} objects.
+     *
+     * @param nodeList list of nodes
+     * @see SqlNodeList#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlNodeList nodeList) {
+      List<SqlNode> outList = new ArrayList<SqlNode>();
+      for (int i = 0; i < nodeList.size(); i++){
+        outList.add(nodeList.get(i).accept(this));
+      }
+      return SqlNodeList.of(nodeList.getParserPosition(), outList);
+    }
+
+    /**
+     * Visits an identifier.
+     *
+     * @param id identifier
+     * @see SqlIdentifier#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlIdentifier id) {
+      //SqlIdentifiers are not equal if their position is not equal, so we just check the names
+      if (this.selectIdentifierMap.containsKey(id.toString())){
+        this.replacedIdentifiers.add(id.toString());
+        return this.selectIdentifierMap.get(id.toString()).clone(id.getParserPosition());
+      }
+      return id;
+    }
+
+    /**
+     * Visits a datatype specification.
+     *
+     * @param type datatype specification
+     * @see SqlDataTypeSpec#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlDataTypeSpec type){
+      return type;
+    }
+
+    /**
+     * Visits a dynamic parameter.
+     *
+     * @param param Dynamic parameter
+     * @see SqlDynamicParam#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlDynamicParam param){
+      return param;
+    }
+
+    /**
+     * Visits a named parameter.
+     *
+     * @param param Named parameter
+     * @see SqlNamedParam#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlNamedParam param){
+      return param;
+    }
+
+    /**
+     * Visits an interval qualifier.
+     *
+     * @param intervalQualifier Interval qualifier
+     * @see SqlIntervalQualifier#accept(SqlVisitor)
+     */
+    public SqlNode visit(SqlIntervalQualifier intervalQualifier){
+      return intervalQualifier;
+    }
+
+  }
+
   /**
    * Converts expressions to aggregates.
    *
@@ -6537,5 +6816,7 @@ public class SqlToRelConverter {
     Config withHintStrategyTable(HintStrategyTable hintStrategyTable);
 
   }
+
+
 
 }

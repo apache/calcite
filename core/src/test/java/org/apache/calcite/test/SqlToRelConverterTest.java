@@ -595,19 +595,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testQualifyWithAndWithoutAlias() {
+    // test qualify clause, with an Alias
+    // deptno, empno, sal
+
+    final String sql = "select empno, ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) as row_num from emp QUALIFY row_num > 10 and ROW_NUMBER() over (PARTITION BY sal ORDER BY deptno) <= 10";
+    sql(sql).ok();
+  }
+
   @Test void testQualifyfullWithAlias() {
     // test qualify clause, with an Alias
     // deptno, empno, sal
     final String sql = "SELECT deptno, SUM(empno) OVER (PARTITION BY deptno) as r\n" +
-        "  FROM t1\n" +
+        "  FROM emp\n" +
         "  WHERE empno < 4\n" +
         "  GROUP BY deptno, empno\n" +
         "  HAVING SUM(sal) > 3\n" +
         "  QUALIFY r IN (\n" +
-        "    SELECT MIN(sal)\n" +
-        "      FROM test\n" +
-        "      GROUP BY deptno\n" +
-        "      HAVING MIN(sal) > 3);";
+        "    SELECT MIN(deptno)\n" +
+        "      from dept\n" +
+        "      GROUP BY name\n" +
+        "      HAVING MIN(deptno) > 3)";
     sql(sql).ok();
   }
 
@@ -620,10 +628,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         "  GROUP BY deptno, empno\n" +
         "  HAVING SUM(sal) > 3\n" +
         "  QUALIFY SUM(empno) OVER (PARTITION BY deptno) IN (\n" +
-        "    SELECT MIN(sal)\n" +
-        "      FROM test\n" +
-        "      GROUP BY deptno\n" +
-        "      HAVING MIN(sal) > 3);";
+        "    SELECT MIN(deptno)\n" +
+        "      from dept\n" +
+        "      GROUP BY name\n" +
+        "      HAVING MIN(deptno) > 3)";
     sql(sql).ok();
   }
 
