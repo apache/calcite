@@ -96,11 +96,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
     final Result result = implementor.visitChild(this, 0, child, pref);
-    final PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(),
-            getRowType(),
-            result.format);
+    final PhysType physType = result.physType;
 
     Expression v = builder.append("child", result.block);
     if (offset != null) {
