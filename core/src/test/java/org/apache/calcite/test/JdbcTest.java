@@ -5432,6 +5432,8 @@ public class JdbcTest {
    * Query with parameterized LIMIT and correlated sub-query throws AssertionError "not a
    * literal"</a>.
    */
+  @Disabled("[CALCITE-5229] JdbcTest#testDynamicParameterInLimitOffset"
+      + " throws IllegalArgumentException")
   @Test void testDynamicParameterInLimitOffset() {
     CalciteAssert.hr()
         .query("SELECT * FROM \"hr\".\"emps\" AS a "

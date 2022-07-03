@@ -117,6 +117,7 @@ public class RelOptRules {
       AbstractConverter.ExpandConversionRule.INSTANCE,
       CoreRules.JOIN_COMMUTE,
       CoreRules.PROJECT_TO_SEMI_JOIN,
+      CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN,
       CoreRules.JOIN_TO_SEMI_JOIN,
       CoreRules.AGGREGATE_REMOVE,
       CoreRules.UNION_TO_DISTINCT,

@@ -361,14 +361,13 @@ where exists (select 1 from "hr"."emps");
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
-  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-      EnumerableTableScan(table=[[hr, depts]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
-      EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
-        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f0=[$t5])
-          EnumerableTableScan(table=[[hr, emps]])
+EnumerableNestedLoopJoin(condition=[true], joinType=[semi])
+  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+    EnumerableTableScan(table=[[hr, depts]])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
+    EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f0=[$t5])
+        EnumerableTableScan(table=[[hr, emps]])
 !plan
 
 # Un-correlated NOT EXISTS
@@ -400,14 +399,13 @@ where exists (select 1 from "hr"."emps" where "empid" < 0);
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
-  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-      EnumerableTableScan(table=[[hr, depts]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
-      EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
-        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<($t0, $t6)], $f0=[$t5], $condition=[$t7])
-          EnumerableTableScan(table=[[hr, emps]])
+EnumerableNestedLoopJoin(condition=[true], joinType=[semi])
+  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+    EnumerableTableScan(table=[[hr, depts]])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
+    EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<($t0, $t6)], $f0=[$t5], $condition=[$t7])
+        EnumerableTableScan(table=[[hr, emps]])
 !plan
 
 # Un-correlated NOT EXISTS (table empty)
