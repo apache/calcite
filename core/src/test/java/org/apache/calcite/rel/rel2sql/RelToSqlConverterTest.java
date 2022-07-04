@@ -10031,4 +10031,27 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
+
+  @Test public void testParseDateTimeFormat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseDateNode = builder.call(SqlLibraryOperators.PARSE_DATE,
+        builder.literal("YYYYMMDD"), builder.literal("99991231"));
+    final RexNode parseTimeNode = builder.call(SqlLibraryOperators.PARSE_TIME,
+        builder.literal("HH24MISS"), builder.literal("122333"));
+    final RelNode root = builder.scan("EMP").
+        project(builder.alias(parseDateNode, "date1"),
+            builder.alias(parseTimeNode, "time1"))
+        .build();
+
+    final String expectedSql = "SELECT PARSE_DATE('YYYYMMDD', '99991231') AS \"date1\", "
+        + "PARSE_TIME('HH24MISS', '122333') AS \"time1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '99991231') AS date1, "
+        + "PARSE_TIME('%H%M%S', '122333') AS time1\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
