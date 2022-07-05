@@ -385,6 +385,9 @@ public interface CalciteResource {
   @BaseMessage("HAVING clause must be a condition")
   ExInst<SqlValidatorException> havingMustBeBoolean();
 
+  @BaseMessage("QUALIFY clause must be a condition")
+  ExInst<SqlValidatorException> qualifyMustBeBoolean();
+
   @BaseMessage("OVER must be applied to aggregate function")
   ExInst<SqlValidatorException> overNonAggregate();
 

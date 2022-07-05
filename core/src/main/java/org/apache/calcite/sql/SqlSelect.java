@@ -42,6 +42,8 @@ public class SqlSelect extends SqlCall {
   public static final int WHERE_OPERAND = 3;
   public static final int HAVING_OPERAND = 5;
 
+  public static final int QUALIFY_OPERAND = 6;
+
   SqlNodeList keywordList;
   SqlNodeList selectList;
   @Nullable SqlNode from;

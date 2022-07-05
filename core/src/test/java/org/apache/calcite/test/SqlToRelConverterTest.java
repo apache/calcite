@@ -581,12 +581,79 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+
+  @Test void testFoo(){
+    final String sql = "SELECT (SUM(EMPNO) OVER (PARTITION BY DEPTNO)) IN (SELECT MIN(DEPTNO)\n" +
+        "FROM DEPT\n" +
+        "GROUP BY NAME\n" +
+        "HAVING MIN(DEPTNO) > 3) FROM emp";
+    /*
+    Is expanded to:
+    SELECT (SUM(`EMP`.`EMPNO`) OVER (PARTITION BY `EMP`.`DEPTNO`)) IN (SELECT MIN(`DEPT`.`DEPTNO`)
+    FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`
+    GROUP BY `DEPT`.`NAME`
+    HAVING MIN(`DEPT`.`DEPTNO`) > 3)
+    FROM `CATALOG`.`SALES`.`EMP` AS `EMP`
+
+    IE: I should be able to just move a nested sub query into the select clause. The only issue is
+    properly handling the validation.
+    */
+    sql(sql).ok();
+  }
+  @Test void testHavingWithNestedSubquerry() {
+    // empty group-by clause, having
+    final String sql = "select sum(sal + sal) as tmp_sum from emp group by deptno having tmp_sum IN (SELECT MIN(DEPTNO)\n" +
+        "FROM DEPT\n" +
+        "GROUP BY NAME\n" +
+        "HAVING MIN(DEPTNO) > 3)"; // GROUP BY deptno having sum(sal) > 10
+
+    /*
+    After validation, is expanded too:
+    SELECT SUM(`EMP`.`SAL` + `EMP`.`SAL`) AS `TMP_SUM`
+    FROM `CATALOG`.`SALES`.`EMP` AS `EMP`
+    GROUP BY `EMP`.`DEPTNO`
+    HAVING SUM(`EMP`.`SAL` + `EMP`.`SAL`) IN (SELECT MIN(`DEPT`.`DEPTNO`)
+    FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`
+    GROUP BY `DEPT`.`NAME`
+    HAVING MIN(`DEPT`.`DEPTNO`) > 3)
+
+    IE, it seems that calcite just duplicates any aliases present in the original.
+    */
+    sql(sql).ok();
+  }
+
+  @Test void testQualifySubquerySimple(){
+    /*But this fails with
+    java.lang.NullPointerException: no SELECT scope for SELECT `ID`FROM `EMP`
+    */
+    final String sql = "SELECT empno FROM emp QUALIFY ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) in (SELECT deptno from emp)";
+
+    // but this succeeds?
+    // So, where is this select scope being set, if not validation?
+    // is it in the parser?
+    // can confirm, getSelectScope(((SqlBasicCall) select.getHaving()).operandList.get(1))
+    // when first entering validateSelect, has a scope for this query
+
+    // getSelectScope(((SqlBasicCall) select.getQualify()).operandList.get(1))
+    // throws null pointer exception. Soo... what to do.
+//    final String sql = "SELECT MIN(empno) FROM emp HAVING MAX(empno) in (SELECT deptno from emp)";
+    // seems to take place in registerQuery?
+    /*
+    Is expanded to:
+    TODO
+    */
+    sql(sql).ok();
+  }
+
+
+
   @Test void testQualify() {
     // test qualify clause
     // deptno, empno, sal
     final String sql = "select empno from emp QUALIFY ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) > 10";
     sql(sql).ok();
   }
+
 
   @Test void testQualifyWithAlias() {
     // test qualify clause, with an Alias

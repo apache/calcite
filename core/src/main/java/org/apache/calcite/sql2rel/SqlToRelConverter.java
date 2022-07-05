@@ -686,8 +686,12 @@ public class SqlToRelConverter {
         bb,
         select.getFrom());
 
-
-    expandQualify(bb, select);
+    // Because we may need to handle nested aggregations in qualify statements
+    // The easiest solution to handle this is to add the aggregation to the select list
+    // and then generate the filter later.
+    if (select.hasQualify()){
+      expandQualify(bb, select);
+    }
 
     // We would like to remove ORDER BY clause from an expanded view, except if
     // it is top-level or affects semantics.
@@ -794,6 +798,8 @@ public class SqlToRelConverter {
    * @param select           Select Statement
    */
   private void expandQualify(Blackboard bb, SqlSelect select) {
+
+
     final Map<String, SqlNode> selectIdentifierMap = new HashMap<>();
 
     //Find all the aliases
@@ -3454,6 +3460,7 @@ public class SqlToRelConverter {
     selectList.accept(aggregateFinder);
     if (having != null) {
       having.accept(aggregateFinder);
+      replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
     }
 
     // first replace the sub-queries inside the aggregates

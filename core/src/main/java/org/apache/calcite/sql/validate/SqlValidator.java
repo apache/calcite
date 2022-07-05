@@ -590,6 +590,17 @@ public interface SqlValidator {
    */
   @Nullable SqlValidatorScope getFromScope(SqlSelect select);
 
+
+
+  /**
+   * Returns a scope containing the objects visible from the QUALIFY clause of a
+   * query.
+   *
+   * @param select SELECT statement
+   * @return naming scope for QUALIFY clause
+   */
+  @Nullable SqlValidatorScope getQualifyScope(SqlSelect select);
+
   /**
    * Returns a scope containing the objects visible from the ON and USING
    * sections of a JOIN clause.
