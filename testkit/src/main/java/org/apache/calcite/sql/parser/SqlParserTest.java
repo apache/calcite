@@ -9628,6 +9628,8 @@ public class SqlParserTest {
         .ok("JSON_OBJECT(KEY 'foo' VALUE "
             + "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL) "
             + "FORMAT JSON NULL ON NULL)");
+    expr("json_object(key 'foo' value (select 'bar'))")
+        .ok("JSON_OBJECT(KEY 'foo' VALUE (SELECT 'bar') NULL ON NULL)");
 
     if (!Bug.TODO_FIXED) {
       return;
