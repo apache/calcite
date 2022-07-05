@@ -12300,7 +12300,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
 
     @Override public SqlNode expandGroupByOrHavingOrQualifyExpr(SqlNode expr,
-        SqlValidatorScope scope, SqlSelect select, boolean havingExpression, boolean groupByExpression) {
+        SqlValidatorScope scope, SqlSelect select, boolean havingExpression,
+        boolean groupByExpression) {
       SqlNode rewrittenNode = rewriteNode(expr);
       return super.expandGroupByOrHavingOrQualifyExpr(rewrittenNode, scope, select,
           havingExpression, groupByExpression);

@@ -689,9 +689,9 @@ public class SqlToRelConverter {
     // Because we may need to handle nested aggregations in qualify statements
     // The easiest solution to handle this is to add the aggregation to the select list
     // and then generate the filter later.
-    if (select.hasQualify()){
-      expandQualify(bb, select);
-    }
+//    if (select.hasQualify()) {
+//      expandQualify(bb, select);
+//    }
 
     // We would like to remove ORDER BY clause from an expanded view, except if
     // it is top-level or affects semantics.
@@ -874,13 +874,15 @@ public class SqlToRelConverter {
     }
 
 
-    //Generate a projection to remove the qualify filter column from table
-    //TODO: this only needs to happen if this is the topmost node, otherwise we can just leave the column in at no cost.
+    // Generate a projection to remove the qualify filter column from table
+    // TODO: this only needs to happen if this is the topmost node, otherwise
+    // we can just leave the column in, and it will likely be projected away at a later step
     final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
     for (int i = 0; i < fields.size() - 1; i++) {
-        newProjects.add(RexInputRef.of2(i, fields));
-      }
-    final RelNode projectRel = LogicalProject.create(filterRelNode, ImmutableList.of(), Pair.left(newProjects), Pair.right(newProjects));
+      newProjects.add(RexInputRef.of2(i, fields));
+    }
+    final RelNode projectRel = LogicalProject.create(filterRelNode, ImmutableList.of(),
+        Pair.left(newProjects), Pair.right(newProjects));
     bb.setRoot(projectRel, false);
     return;
   }
@@ -5698,12 +5700,14 @@ public class SqlToRelConverter {
     }
   }
 
-
+  /**
+   * To be removed.
+   */
   protected class QualifyConverter implements SqlVisitor<SqlNode> {
     private final Map<String, SqlNode> selectIdentifierMap;
     private final Set<String> replacedIdentifiers;
 
-    public QualifyConverter(Map<String, SqlNode> selectIdentifierMap){
+    public QualifyConverter(Map<String, SqlNode> selectIdentifierMap) {
       this.selectIdentifierMap = selectIdentifierMap;
       this.replacedIdentifiers = new HashSet<>();
     }
@@ -5711,7 +5715,7 @@ public class SqlToRelConverter {
     //~ Methods ----------------------------------------------------------------
 
 
-    public Set<String> getConvertedIdentifiers(){
+    public Set<String> getConvertedIdentifiers() {
       return this.replacedIdentifiers;
     }
 
@@ -5721,7 +5725,7 @@ public class SqlToRelConverter {
      * @param literal Literal
      * @see SqlLiteral#accept(SqlVisitor)
      */
-    public SqlNode visit(SqlLiteral literal){
+    public SqlNode visit(SqlLiteral literal) {
       return literal;
     }
 
@@ -5739,11 +5743,11 @@ public class SqlToRelConverter {
         return call;
       }
       List<SqlNode> operands = call.getOperandList();
-      for (int i = 0; i < operands.size(); i++){
+      for (int i = 0; i < operands.size(); i++) {
         // For specifically SqlWindow, some operands may be null
         // There may be other cases, but our only purpose is to
         // change identifiers, so we can ignore these null values
-        if (operands.get(i) != null){
+        if (operands.get(i) != null) {
           call.setOperand(i, operands.get(i).accept(this));
         }
       }
@@ -5758,7 +5762,7 @@ public class SqlToRelConverter {
      */
     public SqlNode visit(SqlNodeList nodeList) {
       List<SqlNode> outList = new ArrayList<SqlNode>();
-      for (int i = 0; i < nodeList.size(); i++){
+      for (int i = 0; i < nodeList.size(); i++) {
         outList.add(nodeList.get(i).accept(this));
       }
       return SqlNodeList.of(nodeList.getParserPosition(), outList);
@@ -5772,7 +5776,7 @@ public class SqlToRelConverter {
      */
     public SqlNode visit(SqlIdentifier id) {
       //SqlIdentifiers are not equal if their position is not equal, so we just check the names
-      if (this.selectIdentifierMap.containsKey(id.toString())){
+      if (this.selectIdentifierMap.containsKey(id.toString())) {
         this.replacedIdentifiers.add(id.toString());
         return this.selectIdentifierMap.get(id.toString()).clone(id.getParserPosition());
       }
@@ -5785,7 +5789,7 @@ public class SqlToRelConverter {
      * @param type datatype specification
      * @see SqlDataTypeSpec#accept(SqlVisitor)
      */
-    public SqlNode visit(SqlDataTypeSpec type){
+    public SqlNode visit(SqlDataTypeSpec type) {
       return type;
     }
 
@@ -5795,7 +5799,7 @@ public class SqlToRelConverter {
      * @param param Dynamic parameter
      * @see SqlDynamicParam#accept(SqlVisitor)
      */
-    public SqlNode visit(SqlDynamicParam param){
+    public SqlNode visit(SqlDynamicParam param) {
       return param;
     }
 
@@ -5805,7 +5809,7 @@ public class SqlToRelConverter {
      * @param param Named parameter
      * @see SqlNamedParam#accept(SqlVisitor)
      */
-    public SqlNode visit(SqlNamedParam param){
+    public SqlNode visit(SqlNamedParam param) {
       return param;
     }
 
@@ -5815,7 +5819,7 @@ public class SqlToRelConverter {
      * @param intervalQualifier Interval qualifier
      * @see SqlIntervalQualifier#accept(SqlVisitor)
      */
-    public SqlNode visit(SqlIntervalQualifier intervalQualifier){
+    public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
       return intervalQualifier;
     }
 

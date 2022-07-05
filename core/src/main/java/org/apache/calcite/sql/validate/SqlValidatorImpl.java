@@ -4292,7 +4292,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
     for (SqlNode groupItem : groupList) {
-      SqlNode expandedItem = expandGroupByOrHavingOrQualifyExpr(groupItem, groupScope, select, false, true);
+      SqlNode expandedItem = expandGroupByOrHavingOrQualifyExpr(groupItem, groupScope, select,
+          false, true);
       expandedList.add(expandedItem);
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
@@ -4405,7 +4406,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
     if (true) {
-      SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(having, havingScope, select, true, false);
+      SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(having, havingScope, select,
+          true, false);
       if (having != newExpr) {
         having = newExpr;
         select.setHaving(newExpr);
@@ -4434,12 +4436,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     SqlNode qualify = select.getQualify();
 
-    final SqlValidatorScope qualifyScope = requireNonNull(getQualifyScope(select), () -> "internal error in validateQualifyClause, scope for non-null qualify clause was null");
+    final SqlValidatorScope qualifyScope = requireNonNull(getQualifyScope(select), () ->
+        "internal error in validateQualifyClause, scope for non-null qualify clause was null");
 
     //TODO: should this be expand Select Item? I think it should be equivalent, but since I'm
     // handling qualify by putting it into the selectlist, this might be more correct...
     //
-    SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(qualify, qualifyScope, select, false, false);
+    SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(qualify, qualifyScope, select,
+        false, false);
 
     if (qualify != newExpr) {
       qualify = newExpr;
@@ -6767,10 +6771,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // This is true for our purposes, but if we want to merge this back into Calcite eventually,
       // we should likely allow for a validator.config() that controls this behavior, similarly
       // to the other two clauses.
-      if (id.isSimple() && true) {
-//          && (havingExpr
-//              ? validator.config().conformance().isHavingAlias()
-//              : !groupByExpr || validator.config().conformance().isGroupByAlias())) {
+      if (id.isSimple()
+          && (havingExpr
+              ? validator.config().conformance().isHavingAlias()
+              : !groupByExpr || validator.config().conformance().isGroupByAlias())) {
         String name = id.getSimple();
         SqlNode expr = null;
         final SqlNameMatcher nameMatcher =
