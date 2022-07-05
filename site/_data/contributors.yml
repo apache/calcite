@@ -45,6 +45,12 @@
   githubId: ashutoshc
   org: Hortonworks
   role: PMC
+- name: Benchao Li
+  apacheId: libenchao
+  githubId: libenchao
+  pronouns: he/him
+  org: ByteDance
+  role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
   githubId: chris-baynes
