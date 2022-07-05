@@ -249,21 +249,24 @@ public abstract class SemiJoinRule
       super(config);
     }
 
-    @Override public void onMatch(RelOptRuleCall call) {
+    @Override public boolean matches(RelOptRuleCall call) {
       final Project project = call.rel(0);
       final Join join = call.rel(1);
       final RelNode left = call.rel(2);
-      final RelNode right = call.rel(3);
 
-      // return if right's fields are used.
       final ImmutableBitSet bits =
           RelOptUtil.InputFinder.bits(project.getProjects(), null);
       final ImmutableBitSet rightBits =
           ImmutableBitSet.range(left.getRowType().getFieldCount(),
               join.getRowType().getFieldCount());
-      if (bits.intersects(rightBits)) {
-        return;
-      }
+      return !bits.intersects(rightBits);
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      final Join join = call.rel(1);
+      final RelNode left = call.rel(2);
+      final RelNode right = call.rel(3);
 
       final JoinInfo joinInfo = join.analyzeCondition();
       final RelOptCluster cluster = join.getCluster();
