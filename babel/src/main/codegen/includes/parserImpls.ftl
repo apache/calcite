@@ -56,7 +56,8 @@ SqlNode DateaddFunctionCall() :
         s = span();
         qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
     }
-    <LPAREN> unit = TimeUnit() {
+    <LPAREN>
+    unit = TimeUnit() {
         args = startList(new SqlIntervalQualifier(unit, null, getPos()));
     }
     (

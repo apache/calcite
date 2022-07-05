@@ -313,6 +313,18 @@ class BabelParserTest extends SqlParserTest {
     String sql = "SELECT a >= x - INTERVAL '30 days'";
     String expected = "SELECT (`A` >= (`X` - INTERVAL '30' DAY))";
     sql(sql).ok(expected);
+
+    sql = "SELECT a >= x - INTERVAL '30' days";
+    expected = "SELECT (`A` >= (`X` - INTERVAL '30' DAY))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT \"timestamp\" BETWEEN bonk::TIMESTAMP_LTZ - interval '1 millisecond' AND doot::TIMESTAMP_LTZ + interval '1 millisecond'";
+    expected = "SELECT (`timestamp` BETWEEN ASYMMETRIC (`BONK` :: `TIMESTAMP_LTZ` - INTERVAL '1' MILLISECOND) AND (`DOOT` :: `TIMESTAMP_LTZ` + INTERVAL '1' MILLISECOND))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a - interval '5m'";
+    expected = "SELECT `A` - INTERVAL '5' MINUTE";
+    sql(sql).ok(expected);
   }
 
   @Test
@@ -390,6 +402,17 @@ class BabelParserTest extends SqlParserTest {
 
     sql = "SELECT date_part(epoch_second, event_time) FROM B";
     expected = "SELECT DATE_PART(EPOCH_SECOND, `EVENT_TIME`) FROM `B`";
+    sql(sql).ok(expected);
+  }
+
+  @Test
+  void testDatePlurals() {
+    String sql = "SELECT DATEDIFF(seconds, x, y)";
+    String expected = "SELECT `DATEDIFF`(SECOND, `EVENT_TIME`)";
+    sql(sql).ok(expected);
+
+    sql = "SELECT `DATEDIFF`(milliseconds, x, y)";
+    expected = "SELECT `DATEDIFF`(MILLISECOND, `X`, `Y`)";
     sql(sql).ok(expected);
   }
 

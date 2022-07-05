@@ -18,6 +18,7 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
@@ -40,6 +41,7 @@ import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -58,6 +60,7 @@ import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -184,6 +187,92 @@ public final class SqlParserUtil {
     final TimeString t = TimeString.fromCalendarFields(pt.getCalendar())
         .withFraction(pt.getFraction());
     return SqlLiteral.createTime(t, pt.getPrecision(), pos);
+  }
+
+  // parses a fully quoted interval, like '30 days' or '5m'
+  public static Pair<String, TimeUnit> parseIntervalString(String s) {
+    TimeUnit start = TimeUnit.DAY;
+
+    String[] parts = s.split(" ");
+    if (parts.length == 1) {
+      // might be something like '5m'
+      boolean isParsingInterval = false;
+      StringBuilder numberPart = new StringBuilder();
+      StringBuilder intervalPart = new StringBuilder();
+      for (int i=0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (Character.isDigit(c)) {
+          if (!isParsingInterval && i != 0) {
+            return null;
+          }
+          numberPart.append(c);
+        } else {
+          intervalPart.append(c);
+          isParsingInterval = true;
+        }
+      }
+
+      start = SqlParserUtil.stringToTimeUnit(intervalPart.toString());
+      if (start == null) {
+        return null;
+      }
+
+      return new Pair<String, TimeUnit>("'" + numberPart.toString() + "'", start);
+    }
+
+    // otherwise it's combined like '30 days'
+    String lastWord = parts[parts.length - 1].toLowerCase();
+    start = SqlParserUtil.stringToTimeUnit(lastWord);
+    if (start == null) {
+      return null;
+    }
+    String[] partsWithoutLast = Arrays.copyOf(parts, parts.length - 1);
+    String amountStr = "'" + String.join(" ", partsWithoutLast) + "'";
+
+    return new Pair<String, TimeUnit>(amountStr, start);
+  }
+
+  public static TimeUnit stringToTimeUnit(String s) {
+    s = s.toLowerCase();
+
+    switch (s) {
+      case "millisecond":
+      case "milliseconds":
+      case "ms":
+        return TimeUnit.MILLISECOND;
+      case "second":
+      case "seconds":
+      case "s":
+        return TimeUnit.SECOND;
+      case "minute":
+      case "minutes":
+      case "m":
+        return TimeUnit.MINUTE;
+      case "hour":
+      case "hours":
+      case "h":
+        return TimeUnit.HOUR;
+      case "day":
+      case "days":
+      case "d":
+        return TimeUnit.DAY;
+      case "week":
+      case "weeks":
+      case "w":
+        return TimeUnit.WEEK;
+      case "month":
+      case "months":
+        return TimeUnit.MONTH;
+      case "quarter":
+      case "quarters":
+        return TimeUnit.QUARTER;
+      case "year":
+      case "years":
+      case "y":
+        return TimeUnit.YEAR;
+    }
+
+    return null;
   }
 
   public static SqlTimestampLiteral parseTimestampLiteral(String s,

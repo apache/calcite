@@ -4805,9 +4805,25 @@ SqlLiteral IntervalLiteral() :
         <PLUS> { sign = 1; }
     ]
     <QUOTED_STRING> { p = token.image; }
-    intervalQualifier = IntervalQualifier() {
-        return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
-            sign, p, intervalQualifier);
+    [
+        intervalQualifier = IntervalQualifier() {
+            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+                sign, p, intervalQualifier);
+        }
+    ]
+    {
+        // the whole thing is quoted, like '30 days'
+        String parsedStr = SqlParserUtil.parseString(p);
+        Pair<String, TimeUnit> parsed = SqlParserUtil.parseIntervalString(parsedStr);
+        if (parsed == null) {
+            throw SqlUtil.newContextException(getPos(), RESOURCE.invalidDatetimeFormat(p));
+        }
+
+        SqlIntervalQualifier siq = new SqlIntervalQualifier(
+            parsed.right, RelDataType.PRECISION_NOT_SPECIFIED, 
+            null, RelDataType.PRECISION_NOT_SPECIFIED, s.end(this)
+        );
+        return SqlParserUtil.parseIntervalLiteral(s.end(this), sign, parsed.left, siq);
     }
 }
 
@@ -4839,47 +4855,19 @@ SqlNode IntervalLiteralOrExpression() :
             }
         ]
         { 
-            TimeUnit start = TimeUnit.DAY;
-
-            String[] parts = SqlParserUtil.parseString(p).split(" ");
-            String lastWord = parts[parts.length - 1].toLowerCase();
-            switch (lastWord) {
-                case "second":
-                case "seconds":
-                    start = TimeUnit.SECOND;
-                    break;
-                case "hour":
-                case "hours":
-                    start = TimeUnit.HOUR;
-                    break;
-                case "day":
-                case "days":
-                    start = TimeUnit.DAY;
-                    break;
-                case "minute":
-                case "minutes":
-                    start = TimeUnit.MINUTE;
-                    break;
-                case "month":
-                case "months":
-                    start = TimeUnit.MONTH;
-                    break;
-                case "year":
-                case "years":
-                    start = TimeUnit.YEAR;
-                    break;
-                default:
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.invalidDatetimeFormat(lastWord));
+            // the whole thing is quoted, like '30 days'
+            String parsedStr = SqlParserUtil.parseString(p);
+            Pair<String, TimeUnit> parsed = SqlParserUtil.parseIntervalString(parsedStr);
+            if (parsed == null) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.invalidDatetimeFormat(p));
             }
 
-            String[] partsWithoutLast = Arrays.copyOf(parts, parts.length - 1);
-            p = "'" + String.join(" ", partsWithoutLast) + "'";
-
-             SqlIntervalQualifier siq = new SqlIntervalQualifier(start, RelDataType.PRECISION_NOT_SPECIFIED, 
-                null, RelDataType.PRECISION_NOT_SPECIFIED, s.end(this));
+             SqlIntervalQualifier siq = new SqlIntervalQualifier(
+                parsed.right, RelDataType.PRECISION_NOT_SPECIFIED, 
+                null, RelDataType.PRECISION_NOT_SPECIFIED, s.end(this)
+            );
             return SqlParserUtil.parseIntervalLiteral(s.end(this),
-                sign, p, siq);
-            
+                sign, parsed.left, siq);
         }
     |
         // To keep parsing simple, any expressions besides numeric literal and
@@ -4957,6 +4945,15 @@ TimeUnit Second() :
     <SECONDS> { return warn(TimeUnit.SECOND); }
 }
 
+TimeUnit Millisecond() :
+{
+}
+{
+    <MILLISECOND> { return TimeUnit.MILLISECOND; }
+|
+    <MILLISECONDS> { return warn(TimeUnit.MILLISECOND); }
+}
+
 SqlIntervalQualifier IntervalQualifier() :
 {
     final Span s;
@@ -5009,6 +5006,13 @@ SqlIntervalQualifier IntervalQualifier() :
             [ <COMMA> secondFracPrec = UnsignedIntLiteral() ]
             <RPAREN>
         ]
+    |
+        start = Millisecond() { s = span(); }
+        [
+            <LPAREN> startPrec = UnsignedIntLiteral()
+            [ <COMMA> secondFracPrec = UnsignedIntLiteral() ]
+            <RPAREN>
+        ]
     )
     {
         return new SqlIntervalQualifier(start, startPrec, end, secondFracPrec,
@@ -5055,19 +5059,19 @@ SqlIntervalQualifier IntervalQualifierStart() :
 TimeUnit TimeUnit() :
 {}
 {
-    <MILLISECOND> { return TimeUnit.MILLISECOND; }
-|   <SECOND> { return TimeUnit.SECOND; }
-|   <MINUTE> { return TimeUnit.MINUTE; }
-|   <HOUR> { return TimeUnit.HOUR; }
-|   <DAY> { return TimeUnit.DAY; }
+    Millisecond() { return TimeUnit.MILLISECOND; }
+|   Second() { return TimeUnit.SECOND; }
+|   Minute() { return TimeUnit.MINUTE; }
+|   Hour() { return TimeUnit.HOUR; }
+|   Day() { return TimeUnit.DAY; }
 |   <DOW> { return TimeUnit.DOW; }
 |   <DOY> { return TimeUnit.DOY; }
 |   <ISODOW> { return TimeUnit.ISODOW; }
 |   <ISOYEAR> { return TimeUnit.ISOYEAR; }
 |   <WEEK> { return TimeUnit.WEEK; }
-|   <MONTH> { return TimeUnit.MONTH; }
+|   Month() { return TimeUnit.MONTH; }
 |   <QUARTER> { return TimeUnit.QUARTER; }
-|   <YEAR> { return TimeUnit.YEAR; }
+|   Year() { return TimeUnit.YEAR; }
 |   <EPOCH> { return TimeUnit.EPOCH; }
 |   <DECADE> { return TimeUnit.DECADE; }
 |   <CENTURY> { return TimeUnit.CENTURY; }
@@ -7706,6 +7710,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < METHOD: "METHOD" >
 |   < MICROSECOND: "MICROSECOND" >
 |   < MILLISECOND: "MILLISECOND" >
+|   < MILLISECONDS: "MILLISECONDS" >
 |   < MILLENNIUM: "MILLENNIUM" >
 |   < MIN: "MIN" >
 |   < MINUTE: "MINUTE" >
