@@ -323,7 +323,7 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
 
     sql = "SELECT a - interval '5m'";
-    expected = "SELECT `A` - INTERVAL '5' MINUTE";
+    expected = "SELECT (`A` - INTERVAL '5' MINUTE)";
     sql(sql).ok(expected);
   }
 
@@ -389,6 +389,12 @@ class BabelParserTest extends SqlParserTest {
     expected = "SELECT TIMESTAMP %(start_time)s";
     sql(sql).ok(expected);
 
+    /*
+     * sql = "SELECT a - interval '%(t)s minutes'";
+     * expected = "SELECT (`A` - INTERVAL '%(t)s' MINUTE)";
+     * sql(sql).ok(expected);
+     */
+
     sql = "SELECT * LIMIT %(doot)s";
     expected = "SELECT *\nFETCH NEXT %(doot)s ROWS ONLY";
     sql(sql).ok(expected);
@@ -408,11 +414,30 @@ class BabelParserTest extends SqlParserTest {
   @Test
   void testDatePlurals() {
     String sql = "SELECT DATEDIFF(seconds, x, y)";
-    String expected = "SELECT `DATEDIFF`(SECOND, `EVENT_TIME`)";
+    String expected = "SELECT `DATEDIFF`(SECOND, `X`, `Y`)";
     sql(sql).ok(expected);
 
-    sql = "SELECT `DATEDIFF`(milliseconds, x, y)";
+    sql = "SELECT DATEDIFF(milliseconds, x, y)";
     expected = "SELECT `DATEDIFF`(MILLISECOND, `X`, `Y`)";
+    sql(sql).ok(expected);
+
+    sql = "SELECT TIMESTAMPDIFF('seconds', start_time, EVENT_TIME)";
+    expected = "SELECT TIMESTAMPDIFF(SECOND, `START_TIME`, `EVENT_TIME`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test
+  void testIdentifierChars() {
+    String sql = "SELECT doot$deet";
+    String expected = "SELECT `DOOT$DEET`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT doot$deet";
+    expected = "SELECT `DOOT$DEET`";
+    sql(sql).ok(expected);
+
+    sql = "SELECT xyz.max_METADATA$SAMPLE_TIME";
+    expected = "SELECT `DOOT$DEET`";
     sql(sql).ok(expected);
   }
 

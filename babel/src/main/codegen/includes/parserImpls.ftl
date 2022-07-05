@@ -57,7 +57,7 @@ SqlNode DateaddFunctionCall() :
         qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
     }
     <LPAREN>
-    unit = TimeUnit() {
+    unit = TimestampInterval() {
         args = startList(new SqlIntervalQualifier(unit, null, getPos()));
     }
     (

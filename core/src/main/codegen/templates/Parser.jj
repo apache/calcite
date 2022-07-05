@@ -4954,6 +4954,24 @@ TimeUnit Millisecond() :
     <MILLISECONDS> { return warn(TimeUnit.MILLISECOND); }
 }
 
+TimeUnit Nanosecond() :
+{
+}
+{
+    <NANOSECOND> { return TimeUnit.NANOSECOND; }
+|
+    <NANOSECONDS> { return warn(TimeUnit.NANOSECOND); }
+}
+
+TimeUnit Microsecond() :
+{
+}
+{
+    <MICROSECOND> { return TimeUnit.MICROSECOND; }
+|
+    <MICROSECONDS> { return warn(TimeUnit.MICROSECOND); }
+}
+
 SqlIntervalQualifier IntervalQualifier() :
 {
     final Span s;
@@ -5060,6 +5078,8 @@ TimeUnit TimeUnit() :
 {}
 {
     Millisecond() { return TimeUnit.MILLISECOND; }
+|   Nanosecond() { return TimeUnit.NANOSECOND; }
+|   Microsecond() { return TimeUnit.MICROSECOND; }
 |   Second() { return TimeUnit.SECOND; }
 |   Minute() { return TimeUnit.MINUTE; }
 |   Hour() { return TimeUnit.HOUR; }
@@ -5081,29 +5101,40 @@ TimeUnit TimeUnit() :
 }
 
 TimeUnit TimestampInterval() :
-{}
 {
-    <FRAC_SECOND> { return TimeUnit.MICROSECOND; }
-|   <MICROSECOND> { return TimeUnit.MICROSECOND; }
-|   <NANOSECOND> { return TimeUnit.NANOSECOND; }
-|   <SQL_TSI_FRAC_SECOND> { return TimeUnit.NANOSECOND; }
-|   <SQL_TSI_MICROSECOND> { return TimeUnit.MICROSECOND; }
-|   <SECOND> { return TimeUnit.SECOND; }
-|   <SQL_TSI_SECOND> { return TimeUnit.SECOND; }
-|   <MINUTE> { return TimeUnit.MINUTE; }
-|   <SQL_TSI_MINUTE> { return TimeUnit.MINUTE; }
-|   <HOUR> { return TimeUnit.HOUR; }
-|   <SQL_TSI_HOUR> { return TimeUnit.HOUR; }
-|   <DAY> { return TimeUnit.DAY; }
-|   <SQL_TSI_DAY> { return TimeUnit.DAY; }
-|   <WEEK> { return TimeUnit.WEEK; }
-|   <SQL_TSI_WEEK> { return TimeUnit.WEEK; }
-|   <MONTH> { return TimeUnit.MONTH; }
-|   <SQL_TSI_MONTH> { return TimeUnit.MONTH; }
-|   <QUARTER> { return TimeUnit.QUARTER; }
-|   <SQL_TSI_QUARTER> { return TimeUnit.QUARTER; }
-|   <YEAR> { return TimeUnit.YEAR; }
-|   <SQL_TSI_YEAR> { return TimeUnit.YEAR; }
+    TimeUnit t;
+    String p;
+}
+{
+    (
+        <QUOTED_STRING> { p = token.image; }
+        { 
+            // quoted string like 'seconds'
+            p = SqlParserUtil.parseString(p);
+            TimeUnit parsed = SqlParserUtil.stringToTimeUnit(p);
+            if (parsed == null) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.invalidDatetimeFormat(p));
+            }
+            return parsed;
+        }
+    )
+    |
+        (
+            t = TimeUnit() {
+                return t;
+            }
+        )
+    |   <FRAC_SECOND> { return TimeUnit.MICROSECOND; }
+    |   <SQL_TSI_FRAC_SECOND> { return TimeUnit.NANOSECOND; }
+    |   <SQL_TSI_MICROSECOND> { return TimeUnit.MICROSECOND; }
+    |   <SQL_TSI_SECOND> { return TimeUnit.SECOND; }
+    |   <SQL_TSI_MINUTE> { return TimeUnit.MINUTE; }
+    |   <SQL_TSI_HOUR> { return TimeUnit.HOUR; }
+    |   <SQL_TSI_DAY> { return TimeUnit.DAY; }
+    |   <SQL_TSI_WEEK> { return TimeUnit.WEEK; }
+    |   <SQL_TSI_MONTH> { return TimeUnit.MONTH; }
+    |   <SQL_TSI_QUARTER> { return TimeUnit.QUARTER; }
+    |   <SQL_TSI_YEAR> { return TimeUnit.YEAR; }
 }
 
 
@@ -7709,6 +7740,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MESSAGE_TEXT: "MESSAGE_TEXT" >
 |   < METHOD: "METHOD" >
 |   < MICROSECOND: "MICROSECOND" >
+|   < MICROSECONDS: "MICROSECONDS" >
 |   < MILLISECOND: "MILLISECOND" >
 |   < MILLISECONDS: "MILLISECONDS" >
 |   < MILLENNIUM: "MILLENNIUM" >
@@ -7728,6 +7760,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < NAME: "NAME" >
 |   < NAMES: "NAMES" >
 |   < NANOSECOND: "NANOSECOND" >
+|   < NANOSECONDS: "NANOSECONDS" >
 |   < NATIONAL: "NATIONAL" >
 |   < NATURAL: "NATURAL" >
 |   < NCHAR: "NCHAR" >
@@ -8466,7 +8499,7 @@ MORE :
 
 <DEFAULT, DQID, BTID, BQID> TOKEN :
 {
-    < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+    < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>|<DOLLAR>|"_")* >
 }
 
 <DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
