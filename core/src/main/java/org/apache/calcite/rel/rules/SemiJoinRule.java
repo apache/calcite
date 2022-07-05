@@ -238,8 +238,8 @@ public abstract class SemiJoinRule
   }
 
   /**
-   * SemiJoinRule that matches a Join with a RelNode which is unique
-   * for Join's right keys.
+   * SemiJoinRule that matches a Project on top of a Join with a RelNode
+   * which is unique for Join's right keys.
    *
    * @see CoreRules#JOIN_ON_UNIQUE_TO_SEMI_JOIN */
   public static class JoinOnUniqueToSemiJoinRule extends SemiJoinRule {
