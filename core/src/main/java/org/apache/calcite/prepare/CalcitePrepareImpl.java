@@ -787,7 +787,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (type.getComponentType() != null) {
       final ColumnMetaData.AvaticaType componentType =
           avaticaType(typeFactory, type.getComponentType(), null);
-      final Type clazz = typeFactory.getJavaClass(type.getComponentType());
+      final Type clazz = typeFactory.getJavaClass(type);
       final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
       assert rep != null;
       return ColumnMetaData.array(componentType, typeName, rep);
