@@ -269,19 +269,9 @@ public class TableCharacteristic {
     this.passColumnsThrough = passColumnsThrough;
   }
 
-  public static TableCharacteristic withRowSemantic(
-      boolean columnsPassThrough) {
-    // Tables with row semantics are always effectively prune when empty.
-    return new TableCharacteristic(Semantics.ROW, true, columnsPassThrough);
-  }
-
-  public static TableCharacteristic withSetSemantic(
-      boolean pruneIfEmpty,
-      boolean columnsPassThrough) {
-    return new TableCharacteristic(
-        Semantics.SET,
-        pruneIfEmpty,
-        columnsPassThrough);
+  /** Creates a builder. */
+  public static TableCharacteristic.Builder builder(Semantics semantics) {
+    return new Builder(semantics);
   }
 
   @Override public boolean equals(@Nullable Object o) {
@@ -329,5 +319,39 @@ public class TableCharacteristic {
      * virtual processor handle more than one partition.
      */
     SET
+  }
+
+  /**
+   * Builder for {@link TableCharacteristic}.
+   */
+  public static class Builder {
+    private final Semantics semantics;
+    private boolean pruneIfEmpty = false;
+    private boolean passColumnsThrough = false;
+
+    /** Creates the semantics. */
+    private Builder(Semantics semantics) {
+      if (semantics == Semantics.ROW) {
+        // Tables with row semantics are always effectively prune when empty.
+        this.pruneIfEmpty = true;
+      }
+      this.semantics = semantics;
+    }
+
+    /** DBMS could prune virtual processors if the input table is empty. */
+    public Builder pruneIfEmpty() {
+      this.pruneIfEmpty = true;
+      return this;
+    }
+
+    /** Input table supports pass-through columns. */
+    public Builder passColumnsThrough() {
+      this.passColumnsThrough = true;
+      return this;
+    }
+
+    public TableCharacteristic build() {
+      return new TableCharacteristic(semantics, pruneIfEmpty, passColumnsThrough);
+    }
   }
 }

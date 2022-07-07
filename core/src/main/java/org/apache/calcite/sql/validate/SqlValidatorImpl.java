@@ -3417,18 +3417,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // parameter with row semantics, then it should not be with PARTITION BY OR ORDER BY.
         SqlNode currentNode = call.operand(idx);
         if (currentNode instanceof SqlCall) {
-          final SqlOperator op = ((SqlCall) currentNode).getOperator();
-          if (op == SqlStdOperatorTable.SET_SEMANTICS_TABLE) {
-            throwInvalidRowSemanticsTable(call, idx, (SqlCall) currentNode);
-          } else if (op == SqlStdOperatorTable.ARGUMENT_ASSIGNMENT) {
+          SqlOperator op = ((SqlCall) currentNode).getOperator();
+          if (op == SqlStdOperatorTable.ARGUMENT_ASSIGNMENT) {
             // Dig out the underlying operand
             SqlNode realNode = ((SqlBasicCall) currentNode).operand(0);
             if (realNode instanceof SqlCall) {
-              final SqlOperator realOp = ((SqlCall) realNode).getOperator();
-              if (realOp == SqlStdOperatorTable.SET_SEMANTICS_TABLE) {
-                throwInvalidRowSemanticsTable(call, idx, (SqlCall) realNode);
-              }
+              currentNode = realNode;
+              op = ((SqlCall) realNode).getOperator();
             }
+          }
+          if (op == SqlStdOperatorTable.SET_SEMANTICS_TABLE) {
+            throwInvalidRowSemanticsTable(call, idx, (SqlCall) currentNode);
           }
         }
       }

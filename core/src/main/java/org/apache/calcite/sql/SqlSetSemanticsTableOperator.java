@@ -83,13 +83,12 @@ public class SqlSetSemanticsTableOperator extends SqlInternalOperator {
       SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
     final List<SqlNode> operands = call.getOperandList();
-    assert operands.size() == 3;
     RelDataType tableType = validator.deriveType(scope, operands.get(0));
     assert tableType != null;
     return tableType;
   }
 
   @Override public boolean argumentMustBeScalar(int ordinal) {
-    return ordinal != 0;
+    return false;
   }
 }

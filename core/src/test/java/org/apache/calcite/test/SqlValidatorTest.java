@@ -1603,8 +1603,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(topn(table orders partition by productid order by orderId, 3))")
         .ok();
     // test partition by clause and order by clause for subquery
-    sql("select * from table(topn(select * from Orders partition by productid "
+    sql("select * from table(topn(select * from Orders partition by productid\n "
         + "order by orderId, 3))")
+        .ok();
+    // test multiple input tables
+    sql("select * from table(\n"
+        + "similarlity(\n"
+        + "  table emp partition by deptno order by empno,\n"
+        + "  table emp_b partition by deptno order by empno))")
         .ok();
   }
 

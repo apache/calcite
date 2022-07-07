@@ -6932,6 +6932,48 @@ LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTableFunctionWithMultipleInputTables">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+similarlity(
+  table emp partition by deptno order by empno nulls first,
+  table emp_b partition by deptno order by empno nulls first))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(VAL=[$0])
+  LogicalTableFunctionScan(invocation=[SIMILARLITY()], rowType=[RecordType(DECIMAL(5, 2) VAL)])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithMultipleInputTablesWithParamNames">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+similarlity(
+  LTABLE => table emp partition by deptno order by empno nulls first,
+  RTABLE => table emp_b partition by deptno order by empno nulls first))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(VAL=[$0])
+  LogicalTableFunctionScan(invocation=[SIMILARLITY()], rowType=[RecordType(DECIMAL(5, 2) VAL)])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTableFunctionWithMultipleOrderKeys">
     <Resource name="sql">
       <![CDATA[select *

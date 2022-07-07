@@ -97,6 +97,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
                 new CompositeFunction(),
                 new ScoreTableFunction(),
                 new TopNTableFunction(),
+                new SimilarlityTableFunction(),
                 new InvalidTableFunction())));
   }
 
@@ -210,7 +211,11 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       implements SqlTableFunction {
 
     private final Map<Integer, TableCharacteristic> tableParams =
-        ImmutableMap.of(0, TableCharacteristic.withRowSemantic(true));
+        ImmutableMap.of(
+            0,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.ROW)
+                .passColumnsThrough().build());
 
     public ScoreTableFunction() {
       super("SCORE",
@@ -285,7 +290,13 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       implements SqlTableFunction {
 
     private final Map<Integer, TableCharacteristic> tableParams =
-        ImmutableMap.of(0, TableCharacteristic.withSetSemantic(true, true));
+        ImmutableMap.of(
+            0,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.SET)
+                .passColumnsThrough()
+                .pruneIfEmpty()
+                .build());
 
     public TopNTableFunction() {
       super("TOPN",
@@ -367,6 +378,83 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
+  /** Similarity performs an analysis on two data sets, which are both tables
+   * of two columns, treated as the x and y axes of a graph. It has two input
+   * tables with set semantics. */
+  public static class SimilarlityTableFunction extends SqlFunction
+      implements SqlTableFunction {
+
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(
+            0,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.SET)
+                .build(),
+            1,
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.SET)
+                .build());
+
+    public SimilarlityTableFunction() {
+      super("SIMILARLITY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          new OperandMetadataImpl(),
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
+          .add("VAL", SqlTypeName.DECIMAL, 5, 2)
+          .build();
+    }
+
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return tableParams.get(ordinal);
+    }
+
+    @Override public boolean argumentMustBeScalar(int ordinal) {
+      return !tableParams.containsKey(ordinal);
+    }
+
+
+    /** Operand type checker for {@link TopNTableFunction}. */
+    private static class OperandMetadataImpl implements SqlOperandMetadata {
+
+      @Override public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        return ImmutableList.of(
+            typeFactory.createSqlType(SqlTypeName.ANY),
+            typeFactory.createSqlType(SqlTypeName.ANY));
+      }
+
+      @Override public List<String> paramNames() {
+        return ImmutableList.of("LTABLE", "RTABLE");
+      }
+
+      @Override public boolean checkOperandTypes(
+          SqlCallBinding callBinding, boolean throwOnFailure) {
+        return true;
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        return SqlOperandCountRanges.of(2);
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return "SIMILARLITY(TABLE table_name, TABLE table_name)";
+      }
+
+      @Override public Consistency getConsistency() {
+        return Consistency.NONE;
+      }
+
+      @Override public boolean isOptional(int i) {
+        return false;
+      }
+    }
+  }
+
   /** Invalid user-defined table function with multiple input tables with
    * row semantics. */
   public static class InvalidTableFunction extends SqlFunction
@@ -375,9 +463,15 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     private final Map<Integer, TableCharacteristic> tableParams =
         ImmutableMap.of(
             0,
-            TableCharacteristic.withRowSemantic(true),
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.ROW)
+                .passColumnsThrough()
+                .build(),
             1,
-            TableCharacteristic.withRowSemantic(true));
+            TableCharacteristic
+                .builder(TableCharacteristic.Semantics.ROW)
+                .passColumnsThrough()
+                .build());
 
     public InvalidTableFunction() {
       super("INVALID",
