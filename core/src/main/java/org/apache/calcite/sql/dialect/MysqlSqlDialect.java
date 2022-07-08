@@ -249,35 +249,44 @@ public class MysqlSqlDialect extends SqlDialect {
   }
 
   /**
-   * Unparses LISTAGG for MySQL. This call is translated to GROUP_CONCAT.<br/>
-   * For example:
-   * source: <code>LISTAGG(DISTINCT c1, ',') WITHIN GROUP (ORDER BY c2, c3)</code>
-   * target: <code>GROUP_CONCAT(DISTINCT c1 ORDER BY c2, c3 SEPARATOR ',')</code>
+   * Unparses LISTAGG for MySQL. This call is translated to GROUP_CONCAT.
+   *
+   * <p>For example:
+   * <ul>
+   * <li>source:
+   *   <code>LISTAGG(DISTINCT c1, ',') WITHIN GROUP (ORDER BY c2, c3)</code>
+   * <li>target:
+   *   <code>GROUP_CONCAT(DISTINCT c1 ORDER BY c2, c3 SEPARATOR ',')</code>
+   * </ul>
    *
    * @param writer Writer
-   * @param listAggCall Call of LISTAGG
-   * @param orderItemNode Elems of WITHIN_GROUP, NULL means none elem in the WITHIN_GROUP
-   * @param leftPrec leftPrec
-   * @param rightPrec rightPrec
+   * @param call Call to LISTAGG
+   * @param orderItemNode Elements of WITHIN_GROUP; null means no elements in
+   *                     the WITHIN_GROUP
+   * @param leftPrec Left precedence
+   * @param rightPrec Right precedence
    */
-  private void unparseListAggCall(SqlWriter writer, SqlCall listAggCall,
+  private static void unparseListAggCall(SqlWriter writer, SqlCall call,
       @Nullable SqlNode orderItemNode, int leftPrec, int rightPrec) {
-    final List<SqlNode> listAggCallOperands = listAggCall.getOperandList();
+    final List<SqlNode> listAggCallOperands = call.getOperandList();
     final boolean separatorExist = listAggCallOperands.size() == 2;
 
-    final ImmutableList.Builder<SqlNode> newOperandListBuilder = ImmutableList.<SqlNode>builder()
-        .add(listAggCallOperands.get(0));
+    final ImmutableList.Builder<SqlNode> newOperandListBuilder =
+        ImmutableList.builder();
+    newOperandListBuilder.add(listAggCallOperands.get(0));
     if (orderItemNode != null) {
       newOperandListBuilder.add(orderItemNode);
     }
     if (separatorExist) {
       newOperandListBuilder.add(
-          SqlInternalOperators.SEPARATOR.createCall(
-          SqlParserPos.ZERO, listAggCallOperands.get(1)));
+          SqlInternalOperators.SEPARATOR.createCall(SqlParserPos.ZERO,
+              listAggCallOperands.get(1)));
     }
-    SqlLibraryOperators.GROUP_CONCAT.createCall(listAggCall.getFunctionQuantifier(),
-        listAggCall.getParserPosition(), newOperandListBuilder.build())
-        .unparse(writer, leftPrec, rightPrec);
+    final SqlCall call2 =
+        SqlLibraryOperators.GROUP_CONCAT.createCall(
+            call.getFunctionQuantifier(), call.getParserPosition(),
+            newOperandListBuilder.build());
+    call2.unparse(writer, leftPrec, rightPrec);
   }
 
   /**

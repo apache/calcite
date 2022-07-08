@@ -135,7 +135,7 @@ public class JsonBuilder {
     }
   }
 
-  private void appendString(StringBuilder buf, String s) {
+  private static void appendString(StringBuilder buf, String s) {
     buf.append('"');
     final int n = s.length();
     for (int i = 0; i < n; i++) {

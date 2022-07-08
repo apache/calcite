@@ -204,5 +204,5 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
         checkNonQueryExpression(exprContext);
         list.add(new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.NULL_SAFE_EQUAL, getPos()));
     }
-    Expression2b(ExprContext.ACCEPT_SUB_QUERY, list)
+    AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
 }

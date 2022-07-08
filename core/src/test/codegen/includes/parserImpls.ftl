@@ -19,12 +19,12 @@
 SqlAlter SqlUploadJarNode(Span s, String scope) :
 {
     SqlNode jarPath;
-    final List<SqlNode> jarPathsList;
+    final List<SqlNode> jarPathsList = new ArrayList<SqlNode>();
 }
 {
     <UPLOAD> <JAR>
     jarPath = StringLiteral() {
-        jarPathsList = startList(jarPath);
+        jarPathsList.add(jarPath);
     }
     (
         <COMMA> jarPath = StringLiteral() {

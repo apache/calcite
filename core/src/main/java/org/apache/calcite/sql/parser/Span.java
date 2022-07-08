@@ -19,6 +19,8 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -94,7 +96,7 @@ public final class Span {
 
   /** Adds a node's position to the list if the node is not null,
    * and returns this Span. */
-  public Span addIf(SqlNode n) {
+  public Span addIf(@Nullable SqlNode n) {
     return n == null ? this : add(n);
   }
 
