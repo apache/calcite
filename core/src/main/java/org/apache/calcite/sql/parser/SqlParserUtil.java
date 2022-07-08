@@ -202,7 +202,7 @@ public final class SqlParserUtil {
     }
     return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
   }
-  
+
   /**
    * Parses string to array literal
    * using {@link org.apache.calcite.sql.parser.impl.SqlParserImpl} parser.
