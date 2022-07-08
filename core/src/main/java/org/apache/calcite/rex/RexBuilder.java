@@ -73,6 +73,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntPredicate;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -1355,10 +1356,14 @@ public class RexBuilder {
     if (areAssignable(arg, ranges)) {
       final Sarg sarg = toSarg(Comparable.class, ranges, RexUnknownAs.UNKNOWN);
       if (sarg != null) {
-        final RexNode range0 = ranges.get(0);
+        final List<RelDataType> types = ranges.stream()
+            .map(RexNode::getType)
+            .collect(Collectors.toList());
+        RelDataType searchType = typeFactory.leastRestrictive(types);
+        searchType = searchType == null ? ranges.get(0).getType() : searchType;
         return makeCall(SqlStdOperatorTable.SEARCH,
             arg,
-            makeSearchArgumentLiteral(sarg, range0.getType()));
+            makeSearchArgumentLiteral(sarg, searchType));
       }
     }
     return RexUtil.composeDisjunction(this, ranges.stream()
