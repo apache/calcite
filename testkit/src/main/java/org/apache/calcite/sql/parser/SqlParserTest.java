@@ -4584,6 +4584,40 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testMergeMismatchedParentheses() {
+    // Invalid; more '(' than ')'
+    final String sql1 = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) (values (1, 2^)^";
+    sql(sql1).fails("(?s)Encountered \"<EOF>\" at .*");
+
+    // Invalid; more ')' than '('
+    final String sql1b = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) values (1, 2)^)^";
+    sql(sql1b).fails("(?s)Encountered \"\\)\" at .*");
+
+    // As sql1, with extra ')', therefore valid
+    final String sql2 = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) (values (1, 2))";
+    final String expected = "MERGE INTO `EMPS` AS `E`\n"
+        + "USING `TEMPS` AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`A`, `B`) (VALUES (ROW(1, 2)))";
+    sql(sql2).ok(expected);
+
+    // As sql1, removing unmatched '(', therefore valid
+    final String sql3 = "merge into emps as e\n"
+        + "using temps as t on e.empno = t.empno\n"
+        + "when not matched\n"
+        + "then insert (a, b) values (1, 2)";
+    sql(sql3).ok(expected);
+  }
+
   @Test void testBitStringNotImplemented() {
     // Bit-string is longer part of the SQL standard. We do not support it.
     sql("select (B^'1011'^ || 'foobar') from (values (true))")
