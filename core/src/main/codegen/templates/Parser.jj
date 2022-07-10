@@ -1883,10 +1883,13 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
         LOOKAHEAD(2)
         insertColumnList = ParenthesizedSimpleIdentifierList()
     ]
-    [ <LPAREN> ]
-    <VALUES> { valuesSpan = span(); }
-    rowConstructor = RowConstructor()
-    [ <RPAREN> ]
+    (
+        <LPAREN>
+        <VALUES> { valuesSpan = span(); } rowConstructor = RowConstructor()
+        <RPAREN>
+    |
+        <VALUES> { valuesSpan = span(); } rowConstructor = RowConstructor()
+    )
     {
         // TODO zfong 5/26/06: note that extra parentheses are accepted above
         // around the VALUES clause as a hack for unparse, but this is
