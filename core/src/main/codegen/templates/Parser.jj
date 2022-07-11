@@ -1289,6 +1289,7 @@ SqlSelect SqlSelect() :
     List<SqlNode> selectList;
     final SqlNode fromClause;
     final SqlNode where;
+    final SqlNode startWith;
     final SqlNodeList groupBy;
     final SqlNode having;
     final SqlNode qualify;
@@ -1321,6 +1322,7 @@ SqlSelect SqlSelect() :
     selectList = SelectList()
     (
         <FROM> fromClause = FromClause()
+        startWith = StartWithOpt()
         where = WhereOpt()
         groupBy = GroupByOpt()
         having = HavingOpt()
@@ -1329,6 +1331,7 @@ SqlSelect SqlSelect() :
     |
         E() {
             fromClause = null;
+            startWith = null;
             where = null;
             groupBy = null;
             having = null;
@@ -1339,7 +1342,7 @@ SqlSelect SqlSelect() :
     {
         return new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
-            fromClause, where, groupBy, having, qualify, windowDecls, null, null, null,
+            fromClause, startWith, where, groupBy, having, qualify, windowDecls, null, null, null,
             new SqlNodeList(hints, getPos()));
     }
 }
@@ -2141,6 +2144,16 @@ SqlNode ParseFlatten() : {
                 <INPUT> { s.add(this); args.add(SqlFlattenFunction.FlattenType.INPUT.symbol(getPos())); }
                 <NAMED_ARGUMENT_ASSIGNMENT> { args.add(Expression(ExprContext.ACCEPT_SUB_QUERY)); }
             )
+            | (
+                {
+                    SqlNode arg;
+                }
+                arg = SimpleIdentifier() {
+                    s.add(this);
+                    args.add(SqlFlattenFunction.FlattenType.INPUT.symbol(getPos()));
+                    args.add(arg);
+                }
+            )
         )
         [<COMMA>]
     )*
@@ -2541,6 +2554,65 @@ SqlNode RowConstructor() :
             (List<SqlNode>) valueList);
     }
 }
+
+SqlNodeList ParseConnectByExpression() : {
+    ArrayList<SqlNode> list = new ArrayList<SqlNode>(),
+                       leftList = new ArrayList<SqlNode>(),
+                       rightList = new ArrayList<SqlNode>();
+    SqlNode e;
+    Span s;
+    boolean isPrior = false;
+}
+{
+    { isPrior = false; s = span(); } [<PRIOR> { isPrior = true; }]
+    e = RowExpressionExtension() {
+        if (isPrior) {
+            leftList.add(SqlStdOperatorTable.PRIOR.createCall(getPos(), e));
+        }  else {
+            leftList.add(e);
+        }
+    }
+    <EQ>
+    { isPrior = false; } [<PRIOR> { isPrior = true; }]
+    e = RowExpressionExtension() {
+        s = span();
+        if (isPrior) {
+            rightList.add(SqlStdOperatorTable.PRIOR.createCall(getPos(), e));
+        }  else {
+            rightList.add(e);
+        }
+    }
+    {
+        list.add(new SqlNodeList(leftList, s.addAll(leftList).pos()));
+        list.add(new SqlNodeList(rightList, s.addAll(rightList).pos()));
+        return new SqlNodeList(list, s.addAll(list).pos());
+    }
+}
+
+/**
+ * Parses the Snowflake START WITH clause for SELECT
+ */
+SqlNode StartWithOpt() :
+{
+    SqlNodeList connectBy;
+    SqlNode startItem, e;
+    ArrayList<SqlNode> connectByClauses = new ArrayList<SqlNode>();
+    Span s;
+}
+{
+    <START> { s = span(); } <WITH> 
+    startItem = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    <CONNECT> <BY>
+    connectBy = ParseConnectByExpression() { connectByClauses.add(connectBy); }
+    (<COMMA> connectBy = ParseConnectByExpression() { connectByClauses.add(connectBy); })*
+    {
+        ArrayList<SqlNode> everything = new ArrayList<SqlNode>();
+        everything.add(startItem);
+        everything.add(new SqlNodeList(connectByClauses, s.addAll(connectByClauses).pos()));
+        return new SqlNodeList(everything, s.addAll(everything).pos());
+    }
+}
+
 
 /**
  * Parses the optional WHERE clause for SELECT, DELETE, and UPDATE.
@@ -5995,11 +6067,7 @@ SqlNode BuiltinFunctionCall() :
             s = span();
         }
         <LPAREN>
-        (
-            <NANOSECOND> { unit = TimeUnit.NANOSECOND; }
-        |   <MICROSECOND> { unit = TimeUnit.MICROSECOND; }
-        |   unit = TimeUnit()
-        )
+        unit = TimeUnit()
         { args = startList(new SqlIntervalQualifier(unit, null, getPos())); }
         <FROM>
         e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }

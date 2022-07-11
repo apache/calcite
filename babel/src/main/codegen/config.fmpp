@@ -442,7 +442,7 @@ data: {
       "SQLSTATE"
       "SQLWARNING"
       "SQRT"
-      "START"
+#     "START"
       "STATE"
       "STATIC"
       "STDDEV_POP"

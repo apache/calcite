@@ -55,21 +55,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class MysqlSqlDialect extends SqlDialect {
 
   /** MySQL type system. */
-  public static final RelDataTypeSystem MYSQL_TYPE_SYSTEM =
-      new RelDataTypeSystemImpl() {
-        @Override public int getMaxPrecision(SqlTypeName typeName) {
-          switch (typeName) {
-          case CHAR:
-            return 255;
-          case VARCHAR:
-            return 65535;
-          case TIMESTAMP:
-            return 6;
-          default:
-            return super.getMaxPrecision(typeName);
-          }
-        }
-      };
+  public static final RelDataTypeSystem MYSQL_TYPE_SYSTEM = new RelDataTypeSystemImpl() {
+    @Override
+    public int getMaxPrecision(SqlTypeName typeName) {
+      switch (typeName) {
+        case CHAR:
+          return 255;
+        case VARCHAR:
+          return 65535;
+        case TIMESTAMP:
+          return 6;
+        default:
+          return super.getMaxPrecision(typeName);
+      }
+    }
+  };
 
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
@@ -81,10 +81,9 @@ public class MysqlSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new MysqlSqlDialect(DEFAULT_CONTEXT);
 
   /** MySQL specific function. */
-  public static final SqlFunction ISNULL_FUNCTION =
-      new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BOOLEAN, InferTypes.FIRST_KNOWN,
-          OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
+  public static final SqlFunction ISNULL_FUNCTION = new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.BOOLEAN, InferTypes.FIRST_KNOWN,
+      OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
 
   private final int majorVersion;
 
@@ -94,137 +93,148 @@ public class MysqlSqlDialect extends SqlDialect {
     majorVersion = context.databaseMajorVersion();
   }
 
-  @Override public boolean supportsCharSet() {
+  @Override
+  public boolean supportsCharSet() {
     return false;
   }
 
-  @Override public boolean requiresAliasForFromItems() {
+  @Override
+  public boolean requiresAliasForFromItems() {
     return true;
   }
 
-  @Override public boolean supportsAliasedValues() {
+  @Override
+  public boolean supportsAliasedValues() {
     // MySQL supports VALUES only in INSERT; not in a FROM clause
     return false;
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+  @Override
+  public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
-  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
+  @Override
+  public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
-  @Override public boolean supportsAggregateFunction(SqlKind kind) {
+  @Override
+  public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
-    case COUNT:
-    case SUM:
-    case SUM0:
-    case MIN:
-    case MAX:
-    case SINGLE_VALUE:
-      return true;
-    case ROLLUP:
-      // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)",
-      // only the non-standard "GROUP BY x, y WITH ROLLUP".
-      return majorVersion >= 8;
-    default:
-      break;
+      case COUNT:
+      case SUM:
+      case SUM0:
+      case MIN:
+      case MAX:
+      case SINGLE_VALUE:
+        return true;
+      case ROLLUP:
+        // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)",
+        // only the non-standard "GROUP BY x, y WITH ROLLUP".
+        return majorVersion >= 8;
+      default:
+        break;
     }
     return false;
   }
 
-  @Override public boolean supportsNestedAggregations() {
+  @Override
+  public boolean supportsNestedAggregations() {
     return false;
   }
 
-  @Override public boolean supportsGroupByWithRollup() {
+  @Override
+  public boolean supportsGroupByWithRollup() {
     return true;
   }
 
-  @Override public CalendarPolicy getCalendarPolicy() {
+  @Override
+  public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
   }
 
-  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
+  @Override
+  public @Nullable SqlNode getCastSpec(RelDataType type) {
     switch (type.getSqlTypeName()) {
-    case VARCHAR:
-      // MySQL doesn't have a VARCHAR type, only CHAR.
-      int vcMaxPrecision = this.getTypeSystem().getMaxPrecision(SqlTypeName.CHAR);
-      int precision = type.getPrecision();
-      if (vcMaxPrecision > 0 && precision > vcMaxPrecision) {
-        precision = vcMaxPrecision;
-      }
-      return new SqlDataTypeSpec(
-          new SqlBasicTypeNameSpec(SqlTypeName.CHAR, precision, SqlParserPos.ZERO),
-          SqlParserPos.ZERO);
-    case INTEGER:
-    case BIGINT:
-      return new SqlDataTypeSpec(
-          new SqlAlienSystemTypeNameSpec(
-              "SIGNED",
-              type.getSqlTypeName(),
-              SqlParserPos.ZERO),
-          SqlParserPos.ZERO);
-    case TIMESTAMP:
-      return new SqlDataTypeSpec(
-          new SqlAlienSystemTypeNameSpec(
-              "DATETIME",
-              type.getSqlTypeName(),
-              SqlParserPos.ZERO),
-          SqlParserPos.ZERO);
-    default:
-      break;
+      case VARCHAR:
+        // MySQL doesn't have a VARCHAR type, only CHAR.
+        int vcMaxPrecision = this.getTypeSystem().getMaxPrecision(SqlTypeName.CHAR);
+        int precision = type.getPrecision();
+        if (vcMaxPrecision > 0 && precision > vcMaxPrecision) {
+          precision = vcMaxPrecision;
+        }
+        return new SqlDataTypeSpec(
+            new SqlBasicTypeNameSpec(SqlTypeName.CHAR, precision, SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
+      case INTEGER:
+      case BIGINT:
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec(
+                "SIGNED",
+                type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
+      case TIMESTAMP:
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec(
+                "DATETIME",
+                type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
+      default:
+        break;
     }
     return super.getCastSpec(type);
   }
 
-  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
+  @Override
+  public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
     final SqlNode unionOperand = new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
-        SqlNodeList.of(nullLiteral), null, null, null, null, null,
+        SqlNodeList.of(nullLiteral), null, null, null, null, null, null,
         SqlNodeList.EMPTY, null, null, null, SqlNodeList.EMPTY);
     // For MySQL, generate
-    //   CASE COUNT(*)
-    //   WHEN 0 THEN NULL
-    //   WHEN 1 THEN <result>
-    //   ELSE (SELECT NULL UNION ALL SELECT NULL)
-    //   END
-    final SqlNode caseExpr =
-        new SqlCase(SqlParserPos.ZERO,
-            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
-            SqlNodeList.of(
-                SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
-                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
-            SqlNodeList.of(
-                nullLiteral,
-                operand),
-            SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
-                SqlStdOperatorTable.UNION_ALL
-                    .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
+    // CASE COUNT(*)
+    // WHEN 0 THEN NULL
+    // WHEN 1 THEN <result>
+    // ELSE (SELECT NULL UNION ALL SELECT NULL)
+    // END
+    final SqlNode caseExpr = new SqlCase(SqlParserPos.ZERO,
+        SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
+        SqlNodeList.of(
+            SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
+            SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+        SqlNodeList.of(
+            nullLiteral,
+            operand),
+        SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
+            SqlStdOperatorTable.UNION_ALL
+                .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
 
     LOGGER.debug("SINGLE_VALUE rewritten into [{}]", caseExpr);
 
     return caseExpr;
   }
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
+  @Override
+  public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     switch (call.getKind()) {
-    case FLOOR:
-      if (call.operandCount() != 2) {
+      case FLOOR:
+        if (call.operandCount() != 2) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+          return;
+        }
+
+        unparseFloor(writer, call);
+        break;
+
+      default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
-        return;
-      }
-
-      unparseFloor(writer, call);
-      break;
-
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
@@ -233,7 +243,7 @@ public class MysqlSqlDialect extends SqlDialect {
    * this using calls to DATE_FORMAT.
    *
    * @param writer Writer
-   * @param call Call
+   * @param call   Call
    */
   private static void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
@@ -252,27 +262,27 @@ public class MysqlSqlDialect extends SqlDialect {
 
     String format;
     switch (unit) {
-    case YEAR:
-      format = "%Y-01-01";
-      break;
-    case MONTH:
-      format = "%Y-%m-01";
-      break;
-    case DAY:
-      format = "%Y-%m-%d";
-      break;
-    case HOUR:
-      format = "%Y-%m-%d %H:00:00";
-      break;
-    case MINUTE:
-      format = "%Y-%m-%d %H:%i:00";
-      break;
-    case SECOND:
-      format = "%Y-%m-%d %H:%i:%s";
-      break;
-    default:
-      throw new AssertionError("MYSQL does not support FLOOR for time unit: "
-          + unit);
+      case YEAR:
+        format = "%Y-01-01";
+        break;
+      case MONTH:
+        format = "%Y-%m-01";
+        break;
+      case DAY:
+        format = "%Y-%m-%d";
+        break;
+      case HOUR:
+        format = "%Y-%m-%d %H:00:00";
+        break;
+      case MINUTE:
+        format = "%Y-%m-%d %H:%i:00";
+        break;
+      case SECOND:
+        format = "%Y-%m-%d %H:%i:%s";
+        break;
+      default:
+        throw new AssertionError("MYSQL does not support FLOOR for time unit: "
+            + unit);
     }
 
     writer.print("DATE_FORMAT");
@@ -283,32 +293,32 @@ public class MysqlSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
-
-  @Override public void unparseSqlIntervalQualifier(SqlWriter writer,
+  @Override
+  public void unparseSqlIntervalQualifier(SqlWriter writer,
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
 
-    //  Unit Value         | Expected Format
+    // Unit Value | Expected Format
     // --------------------+-------------------------------------------
-    //  MICROSECOND        | MICROSECONDS
-    //  SECOND             | SECONDS
-    //  MINUTE             | MINUTES
-    //  HOUR               | HOURS
-    //  DAY                | DAYS
-    //  WEEK               | WEEKS
-    //  MONTH              | MONTHS
-    //  QUARTER            | QUARTERS
-    //  YEAR               | YEARS
-    //  MINUTE_SECOND      | 'MINUTES:SECONDS'
-    //  HOUR_MINUTE        | 'HOURS:MINUTES'
-    //  DAY_HOUR           | 'DAYS HOURS'
-    //  YEAR_MONTH         | 'YEARS-MONTHS'
-    //  MINUTE_MICROSECOND | 'MINUTES:SECONDS.MICROSECONDS'
-    //  HOUR_MICROSECOND   | 'HOURS:MINUTES:SECONDS.MICROSECONDS'
-    //  SECOND_MICROSECOND | 'SECONDS.MICROSECONDS'
-    //  DAY_MINUTE         | 'DAYS HOURS:MINUTES'
-    //  DAY_MICROSECOND    | 'DAYS HOURS:MINUTES:SECONDS.MICROSECONDS'
-    //  DAY_SECOND         | 'DAYS HOURS:MINUTES:SECONDS'
-    //  HOUR_SECOND        | 'HOURS:MINUTES:SECONDS'
+    // MICROSECOND | MICROSECONDS
+    // SECOND | SECONDS
+    // MINUTE | MINUTES
+    // HOUR | HOURS
+    // DAY | DAYS
+    // WEEK | WEEKS
+    // MONTH | MONTHS
+    // QUARTER | QUARTERS
+    // YEAR | YEARS
+    // MINUTE_SECOND | 'MINUTES:SECONDS'
+    // HOUR_MINUTE | 'HOURS:MINUTES'
+    // DAY_HOUR | 'DAYS HOURS'
+    // YEAR_MONTH | 'YEARS-MONTHS'
+    // MINUTE_MICROSECOND | 'MINUTES:SECONDS.MICROSECONDS'
+    // HOUR_MICROSECOND | 'HOURS:MINUTES:SECONDS.MICROSECONDS'
+    // SECOND_MICROSECOND | 'SECONDS.MICROSECONDS'
+    // DAY_MINUTE | 'DAYS HOURS:MINUTES'
+    // DAY_MICROSECOND | 'DAYS HOURS:MINUTES:SECONDS.MICROSECONDS'
+    // DAY_SECOND | 'DAYS HOURS:MINUTES:SECONDS'
+    // HOUR_SECOND | 'HOURS:MINUTES:SECONDS'
 
     if (!qualifier.useDefaultFractionalSecondPrecision()) {
       throw new AssertionError("Fractional second precision is not supported now ");
@@ -323,24 +333,25 @@ public class MysqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public boolean supportsJoinType(JoinRelType joinType) {
+  @Override
+  public boolean supportsJoinType(JoinRelType joinType) {
     return joinType != JoinRelType.FULL;
   }
 
   private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
-    case MICROSECOND:
-    case SECOND:
-    case MINUTE:
-    case HOUR:
-    case DAY:
-    case WEEK:
-    case MONTH:
-    case QUARTER:
-    case YEAR:
-      return timeUnit;
-    default:
-      throw new AssertionError(" Time unit " + timeUnit + "is not supported now.");
+      case MICROSECOND:
+      case SECOND:
+      case MINUTE:
+      case HOUR:
+      case DAY:
+      case WEEK:
+      case MONTH:
+      case QUARTER:
+      case YEAR:
+        return timeUnit;
+      default:
+        throw new AssertionError(" Time unit " + timeUnit + "is not supported now.");
     }
   }
 }

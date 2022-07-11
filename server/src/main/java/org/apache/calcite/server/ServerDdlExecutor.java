@@ -182,7 +182,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
             .add(new SqlIdentifier("_", p))
             .addAll(columnList)
             .build());
-    return new SqlSelect(p, null, selectList, from, null, null, null, null,
+    return new SqlSelect(p, null, selectList, from, null, null, null, null, null,
         null, null, null, null, null);
   }
 

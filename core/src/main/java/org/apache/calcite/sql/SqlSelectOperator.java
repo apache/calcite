@@ -76,14 +76,15 @@ public class SqlSelectOperator extends SqlOperator {
         requireNonNull((SqlNodeList) operands[1], "selectList"),
         operands[2],
         operands[3],
-        (SqlNodeList) operands[4],
-        operands[5],
+        operands[4],
+        (SqlNodeList) operands[5],
         operands[6],
-        (SqlNodeList) operands[7],
+        operands[7],
         (SqlNodeList) operands[8],
-        operands[9],
+        (SqlNodeList) operands[9],
         operands[10],
-        (SqlNodeList) operands[11]);
+        operands[11],
+        (SqlNodeList) operands[12]);
   }
 
   /**
@@ -96,6 +97,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList keywordList,
       SqlNodeList selectList,
       SqlNode fromClause,
+      SqlNode startWithClause,
       SqlNode whereClause,
       SqlNodeList groupBy,
       SqlNode having,
@@ -111,6 +113,7 @@ public class SqlSelectOperator extends SqlOperator {
         keywordList,
         selectList,
         fromClause,
+        startWithClause,
         whereClause,
         groupBy,
         having,
@@ -174,6 +177,31 @@ public class SqlSelectOperator extends SqlOperator {
           SqlJoin.OPERATOR.getLeftPrec() - 1,
           SqlJoin.OPERATOR.getRightPrec() - 1);
       writer.endList(fromFrame);
+    }
+
+    if (select.startWith != null) {
+      writer.sep("START");
+      writer.keyword("WITH");
+      SqlNodeList startWithList = (SqlNodeList) select.startWith;
+      startWithList.get(0).unparse(writer, 0, 0);
+
+      writer.sep("CONNECT");
+      writer.keyword("BY");
+      SqlNodeList connectByClauses = (SqlNodeList) startWithList.get(1);
+
+      for (int i = 0; i < connectByClauses.size(); i++) {
+        if (i > 0) {
+          writer.keyword(",");
+        }
+
+        SqlNodeList connectBySides = (SqlNodeList) connectByClauses.get(i);
+
+        SqlNodeList left = (SqlNodeList) connectBySides.get(0);
+        SqlNodeList right = (SqlNodeList) connectBySides.get(1);
+        left.get(0).unparse(writer, 0, 0);
+        writer.keyword("=");
+        right.get(0).unparse(writer, 0, 0);
+      }
     }
 
     SqlNode where = select.where;

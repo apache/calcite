@@ -49,6 +49,8 @@ public class SqlSelect extends SqlCall {
   @Nullable
   SqlNode where;
   @Nullable
+  SqlNode startWith;
+  @Nullable
   SqlNodeList groupBy;
   @Nullable
   SqlNode having;
@@ -70,6 +72,7 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNodeList keywordList,
       SqlNodeList selectList,
       @Nullable SqlNode from,
+      @Nullable SqlNode startWith,
       @Nullable SqlNode where,
       @Nullable SqlNodeList groupBy,
       @Nullable SqlNode having,
@@ -85,6 +88,7 @@ public class SqlSelect extends SqlCall {
         : new SqlNodeList(pos));
     this.selectList = requireNonNull(selectList, "selectList");
     this.from = from;
+    this.startWith = startWith;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;

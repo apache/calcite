@@ -1006,6 +1006,9 @@ public enum SqlKind {
    */
   HOP_END,
 
+  /** The {@code PRIOR} prefix for START WITH clauses. */
+  PRIOR,
+
   /** The {@code SESSION} group function. */
   SESSION,
 

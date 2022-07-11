@@ -328,6 +328,17 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test
+  void testStartWithConnectBy() {
+    String sql = "SELECT * FROM x START WITH abc = 'donk' CONNECT BY src = prior dest";
+    String expected = "SELECT *\nFROM `X`\nSTART WITH (`ABC` = 'donk')\nCONNECT BY `SRC` = (PRIOR `DEST`)";
+    sql(sql).ok(expected);
+
+    sql = "SELECT * FROM x START WITH abc = 'donk' CONNECT BY src = prior dest, PRIOR beep = boop ";
+    expected = "SELECT *\nFROM `X`\nSTART WITH (`ABC` = 'donk')\nCONNECT BY `SRC` = (PRIOR `DEST`), (PRIOR `BEEP`) = `BOOP`";
+    sql(sql).ok(expected);
+  }
+
+  @Test
   void testFlatten() {
     String sql = "SELECT a FROM table(flatten(input => computer_info:network_addresses))";
     String expected = "SELECT `A`\nFROM TABLE((FLATTEN(INPUT => (`COMPUTER_INFO` : \"network_addresses\"))))";
@@ -335,6 +346,10 @@ class BabelParserTest extends SqlParserTest {
 
     sql = "SELECT a FROM lateral flatten(input => computer_info:network_addresses)";
     expected = "SELECT `A`\nFROM LATERAL((FLATTEN(INPUT => (`COMPUTER_INFO` : \"network_addresses\"))))";
+    sql(sql).ok(expected);
+
+    sql = "SELECT a FROM lateral flatten(computer_info)";
+    expected = "SELECT `A`\nFROM LATERAL((FLATTEN(INPUT => `COMPUTER_INFO`)))";
     sql(sql).ok(expected);
 
     sql = "SELECT a FROM table(flatten(outer => true))";

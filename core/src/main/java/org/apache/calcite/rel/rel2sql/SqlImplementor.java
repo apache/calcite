@@ -568,7 +568,7 @@ public abstract class SqlImplementor {
       node = as(node, "t");
     }
     return new SqlSelect(POS, SqlNodeList.EMPTY, SqlNodeList.SINGLETON_STAR,
-        node, null, null, null, null, SqlNodeList.EMPTY, null, null, null, null);
+        node, null, null, null, null, null, SqlNodeList.EMPTY, null, null, null, null);
   }
 
   /**

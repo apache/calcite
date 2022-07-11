@@ -920,6 +920,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
                         null,
                         OperandTypes.ANY);
 
+        public static final SqlPrefixOperator PRIOR = new SqlPrefixOperator(
+                        "PRIOR",
+                        SqlKind.PRIOR,
+                        80,
+                        ReturnTypes.ARG0,
+                        null,
+                        OperandTypes.ANY);
+
         // -------------------------------------------------------------
         // AGGREGATE OPERATORS
         // -------------------------------------------------------------

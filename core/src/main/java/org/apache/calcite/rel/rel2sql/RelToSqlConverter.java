@@ -281,7 +281,7 @@ public class RelToSqlConverter extends SqlImplementor
       existsSqlSelect = new SqlSelect(POS, null,
           new SqlNodeList(
               ImmutableList.of(ONE), POS),
-          fromPart, sqlCondition, null,
+          fromPart, null, sqlCondition, null,
           null, null, null, null, null, null, null);
     }
     sqlCondition = SqlStdOperatorTable.EXISTS.createCall(POS, existsSqlSelect);
@@ -768,7 +768,7 @@ public class RelToSqlConverter extends SqlImplementor
         list.add(
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
-                getDual(), null, null,
+                getDual(), null, null, null,
                 null, null, null, null, null, null, null));
       }
       if (list.isEmpty()) {
@@ -784,18 +784,18 @@ public class RelToSqlConverter extends SqlImplementor
         final SqlIdentifier dual = getDual();
         if (dual == null) {
           query = new SqlSelect(POS, null,
-              new SqlNodeList(nullColumnNames, POS), null, null, null, null, null,
+              new SqlNodeList(nullColumnNames, POS), null, null, null, null, null, null,
               null, null, null, null, null);
 
           // Wrap "SELECT 1 AS x"
           // as "SELECT * FROM (SELECT 1 AS x) AS t WHERE false"
           query = new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR,
-              as(query, "t"), createAlwaysFalseCondition(), null, null,
+              as(query, "t"), null, createAlwaysFalseCondition(), null, null,
               null, null, null, null, null, null);
         } else {
           query = new SqlSelect(POS, null,
               new SqlNodeList(nullColumnNames, POS),
-              dual, createAlwaysFalseCondition(), null,
+              dual, null, createAlwaysFalseCondition(), null,
               null, null, null, null, null, null, null);
         }
       } else if (list.size() == 1) {
@@ -836,7 +836,7 @@ public class RelToSqlConverter extends SqlImplementor
           query = as(query, "t");
         }
         query = new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR, query,
-            createAlwaysFalseCondition(), null, null, null,
+            null, createAlwaysFalseCondition(), null, null, null,
             null, null, null, null, null);
       }
     }
@@ -1144,7 +1144,7 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode tableCall = new SqlBasicCall(SqlStdOperatorTable.COLLECTION_TABLE,
         ImmutableList.of(callNode), SqlParserPos.ZERO);
     SqlNode select = new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.SINGLETON_STAR,
-        tableCall, null, null, null, null, null, null, null, null,
+        tableCall, null, null, null, null, null, null, null, null, null,
         SqlNodeList.EMPTY);
     return result(select, ImmutableList.of(Clause.SELECT), e, null);
   }
