@@ -75,7 +75,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -519,16 +518,18 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
-  @Test void testNoCommonReturnTypeFails() {
-    try {
-      final RexNode node = coalesce(vVarchar(1), vInt(2));
-      fail("expected exception, got " + node);
-    } catch (IllegalArgumentException e) {
-      final String expected = "Cannot infer return type for COALESCE;"
-          + " operand types: [VARCHAR, INTEGER]";
-      assertThat(e.getMessage(), is(expected));
-    }
-  }
+  // This test no longer passes, as we've modified COALESCE to have the same type inference
+  // as CASE, and the second argument will be cast to string.
+//  @Test void testNoCommonReturnTypeFails() {
+//    try {
+//      final RexNode node = coalesce(vVarchar(1), vInt(2));
+//      fail("expected exception, got " + node);
+//    } catch (IllegalArgumentException e) {
+//      final String expected = "Cannot infer return type for COALESCE;"
+//          + " operand types: [VARCHAR, INTEGER]";
+//      assertThat(e.getMessage(), is(expected));
+//    }
+//  }
 
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */
   @Test void testCnf() {

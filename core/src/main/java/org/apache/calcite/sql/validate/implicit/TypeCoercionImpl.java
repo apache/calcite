@@ -424,6 +424,42 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
+   * COALESCE type coercion, only used when not decomposing coalesce. Collects all the operands
+   * to find a common type, then casts the operands to the common type if needed.
+   */
+  @Override public boolean coalesceCoercion(SqlCallBinding callBinding) {
+    // For sql statement like:
+    // `case when ... then (a, b, c) when ... then (d, e, f) else (g, h, i)`
+    // an exception throws when entering this method.
+    SqlCall call = callBinding.getCall();
+    assert call.getOperator().getKind() == SqlKind.COALESCE;
+    // Note, we have to create a newSqlNodeList here to use coerceColumnType
+    // set's on this node list will not effect the actual operand list of the call, so we have
+    // to propagate changes manually
+    SqlNodeList operandList = new SqlNodeList(call.getOperandList(), call.getParserPosition());
+    List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    SqlValidatorScope scope = getScope(callBinding);
+    for (SqlNode node : operandList) {
+      argTypes.add(
+          validator.deriveType(
+              scope, node));
+    }
+    // Entering this method means we have already got a wider type, recompute it here
+    // just to make the interface more clear.
+    RelDataType widerType = getWiderTypeFor(argTypes, true);
+    if (null != widerType) {
+      boolean coerced = false;
+      for (int i = 0; i < operandList.size(); i++) {
+        coerced = coerceColumnType(scope, operandList, i, widerType) || coerced;
+        // manually propagate changes back to the call operands
+        call.setOperand(i, operandList.get(i));
+      }
+      return coerced;
+    }
+    return false;
+  }
+
+  /**
    * {@inheritDoc}
    *
    * <p>STRATEGIES

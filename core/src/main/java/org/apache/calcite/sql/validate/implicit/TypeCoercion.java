@@ -136,6 +136,16 @@ public interface TypeCoercion {
   boolean caseWhenCoercion(SqlCallBinding binding);
 
   /**
+   * Coerces COALESCE statement operands to one common type. Only used if not
+   * decomposing coalesce into a CASE statement.
+   *
+   * <p>Rules: Find common type for all the then operands and else operands,
+   * then try to coerce the then/else operands to the type if needed.
+   */
+  boolean coalesceCoercion(SqlCallBinding binding);
+
+
+  /**
    * Type coercion with inferred type from passed in arguments and the
    * {@link SqlTypeFamily} defined in the checkers, e.g. the
    * {@link org.apache.calcite.sql.type.FamilyOperandTypeChecker}.
