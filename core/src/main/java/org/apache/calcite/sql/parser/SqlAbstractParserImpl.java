@@ -162,6 +162,7 @@ public abstract class SqlAbstractParserImpl {
           "GRANT",
           "GROUP",
           "HAVING",
+          "QUALIFY",
           "HOUR",
           "IDENTITY",
           "IMMEDIATE",

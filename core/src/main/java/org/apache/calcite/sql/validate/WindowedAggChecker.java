@@ -16,50 +16,42 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlOverOperator;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 /**
- * Represents the name-resolution context for expressions in an GROUP BY clause.
- *
- * <p>In some dialects of SQL, the GROUP BY clause can reference column aliases
- * in the SELECT clause. For example, the query</p>
- *
- * <blockquote><code>SELECT empno AS x<br>
- * FROM emp<br>
- * GROUP BY x</code></blockquote>
- *
- * <p>is valid.</p>
+ * Visitor which throws an exception if the expression does not contain a windowed aggregation.
  */
-public class GroupByScope extends DelegatingScope {
+class WindowedAggChecker extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlNodeList groupByList;
-  private final SqlSelect select;
+  private boolean seenWindow;
 
   //~ Constructors -----------------------------------------------------------
 
-  GroupByScope(
-      SqlValidatorScope parent,
-      SqlNodeList groupByList,
-      SqlSelect select) {
-    super(parent);
-    this.groupByList = groupByList;
-    this.select = select;
+  /**
+   * Creates an WindowedAggChecker.
+   */
+  WindowedAggChecker() {
+    seenWindow = false;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode getNode() {
-    return groupByList;
+  private boolean isWindowExpr(SqlCall expr) {
+    return expr.getOperator() instanceof SqlOverOperator;
   }
 
-  @Override public void validateExpr(SqlNode expr) {
-    SqlNode expanded = validator.expandGroupByOrHavingOrQualifyExpr(expr, this, select,
-        false, true);
+  @Override public Void visit(SqlCall call) {
+    this.seenWindow |= isWindowExpr(call);
+    if (!this.seenWindow) {
+      super.visit(call);
+    }
+    return null;
+  }
 
-    // expression needs to be valid in parent scope too
-    parent.validateExpr(expanded);
+  public Boolean sawWindow() {
+    return this.seenWindow;
   }
 }

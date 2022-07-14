@@ -1285,6 +1285,7 @@ SqlSelect SqlSelect() :
     final SqlNode where;
     final SqlNodeList groupBy;
     final SqlNode having;
+    final SqlNode qualify;
     final SqlNodeList windowDecls;
     final List<SqlNode> hints = new ArrayList<SqlNode>();
     final Span s;
@@ -1317,6 +1318,7 @@ SqlSelect SqlSelect() :
         where = WhereOpt()
         groupBy = GroupByOpt()
         having = HavingOpt()
+        qualify = QualifyOpt()
         windowDecls = WindowOpt()
     |
         E() {
@@ -1324,13 +1326,14 @@ SqlSelect SqlSelect() :
             where = null;
             groupBy = null;
             having = null;
+            qualify = null;
             windowDecls = null;
         }
     )
     {
         return new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
-            fromClause, where, groupBy, having, windowDecls, null, null, null,
+            fromClause, where, groupBy, having, qualify, windowDecls, null, null, null,
             new SqlNodeList(hints, getPos()));
     }
 }
@@ -2611,6 +2614,22 @@ SqlNode HavingOpt() :
 }
 {
     <HAVING> e = Expression(ExprContext.ACCEPT_SUB_QUERY) { return e; }
+|
+    { return null; }
+}
+
+/**
+ * Parses the optional QUALIFY clause for SELECT.
+ * From snowflake docs:
+ * QUALIFY supports aggregates and subqueries in the predicate.
+ * For aggregates, the same rules as for the HAVING clause apply.
+ */
+SqlNode QualifyOpt() :
+{
+    SqlNode e;
+}
+{
+    <QUALIFY> e = Expression(ExprContext.ACCEPT_SUB_QUERY) { return e; }
 |
     { return null; }
 }
@@ -4012,6 +4031,19 @@ SqlNode AtomicRowExpression() :
     |
         e = DynamicParam()
     |
+        /**
+         * This was needed to resolve some warnings I received while building:
+         *
+         * Warning: Choice conflict involving two expansions at
+         *          line 4033, column 9 and line 4059, column 9 respectively.
+         *          A common prefix is: "DATE"
+         *          Consider using a lookahead of 2 for earlier expansion.
+         * Warning: Choice conflict involving two expansions at
+         *          line 4150, column 13 and line 4152, column 13 respectively.
+         *          A common prefix is: "DATE"
+         *          Consider using a lookahead of 2 for earlier expansion.
+         */
+        LOOKAHEAD(2)
         e = NamedParam()
     |
         LOOKAHEAD(2)
@@ -7548,6 +7580,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < GROUPING: "GROUPING" >
 |   < GROUPS: "GROUPS" >
 |   < HAVING: "HAVING" >
+|   < QUALIFY: "QUALIFY" >
 |   < HIERARCHY: "HIERARCHY" >
 |   < HOLD: "HOLD" >
 |   < HOP: "HOP" >

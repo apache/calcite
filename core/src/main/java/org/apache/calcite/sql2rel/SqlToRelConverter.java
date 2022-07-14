@@ -686,6 +686,7 @@ public class SqlToRelConverter {
         bb,
         select.getFrom());
 
+
     // We would like to remove ORDER BY clause from an expanded view, except if
     // it is top-level or affects semantics.
     //
@@ -736,6 +737,7 @@ public class SqlToRelConverter {
     final RelCollation collation =
         cluster.traitSet().canonize(RelCollations.of(collationList));
 
+
     if (validator().isAggregate(select)) {
       convertAgg(
           bb,
@@ -746,6 +748,10 @@ public class SqlToRelConverter {
           bb,
           select,
           orderExprList);
+    }
+
+    if (select.getQualify() != null) {
+      handleQualifyClause(bb);
     }
 
     if (select.isDistinct()) {
@@ -777,8 +783,68 @@ public class SqlToRelConverter {
     }
   }
 
+
+
+
   /**
-   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
+   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]',
+   * handles the Qualify Expression.
+   *
+   * We expect that, while handling the conversion of the select List, the QUALIFY condition was
+   * added as the last element of the selectList. Therefore, this function uses that value to create
+   * a filter and projection (see
+   * https://docs.snowflake.com/en/sql-reference/constructs/qualify.html)
+   *
+   * @param bb               Blackboard
+   */
+  private void handleQualifyClause(
+      Blackboard bb) {
+    RelNode rel = bb.root();
+    // If we had a qualify clause, we know it's the last item in the select list,
+    // as we place it there.
+
+    final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
+    final RexNode filterVal = RexInputRef.of(fields.size() - 1, fields);
+
+    // I'm not entirly certain why we do this, but the normal path that handles WHERE does this,
+    // So I'm going to leave it.
+    final RexNode filterValWithoutNullability = RexUtil.removeNullabilityCast(typeFactory,
+        filterVal);
+
+    if (filterValWithoutNullability.isAlwaysTrue()) {
+      return;
+    }
+
+    final RelFactories.FilterFactory filterFactory =
+        RelFactories.DEFAULT_FILTER_FACTORY;
+    RelNode filterRelNode = filterFactory.createFilter(bb.root(), filterValWithoutNullability,
+        ImmutableSet.of());
+
+
+    final CorrelationUse p = getCorrelationUse(bb, filterRelNode);
+
+    if (p != null) {
+      assert p.r instanceof Filter;
+      Filter f = (Filter) p.r;
+      filterRelNode = LogicalFilter.create(f.getInput(), f.getCondition(),
+          ImmutableSet.of(p.id));
+    }
+
+
+    // Generate a projection to remove the qualify filter column from table
+    // TODO: this only needs to happen if this is the topmost node, otherwise
+    // we can just leave the column in, and it will likely be projected away at a later step
+    final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
+    for (int i = 0; i < fields.size() - 1; i++) {
+      newProjects.add(RexInputRef.of2(i, fields));
+    }
+    final RelNode projectRel = LogicalProject.create(filterRelNode, ImmutableList.of(),
+        Pair.left(newProjects), Pair.right(newProjects));
+    bb.setRoot(projectRel, false);
+  }
+
+  /**
+   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...] [QUALIFY ...]', adds
    * a relational expression to make the results unique.
    *
    * <p>If the SELECT clause contains duplicate expressions, adds
@@ -1994,6 +2060,7 @@ public class SqlToRelConverter {
     }
   }
 
+
   /**
    * Converts an expression from {@link SqlNode} to {@link RexNode} format.
    *
@@ -2806,6 +2873,8 @@ public class SqlToRelConverter {
 
     final CorrelationUse p = getCorrelationUse(bb, rightRel);
     if (p != null) {
+
+
       RelNode innerRel = p.r;
       ImmutableBitSet requiredCols = p.requiredColumns;
 
@@ -3198,7 +3267,7 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Converts the SELECT, GROUP BY and HAVING clauses of an aggregate query.
+   * Converts the SELECT, GROUP BY, and HAVING clauses of an aggregate query.
    *
    * <p>This method extracts SELECT, GROUP BY and HAVING clauses, and creates
    * an {@link AggConverter}, then delegates to {@link #createAggImpl}.
@@ -3216,6 +3285,18 @@ public class SqlToRelConverter {
     assert bb.root != null : "precondition: child != null";
     SqlNodeList groupList = select.getGroup();
     SqlNodeList selectList = select.getSelectList();
+
+    /** The behavior of QUALIFY is the same as if you were to add the window function condition
+     * to the select statement, and then add wrapping query that filters by the result. See
+     * https://docs.snowflake.com/en/sql-reference/constructs/qualify.html
+     * Therefore, we generate an equivalent plan by adding the value to the selectList, and
+     * later generating a wrapping filter in handleQualifyClause, assuming that the clause is
+     * always present as the rightmost element of the selectlist
+     */
+
+    if (select.getQualify() != null) {
+      selectList.add(select.getQualify());
+    }
     SqlNode having = select.getHaving();
 
     final AggConverter aggConverter = new AggConverter(bb, select);
@@ -3225,7 +3306,8 @@ public class SqlToRelConverter {
         selectList,
         groupList,
         having,
-        orderExprList);
+        orderExprList,
+        select.getQualify() != null);
   }
 
   protected final void createAggImpl(
@@ -3234,7 +3316,8 @@ public class SqlToRelConverter {
       SqlNodeList selectList,
       @Nullable SqlNodeList groupList,
       @Nullable SqlNode having,
-      List<SqlNode> orderExprList) {
+      List<SqlNode> orderExprList,
+      boolean addedQualifyExpr) {
     // Find aggregate functions in SELECT and HAVING clause
     final AggregateFinder aggregateFinder = new AggregateFinder();
     selectList.accept(aggregateFinder);
@@ -3363,20 +3446,33 @@ public class SqlToRelConverter {
       // by the validator. If we derive afresh, we might generate names
       // like "EXPR$2" that don't match the names generated by the
       // validator. This is especially the case when there are system
-      // fields; system fields appear in the relnode's rowtype but do not
+      // fields or fields added due to qualify; both appear in the
+      // relnode's rowtype but do not
       // (yet) appear in the validator type.
+      // TODO: This previously existing comment implies that we should update the validator type
+      // at some point when handling the Qualify clause, but I have not seen any issues that stem
+      // from this
       final SelectScope selectScope =
           SqlValidatorUtil.getEnclosingSelectScope(bb.scope);
       assert selectScope != null;
+      // validator namespace
       final SqlValidatorNamespace selectNamespace = getNamespaceOrNull(selectScope.getNode());
       assert selectNamespace != null : "selectNamespace must not be null for " + selectScope;
       final List<String> names =
           selectNamespace.getRowType().getFieldNames();
       int sysFieldCount = selectList.size() - names.size();
+      // If we added a qualify Expression, account for that so we don't miscount the number of
+      // system fields
+      if (addedQualifyExpr) {
+        sysFieldCount -= 1;
+      }
       for (SqlNode expr : selectList) {
+        // All system fields are appended to the beginning of the select list, and the QUALIFY stmt
+        // is always appended to the end of the select list. The below logic is to ensure that we
+        // derive new aliases only for the system fields, and the qualify clause (if they exist)
         projects.add(
             Pair.of(bb.convertExpression(expr),
-                k < sysFieldCount
+                k < sysFieldCount || (addedQualifyExpr && k == selectList.size() - 1)
                     ? castNonNull(validator().deriveAlias(expr, k++))
                     : names.get(k++ - sysFieldCount)));
       }
@@ -3386,6 +3482,7 @@ public class SqlToRelConverter {
             Pair.of(bb.convertExpression(expr),
                 castNonNull(validator().deriveAlias(expr, k++))));
       }
+
     } finally {
       bb.agg = null;
     }
@@ -4389,7 +4486,20 @@ public class SqlToRelConverter {
       SqlSelect select,
       List<SqlNode> orderList) {
     SqlNodeList selectList = select.getSelectList();
+
+    /** The behavior of QUALIFY is the same as if you were to add the window function condition
+     * to the select statement, and then add wrapping query that filters by the result. See
+     * https://docs.snowflake.com/en/sql-reference/constructs/qualify.html
+     * Therefore, we generate an equivalent plan by adding the value to the selectList, and
+     * later generating a wrapping filter in handleQualifyClause, assuming that the clause is
+     * always present as the rightmost element of the selectList
+     */
+    if (select.getQualify() != null) {
+      selectList.add(select.getQualify());
+    }
     selectList = validator().expandStar(selectList, select, false);
+
+
 
     replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
@@ -5472,6 +5582,7 @@ public class SqlToRelConverter {
     }
   }
 
+
   /**
    * Converts expressions to aggregates.
    *
@@ -6474,5 +6585,7 @@ public class SqlToRelConverter {
     Config withHintStrategyTable(HintStrategyTable hintStrategyTable);
 
   }
+
+
 
 }

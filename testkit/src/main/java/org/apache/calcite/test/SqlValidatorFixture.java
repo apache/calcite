@@ -206,7 +206,7 @@ public class SqlValidatorFixture {
   /**
    * Checks that a SQL expression gives a particular error.
    */
-  SqlValidatorFixture fails(String expected) {
+  public SqlValidatorFixture fails(String expected) {
     requireNonNull(expected, "expected");
     tester.assertExceptionIsThrown(factory, toSql(true), expected);
     return this;

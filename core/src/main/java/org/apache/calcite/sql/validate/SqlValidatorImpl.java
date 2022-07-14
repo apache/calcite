@@ -154,7 +154,6 @@ import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getCondition;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getTable;
-import static org.apache.calcite.sql.validate.SqlValidator.NAMED_PARAM_TABLE_NAME_EMPTY;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -1126,6 +1125,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return getScope(select, Clause.WHERE);
   }
 
+  @Override public SqlValidatorScope getQualifyScope(SqlSelect select) {
+    return getScope(select, Clause.QUALIFY);
+  }
+
   @Override public SqlValidatorScope getSelectScope(SqlSelect select) {
     return getScope(select, Clause.SELECT);
   }
@@ -1447,7 +1450,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         orderList = orderBy.orderList;
       }
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, orderBy.query,
-          null, null, null, null, orderList, orderBy.offset,
+          null, null, null, null, null, orderList, orderBy.offset,
           orderBy.fetch, null);
     }
 
@@ -1457,7 +1460,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNodeList selectList = new SqlNodeList(SqlParserPos.ZERO);
       selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
       return new SqlSelect(SqlParserPos.ZERO, null, selectList, call.operand(0),
-          null, null, null, null, null, null, null, null);
+          null, null, null, null, null, null, null, null, null);
     }
 
     case DELETE: {
@@ -1554,7 +1557,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             call.getCondition());
     SqlSelect select =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, outerJoin, null,
-            null, null, null, null, null, null, null);
+            null, null, null, null, null, null, null, null);
     call.setSourceSelect(select);
 
     // Source for the insert call is a select of the source table
@@ -1572,7 +1575,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlNode insertSource = SqlNode.clone(sourceTableRef);
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
-              null, null, null, null, null, null, null);
+              null, null, null, null, null, null, null, null);
       insertCall.setSource(select);
     }
   }
@@ -1639,7 +1642,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     source =
         new SqlSelect(SqlParserPos.ZERO, null, selectList, source, null, null,
-            null, null, null, null, null, null);
+            null, null, null, null, null, null, null);
     source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
     SqlMerge mergeCall =
         new SqlMerge(updateCall.getParserPosition(), target, condition, source,
@@ -1695,7 +1698,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               alias.getSimple());
     }
     return new SqlSelect(SqlParserPos.ZERO, null, selectList, sourceTable,
-        call.getCondition(), null, null, null, null, null, null, null);
+        call.getCondition(), null, null, null, null, null, null, null, null);
   }
 
   /**
@@ -1717,7 +1720,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               alias.getSimple());
     }
     return new SqlSelect(SqlParserPos.ZERO, null, selectList, sourceTable,
-        call.getCondition(), null, null, null, null, null, null, null);
+        call.getCondition(), null, null, null, null, null, null, null, null);
   }
 
   /**
@@ -2752,11 +2755,37 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scopes.put(select, selectScope);
 
       // Start by registering the WHERE clause
+      // The where clause should be able to see all the aliases in the select list
       clauseScopes.put(IdPair.of(select, Clause.WHERE), selectScope);
       registerOperandSubQueries(
           selectScope,
           select,
           SqlSelect.WHERE_OPERAND);
+
+      // Next register the QUALIFY clause (if it exists). Similarly to the WHERE clause,
+      // the QUALIFY clause should see all the aliases in the select list
+      // However, in the case that the select is an aggregating select,
+      // we have to use an aggregating scope. Using an aggregating scope ensures that
+      // the column references in the QUALIFY clause are properly checked, to ensure that
+      // they are valid grouping expressions.
+      SqlValidatorScope qualifyScope = selectScope;
+      final SqlNode qualify = select.getQualify();
+      if (qualify != null) {
+        if (isAggregate(select)) {
+          qualifyScope =
+              new AggregatingSelectScope(selectScope, select, false);
+        }
+        // We need to wrap the outermost selectScope in a Qualify Scope, to ensure that
+        // the scope properly validates the expressions in the parent select scope.
+        // The default selectScope does not do this
+        clauseScopes.put(
+            IdPair.of(select, Clause.QUALIFY), new QualifyScope(qualifyScope, qualify));
+        // The operand third argument determines which operand of the select to operate on
+        registerOperandSubQueries(
+            selectScope,
+            select,
+            SqlSelect.QUALIFY_OPERAND);
+      }
 
       // Register FROM with the inherited scope 'parentScope', not
       // 'selectScope', otherwise tables in the FROM clause would be
@@ -2780,7 +2809,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       // If this is an aggregating query, the SELECT list and HAVING
-      // clause use a different scope, where you can only reference
+      // clause use a different scope (AggregatingSelectScope), which ensures that
+      // you can only reference
       // columns which are in the GROUP BY clause.
       SqlValidatorScope aggScope = selectScope;
       if (isAggregate(select)) {
@@ -3673,6 +3703,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateWhereClause(select);
     validateGroupClause(select);
     validateHavingClause(select);
+    validateQualifyClause(select);
     validateWindowClause(select);
     handleOffsetFetch(select.getOffset(), select.getFetch());
 
@@ -4276,7 +4307,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
     for (SqlNode groupItem : groupList) {
-      SqlNode expandedItem = expandGroupByOrHavingExpr(groupItem, groupScope, select, false);
+      SqlNode expandedItem = expandGroupByOrHavingOrQualifyExpr(groupItem, groupScope, select,
+          false, true);
       expandedList.add(expandedItem);
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
@@ -4386,24 +4418,82 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (having == null) {
       return;
     }
+    // If we have an HAVING clause, the select scope must be an aggregating scope,
+    // so the cast is safe
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
     if (config.conformance().isHavingAlias()) {
-      SqlNode newExpr = expandGroupByOrHavingExpr(having, havingScope, select, true);
+      SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(having, havingScope, select,
+          true, false);
       if (having != newExpr) {
         having = newExpr;
         select.setHaving(newExpr);
       }
     }
     havingScope.checkAggregateExpr(having, true);
+    // Need to validate the having expression before inferring unknown types, so that any aliases
+    // can be resolved before qualification occurs
+    // TODO: push this change into calcite
+    having.validate(this, havingScope);
+    // having must be a boolean expression
     inferUnknownTypes(
         booleanType,
         havingScope,
         having);
-    having.validate(this, havingScope);
     final RelDataType type = deriveType(havingScope, having);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
       throw newValidationError(having, RESOURCE.havingMustBeBoolean());
+    }
+  }
+  protected void validateQualifyClause(SqlSelect select) {
+    SqlNode qualify = select.getQualify();
+    if (qualify == null) {
+      return;
+    }
+
+
+    // get the scope of the qualify. The QualifyScope object wraps the parent scope, which
+    // could be either a Select Scope, or an Aggregating Scope, depending on
+    // if the overall select is aggregating or not.
+    // The wrapping is needed so that the call to validateExpr actually validates the
+    // expressions in the QUALIFY clause in the scope of the parent expression.
+    final QualifyScope qualifyScope = (QualifyScope) requireNonNull(getQualifyScope(select), () ->
+        "internal error in validateQualifyClause, scope for non-null qualify clause was null");
+
+
+    SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(qualify, qualifyScope, select,
+        false, false);
+
+    if (qualify != newExpr) {
+      qualify = newExpr;
+      select.setQualify(newExpr);
+    }
+
+
+    // Need to validate the qualify expression before inferring unknown types, so that any aliases
+    // can be resolved before qualification occurs
+    qualify.validate(this, qualifyScope);
+
+    // We also need to check that the expression is valid within its scope. This is only important
+    // if we have an aggregating scope
+    qualifyScope.validateExpr(qualify);
+
+    // Finally, check that the expression actually contains a windowed aggregation.
+    if (!qualifyScope.checkWindowedAggregateExpr(qualify, true)) {
+      throw newValidationError(qualify, RESOURCE.qualifyRequiresWindowFn());
+    }
+
+    // qualify must be a boolean expression.
+    inferUnknownTypes(
+        booleanType,
+        qualifyScope,
+        qualify);
+
+
+    final RelDataType type = deriveType(qualifyScope, qualify);
+    if (!SqlTypeUtil.inBooleanFamily(type)) {
+      throw newValidationError(qualify, RESOURCE.qualifyMustBeBoolean());
+
     }
   }
 
@@ -6047,10 +6137,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
-  public SqlNode expandGroupByOrHavingExpr(SqlNode expr,
-      SqlValidatorScope scope, SqlSelect select, boolean havingExpression) {
+  /**
+   * For several clauses in many SQL dialects, it is valid to use aliases from the select statement.
+   * IE:
+   * select MAX(ID) as tmp_val from my_table GROUP BY name HAVING tmp_val &gt; 1;
+   * This helper function expands the underlying expression, getting rid of the aliasing.
+   *
+   * @param expr The expression for which aliases are to be expanded.
+   * @param scope The base scope of the query, generally equivalent to the scope of the select.
+   * @param select The select query.
+   * @param havingExpression Is the expression a having expression? Needed as some SQL dialects do
+   *                         not allow aliases in having expressions (Controlled by
+   *                         validator.config().conformance().isHavingAlias()). Cannot be true if
+   *                         groupByExpr is also set. If both havingExpression and groupByExpr
+   *                         are false, the expression must be a qualify Expression.
+   * @param groupByExpr Is the expression a group by expression? Needed as some SQL dialects do
+   *                    not allow aliases in group by expressions (Controlled by
+   *                    validator.config().conformance().isGroupByAlias()). Cannot be true if
+   *                    havingExpression is also set. If both havingExpression and groupByExpr
+   *                    are false, the expression must be a qualify Expression.
+   * @return The expanded SqlNode
+   */
+  public SqlNode expandGroupByOrHavingOrQualifyExpr(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select, boolean havingExpression, boolean groupByExpr) {
     final Expander expander = new ExtendedExpander(this, scope, select, expr,
-        havingExpression);
+        havingExpression, groupByExpr);
     SqlNode newExpr = expander.go(expr);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -6669,7 +6780,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Shuttle which walks over an expression in the GROUP BY/HAVING clause, replacing
+   * Shuttle which walks over an expression in the GROUP BY/HAVING/QUALIFY clause, replacing
    * usages of aliases or ordinals with the underlying expression.
    */
   static class ExtendedExpander extends Expander {
@@ -6677,19 +6788,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlNode root;
     final boolean havingExpr;
 
+    final boolean groupByExpr;
+
     ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
-        SqlSelect select, SqlNode root, boolean havingExpr) {
+        SqlSelect select, SqlNode root, boolean havingExpr, boolean groupByExpr) {
       super(validator, scope);
+      // Should never have both flags indicating the type of expression set.
+      assert !(havingExpr && groupByExpr);
       this.select = select;
       this.root = root;
       this.havingExpr = havingExpr;
+      this.groupByExpr = groupByExpr;
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
+
+      // TODO: this currently assumes we always expand qualify clause
+      // This is true for our purposes, but if we want to merge this back into Calcite eventually,
+      // we should likely allow for a validator.config() that controls this behavior, similarly
+      // to the other two clauses.
       if (id.isSimple()
           && (havingExpr
               ? validator.config().conformance().isHavingAlias()
-              : validator.config().conformance().isGroupByAlias())) {
+              : !groupByExpr || validator.config().conformance().isGroupByAlias())) {
         String name = id.getSimple();
         SqlNode expr = null;
         final SqlNameMatcher nameMatcher =
@@ -7241,6 +7362,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /** Allows {@link #clauseScopes} to have multiple values per SELECT. */
   private enum Clause {
     WHERE,
+
+    // WHERE and QUALIFY should have the same scope,
+    // But we have seperate enums for clarity
+    QUALIFY,
     GROUP_BY,
     SELECT,
     ORDER,

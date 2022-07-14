@@ -393,6 +393,7 @@ public interface SqlValidator {
    */
   boolean isAggregate(SqlSelect select);
 
+
   /**
    * Returns whether a select list expression is an aggregate function.
    *
@@ -578,6 +579,17 @@ public interface SqlValidator {
    * @return naming scope for FROM clause
    */
   @Nullable SqlValidatorScope getFromScope(SqlSelect select);
+
+
+
+  /**
+   * Returns a scope containing the objects visible from the QUALIFY clause of a
+   * query.
+   *
+   * @param select SELECT statement
+   * @return naming scope for QUALIFY clause
+   */
+  @Nullable SqlValidatorScope getQualifyScope(SqlSelect select);
 
   /**
    * Returns a scope containing the objects visible from the ON and USING

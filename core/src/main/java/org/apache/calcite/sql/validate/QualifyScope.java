@@ -17,49 +17,54 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlSelect;
 
 /**
- * Represents the name-resolution context for expressions in an GROUP BY clause.
- *
- * <p>In some dialects of SQL, the GROUP BY clause can reference column aliases
- * in the SELECT clause. For example, the query</p>
- *
- * <blockquote><code>SELECT empno AS x<br>
- * FROM emp<br>
- * GROUP BY x</code></blockquote>
- *
- * <p>is valid.</p>
+ * Scope of a Qualify clause. Mostly a wrapper around the parent's selectScope, but has some utility
+ * for checking validity of the qualify clause.
  */
-public class GroupByScope extends DelegatingScope {
+public class QualifyScope extends DelegatingScope implements WindowedSelectScope {
+
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlNodeList groupByList;
-  private final SqlSelect select;
+  private final SqlNode qualifyNode;
 
   //~ Constructors -----------------------------------------------------------
 
-  GroupByScope(
+  QualifyScope(
       SqlValidatorScope parent,
-      SqlNodeList groupByList,
-      SqlSelect select) {
+      SqlNode qualifyNode) {
     super(parent);
-    this.groupByList = groupByList;
-    this.select = select;
+    this.qualifyNode = qualifyNode;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode getNode() {
-    return groupByList;
+  @Override public boolean checkWindowedAggregateExpr(SqlNode expr, boolean deep) {
+    // Fully-qualify any identifiers in expr.
+    if (deep) {
+      expr = validator.expand(expr, this);
+    }
+
+    // Create a new checker, which will visit all the nested expressions and determine if we have
+    // a window operation
+    final WindowedAggChecker windowedAggChecker = new WindowedAggChecker();
+
+    // Do the visiting
+    expr.accept(windowedAggChecker);
+
+    // return if we saw a window
+    return windowedAggChecker.sawWindow();
   }
+
+  @Override public SqlNode getNode() {
+    return qualifyNode;
+  }
+
 
   @Override public void validateExpr(SqlNode expr) {
-    SqlNode expanded = validator.expandGroupByOrHavingOrQualifyExpr(expr, this, select,
-        false, true);
-
-    // expression needs to be valid in parent scope too
-    parent.validateExpr(expanded);
+    // For a qualify clause, it should be validated in the scope of the enclosing expression
+    // This is not the default for a DelegatingScope, strangely.
+    parent.validateExpr(expr);
   }
+
 }

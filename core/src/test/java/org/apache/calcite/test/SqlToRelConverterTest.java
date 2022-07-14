@@ -40,6 +40,7 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -569,9 +570,278 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test void testHaving() {
-    // empty group-by clause, having
-    final String sql = "select sum(sal + sal) from emp having sum(sal) > 10";
+  @Test void testNestedHavingAlias() {
+    // tests having with a nested alias, when isHavingAlias is set to True
+    // TODO: Push this fix to calcite
+
+    //The only change is to the conformance is "isHavingAlias" is now true
+    final SqlToRelFixture fixture = fixture().withConformance(
+        new SqlConformance() {
+          @Override public boolean isLiberal() {
+            return false;
+          }
+
+          @Override public boolean allowCharLiteralAlias() {
+            return false;
+          }
+
+          @Override public boolean isGroupByAlias() {
+            return false;
+          }
+
+          @Override public boolean isGroupByOrdinal() {
+            return false;
+          }
+
+          @Override public boolean isHavingAlias() {
+            return true;
+          }
+
+          @Override public boolean isSortByOrdinal() {
+            return false;
+          }
+
+          @Override public boolean isSortByAlias() {
+            return false;
+          }
+
+          @Override public boolean isSortByAliasObscures() {
+            return false;
+          }
+
+          @Override public boolean isFromRequired() {
+            return false;
+          }
+
+          @Override public boolean splitQuotedTableName() {
+            return false;
+          }
+
+          @Override public boolean allowHyphenInUnquotedTableName() {
+            return false;
+          }
+
+          @Override public boolean isBangEqualAllowed() {
+            return false;
+          }
+
+          @Override public boolean isPercentRemainderAllowed() {
+            return false;
+          }
+
+          @Override public boolean isMinusAllowed() {
+            return false;
+          }
+
+          @Override public boolean isApplyAllowed() {
+            return false;
+          }
+
+          @Override public boolean isInsertSubsetColumnsAllowed() {
+            return false;
+          }
+
+          @Override public boolean allowAliasUnnestItems() {
+            return false;
+          }
+
+          @Override public boolean allowNiladicParentheses() {
+            return false;
+          }
+
+          @Override public boolean allowExplicitRowValueConstructor() {
+            return false;
+          }
+
+          @Override public boolean allowExtend() {
+            return false;
+          }
+
+          @Override public boolean isLimitStartCountAllowed() {
+            return false;
+          }
+
+          @Override public boolean allowGeometry() {
+            return false;
+          }
+
+          @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+            return false;
+          }
+
+          @Override public boolean allowExtendedTrim() {
+            return false;
+          }
+
+          @Override public boolean allowPluralTimeUnits() {
+            return false;
+          }
+
+          @Override public boolean allowQualifyingCommonColumn() {
+            return false;
+          }
+
+          @Override public SqlLibrary semantics() {
+            return null;
+          }
+        }
+        );
+
+    final String sql = "select sum(sal + sal) as alias_val, sum(sal) from emp GROUP BY deptno\n"
+        +
+        "HAVING alias_val in\n"
+        +
+        "(SELECT max(deptno) as tmp_val_two from dept GROUP BY deptno HAVING tmp_val_two > 0)";
+    fixture.withSql(sql).ok();
+  }
+
+  @Test void testQualifyWithAlias() {
+    // test qualify on a simple clause, that contains an alias
+    final String sql = "select empno, ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal)\n"
+        +
+        "as row_num from emp QUALIFY row_num > 10";
+    sql(sql).ok();
+  }
+
+  @Test void testQualifyWithAndWithoutAlias() {
+    // test qualify on a simple clause, that contains both an aliased window function,
+    // and a non-aliased window function
+
+    final String sql = "select empno,"
+        +
+        "ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) as row_num\n"
+        +
+        "from emp "
+        +
+        "QUALIFY row_num > 10 and ROW_NUMBER() over (PARTITION BY sal ORDER BY deptno) <= 10";
+    sql(sql).ok();
+  }
+
+  @Test void testQualifySubquerySimple() {
+    // test qualify on a simple clause, which contains a sub query
+    final String sql = "SELECT empno FROM emp QUALIFY ROW_NUMBER() over "
+        +
+        "(PARTITION BY deptno ORDER BY sal) in (SELECT deptno from emp)";
+
+    sql(sql).ok();
+  }
+
+  @Test void testQualifyHavingSimple() {
+    // test qualify and having on a simple clause
+    final String sql = "SELECT emp.deptno from emp"
+        +
+        "         GROUP BY emp.empno, emp.deptno\n"
+        +
+        "         HAVING MIN(emp.deptno) > 3"
+        +
+        "         QUALIFY RANK() over (PARTITION BY emp.empno ORDER BY emp.deptno) <= 10";
+
+    sql(sql).ok();
+  }
+
+  @Test void testQualifyFullWithAlias() {
+    // test qualify on a complex clause containing several clauses and a sub query, and
+    // the QUALIFY clause contains an alias
+    final String sql = "SELECT deptno, SUM(empno) OVER (PARTITION BY deptno) as r\n"
+        +
+        "  FROM emp\n"
+        +
+        "  WHERE empno < 4\n"
+        +
+        "  GROUP BY deptno, empno\n"
+        +
+        "  HAVING SUM(sal) > 3\n"
+        +
+        "  QUALIFY r IN (\n"
+        +
+        "    SELECT MIN(deptno)\n"
+        +
+        "      from dept\n"
+        +
+        "      GROUP BY name\n"
+        +
+        "      HAVING MIN(deptno) > 3)";
+    sql(sql).ok();
+  }
+
+  @Test void testQualifyFullNoAlias() {
+    // test qualify on a complex clause containing several clauses and a sub query, and
+    // the QUALIFY clause contains no alias
+    final String sql = "SELECT deptno\n"
+        +
+        "  FROM emp\n"
+        +
+        "  WHERE empno < 4\n"
+        +
+        "  GROUP BY deptno, empno\n"
+        +
+        "  HAVING SUM(sal) > 3\n"
+        +
+        "  QUALIFY SUM(deptno) OVER (PARTITION BY empno) IN (\n"
+        +
+        "    SELECT MIN(deptno)\n"
+        +
+        "      from dept\n"
+        +
+        "      GROUP BY name\n"
+        +
+        "      HAVING MIN(deptno) > 3)";
+    sql(sql).ok();
+  }
+
+
+  @Test void testQualifyNestedQualifySimple() {
+    // tests qualify on a complex clause containing a sub query, where the sub
+    // query itself contains a qualify clause.
+    final String sql =
+        "SELECT deptno\n"
+        +
+        "  FROM emp\n"
+        +
+        "  QUALIFY SUM(empno) OVER (PARTITION BY deptno) IN (\n"
+        +
+        "    SELECT MIN(deptno) OVER (PARTITION BY name) as my_val\n"
+        +
+        "      from dept\n"
+        +
+        "      QUALIFY my_val in (SELECT deptno from emp))";
+    sql(sql).ok();
+  }
+  @Test void testQualifyNestedQualifyFull() {
+    // tests qualify on a complex clause containing several clauses and sub queries, where the sub
+    // queries also contain a qualify clause.
+
+    final String sql = "SELECT deptno\n"
+        +
+        "  FROM emp\n"
+        +
+        "  WHERE empno < 4\n"
+        +
+        "  GROUP BY deptno, empno\n"
+        +
+        "  HAVING SUM(sal) > 3\n"
+        +
+        "  QUALIFY SUM(empno) OVER (PARTITION BY deptno)"
+        +
+        "  IN (\n"
+        +
+        "    SELECT MIN(deptno) OVER (PARTITION BY dept.name) as my_val\n"
+        +
+        "      from dept\n"
+        +
+        "      QUALIFY ROW_NUMBER() over (PARTITION BY dept.deptno ORDER BY dept.name) <= 10 AND my_val IN ("
+        +
+        "         SELECT SUM(emp.deptno) OVER (PARTITION BY emp.comm) as w from emp"
+        +
+        "         GROUP BY emp.empno, emp.deptno, emp.comm\n"
+        +
+        "         HAVING MIN(emp.deptno) > 3"
+        +
+        "         QUALIFY RANK() over (PARTITION BY emp.comm ORDER BY emp.deptno) <= 10 or w in"
+        +
+        "         (select dept.deptno from dept) or w in (select emp.deptno from emp)"
+        +
+        "))";
     sql(sql).ok();
   }
 
