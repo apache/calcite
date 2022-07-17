@@ -2112,6 +2112,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testUnionNullableImplicitTypeCoercion() {
+    final String sql =
+        "select id from (values(1), (null)) t (id) union select 'varchar-id' as id";
+    sql(sql).ok();
+  }
+
   @Test void testIsDistinctFrom() {
     final String sql = "select empno is distinct from deptno\n"
         + "from (values (cast(null as int), 1),\n"

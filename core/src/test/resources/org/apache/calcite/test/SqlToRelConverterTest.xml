@@ -7841,6 +7841,19 @@ LogicalProject(X0=[$0], X1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnionNullableImplicitTypeCoercion">
+    <Resource name="plan">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalProject(EXPR$0=[CAST($0):VARCHAR])
+    LogicalValues(tuples=[[{ 1 }, { null }]])
+  LogicalValues(tuples=[[{ 'varchar-id' }]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select id from (values(1), (null)) t (id) union select 'varchar-id' as id]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnionSubQuery">
     <Resource name="plan">
       <![CDATA[

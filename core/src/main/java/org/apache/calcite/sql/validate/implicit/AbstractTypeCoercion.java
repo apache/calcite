@@ -445,11 +445,15 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     // 2. VARCHAR has 65536 as default precision.
     // 3. Following MS-SQL: BINARY or BOOLEAN can be casted to VARCHAR.
     if (SqlTypeUtil.isAtomic(type1) && SqlTypeUtil.isCharacter(type2)) {
-      resultType = factory.createSqlType(SqlTypeName.VARCHAR);
+      resultType =
+          factory.createTypeWithNullability(factory.createSqlType(SqlTypeName.VARCHAR),
+              type1.isNullable() || type2.isNullable());
     }
 
     if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isAtomic(type2)) {
-      resultType = factory.createSqlType(SqlTypeName.VARCHAR);
+      resultType =
+          factory.createTypeWithNullability(factory.createSqlType(SqlTypeName.VARCHAR),
+              type1.isNullable() || type2.isNullable());
     }
     return resultType;
   }
