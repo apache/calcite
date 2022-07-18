@@ -1580,20 +1580,22 @@ SqlNode NamedRoutineCall(
 SqlNode TableParam() :
 {
     final Span s;
+    final SqlNodeList partitionList;
+    final SqlNodeList orderList;
     SqlNode tableRef;
-    SqlNodeList partitionList = SqlNodeList.EMPTY;
-    SqlNodeList orderList = SqlNodeList.EMPTY;
 }
 {
     { s = span(); }
     tableRef = ExplicitTable(getPos())
-    [
+    (
         <PARTITION> <BY>
         partitionList = SimpleIdentifierOrList()
-    ]
-    [
+    |   { partitionList = SqlNodeList.EMPTY; }
+    )
+    (
         orderList = OrderByInTableParam()
-    ]
+     |  { orderList = SqlNodeList.EMPTY; }
+    )
     {
         if (partitionList.isEmpty() && orderList.isEmpty()) {
           return tableRef;
@@ -1615,21 +1617,23 @@ SqlNode PartitionedQueryOrQueryOrExpr(ExprContext exprContext) :
     { return e; }
 }
 
-SqlNode PartitionedByAndOrderBy(SqlNode e):
+SqlNode PartitionedByAndOrderBy(SqlNode e) :
 {
     final Span s;
-    SqlNodeList partitionList = SqlNodeList.EMPTY;
-    SqlNodeList orderList = SqlNodeList.EMPTY;
+    final SqlNodeList partitionList;
+    final SqlNodeList orderList;
 }
 {
     { s = span(); }
-    [
+    (
         <PARTITION> <BY>
         partitionList = SimpleIdentifierOrList()
-    ]
-    [
+    |   { partitionList = SqlNodeList.EMPTY; }
+    )
+    (
         orderList = OrderByInTableParam()
-    ]
+     |  { orderList = SqlNodeList.EMPTY; }
+    )
     {
         if (partitionList.isEmpty() && orderList.isEmpty()) {
           return e;
@@ -1642,8 +1646,7 @@ SqlNode PartitionedByAndOrderBy(SqlNode e):
 
 SqlNodeList OrderByInTableParam() :
 {
-    List<SqlNode> list;
-    SqlNode e;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
     final Span s;
 }
 {
@@ -1651,25 +1654,18 @@ SqlNodeList OrderByInTableParam() :
   <BY>
   (
       LOOKAHEAD(2)
-      <LPAREN> e = OrderItem()
-      {
-          list = startList(e);
-      }
+      <LPAREN> AddOrderItem(list)
       (
           LOOKAHEAD(2)
           <COMMA>
-          e = OrderItem()
-          {
-              list.add(e);
-          }
+          AddOrderItem(list)
       )*
       <RPAREN> {
           return new SqlNodeList(list, s.addAll(list).pos());
       }
   |
-      e = OrderItem()
+      AddOrderItem(list)
       {
-          list = startList(e);
           return new SqlNodeList(list, s.addAll(list).pos());
       }
   )
