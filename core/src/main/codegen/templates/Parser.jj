@@ -1014,6 +1014,7 @@ void AddArg0(List<SqlNode> list, ExprContext exprContext) :
     (
         e = Default()
     |
+        LOOKAHEAD(3)
         e = TableParam()
     |
         e = PartitionedQueryOrQueryOrExpr(firstExprContext)
@@ -1593,17 +1594,10 @@ SqlNode TableParam() :
     |   { partitionList = SqlNodeList.EMPTY; }
     )
     (
-        orderList = OrderByInTableParam()
+        orderList = OrderByOfSetSemanticsTable()
      |  { orderList = SqlNodeList.EMPTY; }
     )
-    {
-        if (partitionList.isEmpty() && orderList.isEmpty()) {
-          return tableRef;
-        } else {
-          return SqlStdOperatorTable.SET_SEMANTICS_TABLE.createCall(
-              s.pos(), tableRef, partitionList, orderList);
-        }
-    }
+    { return CreateSetSemanticsTableIfNeeded(s, tableRef, partitionList, orderList); }
 }
 
 SqlNode PartitionedQueryOrQueryOrExpr(ExprContext exprContext) :
@@ -1631,34 +1625,28 @@ SqlNode PartitionedByAndOrderBy(SqlNode e) :
     |   { partitionList = SqlNodeList.EMPTY; }
     )
     (
-        orderList = OrderByInTableParam()
+        orderList = OrderByOfSetSemanticsTable()
      |  { orderList = SqlNodeList.EMPTY; }
     )
-    {
-        if (partitionList.isEmpty() && orderList.isEmpty()) {
-          return e;
-        } else {
-          return SqlStdOperatorTable.SET_SEMANTICS_TABLE.createCall(
-              s.pos(), e, partitionList, orderList);
-        }
-    }
+    { return CreateSetSemanticsTableIfNeeded(s, e, partitionList, orderList); }
 }
 
-SqlNodeList OrderByInTableParam() :
+SqlNodeList OrderByOfSetSemanticsTable() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
     final Span s;
 }
 {
-  <ORDER> { s = span(); }
+  <ORDER>
+  { s = span(); }
   <BY>
   (
       LOOKAHEAD(2)
       <LPAREN> AddOrderItem(list)
       (
-          LOOKAHEAD(2)
-          <COMMA>
-          AddOrderItem(list)
+        // NOTE jvs 6-Feb-2004:  See comments at top of file for why
+        // hint is necessary here.
+        LOOKAHEAD(2) <COMMA> AddOrderItem(list)
       )*
       <RPAREN> {
           return new SqlNodeList(list, s.addAll(list).pos());
@@ -1669,6 +1657,26 @@ SqlNodeList OrderByInTableParam() :
           return new SqlNodeList(list, s.addAll(list).pos());
       }
   )
+}
+
+SqlNode CreateSetSemanticsTableIfNeeded(
+    final Span s,
+    final SqlNode e,
+    final SqlNodeList partitionList,
+    final SqlNodeList orderList) :
+{
+
+}
+{
+
+    {
+        if (partitionList.isEmpty() && orderList.isEmpty()) {
+            return e;
+        } else {
+            return SqlStdOperatorTable.SET_SEMANTICS_TABLE.createCall(
+                s.pos(), e, partitionList, orderList);
+        }
+    }
 }
 
 /**
