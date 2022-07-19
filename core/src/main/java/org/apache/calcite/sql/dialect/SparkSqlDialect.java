@@ -62,6 +62,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
@@ -523,6 +524,10 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case "DATE_DIFF":
       unparseDateDiff(writer, call, leftPrec, rightPrec);
+      break;
+    case "ERROR":
+      SqlCall errorCall = RAISE_ERROR.createCall(SqlParserPos.ZERO, (SqlNode) call.operand(0));
+      super.unparseCall(writer, errorCall, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

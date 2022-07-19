@@ -1338,4 +1338,13 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.DATE,
           SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction RAISE_ERROR =
+      new SqlFunction("RAISE_ERROR",
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
 }
