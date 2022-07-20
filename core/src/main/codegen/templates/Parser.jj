@@ -8058,6 +8058,7 @@ String NonReservedKeyWord() :
         NonReservedKeyWord0of3()
     |   NonReservedKeyWord1of3()
     |   NonReservedKeyWord2of3()
+    |   <WIDTH_BUCKET>
     )
     {
         return unquotedIdentifier();
