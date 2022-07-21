@@ -7591,7 +7591,7 @@ LogicalAggregate(group=[{2}])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalAggregate(group=[{0}])
+LogicalProject(JOB=[$0])
   LogicalJoin(condition=[=($0, $1)], joinType=[right])
     LogicalAggregate(group=[{2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -7834,7 +7834,7 @@ LogicalAggregate(group=[{10}])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalAggregate(group=[{1}])
+LogicalProject(NAME=[$1])
   LogicalJoin(condition=[=($0, $1)], joinType=[left])
     LogicalAggregate(group=[{2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])

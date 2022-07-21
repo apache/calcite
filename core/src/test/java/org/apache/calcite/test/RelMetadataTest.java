@@ -1029,7 +1029,9 @@ public class RelMetadataTest {
         .assertThatAreColumnsUnique(bitSetOf(0, 2), is(true))
         .assertThatAreColumnsUnique(bitSetOf(0, 1, 2), is(true))
         .assertThatAreColumnsUnique(bitSetOf(0, 2, 3), is(true))
-        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(false));
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true));
   }
 
   @Test void testColumnUniquenessForAggregateWithConstantColumns() {

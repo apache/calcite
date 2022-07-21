@@ -44,6 +44,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -54,6 +55,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -285,20 +287,107 @@ public class RelMdColumnUniqueness
       return mq.areColumnsUnique(left, columns, ignoreNulls);
     }
 
+    int numLeftCols = rel.getLeft().getRowType().getFieldCount();
+
     // Divide up the input column mask into column masks for the left and
     // right sides of the join
     final Pair<ImmutableBitSet, ImmutableBitSet> leftAndRightColumns =
-        splitLeftAndRightColumns(rel.getLeft().getRowType().getFieldCount(),
+        splitLeftAndRightColumns(numLeftCols,
             columns);
-    final ImmutableBitSet leftColumns = leftAndRightColumns.left;
-    final ImmutableBitSet rightColumns = leftAndRightColumns.right;
+    final ImmutableBitSet initLeftColumns = leftAndRightColumns.left;
+    final ImmutableBitSet initRightColumns = leftAndRightColumns.right;
 
     // for FULL OUTER JOIN if columns contain column from both inputs it is not
     // guaranteed that the result will be unique
     if (!ignoreNulls && rel.getJoinType() == JoinRelType.FULL
-        && leftColumns.cardinality() > 0 && rightColumns.cardinality() > 0) {
+        && initLeftColumns.cardinality() > 0 && initRightColumns.cardinality() > 0) {
       return false;
     }
+
+    // If we have an inner join on either side, we may be able to determine
+    // uniqueness from the condition.
+    HashSet<RexCall> equalities = findCommonEqualities(rel.getCondition());
+    // Check each equality. If we are only checking uniqueness with a single
+    // side we can include the other side.
+    boolean isOuterLeft = rel.getJoinType().generatesNullsOnRight();
+    boolean isOuterRight = rel.getJoinType().generatesNullsOnLeft();
+    ImmutableBitSet combinedLeftBits = initLeftColumns;
+    ImmutableBitSet combinedRightBits = initRightColumns;
+    boolean bitAdded = true;
+    while (bitAdded) {
+      BitSet addedLeftCols = new BitSet();
+      BitSet addedRightCols = new BitSet();
+      bitAdded = false;
+      HashSet<RexCall> unmatchedEqualities = new HashSet();
+      for (RexCall equals: equalities) {
+        Integer arg0 = ((RexInputRef) equals.getOperands().get(0)).getIndex();
+        Integer arg1 = ((RexInputRef) equals.getOperands().get(1)).getIndex();
+        if (arg0 < numLeftCols && arg1 < numLeftCols) {
+          // Both columns are in the left table.
+          if (!isOuterLeft) {
+            // An outer join may not have the columns equal
+            boolean foundArg0 = combinedLeftBits.get(arg0);
+            boolean foundArg1 = combinedLeftBits.get(arg1);
+            if ((foundArg0 && !foundArg1) || (!foundArg0 && foundArg1)) {
+              addedLeftCols.set(arg0);
+              addedLeftCols.set(arg1);
+              bitAdded = true;
+            } else {
+              unmatchedEqualities.add(equals);
+            }
+          }
+        } else if (arg0 >= numLeftCols && arg1 >= numLeftCols) {
+          // Both columns are in the right table.
+          if (!isOuterRight) {
+            // An outer join may not have the columns equal
+            arg0 = arg0 - numLeftCols;
+            arg1 = arg1 - numLeftCols;
+            boolean foundArg0 = combinedRightBits.get(arg0);
+            boolean foundArg1 = combinedRightBits.get(arg1);
+            if ((foundArg0 && !foundArg1) || (!foundArg0 && foundArg1)) {
+              addedRightCols.set(arg0);
+              addedRightCols.set(arg1);
+              bitAdded = true;
+            } else {
+              unmatchedEqualities.add(equals);
+            }
+          }
+        } else {
+          // Left and right are in different tables
+          Integer leftArg;
+          Integer rightArg;
+          if (arg0 < numLeftCols) {
+            // arg0 -> Left, arg1 -> Right
+            leftArg = arg0;
+            rightArg = arg1 - numLeftCols;
+          } else {
+            // arg0 -> Right, arg1 -> Left
+            leftArg = arg1;
+            rightArg = arg0 - numLeftCols;
+          }
+          boolean foundLeft = combinedLeftBits.get(leftArg);
+          boolean foundRight = combinedRightBits.get(rightArg);
+          if (foundLeft && !foundRight) {
+            if (!isOuterLeft) {
+              addedRightCols.set(rightArg);
+              bitAdded = true;
+            }
+          } else if (!foundLeft && foundRight) {
+            if (!isOuterRight) {
+              addedLeftCols.set(leftArg);
+              bitAdded = true;
+            }
+          } else {
+            unmatchedEqualities.add(equals);
+          }
+        }
+      }
+      equalities = unmatchedEqualities;
+      combinedLeftBits = combinedLeftBits.union(addedLeftCols);
+      combinedRightBits = combinedRightBits.union(addedRightCols);
+    }
+    final ImmutableBitSet leftColumns = combinedLeftBits;
+    final ImmutableBitSet rightColumns = combinedRightBits;
 
     // If the original column mask contains columns from both the left and
     // right hand side, then the columns are unique if and only if they're
@@ -344,6 +433,39 @@ public class RelMdColumnUniqueness
     }
 
     throw new AssertionError();
+  }
+
+  /**
+   * Takes a RexNode that represents a condition and finds
+   * all equalities that are always True. This is used by Join
+   * to help identify when the columns are unique.
+   */
+  private HashSet<RexCall> findCommonEqualities(RexNode cond) {
+    // Note: Hash(RexNode) is equivalent to RexNode.toString().
+    HashSet<RexCall> equalityExprs = new HashSet<>();
+    if (cond.getKind() == SqlKind.EQUALS) {
+      RexCall equalNode = (RexCall) cond;
+      if (equalNode.getOperands().get(0) instanceof RexInputRef
+          && equalNode.getOperands().get(1) instanceof RexInputRef) {
+        equalityExprs.add(equalNode);
+      }
+    } else if (cond.getKind() == SqlKind.AND) {
+      RexCall andCond = (RexCall) cond;
+      // And can have many children, we want to merge on
+      // all of them
+      for (RexNode operandCond : andCond.operands) {
+        equalityExprs.addAll(findCommonEqualities(operandCond));
+      }
+    } else if (cond.getKind() == SqlKind.OR) {
+      RexCall orCond = (RexCall) cond;
+      // Or can have many children, we only want to merge on nodes common to all of them
+      equalityExprs.addAll(findCommonEqualities(orCond.operands.get(0)));
+      for (int i = 1; i < orCond.operands.size(); i++) {
+        HashSet<RexCall> otherExprs = findCommonEqualities(orCond.operands.get(i));
+        equalityExprs.retainAll(otherExprs);
+      }
+    }
+    return equalityExprs;
   }
 
   public @Nullable Boolean areColumnsUnique(Aggregate rel, RelMetadataQuery mq,
