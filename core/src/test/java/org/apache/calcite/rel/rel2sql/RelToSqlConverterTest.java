@@ -58,8 +58,6 @@ import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
-import org.apache.calcite.sql.fun.LibraryOperator;
-import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -104,7 +102,6 @@ import java.util.stream.IntStream;
 
 import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
-import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -1679,8 +1676,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\n" +
-        "FROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\n"
+        + "FROM foodmart.reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1771,8 +1768,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'a' FROM 'abcda')\n" +
-        "FROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH 'a' FROM 'abcda')\n"
+        + "FROM foodmart.reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1978,8 +1975,8 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT REGEXP_REPLACE('$A@*AABC$@*AADCAA$A@*', '(\\$A\\@\\*)*$', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING '$A@*' FROM '$A@*AABC$@*AADCAA$A@*')\n" +
-        "FROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(TRAILING '$A@*' FROM '$A@*AABC$@*AADCAA$A@*')\n"
+            + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT RTRIM('$A@*AABC$@*AADCAA$A@*', '$A@*')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
@@ -6172,8 +6169,8 @@ class RelToSqlConverterTest {
     String query = "select DATE'2018-01-01' - INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(DATE '2018-01-01', 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT DATE '2018-01-01' - INTERVAL '1' DAY\n" +
-        "FROM foodmart.employee";
+    final String expectedSpark = "SELECT DATE '2018-01-01' - INTERVAL '1' DAY\n"
+        + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(DATE '2018-01-01', INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, -1, DATE '2018-01-01')\n"
@@ -6433,8 +6430,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + 10 * INTERVAL '2' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 10 * 2) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + 10 * INTERVAL '2' DAY\n" +
-        "FROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + 10 * INTERVAL '2' DAY\n"
+        + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * 2 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + 10 * 2)\n"
@@ -9892,8 +9889,8 @@ class RelToSqlConverterTest {
         .build();
     final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 DAY) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT DATE '1999-07-01' + INTERVAL '1' DAY FD\n" +
-        "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE '1999-07-01' + INTERVAL '1' DAY FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
@@ -9912,8 +9909,8 @@ class RelToSqlConverterTest {
         .build();
     final String expectedBiqQuery = "SELECT DATE_SUB(DATE '1999-07-01', INTERVAL 1 DAY) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT DATE '1999-07-01' - INTERVAL '1' DAY FD\n" +
-        "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE '1999-07-01' - INTERVAL '1' DAY FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
@@ -10089,8 +10086,8 @@ class RelToSqlConverterTest {
         + "PARSE_TIME('%H%M%S', '122333') AS time1\n"
         + "FROM scott.EMP";
     final String expectedSparkQuery = "SELECT PARSE_DATE('YYYYMMDD', '99991231') date1, " +
-        "PARSE_TIME('HH24MISS', '122333') time1\n" +
-        "FROM scott.EMP";
+        "PARSE_TIME('HH24MISS', '122333') time1\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -10107,8 +10104,8 @@ class RelToSqlConverterTest {
         project(builder.alias(parseTrimNode, "t"))
         .build();
 
-    final String expectedSql = "SELECT POSITION('a' IN 'Name') AS \"t\"\n" +
-        "FROM \"scott\".\"EMP\"";
+    final String expectedSql = "SELECT POSITION('a' IN 'Name') AS \"t\"\n"
+        + "FROM \"scott\".\"EMP\"";
 
     final String expectedSparkQuery = "SELECT POSITION('a' IN 'Name') t\nFROM scott.EMP";
 
