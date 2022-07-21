@@ -10149,10 +10149,10 @@ class RelToSqlConverterTest {
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(trueRexNode, "dm"))
         .build();
-    final String expectedSql = "SELECT TRUE() AS \"dm\"\n" +
-        "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT TRUE  AS dm\n" +
-        "FROM scott.EMP";
+    final String expectedSql = "SELECT TRUE() AS \"dm\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TRUE  AS dm\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -10163,10 +10163,10 @@ class RelToSqlConverterTest {
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(falseRexNode, "dm"))
         .build();
-    final String expectedSql = "SELECT FALSE() AS \"dm\"\n" +
-        "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT FALSE  AS dm\n" +
-        "FROM scott.EMP";
+    final String expectedSql = "SELECT FALSE() AS \"dm\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FALSE  AS dm\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
