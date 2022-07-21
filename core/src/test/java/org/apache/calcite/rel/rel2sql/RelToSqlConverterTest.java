@@ -47,9 +47,18 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -1660,8 +1669,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\nFROM foodmart"
+        + ".reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1692,8 +1701,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING ' ' FROM ' str ')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(LEADING ' ' FROM ' str ')\nFROM foodmart"
+        + ".reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1709,8 +1718,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING ' ' FROM ' str ')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(TRAILING ' ' FROM ' str ')\nFROM foodmart"
+        + ".reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1744,8 +1753,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING 'a' FROM 'abcd')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(LEADING 'a' FROM 'abcd')\nFROM foodmart"
+        + ".reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1794,8 +1803,8 @@ class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\nFROM foodmart"
+        + ".reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1812,7 +1821,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(full_name)\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\nFROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\n"
+        + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
     final String expectedMsSql = "SELECT TRIM(' ' FROM [full_name])\n"
@@ -1835,8 +1845,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING ' ' FROM ' str ')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(LEADING ' ' FROM ' str ')\nFROM foodmart"
+        + ".reserve_employee";
     final String expectedSnowFlake = "SELECT LTRIM(' str ')\n"
               + "FROM \"foodmart\".\"reserve_employee\"";
     final String expectedMsSql = "SELECT LTRIM(' str ')\n"
@@ -1859,8 +1869,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING ' ' FROM ' str ')" +
-        "\nFROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(TRAILING ' ' FROM ' str ')"
+        + "\nFROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT RTRIM(' str ')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
     final String expectedMsSql = "SELECT RTRIM(' str ')\n"
@@ -1883,8 +1893,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(first_name, 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING 'A' FROM first_name)\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(LEADING 'A' FROM first_name)\nFROM foodmart"
+        + ".reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE(first_name, '^(A)*', '')\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT LTRIM(\"first_name\", 'A')\n"
@@ -1905,8 +1915,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM('AABCAADCAA', 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING 'A' FROM 'AABCAADCAA')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(TRAILING 'A' FROM 'AABCAADCAA')\nFROM foodmart"
+        + ".reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT RTRIM('AABCAADCAA', 'A')\n"
@@ -1927,8 +1937,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM('AABCAADCAA', 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'A' FROM 'AABCAADCAA')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH 'A' FROM 'AABCAADCAA')\nFROM foodmart"
+        + ".reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '^(A)*|(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM('AABCAADCAA', 'A')\n"
@@ -1952,8 +1962,8 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT REGEXP_REPLACE('A$@*AABCA$@*AADCAA$@*', '^(A\\$\\@\\*)*', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING 'A$@*' FROM 'A$@*AABCA$@*AADCAA$@*')\nFROM" +
-        " foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(LEADING 'A$@*' FROM 'A$@*AABCA$@*AADCAA$@*')\nFROM"
+        + " foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT LTRIM('A$@*AABCA$@*AADCAA$@*', 'A$@*')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
@@ -2000,8 +2010,8 @@ class RelToSqlConverterTest {
         "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
             + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\nFROM " +
-        "foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\nFROM "
+        + "foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
               + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
@@ -2023,8 +2033,8 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM SUBSTRING(full_name, 2, 3))" +
-        "\nFROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM SUBSTRING(full_name, 2, 3))\n"
+        + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(SUBSTR(\"full_name\", 2, 3))\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
 
@@ -2044,8 +2054,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcd', '(a)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING 'a' FROM 'abcd')\nFROM foodmart" +
-        ".reserve_employee";
+    final String expectedSpark = "SELECT TRIM(TRAILING 'a' FROM 'abcd')\n"
+        + "FROM foodmart.reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -5983,8 +5993,8 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E6S', "
         + "CURRENT_DATETIME()) AS DATETIME) AS CT\n"
         + "FROM scott.EMP";
-    final String expectedSpark = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss" +
-        ".SSSSSS') AS TIMESTAMP) CT\nFROM scott.EMP";
+    final String expectedSpark = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
+        + ".SSSSSS') AS TIMESTAMP) CT\nFROM scott.EMP";
     final String expectedHive = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
         + ".ssssss') AS TIMESTAMP) CT\n"
         + "FROM scott.EMP";
@@ -6046,8 +6056,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, -10)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + -10 * INTERVAL '1' MONTH\nFROM foodmart" +
-        ".employee";
+    final String expectedSpark = "SELECT birth_date + -10 * INTERVAL '1' MONTH\nFROM foodmart"
+        + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL -10 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
@@ -6074,8 +6084,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" +  \"store_id\" * INTERVAL '10' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, store_id * 10)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '10' MONTH\nFROM " +
-        "foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '10' MONTH\nFROM "
+        + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 10 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
@@ -6091,8 +6101,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + 10 * INTERVAL '2' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, 10 * 2)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + 10 * INTERVAL '2' MONTH\nFROM foodmart" +
-        ".employee";
+    final String expectedSpark = "SELECT birth_date + 10 * INTERVAL '2' MONTH\nFROM foodmart"
+        + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * 2 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
@@ -6148,8 +6158,8 @@ class RelToSqlConverterTest {
     String query = "select DATE'2018-01-01' + INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(DATE '2018-01-01', 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT DATE '2018-01-01' + INTERVAL '1' DAY\nFROM foodmart" +
-        ".employee";
+    final String expectedSpark = "SELECT DATE '2018-01-01' + INTERVAL '1' DAY\nFROM foodmart"
+        + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, 1, DATE '2018-01-01')\n"
@@ -6242,8 +6252,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - INTERVAL '2' day from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, 2) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - INTERVAL '2' DAY" +
-        "\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date - INTERVAL '2' DAY"
+        + "\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 2 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, -2, \"birth_date\")\n"
@@ -6263,8 +6273,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + \"store_id\" * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '1' DAY" +
-        "\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '1' DAY"
+        + "\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\")\n"
@@ -6284,8 +6294,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" +  INTERVAL '1' DAY * \"store_id\" from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY * store_id\nFROM foodmart" +
-        ".employee";
+    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY * store_id\nFROM foodmart"
+        + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, '1' * \"store_id\", \"birth_date\")\n"
@@ -6305,7 +6315,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" +  INTERVAL '1' DAY * 10 from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 10) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY * 10\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY * 10\n"
+        + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, '1' * 10, \"birth_date\")\n"
@@ -6325,8 +6336,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - \"store_id\" * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - store_id * INTERVAL '1' DAY" +
-        "\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date - store_id * INTERVAL '1' DAY"
+        + "\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" - \"store_id\")\n"
@@ -6346,8 +6357,8 @@ class RelToSqlConverterTest {
     String query = "select DATE'2018-01-01' + \"store_id\" * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(DATE '2018-01-01', store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT DATE '2018-01-01' + store_id * INTERVAL '1' DAY\nFROM " +
-        "foodmart.employee";
+    final String expectedSpark = "SELECT DATE '2018-01-01' + store_id * INTERVAL '1' DAY\nFROM "
+        + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (DATE '2018-01-01' + \"store_id\")\n"
@@ -6367,8 +6378,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + \"store_id\" *11 * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id * 11) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * 11 * INTERVAL '1' DAY\nFROM " +
-        "foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + store_id * 11 * INTERVAL '1' DAY\nFROM "
+        +  "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\" * 11)\n"
@@ -6388,8 +6399,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + \"store_id\"  * INTERVAL '11' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id * 11) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '11' DAY\nFROM " +
-        "foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '11' DAY\nFROM "
+        + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" + \"store_id\" * 11)\n"
@@ -6409,8 +6420,8 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - \"store_id\"  * INTERVAL '11' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, store_id * 11) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - store_id * INTERVAL '11' DAY\nFROM " +
-        "foodmart.employee";
+    final String expectedSpark = "SELECT birth_date - store_id * INTERVAL '11' DAY\nFROM "
+        + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT (\"birth_date\" - \"store_id\" * 11)\n"
@@ -6451,7 +6462,8 @@ class RelToSqlConverterTest {
     String query = "select  INTERVAL '1' DAY + \"birth_date\" from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY\n"
+        + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, 1, \"birth_date\")\n"
@@ -6625,8 +6637,8 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String mssql = "SELECT CONCAT('foo', 'bar')\n"
             + "FROM [foodmart].[employee]";
-    final String expectedSpark = "SELECT 'foo' || 'bar'" +
-        "\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT 'foo' || 'bar'\n"
+        + "FROM foodmart.employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -7883,8 +7895,8 @@ class RelToSqlConverterTest {
     final String expectedHive = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP), "
         + "'yyyy-MM-dd HH:mm:ss.sss') AS TIMESTAMP)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP), " +
-        "'yyyy-MM-dd HH:mm:ss.SSS') AS TIMESTAMP)\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP), "
+        + "'yyyy-MM-dd HH:mm:ss.SSS') AS TIMESTAMP)\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E3S', CAST"
         + "(birth_date AS DATETIME)) AS DATETIME)\n"
         + "FROM foodmart.employee";
@@ -7919,8 +7931,8 @@ class RelToSqlConverterTest {
     final String expectedHive = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss.sss'), "
         + "' ')[1]\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss.SSS')," +
-        " ' ')[1]\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss.SSS'),"
+        + " ' ')[1]\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(hire_date AS TIME))"
         + " AS TIME)\n"
         + "FROM foodmart.employee";
@@ -8037,8 +8049,8 @@ class RelToSqlConverterTest {
     final String expectedSql = "SELECT FORMAT_TIMESTAMP('YYYY-MM-DD HH:MI:SS.S(5)', \"HIREDATE\") "
         + "AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedSpark = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd hh:mm:ss.SSSSS') " +
-        "FD\nFROM scott.EMP";
+    final String expectedSpark = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd hh:mm:ss.SSSSS') FD\n"
+        + "FROM scott.EMP";
     final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%F %I:%M:%E5S', HIREDATE) AS FD\n"
         + "FROM scott.EMP";
     final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd hh:mm:ss.sssss') FD\n"
@@ -10085,8 +10097,8 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '99991231') AS date1, "
         + "PARSE_TIME('%H%M%S', '122333') AS time1\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT PARSE_DATE('YYYYMMDD', '99991231') date1, " +
-        "PARSE_TIME('HH24MISS', '122333') time1\n"
+    final String expectedSparkQuery = "SELECT PARSE_DATE('YYYYMMDD', '99991231') date1, "
+        + "PARSE_TIME('HH24MISS', '122333') time1\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -10116,7 +10128,7 @@ class RelToSqlConverterTest {
   @Test public void testBigQueryErrorOperator() {
     final RelBuilder builder = relBuilder();
 
-    final SqlFunction ERROR =
+    final SqlFunction errorOperator =
         new SqlFunction("ERROR",
             SqlKind.OTHER_FUNCTION,
             ReturnTypes.VARCHAR_2000,
@@ -10124,15 +10136,17 @@ class RelToSqlConverterTest {
             OperandTypes.STRING_STRING,
             SqlFunctionCategory.SYSTEM);
 
-    final RexNode parseTrimNode = builder.call(ERROR,
+    final RexNode parseTrimNode = builder.call(errorOperator,
         builder.literal("Error Message!"));
     final RelNode root = builder.scan("EMP").
         project(builder.alias(parseTrimNode, "t"))
         .build();
 
-    final String expectedSql = "SELECT ERROR('Error Message!') AS \"t\"\nFROM \"scott\".\"EMP\"";
+    final String expectedSql = "SELECT ERROR('Error Message!') AS \"t\"\n"
+        + "FROM \"scott\".\"EMP\"";
 
-    final String expectedSparkQuery = "SELECT RAISE_ERROR('Error Message!') t\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT RAISE_ERROR('Error Message!') t\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
