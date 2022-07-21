@@ -121,7 +121,7 @@ public class SparkSqlDialect extends SqlDialect {
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
-  private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
+  protected static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
         put(DAYOFMONTH, "dd");
         put(DAYOFYEAR, "ddd");
@@ -161,7 +161,7 @@ public class SparkSqlDialect extends SqlDialect {
    */
   public SparkSqlDialect(SqlDialect.Context context) {
     super(context);
-    emulateNullDirection = true;
+    emulateNullDirection = false;
   }
 
   @Override protected boolean allowsAs() {
