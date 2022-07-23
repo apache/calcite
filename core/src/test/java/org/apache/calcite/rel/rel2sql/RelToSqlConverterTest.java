@@ -3942,6 +3942,16 @@ class RelToSqlConverterTest {
     sql(sql2).withBigQuery().throws_("Only INT64 is supported as the interval value for BigQuery.");
   }
 
+  @Test void testUnparseSqlIntervalQualifierFirebolt() {
+    final String sql = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+
+    final String expect = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE (\"hire_date\" + INTERVAL '10 HOUR')"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql).withFirebolt().ok(expect);
+  }
   @Test void testFloorMysqlWeek() {
     String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"
