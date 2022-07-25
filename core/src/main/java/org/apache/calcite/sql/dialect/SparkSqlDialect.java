@@ -479,7 +479,7 @@ public class SparkSqlDialect extends SqlDialect {
    * @param intervalOperand store_id * INTERVAL 1 DAY
    * @return SqlLiteral INTERVAL 1 DAY
    */
-  private static SqlLiteral getIntervalLiteral(SqlNode intervalOperand) {
+  public static SqlLiteral getIntervalLiteral(SqlNode intervalOperand) {
     if ((((SqlBasicCall) intervalOperand).operand(1).getKind() == SqlKind.IDENTIFIER)
         || (((SqlBasicCall) intervalOperand).operand(1) instanceof SqlNumericLiteral)) {
       return ((SqlBasicCall) intervalOperand).operand(0);
