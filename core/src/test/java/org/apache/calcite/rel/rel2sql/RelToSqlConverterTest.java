@@ -6476,13 +6476,13 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withHive()
-//        .ok(expectedHive)
-//        .withBigQuery()
-//        .ok(expectedBigQuery)
+        .ok(expectedHive)
+        .withBigQuery()
+        .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark);
-//        .withSnowflake()
-//        .ok(expectedSnowflake);
+        .ok(expectedSpark)
+        .withSnowflake()
+        .ok(expectedSnowflake);
   }
 
   @Test public void testIntervalHourToSecond() {
