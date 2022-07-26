@@ -42,7 +42,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
@@ -93,6 +92,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BINARY_DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BINARY_DATE_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
@@ -231,12 +231,12 @@ public class SparkSqlDialect extends SqlDialect {
           return BINARY_DATE_SUB;
         }
         return BINARY_DATE_ADD;
+      case INTERVAL_MONTH:
+        if (call.getOperator() instanceof SqlMonotonicBinaryOperator) {
+          return call.getOperator();
+        }
+        return ADD_MONTHS;
       }
-    case INTERVAL_MONTH:
-      if (call.getOperator() instanceof SqlMonotonicBinaryOperator) {
-        return call.getOperator();
-      }
-      return SqlLibraryOperators.ADD_MONTHS;
     default:
       return super.getTargetFunc(call);
     }
