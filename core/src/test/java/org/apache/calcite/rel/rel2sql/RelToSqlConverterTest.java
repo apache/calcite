@@ -3943,15 +3943,27 @@ class RelToSqlConverterTest {
   }
 
   @Test void testUnparseSqlIntervalQualifierFirebolt() {
-    final String sql = "select  * from \"employee\" where  \"hire_date\" + "
-        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
-
-    final String expect = "SELECT *\n"
+    final String sql0 = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect0 = "SELECT *\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "WHERE (\"hire_date\" + INTERVAL '10 HOUR')"
+        + "WHERE (\"hire_date\" - INTERVAL '19800 SECOND ')"
         + " > TIMESTAMP '2005-10-17 00:00:00'";
-    sql(sql).withFirebolt().ok(expect);
+    sql(sql0).withFirebolt().ok(expect0);
+
+    final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect1 = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE (\"hire_date\" + INTERVAL '10 HOUR ')"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql1).withFirebolt().ok(expect1);
+
+    final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
+    sql(sql2).withFirebolt().throws_("Only INT64 is supported as the interval value for Firebolt.");
   }
+
   @Test void testFloorMysqlWeek() {
     String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"
