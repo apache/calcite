@@ -161,7 +161,7 @@ public class SparkSqlDialect extends SqlDialect {
    */
   public SparkSqlDialect(SqlDialect.Context context) {
     super(context);
-    emulateNullDirection = false;
+    emulateNullDirection = true;
   }
 
   @Override protected boolean allowsAs() {
