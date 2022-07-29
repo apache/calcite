@@ -1723,7 +1723,7 @@ SqlNode SqlMerge() :
     final Span s;
 }
 {
-    <MERGE> { s = span(); } <INTO> table = TableRefWithHintsOpt()
+    (<MERGE_INTO> | <MERGE> { s = span(); } <INTO>) table = TableRefWithHintsOpt()
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
@@ -7666,6 +7666,9 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MEASURES: "MEASURES" >
 |   < MEMBER: "MEMBER" >
 |   < MERGE: "MERGE" > { beforeTableName(); }
+// TODO: I don't fully understand what beforeTableName does. It seems to modify the underlying lexical state somehow?
+// I think the safer option is to ommit it here, but I'm not sure.
+|   < MERGE_INTO: "MERGE_INTO" > //{ beforeTableName(); }
 |   < MESSAGE_LENGTH: "MESSAGE_LENGTH" >
 |   < MESSAGE_OCTET_LENGTH: "MESSAGE_OCTET_LENGTH" >
 |   < MESSAGE_TEXT: "MESSAGE_TEXT" >
