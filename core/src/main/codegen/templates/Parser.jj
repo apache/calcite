@@ -1723,7 +1723,7 @@ SqlNode SqlMerge() :
     final Span s;
 }
 {
-    (<MERGE_INTO> | <MERGE> { s = span(); } <INTO>) table = TableRefWithHintsOpt()
+    (<MERGE_INTO> { s = span(); } | <MERGE> { s = span(); } <INTO>) table = TableRefWithHintsOpt()
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
