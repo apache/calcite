@@ -50,9 +50,9 @@ public class SqlInsert extends SqlCall {
   SqlNodeList keywords;
   SqlNode targetTable;
   SqlNode source;
+  @Nullable SqlNodeList columnList;
 
   SqlNode condition;
-  @Nullable SqlNodeList columnList;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -83,7 +83,7 @@ public class SqlInsert extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(keywords, targetTable, source, columnList);
+    return ImmutableNullableList.of(keywords, targetTable, source, columnList, condition);
   }
 
   /** Returns whether this is an UPSERT statement.
@@ -110,6 +110,9 @@ public class SqlInsert extends SqlCall {
       break;
     case 3:
       columnList = (SqlNodeList) operand;
+      break;
+    case 4:
+      condition = (SqlNode) operand;
       break;
     default:
       throw new AssertionError(i);

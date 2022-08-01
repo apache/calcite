@@ -1293,6 +1293,7 @@ class RelWriterTest {
         TableModify.Operation.INSERT,
         null,
         null,
+        null,
         false);
     String relJson = RelOptUtil.dumpPlan("", modify,
         SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
@@ -1323,6 +1324,7 @@ class RelWriterTest {
         TableModify.Operation.UPDATE,
         ImmutableList.of("ENAME"),
         ImmutableList.of(builder.literal("a")),
+        null,
         false);
     String relJson = RelOptUtil.dumpPlan("", modify,
         SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
@@ -1351,6 +1353,7 @@ class RelWriterTest {
         (Prepare.CatalogReader) filter.getInput(0).getTable().getRelOptSchema(),
         filter,
         TableModify.Operation.DELETE,
+        null,
         null,
         null,
         false);
@@ -1408,6 +1411,7 @@ class RelWriterTest {
         project,
         TableModify.Operation.MERGE,
         ImmutableList.of("ENAME"),
+        null,
         null,
         false);
     String relJson = RelOptUtil.dumpPlan("", modify,
