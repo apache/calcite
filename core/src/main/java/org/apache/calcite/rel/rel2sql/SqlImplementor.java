@@ -119,6 +119,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalProject;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -481,8 +484,9 @@ public abstract class SqlImplementor {
     final String alias4 =
         SqlValidatorUtil.uniquify(
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
+    String tableName = getTableName(alias4, rel);
     final RelDataType rowType = adjustedRowType(rel, node);
-    isTableNameColumnNameIdentical = isTableNameColumnNameIdentical(rowType, alias4);
+    isTableNameColumnNameIdentical = isTableNameColumnNameIdentical(rowType, tableName);
     if (aliases != null
         && !aliases.isEmpty()
         && (!dialect.hasImplicitTableAlias()
@@ -2492,5 +2496,27 @@ public abstract class SqlImplementor {
    * SELECT is set only when there is a NON-TRIVIAL SELECT clause. */
   public enum Clause {
     FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
+  }
+  /**
+   * This methods returns a tableName from relNode.
+   * @param alias4 rel
+   * @return tableName it returns tableName from relNode
+   */
+  private String getTableName(String alias4, RelNode rel) {
+    String tableName = null;
+    if (rel instanceof LogicalFilter || rel instanceof LogicalProject) {
+      if (rel.getInput(0).getTable() != null) {
+        tableName =
+            rel.getInput(0).getTable().getQualifiedName().
+                get(rel.getInput(0).getTable().getQualifiedName().size() - 1);
+      }
+    } else if (rel instanceof LogicalTableScan) {
+      tableName =
+          rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
+
+    } else {
+      tableName = alias4;
+    }
+    return tableName;
   }
 }
