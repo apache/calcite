@@ -440,7 +440,7 @@ public class RelMdColumnUniqueness
    * all equalities that are always True. This is used by Join
    * to help identify when the columns are unique.
    */
-  private static HashSet<RexCall> findCommonEqualities(RexNode cond) {
+  private HashSet<RexCall> findCommonEqualities(RexNode cond) {
     // Note: Hash(RexNode) is equivalent to RexNode.toString().
     HashSet<RexCall> equalityExprs = new HashSet<>();
     if (cond.getKind() == SqlKind.EQUALS) {
