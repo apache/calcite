@@ -39,7 +39,7 @@ class WindowedAggChecker extends SqlBasicVisitor<Void> {
 
   //~ Methods ----------------------------------------------------------------
 
-  private boolean isWindowExpr(SqlCall expr) {
+  private static boolean isWindowExpr(SqlCall expr) {
     return expr.getOperator() instanceof SqlOverOperator;
   }
 

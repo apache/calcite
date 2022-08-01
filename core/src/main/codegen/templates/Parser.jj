@@ -4070,23 +4070,23 @@ SqlNode AtomicRowExpression() :
 }
 {
     (
+    /**
+     * This was needed to resolve some warnings I received while building:
+     *
+     * Warning: Choice conflict involving two expansions at
+     *          line 4033, column 9 and line 4059, column 9 respectively.
+     *          A common prefix is: "DATE"
+     *          Consider using a lookahead of 2 for earlier expansion.
+     * Warning: Choice conflict involving two expansions at
+     *          line 4150, column 13 and line 4152, column 13 respectively.
+     *          A common prefix is: "DATE"
+     *          Consider using a lookahead of 2 for earlier expansion.
+     */
+        LOOKAHEAD(2)
         e = LiteralOrIntervalExpression()
     |
         e = DynamicParam()
     |
-        /**
-         * This was needed to resolve some warnings I received while building:
-         *
-         * Warning: Choice conflict involving two expansions at
-         *          line 4033, column 9 and line 4059, column 9 respectively.
-         *          A common prefix is: "DATE"
-         *          Consider using a lookahead of 2 for earlier expansion.
-         * Warning: Choice conflict involving two expansions at
-         *          line 4150, column 13 and line 4152, column 13 respectively.
-         *          A common prefix is: "DATE"
-         *          Consider using a lookahead of 2 for earlier expansion.
-         */
-        LOOKAHEAD(2)
         e = NamedParam()
     |
         LOOKAHEAD(2)
@@ -4197,6 +4197,19 @@ SqlSetOption SqlSetOption(Span s, String scope) :
         name = CompoundIdentifier()
         <EQ>
         (
+            /**
+             * This was needed to resolve some warnings I received while building:
+             *
+             * Warning: Choice conflict involving two expansions at
+             *          line 4033, column 9 and line 4059, column 9 respectively.
+             *          A common prefix is: "DATE"
+             *          Consider using a lookahead of 2 for earlier expansion.
+             * Warning: Choice conflict involving two expansions at
+             *          line 4150, column 13 and line 4152, column 13 respectively.
+             *          A common prefix is: "DATE"
+             *          Consider using a lookahead of 2 for earlier expansion.
+             */
+            LOOKAHEAD(2)
             val = Literal()
         |
             val = SimpleIdentifier()
