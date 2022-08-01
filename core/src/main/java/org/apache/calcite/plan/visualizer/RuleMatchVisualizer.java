@@ -427,7 +427,7 @@ public class RuleMatchVisualizer implements RelOptListener {
     return "" + rel.getId();
   }
 
-  private String getNodeLabel(final RelNode relNode) {
+  private static String getNodeLabel(final RelNode relNode) {
     if (relNode instanceof RelSubset) {
       final RelSubset relSubset = (RelSubset) relNode;
       String setId = getSetId(relSubset);
@@ -438,7 +438,7 @@ public class RuleMatchVisualizer implements RelOptListener {
     return "#" + relNode.getId() + "-" + relNode.getRelTypeName();
   }
 
-  private String getSetId(final RelSubset relSubset) {
+  private static String getSetId(final RelSubset relSubset) {
     String explanation = getNodeExplanation(relSubset);
     int start = explanation.indexOf("RelSubset") + "RelSubset".length();
     if (start < 0) {
@@ -451,7 +451,7 @@ public class RuleMatchVisualizer implements RelOptListener {
     return explanation.substring(start, end);
   }
 
-  private String getNodeExplanation(final RelNode relNode) {
+  private static String getNodeExplanation(final RelNode relNode) {
     InputExcludedRelWriter relWriter = new InputExcludedRelWriter();
     relNode.explain(relWriter);
     return relWriter.toString();
