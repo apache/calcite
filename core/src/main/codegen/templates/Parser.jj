@@ -1612,7 +1612,7 @@ SqlNode SqlInsert() :
     ]
     source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
         return new SqlInsert(s.end(source), keywordList, table, source,
-            columnList);
+            columnList, null);
     }
 }
 
@@ -1753,10 +1753,43 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
     final SqlNodeList updateColumnList = new SqlNodeList(SqlParserPos.ZERO);
     SqlNode exp;
     final SqlNodeList updateExprList = new SqlNodeList(SqlParserPos.ZERO);
+    SqlNode condition;
 }
 {
-    <WHEN> { s = span(); } <MATCHED> <THEN>
-    <UPDATE> <SET> id = CompoundIdentifier() {
+    <WHEN> { s = span(); } <MATCHED>
+
+    // add condition (if it is present)
+    // The condition can be any valid expression that evaluates to boolen
+    // Specifically:
+    /**
+    * { literal |
+        column_reference |
+        field_reference |
+        parameter_reference |
+        CAST expression |
+        CASE expression |
+        expr operator expr |
+        operator expr |
+        expr [ expr ] |
+        function_invocation |
+        ( expr ) |
+        scalar_subquery }
+
+      scalar_subquery
+        ( query )
+     */
+    // ACCEPT_SUB_QUERY basically just says that any query expression must be parenthesized
+    // IE, it'll accept (SELECT A from ...) but not SELECT A FROM ...
+    // TODO: is there a way that I can require this to be one column/a scalar subquery?
+    // If we look at RowConstructor, we don't do any checks there, so I assume the correct thing to do
+    // is check durring validation.
+    {condition = null;}
+    [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
+
+    <THEN>
+    <UPDATE> <SET>
+
+    id = CompoundIdentifier() {
         updateColumnList.add(id);
     }
     <EQ> exp = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -1773,7 +1806,7 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
     )*
     {
         return new SqlUpdate(s.addAll(updateExprList).pos(), table,
-            updateColumnList, updateExprList, null, null, alias);
+            updateColumnList, updateExprList, condition, null, alias);
     }
 }
 
@@ -1785,9 +1818,19 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
     SqlNodeList insertColumnList = null;
     SqlNode rowConstructor;
     SqlNode insertValues;
+    SqlNode condition;
 }
 {
-    <WHEN> <NOT> <MATCHED> <THEN> <INSERT> {
+    <WHEN> <NOT> <MATCHED>
+
+    // add condition (if it is present)
+    // The condition can be any valid expression that evaluates to boolen
+    // see WhenMatchedClause for explanation
+    {condition = null;}
+    [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
+
+
+    <THEN> <INSERT> {
         insertSpan = span();
     }
     SqlInsertKeywords(keywords) {
@@ -1808,7 +1851,7 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
         insertValues = SqlStdOperatorTable.VALUES.createCall(
             valuesSpan.end(this), rowConstructor);
         return new SqlInsert(insertSpan.end(this), keywordList,
-            table, insertValues, insertColumnList);
+            table, insertValues, insertColumnList, condition);
     }
 }
 
