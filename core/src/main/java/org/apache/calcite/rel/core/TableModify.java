@@ -192,7 +192,7 @@ public abstract class TableModify extends SingleRel {
     return operation;
   }
 
-  public RexNode getCondition() {
+  public @Nullable RexNode getCondition() {
     return condition;
   }
 

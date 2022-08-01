@@ -52,7 +52,7 @@ public class SqlInsert extends SqlCall {
   SqlNode source;
   @Nullable SqlNodeList columnList;
 
-  SqlNode condition;
+  @Nullable SqlNode condition;
 
   //~ Constructors -----------------------------------------------------------
 
