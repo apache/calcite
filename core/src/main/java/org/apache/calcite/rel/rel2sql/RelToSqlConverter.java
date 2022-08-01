@@ -976,7 +976,8 @@ public class RelToSqlConverter extends SqlImplementor
 
       final SqlInsert sqlInsert =
           new SqlInsert(POS, SqlNodeList.EMPTY, sqlTargetTable, sqlSource,
-              identifierList(modify.getTable().getRowType().getFieldNames()));
+              identifierList(modify.getTable().getRowType().getFieldNames()),
+              context.toSql(null, modify.getCondition()));
 
       return result(sqlInsert, ImmutableList.of(), modify, null);
     }
