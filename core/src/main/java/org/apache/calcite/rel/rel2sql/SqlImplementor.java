@@ -2492,13 +2492,19 @@ public abstract class SqlImplementor {
     }
   }
 
-  /** Clauses in a SQL query. Ordered by evaluation order.
-   * SELECT is set only when there is a NON-TRIVIAL SELECT clause. */
+  /**
+   * Clauses in a SQL query. Ordered by evaluation order.
+   * SELECT is set only when there is a NON-TRIVIAL SELECT clause.
+   */
   public enum Clause {
     FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
+
   /**
-   * This methods returns a tableName from relNode.
+   * Method returns a tableName from relNode for PROJECTED Columns and WHERE clause columns
+   * <p>
+   * e.g - SELECT {COLUMN_NAME} FROM TABLE_NAME WHERE {COLUMN_NAME} = 'ABC';
+   *
    * @param alias4 rel
    * @return tableName it returns tableName from relNode
    */
