@@ -32,7 +32,6 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.RavenDistinctProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -2499,28 +2498,41 @@ public abstract class SqlImplementor {
   }
 
   /**
-   * Method returns a tableName from relNode for PROJECTED Columns and WHERE clause columns
-   * <p>
-   * e.g - SELECT {COLUMN_NAME} FROM TABLE_NAME WHERE {COLUMN_NAME} = 'ABC';
+   * Method returns a tableName from relNode.
+   * It covered below cases
+   *
+   * Case 1:- LogicalProject and LogicalFilter
+   * e.g. - SELECT employeeName FROM employeeTable Where employeeLastName = 'ABC';
+   *        * Example contains logicalProject which contains projection in query.
+   *        * Example contains LogicalFilter which contains Where clause in query.
+   *
+   * Case 2:- LogicalTableScan (Table Scan)
+   * e.g. - SELECT * FROM employeeTable
+   *        * Example has LogicalTableScan in relNode
+   *
+   * Case 3 :- Default case
+   *        * SELECT DISTINCT employeeName FROM employeeTable
+   * RavenDistinctProject custom cases needs to handle as required
    *
    * @param alias4 rel
    * @return tableName it returns tableName from relNode
    */
   private String getTableName(String alias4, RelNode rel) {
-    String tableName = null;
+    String tableName = "";
     if (rel instanceof LogicalFilter || rel instanceof LogicalProject) {
       if (rel.getInput(0).getTable() != null) {
         tableName =
             rel.getInput(0).getTable().getQualifiedName().
                 get(rel.getInput(0).getTable().getQualifiedName().size() - 1);
       }
-    } else if (rel instanceof LogicalTableScan) {
-      tableName =
-          rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
-
-    } else {
-      tableName = alias4;
     }
+//    else if (rel instanceof LogicalTableScan) {
+//      tableName =
+//          rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
+//
+//    } else {
+//      tableName = alias4;
+//    }
     return tableName;
   }
 }
