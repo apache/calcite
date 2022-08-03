@@ -32,6 +32,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.RavenDistinctProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -2526,13 +2527,13 @@ public abstract class SqlImplementor {
                 get(rel.getInput(0).getTable().getQualifiedName().size() - 1);
       }
     }
-//    else if (rel instanceof LogicalTableScan) {
-//      tableName =
-//          rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
-//
-//    } else {
-//      tableName = alias4;
-//    }
+    else if (rel instanceof LogicalTableScan) {
+      tableName =
+          rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
+
+    } else {
+      tableName = alias4;
+    }
     return tableName;
   }
 }
