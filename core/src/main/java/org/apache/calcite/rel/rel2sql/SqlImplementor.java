@@ -2519,7 +2519,7 @@ public abstract class SqlImplementor {
    * @return tableName it returns tableName from relNode
    */
   private String getTableName(String alias4, RelNode rel) {
-    String tableName = "";
+    String tableName = null;
     if (rel instanceof LogicalFilter || rel instanceof LogicalProject) {
       if (rel.getInput(0).getTable() != null) {
         tableName =
