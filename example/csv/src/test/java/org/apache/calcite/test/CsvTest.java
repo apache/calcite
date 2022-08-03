@@ -587,7 +587,7 @@ class CsvTest {
         .returns("NAME=Alice").ok();
     sql("smart", sql + range(130, threshold))
         .returns("NAME=Alice").ok();
-    sql("smart", sql + range(130, threshold + 1000))
+    sql("smart", sql + range(130, threshold + 500))
         .returns("NAME=Alice").ok();
   }
 
