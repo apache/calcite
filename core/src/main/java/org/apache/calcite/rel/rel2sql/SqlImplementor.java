@@ -2501,18 +2501,18 @@ public abstract class SqlImplementor {
   /**
    * Method returns a tableName from relNode.
    * It covered below cases
-   *
+   * <p>
    * Case 1:- LogicalProject and LogicalFilter
    * e.g. - SELECT employeeName FROM employeeTable Where employeeLastName = 'ABC';
-   *        * Example contains logicalProject which contains projection in query.
-   *        * Example contains LogicalFilter which contains Where clause in query.
-   *
+   * * Example contains logicalProject which contains projection in query.
+   * * Example contains LogicalFilter which contains Where clause in query.
+   * <p>
    * Case 2:- LogicalTableScan (Table Scan)
    * e.g. - SELECT * FROM employeeTable
-   *        * Example has LogicalTableScan in relNode
-   *
+   * * Example has LogicalTableScan in relNode
+   * <p>
    * Case 3 :- Default case
-   *        * SELECT DISTINCT employeeName FROM employeeTable
+   * * SELECT DISTINCT employeeName FROM employeeTable
    * RavenDistinctProject custom cases needs to handle as required
    *
    * @param alias4 rel
@@ -2526,8 +2526,7 @@ public abstract class SqlImplementor {
             rel.getInput(0).getTable().getQualifiedName().
                 get(rel.getInput(0).getTable().getQualifiedName().size() - 1);
       }
-    }
-    else if (rel instanceof LogicalTableScan) {
+    } else if (rel instanceof LogicalTableScan) {
       tableName =
           rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
 
