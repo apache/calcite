@@ -2492,10 +2492,8 @@ public abstract class SqlImplementor {
     }
   }
 
-  /**
-   * Clauses in a SQL query. Ordered by evaluation order.
-   * SELECT is set only when there is a NON-TRIVIAL SELECT clause.
-   */
+  /** Clauses in a SQL query. Ordered by evaluation order.
+   * SELECT is set only when there is a NON-TRIVIAL SELECT clause. */
   public enum Clause {
     FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
