@@ -2500,25 +2500,28 @@ public abstract class SqlImplementor {
 
   /**
    * Method returns a tableName from relNode.
-   * It covered below cases
+   * It covers below cases
    * <p>
-   * Case 1:- LogicalProject and LogicalFilter
-   * e.g. - SELECT employeeName FROM employeeTable Where employeeLastName = 'ABC';
-   * * Example contains logicalProject which contains projection in query.
-   * * Example contains LogicalFilter which contains Where clause in query.
+   * Case 1:- LogicalProject OR LogicalFilter
+   * * e.g. - SELECT employeeName FROM employeeTable;
+   * * e.g. - SELECT * FROM employeeTable Where employeeLastName = 'ABC';
+   * * e.g. - SELECT employeeName FROM employeeTable Where employeeLastName = 'ABC';
+   * * Query contains Projection and Filter. Here the method will return 'employeeTable'.
    * <p>
    * Case 2:- LogicalTableScan (Table Scan)
-   * e.g. - SELECT * FROM employeeTable
-   * * Example has LogicalTableScan in relNode
+   * * e.g. - SELECT * FROM employeeTable
+   * * Query contains TableScan. Here the method will return 'employeeTable'.
    * <p>
    * Case 3 :- Default case
-   * * SELECT DISTINCT employeeName FROM employeeTable
-   * RavenDistinctProject custom cases needs to handle as required
+   * Currently this case is invoked for below query.
+   * * e.g. - SELECT DISTINCT employeeName FROM employeeTable
+   * * e.g. - SELECT 0 as ZERO
+   * * Method will return alias.
    *
-   * @param alias4 rel
+   * @param alias rel
    * @return tableName it returns tableName from relNode
    */
-  private String getTableName(String alias4, RelNode rel) {
+  private String getTableName(String alias, RelNode rel) {
     String tableName = null;
     if (rel instanceof LogicalFilter || rel instanceof LogicalProject) {
       if (rel.getInput(0).getTable() != null) {
@@ -2531,7 +2534,7 @@ public abstract class SqlImplementor {
           rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
 
     } else {
-      tableName = alias4;
+      tableName = alias;
     }
     return tableName;
   }
