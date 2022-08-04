@@ -3123,7 +3123,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Disabled("CALCITE-985")
+//  @Disabled("CALCITE-985")
   @Test void testMerge() {
     final String sql = "merge into emp as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
@@ -3136,8 +3136,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Disabled("CALCITE-985")
+//  @Disabled("CALCITE-985")
   @Test void testMergeInto() {
+    final String sql = "merge_into emp as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.empno = source.empno\n"
+        + "when matched then\n"
+        + "  update set sal = sal + source.sal\n"
+        + "when not matched then\n"
+        + "  insert (empno, deptno, sal)\n"
+        + "  values (source.empno, source.deptno, source.sal)";
+    sql(sql).ok();
+  }
+
+  @Test void testMergeIntoCondition() {
     final String sql = "merge_into emp as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.empno = source.empno\n"
