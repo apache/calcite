@@ -111,6 +111,8 @@ import java.util.stream.IntStream;
 
 import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -1123,7 +1125,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) rnk\n"
         + "FROM foodmart.employee) t";
     final String expectedSpark = "SELECT MAX(rnk) rnk1\n"
-        + "FROM (SELECT RANK() OVER (ORDER BY hire_date IS NULL, hire_date) rnk\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) rnk\n"
         + "FROM foodmart.employee) t";
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
         + "FROM (SELECT RANK() OVER (ORDER BY hire_date IS NULL, hire_date) AS rnk\n"
@@ -1156,7 +1158,7 @@ class RelToSqlConverterTest {
         + " THEN 100 ELSE 200 END rnk\n"
         + "FROM foodmart.employee) t";
     final String expectedSpark = "SELECT MAX(rnk) rnk1\n"
-        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date IS NULL, hire_date)) = 1 "
+        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date NULLS LAST)) = 1 "
         + "THEN 100 ELSE 200 END rnk\n"
         + "FROM foodmart.employee) t";
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
@@ -2359,12 +2361,15 @@ class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    final String expectedSpark = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id DESC NULLS FIRST";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
     sql(query)
         .withSpark()
-        .ok(expected)
+        .ok(expectedSpark)
         .withHive()
         .ok(expected)
         .withBigQuery()
@@ -2410,12 +2415,14 @@ class RelToSqlConverterTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
+    final String expectedSpark = "SELECT product_id\nFROM foodmart.product\n"
+        + "ORDER BY product_id NULLS LAST";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     sql(query)
         .withSpark()
-        .ok(expected)
+        .ok(expectedSpark)
         .withHive()
         .ok(expected)
         .withBigQuery()
@@ -7077,6 +7084,13 @@ class RelToSqlConverterTest {
         + "FROM (SELECT first_name, department_id, COUNT(*) department_id_number\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY first_name, department_id) t0";
+    final String expectedSpark = "SELECT first_name, department_id_number, ROW_NUMBER() "
+        + "OVER (ORDER BY department_id NULLS LAST), SUM(department_id) "
+        + "OVER (ORDER BY department_id NULLS LAST "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM (SELECT first_name, department_id, COUNT(*) department_id_number\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY first_name, department_id) t0";
     final String expectedBQ = "SELECT first_name, department_id_number, "
         + "ROW_NUMBER() OVER (ORDER BY department_id IS NULL, department_id), SUM(department_id) "
         + "OVER (ORDER BY department_id IS NULL, department_id "
@@ -7101,7 +7115,7 @@ class RelToSqlConverterTest {
       .withHive()
       .ok(expected)
       .withSpark()
-      .ok(expected)
+      .ok(expectedSpark)
       .withBigQuery()
       .ok(expectedBQ)
       .withSnowflake()
@@ -10150,5 +10164,33 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testTrue() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trueRexNode = builder.call(TRUE);
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(trueRexNode, "dm"))
+        .build();
+    final String expectedSql = "SELECT TRUE() AS \"dm\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TRUE  AS dm\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testFalse() {
+    final RelBuilder builder = relBuilder();
+    final RexNode falseRexNode = builder.call(FALSE);
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(falseRexNode, "dm"))
+        .build();
+    final String expectedSql = "SELECT FALSE() AS \"dm\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FALSE  AS dm\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
