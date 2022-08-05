@@ -390,6 +390,20 @@ public abstract class SqlImplementor {
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
+    case IS_NOT_TRUE:
+    case IS_TRUE:
+      if (!dialect.getConformance().allowIsTrue()) {
+        SqlOperator op1 = dialect.getTargetFunc((RexCall) node);
+        if (op1 != ((RexCall) node).op) {
+          RexNode operand = ((RexCall) node).operands.get(0);
+          SqlNode nodes = leftContext.implementor().joinContext(leftContext, rightContext)
+              .toSql(null, operand);
+          return op1.createCall(POS, ((SqlCall) nodes).getOperandList());
+        }
+      }
+      List<SqlNode> nodes = leftContext.implementor().joinContext(leftContext, rightContext)
+          .toSql(null, ((RexCall) node).getOperands());
+      return ((RexCall) node).getOperator().createCall(new SqlNodeList(nodes, POS));
     default:
       throw new AssertionError(node);
     }

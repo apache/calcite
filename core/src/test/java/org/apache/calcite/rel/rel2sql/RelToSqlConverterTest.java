@@ -10193,4 +10193,23 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test void testFilterWithInnerJoinGivingIsNotTrueError() {
+    String query = "SELECT * FROM  \n"
+        + "\"foodmart\".\"employee\" E1\n"
+        + "INNER JOIN\n"
+        + "\"foodmart\".\"employee\" E2\n"
+        + "ON CASE WHEN E1.\"employee_id\" = 0 THEN E1.\"employee_id\" <> 12 "
+        + "ELSE E1.\"employee_id\" = E2.\"employee_id\" END";
+
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.employee AS employee0 ON employee.employee_id = 0 AND employee.employee_id <> 12 OR employee.employee_id = employee0.employee_id AND employee.employee_id <> 0";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
 }
