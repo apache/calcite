@@ -200,7 +200,8 @@ public class CodeGenerationBenchmark {
 
     }
 
-    Bindable compile(EnumerableRel plan, String className, String code) throws CompileException, IOException {
+    Bindable compile(EnumerableRel plan, String className, String code)
+        throws CompileException, IOException {
       final StringReader stringReader = new StringReader(code);
       IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
       cbe.setClassName(className);
