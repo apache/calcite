@@ -52,9 +52,7 @@ public abstract class SemiJoinRule
     implements TransformationRule {
   private static boolean isJoinTypeSupported(Join join) {
     final JoinRelType type = join.getJoinType();
-    return type == JoinRelType.INNER
-        || type == JoinRelType.LEFT
-        || type == JoinRelType.SEMI;
+    return type == JoinRelType.INNER || type == JoinRelType.LEFT;
   }
 
   /**
@@ -101,7 +99,6 @@ public abstract class SemiJoinRule
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(left);
     switch (join.getJoinType()) {
-    case SEMI:
     case INNER:
       final List<Integer> newRightKeyBuilder = new ArrayList<>();
       final List<Integer> aggregateKeys = aggregate.getGroupSet().asList();
@@ -268,6 +265,12 @@ public abstract class SemiJoinRule
       final RelNode left = call.rel(2);
       final RelNode right = call.rel(3);
 
+      // Same with ProjectToSemiJoinRule
+      if (right instanceof Aggregate) {
+        perform(call, project, join, left, (Aggregate) right);
+        return;
+      }
+
       final JoinInfo joinInfo = join.analyzeCondition();
       final RelOptCluster cluster = join.getCluster();
       final RelMetadataQuery mq = cluster.getMetadataQuery();
@@ -276,7 +279,6 @@ public abstract class SemiJoinRule
         final RelBuilder builder = call.builder();
         switch (join.getJoinType()) {
         case INNER:
-        case SEMI:
           builder.push(left);
           builder.push(right);
           builder.join(JoinRelType.SEMI, join.getCondition());
