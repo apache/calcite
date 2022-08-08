@@ -946,7 +946,7 @@ public abstract class SqlUtil {
   /**
    * Creates the type of an {@link org.apache.calcite.util.NlsString}.
    *
-   * <p>The type inherits the The NlsString's {@link Charset} and
+   * <p>The type inherits the NlsString's {@link Charset} and
    * {@link SqlCollation}, if they are set, otherwise it gets the system
    * defaults.
    *
