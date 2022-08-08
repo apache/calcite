@@ -93,12 +93,12 @@ public class ViewTable
     return viewSql;
   }
 
-  /** Returns the the schema path of the view. */
+  /** Returns the schema path of the view. */
   public List<String> getSchemaPath() {
     return schemaPath;
   }
 
-  /** Returns the the path of the view. */
+  /** Returns the path of the view. */
   public @Nullable List<String> getViewPath() {
     return viewPath;
   }
