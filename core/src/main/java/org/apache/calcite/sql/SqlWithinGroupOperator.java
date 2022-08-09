@@ -19,9 +19,13 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
@@ -62,12 +66,13 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
     assert call.operandCount() == 2;
+
     final SqlValidatorUtil.FlatAggregate flat = SqlValidatorUtil.flatten(call);
-    if (!flat.aggregateCall.getOperator().isAggregator()) {
-      throw validator.newValidationError(call,
-          RESOURCE.withinGroupNotAllowed(
-              flat.aggregateCall.getOperator().getName()));
+    final SqlOperator operator = flat.aggregateCall.getOperator();
+    if (!operator.isAggregator()) {
+      throw validator.newValidationError(call, RESOURCE.withinGroupNotAllowed(operator.getName()));
     }
+
     for (SqlNode order : Objects.requireNonNull(flat.orderList)) {
       Objects.requireNonNull(validator.deriveType(scope, order));
     }
@@ -79,7 +84,49 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    // Validate type of the inner aggregate call
-    return validateOperands(validator, scope, call);
+
+    SqlCall inner = call.operand(0);
+    final SqlOperator operator = inner.getOperator();
+    if (!operator.isAggregator()) {
+      throw validator.newValidationError(call, RESOURCE.withinGroupNotAllowed(operator.getName()));
+    }
+
+    if (inner.getOperator().getKind() == SqlKind.PERCENTILE_DISC) {
+      // We first check the percentile call operands, and then derive the correct type using
+      // PercentileDiscCallBinding (See CALCITE-5230).
+      SqlCallBinding opBinding =
+          new PercentileDiscCallBinding(validator, scope, inner, getCollationColumn(call));
+      inner.getOperator().checkOperandTypes(opBinding, true);
+      RelDataType ret = inner.getOperator().inferReturnType(opBinding);
+      validator.setValidatedNodeType(inner, ret);
+      return ret;
+    } else {
+      return validateOperands(validator, scope, call);
+    }
+  }
+
+  private SqlNode getCollationColumn(SqlCall call) {
+    return ((SqlNodeList) call.operand(1)).get(0);
+  }
+
+  /**
+   * Used for PERCENTILE_DISC return type inference.
+   */
+  public static class PercentileDiscCallBinding extends SqlCallBinding {
+    private final SqlNode collationColumn;
+
+    private PercentileDiscCallBinding(SqlValidator validator,
+        @Nullable SqlValidatorScope scope,
+        SqlCall call,
+        SqlNode collation) {
+      super(validator, scope, call);
+      this.collationColumn = collation;
+    }
+
+    @Override public RelDataType getCollationType() {
+      final RelDataType type = SqlTypeUtil.deriveType(this, collationColumn);
+      final SqlValidatorNamespace namespace = super.getValidator().getNamespace(collationColumn);
+      return namespace != null ? namespace.getType() : type;
+    }
   }
 }

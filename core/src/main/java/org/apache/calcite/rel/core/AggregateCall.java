@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Optionality;
@@ -428,6 +429,14 @@ public class AggregateCall {
       Aggregate aggregateRelBase) {
     final RelDataType rowType = aggregateRelBase.getInput().getRowType();
 
+    if (aggFunction.getKind() == SqlKind.PERCENTILE_DISC) {
+      assert collation.getKeys().size() == 1;
+      return new Aggregate.PercentileDiscAggCallBinding(
+          aggregateRelBase.getCluster().getTypeFactory(), aggFunction,
+          SqlTypeUtil.projectTypes(rowType, argList),
+          SqlTypeUtil.projectTypes(rowType, collation.getKeys()).get(0),
+          aggregateRelBase.getGroupCount(), hasFilter());
+    }
     return new Aggregate.AggCallBinding(
         aggregateRelBase.getCluster().getTypeFactory(), aggFunction,
         SqlTypeUtil.projectTypes(rowType, argList),

@@ -7684,7 +7684,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp\n"
         + "group by deptno";
     sql(sql)
-        .type("RecordType(DOUBLE NOT NULL C, DOUBLE NOT NULL D) NOT NULL");
+        .type("RecordType(DOUBLE NOT NULL C, INTEGER NOT NULL D) NOT NULL");
   }
 
   /** Tests that {@code PERCENTILE_CONT} only allows numeric fields. */
