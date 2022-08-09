@@ -1723,11 +1723,7 @@ SqlNode SqlMerge() :
     final Span s;
 }
 {
-<<<<<<< HEAD
-    (<MERGE_INTO> { s = span(); } | <MERGE> { s = span(); } <INTO>) table = TableRefWithHintsOpt()
-=======
     (<MERGE_INTO> { s = span(); } | (<MERGE> { s = span(); } <INTO>)) table = TableRefWithHintsOpt()
->>>>>>> bodo-calcite-1.30.0-dev
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
