@@ -4326,13 +4326,22 @@ public class SqlParserTest {
   }
 
   @Test void testMergeSelectSource() {
-    final String sql = "merge into emps e "
+    final String sql1 = "merge into emps e "
         + "using (select * from tempemps where deptno is null) t "
         + "on e.empno = t.empno "
         + "when matched then update "
         + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
         + "when not matched then insert (name, dept, salary) "
         + "values(t.name, 10, t.salary * .15)";
+
+    final String sql2 = "merge_into emps e "
+        + "using (select * from tempemps where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+
     final String expected = "MERGE INTO `EMPS` AS `E`\n"
         + "USING (SELECT *\n"
         + "FROM `TEMPEMPS`\n"
@@ -4343,19 +4352,31 @@ public class SqlParserTest {
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
-    sql(sql).ok(expected)
+    sql(sql1).ok(expected)
+        .node(not(isDdl()));
+
+    sql(sql2).ok(expected)
         .node(not(isDdl()));
   }
 
   /** Same as testMergeSelectSource but set with compound identifier. */
   @Test void testMergeSelectSource2() {
-    final String sql = "merge into emps e "
+    final String sql1 = "merge into emps e "
         + "using (select * from tempemps where deptno is null) t "
         + "on e.empno = t.empno "
         + "when matched then update "
         + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
         + "when not matched then insert (name, dept, salary) "
         + "values(t.name, 10, t.salary * .15)";
+
+    final String sql2 = "merge into emps e "
+        + "using (select * from tempemps where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+
     final String expected = "MERGE INTO `EMPS` AS `E`\n"
         + "USING (SELECT *\n"
         + "FROM `TEMPEMPS`\n"
@@ -4366,18 +4387,30 @@ public class SqlParserTest {
         + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
-    sql(sql).ok(expected)
+    sql(sql1).ok(expected)
+        .node(not(isDdl()));
+
+    sql(sql2).ok(expected)
         .node(not(isDdl()));
   }
 
   @Test void testMergeTableRefSource() {
-    final String sql = "merge into emps e "
+    final String sql1 = "merge into emps e "
         + "using tempemps as t "
         + "on e.empno = t.empno "
         + "when matched then update "
         + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
         + "when not matched then insert (name, dept, salary) "
         + "values(t.name, 10, t.salary * .15)";
+
+    final String sql2 = "merge into emps e "
+        + "using tempemps as t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+
     final String expected = "MERGE INTO `EMPS` AS `E`\n"
         + "USING `TEMPEMPS` AS `T`\n"
         + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
@@ -4386,18 +4419,29 @@ public class SqlParserTest {
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
-    sql(sql).ok(expected);
+
+    sql(sql1).ok(expected);
+    sql(sql2).ok(expected);
   }
 
   /** Same with testMergeTableRefSource but set with compound identifier. */
   @Test void testMergeTableRefSource2() {
-    final String sql = "merge into emps e "
+    final String sql1 = "merge into emps e "
         + "using tempemps as t "
         + "on e.empno = t.empno "
         + "when matched then update "
         + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
         + "when not matched then insert (name, dept, salary) "
         + "values(t.name, 10, t.salary * .15)";
+
+    final String sql2 = "merge into emps e "
+        + "using tempemps as t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+
     final String expected = "MERGE INTO `EMPS` AS `E`\n"
         + "USING `TEMPEMPS` AS `T`\n"
         + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
@@ -4406,7 +4450,8 @@ public class SqlParserTest {
         + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
-    sql(sql).ok(expected);
+    sql(sql1).ok(expected);
+    sql(sql2).ok(expected);
   }
 
   @Test void testBitStringNotImplemented() {
@@ -9689,7 +9734,7 @@ public class SqlParserTest {
   }
 
   @Test void testTableHintsInMerge() {
-    final String sql = "merge into emps\n"
+    final String sql1 = "merge into emps\n"
         + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */ e\n"
         + "using tempemps as t\n"
         + "on e.empno = t.empno\n"
@@ -9697,6 +9742,15 @@ public class SqlParserTest {
         + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
         + "when not matched then insert (name, dept, salary)\n"
         + "values(t.name, 10, t.salary * .15)";
+    final String sql2 = "merge into emps\n"
+        + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */ e\n"
+        + "using tempemps as t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
+        + "when not matched then insert (name, dept, salary)\n"
+        + "values(t.name, 10, t.salary * .15)";
+
     final String expected = "MERGE INTO `EMPS`\n"
         + "/*+ `PROPERTIES`(`K1` = 'v1', `K2` = 'v2'), "
         + "`INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */ "
@@ -9708,7 +9762,8 @@ public class SqlParserTest {
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
-    sql(sql).ok(expected);
+    sql(sql1).ok(expected);
+    sql(sql2).ok(expected);
   }
 
   @Test void testHintThroughShuttle() {

@@ -336,7 +336,6 @@ public class PlannerImpl implements Planner, ViewExpander {
         catalogReader,
         getTypeFactory(),
         sqlValidatorConfig
-            .withDefaultNullCollation(connectionConfig.defaultNullCollation())
             .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
             .withConformance(connectionConfig.conformance())
             .withIdentifierExpansion(true));

@@ -1723,7 +1723,11 @@ SqlNode SqlMerge() :
     final Span s;
 }
 {
+<<<<<<< HEAD
     (<MERGE_INTO> { s = span(); } | <MERGE> { s = span(); } <INTO>) table = TableRefWithHintsOpt()
+=======
+    (<MERGE_INTO> { s = span(); } | (<MERGE> { s = span(); } <INTO>)) table = TableRefWithHintsOpt()
+>>>>>>> bodo-calcite-1.30.0-dev
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
@@ -7723,9 +7727,16 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MEASURES: "MEASURES" >
 |   < MEMBER: "MEMBER" >
 |   < MERGE: "MERGE" > { beforeTableName(); }
-// TODO: I don't fully understand what beforeTableName does. It seems to modify the underlying lexical state somehow?
-// I think the safer option is to ommit it here, but I'm not sure.
-|   < MERGE_INTO: "MERGE_INTO" > //{ beforeTableName(); }
+// beforeTableName apears to switch the lexical state such that the types of identifiers expected are more lenient.
+// Specifically, switches from BQID to BQHID, described below:
+// BQID:    Identifiers are enclosed in back-ticks, escaped using backslash,
+//         e.g. `My \`Quoted\` Identifier`,
+//         and with the potential to shift into BQHID in contexts where table
+//         names are expected, and thus allow hyphen-separated identifiers as
+//         part of table names
+//  BQHID:   Identifiers are enclosed in back-ticks, escaped using backslash,
+//         e.g. `My \`Quoted\` Identifier`
+|   < MERGE_INTO: "MERGE_INTO" > { beforeTableName(); }
 |   < MESSAGE_LENGTH: "MESSAGE_LENGTH" >
 |   < MESSAGE_OCTET_LENGTH: "MESSAGE_OCTET_LENGTH" >
 |   < MESSAGE_TEXT: "MESSAGE_TEXT" >
