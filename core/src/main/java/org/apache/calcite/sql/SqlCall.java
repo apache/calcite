@@ -114,8 +114,15 @@ public abstract class SqlCall extends SqlNode {
     List<SqlNode> newOperandList = new ArrayList<>();
     List<SqlNode> curOperandList = this.getOperandList();
 
+    SqlNode curNode;
     for (int i = 0; i < curOperandList.size(); i++) {
-      newOperandList.add(curOperandList.get(i).deepCopy(pos));
+      curNode = curOperandList.get(i);
+      if (curNode == null) {
+        newOperandList.add(null);
+      }
+      else {
+        newOperandList.add(curOperandList.get(i).deepCopy(pos));
+      }
     }
 
     if (pos == null) {
