@@ -216,6 +216,14 @@ public abstract class SqlOperatorBinding {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
+
+  /**
+   * Returns the collation type.
+   */
+  public RelDataType getCollationType() {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * Collects the types of the bound operands into a list.
    *
