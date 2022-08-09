@@ -3127,12 +3127,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testMerge() {
     final String sql = "merge into emp as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
-        + "on target.empno = source.empno\n"
-        + "when matched then\n"
-        + "  update set sal = sal + source.sal\n"
+        + "on target.sal = source.sal\n"
+//        + "when matched then\n"
+//        + "  update set sal = target.sal + source.sal\n"
+//        + "when not matched then\n"
+//        + "  insert (empno, deptno, sal)\n"
+//        + "  values (source.empno, source.deptno + target.deptno, source.sal + target.sal)";
         + "when not matched then\n"
-        + "  insert (empno, deptno, sal)\n"
-        + "  values (source.empno, source.deptno, source.sal)";
+        + "  insert (empno)\n"
+        + "  values (1)";
     sql(sql).ok();
   }
 
@@ -3146,6 +3149,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "when not matched then\n"
         + "  insert (empno, deptno, sal)\n"
         + "  values (source.empno, source.deptno, source.sal)";
+    sql(sql).ok();
+  }
+
+  @Test void testFoo() {
+    final String sql = "SELECT *\n"
+        +
+        "FROM (SELECT *\n"
+        +
+        "FROM emp\n"
+        +
+        "WHERE deptno = 30) AS SOURCE\n"
+        +
+        "LEFT JOIN EMP AS TARGET ON TARGET.SAL = SOURCE.SAL";
     sql(sql).ok();
   }
 

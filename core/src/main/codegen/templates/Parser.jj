@@ -1783,6 +1783,7 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
     // TODO: is there a way that I can require this to be one column/a scalar subquery?
     // If we look at RowConstructor, we don't do any checks there, so I assume the correct thing to do
     // is check durring validation.
+    // NOTE: conversion to scalar subquerry happens in registerOperandSubQueries. Can that be modified?
     {condition = null;}
     [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
 
