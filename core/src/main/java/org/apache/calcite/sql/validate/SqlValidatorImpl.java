@@ -1546,7 +1546,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode sourceTableRef = call.getSourceTableRef();
     SqlInsert insertCall = call.getInsertCall();
     JoinType joinType = (insertCall == null) ? JoinType.INNER : JoinType.LEFT;
-    final SqlNode leftJoinTerm = SqlNode.clone(sourceTableRef);
+    // In this case, it's ok to keep the original pos, but we need to deep copy so that
+    // all of the sub nodes are different java objects, otherwise we get issues later durring
+    // validation (scopes, clauseScopes, and namespaces fields for the validator can conflict)
+    final SqlNode leftJoinTerm = sourceTableRef.deepCopy(null);
     SqlNode outerJoin =
         new SqlJoin(SqlParserPos.ZERO,
             leftJoinTerm,
@@ -1578,6 +1581,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               null, null, null, null, null, null, null, null);
       insertCall.setSource(select);
     }
+    System.out.println("");
   }
 
   private SqlNode rewriteUpdateToMerge(
@@ -2237,7 +2241,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable String alias,
       SqlValidatorNamespace ns,
       boolean forceNullable) {
-    namespaces.put(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+    final SqlValidatorNamespace prevNamespace = namespaces.put(
+        requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+
+    //TODO: delete this after I'm done debuging
+    final SqlParserPos debugParserPos = new SqlParserPos(2, 8, 2, 42);
+    if (prevNamespace != null || ns.getNode().getParserPosition().equals(debugParserPos)) {
+      System.out.println("");
+    }
+
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
           + ", so alias must not be null";
@@ -2744,10 +2756,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> operands;
     switch (node.getKind()) {
     case SELECT:
+      // NOTE: there is a case where we want to not create a new namespace/scope for the select.
+      // For merge into, if we have a "when not matched" clause, the "when not matched" clause will
+      // contain the exact same select statement that is found in the source select.
+      // In this case, the select statement will already be registered with the validator,
+      // and we need to reuse the existing registration.
+      // TODO: does this break any of the existing tests?
+
       final SqlSelect select = (SqlSelect) node;
-      final SelectNamespace selectNs =
-          createSelectNamespace(select, enclosingNode);
-      registerNamespace(usingScope, alias, selectNs, forceNullable);
+      final SqlValidatorNamespace registeredSelectNs = getNamespace(select);
+
+      if (registeredSelectNs == null) {
+        final SelectNamespace selectNs = createSelectNamespace(select, enclosingNode);
+        registerNamespace(usingScope, alias, selectNs, forceNullable);
+      } else {
+        System.out.println("");
+      }
+
+      //TODO: do I need to avoid remaking these scopes too?
       final SqlValidatorScope windowParentScope =
           (usingScope != null) ? usingScope : parentScope;
       SelectScope selectScope =
@@ -3018,6 +3044,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             null,
             false);
       }
+      System.out.println("");
       break;
 
     case UNNEST:

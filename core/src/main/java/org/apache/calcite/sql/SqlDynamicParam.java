@@ -51,6 +51,13 @@ public class SqlDynamicParam extends SqlNode {
     return new SqlDynamicParam(index, pos);
   }
 
+  @Override public SqlNode deepCopy(SqlParserPos pos) {
+    if (pos == null) {
+      pos = this.pos;
+    }
+    return this.clone(pos);
+  }
+
   @Override public SqlKind getKind() {
     return SqlKind.DYNAMIC_PARAM;
   }

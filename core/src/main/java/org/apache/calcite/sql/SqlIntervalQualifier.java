@@ -180,6 +180,13 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
+  @Override public SqlNode deepCopy(SqlParserPos pos) {
+    if (pos == null) {
+      pos = this.pos;
+    }
+    return this.clone(pos);
+  }
+
   @Override public void validate(
       SqlValidator validator,
       SqlValidatorScope scope) {

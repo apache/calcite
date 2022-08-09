@@ -3123,17 +3123,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Disabled("CALCITE-985")
+//  @Disabled("CALCITE-985")
   @Test void testMerge() {
-    final String sql = "merge into emp as target\n"
     final String sql = "merge into emp as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-//        + "when matched then\n"
-//        + "  update set sal = target.sal + source.sal\n"
-//        + "when not matched then\n"
-//        + "  insert (empno, deptno, sal)\n"
-//        + "  values (source.empno, source.deptno + target.deptno, source.sal + target.sal)";
+  //        + "when matched then\n"
+  //        + "  update set sal = target.sal + source.sal\n"
+  //        + "when not matched then\n"
+  //        + "  insert (empno, deptno, sal)\n"
+  //        + "  values (source.empno, source.deptno + target.deptno, source.sal + target.sal)";
         + "when not matched then\n"
         + "  insert (empno)\n"
         + "  values (1)";

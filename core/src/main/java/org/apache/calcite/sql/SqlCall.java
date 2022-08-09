@@ -110,6 +110,21 @@ public abstract class SqlCall extends SqlNode {
         getOperandList());
   }
 
+  @Override public SqlCall deepCopy(@Nullable SqlParserPos pos) {
+    List<SqlNode> newOperandList = new ArrayList<>();
+    List<SqlNode> curOperandList = this.getOperandList();
+
+    for (int i = 0; i < curOperandList.size(); i++) {
+      newOperandList.add(curOperandList.get(i).deepCopy(pos));
+    }
+
+    if (pos == null) {
+      pos = this.pos;
+    }
+
+    return getOperator().createCall(getFunctionQuantifier(), pos, newOperandList);
+  }
+
   @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
