@@ -5216,23 +5216,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     RelDataType targetRowType = unknownType;
 
-//    SqlUpdate updateCall = call.getUpdateCall();
-//    if (updateCall != null) {
-//      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
-//      targetRowType = createTargetRowType(
-//          table,
-//          updateCall.getTargetColumnList(),
-//          true);
-//    }
-//    SqlInsert insertCall = call.getInsertCall();
-//    if (insertCall != null) {
-//      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
-//      targetRowType = createTargetRowType(
-//          table,
-//          insertCall.getTargetColumnList(),
-//          false);
-//    }
-//    targetRowType = table.getRowType();
+    SqlUpdate updateCall = call.getUpdateCall();
+    if (updateCall != null) {
+      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
+      targetRowType = createTargetRowType(
+          table,
+          updateCall.getTargetColumnList(),
+          true);
+    }
+    SqlInsert insertCall = call.getInsertCall();
+    if (insertCall != null) {
+      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
+      targetRowType = createTargetRowType(
+          table,
+          insertCall.getTargetColumnList(),
+          false);
+    }
 
 
     /**
@@ -5244,10 +5243,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (updateCallAfterValidate != null) {
       validateUpdate(updateCallAfterValidate);
     }
-//    SqlInsert insertCallAfterValidate = call.getInsertCall();
-//    if (insertCallAfterValidate != null) {
-//      validateInsert(insertCallAfterValidate);
-//    }
+    SqlInsert insertCallAfterValidate = call.getInsertCall();
+    if (insertCallAfterValidate != null) {
+      validateInsert(insertCallAfterValidate);
+    }
   }
 
   /**
