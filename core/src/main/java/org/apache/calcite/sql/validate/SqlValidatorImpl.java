@@ -2243,21 +2243,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorNamespace prevNamespace = namespaces.put(
         requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
 
-//    final String testVal = "SELECT *\n" +
-//        "FROM `EMP` AS `EMP`\n" +
-//        "WHERE `DEPTNO` = 30";
-//    String nodeVal;
-//    try {
-//      nodeVal = ns.getNode().toString();
-//    } catch (Exception e) {
-//      nodeVal = "";
-//    }
     final SqlParserPos debugParserPos = new SqlParserPos(2, 8, 2, 42);
+
     if (prevNamespace != null || ns.getNode().getParserPosition().equals(debugParserPos)) {
       System.out.println("This actually Happened!");
-//      throw new RuntimeException("This actually Happened!");
     }
-
 
 
     if (usingScope != null) {
