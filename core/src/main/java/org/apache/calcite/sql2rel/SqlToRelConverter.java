@@ -4221,6 +4221,11 @@ public class SqlToRelConverter {
       // provided, in which case, the expression is the default value for
       // the column; or if the expressions directly map to the source
       // table
+
+      // The insert may have a filter
+      if (!(insertRel instanceof LogicalProject)) {
+        insertRel = insertRel.getInput(0);
+      }
       level1InsertExprs =
           ((LogicalProject) insertRel.getInput(0)).getProjects();
       if (insertRel.getInput(0).getInput(0) instanceof LogicalProject) {

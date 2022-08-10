@@ -3125,17 +3125,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
 //  @Disabled("CALCITE-985")
   @Test void testMerge() {
-    final String sql = "merge into emp as target\n"
+    final String sql = "merge into empnullables_20 as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
   //        + "when matched then\n"
   //        + "  update set sal = target.sal + source.sal\n"
-  //        + "when not matched then\n"
-  //        + "  insert (empno, deptno, sal)\n"
-  //        + "  values (source.empno, source.deptno + target.deptno, source.sal + target.sal)";
-        + "when not matched then\n"
-        + "  insert (empno)\n"
-        + "  values (1)";
+          + "when not matched then\n"
+          + "  insert (empno, sal, ename)\n"
+          + "  values (source.empno, source.sal, source.ename)";
+//        + "when not matched then\n"
+//        + "  insert (empno)\n"
+//        + "  values (1)";
     sql(sql).ok();
   }
 
@@ -3154,14 +3154,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Disabled("CALCITE-985")
   @Test void testMergeInto() {
-    final String sql = "merge_into emp as target\n"
+    final String sql = "merge_into empnullables_20 as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.empno = source.empno\n"
         + "when matched then\n"
         + "  update set sal = sal + source.sal\n"
         + "when not matched then\n"
-        + "  insert (empno, deptno, sal)\n"
-        + "  values (source.empno, source.deptno, source.sal)";
+        + "  insert (empno, sal)\n"
+        + "  values (source.empno, source.sal)";
     sql(sql).ok();
   }
 
