@@ -265,12 +265,6 @@ public abstract class SemiJoinRule
       final RelNode left = call.rel(2);
       final RelNode right = call.rel(3);
 
-      // Same with ProjectToSemiJoinRule
-      if (right instanceof Aggregate) {
-        perform(call, project, join, left, (Aggregate) right);
-        return;
-      }
-
       final JoinInfo joinInfo = join.analyzeCondition();
       final RelOptCluster cluster = join.getCluster();
       final RelMetadataQuery mq = cluster.getMetadataQuery();
@@ -305,7 +299,9 @@ public abstract class SemiJoinRule
               b.operand(Project.class).oneInput(
                   b2 -> b2.operand(Join.class).predicate(SemiJoinRule::isJoinTypeSupported).inputs(
                       b3 -> b3.operand(RelNode.class).anyInputs(),
-                      b4 -> b4.operand(RelNode.class).anyInputs()
+                      b4 -> b4.operand(RelNode.class)
+                          .predicate(n -> !(n instanceof Aggregate))
+                          .anyInputs()
                   )))
           .as(JoinOnUniqueToSemiJoinRuleConfig.class);
 

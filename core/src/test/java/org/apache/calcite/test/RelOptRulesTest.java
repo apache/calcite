@@ -1145,16 +1145,15 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testSemiJoinRuleRemovesEmptyAggregate() {
+  @Test void testSemiJoinRuleDoNotMatchAggregate() {
     final String sql = "select *\n"
         + "from emp\n"
         + "where exists(select * from dept where emp.deptno = dept.deptno)";
     sql(sql)
         .withDecorrelate(true)
-        .withRule(
-            CoreRules.PROJECT_MERGE,
-            CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
-        .check();
+        .withPreRule(CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
+        .checkUnchanged();
   }
 
   @Test void testSemiJoinRuleWithJoinOnUniqueInput() {
