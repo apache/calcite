@@ -300,6 +300,7 @@ public abstract class SemiJoinRule
                   b2 -> b2.operand(Join.class).predicate(SemiJoinRule::isJoinTypeSupported).inputs(
                       b3 -> b3.operand(RelNode.class).anyInputs(),
                       b4 -> b4.operand(RelNode.class)
+                          // If RHS is Aggregate, it will be covered by ProjectToSemiJoinRule
                           .predicate(n -> !(n instanceof Aggregate))
                           .anyInputs()
                   )))
