@@ -19,10 +19,13 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
@@ -81,6 +84,7 @@ public class AliasNamespace extends AbstractNamespace {
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
     final RelDataType aliasedType;
     if (operands.size() == 2) {
+      final SqlNode node = operands.get(0);
       // Alias is 'AS t' (no column list).
       // If the sub-query is UNNEST or VALUES,
       // and the sub-query has one column,
@@ -90,6 +94,17 @@ public class AliasNamespace extends AbstractNamespace {
             .kind(rowType.getStructKind())
             .add(((SqlIdentifier) operands.get(1)).getSimple(),
                 rowType.getFieldList().get(0).getType())
+            .build();
+        // If the sub-query is UNNEST with ordinality
+        // and the sub-query has two columns: data column, ordinality column
+        // then the namespace's sole column is named after the alias.
+      } else if (node.getKind() == SqlKind.UNNEST && rowType.getFieldCount() == 2
+          && ((SqlUnnestOperator) ((SqlBasicCall) node).getOperator()).withOrdinality) {
+        aliasedType = validator.getTypeFactory().builder()
+            .kind(rowType.getStructKind())
+            .add(((SqlIdentifier) operands.get(1)).getSimple(),
+                rowType.getFieldList().get(0).getType())
+            .add(rowType.getFieldList().get(1))
             .build();
       } else {
         aliasedType = rowType;
