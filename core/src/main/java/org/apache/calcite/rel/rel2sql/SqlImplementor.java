@@ -393,12 +393,12 @@ public abstract class SqlImplementor {
     case IS_NOT_TRUE:
     case IS_TRUE:
       if (!dialect.getConformance().allowIsTrue()) {
-        SqlOperator op1 = dialect.getTargetFunc((RexCall) node);
-        if (op1 != ((RexCall) node).op) {
+        SqlOperator operator = dialect.getTargetFunc((RexCall) node);
+        if (operator != ((RexCall) node).op) {
           RexNode operand = ((RexCall) node).operands.get(0);
           SqlNode nodes = leftContext.implementor().joinContext(leftContext, rightContext)
               .toSql(null, operand);
-          return op1.createCall(POS, ((SqlCall) nodes).getOperandList());
+          return operator.createCall(POS, ((SqlCall) nodes).getOperandList());
         }
       }
       List<SqlNode> nodes = leftContext.implementor().joinContext(leftContext, rightContext)
