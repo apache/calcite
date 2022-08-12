@@ -785,7 +785,7 @@ public class LoptOptimizeJoinRule
     int [][] factorWeights = multiJoin.getFactorWeights();
     for (int factor : BitSets.toIter(factorsToAdd)) {
       // if the factor corresponds to a dimension table whose
-      // join we can remove, make sure the the corresponding fact
+      // join we can remove, make sure the corresponding fact
       // table is in the current join tree
       Integer factIdx = multiJoin.getJoinRemovalFactor(factor);
       if (factIdx != null) {

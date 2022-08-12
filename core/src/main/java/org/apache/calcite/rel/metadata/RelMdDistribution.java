@@ -91,6 +91,11 @@ public class RelMdDistribution
   }
 
   public @Nullable RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {
+    final BuiltInMetadata.Distribution.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Distribution.Handler.class);
+    if (handler != null) {
+      return handler.distribution(scan, mq);
+    }
     return table(scan.getTable());
   }
 

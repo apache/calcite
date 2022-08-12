@@ -1145,6 +1145,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testSemiJoinRuleDoNotMatchAggregate() {
+    final String sql = "select *\n"
+        + "from emp\n"
+        + "where exists(select * from dept where emp.deptno = dept.deptno)";
+    sql(sql)
+        .withDecorrelate(true)
+        .withPreRule(CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
+        .checkUnchanged();
+  }
+
+  @Test void testSemiJoinRuleWithJoinOnUniqueInput() {
+    final String sql = "select *\n"
+        + "from emp\n"
+        + "where exists(select * from dept where emp.deptno = dept.deptno)";
+    sql(sql)
+        .withDecorrelate(true)
+        .withTrim(true)
+        .withRule(CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1495">[CALCITE-1495]
    * SemiJoinRule should not apply to RIGHT and FULL JOIN</a>. */
@@ -1295,6 +1317,40 @@ class RelOptRulesTest extends RelOptTestBase {
             fixture.tester.trimRelNode(
                 fixture.factory.withSqlToRelConfig(c ->
                     c.withTrimUnusedFields(true)), r))
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5169">[CALCITE-5169]
+   * 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'</a>.
+   *
+   * <p>{@code ename <> '' and ename <> '3'} should be simplified to Sarg.
+   */
+  @Test void testExpressionSimplification1() {
+    final String sql = "select * from emp\n"
+        + "where ename <> '' and ename <> '3'";
+    sql(sql)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5169">[CALCITE-5169]
+   * 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'</a>.
+   *
+   * <p>{@code (ename < '' or ename > '') and (ename < '3' or ename > '3')} should be
+   * simplified to Sarg too.
+   * The difference between this and {@link #testExpressionSimplification1()} is
+   * that '<' and '<>' have different
+   * {@link org.apache.calcite.sql.type.SqlOperandTypeChecker.Consistency} which
+   * will lead to different type inference result for literals. These two tests
+   * show that the simplification could handle this case.
+   */
+  @Test void testExpressionSimplification2() {
+    final String sql = "select * from emp\n"
+        + "where (ename < '' or ename > '') and (ename < '3' or ename > '3')";
+    sql(sql)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .check();
   }
 
@@ -2145,6 +2201,122 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.FILTER_TO_CALC,
             CoreRules.PROJECT_TO_CALC,
             CoreRules.CALC_MERGE)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5073">[CALCITE-5073]
+   * JoinConditionPushRule cannot infer 'LHS.C1 = LHS.C2' from
+   * 'LHS.C1 = RHS.C1 AND LHS.C2 = RHS.C1'</a>.
+   */
+  @Test void testJoinConditionPushdown1() {
+    final String sql = "select *\n"
+        + "from emp e1, emp e2, dept d2\n"
+        + "where e1.deptno = d2.deptno and e2.deptno = d2.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5073">[CALCITE-5073]
+   * JoinConditionPushRule cannot infer 'LHS.C1 = LHS.C2' from
+   * 'LHS.C1 = RHS.C1 AND LHS.C2 = RHS.C1'</a>.
+   */
+  @Test void testJoinConditionPushdown2() {
+    final String sql = "select *\n"
+        + "from emp e, dept d\n"
+        + "where e.deptno = d.deptno and e.empno = d.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .check();
+  }
+
+  /** Similar to {@link #testJoinConditionPushdown1()} but full join
+   * from which more equality conditions can not be inferred. */
+  @Test void testJoinConditionPushdown3() {
+    final String sql = "select *\n"
+        + "from emp e full join dept d\n"
+        + "on e.deptno = d.deptno and e.empno = d.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  /** Similar to {@link #testJoinConditionPushdown1()} but semi join
+   * from which more equality conditions can be inferred. */
+  @Test void testJoinConditionPushdown4() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode left = b.scan("EMP")
+          .project(
+              b.field("DEPTNO"),
+              b.field("ENAME"))
+          .build();
+      RelNode right = b.scan("DEPT")
+          .project(
+              b.field("DEPTNO"),
+              b.field("DNAME"))
+          .build();
+
+      b.push(left).push(right);
+
+      RexInputRef ref1 = b.field(2, 0, "DEPTNO");
+      RexInputRef ref2 = b.field(2, 1, "DEPTNO");
+      RexInputRef ref3 = b.field(2, 1, "DNAME");
+
+      RexCall cond1 = (RexCall) b.equals(ref1, ref2);
+      RexCall cond2 = (RexCall) b.equals(ref1, ref3);
+
+      RexNode cond = b.and(cond1, cond2);
+      return b.semiJoin(cond)
+          .project(b.field(0))
+          .build();
+    };
+
+    relFn(relFn)
+        .withRule(
+            CoreRules.JOIN_PUSH_EXPRESSIONS,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.SEMI_JOIN_PROJECT_TRANSPOSE,
+            CoreRules.JOIN_REDUCE_EXPRESSIONS,
+            CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Similar to {@link #testJoinConditionPushdown1()} but left join
+   * from which more equality conditions can not be inferred. */
+  @Test void testJoinConditionPushdown5() {
+    final String sql = "select *\n"
+        + "from emp e left join dept d\n"
+        + "on e.deptno = d.deptno and e.empno = d.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  /** Similar to {@link #testJoinConditionPushdown1()} but right join
+   * from which more equality conditions can be inferred. */
+  @Test void testJoinConditionPushdown6() {
+    final String sql = "select *\n"
+        + "from emp e right join dept d\n"
+        + "on e.deptno = d.deptno and e.empno = d.deptno";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
         .check();
   }
 

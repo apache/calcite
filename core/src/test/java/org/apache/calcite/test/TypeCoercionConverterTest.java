@@ -126,6 +126,24 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4897">[CALCITE-4897]
+   * Set operation in DML, implicit type conversion is not complete</a>. */
+  @Test void testInsertUnionQuerySourceCoercion() {
+    final String sql = "insert into t1 "
+        + "select 'a', 1, 1.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'b', 2, 2,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'c', CAST(3 AS SMALLINT), 3.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'd', 4, 4.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'e', 5, 5.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false";
+    sql(sql).ok();
+  }
+
   @Test void testUpdateQuerySourceCoercion() {
     final String sql = "update t1 set t1_varchar20=123, "
         + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";

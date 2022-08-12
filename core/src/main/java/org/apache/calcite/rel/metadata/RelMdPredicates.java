@@ -149,8 +149,13 @@ public class RelMdPredicates
   /**
    * Infers predicates for a table scan.
    */
-  public RelOptPredicateList getPredicates(TableScan table,
+  public RelOptPredicateList getPredicates(TableScan scan,
       RelMetadataQuery mq) {
+    final BuiltInMetadata.Predicates.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Predicates.Handler.class);
+    if (handler != null) {
+      return handler.getPredicates(scan, mq);
+    }
     return RelOptPredicateList.EMPTY;
   }
 

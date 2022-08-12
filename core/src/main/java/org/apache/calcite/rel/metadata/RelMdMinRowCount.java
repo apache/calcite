@@ -147,7 +147,12 @@ public class RelMdMinRowCount
     return 0D;
   }
 
-  public Double getMinRowCount(TableScan rel, RelMetadataQuery mq) {
+  public @Nullable Double getMinRowCount(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.MinRowCount.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.MinRowCount.Handler.class);
+    if (handler != null) {
+      return handler.getMinRowCount(rel, mq);
+    }
     return 0D;
   }
 

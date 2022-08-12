@@ -76,11 +76,7 @@ public class SqlTestFactory {
           SqlValidator.Config.DEFAULT,
           SqlToRelConverter.CONFIG,
           SqlStdOperatorTable.instance())
-      .withOperatorTable(o -> {
-        MockSqlOperatorTable opTab = new MockSqlOperatorTable(o);
-        MockSqlOperatorTable.addRamp(opTab);
-        return opTab;
-      });
+      .withOperatorTable(o -> MockSqlOperatorTable.of(o).extend());
 
   public final ConnectionFactory connectionFactory;
   public final TypeFactoryFactory typeFactoryFactory;

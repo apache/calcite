@@ -475,6 +475,10 @@ public abstract class RelOptUtil {
    * or {@code newRel} directly if one of them are not {@link Hintable}
    */
   public static RelNode copyRelHints(RelNode originalRel, RelNode newRel, boolean filterHints) {
+    if (originalRel == newRel && !filterHints) {
+      return originalRel;
+    }
+
     if (originalRel instanceof Hintable
         && newRel instanceof Hintable
         && ((Hintable) originalRel).getHints().size() > 0) {

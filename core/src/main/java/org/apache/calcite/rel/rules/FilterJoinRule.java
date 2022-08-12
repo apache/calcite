@@ -27,8 +27,11 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -40,7 +43,9 @@ import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 
@@ -67,7 +72,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
 
   protected void perform(RelOptRuleCall call, @Nullable Filter filter,
       Join join) {
-    final List<RexNode> joinFilters =
+    List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
     final List<RexNode> origJoinFilters = ImmutableList.copyOf(joinFilters);
 
@@ -131,6 +136,10 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
           .equals(Sets.newHashSet(origJoinFilters))) {
         filterPushed = false;
       }
+    }
+
+    if (joinType != JoinRelType.FULL) {
+      joinFilters = inferJoinEqualConditions(joinFilters, join);
     }
 
     // Try to push down filters in ON clause. A ON clause filter can only be
@@ -223,6 +232,135 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
     call.transformTo(relBuilder.build());
+  }
+
+  /**
+   * Infers more equal conditions for the join condition.
+   *
+   * <p> For example, in {@code SELECT * FROM T1, T2, T3 WHERE T1.id = T3.id AND T2.id = T3.id},
+   * we can infer {@code T1.id = T2.id} for the first Join node from second Join node's condition:
+   * {@code T1.id = T3.id AND T2.id = T3.id}.
+   *
+   * <p>For the above SQL, the second Join's condition is {@code T1.id = T3.id AND T2.id = T3.id}.
+   * After inference, the final condition would be: {@code T1.id = T2.id AND T1.id = T3.id}, the
+   * {@code T1.id = T2.id} can be further pushed into LHS.
+   *
+   * @param rexNodes the Join condition
+   * @param join the Join node
+   * @return the newly inferred conditions
+   */
+  protected List<RexNode> inferJoinEqualConditions(List<RexNode> rexNodes, Join join) {
+    final List<RexNode> result = new ArrayList<>(rexNodes.size());
+    final List<Set<RexInputRef>> equalSets = splitEqualSets(rexNodes, result);
+
+    boolean needOptimize = false;
+    for (Set<RexInputRef> set : equalSets) {
+      if (set.size() > 2) {
+        needOptimize = true;
+        break;
+      }
+    }
+    if (!needOptimize) {
+      // Keep the conditions unchanged.
+      return rexNodes;
+    }
+
+    result.addAll(constructConditionFromEqualSets(join, equalSets));
+    return result;
+  }
+
+  /**
+   * Splits out the equal sets.
+   *
+   * @param rexNodes the original conditions
+   * @param leftNodes where the conditions not feasible for equal sets are put
+   * @return the equal sets
+   */
+  private static List<Set<RexInputRef>> splitEqualSets(List<RexNode> rexNodes,
+      List<RexNode> leftNodes) {
+    final List<Set<RexInputRef>> equalSets = new ArrayList<>();
+    for (RexNode rexNode : rexNodes) {
+      if (rexNode.isA(SqlKind.EQUALS)) {
+        final RexNode op1 = ((RexCall) rexNode).getOperands().get(0);
+        final RexNode op2 = ((RexCall) rexNode).getOperands().get(1);
+        if (op1 instanceof RexInputRef && op2 instanceof RexInputRef) {
+          final RexInputRef in1 = (RexInputRef) op1;
+          final RexInputRef in2 = (RexInputRef) op2;
+          Set<RexInputRef> set = null;
+          for (Set<RexInputRef> s : equalSets) {
+            if (s.contains(in1) || s.contains(in2)) {
+              set = s;
+              break;
+            }
+          }
+          if (set == null) {
+            // To make the result deterministic.
+            set = new LinkedHashSet<>();
+            equalSets.add(set);
+          }
+          set.add(in1);
+          set.add(in2);
+        } else {
+          leftNodes.add(rexNode);
+        }
+      } else {
+        leftNodes.add(rexNode);
+      }
+    }
+
+    return equalSets;
+  }
+
+  /**
+   * Constructs new equal conditions from the equal sets.
+   *
+   * @param join the original {@link Join} node
+   * @param equalSets the equal sets
+   * @return the newly constructed conditions from equal sets
+   */
+  private List<RexNode> constructConditionFromEqualSets(Join join,
+      List<Set<RexInputRef>> equalSets) {
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
+    final List<RexNode> result = new ArrayList<>();
+    final int leftFieldCount = join.getLeft().getRowType().getFieldCount();
+    for (Set<RexInputRef> set : equalSets) {
+      final List<RexInputRef> leftSet = new ArrayList<>();
+      final List<RexInputRef> rightSet = new ArrayList<>();
+      for (RexInputRef ref : set) {
+        if (ref.getIndex() < leftFieldCount) {
+          leftSet.add(ref);
+        } else {
+          rightSet.add(ref);
+        }
+      }
+      // Add left side conditions.
+      if (leftSet.size() > 1) {
+        for (int i = 1; i < leftSet.size(); ++i) {
+          result.add(
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                  leftSet.get(0),
+                  leftSet.get(i)));
+        }
+      }
+      // Add right side conditions.
+      if (rightSet.size() > 1) {
+        for (int i = 1; i < rightSet.size(); ++i) {
+          result.add(
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                  rightSet.get(0),
+                  rightSet.get(i)));
+        }
+      }
+      // Only need one equal condition for each equal set.
+      if (leftSet.size() > 0 && rightSet.size() > 0) {
+        result.add(
+            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                leftSet.get(0),
+                rightSet.get(0)));
+      }
+    }
+
+    return result;
   }
 
   /**

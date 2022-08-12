@@ -72,7 +72,7 @@ import static java.util.Objects.requireNonNull;
  * <caption>Allowable types for SqlLiteral</caption>
  * <tr>
  * <th>TypeName</th>
- * <th>Meaing</th>
+ * <th>Meaning</th>
  * <th>Value type</th>
  * </tr>
  * <tr>

@@ -45,6 +45,7 @@ data: {
     # items in this list become non-reserved
     nonReservedKeywordsToAdd: [
       # not in core, added in babel
+      "IF"
       "SEMI"
 
       # The following keywords are reserved in core Calcite,
@@ -236,7 +237,6 @@ data: {
       "HOLD"
       "HOUR"
       "IDENTITY"
-#     "IF" # not a keyword in Calcite
       "ILIKE"
       "IMMEDIATE"
       "IMMEDIATELY"

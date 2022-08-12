@@ -315,6 +315,20 @@ from dept_nested_expanded as d,
  UNNEST(d.employees) as t(employee)]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasWithinGroupingSets">
+    <Resource name="sql">
+      <![CDATA[SELECT empno / 2 AS x
+FROM emp
+GROUP BY ROLLUP(x)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], groups=[[{0}, {}]])
+  LogicalProject(X=[/($0, 2)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAllValueList">
     <Resource name="sql">
       <![CDATA[select empno from emp where deptno > all (10, 20)]]>
@@ -419,6 +433,42 @@ LogicalValues(tuples=[[{ 1 }]])
     </Resource>
     <Resource name="sql">
       <![CDATA[values (case 'a' when 'a' then 1 end)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCaseAliasWithinGroupingSets">
+    <Resource name="sql">
+      <![CDATA[SELECT empno,
+CASE
+WHEN ename in ('Fred','Eric') THEN 'CEO'
+ELSE 'Other'
+END AS derived_col
+FROM emp
+GROUP BY GROUPING SETS ((empno, derived_col),(empno))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]])
+  LogicalProject(EMPNO=[$0], DERIVED_COL=[CASE(SEARCH($1, Sarg['Eric', 'Fred']:CHAR(4)), 'CEO  ', 'Other')])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCaseWithinGroupingSets">
+    <Resource name="sql">
+      <![CDATA[SELECT empno,
+CASE WHEN ename IN ('Fred','Eric') THEN 'Manager' ELSE 'Other' END
+FROM emp
+GROUP BY GROUPING SETS (
+(empno, CASE WHEN ename IN ('Fred','Eric') THEN 'Manager' ELSE 'Other' END),
+(empno)
+)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]])
+  LogicalProject(EMPNO=[$0], EXPR$1=[CASE(SEARCH($1, Sarg['Eric', 'Fred']:CHAR(4)), 'Manager', 'Other  ')])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testCharLength">
@@ -627,6 +677,26 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelatedForOuterFields">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT dept.deptno)
+FROM emp
+LEFT OUTER JOIN dept
+ON emp.empno = dept.deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$11])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{9}])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Collect(field=[EXPR$0])
+      LogicalProject(DEPTNO=[$cor0.DEPTNO0])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelatedMapSubQuery">
     <Resource name="sql">
       <![CDATA[select *,
@@ -662,6 +732,46 @@ LogicalProject(EMPNO=[$0], JOB=[$2])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelatedScalarSubQueryInSelectList">
+    <Resource name="planNotExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], I0=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject($f0=[1])
+    LogicalFilter(condition=[>($0, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], I1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($1, 'SMITH'), >($cor0.DEPTNO, 0))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planExpanded">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], I0=[$2], I1=[$3])
+  LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+        LogicalProject($f0=[1])
+          LogicalFilter(condition=[>($0, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+      LogicalProject($f0=[0])
+        LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), =($1, 'SMITH'), >($cor1.DEPTNO, 0))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  (select min(1) from emp where empno > d.deptno) as i0,
+  (select min(0) from emp where deptno = d.deptno                             and ename = 'SMITH'                            and d.deptno > 0) as i1
+from dept as d]]>
     </Resource>
   </TestCase>
   <TestCase name="testCorrelatedSubQueryInAggregate">
@@ -1350,6 +1460,17 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[=(+($7, 20), /($9, 2))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDotAfterParenthesizedIdentifier">
+    <Resource name="sql">
+      <![CDATA[select (home_address).city from emp_address]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1.CITY])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
 ]]>
     </Resource>
   </TestCase>
@@ -3458,7 +3579,8 @@ LogicalProject(EXPR$0=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
     <Resource name="sql">
       <![CDATA[SELECT emp.deptno, emp.sal
 FROM dept
-         LEFT JOIN emp ON (SELECT AVG(emp.sal) > 0 FROM emp)]]>
+JOIN emp
+ON (SELECT AVG(emp.sal) > 0 FROM emp)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3615,8 +3737,7 @@ json_object(
     json_object(
       ename :
       deptno)))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3637,8 +3758,7 @@ json_array(
       'key2' :
        ename)),
   json_array(12, 'hello', deptno))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3657,8 +3777,7 @@ json_object(
     json_object(
       'k1' :
       deptno)))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -3680,8 +3799,7 @@ json_object(
   json_object(
     'key3' :
     json_array(12, 'hello', deptno))
-from emp
-]]>
+from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -6799,6 +6917,204 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTableFunctionWithComplexOrderBy">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders order by (orderId desc, productid desc nulls last), 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[single], collation=[[2 DESC, 1 DESC-nulls-last]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithMultipleInputTables">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+similarlity(
+  table emp partition by deptno order by empno nulls first,
+  table emp_b partition by deptno order by empno nulls first))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(VAL=[$0])
+  LogicalTableFunctionScan(invocation=[SIMILARLITY()], rowType=[RecordType(DECIMAL(5, 2) VAL)])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithMultipleInputTablesWithParamNames">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+similarlity(
+  LTABLE => table emp partition by deptno order by empno nulls first,
+  RTABLE => table emp_b partition by deptno order by empno nulls first))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(VAL=[$0])
+  LogicalTableFunctionScan(invocation=[SIMILARLITY()], rowType=[RecordType(DECIMAL(5, 2) VAL)])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSortExchange(distribution=[hash[7]], collation=[[0 ASC-nulls-first]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithMultipleOrderKeys">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders order by (orderId, productid), 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[single], collation=[[2, 1]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithMultiplePartitionKeys">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders partition by (orderId, productid), 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalExchange(distribution=[hash[1, 2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithOrderByWithNullLast">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders order by orderId desc nulls last, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[single], collation=[[2 DESC-nulls-last]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithOrderKey">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders order by orderId, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[single], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithParamNames">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+topn(
+  DATA => table orders partition by productid order by orderId,
+  COL => 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithPartitionKey">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders partition by productid, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalExchange(distribution=[hash[1]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithPartitionKeyAndOrderKey">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(table orders partition by productid order by orderId, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithSubQuery">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(topn(select * from orders partition by productid order by orderId desc nulls last, 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2 DESC-nulls-last]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTableFunctionWithSubQueryWithParamNames">
+    <Resource name="sql">
+      <![CDATA[select *
+from table(
+topn(
+  DATA => select * from orders partition by productid order by orderId nulls first,
+  COL => 3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], RANK_NUMBER=[$3])
+  LogicalTableFunctionScan(invocation=[TOPN(3)], rowType=[RecordType(TIMESTAMP(0) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID, BIGINT RANK_NUMBER)])
+    LogicalSortExchange(distribution=[hash[1]], collation=[[2 ASC-nulls-first]])
+      LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTableSubset">
     <Resource name="sql">
       <![CDATA[select deptno, name from dept]]>
@@ -7258,11 +7574,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })], EMP_MULTISET=[MULTISET({
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[=($7, $cor1.DEPTNO)])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })], JOB_MAP=[MAP({
 LogicalProject(EMPNO=[$0], JOB=[$2])
-  LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])

@@ -88,6 +88,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testDotAfterParenthesizedIdentifier() {
+    final String sql = "select (home_address).city from emp_address";
+    sql(sql).ok();
+  }
+
   @Test void testRowValueConstructorWithSubquery() {
     final String sql = "select ROW("
         + "(select deptno\n"
@@ -1288,6 +1293,21 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "from emp e");
   }
 
+  @Test void testCorrelatedScalarSubQueryInSelectList() {
+    Consumer<String> fn = sql -> {
+      sql(sql).withExpand(true).withDecorrelate(false)
+          .convertsTo("${planExpanded}");
+      sql(sql).withExpand(false).withDecorrelate(false)
+          .convertsTo("${planNotExpanded}");
+    };
+    fn.accept("select deptno,\n"
+        + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
+        + "  (select min(0) from emp where deptno = d.deptno "
+        + "                            and ename = 'SMITH'"
+        + "                            and d.deptno > 0) as i1\n"
+        + "from dept as d");
+  }
+
   @Test void testCorrelationLateralSubQuery() {
     String sql = "SELECT deptno, ename\n"
         + "FROM\n"
@@ -2197,6 +2217,91 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionWithPartitionKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by productid, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultiplePartitionKeys() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by (orderId, productid), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithOrderKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by orderId, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleOrderKeys() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by (orderId, productid), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithComplexOrderBy() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by (orderId desc, productid desc nulls last), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithOrderByWithNullLast() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by orderId desc nulls last, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithPartitionKeyAndOrderKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by productid order by orderId, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "topn(\n"
+        + "  DATA => table orders partition by productid order by orderId,\n"
+        + "  COL => 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithSubQuery() {
+    final String sql = "select *\n"
+        + "from table(topn("
+        + "select * from orders partition by productid order by orderId desc nulls last, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithSubQueryWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "topn(\n"
+        + "  DATA => select * from orders partition by productid order by orderId nulls first,\n"
+        + "  COL => 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleInputTables() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "similarlity(\n"
+        + "  table emp partition by deptno order by empno nulls first,\n"
+        + "  table emp_b partition by deptno order by empno nulls first))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleInputTablesWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "similarlity(\n"
+        + "  LTABLE => table emp partition by deptno order by empno nulls first,\n"
+        + "  RTABLE => table emp_b partition by deptno order by empno nulls first))";
+    sql(sql).ok();
+  }
+
   @Test void testNotNotIn() {
     final String sql = "select * from EMP where not (ename not in ('Fred') )";
     sql(sql).ok();
@@ -2535,7 +2640,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     programBuilder.addRuleInstance(CoreRules.PROJECT_TO_CALC);
     final HepPlanner planner = new HepPlanner(programBuilder.build());
     planner.setRoot(rel);
-    final LogicalCalc calc = (LogicalCalc) planner.findBestExp();
+    final RelNode calc = planner.findBestExp();
     final List<RelNode> rels = new ArrayList<>();
     final RelShuttleImpl visitor = new RelShuttleImpl() {
       @Override public RelNode visit(LogicalCalc calc) {
@@ -2544,14 +2649,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         return visitedRel;
       }
     };
-    visitor.visit(calc);
+    calc.accept(visitor);
     assertThat(rels.size(), is(1));
     assertThat(rels.get(0), isA(LogicalCalc.class));
   }
 
   @Test void testRelShuttleForLogicalTableModify() {
     final String sql = "insert into emp select * from emp";
-    final LogicalTableModify rel = (LogicalTableModify) sql(sql).toRel();
+    final RelNode rel = sql(sql).toRel();
     final List<RelNode> rels = new ArrayList<>();
     final RelShuttleImpl visitor = new RelShuttleImpl() {
       @Override public RelNode visit(LogicalTableModify modify) {
@@ -2560,7 +2665,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         return visitedRel;
       }
     };
-    visitor.visit(rel);
+    rel.accept(visitor);
     assertThat(rels.size(), is(1));
     assertThat(rels.get(0), isA(LogicalTableModify.class));
   }
@@ -2622,6 +2727,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "   where dept.deptno = emp.empno))\n"
         + "FROM emp";
     sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testCorrelatedForOuterFields() {
+    final String sql = "SELECT ARRAY(SELECT dept.deptno)\n"
+        + "FROM emp\n"
+        + "LEFT OUTER JOIN dept\n"
+        + "ON emp.empno = dept.deptno";
+    sql(sql).ok();
   }
 
   /**
@@ -4516,5 +4629,53 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "CUBE (deptno, job),\n"
         + "ROLLUP (deptno, job)";
     sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5045">[CALCITE-5045]
+   * Alias within GroupingSets throws type mis-match exception</a>.
+   */
+  @Test void testAliasWithinGroupingSets() {
+    final String sql = "SELECT empno / 2 AS x\n"
+        + "FROM emp\n"
+        + "GROUP BY ROLLUP(x)";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5145">[CALCITE-5145]
+   * CASE statement within GROUPING SETS throws type mis-match exception</a>.
+   */
+  @Test public void testCaseAliasWithinGroupingSets() {
+    sql("SELECT empno,\n"
+        + "CASE\n"
+        + "WHEN ename in ('Fred','Eric') THEN 'CEO'\n"
+        + "ELSE 'Other'\n"
+        + "END AS derived_col\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS ((empno, derived_col),(empno))")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5145">[CALCITE-5145]
+   * CASE statement within GROUPING SETS throws type mis-match exception</a>.
+   */
+  @Test void testCaseWithinGroupingSets() {
+    String sql = "SELECT empno,\n"
+        + "CASE WHEN ename IN ('Fred','Eric') THEN 'Manager' ELSE 'Other' END\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS (\n"
+        + "(empno, CASE WHEN ename IN ('Fred','Eric') THEN 'Manager' ELSE 'Other' END),\n"
+        + "(empno)\n"
+        + ")";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
   }
 }

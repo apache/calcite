@@ -24,6 +24,7 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.Util;
 
 import org.apache.commons.io.IOUtils;
 
@@ -46,7 +47,6 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -96,10 +96,11 @@ public class RuleMatchVisualizer implements RelOptListener {
   private final Map<String, NodeUpdateHelper> allNodes = new LinkedHashMap<>();
 
   /**
-   * Use this constructor to save the result on disk at the end of the planning phase.
-   * <p>
-   * Note: when using HepPlanner, {@link #writeToFile()} needs to be called manually.
-   * </p>
+   * Use this constructor to save the result on disk at the end of the planning
+   * phase.
+   *
+   * <p>Note: when using HepPlanner, {@link #writeToFile()} needs to be called
+   * manually.
    */
   public RuleMatchVisualizer(
       String outputDirectory,
@@ -354,9 +355,10 @@ public class RuleMatchVisualizer implements RelOptListener {
       }
     }
 
-    List<String> matchedRels = ruleCall == null
-        ? Collections.emptyList()
-        : Arrays.stream(ruleCall.rels).map(this::key).collect(Collectors.toList());
+    List<String> matchedRels =
+        Arrays.stream(ruleCall == null ? new RelNode[0] : ruleCall.rels)
+            .map(RuleMatchVisualizer::key)
+            .collect(Util.toImmutableList());
     this.steps.add(new StepInfo(stepID, nextNodeUpdates, matchedRels));
   }
 
@@ -423,7 +425,7 @@ public class RuleMatchVisualizer implements RelOptListener {
   // methods related to string representation
   //--------------------------------------------------------------------------------
 
-  private String key(final RelNode rel) {
+  private static String key(final RelNode rel) {
     return "" + rel.getId();
   }
 

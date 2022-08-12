@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -119,4 +120,35 @@ public abstract class SqlInternalOperators {
   public static final SqlInternalOperator GROUP_BY_DISTINCT =
       new SqlRollupOperator("GROUP BY DISTINCT", SqlKind.GROUP_BY_DISTINCT);
 
+  /** Fetch operator is ONLY used for its precedence during unparsing. */
+  public static final SqlOperator FETCH =
+      SqlBasicOperator.create("FETCH")
+          .withPrecedence(SqlStdOperatorTable.UNION.getLeftPrec() - 2, true);
+
+  /** Offset operator is ONLY used for its precedence during unparsing. */
+  public static final SqlOperator OFFSET =
+      SqlBasicOperator.create("OFFSET")
+          .withPrecedence(SqlStdOperatorTable.UNION.getLeftPrec() - 2, true);
+
+  /** Subject to change. */
+  private static class SqlBasicOperator extends SqlOperator {
+    @Override public SqlSyntax getSyntax() {
+      return SqlSyntax.SPECIAL;
+    }
+
+    /** Private constructor. Use {@link #create}. */
+    private SqlBasicOperator(String name, int leftPrecedence, int rightPrecedence) {
+      super(name, SqlKind.OTHER, leftPrecedence, rightPrecedence,
+          ReturnTypes.BOOLEAN, InferTypes.RETURN_TYPE, OperandTypes.ANY);
+    }
+
+    static SqlBasicOperator create(String name) {
+      return new SqlBasicOperator(name, 0, 0);
+    }
+
+    SqlBasicOperator withPrecedence(int prec, boolean leftAssoc) {
+      return new SqlBasicOperator(getName(), leftPrec(prec, leftAssoc),
+          rightPrec(prec, leftAssoc));
+    }
+  }
 }

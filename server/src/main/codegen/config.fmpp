@@ -30,8 +30,6 @@ data: {
       "org.apache.calcite.sql.SqlCreate"
       "org.apache.calcite.sql.SqlDrop"
       "org.apache.calcite.sql.ddl.SqlDdlNodes"
-      "java.util.Map"
-      "java.util.HashMap"
     ]
 
     # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is

@@ -39,6 +39,7 @@ import org.apache.calcite.tools.RelBuilder;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IClassBodyEvaluator;
 import org.codehaus.commons.compiler.ICompilerFactory;
@@ -61,6 +62,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,6 +112,8 @@ public class CodeGenerationBenchmark {
      * The necessary plan information for every generated query.
      */
     PlanInfo[] planInfos;
+
+    ICompilerFactory compilerFactory;
 
     private int currentPlan = 0;
 
@@ -182,27 +186,32 @@ public class CodeGenerationBenchmark {
         info.classExpr = relImplementor.implementRoot(plan, EnumerableRel.Prefer.ARRAY);
         info.javaCode =
             Expressions.toString(info.classExpr.memberDeclarations, "\n", false);
-
-        ICompilerFactory compilerFactory;
-        try {
-          compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
-              CodeGenerationBenchmark.class.getClassLoader());
-        } catch (Exception e) {
-          throw new IllegalStateException(
-              "Unable to instantiate java compiler", e);
-        }
-        IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
-        cbe.setClassName(info.classExpr.name);
-        cbe.setExtendedClass(Utilities.class);
-        cbe.setImplementedInterfaces(
-            plan.getRowType().getFieldCount() == 1
-                ? new Class[]{Bindable.class, Typed.class}
-                : new Class[]{ArrayBindable.class});
-        cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
-        info.cbe = cbe;
+        info.plan = plan;
         planInfos[i] = info;
       }
 
+      try {
+        compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(
+            CodeGenerationBenchmark.class.getClassLoader());
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            "Unable to instantiate java compiler", e);
+      }
+
+    }
+
+    Bindable compile(EnumerableRel plan, String className, String code)
+        throws CompileException, IOException {
+      final StringReader stringReader = new StringReader(code);
+      IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
+      cbe.setClassName(className);
+      cbe.setExtendedClass(Utilities.class);
+      cbe.setImplementedInterfaces(
+          plan.getRowType().getFieldCount() == 1
+              ? new Class[]{Bindable.class, Typed.class}
+              : new Class[]{ArrayBindable.class});
+      cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
+      return (Bindable) cbe.createInstance(stringReader);
     }
 
     int nextPlan() {
@@ -215,7 +224,7 @@ public class CodeGenerationBenchmark {
   /** Plan information. */
   private static class PlanInfo {
     ClassDeclaration classExpr;
-    IClassBodyEvaluator cbe;
+    EnumerableRel plan;
     String javaCode;
   }
 
@@ -246,7 +255,7 @@ public class CodeGenerationBenchmark {
   @Benchmark
   public Bindable<?> getBindableNoCache(QueryState state) throws Exception {
     PlanInfo info = state.planInfos[state.nextPlan()];
-    return (Bindable) info.cbe.createInstance(new StringReader(info.javaCode));
+    return state.compile(info.plan, info.classExpr.name, info.javaCode);
   }
 
   /**
@@ -267,7 +276,7 @@ public class CodeGenerationBenchmark {
     if (!detector.containsStaticField) {
       return cache.get(
           info.javaCode,
-          () -> (Bindable) info.cbe.createInstance(new StringReader(info.javaCode)));
+          () -> jState.compile(info.plan, info.classExpr.name, info.javaCode));
     }
     throw new IllegalStateException("Benchmark queries should not arrive here");
   }

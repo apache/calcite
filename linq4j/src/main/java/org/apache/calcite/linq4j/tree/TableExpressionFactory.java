@@ -14,15 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util;
+package org.apache.calcite.linq4j.tree;
 
 /**
- * Object which can be a target for a reflective visitation (see
- * {@link ReflectUtil#invokeVisitor(ReflectiveVisitor, Object, Class, String)}.
- *
- * <p>This is a tagging interface: it has no methods, and is not even required
- * in order to use reflective visitation, but serves to advise users of the
- * class of the intended use of the class and refer them to auxiliary classes.
+ * Factory for creating table expressions that may be used in generated code
+ * for accessing table data.
  */
-public interface ReflectiveVisitor {
+public interface TableExpressionFactory {
+
+  /**
+   * Creates {@link Expression} to be used in generated code for accessing table data.
+   *
+   * @param clazz Class that provides specific methods for accessing table data.
+   *
+   * @return {@link Expression} instance
+   */
+  Expression create(Class clazz);
 }

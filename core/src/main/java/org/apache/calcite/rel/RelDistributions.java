@@ -103,7 +103,7 @@ public class RelDistributions {
           || Ordering.natural().isOrdered(keys)
           : "key columns of hash distribution must be in order";
       assert type == Type.HASH_DISTRIBUTED
-          || type == Type.RANDOM_DISTRIBUTED
+          || type == Type.RANGE_DISTRIBUTED
           || keys.isEmpty();
     }
 

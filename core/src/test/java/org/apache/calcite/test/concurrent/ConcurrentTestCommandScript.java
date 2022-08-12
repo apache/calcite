@@ -231,7 +231,7 @@ public class ConcurrentTestCommandScript
   private static final char[] DASHES = fill(new char[BUF_SIZE], '-');
 
   // Special "thread ids" for setup & cleanup sections; actually setup &
-  // cleanup SQL is executed by the main thread, and neither are in the the
+  // cleanup SQL is executed by the main thread, and neither are in the
   // thread map.
   private static final Integer SETUP_THREAD_ID = -1;
   private static final Integer CLEANUP_THREAD_ID = -2;
@@ -1570,7 +1570,7 @@ public class ConcurrentTestCommandScript
       ProcessBuilder pb = new ProcessBuilder(argv);
       pb.directory(scriptDirectory);
       try {
-        // direct stdout & stderr to the the threadWriter
+        // direct stdout & stderr to the threadWriter
         int status = runAppProcess(pb, null, null, getThreadWriter(threadId));
         if (status != 0) {
           storeMessage(threadId,

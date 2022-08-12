@@ -2142,7 +2142,7 @@ public class RexSimplify {
       return operand;
     }
     if (RexUtil.isLosslessCast(operand)) {
-      // x :: y below means cast(x as y) (which is PostgreSQL-specifiic cast by the way)
+      // x :: y below means cast(x as y) (which is PostgreSQL-specific cast by the way)
       // A) Remove lossless casts:
       // A.1) intExpr :: bigint :: int => intExpr
       // A.2) char2Expr :: char(5) :: char(2) => char2Expr
@@ -2919,7 +2919,9 @@ public class RexSimplify {
      * the IN call or single comparison.
      */
     private static boolean simpleSarg(Sarg sarg) {
-      return sarg.isPoints() || RangeSets.isOpenInterval(sarg.rangeSet);
+      return sarg.isPoints()
+          || RangeSets.isOpenInterval(sarg.rangeSet)
+          || sarg.isComplementedPoints();
     }
 
     /** If a term is a call to {@code SEARCH} on a {@link RexSargBuilder},
