@@ -1718,8 +1718,8 @@ SqlNode SqlMerge() :
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
     SqlNode condition;
-    SqlUpdate updateCall = null;
-    SqlInsert insertCall = null;
+    List<SqlUpdate> updateCallList = new ArrayList<SqlUpdate>();
+    List<SqlInsert> insertCallList = new ArrayList<SqlUpdate>();
     final Span s;
 }
 {
@@ -1735,10 +1735,10 @@ SqlNode SqlMerge() :
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
     (
         LOOKAHEAD(2)
-        updateCall = WhenMatchedClause(table, alias)
-        [ insertCall = WhenNotMatchedClause(table) ]
+        ( updateCall = WhenMatchedClause(table, alias) { updateCallList.add(updateCall); } )*
+        [ insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); } ]*
     |
-        insertCall = WhenNotMatchedClause(table)
+        ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); } )*
     )
     {
         return new SqlMerge(s.addIf(updateCall).addIf(insertCall).pos(), table,
@@ -1805,6 +1805,7 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
             updateExprList.add(exp);
         }
     )*
+
     {
         return new SqlUpdate(s.addAll(updateExprList).pos(), table,
             updateColumnList, updateExprList, condition, null, alias);

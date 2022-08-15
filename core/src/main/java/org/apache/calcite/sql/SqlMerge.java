@@ -39,8 +39,8 @@ public class SqlMerge extends SqlCall {
   SqlNode targetTable;
   SqlNode condition;
   SqlNode source;
-  @Nullable SqlUpdate updateCall;
-  @Nullable SqlInsert insertCall;
+  SqlNodeList updateCallList;
+  SqlNodeList insertCallList;
   @Nullable SqlSelect sourceSelect;
   @Nullable SqlIdentifier alias;
 
@@ -50,16 +50,16 @@ public class SqlMerge extends SqlCall {
       SqlNode targetTable,
       SqlNode condition,
       SqlNode source,
-      @Nullable SqlUpdate updateCall,
-      @Nullable SqlInsert insertCall,
+      SqlNodeList updateCallList,
+      SqlNodeList insertCallList,
       @Nullable SqlSelect sourceSelect,
       @Nullable SqlIdentifier alias) {
     super(pos);
     this.targetTable = targetTable;
     this.condition = condition;
     this.source = source;
-    this.updateCall = updateCall;
-    this.insertCall = insertCall;
+    this.updateCallList = updateCallList;
+    this.insertCallList = insertCallList;
     this.sourceSelect = sourceSelect;
     this.alias = alias;
   }
@@ -76,8 +76,8 @@ public class SqlMerge extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<@Nullable SqlNode> getOperandList() {
-    return ImmutableNullableList.of(targetTable, condition, source, updateCall,
-        insertCall, sourceSelect, alias);
+    return ImmutableNullableList.of(targetTable, condition, source, updateCallList,
+        insertCallList, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -94,10 +94,10 @@ public class SqlMerge extends SqlCall {
       source = operand;
       break;
     case 3:
-      updateCall = (@Nullable SqlUpdate) operand;
+      updateCallList = (SqlNodeList) operand;
       break;
     case 4:
-      insertCall = (@Nullable SqlInsert) operand;
+      insertCallList = (SqlNodeList) operand;
       break;
     case 5:
       sourceSelect = (@Nullable SqlSelect) operand;
@@ -131,13 +131,13 @@ public class SqlMerge extends SqlCall {
   }
 
   /** Returns the UPDATE statement for this MERGE. */
-  public @Nullable SqlUpdate getUpdateCall() {
-    return updateCall;
+  public SqlNodeList getUpdateCallList() {
+    return updateCallList;
   }
 
   /** Returns the INSERT statement for this MERGE. */
-  public @Nullable SqlInsert getInsertCall() {
-    return insertCall;
+  public SqlNodeList getInsertCallList() {
+    return insertCallList;
   }
 
   /** Returns the condition expression to determine whether to UPDATE or
@@ -181,40 +181,41 @@ public class SqlMerge extends SqlCall {
     writer.keyword("ON");
     condition.unparse(writer, opLeft, opRight);
 
-    SqlUpdate updateCall = this.updateCall;
-    if (updateCall != null) {
-      writer.newlineAndIndent();
-      writer.keyword("WHEN MATCHED THEN UPDATE");
-      final SqlWriter.Frame setFrame =
-          writer.startList(
-              SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
-              "SET",
-              "");
-
-      for (Pair<SqlNode, SqlNode> pair : Pair.zip(
-          updateCall.targetColumnList, updateCall.sourceExpressionList)) {
-        writer.sep(",");
-        SqlIdentifier id = (SqlIdentifier) pair.left;
-        id.unparse(writer, opLeft, opRight);
-        writer.keyword("=");
-        SqlNode sourceExp = pair.right;
-        sourceExp.unparse(writer, opLeft, opRight);
-      }
-      writer.endList(setFrame);
-    }
-
-    SqlInsert insertCall = this.insertCall;
-    if (insertCall != null) {
-      writer.newlineAndIndent();
-      writer.keyword("WHEN NOT MATCHED THEN INSERT");
-      SqlNodeList targetColumnList = insertCall.getTargetColumnList();
-      if (targetColumnList != null) {
-        targetColumnList.unparse(writer, opLeft, opRight);
-      }
-      insertCall.getSource().unparse(writer, opLeft, opRight);
-
-      writer.endList(frame);
-    }
+    // TODO: fix this
+//    SqlUpdate updateCall = this.updateCall;
+//    if (updateCall != null) {
+//      writer.newlineAndIndent();
+//      writer.keyword("WHEN MATCHED THEN UPDATE");
+//      final SqlWriter.Frame setFrame =
+//          writer.startList(
+//              SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
+//              "SET",
+//              "");
+//
+//      for (Pair<SqlNode, SqlNode> pair : Pair.zip(
+//          updateCall.targetColumnList, updateCall.sourceExpressionList)) {
+//        writer.sep(",");
+//        SqlIdentifier id = (SqlIdentifier) pair.left;
+//        id.unparse(writer, opLeft, opRight);
+//        writer.keyword("=");
+//        SqlNode sourceExp = pair.right;
+//        sourceExp.unparse(writer, opLeft, opRight);
+//      }
+//      writer.endList(setFrame);
+//    }
+//
+//    SqlInsert insertCall = this.insertCall;
+//    if (insertCall != null) {
+//      writer.newlineAndIndent();
+//      writer.keyword("WHEN NOT MATCHED THEN INSERT");
+//      SqlNodeList targetColumnList = insertCall.getTargetColumnList();
+//      if (targetColumnList != null) {
+//        targetColumnList.unparse(writer, opLeft, opRight);
+//      }
+//      insertCall.getSource().unparse(writer, opLeft, opRight);
+//
+//      writer.endList(frame);
+//    }
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {

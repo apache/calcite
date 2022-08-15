@@ -3221,7 +3221,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testMergeMatchConditionOnTarget() {
     // Tests a basic merge query with a match containing a filter on the dest/target.
-    // This should reduce to a filter on the target prior to the join
+    // Ideally, this would reduce to a filter on the source prior to the join,
+    // but that may need to be done via optimization via rules
     final String sql1 = "merge into empnullables_20 as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
@@ -3241,7 +3242,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testMergeMatchConditionOnSource() {
     // Tests a basic merge query with a match containing a filter on the dest/target.
-    // This should reduce to a filter on the source prior to the join
+    // Ideally, this would reduce to a filter on the source prior to the join,
+    // but that may need to be done via optimization via rules
     final String sql1 = "merge into empnullables_20 as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
@@ -3252,6 +3254,25 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
         + "when matched and source.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n";
+
+    sql(sql1).ok();
+    sql(sql2).ok();
+  }
+
+  @Test void testMergeMatchCondition() {
+    // Tests a basic merge query with a match containing a condition using
+    // both the target and the source
+    final String sql1 = "merge into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal + target.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n";
+
+    final String sql2 = "merge_into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal + target.sal > 10 then\n"
         + "  update set sal = target.sal + source.sal\n";
 
     sql(sql1).ok();

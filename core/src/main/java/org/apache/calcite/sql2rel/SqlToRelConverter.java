@@ -4187,15 +4187,20 @@ public class SqlToRelConverter {
     // convert update column list from SqlIdentifier to String
     final List<String> targetColumnNameList = new ArrayList<>();
     final RelDataType targetRowType = targetTable.getRowType();
-    SqlUpdate updateCall = call.getUpdateCall();
-    if (updateCall != null) {
-      for (SqlNode targetColumn : updateCall.getTargetColumnList()) {
-        SqlIdentifier id = (SqlIdentifier) targetColumn;
-        RelDataTypeField field =
-            SqlValidatorUtil.getTargetField(
-                targetRowType, typeFactory, id, catalogReader, targetTable);
-        assert field != null : "column " + id.toString() + " not found";
-        targetColumnNameList.add(field.getName());
+    SqlNodeList updateCallList = call.getUpdateCallList();
+
+    for (int i = 0; i < updateCallList.size(); i++) {
+      SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(i);
+      // TODO: is this right?
+      if (curUpdateCall != null) {
+        for (SqlNode targetColumn : curUpdateCall.getTargetColumnList()) {
+          SqlIdentifier id = (SqlIdentifier) targetColumn;
+          RelDataTypeField field =
+              SqlValidatorUtil.getTargetField(
+                  targetRowType, typeFactory, id, catalogReader, targetTable);
+          assert field != null : "column " + id.toString() + " not found";
+          targetColumnNameList.add(field.getName());
+        }
       }
     }
 
@@ -4213,12 +4218,15 @@ public class SqlToRelConverter {
 
     // then, convert the insert statement so that we can get the insert
     // values expressions
-    SqlInsert insertCall = call.getInsertCall();
-    int nLevel1Exprs = 0;
-    List<RexNode> level1InsertExprs = null;
-    List<RexNode> level2InsertExprs = null;
-    if (insertCall != null) {
-      RelNode insertRel = convertInsert(insertCall);
+    SqlNodeList insertCallList = call.getInsertCallList();
+    List<List<RexNode>> level1InsertExprsList = new ArrayList<>();
+    List<List<RexNode>> level2InsertExprsList = new ArrayList<>();
+    for (int i = 0; i < insertCallList.size(); i++) {
+
+      SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
+      RelNode insertRel = convertInsert(curInsertCall);
+      List<RexNode> curLevel1InsertExprs = null;
+      List<RexNode> curLevel2InsertExprs = null;
 
       // if there are 2 level of projections in the insert source, combine
       // them into a single project; level1 refers to the topmost project;
@@ -4235,14 +4243,15 @@ public class SqlToRelConverter {
         insertRel = insertRel.getInput(0);
       }
 
-      level1InsertExprs =
+      curLevel1InsertExprs =
           ((LogicalProject) insertRel.getInput(0)).getProjects();
       if (insertRel.getInput(0).getInput(0) instanceof LogicalProject) {
-        level2InsertExprs =
+        curLevel2InsertExprs =
             ((LogicalProject) insertRel.getInput(0).getInput(0))
                 .getProjects();
       }
-      nLevel1Exprs = level1InsertExprs.size();
+      level1InsertExprsList.add(curLevel1InsertExprs);
+      level2InsertExprsList.add(curLevel2InsertExprs);
     }
 
     LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
@@ -4253,19 +4262,27 @@ public class SqlToRelConverter {
     // a truth value when any of the inputs are null.
     projects.add(join.getCondition());
 
-    for (int level1Idx = 0; level1Idx < nLevel1Exprs; level1Idx++) {
-      requireNonNull(level1InsertExprs, "level1InsertExprs");
-      if ((level2InsertExprs != null)
-          && (level1InsertExprs.get(level1Idx) instanceof RexInputRef)) {
-        int level2Idx =
-            ((RexInputRef) level1InsertExprs.get(level1Idx)).getIndex();
-        projects.add(level2InsertExprs.get(level2Idx));
-      } else {
-        projects.add(level1InsertExprs.get(level1Idx));
+    for (int insertCallListIdx = 0; insertCallListIdx < insertCallList.size();
+         insertCallListIdx++) {
+      List<RexNode> curLevel1InsertExprs = level1InsertExprsList.get(insertCallListIdx);
+      List<RexNode> curLevel2InsertExprs = level2InsertExprsList.get(insertCallListIdx);
+
+      if (curLevel1InsertExprs != null) {
+        for (int level1Idx = 0; level1Idx < curLevel1InsertExprs.size(); level1Idx++) {
+
+          if ((curLevel2InsertExprs != null)
+              && (curLevel1InsertExprs.get(level1Idx) instanceof RexInputRef)) {
+            int level2Idx =
+                ((RexInputRef) curLevel1InsertExprs.get(level1Idx)).getIndex();
+            projects.add(curLevel2InsertExprs.get(level2Idx));
+          } else {
+            projects.add(curLevel1InsertExprs.get(level1Idx));
+          }
+        }
       }
     }
 
-    if (updateCall != null) {
+    if (updateCallList.size() > 0) {
       final LogicalProject project = (LogicalProject) mergeSourceRel;
       projects.addAll(
           Util.skip(project.getProjects(), nSourceFields));

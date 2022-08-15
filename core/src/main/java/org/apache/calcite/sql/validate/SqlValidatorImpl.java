@@ -1517,7 +1517,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private static void rewriteMerge(SqlMerge call) {
     SqlNodeList selectList;
-    SqlUpdate updateStmt = call.getUpdateCall();
+    SqlUpdate updateStmt = call.getUpdateCallList();
     if (updateStmt != null) {
       // if we have an update statement, just clone the select list
       // from the update statement's source since it's the same as
@@ -1544,8 +1544,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // inner join.  Need to clone the source table reference in order
     // for validation to work
     SqlNode sourceTableRef = call.getSourceTableRef();
-    SqlInsert insertCall = call.getInsertCall();
-    JoinType joinType = (insertCall == null) ? JoinType.INNER : JoinType.LEFT;
+    SqlNodeList insertCallList = call.getInsertCallList();
+    JoinType joinType = (insertCallList.size() > 1) ? JoinType.INNER : JoinType.LEFT;
     // In this case, it's ok to keep the original pos, but we need to deep copy so that
     // all of the sub nodes are different java objects, otherwise we get issues later durring
     // validation (scopes, clauseScopes, and namespaces fields for the validator can conflict)
@@ -3009,28 +3009,33 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // or the target table, so set its parent scope to the merge's
       // source select; when validating the update, skip the feature
       // validation check
-      SqlUpdate mergeUpdateCall = mergeCall.getUpdateCall();
-      if (mergeUpdateCall != null) {
-        registerQuery(
-            getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
-            null,
-            mergeUpdateCall,
-            enclosingNode,
-            null,
-            false,
-            false);
+      for (int i = 0; i < mergeCall.getUpdateCallList().size(); i++) {
+        SqlUpdate mergeUpdateCall = (SqlUpdate) mergeCall.getUpdateCallList().get(i);
+        if (mergeUpdateCall != null) {
+          registerQuery(
+              getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
+              null,
+              mergeUpdateCall,
+              enclosingNode,
+              null,
+              false,
+              false);
+        }
       }
-      SqlInsert mergeInsertCall = mergeCall.getInsertCall();
-      if (mergeInsertCall != null) {
-        registerQuery(
-            parentScope,
-            null,
-            mergeInsertCall,
-            enclosingNode,
-            null,
-            false);
+
+      for (int i = 0; i < mergeCall.getInsertCallList().size(); i++) {
+        SqlInsert mergeInsertCall = (SqlInsert) mergeCall.getInsertCallList().get(i);
+        if (mergeInsertCall != null) {
+          registerQuery(
+              parentScope,
+              null,
+              mergeInsertCall,
+              enclosingNode,
+              null,
+              false);
+        }
       }
-      System.out.println("");
+
       break;
 
     case UNNEST:
@@ -5181,31 +5186,33 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     RelDataType targetRowType = unknownType;
 
-    SqlUpdate updateCall = call.getUpdateCall();
-    if (updateCall != null) {
-      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
-      targetRowType = createTargetRowType(
-          table,
-          updateCall.getTargetColumnList(),
-          true);
-    }
-    SqlInsert insertCall = call.getInsertCall();
-    if (insertCall != null) {
-      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
-      targetRowType = createTargetRowType(
-          table,
-          insertCall.getTargetColumnList(),
-          false);
-    }
+    //TODO: figure out how to use these row types when they're available
+
+//    SqlUpdate updateCall = call.getUpdateCallList();
+//    if (updateCall != null) {
+//      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
+//      targetRowType = createTargetRowType(
+//          table,
+//          updateCall.getTargetColumnList(),
+//          true);
+//    }
+//    SqlInsert insertCall = call.getInsertCallList();
+//    if (insertCall != null) {
+//      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
+//      targetRowType = createTargetRowType(
+//          table,
+//          insertCall.getTargetColumnList(),
+//          false);
+//    }
 
     validateSelect(sqlSelect, targetRowType);
 
-    SqlUpdate updateCallAfterValidate = call.getUpdateCall();
-    if (updateCallAfterValidate != null) {
+    for (int i=0; i < call.getUpdateCallList().size()) {
+      SqlUpdate updateCallAfterValidate = (SqlUpdate) call.getUpdateCallList().get(i);
       validateUpdate(updateCallAfterValidate);
     }
-    SqlInsert insertCallAfterValidate = call.getInsertCall();
-    if (insertCallAfterValidate != null) {
+    for (int i=0; i < call.getInsertCallList().size()) {
+      SqlInsert insertCallAfterValidate = (SqlInsert) call.getInsertCallList().get(i);
       validateInsert(insertCallAfterValidate);
     }
   }
