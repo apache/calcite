@@ -10199,12 +10199,12 @@ class RelToSqlConverterTest {
         + "\"foodmart\".\"employee\" E1\n"
         + "INNER JOIN\n"
         + "\"foodmart\".\"employee\" E2\n"
-        + "ON CASE WHEN E1.\"employee_id\" = 0 THEN E1.\"employee_id\" <> 12 "
-        + "ELSE E1.\"employee_id\" = E2.\"employee_id\" END";
+        + "ON CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
+        + "ELSE UPPER(E1.\"first_name\") = UPPER(E2.\"first_name\") END";
 
     String expect = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "INNER JOIN foodmart.employee AS employee0 ON employee.employee_id = 0 AND employee.employee_id <> 12 OR employee.employee_id = employee0.employee_id AND employee.employee_id <> 0";
+        + "INNER JOIN foodmart.employee AS employee0 ON CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE UPPER(employee.first_name) = UPPER(employee0.first_name) END";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterExtractInnerJoinRule.class);

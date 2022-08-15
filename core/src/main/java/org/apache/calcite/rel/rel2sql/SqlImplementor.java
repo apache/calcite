@@ -404,6 +404,33 @@ public abstract class SqlImplementor {
       List<SqlNode> nodes = leftContext.implementor().joinContext(leftContext, rightContext)
           .toSql(null, ((RexCall) node).getOperands());
       return ((RexCall) node).getOperator().createCall(new SqlNodeList(nodes, POS));
+    case CASE:
+      final RexCall caseCall = (RexCall) node;
+      final List<SqlNode> caseNodeList = leftContext.implementor().
+          joinContext(leftContext, rightContext).toSql(null, caseCall.getOperands());
+      final SqlNode valueNode;
+      final List<SqlNode> whenList = Expressions.list();
+      final List<SqlNode> thenList = Expressions.list();
+      final SqlNode elseNode;
+      if (caseNodeList.size() % 2 == 0) {
+        // switched:
+        //   "case x when v1 then t1 when v2 then t2 ... else e end"
+        valueNode = caseNodeList.get(0);
+        for (int i = 1; i < caseNodeList.size() - 1; i += 2) {
+          whenList.add(caseNodeList.get(i));
+          thenList.add(caseNodeList.get(i + 1));
+        }
+      } else {
+        // other: "case when w1 then t1 when w2 then t2 ... else e end"
+        valueNode = null;
+        for (int i = 0; i < caseNodeList.size() - 1; i += 2) {
+          whenList.add(caseNodeList.get(i));
+          thenList.add(caseNodeList.get(i + 1));
+        }
+      }
+      elseNode = caseNodeList.get(caseNodeList.size() - 1);
+      return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
+          new SqlNodeList(thenList, POS), elseNode);
     default:
       throw new AssertionError(node);
     }
