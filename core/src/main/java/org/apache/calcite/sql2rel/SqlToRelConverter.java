@@ -4215,7 +4215,7 @@ public class SqlToRelConverter {
     RelNode mergeSourceRel = convertSelect(
         requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call), false);
 
-    // then, convert the insert statement so we can get the insert
+    // then, convert the insert statement so that we can get the insert
     // values expressions
     SqlInsert insertCall = call.getInsertCall();
     int nLevel1Exprs = 0;
@@ -4231,6 +4231,14 @@ public class SqlToRelConverter {
       // provided, in which case, the expression is the default value for
       // the column; or if the expressions directly map to the source
       // table
+
+      // The insert may have a filter. In this specific case, we can omit the filter,
+      // because the source select should already have the needed filter. We only need the
+      // insert expressions.
+      if (insertRel.getInput(0) instanceof LogicalFilter) {
+        insertRel = insertRel.getInput(0);
+      }
+
       level1InsertExprs =
           ((LogicalProject) insertRel.getInput(0)).getProjects();
       if (insertRel.getInput(0).getInput(0) instanceof LogicalProject) {
@@ -4244,6 +4252,11 @@ public class SqlToRelConverter {
     LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
     int nSourceFields = join.getLeft().getRowType().getFieldCount();
     final List<RexNode> projects = new ArrayList<>();
+    //Add the condition as a project.
+    //NOTE: this only works if we disallow joining on any expression that never produces
+    // a truth value when any of the inputs are null.
+    projects.add(join.getCondition());
+
     for (int level1Idx = 0; level1Idx < nLevel1Exprs; level1Idx++) {
       requireNonNull(level1InsertExprs, "level1InsertExprs");
       if ((level2InsertExprs != null)
@@ -4255,6 +4268,7 @@ public class SqlToRelConverter {
         projects.add(level1InsertExprs.get(level1Idx));
       }
     }
+
     if (updateCall != null) {
       final LogicalProject project = (LogicalProject) mergeSourceRel;
       projects.addAll(

@@ -51,6 +51,13 @@ public class SqlNamedParam extends SqlNode {
     return new SqlNamedParam(name, pos);
   }
 
+  @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
+    if (pos == null) {
+      pos = this.pos;
+    }
+    return this.clone(pos);
+  }
+
   @Override public SqlKind getKind() {
     return SqlKind.NAMED_PARAM;
   }

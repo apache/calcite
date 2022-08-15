@@ -1546,7 +1546,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode sourceTableRef = call.getSourceTableRef();
     SqlInsert insertCall = call.getInsertCall();
     JoinType joinType = (insertCall == null) ? JoinType.INNER : JoinType.LEFT;
-    final SqlNode leftJoinTerm = SqlNode.clone(sourceTableRef);
+    // In this case, it's ok to keep the original pos, but we need to deep copy so that
+    // all of the sub nodes are different java objects, otherwise we get issues later durring
+    // validation (scopes, clauseScopes, and namespaces fields for the validator can conflict)
+    final SqlNode leftJoinTerm = sourceTableRef.deepCopy(null);
     SqlNode outerJoin =
         new SqlJoin(SqlParserPos.ZERO,
             leftJoinTerm,
@@ -2238,9 +2241,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorNamespace ns,
       boolean forceNullable) {
 
-    // To the best of my understanding, each node should have only one namespace. Therefore,
-    // we should never attempt to register a namespace for a node twice.
-    namespaces.put(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+    namespaces.put(
+        requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
 
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
