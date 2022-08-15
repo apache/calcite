@@ -119,8 +119,7 @@ public abstract class SqlCall extends SqlNode {
       curNode = curOperandList.get(i);
       if (curNode == null) {
         newOperandList.add(null);
-      }
-      else {
+      } else {
         newOperandList.add(curOperandList.get(i).deepCopy(pos));
       }
     }
