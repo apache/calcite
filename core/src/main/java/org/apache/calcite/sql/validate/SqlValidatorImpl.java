@@ -2240,15 +2240,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // To the best of my understanding, each node should have only one namespace. Therefore,
     // we should never attempt to register a namespace for a node twice.
-    final SqlValidatorNamespace prevNamespace = namespaces.put(
-        requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
-
-    final SqlParserPos debugParserPos = new SqlParserPos(2, 8, 2, 42);
-
-    if (prevNamespace != null || ns.getNode().getParserPosition().equals(debugParserPos)) {
-      System.out.println("This actually Happened!");
-    }
-
+    namespaces.put(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
 
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
@@ -2491,7 +2483,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         join.setRight(newRight);
       }
       registerSubQueries(joinScope, join.getCondition());
-      //We don't register the condition itself. Is this the issue?
       final JoinNamespace joinNamespace = new JoinNamespace(this, join);
       registerNamespace(null, null, joinNamespace, forceNullable);
       return join;
@@ -2757,12 +2748,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> operands;
     switch (node.getKind()) {
     case SELECT:
-      // NOTE: there is a case where we want to not create a new namespace/scope for the select.
-      // For merge into, if we have a "when not matched" clause, the "when not matched" clause will
-      // contain the exact same select statement that is found in the source select.
-      // In this case, the select statement will already be registered with the validator,
-      // and we need to reuse the existing registration.
-      // TODO: does this break any of the existing tests?
 
       final SqlSelect select = (SqlSelect) node;
       final SqlValidatorNamespace registeredSelectNs = getNamespace(select);
@@ -2772,7 +2757,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         registerNamespace(usingScope, alias, selectNs, forceNullable);
       }
 
-      //TODO: do I need to avoid remaking these scopes too?
+
       final SqlValidatorScope windowParentScope =
           (usingScope != null) ? usingScope : parentScope;
       SelectScope selectScope =
@@ -5172,18 +5157,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   @Override public void validateMerge(SqlMerge call) {
 
-    /**
-     * From the doc string:
-     *
-     * Gets the source SELECT expression for the data to be updated/inserted.
-     * Returns null before the statement has been expanded by...
-     *
-     * Note, this is not equivalent to the source table, nor is it equivalent to the source table
-     * joined
-     * on the dest table, it is equivalent to the source table joined on the dest table, including
-     * any additional fields/expressions that are needed in the WHEN MATCHED. It does not seem to
-     * include any expressions that are needed for WHEN NOT MATCHED Clauses.
-     */
     SqlSelect sqlSelect = SqlNonNullableAccessors.getSourceSelect(call);
     // REVIEW zfong 5/25/06 - Does an actual type have to be passed into
     // validateSelect()?
@@ -5223,10 +5196,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           false);
     }
 
-
-    /**
-     *
-     */
     validateSelect(sqlSelect, targetRowType);
 
     SqlUpdate updateCallAfterValidate = call.getUpdateCall();

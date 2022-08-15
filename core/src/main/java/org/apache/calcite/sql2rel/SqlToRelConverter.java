@@ -4146,6 +4146,7 @@ public class SqlToRelConverter {
         requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call));
     Blackboard bb = createBlackboard(scope, null, false);
 
+    //TODO: properly handle replacing subqueries in the condition here
     replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     RelOptTable targetTable = getTargetTable(call);
