@@ -101,9 +101,20 @@ public abstract class Project extends SingleRel implements Hintable {
     assert rowType != null;
     this.exps = ImmutableList.copyOf(projects);
     this.hints = ImmutableList.copyOf(hints);
-    this.variablesSet = ImmutableSet.copyOf(variableSet);
     this.rowType = rowType;
+    this.variablesSet = ImmutableSet.copyOf(variableSet);
     assert isValid(Litmus.THROW, null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected Project(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelHint> hints,
+      RelNode input,
+      List<? extends RexNode> projects,
+      RelDataType rowType) {
+    this(cluster, traits, hints, input, projects, rowType, ImmutableSet.of());
   }
 
   @Deprecated // to be removed before 2.0
@@ -142,7 +153,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), exps, getRowType());
+    return copy(traitSet, sole(inputs), exps, getRowType(), ImmutableSet.of());
   }
 
   /**
@@ -152,6 +163,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param input Input
    * @param projects Project expressions
    * @param rowType Output row type
+   * @param variableSet The variable set.
    * @return New {@code Project} if any parameter differs from the value of this
    *   {@code Project}, or just {@code this} if all the parameters are
    *   the same
@@ -159,13 +171,19 @@ public abstract class Project extends SingleRel implements Hintable {
    * @see #copy(RelTraitSet, List)
    */
   public abstract Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType);
+      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet);
+
+  @Deprecated // to be removed before 2.0
+  public Project copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> projects, RelDataType rowType) {
+    return copy(traitSet, input, projects, rowType, ImmutableSet.of());
+  }
 
   @Deprecated // to be removed before 2.0
   public Project copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType, int flags) {
     Util.discard(flags);
-    return copy(traitSet, input, projects, rowType);
+    return copy(traitSet, input, projects, rowType, ImmutableSet.of());
   }
 
   @Deprecated // to be removed before 2.0
@@ -184,7 +202,7 @@ public abstract class Project extends SingleRel implements Hintable {
             exps,
             getRowType().getFieldNames(),
             null);
-    return copy(traitSet, getInput(), exps, rowType);
+    return copy(traitSet, getInput(), exps, rowType, ImmutableSet.of());
   }
 
   /**

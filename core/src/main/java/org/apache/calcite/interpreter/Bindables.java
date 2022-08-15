@@ -387,10 +387,16 @@ public class Bindables {
       super(config);
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      if (!project.getVariablesSet().isEmpty()) {
+        return false;
+      }
+      return true;
+    }
+
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
-      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
-          "BindableProject does not allow variables");
       return new BindableProject(rel.getCluster(),
           rel.getTraitSet().replace(BindableConvention.INSTANCE),
           convert(project.getInput(),
@@ -411,7 +417,9 @@ public class Bindables {
     }
 
     @Override public BindableProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType) {
+        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
+      Preconditions.checkArgument(variableSet.isEmpty(),
+          "BindableProject does not allow variables");
       return new BindableProject(getCluster(), traitSet, input,
           projects, rowType);
     }

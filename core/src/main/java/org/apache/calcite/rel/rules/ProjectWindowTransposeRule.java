@@ -36,7 +36,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -99,8 +98,6 @@ public class ProjectWindowTransposeRule
       builder.add(relDataTypeField);
     }
 
-    Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
-        "Correlated project should be decorrelated before.");
     final LogicalProject projectBelowWindow =
         new LogicalProject(cluster, window.getTraitSet(), ImmutableList.of(),
             window.getInput(), exps, builder.build(), ImmutableSet.of());
@@ -186,7 +183,8 @@ public class ProjectWindowTransposeRule
         newLogicalWindow.getTraitSet(),
         newLogicalWindow,
         topProjExps,
-        project.getRowType());
+        project.getRowType(),
+        project.getVariablesSet());
 
     if (ProjectRemoveRule.isTrivial(newTopProj)) {
       call.transformTo(newLogicalWindow);

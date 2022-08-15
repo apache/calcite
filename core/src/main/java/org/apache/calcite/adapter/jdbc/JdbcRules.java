@@ -49,6 +49,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
@@ -513,11 +514,16 @@ public class JdbcRules {
       return false;
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      if (!project.getVariablesSet().isEmpty()) {
+        return false;
+      }
+      return true;
+    }
+
     @Override public @Nullable RelNode convert(RelNode rel) {
       final Project project = (Project) rel;
-      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
-          "JdbcProject does now allow variables");
-
       return new JdbcProject(
           rel.getCluster(),
           rel.getTraitSet().replace(out),
@@ -552,7 +558,9 @@ public class JdbcRules {
     }
 
     @Override public JdbcProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType) {
+        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
+      Preconditions.checkArgument(variableSet.isEmpty(),
+          "JdbcProject does not allow variables");
       return new JdbcProject(getCluster(), traitSet, input, projects, rowType);
     }
 

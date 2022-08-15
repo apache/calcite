@@ -17,12 +17,11 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}.
@@ -44,10 +43,16 @@ class EnumerableProjectRule extends ConverterRule {
     super(config);
   }
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    LogicalProject project = call.rel(0);
+    if (!project.getVariablesSet().isEmpty()) {
+      return false;
+    }
+    return true;
+  }
+
   @Override public RelNode convert(RelNode rel) {
     final Project project = (Project) rel;
-    Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
-        "EnumerableProject does not allow variables");
     return EnumerableProject.create(
         convert(project.getInput(),
             project.getInput().getTraitSet()

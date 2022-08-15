@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
@@ -40,8 +41,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-
-import com.google.common.base.Preconditions;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -295,10 +294,16 @@ class ElasticsearchRules {
       super(config);
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      if (!project.getVariablesSet().isEmpty()) {
+        return false;
+      }
+      return true;
+    }
+
     @Override public RelNode convert(RelNode relNode) {
       final LogicalProject project = (LogicalProject) relNode;
-      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
-          "ElasticsearchProject does not allow variables");
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new ElasticsearchProject(project.getCluster(), traitSet,
         convert(project.getInput(), out), project.getProjects(), project.getRowType());

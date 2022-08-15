@@ -40,8 +40,6 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
@@ -275,14 +273,15 @@ public class CassandraRules {
           return false;
         }
       }
+      if (!project.getVariablesSet().isEmpty()) {
+        return false;
+      }
 
       return true;
     }
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
-      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
-          "CassandraProject does not allow variables");
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new CassandraProject(project.getCluster(), traitSet,
           convert(project.getInput(), out), project.getProjects(),

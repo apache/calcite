@@ -999,7 +999,7 @@ class RelWriterTest {
         .assertThatPlan(isLinux(expected));
   }
 
-  @Test void testProjectionWithCorrelationVaribles() {
+  @Test void testProjectionWithCorrelationVariables() {
     final Function<RelBuilder, RelNode> relFn = b -> b.scan("EMP")
         .project(
             ImmutableList.of(b.field("ENAME")),

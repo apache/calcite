@@ -147,6 +147,9 @@ public class GeodeRules {
           return false;
         }
       }
+      if (!project.getVariablesSet().isEmpty()) {
+        return false;
+      }
 
       return true;
     }

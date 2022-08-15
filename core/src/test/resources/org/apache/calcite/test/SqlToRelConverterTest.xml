@@ -969,21 +969,24 @@ where exists (select * from emp
   and emp.deptno in (dept.deptno, dept.deptno))]]>
     </Resource>
   </TestCase>
-  <TestCase name="testCorrelationInProjection1">
+  <TestCase name="testCorrelationInProjectionWithCorrelatedProjection">
     <Resource name="sql">
-      <![CDATA[select array(select e.deptno) from emp e]]>
+      <![CDATA[select cardinality(arr) from
+(select array(select e.deptno) arr
+from (select deptno, ename from emp) e)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY({
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
-})])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testCorrelationInProjection2">
+  <TestCase name="testCorrelationInProjectionWithProjection">
     <Resource name="sql">
       <![CDATA[select array(select e.deptno)
 from (select deptno, ename from emp) e]]>
@@ -999,39 +1002,17 @@ LogicalProject(DEPTNO=[$cor0.DEPTNO])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testCorrelationInProjection3">
+  <TestCase name="testCorrelationInProjectionWithScan">
     <Resource name="sql">
-      <![CDATA[select cardinality(array(select e.deptno)), array(select e.ename)[0]
-from (select deptno, ename from emp) e]]>
+      <![CDATA[select array(select e.deptno) from emp e]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY({
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
-}))], EXPR$1=[ITEM(ARRAY({
-LogicalProject(ENAME=[$cor0.ENAME])
-  LogicalValues(tuples=[[{ 0 }]])
-}), 0)])
-  LogicalProject(DEPTNO=[$7], ENAME=[$1])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testCorrelationInProjection4">
-    <Resource name="sql">
-      <![CDATA[select cardinality(arr) from
-(select array(select e.deptno) arr
-from (select deptno, ename from emp) e)]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY({
-LogicalProject(DEPTNO=[$cor0.DEPTNO])
-  LogicalValues(tuples=[[{ 0 }]])
-}))])
-  LogicalProject(DEPTNO=[$7], ENAME=[$1])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -4444,6 +4425,25 @@ and (deptno = 8 or empno < 100)]]>
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[AND(<($7, 10), >($7, 5), OR(=($7, 8), <($0, 100)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMultiCorrelationInProjectionWithProjection">
+    <Resource name="sql">
+      <![CDATA[select cardinality(array(select e.deptno)), array(select e.ename)[0]
+from (select deptno, ename from emp) e]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY({
+LogicalProject(DEPTNO=[$cor0.DEPTNO])
+  LogicalValues(tuples=[[{ 0 }]])
+}))], EXPR$1=[ITEM(ARRAY({
+LogicalProject(ENAME=[$cor0.ENAME])
+  LogicalValues(tuples=[[{ 0 }]])
+}), 0)])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

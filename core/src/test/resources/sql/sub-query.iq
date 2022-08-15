@@ -3513,4 +3513,15 @@ EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
         EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+# Test case for correlated sub-query
+SELECT ARRAY(SELECT s.x) FROM (SELECT 1 as x) s;
++--------+
+| EXPR$0 |
++--------+
+| [{1}]  |
++--------+
+(1 row)
+
+!ok
+
 # End sub-query.iq

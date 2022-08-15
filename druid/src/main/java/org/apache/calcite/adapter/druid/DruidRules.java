@@ -356,6 +356,14 @@ public class DruidRules {
       super(config);
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      if (!project.getVariablesSet().isEmpty()) {
+        return false;
+      }
+      return true;
+    }
+
     @Override public void onMatch(RelOptRuleCall call) {
       final Project project = call.rel(0);
       final DruidQuery query = call.rel(1);
@@ -395,10 +403,11 @@ public class DruidRules {
         }
         builder.add(name, e.getType());
       }
-      final RelNode newProject = project.copy(project.getTraitSet(), input, below, builder.build());
+      final RelNode newProject = project.copy(project.getTraitSet(), input, below, builder.build(),
+          project.getVariablesSet());
       final DruidQuery newQuery = DruidQuery.extendQuery(query, newProject);
       final RelNode newProject2 = project.copy(project.getTraitSet(), newQuery, above,
-              project.getRowType());
+              project.getRowType(), project.getVariablesSet());
       call.transformTo(newProject2);
     }
 
