@@ -327,8 +327,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
       origNode = origNodeList.get(i);
       if (origNode == null) {
         newNodeList.add(null);
-      }
-      else {
+      } else {
         newNodeList.add(origNode.deepCopy(pos));
       }
     }

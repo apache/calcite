@@ -3052,6 +3052,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testUpdateSubQueryWithInn() {
+    final String sql = "update emp\n"
+        + "set empno = 1 where empno < 1";
+    sql(sql).ok();
+  }
+
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3292">[CALCITE-3292]
@@ -3206,6 +3213,46 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "when not matched then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (source.empno, ABS(source.empno + source.real_sal), 'DEFAULT_NAME')";
+
+    sql(sql1).ok();
+    sql(sql2).ok();
+  }
+
+
+  @Test void testMergeMatchConditionOnTarget() {
+    // Tests a basic merge query with a match containing a filter on the dest/target.
+    // This should reduce to a filter on the target prior to the join
+    final String sql1 = "merge into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and target.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n";
+
+    final String sql2 = "merge_into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and target.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n";
+
+    sql(sql1).ok();
+    sql(sql2).ok();
+  }
+
+
+  @Test void testMergeMatchConditionOnSource() {
+    // Tests a basic merge query with a match containing a filter on the dest/target.
+    // This should reduce to a filter on the source prior to the join
+    final String sql1 = "merge into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n";
+
+    final String sql2 = "merge_into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n";
 
     sql(sql1).ok();
     sql(sql2).ok();

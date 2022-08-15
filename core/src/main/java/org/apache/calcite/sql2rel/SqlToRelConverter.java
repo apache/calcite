@@ -4173,16 +4173,12 @@ public class SqlToRelConverter {
       rexNodeSourceExpressionListBuilder.add(rn);
     }
 
-//    // Convert condition (if it exists)
-//    SqlNode sqlCondition = call.getCondition();
-    RexNode rexCondition = null;
-//    if (sqlCondition != null) {
-//      rexCondition = bb.convertExpression(sqlCondition);
-//    }
+    // Note: in this case, we don't need to explicitly pass the condition. It will be included
+    // as a filter in the select.
 
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
         LogicalTableModify.Operation.UPDATE, targetColumnNameList,
-        rexNodeSourceExpressionListBuilder.build(), rexCondition, false);
+        rexNodeSourceExpressionListBuilder.build(), null, false);
   }
 
   private RelNode convertMerge(SqlMerge call) {
