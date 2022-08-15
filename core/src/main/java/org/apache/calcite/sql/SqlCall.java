@@ -111,8 +111,9 @@ public abstract class SqlCall extends SqlNode {
   }
 
   @Override public SqlCall deepCopy(@Nullable SqlParserPos pos) {
-    List<SqlNode> newOperandList = new ArrayList<>();
-    List<SqlNode> curOperandList = this.getOperandList();
+    List<@Nullable SqlNode> newOperandList = new ArrayList<>();
+    //See above comment, operand list is nullable, but it isn't typed as such
+    List</*Nullable*/ SqlNode> curOperandList = this.getOperandList();
 
     SqlNode curNode;
     for (int i = 0; i < curOperandList.size(); i++) {
@@ -120,7 +121,7 @@ public abstract class SqlCall extends SqlNode {
       if (curNode == null) {
         newOperandList.add(null);
       } else {
-        newOperandList.add(curOperandList.get(i).deepCopy(pos));
+        newOperandList.add(curNode.deepCopy(pos));
       }
     }
 

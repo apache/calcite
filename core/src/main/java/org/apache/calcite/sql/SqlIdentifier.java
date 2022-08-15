@@ -139,7 +139,7 @@ public class SqlIdentifier extends SqlNode {
     return new SqlIdentifier(names, collation, pos, componentPositions);
   }
 
-  @Override public SqlNode deepCopy(SqlParserPos pos) {
+  @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
     if (pos == null) {
       pos = this.pos;
     }

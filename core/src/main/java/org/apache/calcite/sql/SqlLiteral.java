@@ -240,7 +240,7 @@ public class SqlLiteral extends SqlNode {
     return new SqlLiteral(value, typeName, pos);
   }
 
-  @Override public SqlNode deepCopy(SqlParserPos pos) {
+  @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
     if (pos == null) {
       pos = this.pos;
     }

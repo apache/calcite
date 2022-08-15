@@ -318,9 +318,9 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
   }
 
 
-  @Override public SqlNode deepCopy(SqlParserPos pos) {
-    List<SqlNode> origNodeList = this.getList();
-    List<SqlNode> newNodeList = new ArrayList<>();
+  @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
+    List<@Nullable SqlNode> origNodeList = this.getList();
+    List<@Nullable SqlNode> newNodeList = new ArrayList<>();
 
     SqlNode origNode;
     for (int i = 0; i < origNodeList.size(); i++) {
@@ -328,7 +328,9 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
       if (origNode == null) {
         newNodeList.add(null);
       }
-      newNodeList.add(origNode.deepCopy(pos));
+      else {
+        newNodeList.add(origNode.deepCopy(pos));
+      }
     }
 
     if (pos == null) {

@@ -51,7 +51,7 @@ public class SqlDynamicParam extends SqlNode {
     return new SqlDynamicParam(index, pos);
   }
 
-  @Override public SqlNode deepCopy(SqlParserPos pos) {
+  @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
     if (pos == null) {
       pos = this.pos;
     }

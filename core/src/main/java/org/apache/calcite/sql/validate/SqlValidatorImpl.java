@@ -1581,7 +1581,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               null, null, null, null, null, null, null, null);
       insertCall.setSource(select);
     }
-    System.out.println("");
   }
 
   private SqlNode rewriteUpdateToMerge(
@@ -2241,14 +2240,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable String alias,
       SqlValidatorNamespace ns,
       boolean forceNullable) {
-    final SqlValidatorNamespace prevNamespace = namespaces.put(
-        requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
 
-    //TODO: delete this after I'm done debuging
-    final SqlParserPos debugParserPos = new SqlParserPos(2, 8, 2, 42);
-    if (prevNamespace != null || ns.getNode().getParserPosition().equals(debugParserPos)) {
-      System.out.println("");
-    }
+    namespaces.put(
+        requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
 
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
@@ -2756,12 +2750,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> operands;
     switch (node.getKind()) {
     case SELECT:
-      // NOTE: there is a case where we want to not create a new namespace/scope for the select.
-      // For merge into, if we have a "when not matched" clause, the "when not matched" clause will
-      // contain the exact same select statement that is found in the source select.
-      // In this case, the select statement will already be registered with the validator,
-      // and we need to reuse the existing registration.
-      // TODO: does this break any of the existing tests?
 
       final SqlSelect select = (SqlSelect) node;
       final SqlValidatorNamespace registeredSelectNs = getNamespace(select);
@@ -2769,11 +2757,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (registeredSelectNs == null) {
         final SelectNamespace selectNs = createSelectNamespace(select, enclosingNode);
         registerNamespace(usingScope, alias, selectNs, forceNullable);
-      } else {
-        System.out.println("");
       }
 
-      //TODO: do I need to avoid remaking these scopes too?
       final SqlValidatorScope windowParentScope =
           (usingScope != null) ? usingScope : parentScope;
       SelectScope selectScope =
@@ -3044,7 +3029,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             null,
             false);
       }
-      System.out.println("");
       break;
 
     case UNNEST:
