@@ -1517,13 +1517,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private static void rewriteMerge(SqlMerge call) {
     SqlNodeList selectList;
-    SqlUpdate updateStmt = call.getUpdateCallList();
-    if (updateStmt != null) {
+    SqlNodeList updateStmtList = call.getUpdateCallList();
+    if (updateStmtList.size() > 0) {
       // if we have an update statement, just clone the select list
       // from the update statement's source since it's the same as
       // what we want for the select list of the merge source -- '*'
       // followed by the update set expressions
-      SqlSelect sourceSelect = SqlNonNullableAccessors.getSourceSelect(updateStmt);
+
+      //TODO: is this correct? I think this works because the source select for each update
+      //stmt should be the same... but I need to think on it more
+      SqlSelect sourceSelect = SqlNonNullableAccessors.getSourceSelect(
+          (SqlUpdate) updateStmtList.get(0));
       selectList = SqlNode.clone(SqlNonNullableAccessors.getSelectList(sourceSelect));
     } else {
       // otherwise, just use select *
@@ -1547,7 +1551,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNodeList insertCallList = call.getInsertCallList();
     JoinType joinType = (insertCallList.size() > 1) ? JoinType.INNER : JoinType.LEFT;
     // In this case, it's ok to keep the original pos, but we need to deep copy so that
-    // all of the sub nodes are different java objects, otherwise we get issues later durring
+    // all of the sub nodes are different java objects, otherwise we get issues later during
     // validation (scopes, clauseScopes, and namespaces fields for the validator can conflict)
     final SqlNode leftJoinTerm = sourceTableRef.deepCopy(null);
     SqlNode outerJoin =
@@ -1568,7 +1572,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // note that the values clause has already been converted to a
     // select on the values row constructor; so we need to extract
     // that via the from clause on the select
-    if (insertCall != null) {
+
+    //TODO: again, I don't know if this will work properly
+    if (insertCallList.size() > 0) {
+      SqlInsert insertCall = (SqlInsert) insertCallList.get(0);
       SqlCall valuesCall = (SqlCall) insertCall.getSource();
       SqlCall rowCall = valuesCall.operand(0);
       selectList =
@@ -1579,6 +1586,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
               null, null, null, null, null, null, null, null);
+
+      //TODO: Do I need to set the source for each insert call?
       insertCall.setSource(select);
     }
   }
@@ -1649,7 +1658,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
     SqlMerge mergeCall =
         new SqlMerge(updateCall.getParserPosition(), target, condition, source,
-            updateCall, null, null, updateCall.getAlias());
+            SqlNodeList.of(updateCall), null, null, updateCall.getAlias());
     rewriteMerge(mergeCall);
     return mergeCall;
   }
@@ -5207,11 +5216,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     validateSelect(sqlSelect, targetRowType);
 
-    for (int i=0; i < call.getUpdateCallList().size()) {
+    for (int i = 0; i < call.getUpdateCallList().size(); i++) {
       SqlUpdate updateCallAfterValidate = (SqlUpdate) call.getUpdateCallList().get(i);
       validateUpdate(updateCallAfterValidate);
     }
-    for (int i=0; i < call.getInsertCallList().size()) {
+    for (int i = 0; i < call.getInsertCallList().size(); i++) {
       SqlInsert insertCallAfterValidate = (SqlInsert) call.getInsertCallList().get(i);
       validateInsert(insertCallAfterValidate);
     }

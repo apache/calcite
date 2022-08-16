@@ -1718,9 +1718,16 @@ SqlNode SqlMerge() :
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
     SqlNode condition;
-    List<SqlUpdate> updateCallList = new ArrayList<SqlUpdate>();
-    List<SqlInsert> insertCallList = new ArrayList<SqlUpdate>();
+    final Span updateCallListSpan = span();
+    final Span insertCallListSpan = span();
+    //Note, the list typing cannot be more specific, as
+    // it causes issues when constructing the nodeList
+    List<SqlUpdate> updateCallList = new ArrayList();
+    List<SqlInsert> insertCallList = new ArrayList();
+    SqlInsert insertCall;
+    SqlUpdate updateCall;
     final Span s;
+
 }
 {
     (<MERGE_INTO> { s = span(); } | (<MERGE> { s = span(); } <INTO>)) table = TableRefWithHintsOpt()
@@ -1735,14 +1742,22 @@ SqlNode SqlMerge() :
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
     (
         LOOKAHEAD(2)
-        ( updateCall = WhenMatchedClause(table, alias) { updateCallList.add(updateCall); } )*
-        [ insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); } ]*
+        ( updateCall = WhenMatchedClause(table, alias)
+          { updateCallList.add(updateCall); updateCallListSpan.add(updateCall); }
+        )+
+        ( insertCall = WhenNotMatchedClause(table)
+          { insertCallList.add(insertCall); insertCallListSpan.add(insertCall); }
+        )*
     |
-        ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); } )*
+        ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); })+
     )
     {
-        return new SqlMerge(s.addIf(updateCall).addIf(insertCall).pos(), table,
-            condition, sourceTableRef, updateCall, insertCall, null, alias);
+        SqlParserPos updateCallListPos = updateCallListSpan.addAll(updateCallList).pos();
+        SqlParserPos insertCallListPos = insertCallListSpan.addAll(insertCallList).pos();
+
+        return new SqlMerge(s.add(updateCallListPos).add(insertCallListPos).pos(), table,
+            condition, sourceTableRef, new SqlNodeList(updateCallList, updateCallListPos),
+            new SqlNodeList(insertCallList, insertCallListPos), null, alias);
     }
 }
 
