@@ -1749,7 +1749,7 @@ SqlNode SqlMerge() :
     )
     {
         return new SqlMerge(s.addIf(updateCall).addIf(insertCall).addIf(deleteCall).pos(), table,
-            condition, sourceTableRef, updateCall, insertCall, null, alias);
+            condition, sourceTableRef, updateCall, insertCall, deleteCall, null, alias);
     }
 }
 
