@@ -2792,6 +2792,13 @@ public abstract class Expressions {
   }
 
   /**
+   * Creates Statements with Raise Notice Statement.
+   */
+  public static NoticeStatement notice_(Expression expression) {
+    return new NoticeStatement(expression);
+  }
+
+  /**
    * Creates a TryExpression representing a try block with any
    * number of catch statements and neither a fault nor finally
    * block.

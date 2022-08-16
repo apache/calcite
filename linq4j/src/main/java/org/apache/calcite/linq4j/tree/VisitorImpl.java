@@ -212,4 +212,7 @@ public class VisitorImpl<@Nullable R> implements Visitor<R> {
     return whileStatement.body.accept(this);
   }
 
+  public R visit(NoticeStatement noticeStatement) {
+    return noticeStatement.expression.accept(this);
+  }
 }

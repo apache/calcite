@@ -447,6 +447,11 @@ public enum ExpressionType {
   Try,
 
   /**
+   * A raise-notice expression.
+   */
+  Notice,
+
+  /**
    * An unbox value type operation, such as unbox and unbox.any
    * instructions in MSIL.
    */

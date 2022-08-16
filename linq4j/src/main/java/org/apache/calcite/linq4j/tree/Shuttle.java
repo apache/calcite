@@ -358,4 +358,14 @@ public class Shuttle {
             constructorDeclaration.parameters,
             body);
   }
+
+  public Shuttle preVisit(NoticeStatement noticeStatement) {
+    return this;
+  }
+
+  public Statement visit(NoticeStatement noticeStatement, Expression expression) {
+    return expression == noticeStatement.expression
+        ? noticeStatement
+        : Expressions.notice_(expression);
+  }
 }

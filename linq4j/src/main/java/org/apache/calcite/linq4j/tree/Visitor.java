@@ -56,4 +56,5 @@ public interface Visitor<R> {
   R visit(TypeBinaryExpression typeBinaryExpression);
   R visit(UnaryExpression unaryExpression);
   R visit(WhileStatement whileStatement);
+  R visit(NoticeStatement noticeStatement);
 }
