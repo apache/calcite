@@ -3279,6 +3279,25 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
+  @Test void testMergeMatchConditionNestedExpr() {
+    // Tests a basic merge query with a match containing a condition using
+    // both the target and the source, and using a nested expression
+    final String sql1 = "merge into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal + target.sal IN (SELECT empno from emp) then\n"
+        + "  update set sal = target.sal + source.sal\n";
+
+    final String sql2 = "merge_into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal + target.sal IN (SELECT empno from emp) then\n"
+        + "  update set sal = target.sal + source.sal\n";
+
+    sql(sql1).ok();
+    sql(sql2).ok();
+  }
+
 
   @Test void testSelectView() {
     // translated condition: deptno = 20 and sal > 1000 and empno > 100
