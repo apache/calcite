@@ -21,6 +21,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
@@ -180,41 +181,56 @@ public class SqlMerge extends SqlCall {
     writer.keyword("ON");
     condition.unparse(writer, opLeft, opRight);
 
-    // TODO: fix this
-//    SqlUpdate updateCall = this.updateCall;
-//    if (updateCall != null) {
-//      writer.newlineAndIndent();
-//      writer.keyword("WHEN MATCHED THEN UPDATE");
-//      final SqlWriter.Frame setFrame =
-//          writer.startList(
-//              SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
-//              "SET",
-//              "");
-//
-//      for (Pair<SqlNode, SqlNode> pair : Pair.zip(
-//          updateCall.targetColumnList, updateCall.sourceExpressionList)) {
-//        writer.sep(",");
-//        SqlIdentifier id = (SqlIdentifier) pair.left;
-//        id.unparse(writer, opLeft, opRight);
-//        writer.keyword("=");
-//        SqlNode sourceExp = pair.right;
-//        sourceExp.unparse(writer, opLeft, opRight);
-//      }
-//      writer.endList(setFrame);
-//    }
-//
-//    SqlInsert insertCall = this.insertCall;
-//    if (insertCall != null) {
-//      writer.newlineAndIndent();
-//      writer.keyword("WHEN NOT MATCHED THEN INSERT");
-//      SqlNodeList targetColumnList = insertCall.getTargetColumnList();
-//      if (targetColumnList != null) {
-//        targetColumnList.unparse(writer, opLeft, opRight);
-//      }
-//      insertCall.getSource().unparse(writer, opLeft, opRight);
-//
-//      writer.endList(frame);
-//    }
+
+    SqlNodeList updateCallList = this.updateCallList;
+    for (int i = 0; i < updateCallList.size(); i++) {
+      SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(i);
+      writer.newlineAndIndent();
+      writer.keyword("WHEN MATCHED");
+      SqlNode cond = curUpdateCall.getCondition();
+      if (cond != null) {
+        // TODO: fix this
+        writer.keyword("AND __TODO__ ");
+      }
+      writer.keyword("THEN UPDATE");
+
+      final SqlWriter.Frame setFrame =
+          writer.startList(
+              SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
+              "SET",
+              "");
+
+      for (Pair<SqlNode, SqlNode> pair : Pair.zip(
+          curUpdateCall.targetColumnList, curUpdateCall.sourceExpressionList)) {
+        writer.sep(",");
+        SqlIdentifier id = (SqlIdentifier) pair.left;
+        id.unparse(writer, opLeft, opRight);
+        writer.keyword("=");
+        SqlNode sourceExp = pair.right;
+        sourceExp.unparse(writer, opLeft, opRight);
+      }
+      writer.endList(setFrame);
+    }
+
+    SqlNodeList insertCallList = this.insertCallList;
+    for (int i = 0; i < insertCallList.size(); i++) {
+      SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
+      writer.newlineAndIndent();
+      writer.keyword("WHEN NOT MATCHED");
+      SqlNode cond = curInsertCall.getCondition();
+      if (cond != null) {
+        // TODO: fix this
+        writer.keyword("AND __TODO__ ");
+      }
+      writer.keyword("THEN INSERT");
+      SqlNodeList targetColumnList = curInsertCall.getTargetColumnList();
+      if (targetColumnList != null) {
+        targetColumnList.unparse(writer, opLeft, opRight);
+      }
+      curInsertCall.getSource().unparse(writer, opLeft, opRight);
+
+      writer.endList(frame);
+    }
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {

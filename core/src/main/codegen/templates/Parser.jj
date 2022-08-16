@@ -1740,9 +1740,15 @@ SqlNode SqlMerge() :
     [ [ <AS> ] alias = SimpleIdentifier() ]
     <USING> sourceTableRef = TableRef()
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
+
     (
+        //Need look ahead here to determine if we any update call whatsoever
         LOOKAHEAD(2)
-        ( updateCall = WhenMatchedClause(table, alias)
+        (
+        //Need look ahead here to distinguish WHEN MATCHED from WHEN NOT MATCHED
+        //in the variadic expansion
+        LOOKAHEAD(2)
+        updateCall = WhenMatchedClause(table, alias)
           { updateCallList.add(updateCall); updateCallListSpan.add(updateCall); }
         )+
         ( insertCall = WhenNotMatchedClause(table)

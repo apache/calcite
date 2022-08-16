@@ -126,6 +126,14 @@ public class SqlInsert extends SqlCall {
     return targetTable;
   }
 
+
+  /**
+   * Return the condition for the insertion.
+   */
+  public SqlNode getCondition() {
+    return condition;
+  }
+
   /**
    * Returns the source expression for the data to be inserted.
    */
