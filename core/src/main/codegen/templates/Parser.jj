@@ -1719,8 +1719,10 @@ SqlNode SqlMerge() :
     SqlNode sourceTableRef;
     SqlNode condition;
     SqlUpdate updateCall = null;
+    SqlDelete deleteCall = null;
     SqlInsert insertCall = null;
     final Span s;
+    final Span matchedSpan;
 }
 {
     (<MERGE_INTO> { s = span(); } | (<MERGE> { s = span(); } <INTO>)) table = TableRefWithHintsOpt()
@@ -1735,27 +1737,41 @@ SqlNode SqlMerge() :
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
     (
         LOOKAHEAD(2)
-        updateCall = WhenMatchedClause(table, alias)
+        matchedSpan = WhenMatchedClauseCommon()
+        (
+            updateCall = WhenMatchedClauseUpdate(table, alias, matchedSpan)
+        |
+            deleteCall = WhenMatchedClauseDelete(table, alias, matchedSpan)
+        )
         [ insertCall = WhenNotMatchedClause(table) ]
     |
         insertCall = WhenNotMatchedClause(table)
     )
     {
-        return new SqlMerge(s.addIf(updateCall).addIf(insertCall).pos(), table,
+        return new SqlMerge(s.addIf(updateCall).addIf(insertCall).addIf(deleteCall).pos(), table,
             condition, sourceTableRef, updateCall, insertCall, null, alias);
     }
 }
 
-SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
+Span WhenMatchedClauseCommon() :
+{
+    final Span s;
+}
+{
+    <WHEN> { s = span(); } <MATCHED> <THEN>
+    {
+        return s;
+    }
+}
+
+SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
 {
     SqlIdentifier id;
-    final Span s;
     final SqlNodeList updateColumnList = new SqlNodeList(SqlParserPos.ZERO);
     SqlNode exp;
     final SqlNodeList updateExprList = new SqlNodeList(SqlParserPos.ZERO);
 }
 {
-    <WHEN> { s = span(); } <MATCHED> <THEN>
     <UPDATE> <SET> id = CompoundIdentifier() {
         updateColumnList.add(id);
     }
@@ -1771,9 +1787,18 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
             updateExprList.add(exp);
         }
     )*
-    {
-        return new SqlUpdate(s.addAll(updateExprList).pos(), table,
+        {
+        return new SqlUpdate(matchedSpan.addAll(updateExprList).pos(), table,
             updateColumnList, updateExprList, null, null, alias);
+    }
+}
+
+SqlDelete WhenMatchedClauseDelete(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
+{}
+{
+    <DELETE>
+    {
+        return new SqlDelete(matchedSpan.add(table).addIf(alias).pos(), table, null, null, alias);
     }
 }
 
