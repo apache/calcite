@@ -317,6 +317,29 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
+
+  @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
+    List<@Nullable SqlNode> origNodeList = this.getList();
+    List<@Nullable SqlNode> newNodeList = new ArrayList<>();
+
+    SqlNode origNode;
+    for (int i = 0; i < origNodeList.size(); i++) {
+      origNode = origNodeList.get(i);
+      if (origNode == null) {
+        newNodeList.add(null);
+      }
+      else {
+        newNodeList.add(origNode.deepCopy(pos));
+      }
+    }
+
+    if (pos == null) {
+      pos = this.pos;
+    }
+
+    return new SqlNodeList(pos, newNodeList);
+  }
+
   @Override public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
     // While a SqlNodeList is not always a valid expression, this
     // implementation makes that assumption. It just validates the members

@@ -89,6 +89,13 @@ public abstract class SqlNode implements Cloneable {
   public abstract SqlNode clone(SqlParserPos pos);
 
   /**
+   * Clones a new SqlNode with the specified parser pos. If parser pos is null, then the objects
+   * keep their own parser pos. Recursively copies all the sub Nodes that this node may itself
+   * contain.
+   */
+  public abstract SqlNode deepCopy(@Nullable SqlParserPos pos);
+
+  /**
    * Returns the type of node this is, or
    * {@link org.apache.calcite.sql.SqlKind#OTHER} if it's nothing special.
    *

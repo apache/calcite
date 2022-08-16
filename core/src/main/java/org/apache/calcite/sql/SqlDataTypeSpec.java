@@ -128,6 +128,14 @@ public class SqlDataTypeSpec extends SqlNode {
     return new SqlDataTypeSpec(typeNameSpec, timeZone, pos);
   }
 
+  @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
+    if (pos == null) {
+      pos = this.pos;
+    }
+    return this.clone(pos);
+  }
+
+
   @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }

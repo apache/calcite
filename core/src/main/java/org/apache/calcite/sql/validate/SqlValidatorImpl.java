@@ -1546,7 +1546,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode sourceTableRef = call.getSourceTableRef();
     SqlInsert insertCall = call.getInsertCall();
     JoinType joinType = (insertCall == null) ? JoinType.INNER : JoinType.LEFT;
-    final SqlNode leftJoinTerm = SqlNode.clone(sourceTableRef);
+    // In this case, it's ok to keep the original pos, but we need to deep copy so that
+    // all of the sub nodes are different java objects, otherwise we get issues later durring
+    // validation (scopes, clauseScopes, and namespaces fields for the validator can conflict)
+    final SqlNode leftJoinTerm = sourceTableRef.deepCopy(null);
     SqlNode outerJoin =
         new SqlJoin(SqlParserPos.ZERO,
             leftJoinTerm,
@@ -2237,7 +2240,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable String alias,
       SqlValidatorNamespace ns,
       boolean forceNullable) {
-    namespaces.put(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+
+    namespaces.put(
+        requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
           + ", so alias must not be null";
@@ -2744,10 +2750,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> operands;
     switch (node.getKind()) {
     case SELECT:
+
       final SqlSelect select = (SqlSelect) node;
-      final SelectNamespace selectNs =
-          createSelectNamespace(select, enclosingNode);
-      registerNamespace(usingScope, alias, selectNs, forceNullable);
+      final SqlValidatorNamespace registeredSelectNs = getNamespace(select);
+
+      if (registeredSelectNs == null) {
+        final SelectNamespace selectNs = createSelectNamespace(select, enclosingNode);
+        registerNamespace(usingScope, alias, selectNs, forceNullable);
+      }
+
       final SqlValidatorScope windowParentScope =
           (usingScope != null) ? usingScope : parentScope;
       SelectScope selectScope =
