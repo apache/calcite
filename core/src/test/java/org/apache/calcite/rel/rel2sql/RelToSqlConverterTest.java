@@ -10194,17 +10194,18 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test void testFilterWithInnerJoinGivingIsNotTrueError() {
+  @Test void testFilterWithInnerJoinGivingAssertionError() {
     String query = "SELECT * FROM  \n"
         + "\"foodmart\".\"employee\" E1\n"
         + "INNER JOIN\n"
         + "\"foodmart\".\"employee\" E2\n"
         + "ON CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
-        + "ELSE UPPER(E1.\"first_name\") = UPPER(E2.\"first_name\") END";
-
+        +"ELSE UPPER(E1.\"first_name\") = UPPER(E2.\"first_name\") END AND "
+        + "CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
+        + "ELSE INITCAP(E1.\"first_name\") = INITCAP(E2.\"first_name\") END";
     String expect = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "INNER JOIN foodmart.employee AS employee0 ON CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE UPPER(employee.first_name) = UPPER(employee0.first_name) END";
+        + "INNER JOIN foodmart.employee AS employee0 ON CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE UPPER(employee.first_name) = UPPER(employee0.first_name) END AND CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE INITCAP(employee.first_name) = INITCAP(employee0.first_name) END";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterExtractInnerJoinRule.class);

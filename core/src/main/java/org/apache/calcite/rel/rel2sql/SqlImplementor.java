@@ -404,6 +404,7 @@ public abstract class SqlImplementor {
       List<SqlNode> nodes = leftContext.implementor().joinContext(leftContext, rightContext)
           .toSql(null, ((RexCall) node).getOperands());
       return ((RexCall) node).getOperator().createCall(new SqlNodeList(nodes, POS));
+    case INITCAP:
     case CASE:
       final RexCall caseCall = (RexCall) node;
       final List<SqlNode> caseNodeList = leftContext.implementor().
