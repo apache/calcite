@@ -10200,7 +10200,7 @@ class RelToSqlConverterTest {
         + "INNER JOIN\n"
         + "\"foodmart\".\"employee\" E2\n"
         + "ON CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
-        +"ELSE UPPER(E1.\"first_name\") = UPPER(E2.\"first_name\") END AND "
+        + "ELSE UPPER(E1.\"first_name\") = UPPER(E2.\"first_name\") END AND "
         + "CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
         + "ELSE INITCAP(E1.\"first_name\") = INITCAP(E2.\"first_name\") END";
     String expect = "SELECT *\n"
