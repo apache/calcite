@@ -90,6 +90,23 @@ public class RexImplicationChecker {
    * it doesn't know if implication holds
    */
   public boolean implies(RexNode first, RexNode second) {
+    return implies(first, second, -1);
+  }
+
+  /**
+   * Similar to {@link #implies(RexNode, RexNode)}; however, it lets you
+   * specify a threshold in the number of nodes that can be created out of
+   * the DNF conversion.
+   *
+   * <p>If the threshold is negative it is ignored.
+   *
+   * @param first first condition
+   * @param second second condition
+   * @param maxNodeCount max number of nodes that can be created out of the DNF conversion
+   * @return true if it can prove first &rArr; second; otherwise false i.e.,
+   * it doesn't know if implication holds
+   */
+  public boolean implies(RexNode first, RexNode second, int maxNodeCount) {
     // Validation
     if (!validate(first, second)) {
       return false;
@@ -98,8 +115,8 @@ public class RexImplicationChecker {
     LOGGER.debug("Checking if {} => {}", first.toString(), second.toString());
 
     // Get DNF
-    RexNode firstDnf = RexUtil.toDnf(builder, first);
-    RexNode secondDnf = RexUtil.toDnf(builder, second);
+    RexNode firstDnf = RexUtil.toDnf(builder, maxNodeCount, first);
+    RexNode secondDnf = RexUtil.toDnf(builder, maxNodeCount, second);
 
     // Check Trivial Cases
     if (firstDnf.isAlwaysFalse()
