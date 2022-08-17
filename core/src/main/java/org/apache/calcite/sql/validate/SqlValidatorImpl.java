@@ -3019,6 +3019,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             false,
             false);
       }
+      SqlDelete mergeDeleteCall = mergeCall.getDeleteCall();
+      if (mergeDeleteCall != null) {
+        registerQuery(
+            parentScope,
+            null,
+            mergeDeleteCall,
+            enclosingNode,
+            null,
+            false);
+      }
       SqlInsert mergeInsertCall = mergeCall.getInsertCall();
       if (mergeInsertCall != null) {
         registerQuery(
@@ -5186,6 +5196,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           updateCall.getTargetColumnList(),
           true);
     }
+    // Note we don't add the delete call here because that shouldn't impact
+    // the target row type at all as data is only removed.
     SqlInsert insertCall = call.getInsertCall();
     if (insertCall != null) {
       requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
@@ -5200,6 +5212,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlUpdate updateCallAfterValidate = call.getUpdateCall();
     if (updateCallAfterValidate != null) {
       validateUpdate(updateCallAfterValidate);
+    }
+    SqlDelete deleteCallAfterValidate = call.getDeleteCall();
+    if (deleteCallAfterValidate != null) {
+      validateDelete(deleteCallAfterValidate);
     }
     SqlInsert insertCallAfterValidate = call.getInsertCall();
     if (insertCallAfterValidate != null) {

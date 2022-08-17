@@ -81,7 +81,7 @@ public class SqlMerge extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, source, updateCall,
-        insertCall, sourceSelect, alias);
+        insertCall, deleteCall, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -104,9 +104,12 @@ public class SqlMerge extends SqlCall {
       insertCall = (@Nullable SqlInsert) operand;
       break;
     case 5:
-      sourceSelect = (@Nullable SqlSelect) operand;
+      deleteCall = (@Nullable SqlDelete) operand;
       break;
     case 6:
+      sourceSelect = (@Nullable SqlSelect) operand;
+      break;
+    case 7:
       alias = (SqlIdentifier) operand;
       break;
     default:
