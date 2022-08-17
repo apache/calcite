@@ -111,9 +111,9 @@ import java.util.stream.IntStream;
 
 import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
-import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
