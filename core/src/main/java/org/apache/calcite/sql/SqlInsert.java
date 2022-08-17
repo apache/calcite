@@ -130,7 +130,7 @@ public class SqlInsert extends SqlCall {
   /**
    * Return the condition for the insertion.
    */
-  public SqlNode getCondition() {
+  public @Nullable SqlNode getCondition() {
     return condition;
   }
 

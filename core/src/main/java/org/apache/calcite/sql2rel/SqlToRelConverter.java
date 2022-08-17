@@ -4216,8 +4216,8 @@ public class SqlToRelConverter {
     // then, convert the insert statement so that we can get the insert
     // values expressions
     SqlNodeList insertCallList = call.getInsertCallList();
-    List<List<RexNode>> level1InsertExprsList = new ArrayList<>();
-    List<List<RexNode>> level2InsertExprsList = new ArrayList<>();
+    List<@Nullable List<RexNode>> level1InsertExprsList = new ArrayList<>();
+    List<@Nullable List<RexNode>> level2InsertExprsList = new ArrayList<>();
     for (int i = 0; i < insertCallList.size(); i++) {
 
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
@@ -4261,8 +4261,8 @@ public class SqlToRelConverter {
 
     for (int insertCallListIdx = 0; insertCallListIdx < insertCallList.size();
          insertCallListIdx++) {
-      List<RexNode> curLevel1InsertExprs = level1InsertExprsList.get(insertCallListIdx);
-      List<RexNode> curLevel2InsertExprs = level2InsertExprsList.get(insertCallListIdx);
+      @Nullable List<RexNode> curLevel1InsertExprs = level1InsertExprsList.get(insertCallListIdx);
+      @Nullable List<RexNode> curLevel2InsertExprs = level2InsertExprsList.get(insertCallListIdx);
 
       if (curLevel1InsertExprs != null) {
         for (int level1Idx = 0; level1Idx < curLevel1InsertExprs.size(); level1Idx++) {
