@@ -278,10 +278,9 @@ public abstract class MutableRels {
     }
     case TABLE_MODIFY:
       final MutableTableModify modify = (MutableTableModify) node;
-      //TODO: I may need to propogate the condition node to this mutable TableModify
       return LogicalTableModify.create(modify.table, modify.catalogReader,
           fromMutable(modify.getInput(), relBuilder), modify.operation, modify.updateColumnList,
-          modify.sourceExpressionList, null, modify.flattened);
+          modify.sourceExpressionList,  modify.flattened);
     case SAMPLE:
       final MutableSample sample = (MutableSample) node;
       return new Sample(sample.cluster, fromMutable(sample.getInput(), relBuilder), sample.params);

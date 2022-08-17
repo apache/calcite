@@ -506,9 +506,9 @@ public class FrameworksTest {
     public TableModify toModificationRel(RelOptCluster cluster,
         RelOptTable table, Prepare.CatalogReader catalogReader, RelNode child,
         TableModify.Operation operation, List<String> updateColumnList,
-        List<RexNode> sourceExpressionList, @Nullable RexNode condition, boolean flattened) {
+        List<RexNode> sourceExpressionList, boolean flattened) {
       return LogicalTableModify.create(table, catalogReader, child, operation,
-          updateColumnList, sourceExpressionList, condition, flattened);
+          updateColumnList, sourceExpressionList, flattened);
     }
 
     public <T> Queryable<T> asQueryable(QueryProvider queryProvider,

@@ -1549,7 +1549,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // for validation to work
     SqlNode sourceTableRef = call.getSourceTableRef();
     SqlNodeList insertCallList = call.getInsertCallList();
-    JoinType joinType = (insertCallList.size() > 1) ? JoinType.INNER : JoinType.LEFT;
+    JoinType joinType = (insertCallList.size() == 0) ? JoinType.INNER : JoinType.LEFT;
     // In this case, it's ok to keep the original pos, but we need to deep copy so that
     // all of the sub nodes are different java objects, otherwise we get issues later during
     // validation (scopes, clauseScopes, and namespaces fields for the validator can conflict)

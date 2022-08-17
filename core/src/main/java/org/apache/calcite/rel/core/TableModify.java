@@ -84,7 +84,6 @@ public abstract class TableModify extends SingleRel {
   private final @Nullable List<RexNode> sourceExpressionList;
   private @MonotonicNonNull RelDataType inputRowType;
 
-  private final @Nullable RexNode condition;
 
   private final boolean flattened;
 
@@ -119,7 +118,6 @@ public abstract class TableModify extends SingleRel {
       Operation operation,
       @Nullable List<String> updateColumnList,
       @Nullable List<RexNode> sourceExpressionList,
-      @Nullable RexNode condition,
       boolean flattened) {
     super(cluster, traitSet, input);
     this.table = table;
@@ -127,7 +125,6 @@ public abstract class TableModify extends SingleRel {
     this.operation = operation;
     this.updateColumnList = updateColumnList;
     this.sourceExpressionList = sourceExpressionList;
-    this.condition = condition;
     if (operation == Operation.UPDATE) {
       requireNonNull(updateColumnList, "updateColumnList");
       requireNonNull(sourceExpressionList, "sourceExpressionList");
@@ -162,7 +159,6 @@ public abstract class TableModify extends SingleRel {
         requireNonNull(input.getEnum("operation", Operation.class), "operation"),
         input.getStringList("updateColumnList"),
         input.getExpressionList("sourceExpressionList"),
-        input.getExpression("condition"),
         input.getBoolean("flattened", false));
   }
 
@@ -190,10 +186,6 @@ public abstract class TableModify extends SingleRel {
 
   public Operation getOperation() {
     return operation;
-  }
-
-  public @Nullable RexNode getCondition() {
-    return condition;
   }
 
   public boolean isInsert() {

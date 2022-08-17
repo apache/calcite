@@ -3796,7 +3796,7 @@ public class SqlToRelConverter {
         && modifiableTable == targetTable.unwrap(Table.class)) {
       return modifiableTable.toModificationRel(cluster, targetTable,
           catalogReader, source, LogicalTableModify.Operation.INSERT, null,
-          null, null, false);
+          null, false);
     }
     final ModifiableView modifiableView =
         targetTable.unwrap(ModifiableView.class);
@@ -3811,7 +3811,7 @@ public class SqlToRelConverter {
       return createModify(delegateRelOptTable, newSource);
     }
     return LogicalTableModify.create(targetTable, catalogReader, source,
-        LogicalTableModify.Operation.INSERT, null, null, null, false);
+        LogicalTableModify.Operation.INSERT, null, null, false);
   }
 
   /** Wraps a relational expression in the projects and filters implied by
@@ -4138,7 +4138,7 @@ public class SqlToRelConverter {
 
     //TODO: I may need to add a condition to the call, and propogate that cal here
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
-        LogicalTableModify.Operation.DELETE, null, null, null, false);
+        LogicalTableModify.Operation.DELETE, null, null, false);
   }
 
   private RelNode convertUpdate(SqlUpdate call) {
@@ -4173,12 +4173,9 @@ public class SqlToRelConverter {
       rexNodeSourceExpressionListBuilder.add(rn);
     }
 
-    // Note: in this case, we don't need to explicitly pass the condition. It will be included
-    // as a filter in the select.
-
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
         LogicalTableModify.Operation.UPDATE, targetColumnNameList,
-        rexNodeSourceExpressionListBuilder.build(), null, false);
+        rexNodeSourceExpressionListBuilder.build(), false);
   }
 
   private RelNode convertMerge(SqlMerge call) {
@@ -4298,7 +4295,7 @@ public class SqlToRelConverter {
     // RexNode condition = convertExpresion(call.getCondition());
     return LogicalTableModify.create(targetTable, catalogReader,
         relBuilder.build(), LogicalTableModify.Operation.MERGE,
-        targetColumnNameList, null, null, false);
+        targetColumnNameList, null, false);
   }
 
   /**

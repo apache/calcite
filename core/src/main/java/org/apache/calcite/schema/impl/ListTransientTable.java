@@ -79,10 +79,9 @@ public class ListTransientTable extends AbstractQueryableTable
       TableModify.Operation operation,
       @Nullable List<String> updateColumnList,
       @Nullable List<RexNode> sourceExpressionList,
-      @Nullable RexNode condition,
       boolean flattened) {
     return LogicalTableModify.create(table, catalogReader, child, operation,
-        updateColumnList, sourceExpressionList, condition, flattened);
+        updateColumnList, sourceExpressionList, flattened);
   }
 
   @SuppressWarnings("rawtypes")

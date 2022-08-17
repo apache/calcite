@@ -45,10 +45,10 @@ public final class LogicalTableModify extends TableModify {
   public LogicalTableModify(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, Prepare.CatalogReader schema, RelNode input,
       Operation operation, @Nullable List<String> updateColumnList,
-      @Nullable List<RexNode> sourceExpressionList, @Nullable RexNode condition,
+      @Nullable List<RexNode> sourceExpressionList,
       boolean flattened) {
     super(cluster, traitSet, table, schema, input, operation, updateColumnList,
-        sourceExpressionList, condition, flattened);
+        sourceExpressionList, flattened);
   }
 
   /**
@@ -61,7 +61,7 @@ public final class LogicalTableModify extends TableModify {
   @Deprecated // to be removed before 2.0
   public LogicalTableModify(RelOptCluster cluster, RelOptTable table,
       Prepare.CatalogReader schema, RelNode input, Operation operation,
-      List<String> updateColumnList, @Nullable RexNode condition, boolean flattened) {
+      List<String> updateColumnList, boolean flattened) {
     this(cluster,
         cluster.traitSetOf(Convention.NONE),
         table,
@@ -70,7 +70,6 @@ public final class LogicalTableModify extends TableModify {
         operation,
         updateColumnList,
         null,
-        condition,
         flattened);
   }
 
@@ -78,12 +77,12 @@ public final class LogicalTableModify extends TableModify {
   public static LogicalTableModify create(RelOptTable table,
       Prepare.CatalogReader schema, RelNode input,
       Operation operation, @Nullable List<String> updateColumnList,
-      @Nullable List<RexNode> sourceExpressionList, @Nullable RexNode condition,
+      @Nullable List<RexNode> sourceExpressionList,
       boolean flattened) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalTableModify(cluster, traitSet, table, schema, input,
-        operation, updateColumnList, sourceExpressionList, condition, flattened);
+        operation, updateColumnList, sourceExpressionList, flattened);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -93,6 +92,6 @@ public final class LogicalTableModify extends TableModify {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalTableModify(getCluster(), traitSet, table, catalogReader,
         sole(inputs), getOperation(), getUpdateColumnList(),
-        getSourceExpressionList(), getCondition(), isFlattened());
+        getSourceExpressionList(), isFlattened());
   }
 }

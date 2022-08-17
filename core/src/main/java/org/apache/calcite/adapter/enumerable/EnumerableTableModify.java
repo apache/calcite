@@ -47,10 +47,10 @@ public class EnumerableTableModify extends TableModify
   public EnumerableTableModify(RelOptCluster cluster, RelTraitSet traits,
       RelOptTable table, Prepare.CatalogReader catalogReader, RelNode child,
       Operation operation, @Nullable List<String> updateColumnList,
-      @Nullable List<RexNode> sourceExpressionList, @Nullable RexNode condition,
+      @Nullable List<RexNode> sourceExpressionList,
       boolean flattened) {
     super(cluster, traits, table, catalogReader, child, operation,
-        updateColumnList, sourceExpressionList, condition, flattened);
+        updateColumnList, sourceExpressionList, flattened);
     assert child.getConvention() instanceof EnumerableConvention;
     assert getConvention() instanceof EnumerableConvention;
     final ModifiableTable modifiableTable =
@@ -70,7 +70,6 @@ public class EnumerableTableModify extends TableModify
         getOperation(),
         getUpdateColumnList(),
         getSourceExpressionList(),
-        getCondition(),
         isFlattened());
   }
 

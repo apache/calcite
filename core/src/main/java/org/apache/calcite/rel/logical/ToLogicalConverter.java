@@ -159,7 +159,6 @@ public class ToLogicalConverter extends RelShuttleImpl {
       return LogicalTableModify.create(tableModify.getTable(),
           tableModify.getCatalogReader(), input, tableModify.getOperation(),
           tableModify.getUpdateColumnList(), tableModify.getSourceExpressionList(),
-          tableModify.getCondition(),
           tableModify.isFlattened());
     }
 

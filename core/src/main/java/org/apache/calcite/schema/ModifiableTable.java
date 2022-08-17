@@ -50,6 +50,5 @@ public interface ModifiableTable extends QueryableTable {
       TableModify.Operation operation,
       @Nullable List<String> updateColumnList,
       @Nullable List<RexNode> sourceExpressionList,
-      @Nullable RexNode condition,
       boolean flattened);
 }
