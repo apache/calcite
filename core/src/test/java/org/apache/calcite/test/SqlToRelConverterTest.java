@@ -3130,7 +3130,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-
   @Test void testMerge() {
     //Tests a basic merge query with one matched/not matched condition
     final String sql1 = "merge into empnullables_20 as target\n"
