@@ -573,7 +573,7 @@ public class CsvProjectTableScanRule
       return new CsvProjectTableScanRule(this);
     }
   }
-} 
+}
 {% endhighlight %}
 
 The default instance of the rule resides in the `CsvRules` holder class:
@@ -665,9 +665,7 @@ set. To load the data set, follow <a
 href="https://mondrian.pentaho.com/documentation/installation.php#2_Set_up_test_data">Mondrian's
 installation instructions</a>.)
 
-<b>Current limitations</b>: The JDBC adapter currently only pushes
-down table scan operations; all other processing (filtering, joins,
-aggregations and so forth) occurs within Calcite. Our goal is to push
+The JDBC adapter will push
 down as much processing as possible to the source system, translating
 syntax, data types and built-in functions as we go. If a Calcite query
 is based on tables from a single JDBC database, in principle the whole
