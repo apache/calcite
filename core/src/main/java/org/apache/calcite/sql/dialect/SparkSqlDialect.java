@@ -223,7 +223,7 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   @Override public SqlOperator getTargetFunc(RexCall call) {
-    switch(call.getOperator().getKind()) {
+    switch (call.getOperator().getKind()) {
     case PLUS:
     case MINUS:
       switch (call.type.getSqlTypeName()) {
