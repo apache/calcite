@@ -3212,7 +3212,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-  @Disabled("TODO")
+
   @Test void testMergeMatchConditionOnTarget() {
     // Tests a basic merge query with a match containing a filter on the dest/target.
     // Ideally, this would reduce to a filter on the source prior to the join,
