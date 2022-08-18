@@ -1526,7 +1526,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     targetTableSelectList.add(SqlLiteral.createBoolean(true, SqlParserPos.ZERO));
 
     targetTable = new SqlSelect(SqlParserPos.ZERO, null, targetTableSelectList,
-        targetTable, null,null, null, null, null,
+        targetTable, null, null, null, null, null,
         null, null, null, null);
     if (call.getAlias() != null) {
       targetTable =

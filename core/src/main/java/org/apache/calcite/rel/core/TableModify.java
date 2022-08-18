@@ -33,7 +33,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.Pattern;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -75,7 +74,7 @@ public abstract class TableModify extends SingleRel {
     private int value;
     private static HashMap map = new HashMap<>();
 
-    private Operation(int value) {
+    Operation(int value) {
       this.value = value;
     }
 

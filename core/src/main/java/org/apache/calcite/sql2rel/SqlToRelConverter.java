@@ -35,7 +35,17 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.SingleRel;
-import org.apache.calcite.rel.core.*;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -177,7 +187,22 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.AbstractList;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -4155,7 +4180,9 @@ public class SqlToRelConverter {
   }
 
 
-  private Pair<List<RexNode>, List<List<RexNode>>> getUpdateColumnsCaseExpr(SqlNodeList updateCallList, RelOptTable destTable, SqlSelect joinSelect, RelNode mergeSourceRel) {
+  private Pair<List<RexNode>, List<List<RexNode>>> getUpdateColumnsCaseExpr(
+      SqlNodeList updateCallList, RelOptTable destTable, SqlSelect joinSelect,
+      RelNode mergeSourceRel) {
 
     // Create the blackboard used to convert generate the expressions. This blackboard will be
     // scoped such that all expressions should be scoped as if they reference the result of the
@@ -4209,7 +4236,8 @@ public class SqlToRelConverter {
       String curFieldName = destTableFieldNames.get(destColIdx);
       List<RexNode> curColumnCaseValues = new ArrayList<>();
       //NOTE: Dest table is always on the right side of the joined table
-      RexNode defaultColumnValue = this.relBuilder.getRexBuilder().makeInputRef(mergeSourceRel, nSourceFields + destColIdx);
+      RexNode defaultColumnValue = this.relBuilder.getRexBuilder().makeInputRef(
+          mergeSourceRel, nSourceFields + destColIdx);
 
       for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
         SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateCallIdx);
@@ -4235,7 +4263,8 @@ public class SqlToRelConverter {
   }
 
 
-  private Pair<List<RexNode>, List<List<RexNode>>> getInsertColumnsCaseExpr(SqlNodeList insertCallList) {
+  private Pair<List<RexNode>, List<List<RexNode>>> getInsertColumnsCaseExpr(
+      SqlNodeList insertCallList) {
 
     // The list of conditions. This is returned from this function in order to filter no ops.
     final List<RexNode> caseConditions = new ArrayList<>();
@@ -4378,10 +4407,14 @@ public class SqlToRelConverter {
     // the left list is the list of conditions for each operation
     // The right outer list should have length of the number of data columns
     // the right inner list should have length equal to the number of conditions
-    Pair<List<RexNode>, List<List<RexNode>>> updateRexNodes = getUpdateColumnsCaseExpr(call.getUpdateCallList(), targetTable, call.getSourceSelect(), mergeSourceRel);
-    assert (updateRexNodes.getValue().size() == targetTable.getRowType().getFieldCount()) || updateRexNodes.getValue().size() == 0;
-    Pair<List<RexNode>, List<List<RexNode>>> insertRexNodes = getInsertColumnsCaseExpr(call.getInsertCallList());
-    assert (insertRexNodes.getValue().size() == targetTable.getRowType().getFieldCount()) || insertRexNodes.getValue().size() == 0;
+    Pair<List<RexNode>, List<List<RexNode>>> updateRexNodes = getUpdateColumnsCaseExpr(
+        call.getUpdateCallList(), targetTable, call.getSourceSelect(), mergeSourceRel);
+    assert (updateRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
+        || updateRexNodes.getValue().size() == 0;
+    Pair<List<RexNode>, List<List<RexNode>>> insertRexNodes =
+        getInsertColumnsCaseExpr(call.getInsertCallList());
+    assert (insertRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
+        || insertRexNodes.getValue().size() == 0;
 
 
     LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
@@ -4397,41 +4430,47 @@ public class SqlToRelConverter {
     // existing rules should allow for it to be pushed down past the join.
 
     // The "matched" field should always be at to the end of the joined table
-    RexNode isMatch = relBuilder.getRexBuilder().makeInputRef(join, join.getRowType().getFieldCount() - 1);
+    RexNode isMatch = relBuilder.getRexBuilder().makeInputRef(join,
+        join.getRowType().getFieldCount() - 1);
     RexNode isNotMatched = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.NOT, isMatch);
 
     RexNode rowHasUpdateCondition;
 
     if (updateRexNodes.getKey().size() > 1) {
-      rowHasUpdateCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR, updateRexNodes.getKey());
+      rowHasUpdateCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR,
+          updateRexNodes.getKey());
     } else if (updateRexNodes.getKey().size() == 1) {
       rowHasUpdateCondition = updateRexNodes.getKey().get(0);
     } else {
       rowHasUpdateCondition = relBuilder.getRexBuilder().makeLiteral(false);
     }
 
-    RexNode isUpdateRow = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.AND, Arrays.asList(rowHasUpdateCondition, isMatch));
+    RexNode isUpdateRow = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.AND,
+        Arrays.asList(rowHasUpdateCondition, isMatch));
 
     RexNode rowHasInsertCondition;
     if (insertRexNodes.getKey().size() > 1) {
-      rowHasInsertCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR, insertRexNodes.getKey());
+      rowHasInsertCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR,
+          insertRexNodes.getKey());
     } else if (insertRexNodes.getKey().size() == 1) {
       rowHasInsertCondition = insertRexNodes.getKey().get(0);
     } else {
       rowHasInsertCondition = relBuilder.getRexBuilder().makeLiteral(false);
     }
 
-    RexNode isInsertRow = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.AND, Arrays.asList(rowHasInsertCondition, isNotMatched));
+    RexNode isInsertRow = relBuilder.getRexBuilder().makeCall(
+        SqlStdOperatorTable.AND, Arrays.asList(rowHasInsertCondition, isNotMatched));
 
-    RexNode filterCond = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR, Arrays.asList(isUpdateRow, isInsertRow));
+    RexNode filterCond = relBuilder.getRexBuilder().makeCall(
+        SqlStdOperatorTable.OR, Arrays.asList(isUpdateRow, isInsertRow));
     relBuilder.filter(filterCond);
 
     //Next, we want to project everything so that we have the expected output rows,
 
     List<RexNode> finalProjects = new ArrayList<>();
 
-    // NOTE: there is a lot of repeated case logic. We should make sure that the appropriate Rex Nodes
-    // are actually being cached/reused when possible
+    // NOTE: there is a lot of repeated case logic. We should make sure that the
+    // appropriate Rex Nodes are actually being cached/reused when possible
     for (int colIdx = 0; colIdx < targetTable.getRowType().getFieldCount(); colIdx++) {
 
       RexNode updateColExpr = relBuilder.getRexBuilder().makeNullLiteral(
@@ -4439,7 +4478,8 @@ public class SqlToRelConverter {
       RexNode insertColExpr = relBuilder.getRexBuilder().makeNullLiteral(
           targetTable.getRowType().getFieldList().get(colIdx).getType());
 
-      RexNode colNullLiteral = relBuilder.getRexBuilder().makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
+      RexNode colNullLiteral = relBuilder.getRexBuilder()
+          .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
 
       //Calculate the update case (if we have any updates)
       if (updateRexNodes.getKey().size() > 0) {
@@ -4455,7 +4495,8 @@ public class SqlToRelConverter {
         }
         // Append NULL for the else case
         updateCaseArgs.add(colNullLiteral);
-        updateColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE, updateCaseArgs);
+        updateColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
+            updateCaseArgs);
       }
 
       //Calculate the update case (if we have any updates)
@@ -4472,7 +4513,8 @@ public class SqlToRelConverter {
         }
         // Append NULL for the else case
         insertCaseArgs.add(colNullLiteral);
-        insertColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE, insertCaseArgs);
+        insertColExpr = relBuilder.getRexBuilder().makeCall(
+            SqlStdOperatorTable.CASE, insertCaseArgs);
       }
 
       RexNode curColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
@@ -4491,7 +4533,8 @@ public class SqlToRelConverter {
     RexNode nullTinyIntLiteral = this.rexBuilder.makeNullLiteral(
         this.getRexBuilder().getTypeFactory().createSqlType(SqlTypeName.TINYINT));
 
-    finalProjects.add(relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
+    finalProjects.add(
+        relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
         Arrays.asList(isMatch, updateLiteral, isNotMatched, insertLiteral, nullTinyIntLiteral)));
 
     relBuilder.project(finalProjects);
