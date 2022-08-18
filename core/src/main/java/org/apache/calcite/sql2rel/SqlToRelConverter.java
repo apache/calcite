@@ -4143,40 +4143,54 @@ public class SqlToRelConverter {
   }
 
   private RelNode convertUpdate(SqlUpdate call) {
-    final SqlValidatorScope scope = validator().getWhereScope(
-        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call));
-    Blackboard bb = createBlackboard(scope, null, false);
 
-    //TODO: properly handle replacing subqueries in the condition here
-    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-
+    //TODO: remove/refactor this junk
     RelOptTable targetTable = getTargetTable(call);
 
-    // convert update column list from SqlIdentifier to String
-    final List<String> targetColumnNameList = new ArrayList<>();
-    final RelDataType targetRowType = targetTable.getRowType();
-    for (SqlNode node : call.getTargetColumnList()) {
-      SqlIdentifier id = (SqlIdentifier) node;
-      RelDataTypeField field =
-          SqlValidatorUtil.getTargetField(
-              targetRowType, typeFactory, id, catalogReader, targetTable);
-      assert field != null : "column " + id.toString() + " not found";
-      targetColumnNameList.add(field.getName());
-    }
+    final RelDataType targetRowType =
+        validator().getValidatedNodeType(call);
+    assert targetRowType != null;
+    RelNode sourceRel =
+        convertQueryRecursive(call.getSourceSelect(), true, targetRowType).project();
+//    RelNode massagedRel = convertColumnList(call, sourceRel);
 
-    RelNode sourceRel = convertSelect(
-        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call), false);
+    return sourceRel;
 
-    bb.setRoot(sourceRel, false);
-    ImmutableList.Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
-    for (SqlNode n : call.getSourceExpressionList()) {
-      RexNode rn = bb.convertExpression(n);
-      rexNodeSourceExpressionListBuilder.add(rn);
-    }
-
-    return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
-        LogicalTableModify.Operation.UPDATE, targetColumnNameList,
-        rexNodeSourceExpressionListBuilder.build(), false);
+//
+//    final SqlValidatorScope scope = validator().getWhereScope(
+//        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call));
+//    Blackboard bb = createBlackboard(scope, null, false);
+//
+//    //TODO: properly handle replacing subqueries in the condition here
+//    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+//
+//    RelOptTable targetTable = getTargetTable(call);
+//
+//    // convert update column list from SqlIdentifier to String
+//    final List<String> targetColumnNameList = new ArrayList<>();
+//    final RelDataType targetRowType = targetTable.getRowType();
+//    for (SqlNode node : call.getTargetColumnList()) {
+//      SqlIdentifier id = (SqlIdentifier) node;
+//      RelDataTypeField field =
+//          SqlValidatorUtil.getTargetField(
+//              targetRowType, typeFactory, id, catalogReader, targetTable);
+//      assert field != null : "column " + id.toString() + " not found";
+//      targetColumnNameList.add(field.getName());
+//    }
+//
+//    RelNode sourceRel = convertSelect(
+//        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call), false);
+//
+//    bb.setRoot(sourceRel, false);
+//    ImmutableList.Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
+//    for (SqlNode n : call.getSourceExpressionList()) {
+//      RexNode rn = bb.convertExpression(n);
+//      rexNodeSourceExpressionListBuilder.add(rn);
+//    }
+//
+//    return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
+//        LogicalTableModify.Operation.UPDATE, targetColumnNameList,
+//        rexNodeSourceExpressionListBuilder.build(), false);
   }
 
 
@@ -4187,7 +4201,7 @@ public class SqlToRelConverter {
     // Create the blackboard used to convert generate the expressions. This blackboard will be
     // scoped such that all expressions should be scoped as if they reference the result of the
     // joined source/dest
-    final SqlValidatorScope selectScope = validator().getWhereScope(joinSelect);
+    final SqlValidatorScope selectScope = validator().getJoinScope(joinSelect.getFrom());
     final Blackboard bb = createBlackboard(selectScope, null, false);
 
     // The list of conditions. This is returned from this function in order to filter no ops.
@@ -4196,6 +4210,7 @@ public class SqlToRelConverter {
     //Generate the list of conditions
     for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
       SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateCallIdx);
+//      RelNode output = convertUpdate(curUpdateCall);
 
       // NOTE: in validation, we'll already throw an error if we have an unconditional
       // update prior to a conditional one, so we don't need to double check that here.
@@ -4219,8 +4234,6 @@ public class SqlToRelConverter {
 
       updateTargetColumnMapList.add(curHashmap);
     }
-
-
 
     // The list of column values to put into the table
     // The outer list should have length of the number of data columns
@@ -4257,7 +4270,6 @@ public class SqlToRelConverter {
 
       caseValues.add(curColumnCaseValues);
     }
-
 
     return new Pair<>(caseConditions, caseValues);
   }
@@ -4337,7 +4349,9 @@ public class SqlToRelConverter {
 
     //Only bother with the conversion if we actually have values to insert
     if (caseValues.size() > 0) {
-      for (int colIdx = 0; colIdx < caseValues.get(0).size(); colIdx++) {
+      // NOTE: we ignore the last column, as it is the dummy column which we added to the
+      // destination table to keep track of if we'd seen a join or not.
+      for (int colIdx = 0; colIdx < caseValues.get(0).size() - 1; colIdx++) {
         List<RexNode> curColArray = new ArrayList<>();
         for (int i = 0; i < caseValues.size(); i++) {
           curColArray.add(caseValues.get(i).get(colIdx));
@@ -4411,6 +4425,7 @@ public class SqlToRelConverter {
         call.getUpdateCallList(), targetTable, call.getSourceSelect(), mergeSourceRel);
     assert (updateRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
         || updateRexNodes.getValue().size() == 0;
+
     Pair<List<RexNode>, List<List<RexNode>>> insertRexNodes =
         getInsertColumnsCaseExpr(call.getInsertCallList());
     assert (insertRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())

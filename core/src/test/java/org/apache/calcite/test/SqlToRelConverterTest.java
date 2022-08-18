@@ -3212,7 +3212,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-
   @Test void testMergeMatchConditionOnTarget() {
     // Tests a basic merge query with a match containing a filter on the dest/target.
     // Ideally, this would reduce to a filter on the source prior to the join,
@@ -3233,7 +3232,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
-  @Disabled("TODO")
+
   @Test void testMergeMatchConditionOnSource() {
     // Tests a basic merge query with a match containing a filter on the dest/target.
     // Ideally, this would reduce to a filter on the source prior to the join,
@@ -3254,7 +3253,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
-  @Disabled("TODO")
+
   @Test void testMergeMatchCondition() {
     // Tests a basic merge query with a match containing a condition using
     // both the target and the source
@@ -3274,7 +3273,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
-  @Disabled("TODO")
+
   @Test void testMergeMatchConditionNestedExpr() {
     // Tests a basic merge query with a match containing a condition using
     // both the target and the source, and using a nested expression
@@ -3289,6 +3288,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "on target.sal = source.sal\n"
         + "when matched and source.sal + target.sal IN (SELECT empno from emp) then\n"
         + "  update set sal = target.sal + source.sal\n";
+
+    sql(sql1).ok();
+    sql(sql2).ok();
+  }
+
+  @Test void testMergeConditionMatchedAndNotMatched() {
+    //Tests a basic merge query with one matched/not matched condition
+    final String sql1 = "merge into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n"
+        + "when not matched and source.sal > 20 then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (ABS(source.empno), source.sal, source.ename)";
+
+    final String sql2 = "merge_into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and source.sal > 10 then\n"
+        + "  update set sal = target.sal + source.sal\n"
+        + "when not matched and source.sal > 20 then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (ABS(source.empno), source.sal, source.ename)";
 
     sql(sql1).ok();
     sql(sql2).ok();

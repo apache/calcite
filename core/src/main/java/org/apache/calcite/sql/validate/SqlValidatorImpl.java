@@ -3039,6 +3039,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlInsert mergeInsertCall = (SqlInsert) mergeCall.getInsertCallList().get(i);
         if (mergeInsertCall != null) {
           registerQuery(
+              // This is parentScope, as insert calls can only reference values in the source
               parentScope,
               null,
               mergeInsertCall,
