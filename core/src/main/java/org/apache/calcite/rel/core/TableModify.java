@@ -33,6 +33,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Pattern;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -41,6 +42,7 @@ import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -65,7 +67,31 @@ public abstract class TableModify extends SingleRel {
    * Enumeration of supported modification operations.
    */
   public enum Operation {
-    INSERT, UPDATE, DELETE, MERGE
+    INSERT(1),
+    UPDATE(2),
+    DELETE(3),
+    MERGE(4);
+
+    private int value;
+    private static HashMap map = new HashMap<>();
+
+    private Operation(int value) {
+      this.value = value;
+    }
+
+    static {
+      for (Operation op : Operation.values()) {
+        map.put(op.value, op);
+      }
+    }
+
+    public static Operation valueOf(int pageType) {
+      return (Operation) map.get(pageType);
+    }
+
+    public int getValue() {
+      return value;
+    }
   }
 
   //~ Instance fields --------------------------------------------------------
