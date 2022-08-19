@@ -4144,53 +4144,40 @@ public class SqlToRelConverter {
 
   private RelNode convertUpdate(SqlUpdate call) {
 
-    //TODO: remove/refactor this junk
+    final SqlValidatorScope scope = validator().getWhereScope(
+        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call));
+    Blackboard bb = createBlackboard(scope, null, false);
+
+    //TODO: properly handle replacing subqueries in the condition here
+    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+
     RelOptTable targetTable = getTargetTable(call);
 
-    final RelDataType targetRowType =
-        validator().getValidatedNodeType(call);
-    assert targetRowType != null;
-    RelNode sourceRel =
-        convertQueryRecursive(call.getSourceSelect(), true, targetRowType).project();
-//    RelNode massagedRel = convertColumnList(call, sourceRel);
+    // convert update column list from SqlIdentifier to String
+    final List<String> targetColumnNameList = new ArrayList<>();
+    final RelDataType targetRowType = targetTable.getRowType();
+    for (SqlNode node : call.getTargetColumnList()) {
+      SqlIdentifier id = (SqlIdentifier) node;
+      RelDataTypeField field =
+          SqlValidatorUtil.getTargetField(
+              targetRowType, typeFactory, id, catalogReader, targetTable);
+      assert field != null : "column " + id.toString() + " not found";
+      targetColumnNameList.add(field.getName());
+    }
 
-    return sourceRel;
+    RelNode sourceRel = convertSelect(
+        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call), false);
 
-//
-//    final SqlValidatorScope scope = validator().getWhereScope(
-//        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call));
-//    Blackboard bb = createBlackboard(scope, null, false);
-//
-//    //TODO: properly handle replacing subqueries in the condition here
-//    replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-//
-//    RelOptTable targetTable = getTargetTable(call);
-//
-//    // convert update column list from SqlIdentifier to String
-//    final List<String> targetColumnNameList = new ArrayList<>();
-//    final RelDataType targetRowType = targetTable.getRowType();
-//    for (SqlNode node : call.getTargetColumnList()) {
-//      SqlIdentifier id = (SqlIdentifier) node;
-//      RelDataTypeField field =
-//          SqlValidatorUtil.getTargetField(
-//              targetRowType, typeFactory, id, catalogReader, targetTable);
-//      assert field != null : "column " + id.toString() + " not found";
-//      targetColumnNameList.add(field.getName());
-//    }
-//
-//    RelNode sourceRel = convertSelect(
-//        requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call), false);
-//
-//    bb.setRoot(sourceRel, false);
-//    ImmutableList.Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
-//    for (SqlNode n : call.getSourceExpressionList()) {
-//      RexNode rn = bb.convertExpression(n);
-//      rexNodeSourceExpressionListBuilder.add(rn);
-//    }
-//
-//    return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
-//        LogicalTableModify.Operation.UPDATE, targetColumnNameList,
-//        rexNodeSourceExpressionListBuilder.build(), false);
+    bb.setRoot(sourceRel, false);
+    ImmutableList.Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
+    for (SqlNode n : call.getSourceExpressionList()) {
+      RexNode rn = bb.convertExpression(n);
+      rexNodeSourceExpressionListBuilder.add(rn);
+    }
+
+    return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
+        LogicalTableModify.Operation.UPDATE, targetColumnNameList,
+        rexNodeSourceExpressionListBuilder.build(), false);
   }
 
 
@@ -4209,10 +4196,19 @@ public class SqlToRelConverter {
 //      RelNode output = convertUpdate(curUpdateCall);
 
       // NOTE: in validation, we'll already throw an error if we have an unconditional
-      // update prior to a conditional one, so we don't need to double check that here.
-      caseConditions.add(
-          selectListEquivConversionBB.convertExpression(
-          curUpdateCall.getCondition()));
+      // update prior to a conditional one,
+      // but we might as well double check that here.
+      // TODO: actually do this check in validation
+      SqlNode updateCond = curUpdateCall.getCondition();
+      if (updateCond == null) {
+        assert updateCallIdx == updateCallList.size() - 1;
+        caseConditions.add(this.relBuilder.getRexBuilder().makeLiteral(true));
+      } else {
+        caseConditions.add(
+            selectListEquivConversionBB.convertExpression(
+                updateCond));
+      }
+
     }
 
     // Convert the identifiers in each of the update's target column list into a map of
@@ -4292,8 +4288,18 @@ public class SqlToRelConverter {
 
 
       RelNode insertRel = convertInsert(curInsertCall);
-      caseConditions.add(
-          selectListEquivConversionBB.convertExpression(curInsertCall.getCondition()));
+
+      SqlNode insertCond = curInsertCall.getCondition();
+      // We should disallow a non condition insert to apear prior to a conditional insert in
+      // validation. However, there's no harm in double checking it here
+      if (insertCond == null) {
+        assert i == insertCallList.size() - 1;
+        caseConditions.add(this.relBuilder.getRexBuilder().makeLiteral(true));
+      } else {
+        caseConditions.add(
+            selectListEquivConversionBB.convertExpression(curInsertCall.getCondition()));
+      }
+
       List<RexNode> curLevel1InsertExprs = null;
       List<RexNode> curLevel2InsertExprs = null;
 
@@ -4507,9 +4513,6 @@ public class SqlToRelConverter {
     RexNode isInsertRow = relBuilder.getRexBuilder().makeCall(
         SqlStdOperatorTable.AND, Arrays.asList(rowHasInsertCondition, isNotMatched));
 
-    RexNode filterCond = relBuilder.getRexBuilder().makeCall(
-        SqlStdOperatorTable.OR, Arrays.asList(isUpdateRow, isInsertRow));
-    relBuilder.filter(filterCond);
 
     //Next, we want to project everything so that we have the expected output rows,
 
@@ -4519,15 +4522,17 @@ public class SqlToRelConverter {
     // appropriate Rex Nodes are actually being cached/reused when possible
     for (int colIdx = 0; colIdx < targetTable.getRowType().getFieldCount(); colIdx++) {
 
-      RexNode updateColExpr = relBuilder.getRexBuilder().makeNullLiteral(
-          targetTable.getRowType().getFieldList().get(colIdx).getType());
-      RexNode insertColExpr = relBuilder.getRexBuilder().makeNullLiteral(
-          targetTable.getRowType().getFieldList().get(colIdx).getType());
 
       RexNode colNullLiteral = relBuilder.getRexBuilder()
           .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
 
-      //Calculate the update case (if we have any updates)
+      // Default the update and insert expressions to be NULL literals.
+      // They will be initialized to the appropriate values if they exist
+      RexNode updateColExpr = colNullLiteral;
+      RexNode insertColExpr = colNullLiteral;
+
+
+      // Calculate the update case (if we have any updates)
       if (updateRexNodes.getKey().size() > 0) {
         List<RexNode> updateCaseArgs = new ArrayList<>();
         List<RexNode> curUpdateColExprList = updateRexNodes.getValue().get(colIdx);
@@ -4548,7 +4553,7 @@ public class SqlToRelConverter {
       //Calculate the update case (if we have any updates)
       if (insertRexNodes.getKey().size() > 0) {
         List<RexNode> insertCaseArgs = new ArrayList<>();
-        List<RexNode> curInsertColExprList = updateRexNodes.getValue().get(colIdx);
+        List<RexNode> curInsertColExprList = insertRexNodes.getValue().get(colIdx);
         for (int insertCondIdx = 0;
              insertCondIdx < insertRexNodes.getKey().size(); insertCondIdx++) {
           // Case operands should are organized as IF, THEN, IF, THEN... ELSE
@@ -4564,11 +4569,13 @@ public class SqlToRelConverter {
       }
 
       RexNode curColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
-          Arrays.asList(isMatch, updateColExpr, isNotMatched, insertColExpr, colNullLiteral));
+          Arrays.asList(isUpdateRow, updateColExpr, isInsertRow, insertColExpr, colNullLiteral));
       finalProjects.add(curColExpr);
     }
 
-    // Finally, append the row that checks if what operation we're performing
+    // Finally, append the row that checks what operation we're performing
+    // This will be NULL if the row is a no op. This row will be used when constructing
+    // the update/insert dataframes
     RexNode updateLiteral = this.rexBuilder.makeLiteral(
         LogicalTableModify.Operation.UPDATE.getValue(),
         this.getRexBuilder().getTypeFactory().createSqlType(SqlTypeName.TINYINT), false);
@@ -4581,7 +4588,7 @@ public class SqlToRelConverter {
 
     finalProjects.add(
         relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
-        Arrays.asList(isMatch, updateLiteral, isNotMatched, insertLiteral, nullTinyIntLiteral)));
+        Arrays.asList(isUpdateRow, updateLiteral, isInsertRow, insertLiteral, nullTinyIntLiteral)));
 
     relBuilder.project(finalProjects);
 
