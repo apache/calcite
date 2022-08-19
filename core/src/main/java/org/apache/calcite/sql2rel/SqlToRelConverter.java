@@ -4201,8 +4201,14 @@ public class SqlToRelConverter {
     // Create the blackboard used to convert generate the expressions. This blackboard will be
     // scoped such that all expressions should be scoped as if they reference the result of the
     // joined source/dest
-    final SqlValidatorScope selectScope = validator().getJoinScope(joinSelect.getFrom());
+//    final SqlValidatorScope selectScope = validator().getJoinScope(joinSelect.getFrom());
+//    final Blackboard bb = createBlackboard(selectScope, null, false);
+
+    // We have to convert the source select in the blackboard prior to any of the other expressions,
+    // otherwise the expressions will be interpreted as correlated variables
+    final SqlValidatorScope selectScope = validator().getWhereScope(joinSelect);
     final Blackboard bb = createBlackboard(selectScope, null, false);
+    convertSelectImpl(bb, joinSelect);
 
     // The list of conditions. This is returned from this function in order to filter no ops.
     List<RexNode> caseConditions = new ArrayList<>();
@@ -4414,6 +4420,7 @@ public class SqlToRelConverter {
     // First, we're going to add a projection on top of the dest select (prior to the join) which
     // appends a literal value to the dest table. After the join, we can use this column to
     // Check if a particular row is a match or not a match
+
 
     RelNode mergeSourceRel = convertSelect(
         requireNonNull(sourceSelect, () -> "sourceSelect for " + call), false);
