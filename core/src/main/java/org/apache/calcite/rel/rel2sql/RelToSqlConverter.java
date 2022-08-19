@@ -974,7 +974,7 @@ public class RelToSqlConverter extends SqlImplementor
       final SqlNode sqlSource =
           visitInput(modify, 0).asQueryOrValues();
 
-      //TODO: May need to figure out how to reverse this condition
+      //TODO: May need to figure out how to reverse engineer this condition
       final SqlInsert sqlInsert =
           new SqlInsert(POS, SqlNodeList.EMPTY, sqlTargetTable, sqlSource,
               identifierList(modify.getTable().getRowType().getFieldNames()), null);

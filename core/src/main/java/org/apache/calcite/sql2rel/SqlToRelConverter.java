@@ -4137,7 +4137,6 @@ public class SqlToRelConverter {
         requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call),
         false);
 
-    //TODO: I may need to add a condition to the call, and propogate that cal here
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
         LogicalTableModify.Operation.DELETE, null, null, false);
   }
@@ -4149,6 +4148,8 @@ public class SqlToRelConverter {
     Blackboard bb = createBlackboard(scope, null, false);
 
     //TODO: properly handle replacing subqueries in the condition here
+    // (is this needed? update already had a condition, and I assume it was already being handled.
+    // INSERT is the one that may need handling)
     replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     RelOptTable targetTable = getTargetTable(call);
@@ -4190,10 +4191,9 @@ public class SqlToRelConverter {
     // The list of conditions. This is returned from this function in order to filter no ops.
     List<RexNode> caseConditions = new ArrayList<>();
 
-    //Generate the list of conditions
+    // Generate the list of conditions
     for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
       SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateCallIdx);
-//      RelNode output = convertUpdate(curUpdateCall);
 
       // NOTE: in validation, we'll already throw an error if we have an unconditional
       // update prior to a conditional one,
@@ -4592,9 +4592,7 @@ public class SqlToRelConverter {
 
     relBuilder.project(finalProjects);
 
-    //TODO: this will need to be updated
-    // I'm uncertain how to properly convert the condition node
-    // RexNode condition = convertExpresion(call.getCondition());
+
     return LogicalTableModify.create(targetTable, catalogReader,
         relBuilder.build(), LogicalTableModify.Operation.MERGE,
         new ArrayList<>(), null, false);

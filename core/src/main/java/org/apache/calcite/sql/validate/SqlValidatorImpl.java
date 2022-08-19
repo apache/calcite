@@ -1583,7 +1583,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new SqlNodeList(
               rowCall.getOperandList(),
               SqlParserPos.ZERO);
-      final SqlNode insertSource = SqlNode.clone(sourceTableRef);
+      final SqlNode insertSource = sourceTableRef.deepCopy(null);
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
               null, null, null, null, null,
@@ -3023,30 +3023,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // validation check
       for (int i = 0; i < mergeCall.getUpdateCallList().size(); i++) {
         SqlUpdate mergeUpdateCall = (SqlUpdate) mergeCall.getUpdateCallList().get(i);
-        if (mergeUpdateCall != null) {
-          registerQuery(
-              getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
-              null,
-              mergeUpdateCall,
-              enclosingNode,
-              null,
-              false,
-              false);
-        }
+        requireNonNull(mergeUpdateCall);
+        registerQuery(
+            getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
+            null,
+            mergeUpdateCall,
+            enclosingNode,
+            null,
+            false,
+            false);
       }
 
       for (int i = 0; i < mergeCall.getInsertCallList().size(); i++) {
         SqlInsert mergeInsertCall = (SqlInsert) mergeCall.getInsertCallList().get(i);
-        if (mergeInsertCall != null) {
-          registerQuery(
-              // This is parentScope, as insert calls can only reference values in the source
-              parentScope,
-              null,
-              mergeInsertCall,
-              enclosingNode,
-              null,
-              false);
-        }
+        requireNonNull(mergeInsertCall);
+        registerQuery(
+            // This is parentScope, as insert calls can only reference values in the source
+            parentScope,
+            null,
+            mergeInsertCall,
+            enclosingNode,
+            null,
+            false);
       }
 
       break;
@@ -5199,7 +5197,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     RelDataType targetRowType = unknownType;
 
-    //TODO: figure out how to use these row types when they're available
+    //TODO: figure out how to use these row types if/when they're available
 
 //    SqlUpdate updateCall = call.getUpdateCallList();
 //    if (updateCall != null) {
