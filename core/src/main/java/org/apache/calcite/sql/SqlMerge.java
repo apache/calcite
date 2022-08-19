@@ -41,6 +41,8 @@ public class SqlMerge extends SqlCall {
   SqlNode source;
   @Nullable SqlUpdate updateCall;
   @Nullable SqlInsert insertCall;
+
+  @Nullable SqlDelete deleteCall;
   @Nullable SqlSelect sourceSelect;
   @Nullable SqlIdentifier alias;
 
@@ -52,6 +54,7 @@ public class SqlMerge extends SqlCall {
       SqlNode source,
       @Nullable SqlUpdate updateCall,
       @Nullable SqlInsert insertCall,
+      @Nullable SqlDelete deleteCall,
       @Nullable SqlSelect sourceSelect,
       @Nullable SqlIdentifier alias) {
     super(pos);
@@ -60,6 +63,7 @@ public class SqlMerge extends SqlCall {
     this.source = source;
     this.updateCall = updateCall;
     this.insertCall = insertCall;
+    this.deleteCall = deleteCall;
     this.sourceSelect = sourceSelect;
     this.alias = alias;
   }
@@ -77,7 +81,7 @@ public class SqlMerge extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, source, updateCall,
-        insertCall, sourceSelect, alias);
+        insertCall, deleteCall, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -100,9 +104,12 @@ public class SqlMerge extends SqlCall {
       insertCall = (@Nullable SqlInsert) operand;
       break;
     case 5:
-      sourceSelect = (@Nullable SqlSelect) operand;
+      deleteCall = (@Nullable SqlDelete) operand;
       break;
     case 6:
+      sourceSelect = (@Nullable SqlSelect) operand;
+      break;
+    case 7:
       alias = (SqlIdentifier) operand;
       break;
     default:
@@ -138,6 +145,11 @@ public class SqlMerge extends SqlCall {
   /** Returns the INSERT statement for this MERGE. */
   public @Nullable SqlInsert getInsertCall() {
     return insertCall;
+  }
+
+  /** Returns the DELETE statement for this MERGE. */
+  public @Nullable SqlDelete getDeleteCall() {
+    return deleteCall;
   }
 
   /** Returns the condition expression to determine whether to UPDATE or
@@ -201,6 +213,12 @@ public class SqlMerge extends SqlCall {
         sourceExp.unparse(writer, opLeft, opRight);
       }
       writer.endList(setFrame);
+    }
+
+    SqlDelete deleteCall = this.deleteCall;
+    if (deleteCall != null) {
+      writer.newlineAndIndent();
+      writer.keyword("WHEN MATCHED THEN DELETE");
     }
 
     SqlInsert insertCall = this.insertCall;

@@ -3210,7 +3210,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
+  /**
+   * Tests the use of a DELETE clause inside a merge into statement.
+   */
+  @Test void testMergeIntoDelete() {
+    final String sql = "merge into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+          + "when matched then\n"
+          + "  update set sal = target.sal + source.sal\n"
+          + "when not matched then\n"
+          + "  insert (empno, sal, ename)\n"
+          + "  values (ABS(source.empno), source.sal, source.ename)";
 
+    sql(sql).ok();
+  }
+
+  @Test void testMergeIntoDeleteOnly() {
+    final String sql = "merge into empnullables_20 as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched then\n"
+        + "  delete\n";
+    sql(sql).ok();
+  }
   @Test void testSelectView() {
     // translated condition: deptno = 20 and sal > 1000 and empno > 100
     final String sql = "select * from emp_20 where empno > 100";

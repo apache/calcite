@@ -4242,10 +4242,6 @@ public class SqlToRelConverter {
     LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
     int nSourceFields = join.getLeft().getRowType().getFieldCount();
     final List<RexNode> projects = new ArrayList<>();
-    //Add the condition as a project.
-    //NOTE: this only works if we disallow joining on any expression that never produces
-    // a truth value when any of the inputs are null.
-    projects.add(join.getCondition());
 
     for (int level1Idx = 0; level1Idx < nLevel1Exprs; level1Idx++) {
       requireNonNull(level1InsertExprs, "level1InsertExprs");
