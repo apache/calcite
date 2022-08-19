@@ -4196,19 +4196,9 @@ public class SqlToRelConverter {
 
   private Pair<List<RexNode>, List<List<RexNode>>> getUpdateColumnsCaseExpr(
       SqlNodeList updateCallList, RelOptTable destTable, SqlSelect joinSelect,
-      RelNode mergeSourceRel) {
+      RelNode mergeSourceRel, Blackboard selectListEquivConversionBB) {
 
-    // Create the blackboard used to convert generate the expressions. This blackboard will be
-    // scoped such that all expressions should be scoped as if they reference the result of the
-    // joined source/dest
-//    final SqlValidatorScope selectScope = validator().getJoinScope(joinSelect.getFrom());
-//    final Blackboard bb = createBlackboard(selectScope, null, false);
 
-    // We have to convert the source select in the blackboard prior to any of the other expressions,
-    // otherwise the expressions will be interpreted as correlated variables
-    final SqlValidatorScope selectScope = validator().getWhereScope(joinSelect);
-    final Blackboard bb = createBlackboard(selectScope, null, false);
-    convertSelectImpl(bb, joinSelect);
 
     // The list of conditions. This is returned from this function in order to filter no ops.
     List<RexNode> caseConditions = new ArrayList<>();
@@ -4220,7 +4210,9 @@ public class SqlToRelConverter {
 
       // NOTE: in validation, we'll already throw an error if we have an unconditional
       // update prior to a conditional one, so we don't need to double check that here.
-      caseConditions.add(bb.convertExpression(curUpdateCall.getCondition()));
+      caseConditions.add(
+          selectListEquivConversionBB.convertExpression(
+          curUpdateCall.getCondition()));
     }
 
     // Convert the identifiers in each of the update's target column list into a map of
@@ -4267,7 +4259,8 @@ public class SqlToRelConverter {
         if (fieldExprIdx != -1) {
           // If we're updating the column, that append the new expression to the list.
           curColumnCaseValues.add(
-              bb.convertExpression(curUpdateCall.getSourceExpressionList().get(fieldExprIdx)));
+              selectListEquivConversionBB.convertExpression(
+                  curUpdateCall.getSourceExpressionList().get(fieldExprIdx)));
         } else {
           // Otherwise, just append the original value of the destination column.
           curColumnCaseValues.add(defaultColumnValue);
@@ -4282,7 +4275,7 @@ public class SqlToRelConverter {
 
 
   private Pair<List<RexNode>, List<List<RexNode>>> getInsertColumnsCaseExpr(
-      SqlNodeList insertCallList) {
+      SqlNodeList insertCallList, Blackboard selectListEquivConversionBB) {
 
     // The list of conditions. This is returned from this function in order to filter no ops.
     final List<RexNode> caseConditions = new ArrayList<>();
@@ -4297,10 +4290,10 @@ public class SqlToRelConverter {
 
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
 
-      //TODO: fix
-      caseConditions.add(null);
 
       RelNode insertRel = convertInsert(curInsertCall);
+      caseConditions.add(
+          selectListEquivConversionBB.convertExpression(curInsertCall.getCondition()));
       List<RexNode> curLevel1InsertExprs = null;
       List<RexNode> curLevel2InsertExprs = null;
 
@@ -4425,16 +4418,47 @@ public class SqlToRelConverter {
     RelNode mergeSourceRel = convertSelect(
         requireNonNull(sourceSelect, () -> "sourceSelect for " + call), false);
 
+    // Create the blackboard used to convert generate the expressions. This blackboard will be
+    // scoped such that all expressions should be scoped as if they reference the result of the
+    // joined source/dest
+
+    // We have to convert the source select in the blackboard prior to any of the other expressions,
+    // otherwise the expressions will be interpreted as correlated variables
+    final SqlValidatorScope selectScope = validator().getWhereScope(sourceSelect);
+    final Blackboard selectListEquivConversionBB = createBlackboard(selectScope, null, false);
+
+    //    convertSelectImpl(bb, joinSelect);
+
+    // This is a hacky solution.
+    // We're kinda we're cheesing the normal code path, for expression conversion,
+    // to trick the blackboard into having the correct inputs
+    // scope. Essentially, the black board expects queries to be evaluated recursivly, IE,
+    // evaluate the from, then the select list, then the order list... etc. This is important,
+    // because the FROM clause is stored as the "input" field in the blackboard, and the input is
+    // when evaluating converting the rest of the expressions.
+    //
+    // By evaluating the FROM prior to to the rest of the expressions, we cause
+    // expressions evaluated using the blackboard
+    // to be converted as if they are items in the select list of the select who's from is the
+    // joined dataframes
+    // This is safe to do, as the values being selected are always just *, so we never have
+    // aggs, windows, qualifies, or anything else that might throw us off the normal code path
+    // for conversion.
+    convertFrom(
+        selectListEquivConversionBB,
+        sourceSelect.getFrom());
+
     // the left list is the list of conditions for each operation
     // The right outer list should have length of the number of data columns
     // the right inner list should have length equal to the number of conditions
     Pair<List<RexNode>, List<List<RexNode>>> updateRexNodes = getUpdateColumnsCaseExpr(
-        call.getUpdateCallList(), targetTable, call.getSourceSelect(), mergeSourceRel);
+        call.getUpdateCallList(), targetTable, call.getSourceSelect(), mergeSourceRel,
+        selectListEquivConversionBB);
     assert (updateRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
         || updateRexNodes.getValue().size() == 0;
 
     Pair<List<RexNode>, List<List<RexNode>>> insertRexNodes =
-        getInsertColumnsCaseExpr(call.getInsertCallList());
+        getInsertColumnsCaseExpr(call.getInsertCallList(), selectListEquivConversionBB);
     assert (insertRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
         || insertRexNodes.getValue().size() == 0;
 
@@ -5305,7 +5329,7 @@ public class SqlToRelConverter {
       final SqlValidatorScope.Resolve resolve = resolved.only();
       final RelDataType rowType = resolve.rowType();
 
-      // Found in current query's from list.  Find which from item.
+      // Found in current query's from list. Find which from item.
       // We assume that the order of the from clause items has been
       // preserved.
       final SqlValidatorScope ancestorScope = resolve.scope;

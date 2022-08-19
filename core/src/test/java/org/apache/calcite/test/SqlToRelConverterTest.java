@@ -3298,7 +3298,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql1 = "merge into empnullables_20 as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-        + "when matched and source.sal > 10 then\n"
+        + "when matched and target.sal > 10 then\n"
         + "  update set sal = target.sal + source.sal\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
