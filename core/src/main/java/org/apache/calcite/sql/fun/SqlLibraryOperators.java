@@ -650,7 +650,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {ORACLE})
+  /** The "CHAR(n)" function; returns the character whose ASCII code is
+   * {@code n} % 256, or null if {@code n} &lt; 0. */
+  @LibraryOperator(libraries = {MYSQL, SPARK})
+  public static final SqlFunction CHAR =
+      new SqlFunction("CHAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CHAR_FORCE_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** The "CHR(n)" function; returns the character whose UTF-8 code is
+   * {@code n}. */
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction CHR =
       new SqlFunction("CHR",
           SqlKind.OTHER_FUNCTION,

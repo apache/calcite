@@ -1749,6 +1749,7 @@ period:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn ASCII(string)} | Returns the ASCII code of the first character of *string*; if the first character is a non-ASCII character, returns its Unicode code point; returns 0 if *string* is empty
+| {fn CHAR(integer)} | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | {fn CONCAT(character, character)} | Returns the concatenation of character strings
 | {fn INSERT(string1, start, length, string2)} | Inserts *string2* into a slot in *string1*
 | {fn LCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to lower case
@@ -1758,14 +1759,10 @@ period:
 | {fn LTRIM(string)} | Returns *string* with leading space characters removed
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
 | {fn REVERSE(string)} | Returns *string* with the order of the characters reversed
-| {fn RIGHT(string, integer)} | Returns the rightmost *length* characters from *string*
+| {fn RIGHT(string, length)} | Returns the rightmost *length* characters from *string*
 | {fn RTRIM(string)} | Returns *string* with trailing space characters removed
 | {fn SUBSTRING(string, offset, length)} | Returns a character string that consists of *length* characters from *string* starting at the *offset* position
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
-
-Not implemented:
-
-* {fn CHAR(string)}
 
 #### Date/time
 
@@ -2564,7 +2561,8 @@ semantics.
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
-| o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
+| m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
+| o p | CHR(integer)                                 | Returns the character whose UTF-8 code is *integer*
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
 | m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
