@@ -6977,12 +6977,12 @@ public class JdbcTest {
    * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */
   @Test void testFunSpatial() {
     final String sql = "select distinct\n"
-        + "  ST_PointFromText('POINT(-71.0642.28)') as c\n"
+        + "  ST_PointFromText('POINT(-71.0642 .28)') as c\n"
         + "from \"hr\".\"emps\"";
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
         .with(CalciteConnectionProperty.FUN, "spatial")
         .query(sql)
-        .returnsUnordered("C={\"x\":-71.0642,\"y\":0.28}");
+        .returnsUnordered("C=POINT (-71.0642 0.28)");
 
     // NVL is present in the Oracle operator table, but not spatial or core
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
@@ -7733,9 +7733,9 @@ public class JdbcTest {
         .planContains("static final java.math.BigDecimal $L4J$C$new_java_math_BigDecimal_1_ = "
             + "new java.math.BigDecimal(\n"
             + "              1)")
-        .planContains("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
+        .planContains("org.apache.calcite.runtime.SpatialTypeFunctions.ST_MakePoint("
             + "$L4J$C$new_java_math_BigDecimal_1_, literal_value0)")
-        .returns("EXPR$0={\"x\":1,\"y\":2.1}\n");
+        .returns("EXPR$0=POINT (1 2.1)\n");
   }
 
   @Test void testMatchSimple() {

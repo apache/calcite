@@ -248,6 +248,69 @@ public abstract class TestUtil {
     return s;
   }
 
+  /** Rounds all decimal fractions inside a string to a given number of decimal
+   * places.
+   *
+   * <p>For example,
+   * {@code round("POINT(-1.23456, 9.87654)", 3)}
+   * returns "POINT(-1.235, 9.877)". */
+  public static String roundGeom(String s, int precision) {
+    final StringBuilder b = new StringBuilder();
+    boolean carried = false;
+    int end = -1;
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      switch (c) {
+      case '.':
+        // Entering the fractional part of a number
+        end = i + precision + 1;
+        carried = false;
+        break;
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        if (end < 0) {
+          break; // We've not seen a '.'
+        }
+        if (i < end) {
+          break; // Have seen a '.' but not enough digits yet
+        }
+        if (c > '5' || i > end && c > '0') {
+          if (!carried) {
+            carry(b);
+            carried = true;
+          }
+        }
+        continue;
+      default:
+        end = -1; // no longer in a number
+      }
+      b.append(c);
+    }
+    return b.toString();
+  }
+
+  /** Increments the last digit of a decimal number in a StringBuilder, and if
+   * that digit was a '9', carries on going. */
+  private static void carry(StringBuilder b) {
+    for (int i = b.length() - 1; i >= 0; i--) {
+      char c = b.charAt(i);
+      switch (c) {
+      case '.':
+        continue; // continue to the left of decimal point
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8':
+        b.setCharAt(i, (char) (c + 1)); // carry, and we're done
+        return;
+      case '9':
+        b.setCharAt(i, '0'); // '9' becomes '0', and continue carrying
+        continue;
+      default:
+        b.insert(i + 1, '1');
+        return;
+      }
+    }
+  }
+
   /**
    * Returns the Java major version: 7 for JDK 1.7, 8 for JDK 8, 10 for
    * JDK 10, etc. depending on current system property {@code java.version}.
