@@ -379,6 +379,11 @@ public class SqlFunctions {
         ? 0 : s.codePointAt(0);
   }
 
+  /** SQL CHAR(int) function. */
+  public static String charN(int n) {
+    return String.valueOf((char) (n % 256));
+  }
+
   /** SQL REPEAT(string, int) function. */
   public static String repeat(String s, int n) {
     if (n < 1) {

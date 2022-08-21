@@ -1492,9 +1492,8 @@ public class SqlOperatorTest {
     f.checkScalar("{fn ASCII('ABC')}", "65", "INTEGER NOT NULL");
     f.checkNull("{fn ASCII(cast(null as varchar(1)))}");
 
-    if (false) {
-      f.checkScalar("{fn CHAR(code)}", null, "");
-    }
+    f.checkScalar("{fn CHAR(65)}", "A", "CHAR(1) NOT NULL");
+
     f.checkScalar("{fn CONCAT('foo', 'bar')}", "foobar", "CHAR(6) NOT NULL");
 
     f.checkScalar("{fn DIFFERENCE('Miller', 'miller')}", "4",

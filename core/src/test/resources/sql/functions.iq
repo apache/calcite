@@ -55,6 +55,16 @@ SELECT ExtractValue('<a>c</a>', '//a');
 !ok
 
 # STRING Functions
+#CHAR
+SELECT char(65), char(256+66);
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+| A      | B      |
++--------+--------+
+(1 row)
+
+!ok
 
 #CONCAT
 SELECT CONCAT('c', 'h', 'a', 'r');

@@ -178,6 +178,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CBRT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CLASSIFIER;
@@ -380,6 +381,7 @@ public class RexImpTable {
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
     defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
+    defineMethod(CHAR, BuiltInMethod.CHAR.method, NullPolicy.STRICT);
     defineMethod(REPEAT, BuiltInMethod.REPEAT.method, NullPolicy.STRICT);
     defineMethod(SPACE, BuiltInMethod.SPACE.method, NullPolicy.STRICT);
     defineMethod(STRCMP, BuiltInMethod.STRCMP.method, NullPolicy.STRICT);
