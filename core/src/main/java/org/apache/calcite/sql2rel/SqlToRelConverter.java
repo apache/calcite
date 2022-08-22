@@ -3845,18 +3845,26 @@ public class SqlToRelConverter {
     //
     // If a column has multiple constraints, the extra ones will become a
     // filter.
-    final RexNode constraint =
-        modifiableView.getConstraint(rexBuilder, delegateRowType);
-    RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
+
+    //TODO: I'm not sure if removing this will break anything. It's only use is
+    // within createModify, and createModify is only used in one spot
+    // (except in the recursive case)
+
     final List<Pair<RexNode, String>> projects = new ArrayList<>();
     for (RelDataTypeField field : delegateRowType.getFieldList()) {
       RexNode node = projectMap.get(field.getIndex());
-      if (node == null) {
-        node = rexBuilder.makeNullLiteral(field.getType());
+//      if (node == null) {
+//        node = rexBuilder.makeNullLiteral(field.getType());
+//      }
+//      projects.add(
+//          Pair.of(rexBuilder.ensureType(field.getType(), node, false),
+//              field.getName()));
+
+      if (node != null) {
+        projects.add(
+            Pair.of(rexBuilder.ensureType(field.getType(), node, false),
+                field.getName()));
       }
-      projects.add(
-          Pair.of(rexBuilder.ensureType(field.getType(), node, false),
-              field.getName()));
     }
 
     return relBuilder.push(source)
@@ -4286,7 +4294,6 @@ public class SqlToRelConverter {
 
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
 
-
       RelNode insertRel = convertInsert(curInsertCall);
 
       SqlNode insertCond = curInsertCall.getCondition();
@@ -4356,7 +4363,10 @@ public class SqlToRelConverter {
     if (caseValues.size() > 0) {
       // NOTE: we ignore the last column, as it is the dummy column which we added to the
       // destination table to keep track of if we'd seen a join or not.
-      for (int colIdx = 0; colIdx < caseValues.get(0).size() - 1; colIdx++) {
+
+      // This insert is wrong. The source table has a value that the dest table does not.
+      // The insert is wrong
+      for (int colIdx = 0; colIdx < caseValues.get(0).size(); colIdx++) {
         List<RexNode> curColArray = new ArrayList<>();
         for (int i = 0; i < caseValues.size(); i++) {
           curColArray.add(caseValues.get(i).get(colIdx));
@@ -4365,8 +4375,6 @@ public class SqlToRelConverter {
       }
     }
 
-
-    //TODO: figure out return type
     return new Pair(caseConditions, finalizedCaseValues);
   }
 
