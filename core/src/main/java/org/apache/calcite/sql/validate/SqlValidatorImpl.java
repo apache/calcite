@@ -4409,7 +4409,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
     final SqlValidatorScope whereScope = getWhereScope(select);
-    final SqlNode expandedWhere = expand(where, whereScope);
+    final SqlNode expandedWhere = expandSelectWithAlias(where, whereScope, select);
     select.setWhere(expandedWhere);
     validateWhereOrOn(whereScope, expandedWhere, "WHERE");
   }
@@ -6113,7 +6113,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
-  @Override public boolean isSystemField(RelDataTypeField field) {
+
+
+  public SqlNode expandSelectWithAlias(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select) {
+//    final Expander expander = new Expander(this, scope);
+    final Expander expander = new ExtendedAliasExpander(this, scope, select);
+    SqlNode newExpr = expr.accept(expander);
+    if (expr != newExpr) {
+      setOriginal(newExpr, expr);
+    }
+    return newExpr;
+  }
+
+    @Override public boolean isSystemField(RelDataTypeField field) {
     return false;
   }
 
@@ -6675,6 +6688,60 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else {
         return super.visit(id);
       }
+    }
+  }
+
+  /**
+   * Shuttle which walks over an expression in Where Clause
+   */
+  static class ExtendedAliasExpander extends Expander {
+    final SqlSelect select;
+
+    ExtendedAliasExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
+        SqlSelect select) {
+      super(validator, scope);
+      this.select = select;
+    }
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      if (id.isSimple()) {
+        //          && (havingExpr
+        //          ? validator.config().sqlConformance().isHavingAlias()
+//          : validator.config().sqlConformance().isGroupByAlias())) {
+        String name = id.getSimple();
+        SqlNode expr = null;
+        final SqlNameMatcher nameMatcher =
+            validator.catalogReader.nameMatcher();
+        int n = 0;
+        for (SqlNode s : select.getSelectList()) {
+          final String alias = SqlValidatorUtil.getAlias(s, -1);
+          if (alias != null && nameMatcher.matches(alias, name)) {
+            expr = s;
+            n++;
+          }
+        }
+        if (n == 0) {
+          return super.visit(id);
+        } else if (n > 1) {
+          // More than one column has this alias.
+//          throw validator.newValidationError(id,
+//              RESOURCE.columnAmbiguous(name));
+        }
+        //        if (havingExpr && validator.isAggregate(root)) {
+        //          return super.visit(id);
+        //        }
+        expr = stripAs(expr);
+        if (expr instanceof SqlIdentifier) {
+          if (((SqlIdentifier) expr).names.equals(id.names)) {
+            // Not an alias , don't want to update parser position
+            return super.visit(id);
+          }
+          expr = getScope().fullyQualify((SqlIdentifier) expr).identifier;
+        }
+        validator.setOriginal(expr, id);
+        return expr;
+      }
+      return super.visit(id);
     }
   }
 
