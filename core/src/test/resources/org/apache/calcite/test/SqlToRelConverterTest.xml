@@ -317,7 +317,7 @@ from dept_nested_expanded as d,
   </TestCase>
   <TestCase name="testAllLikeNonNullTuple">
     <Resource name="sql">
-      <![CDATA[SELECT ename from emp where ename LIKE All ('bob', 'alex', 'john')]]>
+      <![CDATA[SELECT ename from emp where ename LIKE ALL ('bob', 'alex', 'john')]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -329,7 +329,7 @@ LogicalProject(ENAME=[$1])
   </TestCase>
   <TestCase name="testAllNotLikeNonNullTuple">
     <Resource name="sql">
-      <![CDATA[SELECT ename from emp where ename NOT LIKE All ('bob', 'alex', 'john')]]>
+      <![CDATA[SELECT ename from emp where ename NOT LIKE ALL ('bob', 'alex', 'john')]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -612,7 +612,7 @@ LogicalProject(EXPR$0=[TIMESTAMPDIFF(FLAG(DAY), 2021-02-02 00:00:00, 2022-02-01 
   </TestCase>
   <TestCase name="testConvertletConfigNoWindowedAggDecomposeAvg">
     <Resource name="sql">
-      <![CDATA[SELECT emp.sal, AVG(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+      <![CDATA[SELECT emp.sal, AVG(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -623,7 +623,7 @@ LogicalProject(SAL=[$5], EXPR$1=[AVG($5) OVER (PARTITION BY $7 ORDER BY $5 ROWS 
   </TestCase>
   <TestCase name="testConvertletConfigNoWindowedAggDecomposeAvgSimple">
     <Resource name="sql">
-      <![CDATA[SELECT AVG(emp.sal) from emp]]>
+      <![CDATA[SELECT AVG(emp.sal) OVER (PARTITION BY emp.deptno) from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -634,7 +634,7 @@ LogicalProject(EXPR$0=[AVG($5) OVER (PARTITION BY $7)])
   </TestCase>
   <TestCase name="testConvertletConfigNoWindowedAggDecomposeStd">
     <Resource name="sql">
-      <![CDATA[SELECT emp.sal, STDDEV(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+      <![CDATA[SELECT emp.sal, STDDEV(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -645,7 +645,7 @@ LogicalProject(SAL=[$5], EXPR$1=[STDDEV($5) OVER (PARTITION BY $7 ORDER BY $5 RO
   </TestCase>
   <TestCase name="testConvertletConfigNoWindowedAggDecomposeStdPop">
     <Resource name="sql">
-      <![CDATA[SELECT emp.sal, STDDEV_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+      <![CDATA[SELECT emp.sal, STDDEV_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -656,7 +656,7 @@ LogicalProject(SAL=[$5], EXPR$1=[STDDEV_POP($5) OVER (PARTITION BY $7 ORDER BY $
   </TestCase>
   <TestCase name="testConvertletConfigNoWindowedAggDecomposeVar">
     <Resource name="sql">
-      <![CDATA[SELECT emp.sal, VARIANCE(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+      <![CDATA[SELECT emp.sal, VARIANCE(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -667,7 +667,7 @@ LogicalProject(SAL=[$5], EXPR$1=[VARIANCE($5) OVER (PARTITION BY $7 ORDER BY $5 
   </TestCase>
   <TestCase name="testConvertletConfigNoWindowedAggDecomposeVarPop">
     <Resource name="sql">
-      <![CDATA[SELECT emp.sal, VAR_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal]]>
+      <![CDATA[SELECT emp.sal, VAR_POP(emp.sal) OVER (PARTITION BY emp.deptno ORDER BY emp.sal ROWS BETWEEN 1 PRECEDING and 1 FOLLOWING) FROM emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -4135,89 +4135,213 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   </TestCase>
   <TestCase name="testMerge">
     <Resource name="sql">
-      <![CDATA[merge into empnullables_20 as target
-        using (select * from emp where deptno = 30) as source
-        on target.sal = source.sal
-        when matched then
-        update set sal = target.sal + source.sal
-        when not matched then
-        insert (empno, sal, ename)
-        values (ABS(source.empno), source.sal, source.ename)]]>
+      <![CDATA[merge_into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal = source.sal
+when matched then
+  update set sal = target.sal + source.sal
+when not matched then
+  insert (empno, sal, ename)
+  values (ABS(source.empno), source.sal, source.ename)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES_20]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[true])
-  LogicalProject($f0=[=($14, $5)], $f1=[ABS($0)], ENAME=[CAST($1):VARCHAR(20)], $f3=[null:VARCHAR(10)], $f4=[null:INTEGER], $f5=[null:TIMESTAMP(0)], SAL=[CAST($5):INTEGER], $f7=[null:INTEGER], $f8=[20], $f9=[null:BOOLEAN], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], SLACKER0=[$16], $f18=[+($14, $5)])
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE($18, $9, NOT($18), ABS($0), null:INTEGER)], $f1=[CASE($18, $10, NOT($18), $1, null:VARCHAR(20))], $f2=[CASE($18, $11, null:VARCHAR(10))], $f3=[CASE($18, $12, null:INTEGER)], $f4=[CASE($18, $13, null:TIMESTAMP(0))], $f5=[CASE($18, +($14, $5), NOT($18), $5, null:INTEGER)], $f6=[CASE($18, $15, null:INTEGER)], $f7=[CASE($18, $16, null:INTEGER)], $f8=[OR(AND(IS TRUE($18), $17), AND(null, IS NOT TRUE($18)))], $f9=[CASE($18, 2:TINYINT, NOT($18), 1:TINYINT, null:TINYINT)])
     LogicalJoin(condition=[=($14, $5)], joinType=[left])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($7, 30)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
-        LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
-          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeConditionMany">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE(AND($18, IS NOT NULL($14)), CASE(IS NOT NULL($14), $9, null:INTEGER), NOT($18), CASE(SEARCH($5, Sarg[(-∞..0), (20..+∞)]), ABS($0), -1), null:INTEGER)], $f1=[CASE(AND($18, IS NOT NULL($14)), CASE(IS NOT NULL($14), $10, null:VARCHAR(20)), NOT($18), CASE(SEARCH($5, Sarg[(-∞..0), (20..+∞)]), $1, 'NA'), null:VARCHAR(20))], $f2=[CASE(AND($18, IS NOT NULL($14)), CASE(IS NOT NULL($14), $11, null:VARCHAR(10)), null:VARCHAR(10))], $f3=[CASE(AND($18, IS NOT NULL($14)), CASE(IS NOT NULL($14), $12, null:INTEGER), null:INTEGER)], $f4=[CASE(AND($18, IS NOT NULL($14)), CASE(IS NOT NULL($14), $13, null:TIMESTAMP(0)), null:TIMESTAMP(0))], $f5=[CASE(AND($18, IS NOT NULL($14)), CASE(>($14, 10), +($14, $5), <($14, 10), +(+($14, $5), 10), =($14, 10), -10, null:INTEGER), NOT($18), CASE(>($5, 20), $5, <($5, 0), ABS($5), -1), null:INTEGER)], $f6=[CASE(AND($18, IS NOT NULL($14)), CASE(IS NOT NULL($14), $15, null:INTEGER), null:INTEGER)], $f7=[CASE(AND($18, IS NOT NULL($14)), CASE(IS NOT NULL($14), $16, null:INTEGER), null:INTEGER)], $f8=[OR(AND(IS TRUE(AND($18, IS NOT NULL($14))), OR(AND(IS NOT NULL($14), $17), AND(null, IS NULL($14)))), AND(null, IS NOT TRUE(AND($18, IS NOT NULL($14)))))], $f9=[CASE(AND($18, IS NOT NULL($14)), 2:TINYINT, NOT($18), 1:TINYINT, null:TINYINT)])
+    LogicalJoin(condition=[=($14, $5)], joinType=[left])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, 30)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeConditionManyNested">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal IN (SELECT ABS(deptno) from emp)
+when matched and target.sal IN (SELECT MAX(target.sal) FROM emp GROUP BY deptno) then
+  update set sal = (SELECT MAX(target.sal + source.sal))
+when matched and target.sal IN (SELECT MIN(target.sal) FROM emp GROUP BY deptno) then
+  update set sal = (SELECT MIN(target.sal + source.sal) + 10)
+when matched and target.sal = 10 then
+  update set sal = -10
+when not matched and source.sal > 20 then
+  insert (empno, sal, ename)
+  values (SELECT source.empno - 20, source.sal - 20, ename from emp)
+when not matched and source.sal < 0 then
+  insert (empno, sal, ename)
+  values (SELECT ABS(source.empno - 20), ABS(source.sal - 20), ename from emp)
+when not matched then
+  insert (empno, sal, ename)
+  values (-1, -1, 'NA')]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeConditionMatchedAndNotMatched">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $9, null:INTEGER), AND(>($5, 20), NOT($18)), CASE(>($5, 20), ABS($0), null:INTEGER), null:INTEGER)], $f1=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $10, null:VARCHAR(20)), AND(>($5, 20), NOT($18)), CASE(>($5, 20), $1, null:VARCHAR(20)), null:VARCHAR(20))], $f2=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $11, null:VARCHAR(10)), null:VARCHAR(10))], $f3=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $12, null:INTEGER), null:INTEGER)], $f4=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $13, null:TIMESTAMP(0)), null:TIMESTAMP(0))], $f5=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), +($14, $5), null:INTEGER), AND(>($5, 20), NOT($18)), CASE(>($5, 20), $5, null:INTEGER), null:INTEGER)], $f6=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $15, null:INTEGER), null:INTEGER)], $f7=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $16, null:INTEGER), null:INTEGER)], $f8=[OR(AND(IS TRUE(AND(>($14, 10), $18)), OR(AND(IS TRUE(>($14, 10)), $17), AND(null, IS NOT TRUE(>($14, 10))))), AND(null, IS NOT TRUE(AND(>($14, 10), $18))))], $f9=[CASE(AND(>($14, 10), $18), 2:TINYINT, AND(>($5, 20), NOT($18)), 1:TINYINT, null:TINYINT)])
+    LogicalJoin(condition=[=($14, $5)], joinType=[left])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, 30)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
   </TestCase>
   <TestCase name="testMergeInsertOnly">
     <Resource name="sql">
-      <![CDATA[merge into empnullables_20 as target
-        using (select * from emp where deptno = 30) as source
-        on target.sal = source.sal
-        when not matched then
-        insert (empno, sal, ename)
-        values (source.empno, source.sal, source.ename)]]>
+      <![CDATA[merge_into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal = source.sal
+when not matched then
+  insert (empno, sal, ename)
+  values (source.empno, source.sal, source.ename)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES_20]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
-  LogicalProject($f0=[=($14, $5)], EMPNO=[$0], ENAME=[CAST($1):VARCHAR(20)], $f3=[null:VARCHAR(10)], $f4=[null:INTEGER], $f5=[null:TIMESTAMP(0)], SAL=[CAST($5):INTEGER], $f7=[null:INTEGER], $f8=[20], $f9=[null:BOOLEAN])
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE(NOT($18), $0, null:INTEGER)], $f1=[CASE(NOT($18), $1, null:VARCHAR(20))], $f2=[null:VARCHAR(10)], $f3=[null:INTEGER], $f4=[null:TIMESTAMP(0)], $f5=[CASE(NOT($18), $5, null:INTEGER)], $f6=[null:INTEGER], $f7=[null:INTEGER], $f8=[null:BOOLEAN], $f9=[CASE(NOT($18), 1:TINYINT, null:TINYINT)])
     LogicalJoin(condition=[=($14, $5)], joinType=[left])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($7, 30)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
-        LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
-          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeMatchCondition">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), $9, null:INTEGER), null:INTEGER)], $f1=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), $10, null:VARCHAR(20)), null:VARCHAR(20))], $f2=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), $11, null:VARCHAR(10)), null:VARCHAR(10))], $f3=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), $12, null:INTEGER), null:INTEGER)], $f4=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), $13, null:TIMESTAMP(0)), null:TIMESTAMP(0))], $f5=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), +($14, $5), null:INTEGER), null:INTEGER)], $f6=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), $15, null:INTEGER), null:INTEGER)], $f7=[CASE(AND(>(+($5, $14), 10), $18), CASE(>(+($5, $14), 10), $16, null:INTEGER), null:INTEGER)], $f8=[OR(AND(IS TRUE(AND(>(+($5, $14), 10), $18)), OR(AND(IS TRUE(>(+($5, $14), 10)), $17), AND(null, IS NOT TRUE(>(+($5, $14), 10))))), AND(null, IS NOT TRUE(AND(>(+($5, $14), 10), $18))))], $f9=[CASE(AND(>(+($5, $14), 10), $18), 2:TINYINT, null:TINYINT)])
+    LogicalJoin(condition=[=($14, $5)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, 30)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[merge_into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal = source.sal
+when matched and source.sal + target.sal > 10 then
+  update set sal = target.sal + source.sal
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeMatchConditionNestedExpr">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal = source.sal
+when matched and source.sal + target.sal IN (SELECT empno from emp) then
+  update set sal = target.sal + source.sal
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeMatchConditionOnSource">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), $9, null:INTEGER), null:INTEGER)], $f1=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), $10, null:VARCHAR(20)), null:VARCHAR(20))], $f2=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), $11, null:VARCHAR(10)), null:VARCHAR(10))], $f3=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), $12, null:INTEGER), null:INTEGER)], $f4=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), $13, null:TIMESTAMP(0)), null:TIMESTAMP(0))], $f5=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), +($14, $5), null:INTEGER), null:INTEGER)], $f6=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), $15, null:INTEGER), null:INTEGER)], $f7=[CASE(AND(>($5, 10), $18), CASE(>($5, 10), $16, null:INTEGER), null:INTEGER)], $f8=[OR(AND(>($5, 10), $18, OR(AND(>($5, 10), $17), AND(null, <=($5, 10)))), AND(null, OR(<=($5, 10), NOT($18))))], $f9=[CASE(AND(>($5, 10), $18), 2:TINYINT, null:TINYINT)])
+    LogicalJoin(condition=[=($14, $5)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, 30)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[merge_into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal = source.sal
+when matched and source.sal > 10 then
+  update set sal = target.sal + source.sal
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMergeMatchConditionOnTarget">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $9, null:INTEGER), null:INTEGER)], $f1=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $10, null:VARCHAR(20)), null:VARCHAR(20))], $f2=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $11, null:VARCHAR(10)), null:VARCHAR(10))], $f3=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $12, null:INTEGER), null:INTEGER)], $f4=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $13, null:TIMESTAMP(0)), null:TIMESTAMP(0))], $f5=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), +($14, $5), null:INTEGER), null:INTEGER)], $f6=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $15, null:INTEGER), null:INTEGER)], $f7=[CASE(AND(>($14, 10), $18), CASE(>($14, 10), $16, null:INTEGER), null:INTEGER)], $f8=[OR(AND(IS TRUE(AND(>($14, 10), $18)), OR(AND(IS TRUE(>($14, 10)), $17), AND(null, IS NOT TRUE(>($14, 10))))), AND(null, IS NOT TRUE(AND(>($14, 10), $18))))], $f9=[CASE(AND(>($14, 10), $18), 2:TINYINT, null:TINYINT)])
+    LogicalJoin(condition=[=($14, $5)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($7, 30)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[merge_into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal = source.sal
+when matched and target.sal > 10 then
+  update set sal = target.sal + source.sal
 ]]>
     </Resource>
   </TestCase>
   <TestCase name="testMergeMatchedOnly">
     <Resource name="sql">
-      <![CDATA[merge into empnullables_20 as target
-        using (select * from emp where deptno = 30) as source
-        on target.sal = source.sal
-        when matched then
-        update set sal = target.sal + source.sal]]>
+      <![CDATA[merge_into empnullables as target
+using (select * from emp where deptno = 30) as source
+on target.sal = source.sal
+when matched then
+  update set sal = target.sal + source.sal
+]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES_20]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[true])
-  LogicalProject($f0=[=($14, $5)], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], SLACKER0=[$16], $f9=[+($14, $5)])
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE($18, $9, null:INTEGER)], $f1=[CASE($18, $10, null:VARCHAR(20))], $f2=[CASE($18, $11, null:VARCHAR(10))], $f3=[CASE($18, $12, null:INTEGER)], $f4=[CASE($18, $13, null:TIMESTAMP(0))], $f5=[CASE($18, +($14, $5), null:INTEGER)], $f6=[CASE($18, $15, null:INTEGER)], $f7=[CASE($18, $16, null:INTEGER)], $f8=[OR(AND($18, $17), AND(null, NOT($18)))], $f9=[CASE($18, 2:TINYINT, null:TINYINT)])
     LogicalJoin(condition=[=($14, $5)], joinType=[inner])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($7, 30)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
-        LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
-          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
   </TestCase>
   <TestCase name="testMergeNestedExpressions">
     <Resource name="sql">
-      <![CDATA[merge into empnullables_20 as target
-        using (select * from (Select * from (select *, emp.sal + dept.deptno as real_sal from dept FULL OUTER JOIN emp on emp.deptno = dept.deptno WHERE emp.sal > 0) as source WHERE deptno = 30)) as source
-        on SIN(target.sal + source.sal) > 0
-        when matched then
-          update set sal = COS(source.real_sal + target.sal)
-        when not matched then
-          insert (empno, sal, ename)
-          values (source.empno, ABS(source.empno + source.real_sal), 'DEFAULT_NAME')]]>
+      <![CDATA[merge_into empnullables as target
+using (select * from (Select * from (select *, emp.sal + dept.deptno as real_sal from dept FULL OUTER JOIN emp on emp.deptno = dept.deptno WHERE emp.sal > 0) as source WHERE deptno = 30)) as source
+on SIN(target.sal + source.sal) > 0
+when matched then
+  update set sal = COS(source.real_sal + target.sal)
+when not matched then
+  insert (empno, sal, ename)
+  values (source.empno, ABS(source.empno + source.real_sal), 'DEFAULT_NAME')]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES_20]], operation=[MERGE], updateColumnList=[[SAL]], flattened=[true])
-  LogicalProject($f0=[>(SIN(+($17, $7)), 0)], EMPNO=[CAST($2):INTEGER NOT NULL], $f2=['DEFAULT_NAME':VARCHAR(20)], $f3=[null:VARCHAR(10)], $f4=[null:INTEGER], $f5=[null:TIMESTAMP(0)], $f6=[ABS(+($2, $11))], $f7=[null:INTEGER], $f8=[20], $f9=[null:BOOLEAN], EMPNO0=[$12], ENAME0=[$13], JOB0=[$14], MGR0=[$15], HIREDATE0=[$16], SAL0=[$17], COMM0=[$18], SLACKER0=[$19], $f18=[COS(+($11, $17))])
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
+  LogicalProject($f0=[CASE($21, $12, NOT($21), $2, null:INTEGER)], $f1=[CASE($21, $13, NOT($21), 'DEFAULT_NAME':VARCHAR(20), null:VARCHAR(20))], $f2=[CASE($21, $14, null:VARCHAR(10))], $f3=[CASE($21, $15, null:INTEGER)], $f4=[CASE($21, $16, null:TIMESTAMP(0))], $f5=[CASE($21, CAST(COS(+($11, $17))):INTEGER, NOT($21), ABS(+($2, $11)), null:INTEGER)], $f6=[CASE($21, $18, null:INTEGER)], $f7=[CASE($21, $19, null:INTEGER)], $f8=[OR(AND(IS TRUE($21), $20), AND(null, IS NOT TRUE($21)))], $f9=[CASE($21, 2:TINYINT, NOT($21), 1:TINYINT, null:TINYINT)])
     LogicalJoin(condition=[>(SIN(+($17, $7)), 0)], joinType=[left])
       LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10], REAL_SAL=[$11])
         LogicalFilter(condition=[=($0, 30)])
@@ -4226,9 +4350,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES_20]], operation=[MERGE],
               LogicalJoin(condition=[=($9, $0)], joinType=[full])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
-        LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
-          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
   </TestCase>
@@ -4508,10 +4631,9 @@ LogicalProject(D2=[$0], D3=[$1])
   </TestCase>
   <TestCase name="testNestedHavingAlias">
     <Resource name="sql">
-      <![CDATA[
-      select sum(sal + sal) as alias_val, sum(sal) from emp GROUP BY deptno
-      HAVING alias_val in (SELECT max(deptno) as tmp_val_two from dept GROUP BY deptno HAVING tmp_val_two > 0)
-]]>
+      <![CDATA[select sum(sal + sal) as alias_val, sum(sal) from emp GROUP BY deptno
+HAVING alias_val in
+(SELECT max(deptno) as tmp_val_two from dept GROUP BY deptno HAVING tmp_val_two > 0)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5658,11 +5780,16 @@ LogicalProject(EMPNO=[$0])
   </TestCase>
   <TestCase name="testQualifyFullNoAlias">
     <Resource name="sql">
-      <![CDATA[SELECT deptno, SUM(empno) OVER (PARTITION BY deptno) as r FROM emp
-      WHERE empno < 4 GROUP BY deptno, empno HAVING SUM(sal) > 3 QUALIFY SUM(empno) OVER (PARTITION BY deptno)
-      IN (SELECT MIN(deptno) from dept
-      GROUP BY name HAVING MIN(deptno) > 3)
-  ]]>
+      <![CDATA[SELECT deptno
+  FROM emp
+  WHERE empno < 4
+  GROUP BY deptno, empno
+  HAVING SUM(sal) > 3
+  QUALIFY SUM(deptno) OVER (PARTITION BY empno) IN (
+    SELECT MIN(deptno)
+      from dept
+      GROUP BY name
+      HAVING MIN(deptno) > 3)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5694,10 +5821,16 @@ LogicalProject(DEPTNO=[$0])
   </TestCase>
   <TestCase name="testQualifyFullWithAlias">
     <Resource name="sql">
-      <![CDATA[SELECT deptno, SUM(empno) OVER (PARTITION BY deptno) as r FROM emp
-      WHERE empno < 4 GROUP BY deptno, empno HAVING SUM(sal) > 3 QUALIFY r IN (SELECT MIN(deptno) from dept
-      GROUP BY name HAVING MIN(deptno) > 3)
-  ]]>
+      <![CDATA[SELECT deptno, SUM(empno) OVER (PARTITION BY deptno) as r
+  FROM emp
+  WHERE empno < 4
+  GROUP BY deptno, empno
+  HAVING SUM(sal) > 3
+  QUALIFY r IN (
+    SELECT MIN(deptno)
+      from dept
+      GROUP BY name
+      HAVING MIN(deptno) > 3)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5729,11 +5862,8 @@ LogicalProject(DEPTNO=[$0], R=[$1])
   </TestCase>
   <TestCase name="testQualifyHavingSimple">
     <Resource name="sql">
-      <![CDATA[SELECT emp.deptno from emp
-      GROUP BY emp.empno, emp.deptno
-HAVING MIN(emp.deptno) > 3
-QUALIFY RANK() over (PARTITION BY emp.empno ORDER BY emp.deptno) <= 10
-]]>
+      <![CDATA[SELECT emp.deptno from emp         GROUP BY emp.empno, emp.deptno
+         HAVING MIN(emp.deptno) > 3         QUALIFY RANK() over (PARTITION BY emp.empno ORDER BY emp.deptno) <= 10]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5749,11 +5879,16 @@ LogicalProject(DEPTNO=[$0])
   </TestCase>
   <TestCase name="testQualifyNestedQualifyFull">
     <Resource name="sql">
-      <![CDATA[ SELECT deptno FROM emp WHERE empno < 4 GROUP BY deptno, empno HAVING SUM(sal) > 3 QUALIFY SUM(empno)
-      OVER (PARTITION BY deptno) IN (SELECT MIN(deptno), SUM(empno) OVER (PARTITION BY deptno) as w from dept GROUP BY
-      name HAVING MIN(deptno) > 3 QUALIFY ROW_NUMBER()
-      over (PARTITION BY deptno ORDER BY sal)) <= 10 AND w in (SELECT deptno from emp)
-  ]]>
+      <![CDATA[SELECT deptno
+  FROM emp
+  WHERE empno < 4
+  GROUP BY deptno, empno
+  HAVING SUM(sal) > 3
+  QUALIFY SUM(empno) OVER (PARTITION BY deptno)  IN (
+    SELECT MIN(deptno) OVER (PARTITION BY dept.name) as my_val
+      from dept
+      QUALIFY ROW_NUMBER() over (PARTITION BY dept.deptno ORDER BY dept.name) <= 10 AND my_val IN (         SELECT SUM(emp.deptno) OVER (PARTITION BY emp.comm) as w from emp         GROUP BY emp.empno, emp.deptno, emp.comm
+         HAVING MIN(emp.deptno) > 3         QUALIFY RANK() over (PARTITION BY emp.comm ORDER BY emp.deptno) <= 10 or w in         (select dept.deptno from dept) or w in (select emp.deptno from emp)))]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5893,11 +6028,12 @@ LogicalProject(DEPTNO=[$0])
   </TestCase>
   <TestCase name="testQualifyNestedQualifySimple">
     <Resource name="sql">
-      <![CDATA[ SELECT deptno FROM emp WHERE empno < 4 GROUP BY deptno, empno HAVING SUM(sal) > 3 QUALIFY SUM(empno)
-      OVER (PARTITION BY deptno) IN (SELECT MIN(deptno), SUM(empno) OVER (PARTITION BY deptno) as w from dept GROUP BY
-      name HAVING MIN(deptno) > 3 QUALIFY ROW_NUMBER()
-      over (PARTITION BY deptno ORDER BY sal)) <= 10 AND w in (SELECT deptno from emp)
-  ]]>
+      <![CDATA[SELECT deptno
+  FROM emp
+  QUALIFY SUM(empno) OVER (PARTITION BY deptno) IN (
+    SELECT MIN(deptno) OVER (PARTITION BY name) as my_val
+      from dept
+      QUALIFY my_val in (SELECT deptno from emp))]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5941,9 +6077,7 @@ LogicalProject(DEPTNO=[$0])
   </TestCase>
   <TestCase name="testQualifySubquerySimple">
     <Resource name="sql">
-      <![CDATA[SELECT empno FROM emp QUALIFY ROW_NUMBER() over
-      (PARTITION BY deptno ORDER BY sal) in (SELECT deptno from emp)
-  ]]>
+      <![CDATA[SELECT empno FROM emp QUALIFY ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) in (SELECT deptno from emp)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5966,8 +6100,7 @@ LogicalProject(EMPNO=[$0])
   <TestCase name="testQualifyWithAlias">
     <Resource name="sql">
       <![CDATA[select empno, ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal)
-      as row_num from emp QUALIFY row_num > 10
-  ]]>
+as row_num from emp QUALIFY row_num > 10]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -5980,9 +6113,8 @@ LogicalProject(EMPNO=[$0], ROW_NUM=[$1])
   </TestCase>
   <TestCase name="testQualifyWithAndWithoutAlias">
     <Resource name="sql">
-      <![CDATA[select empno, ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) as row_num from emp
-      QUALIFY row_num > 10 and ROW_NUMBER() over (PARTITION BY sal ORDER BY deptno) <= 10
-  ]]>
+      <![CDATA[select empno,ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) as row_num
+from emp QUALIFY row_num > 10 and ROW_NUMBER() over (PARTITION BY sal ORDER BY deptno) <= 10]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[

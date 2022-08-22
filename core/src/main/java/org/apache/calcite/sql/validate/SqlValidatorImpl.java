@@ -1490,9 +1490,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     }
 
+
+
     case MERGE: {
       SqlMerge call = (SqlMerge) node;
       rewriteMerge(call);
+      break;
+    }
+
+    case INSERT: {
+      SqlInsert call = (SqlInsert) node;
+      rewriteInsert(call);
       break;
     }
     default:
@@ -1513,6 +1521,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return null;
       }
     }
+  }
+
+  private static void rewriteInsert(SqlInsert call) {
+
+    System.out.println(call);
+    SqlNode origSource = call.getSource();
+
+//    call.setSource(null);
+//    call.setSourceSelect(select);
+    // TODO: Should I remove the condition here, and expect that convertInsert will take care of it?
+    // IDK, I need to re-review what I have in convertInsert.
+
+//    throw new RuntimeException("TODO!");
   }
 
   private static void rewriteMerge(SqlMerge call) {
@@ -1584,8 +1605,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               rowCall.getOperandList(),
               SqlParserPos.ZERO);
       final SqlNode insertSource = sourceTableRef.deepCopy(null);
+
+
+      //TODO: is it correct to add the condition here?
       select =
-          new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
+          new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource,
+              insertCall.getCondition(),
               null, null, null, null, null,
               null, null, null);
 
@@ -2957,6 +2982,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           enclosingNode,
           null,
           false);
+
+      SqlNode condition = ((SqlInsert) node).getCondition();
+      if (condition != null) {
+        SqlValidatorScope insertScope = getWhereScope((SqlSelect) insertCall.getSource());
+        requireNonNull(condition, "join.getCondition()");
+        SqlNode expandedCondition = expand(condition, insertScope);
+        ((SqlInsert) node).setOperand(4, expandedCondition);
+        validateWhereOrOn(insertScope, condition, "ON");
+        checkRollUp(null, node, condition, insertScope, "ON");
+      }
       break;
 
     case DELETE:
@@ -4661,7 +4696,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     setValidatedNodeType(selectItem, type);
 
     // We do not want to pass on the RelRecordType returned
-    // by the sub-query.  Just the type of the single expression
+    // by the sub-query. Just the type of the single expression
     // in the sub-query select list.
     assert type instanceof RelRecordType;
     RelRecordType rec = (RelRecordType) type;

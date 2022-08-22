@@ -1297,6 +1297,8 @@ public class SqlToRelConverter {
       //
       // In such case, when converting SqlUpdate#condition, bb.root is null
       // and it makes no sense to do the sub-query substitution.
+
+      //Note: this is needed, test will fail without it
       if (bb.root == null) {
         return;
       }

@@ -189,8 +189,8 @@ public class SqlMerge extends SqlCall {
       writer.keyword("WHEN MATCHED");
       SqlNode cond = curUpdateCall.getCondition();
       if (cond != null) {
-        // TODO: fix this
-        writer.keyword("AND __TODO__ ");
+        writer.keyword("AND");
+        cond.unparse(writer, 0, 0);
       }
       writer.keyword("THEN UPDATE");
 
@@ -219,8 +219,8 @@ public class SqlMerge extends SqlCall {
       writer.keyword("WHEN NOT MATCHED");
       SqlNode cond = curInsertCall.getCondition();
       if (cond != null) {
-        // TODO: fix this
-        writer.keyword("AND __TODO__ ");
+        writer.keyword("AND");
+        cond.unparse(writer, 0, 0);
       }
       writer.keyword("THEN INSERT");
       SqlNodeList targetColumnList = curInsertCall.getTargetColumnList();
@@ -229,8 +229,8 @@ public class SqlMerge extends SqlCall {
       }
       curInsertCall.getSource().unparse(writer, opLeft, opRight);
 
-      writer.endList(frame);
     }
+    writer.endList(frame);
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
