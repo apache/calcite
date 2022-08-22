@@ -3023,7 +3023,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // validation check
       for (int i = 0; i < mergeCall.getUpdateCallList().size(); i++) {
         SqlUpdate mergeUpdateCall = (SqlUpdate) mergeCall.getUpdateCallList().get(i);
-        requireNonNull(mergeUpdateCall);
+        requireNonNull(mergeUpdateCall, "mergeUpdateCall");
         registerQuery(
             getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
             null,
@@ -3036,7 +3036,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       for (int i = 0; i < mergeCall.getInsertCallList().size(); i++) {
         SqlInsert mergeInsertCall = (SqlInsert) mergeCall.getInsertCallList().get(i);
-        requireNonNull(mergeInsertCall);
+        requireNonNull(mergeInsertCall, "mergeInsertCall");
         registerQuery(
             // This is parentScope, as insert calls can only reference values in the source
             parentScope,

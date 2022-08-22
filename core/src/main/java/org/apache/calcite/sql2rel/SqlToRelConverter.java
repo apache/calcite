@@ -3845,26 +3845,18 @@ public class SqlToRelConverter {
     //
     // If a column has multiple constraints, the extra ones will become a
     // filter.
-
-    //TODO: I'm not sure if removing this will break anything. It's only use is
-    // within createModify, and createModify is only used in one spot
-    // (except in the recursive case)
-
+    final RexNode constraint =
+        modifiableView.getConstraint(rexBuilder, delegateRowType);
+    RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
     final List<Pair<RexNode, String>> projects = new ArrayList<>();
     for (RelDataTypeField field : delegateRowType.getFieldList()) {
       RexNode node = projectMap.get(field.getIndex());
-//      if (node == null) {
-//        node = rexBuilder.makeNullLiteral(field.getType());
-//      }
-//      projects.add(
-//          Pair.of(rexBuilder.ensureType(field.getType(), node, false),
-//              field.getName()));
-
-      if (node != null) {
-        projects.add(
-            Pair.of(rexBuilder.ensureType(field.getType(), node, false),
-                field.getName()));
+      if (node == null) {
+        node = rexBuilder.makeNullLiteral(field.getType());
       }
+      projects.add(
+          Pair.of(rexBuilder.ensureType(field.getType(), node, false),
+              field.getName()));
     }
 
     return relBuilder.push(source)
@@ -4473,6 +4465,12 @@ public class SqlToRelConverter {
 
     Pair<List<RexNode>, List<List<RexNode>>> insertRexNodes =
         getInsertColumnsCaseExpr(call.getInsertCallList(), selectListEquivConversionBB);
+
+    //NOTE: this assertion will not be true if we do inserts into a modifiable view that has
+    // constant constraints, as we will have additional rows that the targetTable rowtype
+    // does not have. I don't know if this is an issue with the rowType, or something else.
+    // Since we don't currently allow views in BodoSQL, I've made a note to return to this later:
+    // https://bodo.atlassian.net/browse/BE-3494
     assert (insertRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
         || insertRexNodes.getValue().size() == 0;
 
