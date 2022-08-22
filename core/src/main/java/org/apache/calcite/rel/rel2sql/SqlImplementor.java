@@ -1686,6 +1686,7 @@ public abstract class SqlImplementor {
     private final ImmutableSet<Clause> expectedClauses;
     private final @Nullable RelNode expectedRel;
     private final boolean needNew;
+    private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
@@ -1962,7 +1963,7 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         Project projectRel = (Project) rel.getInput(0);
         for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
-          if (isAnalyticalRex(projectRel.getChildExps().get(i))) {
+          if (relToSqlUtils.isAnalyticalRex(projectRel.getChildExps().get(i))) {
             return true;
           }
         }
@@ -2048,64 +2049,6 @@ public abstract class SqlImplementor {
       return operandList;
     }
 
-    /** Returns list of all RexInputRef objects from the given condition. */
-    List<RexNode> getRexInputRefListFromCondition(RexNode condition,
-        List<RexNode> inputRefRexList) {
-      if (condition instanceof RexInputRef) {
-        inputRefRexList.add(condition);
-      } else if (condition instanceof RexCall) {
-        for (RexNode operand : ((RexCall) condition).getOperands()) {
-          if (operand instanceof  RexLiteral) {
-            continue;
-          } else {
-            getRexInputRefListFromCondition(operand, inputRefRexList);
-          }
-        }
-      }
-      return inputRefRexList;
-    }
-
-    /** Returns whether an Analytical Function is present in filter condition. */
-    private boolean hasAnalyticalFunctionInFilter(Filter rel) {
-      Integer rexOperandIndex = null;
-      if (node instanceof SqlSelect) {
-        RexNode filterCondition = rel.getCondition();
-        if (filterCondition instanceof RexCall) {
-          for (RexNode conditionRex : ((RexCall) filterCondition).getOperands()) {
-            if (conditionRex instanceof  RexLiteral) {
-              continue;
-            }
-
-            List<RexNode> inputRefRexList = new ArrayList<>();
-            List<RexNode> rexOperandList =
-                getRexInputRefListFromCondition(conditionRex, inputRefRexList);
-
-            for (RexNode rexOperand : rexOperandList) {
-              if (rexOperand instanceof RexInputRef) {
-                rexOperandIndex = Integer.parseInt(rexOperand.toString().
-                    replace("$", ""));
-                Project projectRel = (Project) rel.getInput(0);
-                if (projectRel.getChildExps().get(rexOperandIndex) instanceof RexOver) {
-                  return true;
-                }
-              }
-            }
-          }
-        }
-      }
-      return false;
-    }
-
-    /** Returns whether any Analytical Function (RexOver) is present in projection. */
-    private boolean isAnalyticalFunctionPresentInProjection(Project projectRel) {
-      for (RexNode currentRex : projectRel.getChildExps()) {
-        if (isAnalyticalRex(currentRex)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     /** Returns whether a new sub-query is required. */
     private boolean needNewSubQuery(
         @UnknownInitialization Result this,
@@ -2118,11 +2061,14 @@ public abstract class SqlImplementor {
 
       // New SELECT wrap is not required -
       // If REL is an instanceof filter specified on normal column type except any analytical
-      // function and if that filter has any projection with Analytical function present
-      if (rel instanceof Filter
+      // function and if that filter has any projection with Analytical function present.
+      // Below query will remain as it is after translation. Previously, it is getting translated
+      // with SubQuery logic (Queries like - Analytical Function with WHERE clause)
+      // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
+      if (dialect.supportsQualifyClause() && rel instanceof Filter
           && rel.getInput(0) instanceof Project
-          && isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
-          && !hasAnalyticalFunctionInFilter((Filter) rel)) {
+          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
+          && !relToSqlUtils.hasAnalyticalFunctionInFilter((Filter) rel)) {
         if (maxClause == Clause.SELECT) {
           return false;
         }
@@ -2215,19 +2161,6 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    boolean isAnalyticalRex(RexNode rexNode) {
-      if (rexNode instanceof RexOver) {
-        return true;
-      } else if (rexNode instanceof RexCall) {
-        for (RexNode operand : ((RexCall) rexNode).getOperands()) {
-          if (isAnalyticalRex(operand)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
 
     private boolean hasNestedAggregations(
         @UnknownInitialization Result this,
@@ -2302,7 +2235,7 @@ public abstract class SqlImplementor {
       }
       List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
       for (RexNode rexNode : rel.getChildExps()) {
-        if (isAnalyticalRex(rexNode)) {
+        if (relToSqlUtils.isAnalyticalRex(rexNode)) {
           rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
         }
       }
@@ -2538,6 +2471,11 @@ public abstract class SqlImplementor {
       select.setHaving(node);
     }
 
+    public void setQualify(SqlNode node) {
+      assert clauses.contains(Clause.QUALIFY);
+      select.setQualify(node);
+    }
+
     public void setOrderBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.ORDER_BY);
       select.setOrderBy(nodeList);
@@ -2567,7 +2505,7 @@ public abstract class SqlImplementor {
   /** Clauses in a SQL query. Ordered by evaluation order.
    * SELECT is set only when there is a NON-TRIVIAL SELECT clause. */
   public enum Clause {
-    FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
+    FROM, WHERE, GROUP_BY, HAVING, QUALIFY, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
 
   /**
