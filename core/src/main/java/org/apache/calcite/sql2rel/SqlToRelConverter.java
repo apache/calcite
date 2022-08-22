@@ -4206,6 +4206,8 @@ public class SqlToRelConverter {
         assert updateCallIdx == updateCallList.size() - 1;
         caseConditions.add(this.relBuilder.getRexBuilder().makeLiteral(true));
       } else {
+        replaceSubQueries(selectListEquivConversionBB,
+            updateCond, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
         caseConditions.add(
             selectListEquivConversionBB.convertExpression(
                 updateCond));
@@ -4227,7 +4229,6 @@ public class SqlToRelConverter {
         assert field != null : "column " + id.toString() + " not found";
         curHashmap.put(field.getName(), i);
       }
-
       updateTargetColumnMapList.add(curHashmap);
     }
 
@@ -4256,9 +4257,11 @@ public class SqlToRelConverter {
 
         if (fieldExprIdx != -1) {
           // If we're updating the column, that append the new expression to the list.
-          curColumnCaseValues.add(
-              selectListEquivConversionBB.convertExpression(
-                  curUpdateCall.getSourceExpressionList().get(fieldExprIdx)));
+          SqlNode val = curUpdateCall.getSourceExpressionList().get(fieldExprIdx);
+          replaceSubQueries(selectListEquivConversionBB, val, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+
+          RexNode newExpr = selectListEquivConversionBB.convertExpression(val);
+          curColumnCaseValues.add(newExpr);
         } else {
           // Otherwise, just append the original value of the destination column.
           curColumnCaseValues.add(defaultColumnValue);

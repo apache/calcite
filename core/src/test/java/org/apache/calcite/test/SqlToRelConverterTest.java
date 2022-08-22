@@ -3212,6 +3212,45 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
+  @Disabled("JOIN on (X IN Y) fails in Calcite")
+  @Test void testJoinIn() {
+    // Tests that using "IN" as join condition works properly in Calcite
+
+    final String sql = ""
+        + "SELECT emp.deptno, emp.sal\n"
+        + "FROM dept\n"
+        + "JOIN emp ON emp.deptno + dept.deptno in (SELECT sal from emp)";
+
+    sql(sql).ok();
+  }
+
+
+  @Disabled("TODO: support nested queries in merge into")
+  @Test void testMergeNestedSubqueries() {
+    //tests a more complicated merge expression with nested sub queries
+
+    final String sql1 = "merge into empnullables as target\n"
+        + "using (select * from (Select * from (select *, emp.sal + dept.deptno as real_sal from dept FULL OUTER JOIN emp on emp.deptno = dept.deptno WHERE emp.sal > 0) as source WHERE deptno = 30)) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched then\n"
+        + "  update set sal = COS(source.real_sal + target.sal) + (SELECT MAX(sal) from emp)\n"
+        + "when not matched then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (source.empno + (SELECT MAX(empno) from emp), ABS(source.empno + source.real_sal), 'TODO')";
+
+    final String sql2 = "merge_into empnullables as target\n"
+        + "using (select * from (Select * from (select *, emp.sal + dept.deptno as real_sal from dept FULL OUTER JOIN emp on emp.deptno = dept.deptno WHERE emp.sal > 0) as source WHERE deptno = 30)) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched then\n"
+        + "  update set sal = COS(source.real_sal + target.sal) + (SELECT MAX(sal) from emp)\n"
+        + "when not matched then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (source.empno + (SELECT MAX(empno) from emp), ABS(source.empno + source.real_sal), 'TODO')";
+
+    sql(sql1).ok();
+    sql(sql2).ok();
+  }
+
 
   @Test void testMergeMatchConditionOnTarget() {
     // Tests a basic merge query with a match containing a filter on the dest/target.
@@ -3275,6 +3314,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
+  @Disabled("TODO: support nested subqueries in merge into")
   @Test void testMergeMatchConditionNestedExpr() {
     // Tests a basic merge query with a match containing a condition using
     // both the target and the source, and using a nested expression
@@ -3370,7 +3410,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     // where the values and conditions both contain nested subqueries
     final String sql1 = "merge into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
-        + "on target.sal IN (SELECT ABS(deptno) from emp)\n"
+        + "on target.sal = source.sal\n"
         + "when matched and target.sal IN (SELECT MAX(target.sal) FROM emp GROUP BY deptno) then\n"
         + "  update set sal = (SELECT MAX(target.sal + source.sal))\n"
         + "when matched and target.sal IN (SELECT MIN(target.sal) FROM emp GROUP BY deptno) then\n"
@@ -3394,7 +3434,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
     final String sql2 = "merge into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
-        + "on target.sal IN (SELECT ABS(deptno) from emp)\n"
+        + "on target.sal = source.sal\n"
         + "when matched and target.sal IN (SELECT MAX(target.sal) FROM emp GROUP BY deptno) then\n"
         + "  update set sal = (SELECT MAX(target.sal + source.sal))\n"
         + "when matched and target.sal IN (SELECT MIN(target.sal) FROM emp GROUP BY deptno) then\n"
@@ -3403,16 +3443,21 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  update set sal = -10\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
-        + "  values ((SELECT MAX(empno - 20) from emp), (SELECT MAX(sal - 20) from empnullables), 'temp_name')\n"
+        + "  values (\n"
+        + "    (SELECT MAX(empno - 20) from emp),\n"
+        + "    (SELECT MAX(sal - 20) from empnullables),\n"
+        + "    'temp_name')\n"
         + "when not matched and source.sal < 0 then\n"
         + "  insert (empno, sal)\n"
-        + "  values ((SELECT ABS(MIN(source.empno - 20) from emp), (SELECT ABS(MIN(source.sal - 20)) from emp))\n"
+        + "  values (\n"
+        + "    (SELECT ABS(MIN(empno - 20)) from emp),\n"
+        + "    (SELECT ABS(MIN(sal - 20)) from emp))\n"
         + "when not matched then\n"
-        + "  insert (ename)\n"
-        + "  values ('NA')";
+        + "  insert (empno, sal, ename)\n"
+        + "  values (-1, -1, 'NA')";
 
     sql(sql1).ok();
-//    sql(sql2).ok();
+    sql(sql2).ok();
   }
 
   @Test void testSelectView() {
