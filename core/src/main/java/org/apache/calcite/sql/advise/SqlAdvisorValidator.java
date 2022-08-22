@@ -100,13 +100,26 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     return expr;
   }
 
+//<<<<<<< HEAD
   @Override public SqlNode expandSelectExpr(SqlNode expr,
       SelectScope scope, SqlSelect select) {
+//=======
+//  public SqlNode expandWhereWithAlias(SqlNode expr, SqlValidatorScope scope, SqlSelect sqlSelect) {
+//>>>>>>> e283a7bc9 (WIP: Column Aliasing)
     // Disable expansion. It doesn't help us come up with better hints.
     return expr;
   }
 
+//<<<<<<< HEAD
   @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
+//=======
+//  public SqlNode expandWithAlias(SqlNode expr, SqlValidatorScope scope, SqlSelect sqlSelect) {
+//    // Disable expansion. It doesn't help us come up with better hints.
+//    return expr;
+//  }
+//
+//  public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
+//>>>>>>> e283a7bc9 (WIP: Column Aliasing)
     // Disable expansion. It doesn't help us come up with better hints.
     return orderExpr;
   }

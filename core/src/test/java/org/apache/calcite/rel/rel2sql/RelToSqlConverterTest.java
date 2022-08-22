@@ -2721,7 +2721,20 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+//<<<<<<< HEAD
   @Test void testSelectQueryWithGroup() {
+//=======
+//  @Test public void testSelectQueryComplex1() {
+//    String query =
+//        "select  \"cases_per_pallet\" as c from \"product\" where c > 100 ";
+//    final String expected = "SELECT \"cases_per_pallet\" AS \"C\"\n"
+//        + "FROM \"foodmart\".\"product\"\n"
+//        + "WHERE \"cases_per_pallet\" > 100";
+//    sql(query).ok(expected);
+//  }
+//
+//  @Test public void testSelectQueryWithGroup() {
+//>>>>>>> e283a7bc9 (WIP: Column Aliasing)
     String query = "select"
         + " count(*), sum(\"employee_id\") from \"reserve_employee\" "
         + "where \"hire_date\" > '2015-01-01' "
