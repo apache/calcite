@@ -8363,6 +8363,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // UNNEST MULTISET gets the same treatment as UNNEST ARRAY.
     sql("select * from unnest(multiset [1, 2, 1]) as f")
         .type("RecordType(INTEGER NOT NULL F) NOT NULL");
+
+    // The magic doesn't happen if the UNNEST is used without AS operator.
+    sql("select * from (SELECT ARRAY['banana'] as fruits) as t, UNNEST(t.fruits)")
+            .type("RecordType(CHAR(6) NOT NULL ARRAY NOT NULL FRUITS, "
+                    + "CHAR(6) NOT NULL EXPR$0) NOT NULL").ok();
   }
 
   @Test void testCorrelationJoin() {
