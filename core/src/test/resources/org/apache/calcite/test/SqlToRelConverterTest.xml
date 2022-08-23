@@ -4372,7 +4372,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], up
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMergeNestedExpressions">
+  <TestCase name="testMergeWithExpressions">
     <Resource name="sql">
       <![CDATA[merge_into empnullables as target
 using (select * from (Select * from (select *, emp.sal + dept.deptno as real_sal from dept FULL OUTER JOIN emp on emp.deptno = dept.deptno WHERE emp.sal > 0) as source WHERE deptno = 30)) as source

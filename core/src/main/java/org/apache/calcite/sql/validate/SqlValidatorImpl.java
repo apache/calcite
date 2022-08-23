@@ -38,50 +38,7 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.ModifiableViewTable;
-import org.apache.calcite.sql.JoinConditionType;
-import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlAccessEnum;
-import org.apache.calcite.sql.SqlAccessType;
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlDelete;
-import org.apache.calcite.sql.SqlDynamicParam;
-import org.apache.calcite.sql.SqlExplain;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlInsert;
-import org.apache.calcite.sql.SqlIntervalLiteral;
-import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlMatchRecognize;
-import org.apache.calcite.sql.SqlMerge;
-import org.apache.calcite.sql.SqlNamedParam;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlOrderBy;
-import org.apache.calcite.sql.SqlPivot;
-import org.apache.calcite.sql.SqlSampleSpec;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlSelectKeyword;
-import org.apache.calcite.sql.SqlSnapshot;
-import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlTableFunction;
-import org.apache.calcite.sql.SqlUnpivot;
-import org.apache.calcite.sql.SqlUnresolvedFunction;
-import org.apache.calcite.sql.SqlUpdate;
-import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.SqlWindowTableFunction;
-import org.apache.calcite.sql.SqlWith;
-import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -1490,8 +1447,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     }
 
-
-
     case MERGE: {
       SqlMerge call = (SqlMerge) node;
       rewriteMerge(call);
@@ -1562,6 +1517,67 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Now, we always just use select *
     SqlNodeList topmostSelectList = new SqlNodeList(SqlParserPos.ZERO);
     topmostSelectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
+
+    // Add all of the conditions, and values into the select. This project is needed to ensure
+    // that nested sub queries are properly evaluated, and any needed joins needed to get the
+    // required variables are properly created when expanding the select list
+
+
+    // First, we're going to add a projection on top of the dest select (prior to the join) which
+    // appends a literal value to the dest table. After the join, we can use this column to
+    // Check if a particular row is a match or not a match
+
+    // In the final iteration, we basically have the sourceSelect look like this:
+
+    // (All cols from source)
+    // (All cols from dest)
+    // (bool flag for checking if match succeeded)
+    // (Update Condition) (Update Values)*
+    // (Insert Condition) (Insert Values)*
+    // (Delete Condition)*
+
+    for (int i = 0; i < call.getUpdateCallList().size(); i++) {
+      SqlUpdate curUpdateCall = (SqlUpdate) call.getUpdateCallList().get(i);
+      @Nullable SqlNode curCond = curUpdateCall.getCondition();
+      if (curCond != null) {
+        topmostSelectList.add(curCond);
+      } else {
+        topmostSelectList.add(SqlLiteral.createBoolean(true, curUpdateCall.getParserPosition()));
+      }
+      for (int j = 0; j < curUpdateCall.getSourceExpressionList().size(); j++) {
+        SqlNode insertVal = curUpdateCall.getSourceExpressionList().get(j);
+        topmostSelectList.add(insertVal);
+      }
+    }
+    for (int i = 0; i < call.getInsertCallList().size(); i++) {
+      SqlInsert curInsertCall = (SqlInsert) call.getInsertCallList().get(i);
+      @Nullable SqlNode curCond = curInsertCall.getCondition();
+      if (curCond != null) {
+        topmostSelectList.add(curCond);
+      } else {
+        topmostSelectList.add(SqlLiteral.createBoolean(true, curInsertCall.getParserPosition()));
+      }
+      // From what I've seen, in merge, the source is always an VALUES statement
+      assert curInsertCall.getSource() instanceof SqlBasicCall;
+      assert ((SqlBasicCall) curInsertCall.getSource()).getOperator() instanceof SqlValuesOperator;
+
+      List<SqlNode> curInsertValues = ((SqlBasicCall) ((SqlBasicCall) curInsertCall.getSource())
+          .getOperandList().get(0)).getOperandList();
+
+      for (int j = 0; j < curInsertValues.size(); j++) {
+        SqlNode insertVal = curInsertValues.get(j);
+        topmostSelectList.add(insertVal);
+      }
+    }
+    for (int i = 0; i < call.getDeleteCallList().size(); i++) {
+      SqlDelete curDeleteCall = (SqlDelete) call.getDeleteCallList().get(i);
+      @Nullable SqlNode curCond = curDeleteCall.getCondition();
+      if (curCond != null) {
+        topmostSelectList.add(curCond);
+      } else {
+        topmostSelectList.add(SqlLiteral.createBoolean(true, curDeleteCall.getParserPosition()));
+      }
+    }
 
     SqlSelect select =
         new SqlSelect(SqlParserPos.ZERO, null, topmostSelectList, outerJoin, null,

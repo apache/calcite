@@ -3187,8 +3187,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
-  @Test void testMergeNestedExpressions() {
-    //tests a more complicated merge expression with nested clauses
+  @Test void testMergeWithExpressions() {
+    //tests a more complicated merge expression with more complicated clauses
 
     final String sql1 = "merge into empnullables as target\n"
         + "using (select * from (Select * from (select *, emp.sal + dept.deptno as real_sal from dept FULL OUTER JOIN emp on emp.deptno = dept.deptno WHERE emp.sal > 0) as source WHERE deptno = 30)) as source\n"
@@ -3213,7 +3213,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-  @Disabled("JOIN on (X IN Y) fails in Calcite")
+  @Disabled("JOIN on (X IN Y) fails in Calcite (TODO: find existing issue if it exists)")
   @Test void testJoinIn() {
     // Tests that using "IN" as join condition works properly in Calcite
 
@@ -3226,7 +3226,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-  @Disabled("TODO: support nested queries in merge into")
+
   @Test void testMergeNestedSubqueries() {
     //tests a more complicated merge expression with nested sub queries
 
