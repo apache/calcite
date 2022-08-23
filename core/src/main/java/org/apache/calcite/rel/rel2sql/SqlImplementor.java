@@ -2059,12 +2059,11 @@ public abstract class SqlImplementor {
       }
       final Clause maxClause = Collections.max(clauses);
 
-      // New SELECT wrap is not required -
-      // If REL is an instanceof filter specified on normal column type except any analytical
-      // function and if that filter has any projection with Analytical function present.
-      // Below query will remain as it is after translation. Previously, it is getting translated
-      // with SubQuery logic (Queries like - Analytical Function with WHERE clause)
+      // Previously, below query is getting translated with SubQuery logic (Queries like -
+      // Analytical Function with WHERE clause). Now, it will remain as it is after translation.
       // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
+      // Here, if query contains any filter which does not have analytical function in it and
+      // has any projection with Analytical function used then new SELECT wrap is not required.
       if (dialect.supportsQualifyClause() && rel instanceof Filter
           && rel.getInput(0) instanceof Project
           && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))

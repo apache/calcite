@@ -34,23 +34,26 @@ import java.util.List;
 public class RelToSqlUtils {
 
   /** Returns list of all RexInputRef objects from the given condition. */
-  private List<RexNode> getRexInputRefListFromCondition(RexNode condition,
+  private List<RexNode> getRexInputRefListFromRexNode(RexNode conditionRex,
       List<RexNode> inputRefRexList) {
-    if (condition instanceof RexInputRef) {
-      inputRefRexList.add(condition);
-    } else if (condition instanceof RexCall) {
-      for (RexNode operand : ((RexCall) condition).getOperands()) {
+    if (conditionRex instanceof RexInputRef) {
+      inputRefRexList.add(conditionRex);
+    } else if (conditionRex instanceof RexCall) {
+      for (RexNode operand : ((RexCall) conditionRex).getOperands()) {
         if (operand instanceof RexLiteral) {
           continue;
         } else {
-          getRexInputRefListFromCondition(operand, inputRefRexList);
+          getRexInputRefListFromRexNode(operand, inputRefRexList);
         }
       }
     }
     return inputRefRexList;
   }
 
-  /** Returns whether an operand is Analytical Function by traversing till next project rel. */
+  /** Returns whether an operand is Analytical Function by traversing till next project rel
+   * For ex, FilterRel e1 -> FilterRel e2 -> ProjectRel p -> TableScan ts
+   * Here, we are traversing till ProjectRel p to check whether an operand of FilterRel e1
+   * is Analytical function or not. */
   private boolean isOperandAnalyticalInFollowingProject(RelNode rel, Integer rexOperandIndex) {
     if (rel instanceof Project) {
       return (((Project) rel).getChildExps().size() - 1) >= rexOperandIndex
@@ -75,7 +78,7 @@ public class RelToSqlUtils {
 
         List<RexNode> inputRefRexList = new ArrayList<>();
         List<RexNode> rexOperandList =
-            getRexInputRefListFromCondition(conditionRex, inputRefRexList);
+            getRexInputRefListFromRexNode(conditionRex, inputRefRexList);
 
         for (RexNode rexOperand : rexOperandList) {
           if (rexOperand instanceof RexInputRef) {
