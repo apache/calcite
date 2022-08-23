@@ -1718,8 +1718,8 @@ SqlNode SqlMerge() :
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
     final SqlNode condition;
-    final Span matchedSpan = Span.of();
-    final Span notMatchedSpan = Span.of();
+    final Span matchedSpan;
+    final Span notMatchedSpan;
     //Note, the list typing cannot be more specific, as
     // it causes issues when constructing the nodeList
     List<SqlUpdate> updateCallList = new ArrayList();
@@ -1745,6 +1745,8 @@ SqlNode SqlMerge() :
     <USING> sourceTableRef = TableRef()
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
 
+    { matchedSpan = span(); }
+
     (
         //Need look ahead here to determine if we any update call whatsoever
         LOOKAHEAD(2)
@@ -1769,10 +1771,13 @@ SqlNode SqlMerge() :
                 }
             )
         )+
+
+        { notMatchedSpan = span(); }
         ( insertCall = WhenNotMatchedClause(table)
           { insertCallList.add(insertCall); notMatchedSpan.add(insertCall); }
         )*
     |
+        { notMatchedSpan = span(); }
         ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
     )
     {

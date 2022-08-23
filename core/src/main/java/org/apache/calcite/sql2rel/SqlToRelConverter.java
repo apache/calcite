@@ -4532,7 +4532,6 @@ public class SqlToRelConverter {
     // appropriate Rex Nodes are actually being cached/reused when possible
     for (int colIdx = 0; colIdx < targetTable.getRowType().getFieldCount(); colIdx++) {
 
-
       RexNode colNullLiteral = relBuilder.getRexBuilder()
           .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
 

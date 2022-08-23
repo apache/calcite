@@ -149,7 +149,7 @@ public class SqlMerge extends SqlCall {
   }
 
   /** Returns the DELETE statements for this MERGE. */
-  public @Nullable SqlNodeList getDeleteCallList() {
+  public SqlNodeList getDeleteCallList() {
     return deleteCallList;
   }
 
@@ -226,10 +226,10 @@ public class SqlMerge extends SqlCall {
     }
 
     for (int i = 0; i < deleteCallList.size(); i++) {
-      SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(i);
+      SqlDelete curDeleteCall = (SqlDelete) deleteCallList.get(i);
       writer.newlineAndIndent();
       writer.keyword("WHEN MATCHED");
-      SqlNode cond = curUpdateCall.getCondition();
+      SqlNode cond = curDeleteCall.getCondition();
       if (cond != null) {
         writer.keyword("AND");
         cond.unparse(writer, 0, 0);
