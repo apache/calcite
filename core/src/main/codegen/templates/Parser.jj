@@ -1718,16 +1718,16 @@ SqlNode SqlMerge() :
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
     SqlNode condition;
-    final Span updateCallListSpan = span();
-    final Span insertCallListSpan = span();
-    final Span DeleteCallListSpan = span();
+    final Span matchedSpan = Span.of();
+    final Span notMatchedSpan = Span.of();
     //Note, the list typing cannot be more specific, as
     // it causes issues when constructing the nodeList
     List<SqlUpdate> updateCallList = new ArrayList();
-    List<SqlDelete> updateCallList = new ArrayList();
+    List<SqlDelete> deleteCallList = new ArrayList();
     List<SqlInsert> insertCallList = new ArrayList();
     SqlInsert insertCall;
     SqlUpdate updateCall;
+    SqlDelete deleteCall;
     final Span s;
 
 }
@@ -1753,36 +1753,33 @@ SqlNode SqlMerge() :
         (
             condition = WhenMatchedClauseCommon()
             (
-                updateCall = WhenMatchedClauseUpdate(table, alias, matchedSpan)
+                updateCall = WhenMatchedClauseUpdate(table, alias)
                 {
                     updateCall.setOperand(3, condition);
                     updateCallList.add(updateCall);
-                    updateCallListSpan.add(updateCall);
+                    matchedSpan.add(updateCall);
                 }
             |
-                deleteCall = WhenMatchedClauseDelete(table, alias, matchedSpan)
+                deleteCall = WhenMatchedClauseDelete(table, alias)
                 {
                     deleteCall.setOperand(1, condition);
                     deleteCallList.add(deleteCall);
-                    deleteCallListSpan.add(deleteCall);
+                    matchedSpan.add(deleteCall);
                 }
             )
         )+
         ( insertCall = WhenNotMatchedClause(table)
-          { insertCallList.add(insertCall); insertCallListSpan.add(insertCall); }
+          { insertCallList.add(insertCall); notMatchedSpan.add(insertCall); }
         )*
     |
-        ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); })+
+        ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
 
     )
     {
-        SqlParserPos updateCallListPos = updateCallListSpan.addAll(updateCallList).pos();
-        SqlParserPos insertCallListPos = insertCallListSpan.addAll(insertCallList).pos();
-        SqlParserPos deleteCallListPos = insertCallListSpan.addAll(deleteCallList).pos();
 
-        return new SqlMerge(s.add(updateCallListPos).add(insertCallListPos).add(deleteCallListPos).pos(), table,
-            condition, sourceTableRef, new SqlNodeList(updateCallList, updateCallListPos),
-            new SqlNodeList(insertCallList, insertCallListPos), new SqlNodeList(deleteCallList, deleteCallListPos),
+        return new SqlMerge(s.add(matchedSpan.pos()).add(notMatchedSpan.pos()).pos(), table,
+            condition, sourceTableRef, new SqlNodeList(updateCallList, matchedSpan.pos()),
+            new SqlNodeList(insertCallList, notMatchedSpan.pos()), new SqlNodeList(deleteCallList, matchedSpan.pos()),
             null, alias);
     }
 }
@@ -1829,17 +1826,17 @@ SqlNode WhenMatchedClauseCommon() :
     }
 }
 
-SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
+SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias) :
 {
     SqlIdentifier id;
     final SqlNodeList updateColumnList = new SqlNodeList(SqlParserPos.ZERO);
     SqlNode exp;
     final SqlNodeList updateExprList = new SqlNodeList(SqlParserPos.ZERO);
-
+    final Span s;
 }
 {
 
-    <UPDATE> <SET> id = CompoundIdentifier() {
+    <UPDATE> { s = span(); } <SET> id = CompoundIdentifier() {
         updateColumnList.add(id);
     }
     <EQ> exp = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -1860,13 +1857,13 @@ SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias, Span match
     }
 }
 
-SqlDelete WhenMatchedClauseDelete(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
+SqlDelete WhenMatchedClauseDelete(SqlNode table, SqlIdentifier alias) :
 {}
 {
 
     <DELETE>
     {
-        return new SqlDelete(matchedSpan.add(table).addIf(alias).pos(), table, null, null, alias);
+        return new SqlDelete(span().pos(), table, null, null, alias);
     }
 }
 

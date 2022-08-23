@@ -2772,12 +2772,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       final SqlSelect select = (SqlSelect) node;
       final SqlValidatorNamespace registeredSelectNs = getNamespace(select);
-
       if (registeredSelectNs == null) {
         final SelectNamespace selectNs = createSelectNamespace(select, enclosingNode);
         registerNamespace(usingScope, alias, selectNs, forceNullable);
       }
-
 
       final SqlValidatorScope windowParentScope =
           (usingScope != null) ? usingScope : parentScope;
