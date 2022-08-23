@@ -4186,17 +4186,19 @@ public class SqlToRelConverter {
 
   private Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> extractUpdateExprs(
       SqlNodeList updateCallList,
-      LogicalProject mergeSourceRel, Integer nSourceFields, Integer nDestFields, RelOptTable destTable) {
+      LogicalProject mergeSourceRel, Integer nSourceFields,
+      Integer nDestFields, RelOptTable destTable) {
 
-    Integer totalOffset = nSourceFields + nDestFields;
-
+    // Note, add +1 to account for addition boolean flag which is used to track if we had a join
+    // or not
+    Integer totalOffset = nSourceFields + nDestFields + 1;
 
     // Convert the identifiers in each of the update's target column list into a map of
     // strings -> idx.
-    HashMap<SqlUpdate, HashSet<String>> updateToTargetColumnSet = new HashMap<>();
+    HashMap<SqlUpdate, HashMap<String, Integer>> updateToTargetColumnSet = new HashMap<>();
     for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
       SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateCallIdx);
-      HashSet<String> curSet = new HashSet<String>();
+      HashMap<String, Integer> curMap = new HashMap<String, Integer>();
 
       for (int i = 0; i < curUpdateCall.getTargetColumnList().size(); i++) {
         SqlIdentifier id = (SqlIdentifier) curUpdateCall.getTargetColumnList().get(i);
@@ -4204,9 +4206,9 @@ public class SqlToRelConverter {
             SqlValidatorUtil.getTargetField(
                 destTable.getRowType(), typeFactory, id, catalogReader, destTable);
         assert field != null : "column " + id.toString() + " not found";
-        curSet.add(field.getName());
+        curMap.put(field.getName(), updateCallIdx);
       }
-      updateToTargetColumnSet.put(curUpdateCall, curSet);
+      updateToTargetColumnSet.put(curUpdateCall, curMap);
     }
 
     // The list of conditions. This is returned from this function in order to filter no ops.
@@ -4232,19 +4234,26 @@ public class SqlToRelConverter {
       caseConditions.add(mergeSourceRelProjects.get(totalOffset));
       totalOffset++;
 
+      // Total Offset should now be at the start of the current update's expression list.
+
       for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
         String curFieldName = destTableFieldNames.get(destColIdx);
 
-
-        if (updateToTargetColumnSet.get(curUpdateCall).contains(curFieldName)) {
-          caseValues.get(destColIdx).add(mergeSourceRelProjects.get(totalOffset));
-          totalOffset++;
+        if (updateToTargetColumnSet.get(curUpdateCall).containsKey(curFieldName)) {
+          // Add the offset relative to the current list, and the offset
+          // that gets us to the start of the current list
+          Integer curOffset = updateToTargetColumnSet.get(curUpdateCall).get(curFieldName)
+              + totalOffset;
+          caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
         } else {
           //NOTE: Dest table is always on the right side of the joined table
           RexNode defaultColumnValue = mergeSourceRelProjects.get(nSourceFields + destColIdx);
           caseValues.get(destColIdx).add(defaultColumnValue);
         }
       }
+
+      // increment total offset, to put us at the next update's condition (if it exists)
+      totalOffset += curUpdateCall.getSourceExpressionList().size();
     }
     return Pair.of(Pair.of(caseConditions, caseValues), totalOffset);
   }
@@ -4258,20 +4267,21 @@ public class SqlToRelConverter {
 
     // Convert the identifiers in each of the update's target column list into a map of
     // strings -> idx.
-    HashMap<SqlInsert, HashSet<String>> updateToTargetColumnSet = new HashMap<>();
+    HashMap<SqlInsert, HashMap<String, Integer>> insertToTargetColumnSet = new HashMap<>();
     for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
       SqlInsert curInsertCall = (SqlInsert) updateCallList.get(0);
-      HashSet<String> curSet = new HashSet<String>();
+      HashMap<String, Integer> curMap = new HashMap<String, Integer>();
 
-      for (int i = 0; i < curInsertCall.getTargetColumnList().size(); i++) {
-        SqlIdentifier id = (SqlIdentifier) curInsertCall.getTargetColumnList().get(i);
+      for (int curInsertIdx = 0;
+           curInsertIdx < curInsertCall.getTargetColumnList().size(); curInsertIdx++) {
+        SqlIdentifier id = (SqlIdentifier) curInsertCall.getTargetColumnList().get(curInsertIdx);
         RelDataTypeField field =
             SqlValidatorUtil.getTargetField(
                 destTable.getRowType(), typeFactory, id, catalogReader, destTable);
         assert field != null : "column " + id.toString() + " not found";
-        curSet.add(field.getName());
+        curMap.put(field.getName(), curInsertIdx);
       }
-      updateToTargetColumnSet.put(curInsertCall, curSet);
+      insertToTargetColumnSet.put(curInsertCall, curMap);
     }
 
     // The list of conditions. This is returned from this function in order to filter no ops.
@@ -4292,125 +4302,39 @@ public class SqlToRelConverter {
 
     List<RexNode> mergeSourceRelProjects = mergeSourceRel.getProjects();
 
+    // Total Offset should now be at the start of the current update's expression list.
+
     for (int insertColNumber = 0; insertColNumber < updateCallList.size(); insertColNumber++) {
       SqlInsert curInsertCall = (SqlInsert) updateCallList.get(insertColNumber);
       caseConditions.add(mergeSourceRelProjects.get(totalOffset));
       totalOffset++;
 
+      // Total offset now points to the start of the expression list
+
       for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
         String curFieldName = destTableFieldNames.get(destColIdx);
 
+        if (insertToTargetColumnSet.get(curInsertCall).containsKey(curFieldName)) {
+          // Add the offset relative to the current list, and the offset
+          // that gets us to the start of the current list
 
-        if (updateToTargetColumnSet.get(curInsertCall).contains(curFieldName)) {
-          caseValues.get(destColIdx).add(mergeSourceRelProjects.get(totalOffset));
-          totalOffset++;
+          Integer curOffset = insertToTargetColumnSet.get(curInsertCall).get(curFieldName)
+              + totalOffset;
+          caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
+
         } else {
           RexNode defaultColumnValue = this.relBuilder.getRexBuilder().makeNullLiteral(
-              destTable.getRowType().getFieldList().get(insertColNumber).getType());
+              destTable.getRowType().getFieldList().get(destColIdx).getType());
           caseValues.get(destColIdx).add(defaultColumnValue);
         }
       }
+
+      // Increment Total offset by the length of the expression list, so that it now points to the
+      // next insert's condition (if it exists)
+      totalOffset += curInsertCall.getTargetColumnList().size();
     }
     return Pair.of(Pair.of(caseConditions, caseValues), totalOffset);
-
-//
-//    // The list of conditions. This is returned from this function in order to filter no ops.
-//    final List<RexNode> caseConditions = new ArrayList<>();
-//
-//    // The list of column values to put into the table
-//    // The outer list should have length equal to the number of conditions
-//    // The inner list should have length equal the number of data columns
-//    // (this will be pivoted before return)
-//    final List<List<RexNode>> caseValues = new ArrayList<>();
-//
-//    for (int i = 0; i < insertCallList.size(); i++) {
-//
-//      SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
-//
-//      RelNode insertRel = convertInsert(curInsertCall);
-//
-//      SqlNode insertCond = curInsertCall.getCondition();
-//      // We should disallow a non condition insert to apear prior to a conditional insert in
-//      // validation. However, there's no harm in double checking it here
-//      if (insertCond == null) {
-//        assert i == insertCallList.size() - 1;
-//        caseConditions.add(this.relBuilder.getRexBuilder().makeLiteral(true));
-//      } else {
-//        caseConditions.add(
-//            selectListEquivConversionBB.convertExpression(insertCond));
-//      }
-//
-//      List<RexNode> curLevel1InsertExprs = null;
-//      List<RexNode> curLevel2InsertExprs = null;
-//
-//      // if there are 2 level of projections in the insert source, combine
-//      // them into a single project; level1 refers to the topmost project;
-//      // the level1 projection contains references to the level2
-//      // expressions, except in the case where no target expression was
-//      // provided, in which case, the expression is the default value for
-//      // the column; or if the expressions directly map to the source
-//      // table
-//
-//      // The insert may have a filter. In this specific case, we can omit the filter,
-//      // because the source select should already have the needed filter. We only need the
-//      // insert expressions.
-//      if (insertRel.getInput(0) instanceof LogicalFilter) {
-//        insertRel = insertRel.getInput(0);
-//      }
-//
-//      curLevel1InsertExprs =
-//          ((LogicalProject) insertRel.getInput(0)).getProjects();
-//      if (insertRel.getInput(0).getInput(0) instanceof LogicalProject) {
-//        curLevel2InsertExprs =
-//            ((LogicalProject) insertRel.getInput(0).getInput(0))
-//                .getProjects();
-//      }
-//
-//      final List<RexNode> projects = new ArrayList<>();
-//
-//      if (curLevel1InsertExprs != null) {
-//        for (int level1Idx = 0; level1Idx < curLevel1InsertExprs.size(); level1Idx++) {
-//
-//          if ((curLevel2InsertExprs != null)
-//              && (curLevel1InsertExprs.get(level1Idx) instanceof RexInputRef)) {
-//            int level2Idx =
-//                ((RexInputRef) curLevel1InsertExprs.get(level1Idx)).getIndex();
-//            projects.add(curLevel2InsertExprs.get(level2Idx));
-//          } else {
-//            projects.add(curLevel1InsertExprs.get(level1Idx));
-//          }
-//        }
-//      }
-//      caseValues.add(projects);
-//    }
-//
-//    // Manipulate the case values so that we have a list of rows to use based on condition,
-//    // we have a list of possible column values to use based on the condition. IE, go from:
-//    // <<A0, B0, C0>, <A1, B1, C1>> to <<A0, A1>, <B0, B1>, <C0, C1>>
-//    // After the changes
-//    // The outer list should have length of the number of data columns
-//    // the inner list should have length equal to the number of conditions
-//    final List<List<RexNode>> finalizedCaseValues = new ArrayList<>();
-//
-//    //Only bother with the conversion if we actually have values to insert
-//    if (caseValues.size() > 0) {
-//      // NOTE: we ignore the last column, as it is the dummy column which we added to the
-//      // destination table to keep track of if we'd seen a join or not.
-//
-//      // This insert is wrong. The source table has a value that the dest table does not.
-//      // The insert is wrong
-//      for (int colIdx = 0; colIdx < caseValues.get(0).size(); colIdx++) {
-//        List<RexNode> curColArray = new ArrayList<>();
-//        for (int i = 0; i < caseValues.size(); i++) {
-//          curColArray.add(caseValues.get(i).get(colIdx));
-//        }
-//        finalizedCaseValues.add(curColArray);
-//      }
-//    }
-//
-//    return new Pair(caseConditions, finalizedCaseValues);
   }
-
 
 
 
@@ -4422,10 +4346,11 @@ public class SqlToRelConverter {
     SqlNodeList targetTableSelectList = new SqlNodeList(SqlParserPos.ZERO);
     targetTableSelectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
 
-    SqlSelect origSourceSelect = new SqlSelect(SqlParserPos.ZERO, null, targetTableSelectList,
+    SqlSelect origSourceSelect = new SqlSelect(SqlParserPos.ZERO, null,
+        targetTableSelectList,
         sourceExpr, null, null, null, null, null,
         null, null, null, null);
-    RelRoot origSourceRel = convertQuery(origSourceSelect, true,false);
+    RelRoot origSourceRel = convertQuery(origSourceSelect, true, false);
 
 
     // Originally, calcite handled this as follows:
@@ -4494,30 +4419,6 @@ public class SqlToRelConverter {
 
     // I'm not entirely certain if the where vs select scope distinction matters here, since
     // any expression that is valid in the select list is valid as a condition in the where clause
-
-//    final SqlValidatorScope selectScope = validator().getWhereScope(sourceSelect);
-//    final Blackboard selectListEquivConversionBB = createBlackboard(selectScope,
-//        null, false);
-//
-//
-//    // This is a hacky solution.
-//    // We're kinda we're cheesing the normal code path, for expression conversion,
-//    // to trick the blackboard into having the correct inputs
-//    // scope. Essentially, the black board expects queries to be evaluated recursivly, IE,
-//    // evaluate the from, then the select list, then the order list... etc. This is important,
-//    // because the FROM clause is stored as the "input" field in the blackboard, and the input is
-//    // when evaluating converting the rest of the expressions.
-//    //
-//    // By evaluating the FROM prior to to the rest of the expressions, we cause
-//    // expressions evaluated using the blackboard
-//    // to be converted as if they are items in the select list of the select who's from is the
-//    // joined dataframes
-//    // This is safe to do, as the values being selected are always just *, so we never have
-//    // aggs, windows, qualifies, or anything else that might throw us off the normal code path
-//    // for conversion.
-//    convertFrom(
-//        selectListEquivConversionBB,
-//        sourceSelect.getFrom());
 
 
     int numSourceCols = origSourceRel.rel.getRowType().getFieldCount();

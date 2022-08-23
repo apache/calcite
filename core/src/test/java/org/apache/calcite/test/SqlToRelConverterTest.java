@@ -3315,7 +3315,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-  @Disabled("TODO: support nested subqueries in merge into")
+
   @Test void testMergeMatchConditionNestedExpr() {
     // Tests a basic merge query with a match containing a condition using
     // both the target and the source, and using a nested expression
@@ -3405,7 +3405,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-  @Disabled("TODO")
+
   @Test void testMergeConditionManyNested() {
     // Tests a basic merge query with multiple matched/not matched conditions,
     // where the values and conditions both contain nested subqueries
