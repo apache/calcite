@@ -1717,7 +1717,7 @@ SqlNode SqlMerge() :
     SqlNodeList extendList = null;
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
-    SqlNode condition;
+    final SqlNode condition;
     final Span matchedSpan = Span.of();
     final Span notMatchedSpan = Span.of();
     //Note, the list typing cannot be more specific, as
@@ -1729,6 +1729,8 @@ SqlNode SqlMerge() :
     SqlUpdate updateCall;
     SqlDelete deleteCall;
     final Span s;
+
+    SqlNode clauseCondition;
 
 }
 {
@@ -1743,26 +1745,25 @@ SqlNode SqlMerge() :
     <USING> sourceTableRef = TableRef()
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
 
-
-    //Need look ahead here to determine if we any update call whatsoever
-    LOOKAHEAD(2)
     (
-        //Need look ahead here to distinguish WHEN MATCHED from WHEN NOT MATCHED
-        //in the variadic expansion
+        //Need look ahead here to determine if we any update call whatsoever
         LOOKAHEAD(2)
         (
-            condition = WhenMatchedClauseCommon()
+            //Need look ahead here to distinguish WHEN MATCHED from WHEN NOT MATCHED
+            //in the variadic expansion
+            LOOKAHEAD(2)
+            clauseCondition = WhenMatchedClauseCommon(matchedSpan)
             (
                 updateCall = WhenMatchedClauseUpdate(table, alias)
                 {
-                    updateCall.setOperand(3, condition);
+                    updateCall.setOperand(3, clauseCondition);
                     updateCallList.add(updateCall);
                     matchedSpan.add(updateCall);
                 }
             |
                 deleteCall = WhenMatchedClauseDelete(table, alias)
                 {
-                    deleteCall.setOperand(1, condition);
+                    deleteCall.setOperand(1, clauseCondition);
                     deleteCallList.add(deleteCall);
                     matchedSpan.add(deleteCall);
                 }
@@ -1773,7 +1774,6 @@ SqlNode SqlMerge() :
         )*
     |
         ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
-
     )
     {
 
@@ -1784,12 +1784,12 @@ SqlNode SqlMerge() :
     }
 }
 
-SqlNode WhenMatchedClauseCommon() :
+SqlNode WhenMatchedClauseCommon(Span matchedSpan) :
 {
     SqlNode condition;
 }
 {
-    <WHEN> <MATCHED>
+    <WHEN> { matchedSpan.add(span().pos()); } <MATCHED>
 
     // add condition (if it is present)
         // The condition can be any valid expression that evaluates to boolen
