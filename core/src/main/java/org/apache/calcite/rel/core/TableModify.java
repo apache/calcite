@@ -71,8 +71,8 @@ public abstract class TableModify extends SingleRel {
     DELETE(3),
     MERGE(4);
 
-    private int value;
-    private static HashMap map = new HashMap<>();
+    private final int value;
+    private static final HashMap VALUEMAP = new HashMap<>();
 
     Operation(int value) {
       this.value = value;
@@ -80,12 +80,12 @@ public abstract class TableModify extends SingleRel {
 
     static {
       for (Operation op : Operation.values()) {
-        map.put(op.value, op);
+        VALUEMAP.put(op.value, op);
       }
     }
 
-    public static Operation valueOf(int pageType) {
-      return (Operation) map.get(pageType);
+    public static @Nullable Operation valueOf(int pageType) {
+      return (Operation) VALUEMAP.get(pageType);
     }
 
     public int getValue() {

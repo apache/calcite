@@ -1497,12 +1497,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       rewriteMerge(call);
       break;
     }
-
-    case INSERT: {
-      SqlInsert call = (SqlInsert) node;
-      rewriteInsert(call);
-      break;
-    }
     default:
       break;
     }
@@ -1521,19 +1515,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return null;
       }
     }
-  }
-
-  private static void rewriteInsert(SqlInsert call) {
-
-    System.out.println(call);
-    SqlNode origSource = call.getSource();
-
-//    call.setSource(null);
-//    call.setSourceSelect(select);
-    // TODO: Should I remove the condition here, and expect that convertInsert will take care of it?
-    // IDK, I need to re-review what I have in convertInsert.
-
-//    throw new RuntimeException("TODO!");
   }
 
   private static void rewriteMerge(SqlMerge call) {

@@ -4185,7 +4185,7 @@ public class SqlToRelConverter {
 
 
   private Pair<List<RexNode>, List<List<RexNode>>> getUpdateColumnsCaseExpr(
-      SqlNodeList updateCallList, RelOptTable destTable, SqlSelect joinSelect,
+      SqlNodeList updateCallList, RelOptTable destTable,
       RelNode mergeSourceRel, Blackboard selectListEquivConversionBB) {
 
 
@@ -4301,7 +4301,7 @@ public class SqlToRelConverter {
         caseConditions.add(this.relBuilder.getRexBuilder().makeLiteral(true));
       } else {
         caseConditions.add(
-            selectListEquivConversionBB.convertExpression(curInsertCall.getCondition()));
+            selectListEquivConversionBB.convertExpression(insertCond));
       }
 
       List<RexNode> curLevel1InsertExprs = null;
@@ -4438,7 +4438,6 @@ public class SqlToRelConverter {
     final SqlValidatorScope selectScope = validator().getWhereScope(sourceSelect);
     final Blackboard selectListEquivConversionBB = createBlackboard(selectScope, null, false);
 
-    //    convertSelectImpl(bb, joinSelect);
 
     // This is a hacky solution.
     // We're kinda we're cheesing the normal code path, for expression conversion,
@@ -4463,7 +4462,7 @@ public class SqlToRelConverter {
     // The right outer list should have length of the number of data columns
     // the right inner list should have length equal to the number of conditions
     Pair<List<RexNode>, List<List<RexNode>>> updateRexNodes = getUpdateColumnsCaseExpr(
-        call.getUpdateCallList(), targetTable, call.getSourceSelect(), mergeSourceRel,
+        call.getUpdateCallList(), targetTable, mergeSourceRel,
         selectListEquivConversionBB);
     assert (updateRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
         || updateRexNodes.getValue().size() == 0;
