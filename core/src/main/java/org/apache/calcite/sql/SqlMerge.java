@@ -39,8 +39,11 @@ public class SqlMerge extends SqlCall {
   SqlNode targetTable;
   SqlNode condition;
   SqlNode source;
+
   SqlNodeList updateCallList;
   SqlNodeList insertCallList;
+  SqlNodeList deleteCallList;
+
   @Nullable SqlSelect sourceSelect;
   @Nullable SqlIdentifier alias;
 
@@ -52,6 +55,7 @@ public class SqlMerge extends SqlCall {
       SqlNode source,
       SqlNodeList updateCallList,
       SqlNodeList insertCallList,
+      SqlNodeList deleteCallList,
       @Nullable SqlSelect sourceSelect,
       @Nullable SqlIdentifier alias) {
     super(pos);
@@ -60,6 +64,7 @@ public class SqlMerge extends SqlCall {
     this.source = source;
     this.updateCallList = updateCallList;
     this.insertCallList = insertCallList;
+    this.deleteCallList = deleteCallList;
     this.sourceSelect = sourceSelect;
     this.alias = alias;
   }
@@ -77,7 +82,7 @@ public class SqlMerge extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, source, updateCallList,
-        insertCallList, sourceSelect, alias);
+        insertCallList, deleteCallList, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -100,9 +105,12 @@ public class SqlMerge extends SqlCall {
       insertCallList = (SqlNodeList) operand;
       break;
     case 5:
-      sourceSelect = (@Nullable SqlSelect) operand;
+      deleteCallList = (SqlNodeList) operand;
       break;
     case 6:
+      sourceSelect = (@Nullable SqlSelect) operand;
+      break;
+    case 7:
       alias = (SqlIdentifier) operand;
       break;
     default:
@@ -130,14 +138,19 @@ public class SqlMerge extends SqlCall {
     this.source = tableRef;
   }
 
-  /** Returns the UPDATE statement for this MERGE. */
+  /** Returns the UPDATE statements for this MERGE. */
   public SqlNodeList getUpdateCallList() {
     return updateCallList;
   }
 
-  /** Returns the INSERT statement for this MERGE. */
+  /** Returns the INSERT statements for this MERGE. */
   public SqlNodeList getInsertCallList() {
     return insertCallList;
+  }
+
+  /** Returns the DELETE statements for this MERGE. */
+  public @Nullable SqlNodeList getDeleteCallList() {
+    return deleteCallList;
   }
 
   /** Returns the condition expression to determine whether to UPDATE or
@@ -212,6 +225,18 @@ public class SqlMerge extends SqlCall {
       writer.endList(setFrame);
     }
 
+    for (int i = 0; i < deleteCallList.size(); i++) {
+      SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(i);
+      writer.newlineAndIndent();
+      writer.keyword("WHEN MATCHED");
+      SqlNode cond = curUpdateCall.getCondition();
+      if (cond != null) {
+        writer.keyword("AND");
+        cond.unparse(writer, 0, 0);
+      }
+      writer.keyword("THEN DELETE");
+    }
+
     SqlNodeList insertCallList = this.insertCallList;
     for (int i = 0; i < insertCallList.size(); i++) {
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
@@ -228,7 +253,6 @@ public class SqlMerge extends SqlCall {
         targetColumnList.unparse(writer, opLeft, opRight);
       }
       curInsertCall.getSource().unparse(writer, opLeft, opRight);
-
     }
     writer.endList(frame);
   }

@@ -1667,7 +1667,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
     SqlMerge mergeCall =
         new SqlMerge(updateCall.getParserPosition(), target, condition, source,
-            SqlNodeList.of(updateCall),  SqlNodeList.EMPTY, null, updateCall.getAlias());
+            SqlNodeList.of(updateCall), SqlNodeList.EMPTY, SqlNodeList.EMPTY, null,
+            updateCall.getAlias());
     rewriteMerge(mergeCall);
     return mergeCall;
   }
@@ -3062,6 +3063,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             null,
             false);
       }
+
+      for (int i = 0; i < mergeCall.getDeleteCallList().size(); i++) {
+        SqlDelete mergeDeleteCall = (SqlDelete) mergeCall.getDeleteCallList().get(i);
+        if (mergeDeleteCall != null) {
+          registerQuery(
+              parentScope,
+              null,
+              mergeDeleteCall,
+              enclosingNode,
+              null,
+              false);
+        }
+      }
+
 
       break;
 
@@ -5241,6 +5256,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (int i = 0; i < call.getInsertCallList().size(); i++) {
       SqlInsert insertCallAfterValidate = (SqlInsert) call.getInsertCallList().get(i);
       validateInsert(insertCallAfterValidate);
+    }
+    for (int i = 0; i < call.getDeleteCallList().size(); i++) {
+      SqlDelete deleteCallAfterValidate = (SqlDelete) call.getDeleteCallList().get(i);
+      validateDelete(deleteCallAfterValidate);
     }
   }
 

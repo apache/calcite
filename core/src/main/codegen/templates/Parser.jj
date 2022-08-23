@@ -1720,9 +1720,11 @@ SqlNode SqlMerge() :
     SqlNode condition;
     final Span updateCallListSpan = span();
     final Span insertCallListSpan = span();
+    final Span DeleteCallListSpan = span();
     //Note, the list typing cannot be more specific, as
     // it causes issues when constructing the nodeList
     List<SqlUpdate> updateCallList = new ArrayList();
+    List<SqlDelete> updateCallList = new ArrayList();
     List<SqlInsert> insertCallList = new ArrayList();
     SqlInsert insertCall;
     SqlUpdate updateCall;
@@ -1741,77 +1743,103 @@ SqlNode SqlMerge() :
     <USING> sourceTableRef = TableRef()
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
 
+
+    //Need look ahead here to determine if we any update call whatsoever
+    LOOKAHEAD(2)
     (
-        //Need look ahead here to determine if we any update call whatsoever
-        LOOKAHEAD(2)
-        (
         //Need look ahead here to distinguish WHEN MATCHED from WHEN NOT MATCHED
         //in the variadic expansion
         LOOKAHEAD(2)
-        updateCall = WhenMatchedClause(table, alias)
-          { updateCallList.add(updateCall); updateCallListSpan.add(updateCall); }
+        (
+            condition = WhenMatchedClauseCommon()
+            (
+                updateCall = WhenMatchedClauseUpdate(table, alias, matchedSpan)
+                {
+                    updateCall.setOperand(3, condition);
+                    updateCallList.add(updateCall);
+                    updateCallListSpan.add(updateCall);
+                }
+            |
+                deleteCall = WhenMatchedClauseDelete(table, alias, matchedSpan)
+                {
+                    deleteCall.setOperand(1, condition);
+                    deleteCallList.add(deleteCall);
+                    deleteCallListSpan.add(deleteCall);
+                }
+            )
         )+
         ( insertCall = WhenNotMatchedClause(table)
           { insertCallList.add(insertCall); insertCallListSpan.add(insertCall); }
         )*
     |
         ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); })+
+
     )
     {
         SqlParserPos updateCallListPos = updateCallListSpan.addAll(updateCallList).pos();
         SqlParserPos insertCallListPos = insertCallListSpan.addAll(insertCallList).pos();
+        SqlParserPos deleteCallListPos = insertCallListSpan.addAll(deleteCallList).pos();
 
-        return new SqlMerge(s.add(updateCallListPos).add(insertCallListPos).pos(), table,
+        return new SqlMerge(s.add(updateCallListPos).add(insertCallListPos).add(deleteCallListPos).pos(), table,
             condition, sourceTableRef, new SqlNodeList(updateCallList, updateCallListPos),
-            new SqlNodeList(insertCallList, insertCallListPos), null, alias);
+            new SqlNodeList(insertCallList, insertCallListPos), new SqlNodeList(deleteCallList, deleteCallListPos),
+            null, alias);
     }
 }
 
-SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
+SqlNode WhenMatchedClauseCommon() :
 {
-    SqlIdentifier id;
-    final Span s;
-    final SqlNodeList updateColumnList = new SqlNodeList(SqlParserPos.ZERO);
-    SqlNode exp;
-    final SqlNodeList updateExprList = new SqlNodeList(SqlParserPos.ZERO);
     SqlNode condition;
 }
 {
-    <WHEN> { s = span(); } <MATCHED>
+    <WHEN> <MATCHED>
 
     // add condition (if it is present)
-    // The condition can be any valid expression that evaluates to boolen
-    // Specifically:
-    /**
-    * { literal |
-        column_reference |
-        field_reference |
-        parameter_reference |
-        CAST expression |
-        CASE expression |
-        expr operator expr |
-        operator expr |
-        expr [ expr ] |
-        function_invocation |
-        ( expr ) |
-        scalar_subquery }
+        // The condition can be any valid expression that evaluates to boolen
+        // Specifically:
+        /**
+        * { literal |
+            column_reference |
+            field_reference |
+            parameter_reference |
+            CAST expression |
+            CASE expression |
+            expr operator expr |
+            operator expr |
+            expr [ expr ] |
+            function_invocation |
+            ( expr ) |
+            scalar_subquery }
 
-      scalar_subquery
-        ( query )
-     */
-    // ACCEPT_SUB_QUERY basically just says that any query expression must be parenthesized
-    // IE, it'll accept (SELECT A from ...) but not SELECT A FROM ...
-    // TODO: is there a way that I can require this to be one column/a scalar subquery?
-    // If we look at RowConstructor, we don't do any checks there, so I assume the correct thing to do
-    // is check durring validation.
-    // NOTE: conversion to scalar subquerry happens in registerOperandSubQueries. Can that be modified?
-    {condition = null;}
-    [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
+          scalar_subquery
+            ( query )
+         */
+        // ACCEPT_SUB_QUERY basically just says that any query expression must be parenthesized
+        // IE, it'll accept (SELECT A from ...) but not SELECT A FROM ...
+        // TODO: is there a way that I can require this to be one column/a scalar subquery?
+        // If we look at RowConstructor, we don't do any checks there, so I assume the correct thing to do
+        // is check durring validation.
+        // NOTE: conversion to scalar subquerry happens in registerOperandSubQueries. Can that be modified?
+        {condition = null;}
+        [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
 
-    <THEN>
-    <UPDATE> <SET>
+        <THEN>
+    {
+        return condition;
+    }
+}
 
-    id = CompoundIdentifier() {
+SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
+{
+    SqlIdentifier id;
+    final SqlNodeList updateColumnList = new SqlNodeList(SqlParserPos.ZERO);
+    SqlNode exp;
+    final SqlNodeList updateExprList = new SqlNodeList(SqlParserPos.ZERO);
+
+}
+{
+
+    <UPDATE> <SET> id = CompoundIdentifier() {
         updateColumnList.add(id);
     }
     <EQ> exp = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -1826,10 +1854,19 @@ SqlUpdate WhenMatchedClause(SqlNode table, SqlIdentifier alias) :
             updateExprList.add(exp);
         }
     )*
-
     {
         return new SqlUpdate(s.addAll(updateExprList).pos(), table,
-            updateColumnList, updateExprList, condition, null, alias);
+            updateColumnList, updateExprList, null, null, alias);
+    }
+}
+
+SqlDelete WhenMatchedClauseDelete(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
+{}
+{
+
+    <DELETE>
+    {
+        return new SqlDelete(matchedSpan.add(table).addIf(alias).pos(), table, null, null, alias);
     }
 }
 

@@ -97,6 +97,34 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         typeFactory, config);
   }
 
+
+  public CalciteCatalogReader(CalciteSchema rootSchema,
+      List<List<String>> defaultSchemas,
+      int numDefaults, // This field isn't needed but ensure the signatures are unique.
+      RelDataTypeFactory typeFactory,
+      CalciteConnectionConfig config) {
+    this(rootSchema, SqlNameMatchers.withCaseSensitive(config != null && config.caseSensitive()),
+        validateDefaultSchemaPaths(defaultSchemas, numDefaults), typeFactory, config);
+  }
+
+  /**
+   * Validate that each default schema provided is not null.
+   * @param defaultSchemas List of provided schemas to serve as defaults.
+   * @param numDefaults Number of expected defaults. Used for an assert.
+   * @return List of default schemas with an empty list appended as a sentinel.
+   */
+  private static List<List<String>> validateDefaultSchemaPaths(List<List<String>> defaultSchemas,
+      int numDefaults) {
+    List<List<String>> defaultSchemaPaths = new ArrayList<>();
+    assert numDefaults == defaultSchemas.size();
+    for (List<String> defaultSchema: defaultSchemas) {
+      defaultSchemaPaths.add(
+          Objects.requireNonNull(defaultSchema, "defaultSchema"));
+    }
+    defaultSchemaPaths.add(ImmutableList.of());
+    return defaultSchemaPaths;
+  }
+
   protected CalciteCatalogReader(CalciteSchema rootSchema,
       SqlNameMatcher nameMatcher, List<List<String>> schemaPaths,
       RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
