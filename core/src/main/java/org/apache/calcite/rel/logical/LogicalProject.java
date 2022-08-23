@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdCollation;
@@ -35,16 +36,17 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
+import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
+import java.util.Set;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Project} not
  * targeted at any particular engine or calling convention.
  */
 public final class LogicalProject extends Project {
+  private Set<CorrelationId> variableSet;
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -146,5 +148,16 @@ public final class LogicalProject extends Project {
 
   @Override public int deepHashCode() {
     return deepHashCode0();
+  }
+
+  @Override public void collectVariablesSet(Set<CorrelationId> variableSet) {
+    this.variableSet = variableSet;
+  }
+
+  @Override public Set<CorrelationId> getVariablesSet() {
+    if (variableSet == null) {
+      return ImmutableSet.of();
+    }
+    return this.variableSet;
   }
 }
