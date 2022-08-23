@@ -650,7 +650,16 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {MYSQL, SPARK})
+  public static final SqlFunction CHAR =
+      new SqlFunction("CHAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CHAR_FORCE_NULLABLE,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction CHR =
       new SqlFunction("CHR",
           SqlKind.OTHER_FUNCTION,

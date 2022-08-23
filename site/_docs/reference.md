@@ -1749,7 +1749,6 @@ period:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn ASCII(string)} | Returns the ASCII code of the first character of *string*; if the first character is a non-ASCII character, returns its Unicode code point; returns 0 if *string* is empty
-| {fn CHAR(integer)} | Returns the ASCII character having the binary equivalent to N; If N is larger than 256 the result is equivalent to char(N % 256)
 | {fn CONCAT(character, character)} | Returns the concatenation of character strings
 | {fn INSERT(string1, start, length, string2)} | Inserts *string2* into a slot in *string1*
 | {fn LCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to lower case
@@ -2561,7 +2560,8 @@ semantics.
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
-| o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
+| m s | CHAR(integer) | Returns the ASCII character having the binary equivalent to *integer*; If *integer* is larger than 256 the result is equivalent to char(*integer* % 256)
+| o p | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
 | m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings

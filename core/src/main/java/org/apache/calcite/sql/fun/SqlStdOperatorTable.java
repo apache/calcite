@@ -1627,14 +1627,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
-  public static final SqlFunction CHAR =
-      new SqlFunction("CHAR",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.CHAR,
-          null,
-          OperandTypes.INTEGER,
-          SqlFunctionCategory.STRING);
-
   /**
    * Uses SqlOperatorTable.useDouble for its return type since we don't know
    * what the result type will be by just looking at the operand types. For

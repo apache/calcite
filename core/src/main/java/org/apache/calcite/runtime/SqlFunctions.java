@@ -379,11 +379,6 @@ public class SqlFunctions {
         ? 0 : s.codePointAt(0);
   }
 
-  /** SQL CHAR(int) function. */
-  public static String charN(int n) {
-    return String.valueOf((char) (n % 256));
-  }
-
   /** SQL REPEAT(string, int) function. */
   public static String repeat(String s, int n) {
     if (n < 1) {
@@ -465,6 +460,16 @@ public class SqlFunctions {
       return s;
     }
     return s.substring(len - n);
+  }
+
+  /**
+   * SQL CHAR(int) function.
+   */
+  public static @Nullable String charN(long n) {
+    if (n < 0) {
+      return null;
+    }
+    return String.valueOf(Character.toChars((int) (n % 256)));
   }
 
   /** SQL CHR(long) function. */
