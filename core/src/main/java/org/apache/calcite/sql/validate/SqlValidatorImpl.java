@@ -1542,7 +1542,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // inner join. Need to clone the source table reference in order
     // for validation to work
     SqlNode sourceTableRef = call.getSourceTableRef();
-    SqlNodeList insertCallList = call.getInsertCallList();
+    SqlNodeList insertCallList = call.getNotMatchedCallList();
     JoinType joinType = (insertCallList.size() == 0) ? JoinType.INNER : JoinType.LEFT;
     // In this case, it's ok to keep the original pos, but we need to do a deep copy so that
     // all of the sub nodes are different java objects, otherwise we get issues later during
@@ -1580,21 +1580,32 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // (Insert Condition) (Insert Values)*
     // (Delete Condition)*
 
-    for (int i = 0; i < call.getUpdateCallList().size(); i++) {
-      SqlUpdate curUpdateCall = (SqlUpdate) call.getUpdateCallList().get(i);
-      @Nullable SqlNode curCond = curUpdateCall.getCondition();
-      if (curCond != null) {
-        topmostSelectList.add(curCond);
+    for (int i = 0; i < call.getMatchedCallList().size(); i++) {
+      SqlNode curMatchCall = call.getMatchedCallList().get(i);
+      if (curMatchCall instanceof SqlUpdate) {
+        SqlUpdate curUpdateCall = (SqlUpdate) curMatchCall;
+        @Nullable SqlNode curCond = curUpdateCall.getCondition();
+        if (curCond != null) {
+          topmostSelectList.add(curCond);
+        } else {
+          topmostSelectList.add(SqlLiteral.createBoolean(true, curUpdateCall.getParserPosition()));
+        }
+        for (int j = 0; j < curUpdateCall.getSourceExpressionList().size(); j++) {
+          SqlNode insertVal = curUpdateCall.getSourceExpressionList().get(j);
+          topmostSelectList.add(insertVal);
+        }
       } else {
-        topmostSelectList.add(SqlLiteral.createBoolean(true, curUpdateCall.getParserPosition()));
-      }
-      for (int j = 0; j < curUpdateCall.getSourceExpressionList().size(); j++) {
-        SqlNode insertVal = curUpdateCall.getSourceExpressionList().get(j);
-        topmostSelectList.add(insertVal);
+        SqlDelete curDeleteCall = (SqlDelete) curMatchCall;
+        @Nullable SqlNode curCond = curDeleteCall.getCondition();
+        if (curCond != null) {
+          topmostSelectList.add(curCond);
+        } else {
+          topmostSelectList.add(SqlLiteral.createBoolean(true, curDeleteCall.getParserPosition()));
+        }
       }
     }
-    for (int i = 0; i < call.getInsertCallList().size(); i++) {
-      SqlInsert curInsertCall = (SqlInsert) call.getInsertCallList().get(i);
+    for (int i = 0; i < call.getNotMatchedCallList().size(); i++) {
+      SqlInsert curInsertCall = (SqlInsert) call.getNotMatchedCallList().get(i);
       @Nullable SqlNode curCond = curInsertCall.getCondition();
       if (curCond != null) {
         topmostSelectList.add(curCond);
@@ -1611,15 +1622,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       for (int j = 0; j < curInsertValues.size(); j++) {
         SqlNode insertVal = curInsertValues.get(j);
         topmostSelectList.add(insertVal);
-      }
-    }
-    for (int i = 0; i < call.getDeleteCallList().size(); i++) {
-      SqlDelete curDeleteCall = (SqlDelete) call.getDeleteCallList().get(i);
-      @Nullable SqlNode curCond = curDeleteCall.getCondition();
-      if (curCond != null) {
-        topmostSelectList.add(curCond);
-      } else {
-        topmostSelectList.add(SqlLiteral.createBoolean(true, curDeleteCall.getParserPosition()));
       }
     }
 
@@ -1727,7 +1729,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     source = SqlValidatorUtil.addAlias(source, UPDATE_SRC_ALIAS);
     SqlMerge mergeCall =
         new SqlMerge(updateCall.getParserPosition(), target, condition, source,
-            SqlNodeList.of(updateCall), SqlNodeList.EMPTY, SqlNodeList.EMPTY, null,
+            SqlNodeList.of(updateCall), SqlNodeList.EMPTY, null,
             updateCall.getAlias());
     rewriteMerge(mergeCall);
     return mergeCall;
@@ -3096,21 +3098,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // or the target table, so set its parent scope to the merge's
       // source select; when validating the update, skip the feature
       // validation check
-      for (int i = 0; i < mergeCall.getUpdateCallList().size(); i++) {
-        SqlUpdate mergeUpdateCall = (SqlUpdate) mergeCall.getUpdateCallList().get(i);
-        requireNonNull(mergeUpdateCall, "mergeUpdateCall");
+      for (int i = 0; i < mergeCall.getMatchedCallList().size(); i++) {
+        SqlUpdate mergeMatchCall = (SqlUpdate) mergeCall.getMatchedCallList().get(i);
+        requireNonNull(mergeMatchCall, "mergeMatchCall");
         registerQuery(
             getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
             null,
-            mergeUpdateCall,
+            mergeMatchCall,
             enclosingNode,
             null,
             false,
             false);
       }
-
-      for (int i = 0; i < mergeCall.getInsertCallList().size(); i++) {
-        SqlInsert mergeInsertCall = (SqlInsert) mergeCall.getInsertCallList().get(i);
+      for (int i = 0; i < mergeCall.getNotMatchedCallList().size(); i++) {
+        SqlInsert mergeInsertCall = (SqlInsert) mergeCall.getNotMatchedCallList().get(i);
         requireNonNull(mergeInsertCall, "mergeInsertCall");
         registerQuery(
             // This is parentScope, as insert calls can only reference values in the source
@@ -3121,21 +3122,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             null,
             false);
       }
-
-      for (int i = 0; i < mergeCall.getDeleteCallList().size(); i++) {
-        SqlDelete mergeDeleteCall = (SqlDelete) mergeCall.getDeleteCallList().get(i);
-        if (mergeDeleteCall != null) {
-          registerQuery(
-              parentScope,
-              null,
-              mergeDeleteCall,
-              enclosingNode,
-              null,
-              false);
-        }
-      }
-
-
       break;
 
     case UNNEST:
@@ -5307,17 +5293,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     validateSelect(sqlSelect, targetRowType);
 
-    for (int i = 0; i < call.getUpdateCallList().size(); i++) {
-      SqlUpdate updateCallAfterValidate = (SqlUpdate) call.getUpdateCallList().get(i);
-      validateUpdate(updateCallAfterValidate);
+    for (int i = 0; i < call.getMatchedCallList().size(); i++) {
+      SqlNode matchCallAfterValidate = call.getMatchedCallList().get(i);
+      if (matchCallAfterValidate instanceof SqlUpdate) {
+        validateUpdate((SqlUpdate) matchCallAfterValidate);
+      } else {
+        validateDelete((SqlDelete) matchCallAfterValidate);
+      }
     }
-    for (int i = 0; i < call.getInsertCallList().size(); i++) {
-      SqlInsert insertCallAfterValidate = (SqlInsert) call.getInsertCallList().get(i);
+    for (int i = 0; i < call.getNotMatchedCallList().size(); i++) {
+      SqlInsert insertCallAfterValidate = (SqlInsert) call.getNotMatchedCallList().get(i);
       validateInsert(insertCallAfterValidate);
-    }
-    for (int i = 0; i < call.getDeleteCallList().size(); i++) {
-      SqlDelete deleteCallAfterValidate = (SqlDelete) call.getDeleteCallList().get(i);
-      validateDelete(deleteCallAfterValidate);
     }
   }
 

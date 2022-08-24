@@ -4431,7 +4431,7 @@ public class SqlToRelConverter {
     // the right inner list should have length equal to the number of conditions
     Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> updateRexNodesAndOffset =
         extractUpdateExprs(
-        call.getUpdateCallList(), mergeSourceRel, numSourceCols, numDestCols, targetTable);
+        call.getMatchedCallList(), mergeSourceRel, numSourceCols, numDestCols, targetTable);
 
     Pair<List<RexNode>, List<List<RexNode>>> updateRexNodes = updateRexNodesAndOffset.getKey();
     Integer updateEndOffset = updateRexNodesAndOffset.getValue();
@@ -4440,7 +4440,7 @@ public class SqlToRelConverter {
         || updateRexNodes.getValue().size() == 0;
 
     Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> insertRexNodesAndOffset =
-        extractInsertExprs(call.getInsertCallList(),
+        extractInsertExprs(call.getNotMatchedCallList(),
             mergeSourceRel, updateEndOffset, targetTable);
 
     Pair<List<RexNode>, List<List<RexNode>>> insertRexNodes = insertRexNodesAndOffset.getKey();
@@ -4453,6 +4453,8 @@ public class SqlToRelConverter {
     // https://bodo.atlassian.net/browse/BE-3494
     assert (insertRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
         || insertRexNodes.getValue().size() == 0;
+
+
 
 
     LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);

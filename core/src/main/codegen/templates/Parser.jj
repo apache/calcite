@@ -1722,9 +1722,8 @@ SqlNode SqlMerge() :
     final Span notMatchedSpan;
     //Note, the list typing cannot be more specific, as
     // it causes issues when constructing the nodeList
-    List<SqlUpdate> updateCallList = new ArrayList();
-    List<SqlDelete> deleteCallList = new ArrayList();
-    List<SqlInsert> insertCallList = new ArrayList();
+    List<SqlNode> matchedCallList = new ArrayList();
+    List<SqlInsert> notMatchedCallList = new ArrayList();
     SqlInsert insertCall;
     SqlUpdate updateCall;
     SqlDelete deleteCall;
@@ -1759,14 +1758,14 @@ SqlNode SqlMerge() :
                 updateCall = WhenMatchedClauseUpdate(table, alias)
                 {
                     updateCall.setOperand(3, clauseCondition);
-                    updateCallList.add(updateCall);
+                    matchedCallList.add(updateCall);
                     matchedSpan.add(updateCall);
                 }
             |
                 deleteCall = WhenMatchedClauseDelete(table, alias)
                 {
                     deleteCall.setOperand(1, clauseCondition);
-                    deleteCallList.add(deleteCall);
+                    matchedCallList.add(deleteCall);
                     matchedSpan.add(deleteCall);
                 }
             )
@@ -1774,17 +1773,17 @@ SqlNode SqlMerge() :
 
         { notMatchedSpan = span(); }
         ( insertCall = WhenNotMatchedClause(table)
-          { insertCallList.add(insertCall); notMatchedSpan.add(insertCall); }
+          { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); }
         )*
     |
         { notMatchedSpan = span(); }
-        ( insertCall = WhenNotMatchedClause(table) { insertCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
+        ( insertCall = WhenNotMatchedClause(table) { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
     )
     {
 
         return new SqlMerge(s.add(matchedSpan.pos()).add(notMatchedSpan.pos()).pos(), table,
-            condition, sourceTableRef, new SqlNodeList(updateCallList, matchedSpan.pos()),
-            new SqlNodeList(insertCallList, notMatchedSpan.pos()), new SqlNodeList(deleteCallList, matchedSpan.pos()),
+            condition, sourceTableRef, new SqlNodeList(matchedCallList, matchedSpan.pos()),
+            new SqlNodeList(notMatchedCallList, notMatchedSpan.pos()),
             null, alias);
     }
 }

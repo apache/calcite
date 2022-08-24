@@ -40,9 +40,8 @@ public class SqlMerge extends SqlCall {
   SqlNode condition;
   SqlNode source;
 
-  SqlNodeList updateCallList;
-  SqlNodeList insertCallList;
-  SqlNodeList deleteCallList;
+  SqlNodeList matchedCallList;
+  SqlNodeList notMatchedCallList;
 
   @Nullable SqlSelect sourceSelect;
   @Nullable SqlIdentifier alias;
@@ -53,18 +52,16 @@ public class SqlMerge extends SqlCall {
       SqlNode targetTable,
       SqlNode condition,
       SqlNode source,
-      SqlNodeList updateCallList,
-      SqlNodeList insertCallList,
-      SqlNodeList deleteCallList,
+      SqlNodeList matchedCallList,
+      SqlNodeList notMatchedCallList,
       @Nullable SqlSelect sourceSelect,
       @Nullable SqlIdentifier alias) {
     super(pos);
     this.targetTable = targetTable;
     this.condition = condition;
     this.source = source;
-    this.updateCallList = updateCallList;
-    this.insertCallList = insertCallList;
-    this.deleteCallList = deleteCallList;
+    this.matchedCallList = matchedCallList;
+    this.notMatchedCallList = notMatchedCallList;
     this.sourceSelect = sourceSelect;
     this.alias = alias;
   }
@@ -81,8 +78,8 @@ public class SqlMerge extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<@Nullable SqlNode> getOperandList() {
-    return ImmutableNullableList.of(targetTable, condition, source, updateCallList,
-        insertCallList, deleteCallList, sourceSelect, alias);
+    return ImmutableNullableList.of(targetTable, condition, source, matchedCallList,
+        notMatchedCallList, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -99,18 +96,15 @@ public class SqlMerge extends SqlCall {
       source = operand;
       break;
     case 3:
-      updateCallList = (SqlNodeList) operand;
+      matchedCallList = (SqlNodeList) operand;
       break;
     case 4:
-      insertCallList = (SqlNodeList) operand;
+      notMatchedCallList = (SqlNodeList) operand;
       break;
     case 5:
-      deleteCallList = (SqlNodeList) operand;
-      break;
-    case 6:
       sourceSelect = (@Nullable SqlSelect) operand;
       break;
-    case 7:
+    case 6:
       alias = (SqlIdentifier) operand;
       break;
     default:
@@ -139,18 +133,13 @@ public class SqlMerge extends SqlCall {
   }
 
   /** Returns the UPDATE statements for this MERGE. */
-  public SqlNodeList getUpdateCallList() {
-    return updateCallList;
+  public SqlNodeList getMatchedCallList() {
+    return matchedCallList;
   }
 
   /** Returns the INSERT statements for this MERGE. */
-  public SqlNodeList getInsertCallList() {
-    return insertCallList;
-  }
-
-  /** Returns the DELETE statements for this MERGE. */
-  public SqlNodeList getDeleteCallList() {
-    return deleteCallList;
+  public SqlNodeList getNotMatchedCallList() {
+    return notMatchedCallList;
   }
 
   /** Returns the condition expression to determine whether to UPDATE or
@@ -195,49 +184,56 @@ public class SqlMerge extends SqlCall {
     condition.unparse(writer, opLeft, opRight);
 
 
-    SqlNodeList updateCallList = this.updateCallList;
-    for (int i = 0; i < updateCallList.size(); i++) {
-      SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(i);
+    SqlNodeList matchedCallList = this.matchedCallList;
+    for (int i = 0; i < matchedCallList.size(); i++) {
+
+      SqlNode curMatchedClause = matchedCallList.get(i);
       writer.newlineAndIndent();
       writer.keyword("WHEN MATCHED");
-      SqlNode cond = curUpdateCall.getCondition();
+      SqlNode cond;
+
+      if (curMatchedClause instanceof SqlUpdate) {
+        cond = ((SqlUpdate) curMatchedClause).getCondition();
+      } else {
+        assert curMatchedClause instanceof SqlDelete;
+        cond = ((SqlDelete) curMatchedClause).getCondition();
+      }
+
       if (cond != null) {
         writer.keyword("AND");
         cond.unparse(writer, 0, 0);
       }
-      writer.keyword("THEN UPDATE");
 
-      final SqlWriter.Frame setFrame =
-          writer.startList(
-              SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
-              "SET",
-              "");
+      if (curMatchedClause instanceof SqlUpdate) {
 
-      for (Pair<SqlNode, SqlNode> pair : Pair.zip(
-          curUpdateCall.targetColumnList, curUpdateCall.sourceExpressionList)) {
-        writer.sep(",");
-        SqlIdentifier id = (SqlIdentifier) pair.left;
-        id.unparse(writer, opLeft, opRight);
-        writer.keyword("=");
-        SqlNode sourceExp = pair.right;
-        sourceExp.unparse(writer, opLeft, opRight);
+        SqlUpdate curUpdateCall = (SqlUpdate) curMatchedClause;
+        writer.keyword("THEN UPDATE");
+
+        final SqlWriter.Frame setFrame =
+            writer.startList(
+                SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
+                "SET",
+                "");
+
+        for (Pair<SqlNode, SqlNode> pair : Pair.zip(
+            curUpdateCall.targetColumnList, curUpdateCall.sourceExpressionList)) {
+          writer.sep(",");
+          SqlIdentifier id = (SqlIdentifier) pair.left;
+          id.unparse(writer, opLeft, opRight);
+          writer.keyword("=");
+          SqlNode sourceExp = pair.right;
+          sourceExp.unparse(writer, opLeft, opRight);
+        }
+        writer.endList(setFrame);
+      } else {
+        assert curMatchedClause instanceof SqlDelete;
+        writer.newlineAndIndent();
+        writer.keyword("THEN DELETE");
       }
-      writer.endList(setFrame);
     }
 
-    for (int i = 0; i < deleteCallList.size(); i++) {
-      SqlDelete curDeleteCall = (SqlDelete) deleteCallList.get(i);
-      writer.newlineAndIndent();
-      writer.keyword("WHEN MATCHED");
-      SqlNode cond = curDeleteCall.getCondition();
-      if (cond != null) {
-        writer.keyword("AND");
-        cond.unparse(writer, 0, 0);
-      }
-      writer.keyword("THEN DELETE");
-    }
 
-    SqlNodeList insertCallList = this.insertCallList;
+    SqlNodeList insertCallList = this.notMatchedCallList;
     for (int i = 0; i < insertCallList.size(); i++) {
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(i);
       writer.newlineAndIndent();
