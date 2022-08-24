@@ -10193,4 +10193,29 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testSubQueryWithFunctionCallInGroupByClause() {
+
+    final String query = "Select \"full_name\" from \"foodmart\".\"reserve_employee\" where " +
+        "\"employee_id\" IN (Select CHAR_LENGTH(\"full_name\") as \"ABC\" from \"foodmart\"" +
+        ".\"reserve_employee\" group by CHAR_LENGTH(\"full_name\") having COUNT(\"employee_id\") <2 )";
+
+    final String sqlExpected = "SELECT \"full_name\"\n" +
+        "FROM \"foodmart\".\"reserve_employee\"\n" +
+        "WHERE \"employee_id\" IN (SELECT CHAR_LENGTH(\"full_name\") AS \"ABC\"\n" +
+        "FROM \"foodmart\".\"reserve_employee\"\n" +
+        "GROUP BY CHAR_LENGTH(\"full_name\")\n" +
+        "HAVING COUNT(*) < 2)";
+
+    final String bigQueryExpected = "SELECT full_name\n" +
+        "FROM foodmart.reserve_employee\n" +
+        "WHERE employee_id IN (SELECT ABC\n" +
+        "FROM (SELECT LENGTH(full_name) AS ABC, COUNT(*) AS `$f1`\n" +
+        "FROM foodmart.reserve_employee\n" +
+        "GROUP BY ABC\n" +
+        "HAVING `$f1` < 2) AS t1)";
+
+    sql(query).withConfig(c -> c.withExpand(false)).ok(sqlExpected);
+    sql(query).withConfig(c->c.withExpand(false)).withBigQuery().ok(bigQueryExpected);
+  }
 }

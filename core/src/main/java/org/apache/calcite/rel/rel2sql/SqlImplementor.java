@@ -2140,6 +2140,14 @@ public abstract class SqlImplementor {
         }
       }
 
+      if (rel instanceof Project
+          && clauses.contains(Clause.HAVING)
+          && !hasAliasUsedInHavingClause()
+          && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
+        stripHavingClauseFromProjection();
+        return true;
+      }
+
       return false;
     }
 
@@ -2184,6 +2192,14 @@ public abstract class SqlImplementor {
       return false;
     }
 
+    private void stripHavingClauseFromProjection() {
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      final SqlNode havingSelectList = ((SqlBasicCall) ((SqlSelect) node).getHaving()).operands[0];
+      if (selectList != null && havingSelectList != null) {
+        selectList.remove(havingSelectList);
+        ((SqlSelect) node).setSelectList(selectList);
+      }
+    }
     boolean hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection(Project rel) {
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) node).getGroup();
