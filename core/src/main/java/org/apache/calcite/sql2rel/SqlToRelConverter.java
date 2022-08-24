@@ -1298,7 +1298,6 @@ public class SqlToRelConverter {
       // In such case, when converting SqlUpdate#condition, bb.root is null
       // and it makes no sense to do the sub-query substitution.
 
-      //Note: this is needed, test will fail without it
       if (bb.root == null) {
         return;
       }
@@ -4149,9 +4148,6 @@ public class SqlToRelConverter {
         requireNonNull(call.getSourceSelect(), () -> "sourceSelect for " + call));
     Blackboard bb = createBlackboard(scope, null, false);
 
-    //TODO: properly handle replacing subqueries in the condition here
-    // (is this needed? update already had a condition, and I assume it was already being handled.
-    // INSERT is the one that may need handling)
     replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     RelOptTable targetTable = getTargetTable(call);
@@ -4189,12 +4185,33 @@ public class SqlToRelConverter {
       LogicalProject mergeSourceRel, Integer nSourceFields,
       Integer nDestFields, RelOptTable destTable) {
 
-    // Note, add +1 to account for addition boolean flag which is used to track if we had a join
-    // or not
+    // Extract the matched clause expressions from the converted merge source select.
+    // These rexnodes will be used to create the final relnode input to the resulting
+    // LogicalTableModify
+    // For the formatting of the merge source select, see rewriteMerge or convertMerge.
+
+    // Get the offset from the start of the select list, to the start of the matched expressions
+    // Note that we add +1 to account for the addition boolean flag we added, which is used
+    // to track if a row matches or doesn't match.
     Integer totalOffset = nSourceFields + nDestFields + 1;
 
     // Convert the identifiers in each of the update's target column list into a map of
-    // strings -> idx.
+    // strings -> idx. This map helps us to convert the orderings during the later iteration.
+
+    // For updates, the values are stored into the merge source select in the order that they
+    // appear in the update's targetColumnList. However, the order that the values appears in the
+    // targetColumnList may not be the same as the order of the columns in the table.
+    // For example:
+    // dest has columns A, B, C
+    // source has columns X, Y, Z
+    //
+    // MERGE INTO dest.. UPDATE SET C = Z, B = Y
+    // results in a targetColumnList of [C, B]
+    // and a mergeSourceRel of Select (sourceCols) (DestCols) (flag), Z, Y
+    //
+    // In this case, we would want the Update rows to be ordered in the same way that they
+    // will be added to the destination table: A, Y, Z
+
     HashMap<SqlUpdate, HashMap<String, Integer>> updateToTargetColumnSet = new HashMap<>();
     for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
       if (updateCallList.get(updateCallIdx) instanceof SqlUpdate) {
@@ -4213,7 +4230,7 @@ public class SqlToRelConverter {
       }
     }
 
-    // The list of conditions for the update calls.
+    // The list of conditions for the update/Delete calls.
     // This is returned from this function in order to filter no ops.
     List<RexNode> caseConditions = new ArrayList<>();
 
@@ -4232,20 +4249,26 @@ public class SqlToRelConverter {
 
     List<RexNode> mergeSourceRelProjects = mergeSourceRel.getProjects();
 
+    // Now, iterate through all the update/Delete clauses, and extract the needed
+    // conditions and values. In the loop, it is an invariant that totalOffset will point to
+    // the start of current matched clause at the start of the loop
     for (int updateColNumber = 0; updateColNumber < updateCallList.size(); updateColNumber++) {
 
       if (updateCallList.get(updateColNumber) instanceof SqlDelete) {
+        // If we have a delete operation, we fill the column values with with original values from
+        // the DEST table. This is needed so we don't lose any row number/file name information
         caseConditions.add(mergeSourceRelProjects.get(totalOffset));
         totalOffset++;
 
-        // Fill the values with null. This could be any scalar value, but we'll just make it null
-        // for clarity
         for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
+
           RexNode defaultColumnValue = mergeSourceRelProjects.get(nSourceFields + destColIdx);
           caseValues.get(destColIdx).add(defaultColumnValue);
         }
 
       } else {
+        // If we have an update, we fill the column values with the original values, unless
+        // we've specified a different value to update the column with.
         SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateColNumber);
         caseConditions.add(mergeSourceRelProjects.get(totalOffset));
         totalOffset++;
@@ -4258,12 +4281,11 @@ public class SqlToRelConverter {
               requireNonNull(updateToTargetColumnSet.get(curUpdateCall));
           if (curUpdateCallMap.containsKey(curFieldName)) {
             // Add the offset relative to the current list, and the offset
-            // that gets us to the start of the current list
+            // that gets us to the start of the current expression list
             Integer curOffset = curUpdateCallMap.get(curFieldName)
                 + totalOffset;
             caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
           } else {
-            //NOTE: Dest table is always on the right side of the joined table
             RexNode defaultColumnValue = mergeSourceRelProjects.get(nSourceFields + destColIdx);
             caseValues.get(destColIdx).add(defaultColumnValue);
           }
@@ -4285,7 +4307,9 @@ public class SqlToRelConverter {
 
 
     // Convert the identifiers in each of the update's target column list into a map of
-    // strings -> idx.
+    // strings -> idx. This map helps us to convert the orderings during the later iteration.
+    // for information on why we need this, see extractUpdateExprs
+
     HashMap<SqlInsert, HashMap<String, Integer>> insertToTargetColumnSet = new HashMap<>();
     for (int insertCallIdx = 0; insertCallIdx < insertCallList.size(); insertCallIdx++) {
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(insertCallIdx);
@@ -4294,8 +4318,8 @@ public class SqlToRelConverter {
       @Nullable SqlNodeList curInsertTargetColumnList = curInsertCall.getTargetColumnList();
 
       if (curInsertTargetColumnList == null) {
-        //If curInsertTargetColumnList returns NULL, then we're inserting into ever colum in the
-        // dest table
+        //If curInsertTargetColumnList returns NULL, then it means that we're inserting
+        // every column in the destination table
         for (int curColExprIdx = 0;
              curColExprIdx < destTable.getRowType().getFieldCount(); curColExprIdx++) {
           RelDataTypeField field = destTable.getRowType().getFieldList().get(curColExprIdx);
@@ -4334,15 +4358,16 @@ public class SqlToRelConverter {
 
     List<RexNode> mergeSourceRelProjects = mergeSourceRel.getProjects();
 
-    // Total Offset should now be at the start of the current update's expression list.
 
+    // Now, iterate through all the update/Delete clauses, and extract the needed
+    // conditions and values. In the loop, it is an invariant that totalOffset will point to
+    // the start of current not matched clause at the start loop.
     for (int insertColNumber = 0; insertColNumber < insertCallList.size(); insertColNumber++) {
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(insertColNumber);
       caseConditions.add(mergeSourceRelProjects.get(totalOffset));
       totalOffset++;
 
-      // Total offset now points to the start of the expression list
-
+      // Total offset now points to the start of the curent insert's expression list
       for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
         String curFieldName = destTableFieldNames.get(destColIdx);
 
@@ -4357,6 +4382,7 @@ public class SqlToRelConverter {
           caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
 
         } else {
+          // Fill any non specified columns with NULL
           RexNode defaultColumnValue = this.relBuilder.getRexBuilder().makeNullLiteral(
               destTable.getRowType().getFieldList().get(destColIdx).getType());
           caseValues.get(destColIdx).add(defaultColumnValue);
@@ -4367,7 +4393,7 @@ public class SqlToRelConverter {
       // next insert's condition (if it exists)
       @Nullable SqlNodeList curInsertTargetCols = curInsertCall.getTargetColumnList();
       if (curInsertTargetCols == null) {
-        // if curInsertCall.getTargetColumnList() returns null, it targets all of the columns in
+        // if curInsertCall.getTargetColumnList() returns null, it targets all the columns in
         // the destination table
         totalOffset += destTable.getRowType().getFieldCount();
       } else {
@@ -4393,79 +4419,59 @@ public class SqlToRelConverter {
         null, null, null, null);
     RelRoot origSourceRel = convertQuery(origSourceSelect, true, false);
 
+    /**
+     * Rewrite merge is responsible for setting the source select field of the SqlMerge.
+     * Due to our changes, the values present in the source select should be as follows:
+     * (All cols from source)
+     * (All cols from dest)
+     * (bool flag for checking if the row is a "match" or a "not match")
+     * ((Match Condition) (Update Values (If the match condition is Update)))*
+     * ((Insert Condition) (Insert Values))*
+     *
+     * This is needed so that we can use convertSelect to handle all the subqueries that may
+     * be present in the various conditions/clauses.
+     */
 
-    // Originally, calcite handled this as follows:
-
-    // replace the projection of the source select with a
-    // projection that contains the following:
-    // 1) the expressions corresponding to the new insert row (if there is
-    //    an insert)
-    // 2) all columns from the target table (if there is an update)
-    // 3) the set expressions in the update call (if there is an update)
-
-    // first, convert the merge's source select to construct the columns
-    // from the target table and the set expressions in the update call
-
-    // Due to our need to handle variadic arguments, we will handle this as follows:
-
-    // The input to the logicalTableModify will have the same number of columns as the destination
-    // table, plus one additional. The additional column will be appended as the last column,
-    // it will be a tinyint enum which controls which operation will be performed:
+    // The final input to the logicalTableModify we create will have the same number of columns
+    // as the destination table, plus one additional. The additional column will be appended
+    // as the last column,it will be a tinyint enum which controls which operation
+    // will be performed for the given row:
     // INSERT, DELETE or UPDATE.
-    // The other values in the input table will be the columns to write back/delete (we assume that
-    // we will read the columns necessary for writing (row number/original pq file for iceberg)
-    // if needed)
+
+    // The other values in the input table will be the columns to write back to the destination
+    // table if we have an update or insert.
+    // For delete, the columns will just be the same as the destination table. This is to ensure
+    // that the needed metadata fields for iceberg are preserved.
 
     // Each data row should have the form:
-    // IF(matched then (Case stmt involving matched conditions) else (Case stmt involving
-    // not matched conditions))
+    // IF(matched then (Case stmt involving matched conditions and expressions) else (Case stmt involving
+    // not matched conditions and expressions))
 
-    // The enum row should be (IF matched then (case stmt to determine if delete or update)
-    // else INSERT)
+    // The enum row should be (IF matched then (case stmt to determine if DELETE_ENUM or UPDATE_ENUM)
+    // else INSERT_ENUM)
 
-    //NOTE: This assumes we assume that we filter out noop rows after the join.
-
+    //NOTE: there may be some rows that are no ops.
+    //NOTE2: Each of the conditions in the source select have already been filled with TRUE
+    // if they are unconditional. This was handled in rewrite_merge
     SqlSelect sourceSelect = call.getSourceSelect();
 
-    // First, we're going to add a projection on top of the dest select (prior to the join) which
-    // appends a literal value to the dest table. After the join, we can use this column to
-    // Check if a particular row is a match or not a match
 
-
-    // In the final iteration, we basically have the sourceSelect look like this:
-
-    // (All cols from source)
-    // (All cols from dest)
-    // (bool flag for checking if match succeeded)
-    // (Update Condition) (Update Values)*
-    // (Insert Condition) (Insert Values)*
-    // (Delete Condition)*
-
-    // Each of the conditions are filled with TRUE if they are unconditional.
-
-    // This structure is needed so that all the subqueries present in each of the conditions
-    // and values result cause the rel input to the LogicalTableModify to contain
-    // whatever joins are needed. I was unable to find a more elegant way of generating the needed
+    // Convert the entire sourceSelect. This is needed so that all the subqueries
+    // present in each of the conditions/values cause the converted rel to contain
+    // whatever joins are needed. We will be constructing a projection on top of this rel,
+    // to ensure everything that we need is added.
+    // I was unable to find a more elegant way of generating the needed
     // plan.
 
     LogicalProject mergeSourceRel = (LogicalProject) convertSelect(
         requireNonNull(sourceSelect, () -> "sourceSelect for " + call), false);
 
 
-    // Create the blackboard used to convert generate the expressions. This blackboard will be
-    // scoped such that all expressions should be scoped as if they reference the result of the
-    // joined source/dest
-
-    // We have to convert the source select in the blackboard prior to any of the other expressions,
-    // otherwise the expressions will be interpreted as correlated variables
-
-    // I'm not entirely certain if the where vs select scope distinction matters here, since
-    // any expression that is valid in the select list is valid as a condition in the where clause
-
-
     int numSourceCols = origSourceRel.rel.getRowType().getFieldCount();
     int numDestCols = targetTable.getRowType().getFieldCount();
 
+    // the rightmost integer is the offset for the start of the end of the matched clauses/ the
+    // start of the not matched clauses
     // the left list is the list of conditions for each operation
     // The right outer list should have length of the number of data columns
     // the right inner list should have length equal to the number of conditions
@@ -4476,6 +4482,7 @@ public class SqlToRelConverter {
     Pair<List<RexNode>, List<List<RexNode>>> matchCaseNodes = matchCaseNodesAndOffset.getKey();
     Integer matchedClausesEndOffset = matchCaseNodesAndOffset.getValue();
 
+    //Check that our assumptions in the above comment hold true
     assert (matchCaseNodes.getValue().size() == targetTable.getRowType().getFieldCount())
         || matchCaseNodes.getValue().size() == 0;
 
@@ -4489,7 +4496,7 @@ public class SqlToRelConverter {
         notMatchedCaseNodesAndOffset.getKey();
     Integer notMatchedEndOffset = notMatchedCaseNodesAndOffset.getValue();
 
-    // At this point, we should have traveresed all the elements of the source select, so
+    // At this point, we should have traversed all the elements of the source select, so
     // we expect the offset to point to the end of the table.
     assert notMatchedEndOffset == mergeSourceRel.getRowType().getFieldCount();
 
@@ -4503,18 +4510,13 @@ public class SqlToRelConverter {
 
     assert notMatchedCaseNodes.getKey().size() == call.getNotMatchedCallList().size();
 
+    //Take the input to the mergeSourceRel. We will construct a new projection on top of this join.
     LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
-    // Push the join
+    // Push the join to the relbuilder
     relBuilder.push(join);
 
-    // Push the filter. This filter should remove all of the no-ops
-    // In the case that this filter is unneeded, it should evaluate to True, and be removed by one
-    // of the optimization rules
 
-    // In the case that this filter can be applied to only one of the two input tables, then our
-    // existing rules should allow for it to be pushed down past the join.
-
-    // The "matched" field should always be after the columns from the source and dest table
+    // The "matched" flag should always be after the columns from the source and dest table
     RexNode isMatch = relBuilder.getRexBuilder().makeInputRef(join, numDestCols + numSourceCols);
     RexNode isNotMatched = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.NOT, isMatch);
 
@@ -4530,8 +4532,10 @@ public class SqlToRelConverter {
       }
     }
 
+    // Do some logic to get the expressions for determining the operation that must be performed
+    // for the current row.
+
     RexNode rowHasUpdateCondition;
-    RexNode rowHasDeleteCondition;
 
     if (updateConds.size() > 1) {
       rowHasUpdateCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR,
@@ -4544,6 +4548,8 @@ public class SqlToRelConverter {
 
     RexNode isUpdateRow = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.AND,
         Arrays.asList(rowHasUpdateCondition, isMatch));
+
+    RexNode rowHasDeleteCondition;
 
     if (deleteConds.size() > 1) {
       rowHasDeleteCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR,
@@ -4576,7 +4582,6 @@ public class SqlToRelConverter {
         SqlStdOperatorTable.AND, Arrays.asList(rowHasInsertCondition, isNotMatched));
 
 
-    //Next, we want to project everything so that we have the expected output rows,
 
     List<RexNode> finalProjects = new ArrayList<>();
 
@@ -4588,7 +4593,7 @@ public class SqlToRelConverter {
           .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
 
       // Default the update and insert expressions to be NULL literals.
-      // They will be initialized to the appropriate values if they exist
+      // They will be initialized to the appropriate values if we have a matched/insert expression
       RexNode matchedColExpr = colNullLiteral;
       RexNode insertColExpr = colNullLiteral;
 
@@ -4635,7 +4640,7 @@ public class SqlToRelConverter {
 
     // Finally, append the row that checks what operation we're performing
     // This will be NULL if the row is a no op. This row will be used when constructing
-    // the update/insert dataframes
+    // the update/insert dataframes in our pandas codegen step.
     RexNode updateEnumLiteral = this.rexBuilder.makeLiteral(
         LogicalTableModify.Operation.UPDATE.getValue(),
         this.getRexBuilder().getTypeFactory().createSqlType(SqlTypeName.TINYINT), false);
@@ -4654,7 +4659,6 @@ public class SqlToRelConverter {
             isInsertRow, insertEnumLiteral, nullTinyIntLiteral)));
 
     relBuilder.project(finalProjects);
-
 
     return LogicalTableModify.create(targetTable, catalogReader,
         relBuilder.build(), LogicalTableModify.Operation.MERGE,

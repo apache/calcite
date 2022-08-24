@@ -1518,6 +1518,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private static void rewriteMerge(SqlMerge call) {
 
+    /**
+     * Rewrite merge is responsible for setting the source select field of the SqlMerge.
+     * Due to our changes, the values present in the source select should be as follows:
+     * (All cols from source)
+     * (All cols from dest)
+     * (bool flag for checking if the row is a "match" or a "not match")
+     * ((Match Condition) (Update Values (If the match condition is Update)))*
+     * ((Insert Condition) (Insert Values))*
+     *
+     * This is needed so that we can use convertSelect to handle all the subqueries that may
+     * be present in the various conditions/clauses.
+     */
+
     SqlNode targetTable = call.getTargetTable();
 
     // NOTE, we add a projection onto the dest/target table, which adds a literal TRUE
@@ -1562,23 +1575,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNodeList topmostSelectList = new SqlNodeList(SqlParserPos.ZERO);
     topmostSelectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
 
-    // Add all of the conditions, and values into the select. This project is needed to ensure
+    // Add all the conditions and values of the matched clauses into the select.
+    // This project is needed to ensure
     // that nested sub queries are properly evaluated, and any needed joins needed to get the
-    // required variables are properly created when expanding the select list
-
-
-    // First, we're going to add a projection on top of the dest select (prior to the join) which
-    // appends a literal value to the dest table. After the join, we can use this column to
-    // Check if a particular row is a match or not a match
-
-    // In the final iteration, we basically have the sourceSelect look like this:
-
-    // (All cols from source)
-    // (All cols from dest)
-    // (bool flag for checking if match succeeded)
-    // (Update Condition) (Update Values)*
-    // (Insert Condition) (Insert Values)*
-    // (Delete Condition)*
+    // required subquery values are properly created when expanding the select list
 
     for (int i = 0; i < call.getMatchedCallList().size(); i++) {
       SqlNode curMatchCall = call.getMatchedCallList().get(i);
@@ -1604,6 +1604,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
     }
+
+    // Add all the conditions and values of the Not matched clauses into the select.
     for (int i = 0; i < call.getNotMatchedCallList().size(); i++) {
       SqlInsert curInsertCall = (SqlInsert) call.getNotMatchedCallList().get(i);
       @Nullable SqlNode curCond = curInsertCall.getCondition();
@@ -1625,6 +1627,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
+    //Finally, create the select statment itself.
     SqlSelect select =
         new SqlSelect(SqlParserPos.ZERO, null, topmostSelectList, outerJoin, null,
             null, null, null, null, null, null,
@@ -1637,8 +1640,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // select on the values row constructor; so we need to extract
     // that via the from clause on the select
 
-    //TODO: again, I don't know if this will work properly
-
     for  (int i = 0; i < insertCallList.size(); i++) {
       SqlInsert insertCall = (SqlInsert) insertCallList.get(i);
       SqlCall valuesCall = (SqlCall) insertCall.getSource();
@@ -1649,15 +1650,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               SqlParserPos.ZERO);
       final SqlNode insertSource = sourceTableRef.deepCopy(null);
 
-
-      //TODO: is it correct to add the condition here?
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource,
               insertCall.getCondition(),
               null, null, null, null, null,
               null, null, null);
 
-      //TODO: Do I need to set the source for each insert call?
       insertCall.setSource(select);
     }
 
@@ -3028,11 +3026,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode condition = ((SqlInsert) node).getCondition();
       if (condition != null) {
         SqlValidatorScope insertScope = getWhereScope((SqlSelect) insertCall.getSource());
-        requireNonNull(condition, "join.getCondition()");
+        requireNonNull(condition, "insertCall.getSource()");
         SqlNode expandedCondition = expand(condition, insertScope);
         ((SqlInsert) node).setOperand(4, expandedCondition);
-        validateWhereOrOn(insertScope, condition, "ON");
-        checkRollUp(null, node, condition, insertScope, "ON");
+        // NOTE: the error message produced here is a little wonky, but contains the needed
+        // information. See https://bodo.atlassian.net/browse/BE-3528
+        validateWhereOrOn(insertScope, condition, "WHERE");
+        checkRollUp(null, node, condition, insertScope, "WHERE");
       }
       break;
 
@@ -3114,7 +3114,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlInsert mergeInsertCall = (SqlInsert) mergeCall.getNotMatchedCallList().get(i);
         requireNonNull(mergeInsertCall, "mergeInsertCall");
         registerQuery(
-            // This is parentScope, as insert calls can only reference values in the source
             parentScope,
             null,
             mergeInsertCall,
@@ -5274,6 +5273,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     validateSelect(sqlSelect, targetRowType);
 
+    // Now verify each of the individual clauses, and ensure that we don't encounter
+    // a conditional match clause after an unconditional match clause
     boolean seenUnconditionalCondition = false;
     for (int i = 0; i < call.getMatchedCallList().size(); i++) {
       SqlNode matchCallAfterValidate = call.getMatchedCallList().get(i);

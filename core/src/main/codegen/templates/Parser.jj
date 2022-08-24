@@ -1720,8 +1720,7 @@ SqlNode SqlMerge() :
     final SqlNode condition;
     Span matchedSpan = Span.of();
     Span notMatchedSpan;
-    //Note, the list typing cannot be more specific, as
-    // it causes issues when constructing the nodeList
+    // Should contain only Delete's and Update's
     List<SqlNode> matchedCallList = new ArrayList();
     List<SqlInsert> notMatchedCallList = new ArrayList();
     SqlInsert insertCall;
@@ -1745,7 +1744,7 @@ SqlNode SqlMerge() :
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
 
     (
-        //Need look ahead here to determine if we any update call whatsoever
+        //Need look ahead here to determine if we have any update call whatsoever
         LOOKAHEAD(2)
         (
             //Need look ahead here to distinguish WHEN MATCHED from WHEN NOT MATCHED
@@ -1769,15 +1768,17 @@ SqlNode SqlMerge() :
             )
         )+
 
-        // Note, the matched span will be include the previous token, which is incorrect. However, I don't see a good
+        // Note, the matched span will be include the previous token, which is incorrect, and will lead to slightly
+        // wrong error messaging. However, I don't see a good
         // way around this, and the error message is still understandable.
+        // See https://bodo.atlassian.net/browse/BE-3528
         { notMatchedSpan = span(); }
         ( insertCall = WhenNotMatchedClause(table)
           { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); }
         )*
     |
         // In the case that we have no matched objects, just set the matched span to somthing valid.
-        // Even if it's technically incorrect, we'll never used matched span if there's no match list
+        // Even if it's technically incorrect, we'll never used matched span if there's no nodes in the match list.
         { notMatchedSpan = span(); matchedSpan = span(); }
         ( insertCall = WhenNotMatchedClause(table) { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
     )
@@ -1798,31 +1799,27 @@ SqlNode WhenMatchedClauseCommon(Span matchedSpan) :
     <WHEN> { matchedSpan.add(span().pos()); } <MATCHED>
 
     // add condition (if it is present)
-        // The condition can be any valid expression that evaluates to boolen
-        // Specifically:
-        /**
-        * { literal |
-            column_reference |
-            field_reference |
-            parameter_reference |
-            CAST expression |
-            CASE expression |
-            expr operator expr |
-            operator expr |
-            expr [ expr ] |
-            function_invocation |
-            ( expr ) |
-            scalar_subquery }
+    // The condition can be any valid expression that evaluates to boolen
+    // Specifically, according to DBR syntax:
+    /**
+    * { literal |
+        column_reference |
+        field_reference |
+        parameter_reference |
+        CAST expression |
+        CASE expression |
+        expr operator expr |
+        operator expr |
+        expr [ expr ] |
+        function_invocation |
+        ( expr ) |
+        scalar_subquery }
 
-          scalar_subquery
-            ( query )
-         */
+      scalar_subquery
+        ( query )
+     */
         // ACCEPT_SUB_QUERY basically just says that any query expression must be parenthesized
         // IE, it'll accept (SELECT A from ...) but not SELECT A FROM ...
-        // TODO: is there a way that I can require this to be one column/a scalar subquery?
-        // If we look at RowConstructor, we don't do any checks there, so I assume the correct thing to do
-        // is check durring validation.
-        // NOTE: conversion to scalar subquerry happens in registerOperandSubQueries. Can that be modified?
         {condition = null;}
         [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
 

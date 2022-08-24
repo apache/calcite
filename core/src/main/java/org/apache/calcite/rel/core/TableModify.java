@@ -66,6 +66,9 @@ public abstract class TableModify extends SingleRel {
    * Enumeration of supported modification operations.
    */
   public enum Operation {
+
+    //We assign each enum an integer value. This is used when converting "MERGE INTO" into a
+    // LogicalTableModify node, to enumerate which action should be taken for each row.
     INSERT(1),
     UPDATE(2),
     DELETE(3),
