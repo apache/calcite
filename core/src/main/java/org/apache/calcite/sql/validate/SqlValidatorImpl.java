@@ -3099,7 +3099,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // source select; when validating the update, skip the feature
       // validation check
       for (int i = 0; i < mergeCall.getMatchedCallList().size(); i++) {
-        SqlUpdate mergeMatchCall = (SqlUpdate) mergeCall.getMatchedCallList().get(i);
+        SqlNode mergeMatchCall = mergeCall.getMatchedCallList().get(i);
         requireNonNull(mergeMatchCall, "mergeMatchCall");
         registerQuery(
             getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),

@@ -4184,7 +4184,7 @@ public class SqlToRelConverter {
   }
 
 
-  private Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> extractUpdateExprs(
+  private Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> extractMatchExprs(
       SqlNodeList updateCallList,
       LogicalProject mergeSourceRel, Integer nSourceFields,
       Integer nDestFields, RelOptTable destTable) {
@@ -4197,21 +4197,24 @@ public class SqlToRelConverter {
     // strings -> idx.
     HashMap<SqlUpdate, HashMap<String, Integer>> updateToTargetColumnSet = new HashMap<>();
     for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
-      SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateCallIdx);
-      HashMap<String, Integer> curMap = new HashMap<String, Integer>();
+      if (updateCallList.get(updateCallIdx) instanceof SqlUpdate) {
+        SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateCallIdx);
+        HashMap<String, Integer> curMap = new HashMap<String, Integer>();
 
-      for (int exprIdx = 0; exprIdx < curUpdateCall.getTargetColumnList().size(); exprIdx++) {
-        SqlIdentifier id = (SqlIdentifier) curUpdateCall.getTargetColumnList().get(exprIdx);
-        RelDataTypeField field =
-            SqlValidatorUtil.getTargetField(
-                destTable.getRowType(), typeFactory, id, catalogReader, destTable);
-        assert field != null : "column " + id.toString() + " not found";
-        curMap.put(field.getName(), exprIdx);
+        for (int exprIdx = 0; exprIdx < curUpdateCall.getTargetColumnList().size(); exprIdx++) {
+          SqlIdentifier id = (SqlIdentifier) curUpdateCall.getTargetColumnList().get(exprIdx);
+          RelDataTypeField field =
+              SqlValidatorUtil.getTargetField(
+                  destTable.getRowType(), typeFactory, id, catalogReader, destTable);
+          assert field != null : "column " + id.toString() + " not found";
+          curMap.put(field.getName(), exprIdx);
+        }
+        updateToTargetColumnSet.put(curUpdateCall, curMap);
       }
-      updateToTargetColumnSet.put(curUpdateCall, curMap);
     }
 
-    // The list of conditions. This is returned from this function in order to filter no ops.
+    // The list of conditions for the update calls.
+    // This is returned from this function in order to filter no ops.
     List<RexNode> caseConditions = new ArrayList<>();
 
     // The list of column values to put into the table
@@ -4230,31 +4233,45 @@ public class SqlToRelConverter {
     List<RexNode> mergeSourceRelProjects = mergeSourceRel.getProjects();
 
     for (int updateColNumber = 0; updateColNumber < updateCallList.size(); updateColNumber++) {
-      SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateColNumber);
-      caseConditions.add(mergeSourceRelProjects.get(totalOffset));
-      totalOffset++;
 
-      // Total Offset should now be at the start of the current update's expression list.
+      if (updateCallList.get(updateColNumber) instanceof SqlDelete) {
+        caseConditions.add(mergeSourceRelProjects.get(totalOffset));
+        totalOffset++;
 
-      for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
-
-        String curFieldName = destTableFieldNames.get(destColIdx);
-
-        if (updateToTargetColumnSet.get(curUpdateCall).containsKey(curFieldName)) {
-          // Add the offset relative to the current list, and the offset
-          // that gets us to the start of the current list
-          Integer curOffset = updateToTargetColumnSet.get(curUpdateCall).get(curFieldName)
-              + totalOffset;
-          caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
-        } else {
-          //NOTE: Dest table is always on the right side of the joined table
+        // Fill the values with null. This could be any scalar value, but we'll just make it null
+        // for clarity
+        for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
           RexNode defaultColumnValue = mergeSourceRelProjects.get(nSourceFields + destColIdx);
           caseValues.get(destColIdx).add(defaultColumnValue);
         }
-      }
 
-      // increment total offset, to put us at the next update's condition (if it exists)
-      totalOffset += curUpdateCall.getSourceExpressionList().size();
+      } else {
+        SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateColNumber);
+        caseConditions.add(mergeSourceRelProjects.get(totalOffset));
+        totalOffset++;
+
+        // Total Offset should now be at the start of the current update's expression list.
+        for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
+
+          String curFieldName = destTableFieldNames.get(destColIdx);
+
+          if (updateToTargetColumnSet.get(curUpdateCall).containsKey(curFieldName)) {
+            // Add the offset relative to the current list, and the offset
+            // that gets us to the start of the current list
+            Integer curOffset = updateToTargetColumnSet.get(curUpdateCall).get(curFieldName)
+                + totalOffset;
+            caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
+          } else {
+            //NOTE: Dest table is always on the right side of the joined table
+            RexNode defaultColumnValue = mergeSourceRelProjects.get(nSourceFields + destColIdx);
+            caseValues.get(destColIdx).add(defaultColumnValue);
+          }
+        }
+
+        // increment total offset, to put us at the next
+        // update/delete clause's condition (if it exists)
+        totalOffset += curUpdateCall.getSourceExpressionList().size();
+      }
     }
     return Pair.of(Pair.of(caseConditions, caseValues), totalOffset);
   }
@@ -4429,33 +4446,39 @@ public class SqlToRelConverter {
     // the left list is the list of conditions for each operation
     // The right outer list should have length of the number of data columns
     // the right inner list should have length equal to the number of conditions
-    Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> updateRexNodesAndOffset =
-        extractUpdateExprs(
+    Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> matchCaseNodesAndOffset =
+        extractMatchExprs(
         call.getMatchedCallList(), mergeSourceRel, numSourceCols, numDestCols, targetTable);
 
-    Pair<List<RexNode>, List<List<RexNode>>> updateRexNodes = updateRexNodesAndOffset.getKey();
-    Integer updateEndOffset = updateRexNodesAndOffset.getValue();
+    Pair<List<RexNode>, List<List<RexNode>>> matchCaseNodes = matchCaseNodesAndOffset.getKey();
+    Integer matchedClausesEndOffset = matchCaseNodesAndOffset.getValue();
 
-    assert (updateRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
-        || updateRexNodes.getValue().size() == 0;
+    assert (matchCaseNodes.getValue().size() == targetTable.getRowType().getFieldCount())
+        || matchCaseNodes.getValue().size() == 0;
 
-    Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> insertRexNodesAndOffset =
+    assert matchCaseNodes.getKey().size() == call.getMatchedCallList().size();
+
+    Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> notMatchedCaseNodesAndOffset =
         extractInsertExprs(call.getNotMatchedCallList(),
-            mergeSourceRel, updateEndOffset, targetTable);
+            mergeSourceRel, matchedClausesEndOffset, targetTable);
 
-    Pair<List<RexNode>, List<List<RexNode>>> insertRexNodes = insertRexNodesAndOffset.getKey();
-    Integer insertEndOffset = insertRexNodesAndOffset.getValue();
+    Pair<List<RexNode>, List<List<RexNode>>> notMatchedCaseNodes =
+        notMatchedCaseNodesAndOffset.getKey();
+    Integer notMatchedEndOffset = notMatchedCaseNodesAndOffset.getValue();
+
+    // At this point, we should have traveresed all the elements of the source select, so
+    // we expect the offset to point to the end of the table.
+    assert notMatchedEndOffset == mergeSourceRel.getRowType().getFieldCount();
 
     // NOTE: this assertion will not be true if we do inserts into a modifiable view that has
     // constant constraints, as we will have additional rows that the targetTable rowtype
     // does not have. I don't know if this is an issue with the rowType, or something else.
     // Since we don't currently allow views in BodoSQL, I've made a note to return to this later:
     // https://bodo.atlassian.net/browse/BE-3494
-    assert (insertRexNodes.getValue().size() == targetTable.getRowType().getFieldCount())
-        || insertRexNodes.getValue().size() == 0;
+    assert (notMatchedCaseNodes.getValue().size() == targetTable.getRowType().getFieldCount())
+        || notMatchedCaseNodes.getValue().size() == 0;
 
-
-
+    assert notMatchedCaseNodes.getKey().size() == call.getNotMatchedCallList().size();
 
     LogicalJoin join = (LogicalJoin) mergeSourceRel.getInput(0);
     // Push the join
@@ -4468,18 +4491,30 @@ public class SqlToRelConverter {
     // In the case that this filter can be applied to only one of the two input tables, then our
     // existing rules should allow for it to be pushed down past the join.
 
-    // The "matched" field should always be at to the end of the joined table
-    RexNode isMatch = relBuilder.getRexBuilder().makeInputRef(join,
-        join.getRowType().getFieldCount() - 1);
+    // The "matched" field should always be after the columns from the source and dest table
+    RexNode isMatch = relBuilder.getRexBuilder().makeInputRef(join, numDestCols + numSourceCols);
     RexNode isNotMatched = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.NOT, isMatch);
 
-    RexNode rowHasUpdateCondition;
+    //Seperate the update conditions from the delete conditions
+    List<RexNode> updateConds = new ArrayList<>();
+    List<RexNode> deleteConds = new ArrayList<>();
 
-    if (updateRexNodes.getKey().size() > 1) {
+    for (int clauseIdx = 0; clauseIdx < call.getMatchedCallList().size(); clauseIdx++) {
+      if (call.getMatchedCallList().get(clauseIdx) instanceof SqlUpdate) {
+        updateConds.add(matchCaseNodes.getKey().get(clauseIdx));
+      } else {
+        deleteConds.add(matchCaseNodes.getKey().get(clauseIdx));
+      }
+    }
+
+    RexNode rowHasUpdateCondition;
+    RexNode rowHasDeleteCondition;
+
+    if (updateConds.size() > 1) {
       rowHasUpdateCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR,
-          updateRexNodes.getKey());
-    } else if (updateRexNodes.getKey().size() == 1) {
-      rowHasUpdateCondition = updateRexNodes.getKey().get(0);
+          matchCaseNodes.getKey());
+    } else if (updateConds.size() == 1) {
+      rowHasUpdateCondition = matchCaseNodes.getKey().get(0);
     } else {
       rowHasUpdateCondition = relBuilder.getRexBuilder().makeLiteral(false);
     }
@@ -4487,12 +4522,29 @@ public class SqlToRelConverter {
     RexNode isUpdateRow = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.AND,
         Arrays.asList(rowHasUpdateCondition, isMatch));
 
+    if (deleteConds.size() > 1) {
+      rowHasDeleteCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR,
+          matchCaseNodes.getKey());
+    } else if (deleteConds.size() == 1) {
+      rowHasDeleteCondition = matchCaseNodes.getKey().get(0);
+    } else {
+      rowHasDeleteCondition = relBuilder.getRexBuilder().makeLiteral(false);
+    }
+
+    RexNode isDeleteRow = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.AND,
+        Arrays.asList(rowHasDeleteCondition, isMatch));
+
+
+    RexNode isMatchedRow = relBuilder.getRexBuilder().makeCall(
+        SqlStdOperatorTable.OR, Arrays.asList(isUpdateRow, isDeleteRow));
+
+
     RexNode rowHasInsertCondition;
-    if (insertRexNodes.getKey().size() > 1) {
+    if (notMatchedCaseNodes.getKey().size() > 1) {
       rowHasInsertCondition = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.OR,
-          insertRexNodes.getKey());
-    } else if (insertRexNodes.getKey().size() == 1) {
-      rowHasInsertCondition = insertRexNodes.getKey().get(0);
+          notMatchedCaseNodes.getKey());
+    } else if (notMatchedCaseNodes.getKey().size() == 1) {
+      rowHasInsertCondition = notMatchedCaseNodes.getKey().get(0);
     } else {
       rowHasInsertCondition = relBuilder.getRexBuilder().makeLiteral(false);
     }
@@ -4514,38 +4566,37 @@ public class SqlToRelConverter {
 
       // Default the update and insert expressions to be NULL literals.
       // They will be initialized to the appropriate values if they exist
-      RexNode updateColExpr = colNullLiteral;
+      RexNode matchedColExpr = colNullLiteral;
       RexNode insertColExpr = colNullLiteral;
 
-
-      // Calculate the update case (if we have any updates)
-      if (updateRexNodes.getKey().size() > 0) {
+      // Calculate the matched case (if we have any updates or deletes)
+      if (matchCaseNodes.getKey().size() > 0) {
         List<RexNode> updateCaseArgs = new ArrayList<>();
-        List<RexNode> curUpdateColExprList = updateRexNodes.getValue().get(colIdx);
+        List<RexNode> curUpdateColExprList = matchCaseNodes.getValue().get(colIdx);
         for (int updateCondIdx = 0;
-             updateCondIdx < updateRexNodes.getKey().size(); updateCondIdx++) {
+             updateCondIdx < matchCaseNodes.getKey().size(); updateCondIdx++) {
           // Case operands should are organized as IF, THEN, IF, THEN... ELSE
           // So, add the condition, followed
           // by the expression for that column if the condition is True
-          updateCaseArgs.add(updateRexNodes.getKey().get(updateCondIdx));
+          updateCaseArgs.add(matchCaseNodes.getKey().get(updateCondIdx));
           updateCaseArgs.add(curUpdateColExprList.get(updateCondIdx));
         }
         // Append NULL for the else case
         updateCaseArgs.add(colNullLiteral);
-        updateColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
+        matchedColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
             updateCaseArgs);
       }
 
-      //Calculate the update case (if we have any updates)
-      if (insertRexNodes.getKey().size() > 0) {
+      //Calculate the not matched case (if we have any inserts)
+      if (notMatchedCaseNodes.getKey().size() > 0) {
         List<RexNode> insertCaseArgs = new ArrayList<>();
-        List<RexNode> curInsertColExprList = insertRexNodes.getValue().get(colIdx);
+        List<RexNode> curInsertColExprList = notMatchedCaseNodes.getValue().get(colIdx);
         for (int insertCondIdx = 0;
-             insertCondIdx < insertRexNodes.getKey().size(); insertCondIdx++) {
+             insertCondIdx < notMatchedCaseNodes.getKey().size(); insertCondIdx++) {
           // Case operands should are organized as IF, THEN, IF, THEN... ELSE
           // So, add the condition, followed
           // by the expression for that column if the condition is True
-          insertCaseArgs.add(insertRexNodes.getKey().get(insertCondIdx));
+          insertCaseArgs.add(notMatchedCaseNodes.getKey().get(insertCondIdx));
           insertCaseArgs.add(curInsertColExprList.get(insertCondIdx));
         }
         // Append NULL for the else case
@@ -4555,26 +4606,29 @@ public class SqlToRelConverter {
       }
 
       RexNode curColExpr = relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
-          Arrays.asList(isUpdateRow, updateColExpr, isInsertRow, insertColExpr, colNullLiteral));
+          Arrays.asList(isMatchedRow, matchedColExpr, isInsertRow, insertColExpr, colNullLiteral));
       finalProjects.add(curColExpr);
     }
 
     // Finally, append the row that checks what operation we're performing
     // This will be NULL if the row is a no op. This row will be used when constructing
     // the update/insert dataframes
-    RexNode updateLiteral = this.rexBuilder.makeLiteral(
+    RexNode updateEnumLiteral = this.rexBuilder.makeLiteral(
         LogicalTableModify.Operation.UPDATE.getValue(),
         this.getRexBuilder().getTypeFactory().createSqlType(SqlTypeName.TINYINT), false);
-    RexNode insertLiteral = this.rexBuilder.makeLiteral(
+    RexNode insertEnumLiteral = this.rexBuilder.makeLiteral(
         LogicalTableModify.Operation.INSERT.getValue(),
         this.getRexBuilder().getTypeFactory().createSqlType(SqlTypeName.TINYINT), false);
-
+    RexNode deleteEnumLiteral = this.rexBuilder.makeLiteral(
+        LogicalTableModify.Operation.DELETE.getValue(),
+        this.getRexBuilder().getTypeFactory().createSqlType(SqlTypeName.TINYINT), false);
     RexNode nullTinyIntLiteral = this.rexBuilder.makeNullLiteral(
         this.getRexBuilder().getTypeFactory().createSqlType(SqlTypeName.TINYINT));
 
     finalProjects.add(
         relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
-        Arrays.asList(isUpdateRow, updateLiteral, isInsertRow, insertLiteral, nullTinyIntLiteral)));
+        Arrays.asList(isUpdateRow, updateEnumLiteral, isDeleteRow, deleteEnumLiteral,
+            isInsertRow, insertEnumLiteral, nullTinyIntLiteral)));
 
     relBuilder.project(finalProjects);
 

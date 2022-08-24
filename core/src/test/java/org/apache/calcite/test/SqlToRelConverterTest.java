@@ -3492,10 +3492,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
-  @Test void testFoo() {
-    final String sql = "SELECT MODE(emp.sal) FROM emp GROUP BY emp.deptno";
-    sql(sql).ok();
-  }
 
   /**
    * Tests the use of a DELETE clause inside a merge into statement.

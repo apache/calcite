@@ -4243,8 +4243,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], up
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
-  LogicalProject($f0=[CASE($18, $9, NOT($18), ABS($0), null:INTEGER)], $f1=[CASE($18, $10, NOT($18), $1, null:VARCHAR(20))], $f2=[CASE($18, $11, null:VARCHAR(10))], $f3=[CASE($18, $12, null:INTEGER)], $f4=[CASE($18, $13, null:TIMESTAMP(0))], $f5=[CASE($18, +($14, $5), NOT($18), $5, null:INTEGER)], $f6=[CASE($18, $15, null:INTEGER)], $f7=[CASE($18, $16, null:INTEGER)], $f8=[OR(AND(IS TRUE($18), $17), AND(null, IS NOT TRUE($18)))], $f9=[CASE($18, 2:TINYINT, NOT($18), 1:TINYINT, null:TINYINT)])
-    LogicalJoin(condition=[=($14, $5)], joinType=[left])
+  LogicalProject($f0=[CASE($18, $9, null:INTEGER)], $f1=[CASE($18, $10, null:VARCHAR(20))], $f2=[CASE($18, $11, null:VARCHAR(10))], $f3=[CASE($18, $12, null:INTEGER)], $f4=[CASE($18, $13, null:TIMESTAMP(0))], $f5=[CASE($18, $14, null:INTEGER)], $f6=[CASE($18, $15, null:INTEGER)], $f7=[CASE($18, $16, null:INTEGER)], $f8=[OR(AND($18, $17), AND(null, NOT($18)))], $f9=[CASE($18, 3:TINYINT, null:TINYINT)])
+    LogicalJoin(condition=[=($14, $5)], joinType=[inner])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($7, 30)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
