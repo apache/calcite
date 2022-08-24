@@ -92,10 +92,9 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
@@ -528,7 +527,9 @@ public class SparkSqlDialect extends SqlDialect {
       unparseCall(writer, dateFormatCall, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
-      unparseStrToDate(writer, call, leftPrec, rightPrec);
+      SqlCall toDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
+          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
+      unparseCall(writer, toDateCall, leftPrec, rightPrec);
       break;
     case "RPAD":
     case "LPAD":
@@ -579,16 +580,6 @@ public class SparkSqlDialect extends SqlDialect {
     return operatorName.equals("TIMESTAMPINTADD") ? "+"
         : operatorName.equals("TIMESTAMPINTSUB") ? "-"
         : operatorName;
-  }
-
-  private void unparseStrToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall unixTimestampCall = UNIX_TIMESTAMP.createCall(SqlParserPos.ZERO, call.operand(0),
-        creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
-    SqlCall fromUnixTimeCall = FROM_UNIXTIME.createCall(SqlParserPos.ZERO, unixTimestampCall,
-        SqlLiteral.createCharString("yyyy-MM-dd", SqlParserPos.ZERO));
-    SqlCall castToDateCall = CAST.createCall(SqlParserPos.ZERO, fromUnixTimeCall,
-        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE)));
-    unparseCall(writer, castToDateCall, leftPrec, rightPrec);
   }
 
   /**
