@@ -4444,11 +4444,12 @@ public class SqlToRelConverter {
     // that the needed metadata fields for iceberg are preserved.
 
     // Each data row should have the form:
-    // IF(matched then (Case stmt involving matched conditions and expressions) else (Case stmt involving
+    // IF(matched then (Case stmt involving matched conditions and expressions) else
+    // (Case stmt involving
     // not matched conditions and expressions))
 
-    // The enum row should be (IF matched then (case stmt to determine if DELETE_ENUM or UPDATE_ENUM)
-    // else INSERT_ENUM)
+    // The enum row should be (IF matched then (case stmt to determine if DELETE_ENUM
+    // or UPDATE_ENUM) else INSERT_ENUM)
 
     //NOTE: there may be some rows that are no ops.
     //NOTE2: Each of the conditions in the source select have already been filled with TRUE

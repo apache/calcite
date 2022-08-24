@@ -12279,7 +12279,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  insert (empno, sal, ename)\n"
         + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)";
     sql(sql)
-        .fails("ON clause must be a condition");
+        .fails("WHERE clause must be a condition");
 
   }
 
