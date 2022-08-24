@@ -3323,13 +3323,35 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
         + "when matched and source.sal + target.sal IN (SELECT empno from emp) then\n"
-        + "  update set sal = target.sal + source.sal\n";
+        + "  update set sal = target.sal + (SELECT MAX(deptno) from dept)\n";
 
     final String sql2 = "merge_into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
         + "when matched and source.sal + target.sal IN (SELECT empno from emp) then\n"
-        + "  update set sal = target.sal + source.sal\n";
+        + "  update set sal = target.sal + (SELECT MAX(deptno) from dept)\n";
+
+    sql(sql1).ok();
+    sql(sql2).ok();
+  }
+
+
+  @Test void testMergeNotMatchedConditionNestedExpr() {
+    // Tests a basic merge query with a match containing a condition using
+    // both the target and the source, and using a nested expression
+    final String sql1 = "merge into empnullables as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when not matched and source.sal * 2 IN (SELECT empno from emp) then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)";
+
+    final String sql2 = "merge_into empnullables as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when not matched and source.sal * 2 IN (SELECT empno from emp) then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)";
 
     sql(sql1).ok();
     sql(sql2).ok();

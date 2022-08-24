@@ -4238,9 +4238,6 @@ public class SqlToRelConverter {
 
       for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
 
-        if (destColIdx == 5) {
-          System.out.println("foo");
-        }
         String curFieldName = destTableFieldNames.get(destColIdx);
 
         if (updateToTargetColumnSet.get(curUpdateCall).containsKey(curFieldName)) {
@@ -4413,6 +4410,7 @@ public class SqlToRelConverter {
 
     LogicalProject mergeSourceRel = (LogicalProject) convertSelect(
         requireNonNull(sourceSelect, () -> "sourceSelect for " + call), false);
+
 
     // Create the blackboard used to convert generate the expressions. This blackboard will be
     // scoped such that all expressions should be scoped as if they reference the result of the
