@@ -34,7 +34,7 @@ import java.util.List;
 public class RelToSqlUtils {
 
   /** Returns list of all RexInputRef objects from the given condition. */
-  private List<RexNode> getRexInputRefListFromRexNode(RexNode conditionRex,
+  private List<RexNode> getOperandsOfTypeRexInputRefFromRexNode(RexNode conditionRex,
       List<RexNode> inputRefRexList) {
     if (conditionRex instanceof RexInputRef) {
       inputRefRexList.add(conditionRex);
@@ -43,7 +43,7 @@ public class RelToSqlUtils {
         if (operand instanceof RexLiteral) {
           continue;
         } else {
-          getRexInputRefListFromRexNode(operand, inputRefRexList);
+          getOperandsOfTypeRexInputRefFromRexNode(operand, inputRefRexList);
         }
       }
     }
@@ -78,7 +78,7 @@ public class RelToSqlUtils {
 
         List<RexNode> inputRefRexList = new ArrayList<>();
         List<RexNode> rexOperandList =
-            getRexInputRefListFromRexNode(conditionRex, inputRefRexList);
+            getOperandsOfTypeRexInputRefFromRexNode(conditionRex, inputRefRexList);
 
         for (RexNode rexOperand : rexOperandList) {
           if (rexOperand instanceof RexInputRef) {
