@@ -25,6 +25,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
@@ -1685,6 +1686,7 @@ public abstract class SqlImplementor {
     private final ImmutableSet<Clause> expectedClauses;
     private final @Nullable RelNode expectedRel;
     private final boolean needNew;
+    private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
@@ -1961,7 +1963,7 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         Project projectRel = (Project) rel.getInput(0);
         for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
-          if (isAnalyticalRex(projectRel.getChildExps().get(i))) {
+          if (relToSqlUtils.isAnalyticalRex(projectRel.getChildExps().get(i))) {
             return true;
           }
         }
@@ -2056,6 +2058,21 @@ public abstract class SqlImplementor {
         return false;
       }
       final Clause maxClause = Collections.max(clauses);
+
+      // Previously, below query is getting translated with SubQuery logic (Queries like -
+      // Analytical Function with WHERE clause). Now, it will remain as it is after translation.
+      // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
+      // Here, if query contains any filter which does not have analytical function in it and
+      // has any projection with Analytical function used then new SELECT wrap is not required.
+      if (dialect.supportsQualifyClause() && rel instanceof Filter
+          && rel.getInput(0) instanceof Project
+          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
+          && !relToSqlUtils.hasAnalyticalFunctionInFilter((Filter) rel)) {
+        if (maxClause == Clause.SELECT) {
+          return false;
+        }
+      }
+
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required
       final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
@@ -2143,19 +2160,6 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    boolean isAnalyticalRex(RexNode rexNode) {
-      if (rexNode instanceof RexOver) {
-        return true;
-      } else if (rexNode instanceof RexCall) {
-        for (RexNode operand : ((RexCall) rexNode).getOperands()) {
-          if (isAnalyticalRex(operand)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
 
     private boolean hasNestedAggregations(
         @UnknownInitialization Result this,
@@ -2230,7 +2234,7 @@ public abstract class SqlImplementor {
       }
       List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
       for (RexNode rexNode : rel.getChildExps()) {
-        if (isAnalyticalRex(rexNode)) {
+        if (relToSqlUtils.isAnalyticalRex(rexNode)) {
           rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
         }
       }
@@ -2466,6 +2470,11 @@ public abstract class SqlImplementor {
       select.setHaving(node);
     }
 
+    public void setQualify(SqlNode node) {
+      assert clauses.contains(Clause.QUALIFY);
+      select.setQualify(node);
+    }
+
     public void setOrderBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.ORDER_BY);
       select.setOrderBy(nodeList);
@@ -2495,7 +2504,7 @@ public abstract class SqlImplementor {
   /** Clauses in a SQL query. Ordered by evaluation order.
    * SELECT is set only when there is a NON-TRIVIAL SELECT clause. */
   public enum Clause {
-    FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
+    FROM, WHERE, GROUP_BY, HAVING, QUALIFY, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
 
   /**

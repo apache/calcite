@@ -331,6 +331,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsQualifyClause() {
+    return true;
+  }
+
   @Override public boolean supportsAnalyticalFunctionInAggregate() {
     return false;
   }
