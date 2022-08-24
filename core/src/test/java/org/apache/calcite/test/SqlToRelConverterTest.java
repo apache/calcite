@@ -3342,14 +3342,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql1 = "merge into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-        + "when not matched and source.sal * 2 IN (SELECT empno from emp) then\n"
+        + "when not matched and source.sal * 2 NOT IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)";
 
     final String sql2 = "merge_into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-        + "when not matched and source.sal * 2 IN (SELECT empno from emp) then\n"
+        + "when not matched and source.sal * 2 NOT IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)";
 
@@ -3434,12 +3434,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql1 = "merge into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-        + "when matched and target.sal IN (SELECT MAX(target.sal) FROM emp GROUP BY deptno) then\n"
-        + "  update set sal = (SELECT MAX(target.sal + source.sal))\n"
-        + "when matched and target.sal IN (SELECT MIN(target.sal) FROM emp GROUP BY deptno) then\n"
-        + "  update set sal = (SELECT MIN(target.sal + source.sal) + 10)\n"
+        + "when matched and target.sal IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = MAX(target.sal + source.sal)\n"
+        + "when matched and target.sal IN (SELECT MIN(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = MIN(target.sal + source.sal) + 10\n"
         + "when matched and target.sal = 10 then\n"
-        + "  update set sal = -10\n"
+        + "  update set sal = (SELECT MAX(deptno) from dept)\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (\n"
@@ -3453,17 +3453,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "    (SELECT ABS(MIN(sal - 20)) from emp))\n"
         + "when not matched then\n"
         + "  insert (empno, sal, ename)\n"
-        + "  values (-1, -1, 'NA')";
+        + "  values (-1, (SELECT MAX(deptno) from dept), 'NA')";
 
     final String sql2 = "merge into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-        + "when matched and target.sal IN (SELECT MAX(target.sal) FROM emp GROUP BY deptno) then\n"
-        + "  update set sal = (SELECT MAX(target.sal + source.sal))\n"
-        + "when matched and target.sal IN (SELECT MIN(target.sal) FROM emp GROUP BY deptno) then\n"
-        + "  update set sal = (SELECT MIN(target.sal + source.sal) + 10)\n"
+        + "when matched and target.sal IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = MAX(target.sal + source.sal)\n"
+        + "when matched and target.sal IN (SELECT MIN(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = MIN(target.sal + source.sal) + 10\n"
         + "when matched and target.sal = 10 then\n"
-        + "  update set sal = -10\n"
+        + "  update set sal = (SELECT MAX(deptno) from dept)\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (\n"
@@ -3477,7 +3477,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "    (SELECT ABS(MIN(sal - 20)) from emp))\n"
         + "when not matched then\n"
         + "  insert (empno, sal, ename)\n"
-        + "  values (-1, -1, 'NA')";
+        + "  values (-1, (SELECT MAX(deptno) from dept), 'NA')";
 
     sql(sql1).ok();
     sql(sql2).ok();
