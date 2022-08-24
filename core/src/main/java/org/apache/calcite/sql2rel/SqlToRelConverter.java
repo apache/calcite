@@ -4254,11 +4254,12 @@ public class SqlToRelConverter {
         for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
 
           String curFieldName = destTableFieldNames.get(destColIdx);
-
-          if (updateToTargetColumnSet.get(curUpdateCall).containsKey(curFieldName)) {
+          HashMap<String, Integer> curUpdateCallMap =
+              requireNonNull(updateToTargetColumnSet.get(curUpdateCall));
+          if (curUpdateCallMap.containsKey(curFieldName)) {
             // Add the offset relative to the current list, and the offset
             // that gets us to the start of the current list
-            Integer curOffset = updateToTargetColumnSet.get(curUpdateCall).get(curFieldName)
+            Integer curOffset = curUpdateCallMap.get(curFieldName)
                 + totalOffset;
             caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
           } else {
@@ -4290,15 +4291,28 @@ public class SqlToRelConverter {
       SqlInsert curInsertCall = (SqlInsert) insertCallList.get(insertCallIdx);
       HashMap<String, Integer> curMap = new HashMap<String, Integer>();
 
-      for (int curColExpr = 0;
-           curColExpr < curInsertCall.getTargetColumnList().size(); curColExpr++) {
-        SqlIdentifier id = (SqlIdentifier) curInsertCall.getTargetColumnList().get(curColExpr);
-        RelDataTypeField field =
-            SqlValidatorUtil.getTargetField(
-                destTable.getRowType(), typeFactory, id, catalogReader, destTable);
-        assert field != null : "column " + id.toString() + " not found";
-        curMap.put(field.getName(), curColExpr);
+      @Nullable SqlNodeList curInsertTargetColumnList = curInsertCall.getTargetColumnList();
+
+      if (curInsertTargetColumnList == null) {
+        //If curInsertTargetColumnList returns NULL, then we're inserting into ever colum in the
+        // dest table
+        for (int curColExprIdx = 0;
+             curColExprIdx < destTable.getRowType().getFieldCount(); curColExprIdx++) {
+          RelDataTypeField field = destTable.getRowType().getFieldList().get(curColExprIdx);
+          curMap.put(field.getName(), curColExprIdx);
+        }
+      } else {
+        for (int curColExprIdx = 0;
+             curColExprIdx < curInsertTargetColumnList.size(); curColExprIdx++) {
+          SqlIdentifier id = (SqlIdentifier) curInsertTargetColumnList.get(curColExprIdx);
+          RelDataTypeField field =
+              SqlValidatorUtil.getTargetField(
+                  destTable.getRowType(), typeFactory, id, catalogReader, destTable);
+          assert field != null : "column " + id.toString() + " not found";
+          curMap.put(field.getName(), curColExprIdx);
+        }
       }
+
       insertToTargetColumnSet.put(curInsertCall, curMap);
     }
 
@@ -4332,11 +4346,13 @@ public class SqlToRelConverter {
       for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
         String curFieldName = destTableFieldNames.get(destColIdx);
 
-        if (insertToTargetColumnSet.get(curInsertCall).containsKey(curFieldName)) {
+        HashMap<String, Integer> curInsertTargetColumnMap =
+            requireNonNull(insertToTargetColumnSet.get(curInsertCall));
+        if (curInsertTargetColumnMap.containsKey(curFieldName)) {
           // Add the offset relative to the current list, and the offset
           // that gets us to the start of the current list
 
-          Integer curOffset = insertToTargetColumnSet.get(curInsertCall).get(curFieldName)
+          Integer curOffset = curInsertTargetColumnMap.get(curFieldName)
               + totalOffset;
           caseValues.get(destColIdx).add(mergeSourceRelProjects.get(curOffset));
 
@@ -4349,7 +4365,14 @@ public class SqlToRelConverter {
 
       // Increment Total offset by the length of the expression list, so that it now points to the
       // next insert's condition (if it exists)
-      totalOffset += curInsertCall.getTargetColumnList().size();
+      @Nullable SqlNodeList curInsertTargetCols = curInsertCall.getTargetColumnList();
+      if (curInsertTargetCols == null) {
+        // if curInsertCall.getTargetColumnList() returns null, it targets all of the columns in
+        // the destination table
+        totalOffset += destTable.getRowType().getFieldCount();
+      } else {
+        totalOffset += curInsertCall.getTargetColumnList().size();
+      }
     }
     return Pair.of(Pair.of(caseConditions, caseValues), totalOffset);
   }
