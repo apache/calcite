@@ -4386,7 +4386,7 @@ when not matched then
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[]], flattened=[true])
-  LogicalProject($f0=[CASE($21, $12, NOT($21), $2, null:INTEGER)], $f1=[CASE($21, $13, NOT($21), 'DEFAULT_NAME':VARCHAR(20), null:VARCHAR(20))], $f2=[CASE($21, $14, null:VARCHAR(10))], $f3=[CASE($21, $15, null:INTEGER)], $f4=[CASE($21, $16, null:TIMESTAMP(0))], $f5=[CASE($21, CAST(COS(+($11, $17))):INTEGER, NOT($21), ABS(+($2, $11)), null:INTEGER)], $f6=[CASE($21, $18, null:INTEGER)], $f7=[CASE($21, $19, null:INTEGER)], $f8=[OR(AND(IS TRUE($21), $20), AND(null, IS NOT TRUE($21)))], $f9=[CASE($21, 2:TINYINT, NOT($21), 1:TINYINT, null:TINYINT)])
+  LogicalProject($f0=[CASE($21, $12, NOT($21), $2, null:INTEGER)], $f1=[CASE($21, $13, NOT($21), 'DEFAULT_NAME':VARCHAR(20), null:VARCHAR(20))], $f2=[CASE($21, $14, null:VARCHAR(10))], $f3=[CASE($21, $15, null:INTEGER)], $f4=[CASE($21, $16, null:TIMESTAMP(0))], $f5=[CASE($21, COS(+($11, $17)), NOT($21), ABS(+($2, $11)), null:INTEGER)], $f6=[CASE($21, $18, null:INTEGER)], $f7=[CASE($21, $19, null:INTEGER)], $f8=[OR(AND(IS TRUE($21), $20), AND(null, IS NOT TRUE($21)))], $f9=[CASE($21, 2:TINYINT, NOT($21), 1:TINYINT, null:TINYINT)])
     LogicalJoin(condition=[>(SIN(+($17, $7)), 0)], joinType=[left])
       LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10], REAL_SAL=[$11])
         LogicalFilter(condition=[=($0, 30)])

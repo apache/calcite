@@ -4200,13 +4200,13 @@ public class SqlToRelConverter {
       SqlUpdate curUpdateCall = (SqlUpdate) updateCallList.get(updateCallIdx);
       HashMap<String, Integer> curMap = new HashMap<String, Integer>();
 
-      for (int i = 0; i < curUpdateCall.getTargetColumnList().size(); i++) {
-        SqlIdentifier id = (SqlIdentifier) curUpdateCall.getTargetColumnList().get(i);
+      for (int exprIdx = 0; exprIdx < curUpdateCall.getTargetColumnList().size(); exprIdx++) {
+        SqlIdentifier id = (SqlIdentifier) curUpdateCall.getTargetColumnList().get(exprIdx);
         RelDataTypeField field =
             SqlValidatorUtil.getTargetField(
                 destTable.getRowType(), typeFactory, id, catalogReader, destTable);
         assert field != null : "column " + id.toString() + " not found";
-        curMap.put(field.getName(), updateCallIdx);
+        curMap.put(field.getName(), exprIdx);
       }
       updateToTargetColumnSet.put(curUpdateCall, curMap);
     }
@@ -4237,6 +4237,10 @@ public class SqlToRelConverter {
       // Total Offset should now be at the start of the current update's expression list.
 
       for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
+
+        if (destColIdx == 5) {
+          System.out.println("foo");
+        }
         String curFieldName = destTableFieldNames.get(destColIdx);
 
         if (updateToTargetColumnSet.get(curUpdateCall).containsKey(curFieldName)) {
@@ -4260,7 +4264,7 @@ public class SqlToRelConverter {
 
 
   private Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> extractInsertExprs(
-      SqlNodeList updateCallList,
+      SqlNodeList insertCallList,
       LogicalProject mergeSourceRel,
       Integer totalOffset, RelOptTable destTable) {
 
@@ -4268,18 +4272,18 @@ public class SqlToRelConverter {
     // Convert the identifiers in each of the update's target column list into a map of
     // strings -> idx.
     HashMap<SqlInsert, HashMap<String, Integer>> insertToTargetColumnSet = new HashMap<>();
-    for (int updateCallIdx = 0; updateCallIdx < updateCallList.size(); updateCallIdx++) {
-      SqlInsert curInsertCall = (SqlInsert) updateCallList.get(0);
+    for (int insertCallIdx = 0; insertCallIdx < insertCallList.size(); insertCallIdx++) {
+      SqlInsert curInsertCall = (SqlInsert) insertCallList.get(insertCallIdx);
       HashMap<String, Integer> curMap = new HashMap<String, Integer>();
 
-      for (int curInsertIdx = 0;
-           curInsertIdx < curInsertCall.getTargetColumnList().size(); curInsertIdx++) {
-        SqlIdentifier id = (SqlIdentifier) curInsertCall.getTargetColumnList().get(curInsertIdx);
+      for (int curColExpr = 0;
+           curColExpr < curInsertCall.getTargetColumnList().size(); curColExpr++) {
+        SqlIdentifier id = (SqlIdentifier) curInsertCall.getTargetColumnList().get(curColExpr);
         RelDataTypeField field =
             SqlValidatorUtil.getTargetField(
                 destTable.getRowType(), typeFactory, id, catalogReader, destTable);
         assert field != null : "column " + id.toString() + " not found";
-        curMap.put(field.getName(), curInsertIdx);
+        curMap.put(field.getName(), curColExpr);
       }
       insertToTargetColumnSet.put(curInsertCall, curMap);
     }
@@ -4304,8 +4308,8 @@ public class SqlToRelConverter {
 
     // Total Offset should now be at the start of the current update's expression list.
 
-    for (int insertColNumber = 0; insertColNumber < updateCallList.size(); insertColNumber++) {
-      SqlInsert curInsertCall = (SqlInsert) updateCallList.get(insertColNumber);
+    for (int insertColNumber = 0; insertColNumber < insertCallList.size(); insertColNumber++) {
+      SqlInsert curInsertCall = (SqlInsert) insertCallList.get(insertColNumber);
       caseConditions.add(mergeSourceRelProjects.get(totalOffset));
       totalOffset++;
 
