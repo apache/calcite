@@ -1718,8 +1718,8 @@ SqlNode SqlMerge() :
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
     final SqlNode condition;
-    final Span matchedSpan;
-    final Span notMatchedSpan;
+    Span matchedSpan = Span.of();
+    Span notMatchedSpan;
     //Note, the list typing cannot be more specific, as
     // it causes issues when constructing the nodeList
     List<SqlNode> matchedCallList = new ArrayList();
@@ -1743,8 +1743,6 @@ SqlNode SqlMerge() :
     [ [ <AS> ] alias = SimpleIdentifier() ]
     <USING> sourceTableRef = TableRef()
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
-
-    { matchedSpan = span(); }
 
     (
         //Need look ahead here to determine if we any update call whatsoever
@@ -1771,12 +1769,16 @@ SqlNode SqlMerge() :
             )
         )+
 
+        // Note, the matched span will be include the previous token, which is incorrect. However, I don't see a good
+        // way around this, and the error message is still understandable.
         { notMatchedSpan = span(); }
         ( insertCall = WhenNotMatchedClause(table)
           { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); }
         )*
     |
-        { notMatchedSpan = span(); }
+        // In the case that we have no matched objects, just set the matched span to somthing valid.
+        // Even if it's technically incorrect, we'll never used matched span if there's no match list
+        { notMatchedSpan = span(); matchedSpan = span(); }
         ( insertCall = WhenNotMatchedClause(table) { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
     )
     {

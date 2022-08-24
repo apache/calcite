@@ -5272,38 +5272,50 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     RelDataType targetRowType = unknownType;
 
-    //TODO: figure out how to use these row types if/when they're available
-
-//    SqlUpdate updateCall = call.getUpdateCallList();
-//    if (updateCall != null) {
-//      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
-//      targetRowType = createTargetRowType(
-//          table,
-//          updateCall.getTargetColumnList(),
-//          true);
-//    }
-//    SqlInsert insertCall = call.getInsertCallList();
-//    if (insertCall != null) {
-//      requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
-//      targetRowType = createTargetRowType(
-//          table,
-//          insertCall.getTargetColumnList(),
-//          false);
-//    }
-
     validateSelect(sqlSelect, targetRowType);
 
+    boolean seenUnconditionalCondition = false;
     for (int i = 0; i < call.getMatchedCallList().size(); i++) {
       SqlNode matchCallAfterValidate = call.getMatchedCallList().get(i);
+      if (seenUnconditionalCondition) {
+        throw newValidationError(call.getMatchedCallList(),
+            RESOURCE.mergeClauseUnconditionPrecedsConditional());
+      }
+
+      SqlNode cond;
       if (matchCallAfterValidate instanceof SqlUpdate) {
         validateUpdate((SqlUpdate) matchCallAfterValidate);
+        cond = ((SqlUpdate) matchCallAfterValidate).getCondition();
       } else {
         validateDelete((SqlDelete) matchCallAfterValidate);
+        cond = ((SqlDelete) matchCallAfterValidate).getCondition();
+      }
+
+      // Verify that we don't encounter a conditional match clause after an unconditional
+      // match clause. Note booleanValue is safe, as we've validated the Insert, which requires
+      // the condition to be boolean
+      if (cond == null || (cond instanceof SqlLiteral && ((SqlLiteral) cond).booleanValue())) {
+        seenUnconditionalCondition = true;
       }
     }
+
+    seenUnconditionalCondition = false;
     for (int i = 0; i < call.getNotMatchedCallList().size(); i++) {
       SqlInsert insertCallAfterValidate = (SqlInsert) call.getNotMatchedCallList().get(i);
+      if (seenUnconditionalCondition) {
+        throw newValidationError(call.getNotMatchedCallList(),
+            RESOURCE.mergeClauseUnconditionPrecedsConditional());
+      }
       validateInsert(insertCallAfterValidate);
+
+      SqlNode cond = insertCallAfterValidate.getCondition();
+
+      // Verify that we don't encounter a conditional match clause after an unconditional
+      // match clause. Note booleanValue is safe, as we've validated the Insert, which requires
+      // the condition to be boolean
+      if (cond == null || (cond instanceof SqlLiteral && ((SqlLiteral) cond).booleanValue())) {
+        seenUnconditionalCondition = true;
+      }
     }
   }
 

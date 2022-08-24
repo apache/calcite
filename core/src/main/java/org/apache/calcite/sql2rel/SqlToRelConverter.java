@@ -4371,7 +4371,7 @@ public class SqlToRelConverter {
         // the destination table
         totalOffset += destTable.getRowType().getFieldCount();
       } else {
-        totalOffset += curInsertCall.getTargetColumnList().size();
+        totalOffset += curInsertTargetCols.size();
       }
     }
     return Pair.of(Pair.of(caseConditions, caseValues), totalOffset);

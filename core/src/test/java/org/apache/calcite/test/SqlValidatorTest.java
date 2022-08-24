@@ -12226,6 +12226,80 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
+  // Note, some of these errors are a bit wonky. The fix is not obvious, and the error messaging
+  // is generally good enough to figure out what is wrong.
+  // See: https://bodo.atlassian.net/browse/BE-3528
+
+  @Test void testMergeMatchedConditionMustBeBool() {
+
+    String sql = "merge into empnullables as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when matched and ^'hello world'^ then\n"
+        + "  update set sal = target.sal + source.sal\n";
+    sql(sql)
+        .fails("WHERE clause must be a condition");
+
+  }
+
+  @Test void testMergeMatchedConditionOrdering() {
+
+    String sql1 = "merge into empnullables as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "^when matched then\n"
+        + "  update set sal = source.sal * 2\n"
+        + "when matched and source.sal > 0 then\n"
+        + "  update set sal = target.sal + source.sal^\n";
+    sql(sql1)
+        .fails(
+            "Encountered an unconditional condition prior to"
+                + " a conditional condition in a MERGE INTO statement\\.");
+
+
+    String sql2 = "merge into empnullables as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "^when matched and True then\n"
+        + "  DELETE\n"
+        + "when matched and source.sal > 0 then\n"
+        + "  DELETE^\n";
+    sql(sql2)
+        .fails("(?s).*'<INTEGER> IS TRUE'.*");
+  }
+
+  @Test void testMergeNotMatchedConditionMustBeBool() {
+
+    String sql = "merge into empnullables as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.sal\n"
+        + "when not matched and ^'hello world'^ then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)";
+    sql(sql)
+        .fails("ON clause must be a condition");
+
+  }
+
+  @Test void testMergeNotMatchedConditionOrdering() {
+
+    String sql = "merge into empnullables as target\n"
+        + "using (select * from emp where deptno = 30) as source\n"
+        + "on target.sal = source.^sal\n"
+        + "when not matched then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (source.empno, source.sal, source.ename)\n"
+        + "when not matched and source.sal > 0 then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (source.empno + 1, source.sal + 1, source.ename + 1)^";
+
+    sql(sql)
+        .fails(
+            "Encountered an unconditional condition prior to"
+                + " a conditional condition in a MERGE INTO statement\\.");
+
+  }
+
   @Test void testValidateParameterizedExpression() throws SqlParseException {
     final SqlParser.Config config = SqlParser.config();
     final SqlValidator validator = fixture().factory.createValidator();
