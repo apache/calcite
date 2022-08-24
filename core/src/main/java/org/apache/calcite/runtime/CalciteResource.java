@@ -733,7 +733,7 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> modifiableViewMustHaveOnlyEqualityPredicates();
 
   @BaseMessage("Encountered an unconditional condition prior to a conditional condition in a MERGE INTO statement.")
-  ExInst<SqlValidatorException> mergeClauseUnconditionPrecedsConditional();
+  ExInst<SqlValidatorException> mergeClauseUnconditionalPrecedesConditional();
 
   @BaseMessage("View is not modifiable. More than one expression maps to column ''{0}'' of base "
       + "table ''{1}''")

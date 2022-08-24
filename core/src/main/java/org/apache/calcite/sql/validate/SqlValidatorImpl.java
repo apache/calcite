@@ -5279,7 +5279,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode matchCallAfterValidate = call.getMatchedCallList().get(i);
       if (seenUnconditionalCondition) {
         throw newValidationError(call.getMatchedCallList(),
-            RESOURCE.mergeClauseUnconditionPrecedsConditional());
+            RESOURCE.mergeClauseUnconditionalPrecedesConditional());
       }
 
       SqlNode cond;
@@ -5304,7 +5304,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlInsert insertCallAfterValidate = (SqlInsert) call.getNotMatchedCallList().get(i);
       if (seenUnconditionalCondition) {
         throw newValidationError(call.getNotMatchedCallList(),
-            RESOURCE.mergeClauseUnconditionPrecedsConditional());
+            RESOURCE.mergeClauseUnconditionalPrecedesConditional());
       }
       validateInsert(insertCallAfterValidate);
 

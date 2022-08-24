@@ -12265,7 +12265,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "when matched and source.sal > 0 then\n"
         + "  DELETE^\n";
     sql(sql2)
-        .fails("(?s).*'<INTEGER> IS TRUE'.*");
+        .fails(
+            "Encountered an unconditional condition prior to"
+                + " a conditional condition in a MERGE INTO statement\\.");
   }
 
   @Test void testMergeNotMatchedConditionMustBeBool() {
