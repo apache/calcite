@@ -3427,60 +3427,74 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-
   @Test void testMergeConditionManyNested() {
     // Tests a basic merge query with multiple matched/not matched conditions,
     // where the values and conditions both contain nested subqueries
     final String sql1 = "merge into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-        + "when matched and target.sal IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
-        + "  update set sal = MAX(target.sal + source.sal)\n"
-        + "when matched and target.sal IN (SELECT MIN(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
-        + "  update set sal = MIN(target.sal + source.sal) + 10\n"
+        + "when matched and source.sal * 2 NOT IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = target.sal + source.sal\n"
+        + "when matched and target.sal NOT IN (SELECT MIN(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = target.sal + source.sal + 10\n"
         + "when matched and target.sal = 10 then\n"
         + "  update set sal = (SELECT MAX(deptno) from dept)\n"
+        + "when matched and target.sal IN (SELECT MODE(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  DELETE\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (\n"
-        + "    (SELECT MAX(empno - 20) from emp),\n"
-        + "    (SELECT MAX(sal - 20) from empnullables),\n"
+        + "    (SELECT MAX(emp.empno - 20) from emp),\n"
+        + "    (SELECT MAX(empnullables.sal - 20) from empnullables),\n"
         + "    'temp_name')\n"
         + "when not matched and source.sal < 0 then\n"
         + "  insert (empno, sal)\n"
         + "  values (\n"
-        + "    (SELECT ABS(MIN(empno - 20)) from emp),\n"
-        + "    (SELECT ABS(MIN(sal - 20)) from emp))\n"
+        + "    (SELECT ABS(MIN(emp.empno - 20)) from emp),\n"
+        + "    (SELECT ABS(MIN(emp.sal - 20)) from emp))\n"
+        + "when not matched and source.sal * 2 NOT IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)"
         + "when not matched then\n"
         + "  insert (empno, sal, ename)\n"
-        + "  values (-1, (SELECT MAX(deptno) from dept), 'NA')";
+        + "  values (-1, (SELECT MAX(dept.deptno) from dept), 'NA')";
 
-    final String sql2 = "merge into empnullables as target\n"
+    final String sql2 = "merge_into empnullables as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
         + "on target.sal = source.sal\n"
-        + "when matched and target.sal IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
-        + "  update set sal = MAX(target.sal + source.sal)\n"
-        + "when matched and target.sal IN (SELECT MIN(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
-        + "  update set sal = MIN(target.sal + source.sal) + 10\n"
+        + "when matched and source.sal * 2 NOT IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = target.sal + source.sal\n"
+        + "when matched and target.sal NOT IN (SELECT MIN(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  update set sal = target.sal + source.sal + 10\n"
         + "when matched and target.sal = 10 then\n"
         + "  update set sal = (SELECT MAX(deptno) from dept)\n"
+        + "when matched and target.sal IN (SELECT MODE(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  DELETE\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (\n"
-        + "    (SELECT MAX(empno - 20) from emp),\n"
-        + "    (SELECT MAX(sal - 20) from empnullables),\n"
+        + "    (SELECT MAX(emp.empno - 20) from emp),\n"
+        + "    (SELECT MAX(empnullables.sal - 20) from empnullables),\n"
         + "    'temp_name')\n"
         + "when not matched and source.sal < 0 then\n"
         + "  insert (empno, sal)\n"
         + "  values (\n"
-        + "    (SELECT ABS(MIN(empno - 20)) from emp),\n"
-        + "    (SELECT ABS(MIN(sal - 20)) from emp))\n"
+        + "    (SELECT ABS(MIN(emp.empno - 20)) from emp),\n"
+        + "    (SELECT ABS(MIN(emp.sal - 20)) from emp))\n"
+        + "when not matched and source.sal * 2 NOT IN (SELECT MAX(emp.sal) FROM emp GROUP BY emp.deptno) then\n"
+        + "  insert (empno, sal, ename)\n"
+        + "  values (ABS(source.empno), (SELECT MAX(deptno) from dept), source.ename)"
         + "when not matched then\n"
         + "  insert (empno, sal, ename)\n"
-        + "  values (-1, (SELECT MAX(deptno) from dept), 'NA')";
+        + "  values (-1, (SELECT MAX(dept.deptno) from dept), 'NA')";
 
     sql(sql1).ok();
     sql(sql2).ok();
+  }
+
+  @Test void testFoo() {
+    final String sql = "SELECT MODE(emp.sal) FROM emp GROUP BY emp.deptno";
+    sql(sql).ok();
   }
 
   /**
