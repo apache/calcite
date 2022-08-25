@@ -10207,7 +10207,7 @@ class RelToSqlConverterTest {
             builder.call(SqlStdOperatorTable.EQUALS,
             builder.call(SqlStdOperatorTable.CHARACTER_LENGTH,
                 builder.literal("TEST")), builder.literal(2)))
-        .project(builder.literal("A2301"))
+        .project(Arrays.asList(builder.field(0)), Arrays.asList("a2301"), true)
         .build();
 
     builder.scan("EMP");
@@ -10217,18 +10217,18 @@ class RelToSqlConverterTest {
 
     final String expectedSql = "SELECT \"EMPNO\"\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"EMPNO\" IN (SELECT 'A2301' AS \"$f0\"\n"
+        + "WHERE \"EMPNO\" IN (SELECT CHAR_LENGTH(\"ENAME\") AS \"a2301\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY CHAR_LENGTH(\"ENAME\")\n"
         + "HAVING CHARACTER_LENGTH('TEST') = 2)";
 
     final String expectedBiqQuery = "SELECT EMPNO\n"
         + "FROM scott.EMP\n"
-        + "WHERE EMPNO IN (SELECT 'A2301' AS `$f0`\n"
+        + "WHERE EMPNO IN (SELECT A2301 AS a2301\n"
         + "FROM (SELECT LENGTH(ENAME) AS A2301\n"
         + "FROM scott.EMP\n"
         + "GROUP BY A2301\n"
-        + "HAVING LENGTH('TEST') = 2) AS t1)";
+        + "HAVING LENGTH('TEST') = 2) AS t1";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
