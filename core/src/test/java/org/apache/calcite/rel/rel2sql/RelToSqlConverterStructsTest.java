@@ -191,11 +191,9 @@ class RelToSqlConverterStructsTest {
         + "\"myTable\".\"n1\".\"n11\".\"b\", "
         + "\"myTable\".\"n2\".\"d\" "
         + "FROM \"myTable\"";
-    String expected = "SELECT \"a\", "
-        + "\"e\", "
-        + "\"n1\".\"n11\".\"b\", "
-        + "\"n2\".\"d\"\n"
-        + "FROM \"myDb\".\"myTable\"";
+    String expected = "SELECT \"a\", \"e\", \"n1\".\"n11\".\"b\" AS "
+        + "\"b\", \"n2\".\"d\" AS \"d\""
+        + "\nFROM \"myDb\".\"myTable\"";
     sql(query).ok(expected);
   }
 }
