@@ -306,13 +306,6 @@ public abstract class SqlImplementor {
     if (node.isAlwaysFalse()) {
       return SqlLiteral.createBoolean(false, POS);
     }
-    if (node instanceof RexInputRef) {
-      Context joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    }
-    if (!(node instanceof RexCall)) {
-      throw new AssertionError(node);
-    }
     final List<RexNode> operands;
     final SqlOperator op;
     final Context joinContext;
@@ -367,73 +360,9 @@ public abstract class SqlImplementor {
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
-
-    case SEARCH:
-      joinContext =
-          leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-
-    case IS_NULL:
-    case IS_NOT_NULL:
-      operands = ((RexCall) node).getOperands();
-      if (operands.size() == 1
-          && operands.get(0) instanceof RexInputRef) {
-        op = ((RexCall) node).getOperator();
-        final RexInputRef op0 = (RexInputRef) operands.get(0);
-        if (op0.getIndex() < leftFieldCount) {
-          return op.createCall(POS, leftContext.field(op0.getIndex()));
-        } else {
-          return op.createCall(POS,
-              rightContext.field(op0.getIndex() - leftFieldCount));
-        }
-      }
-      joinContext =
-          leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    case IS_NOT_TRUE:
-    case IS_TRUE:
-      if (!dialect.getConformance().allowIsTrue()) {
-        SqlOperator operator = dialect.getTargetFunc((RexCall) node);
-        if (operator != ((RexCall) node).op) {
-          RexNode operand = ((RexCall) node).operands.get(0);
-          SqlNode nodes = leftContext.implementor().joinContext(leftContext, rightContext)
-              .toSql(null, operand);
-          return operator.createCall(POS, ((SqlCall) nodes).getOperandList());
-        }
-      }
-      List<SqlNode> nodes = leftContext.implementor().joinContext(leftContext, rightContext)
-          .toSql(null, ((RexCall) node).getOperands());
-      return ((RexCall) node).getOperator().createCall(new SqlNodeList(nodes, POS));
-    case INITCAP:
-    case CASE:
-      final RexCall caseCall = (RexCall) node;
-      final List<SqlNode> caseNodeList = leftContext.implementor().
-          joinContext(leftContext, rightContext).toSql(null, caseCall.getOperands());
-      final SqlNode valueNode;
-      final List<SqlNode> whenList = Expressions.list();
-      final List<SqlNode> thenList = Expressions.list();
-      final SqlNode elseNode;
-      if (caseNodeList.size() % 2 == 0) {
-        // switched:
-        //   "case x when v1 then t1 when v2 then t2 ... else e end"
-        valueNode = caseNodeList.get(0);
-        for (int i = 1; i < caseNodeList.size() - 1; i += 2) {
-          whenList.add(caseNodeList.get(i));
-          thenList.add(caseNodeList.get(i + 1));
-        }
-      } else {
-        // other: "case when w1 then t1 when w2 then t2 ... else e end"
-        valueNode = null;
-        for (int i = 0; i < caseNodeList.size() - 1; i += 2) {
-          whenList.add(caseNodeList.get(i));
-          thenList.add(caseNodeList.get(i + 1));
-        }
-      }
-      elseNode = caseNodeList.get(caseNodeList.size() - 1);
-      return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
-          new SqlNodeList(thenList, POS), elseNode);
     default:
-      throw new AssertionError(node);
+      joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
+      return joinContext.toSql(null, node);
     }
   }
 
