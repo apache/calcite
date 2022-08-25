@@ -6126,7 +6126,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
-    @Override public boolean isSystemField(RelDataTypeField field) {
+  @Override public boolean isSystemField(RelDataTypeField field) {
     return false;
   }
 
@@ -6692,7 +6692,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Shuttle which walks over an expression in Where Clause
+   * Shuttle which walks over an expression in Where Clause.
    */
   static class ExtendedAliasExpander extends Expander {
     final SqlSelect select;

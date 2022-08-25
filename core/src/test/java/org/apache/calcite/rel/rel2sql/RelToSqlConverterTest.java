@@ -2795,7 +2795,7 @@ class RelToSqlConverterTest {
   }
 
 
-  @Test  void testSelectQueryComplex1() {
+  @Test void testSelectQueryComplex1() {
     String query =
         "select  \"cases_per_pallet\" as c from \"product\" where c > 100 ";
     final String expected = "SELECT \"cases_per_pallet\" AS \"C\"\n"
