@@ -8611,6 +8611,7 @@ class RelToSqlConverterTest {
     }
 
     Sql ok(String expectedQuery) {
+
       assertThat(exec(), isLinux(expectedQuery));
       return this;
     }
@@ -10195,27 +10196,42 @@ class RelToSqlConverterTest {
   }
 
   @Test public void testSubQueryWithFunctionCallInGroupByClause() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode lengthFunctionCall = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.field(1));
+    final RelNode subQueryInClause = builder
+        .project(builder.alias(lengthFunctionCall, "A2301"))
+        .aggregate(builder.groupKey(builder.field(0)))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+            builder.call(SqlStdOperatorTable.CHARACTER_LENGTH,
+                builder.literal("TEST")), builder.literal(2)))
+        .project(builder.literal("A2301"))
+        .build();
 
-    final String query = "Select \"full_name\" from \"foodmart\".\"reserve_employee\" where " +
-        "\"employee_id\" IN (Select CHAR_LENGTH(\"full_name\") as \"ABC\" from \"foodmart\"" +
-        ".\"reserve_employee\" group by CHAR_LENGTH(\"full_name\") having COUNT(\"employee_id\") <2 )";
+    builder.scan("EMP");
+    final RelNode root = builder
+        .filter(RexSubQuery.in(subQueryInClause, ImmutableList.of(builder.field(0))))
+        .project(builder.field(0)).build();
 
-    final String sqlExpected = "SELECT \"full_name\"\n" +
-        "FROM \"foodmart\".\"reserve_employee\"\n" +
-        "WHERE \"employee_id\" IN (SELECT CHAR_LENGTH(\"full_name\") AS \"ABC\"\n" +
-        "FROM \"foodmart\".\"reserve_employee\"\n" +
-        "GROUP BY CHAR_LENGTH(\"full_name\")\n" +
-        "HAVING COUNT(*) < 2)";
+    final String expectedSql = "SELECT \"EMPNO\"\n" +
+        "FROM \"scott\".\"EMP\"\n" +
+        "WHERE \"EMPNO\" IN (SELECT 'A2301' AS \"$f0\"\n" +
+        "FROM \"scott\".\"EMP\"\n" +
+        "GROUP BY CHAR_LENGTH(\"ENAME\")\n" +
+        "HAVING CHARACTER_LENGTH('TEST') = 2)";
 
-    final String bigQueryExpected = "SELECT full_name\n" +
-        "FROM foodmart.reserve_employee\n" +
-        "WHERE employee_id IN (SELECT ABC\n" +
-        "FROM (SELECT LENGTH(full_name) AS ABC, COUNT(*) AS `$f1`\n" +
-        "FROM foodmart.reserve_employee\n" +
-        "GROUP BY ABC\n" +
-        "HAVING `$f1` < 2) AS t1)";
+    final String expectedBiqQuery = "SELECT EMPNO\n" +
+        "FROM scott.EMP\n" +
+        "WHERE EMPNO IN (SELECT 'A2301' AS `$f0`\n" +
+        "FROM (SELECT LENGTH(ENAME) AS A2301\n" +
+        "FROM scott.EMP\n" +
+        "GROUP BY A2301\n" +
+        "HAVING LENGTH('TEST') = 2) AS t1)";
 
-    sql(query).withConfig(c -> c.withExpand(false)).ok(sqlExpected);
-    sql(query).withConfig(c->c.withExpand(false)).withBigQuery().ok(bigQueryExpected);
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
 }
