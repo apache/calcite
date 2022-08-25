@@ -10215,19 +10215,19 @@ class RelToSqlConverterTest {
         .filter(RexSubQuery.in(subQueryInClause, ImmutableList.of(builder.field(0))))
         .project(builder.field(0)).build();
 
-    final String expectedSql = "SELECT \"EMPNO\"n"
-        + "FROM \"scott\".\"EMP\"n"
-        + "WHERE \"EMPNO\" IN (SELECT 'A2301' AS \"$f0\"n"
-        + "FROM \"scott\".\"EMP\"n"
-        + "GROUP BY CHAR_LENGTH(\"ENAME\")n"
+    final String expectedSql = "SELECT \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" IN (SELECT 'A2301' AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY CHAR_LENGTH(\"ENAME\")\n"
         + "HAVING CHARACTER_LENGTH('TEST') = 2)";
 
-    final String expectedBiqQuery = "SELECT EMPNOn"
-        + "FROM scott.EMPn"
-        + "WHERE EMPNO IN (SELECT 'A2301' AS `$f0`n"
-        + "FROM (SELECT LENGTH(ENAME) AS A2301n"
-        + "FROM scott.EMPn"
-        + "GROUP BY A2301n"
+    final String expectedBiqQuery = "SELECT EMPNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO IN (SELECT 'A2301' AS `$f0`\n"
+        + "FROM (SELECT LENGTH(ENAME) AS A2301\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY A2301\n"
         + "HAVING LENGTH('TEST') = 2) AS t1)";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
