@@ -10228,7 +10228,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT LENGTH(ENAME) AS A2301\n"
         + "FROM scott.EMP\n"
         + "GROUP BY A2301\n"
-        + "HAVING LENGTH('TEST') = 2) AS t1";
+        + "HAVING LENGTH('TEST') = 2) AS t1)";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
