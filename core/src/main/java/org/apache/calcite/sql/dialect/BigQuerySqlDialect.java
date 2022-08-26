@@ -1122,6 +1122,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(castFrame);
   }
 
+  private void castNodeToTimestamp(SqlWriter writer, SqlNode sqlNode, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+    sqlNode.unparse(writer, leftPrec, rightPrec);
+    writer.sep("AS");
+    writer.literal("TIMESTAMP");
+    writer.endFunCall(castFrame);
+  }
+
   private boolean isOperandCastedToDateTime(SqlCall call) {
     return call.operand(1) instanceof SqlBasicCall
           && ((SqlBasicCall) (call.operand(1))).getOperator() instanceof SqlCastFunction
@@ -1482,14 +1490,54 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseExtractFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.operand(0).toString()) {
     case "EPOCH" :
-      final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(epochFrame);
+      if (call.operand(1) instanceof SqlBasicCall
+          && ((SqlBasicCall) call.operand(1)).getOperator().kind == SqlKind.MINUS) {
+        SqlNode leftOperand = ((SqlBasicCall) call.operand(1)).getOperands()[0];
+        SqlNode rightOperand = ((SqlBasicCall) call.operand(1)).getOperands()[1];
+        final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
+        unparseOperandAsTimestamp(writer, leftOperand, leftPrec, rightPrec);
+        writer.endFunCall(epochFrame);
+        writer.print(" - ");
+        writer.startFunCall("UNIX_SECONDS");
+        unparseOperandAsTimestamp(writer, rightOperand, leftPrec, rightPrec);
+        writer.endFunCall(epochFrame);
+      } else {
+        final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
+        unparseOperandAsTimestamp(writer, call.operand(1), leftPrec, rightPrec);
+        writer.endFunCall(epochFrame);
+      }
       break;
     default :
       ExtractFunctionFormatUtil extractFormatUtil = new ExtractFunctionFormatUtil();
       SqlCall extractCall = extractFormatUtil.unparseCall(call, this);
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
+    }
+  }
+
+  private boolean isCastToDatetime(SqlNode operand) {
+    boolean isCastCall = ((SqlBasicCall) operand).getOperator() == CAST;
+    boolean isCastDatetime = isCastCall
+        && ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
+            .getTypeName().toString().equals("TIMESTAMP");
+    return isCastDatetime;
+  }
+
+  private void unparseCurrentTimestampCall(SqlWriter writer) {
+    final SqlWriter.Frame currentTimestampFunc = writer.startFunCall("CURRENT_TIMESTAMP");
+    writer.endFunCall(currentTimestampFunc);
+  }
+
+  private void unparseOperandAsTimestamp(SqlWriter writer, SqlNode operand,
+                                         int leftPrec, int rightPrec) {
+    if (operand instanceof SqlBasicCall) {
+      if (((SqlBasicCall) operand).getOperator() == SqlStdOperatorTable.CURRENT_TIMESTAMP) {
+        unparseCurrentTimestampCall(writer);
+      } else if (isCastToDatetime(operand)) {
+        SqlNode node = ((SqlBasicCall) operand).operands[0];
+        castNodeToTimestamp(writer, node, leftPrec, rightPrec);
+      }
+    } else {
+      operand.unparse(writer, leftPrec, rightPrec);
     }
   }
 
