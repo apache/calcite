@@ -6470,7 +6470,7 @@ class RelToSqlConverterTest {
     final String sql = ""
         + "SELECT array[1, 2, 3][1]";
     final String expected = ""
-        + "SELECT array[1, 2, 3][ORDINAL(1)]";
+        + "SELECT ARRAY[1, 2, 3][ORDINAL(1)]";
     sql(sql)
         .withBigQuery().ok(expected);
   }
