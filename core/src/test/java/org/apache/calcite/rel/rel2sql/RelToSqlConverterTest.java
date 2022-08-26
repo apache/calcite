@@ -6466,6 +6466,18 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test void testAccessStructArrayElement() {
+    final String sql = ""
+        + "select \"employees\"[1].\"empid\"\n"
+        + "from \"hr\".\"depts\"";
+    final String expected = ""
+        + "SELECT \"employees\"[1].\"empid\"\n"
+        + "FROM \"hr\".\"depts\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.HR)
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;

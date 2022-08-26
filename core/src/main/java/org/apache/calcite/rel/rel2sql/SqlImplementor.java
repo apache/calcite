@@ -126,6 +126,7 @@ import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DOT;
 
 import static java.util.Objects.requireNonNull;
 
@@ -658,16 +659,18 @@ public abstract class SqlImplementor {
           final SqlNode expr = toSql(program, referencedExpr);
           sqlIdentifier = new SqlIdentifier(expr.toString(), POS);
           break;
+        case ITEM:
+          SqlBasicCall itemCall = (SqlBasicCall) toSql(program, referencedExpr);
+          return new SqlBasicCall(
+              DOT, ImmutableList.of(itemCall,
+              appendAllAccess(
+                  new SqlIdentifier(
+                  requireNonNull(accesses.pollLast()).getField().getName(), POS), accesses)), POS);
         default:
           sqlIdentifier = (SqlIdentifier) toSql(program, referencedExpr);
         }
 
-        int nameIndex = sqlIdentifier.names.size();
-        RexFieldAccess access;
-        while ((access = accesses.pollLast()) != null) {
-          sqlIdentifier = sqlIdentifier.add(nameIndex++, access.getField().getName(), POS);
-        }
-        return sqlIdentifier;
+        return appendAllAccess(sqlIdentifier, accesses);
 
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
@@ -772,6 +775,15 @@ public abstract class SqlImplementor {
 
         return callToSql(program, (RexCall) rex, false);
       }
+    }
+
+    private SqlIdentifier appendAllAccess(SqlIdentifier base, Deque<RexFieldAccess> accesses) {
+      int nameIndex = base.names.size();
+      RexFieldAccess access;
+      while ((access = accesses.pollLast()) != null) {
+        base = base.add(nameIndex++, access.getField().getName(), POS);
+      }
+      return base;
     }
 
     private SqlNode callToSql(@Nullable RexProgram program, RexCall call0,
