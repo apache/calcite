@@ -339,11 +339,6 @@ public enum SqlKind {
    * RexNode, not SqlNode.) */
   SEARCH,
 
-  /**
-   * INITCAP function.
-   */
-  INITCAP,
-
   /** Logical "OR" operator. */
   OR,
 
