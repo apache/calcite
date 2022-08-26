@@ -183,6 +183,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case ITEM:
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      final SqlWriter.Frame indexFrame = writer.startList("[", "]");
+      // Because Calcite use 1-based array index, use `ORDINAL` to access the target array.
+      final SqlWriter.Frame funcFrame = writer.startFunCall("ORDINAL");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(funcFrame);
+      writer.endList(indexFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

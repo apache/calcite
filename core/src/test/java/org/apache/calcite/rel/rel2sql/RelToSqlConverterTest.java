@@ -6466,6 +6466,15 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test void testBigQueryArrayElementAccessing() {
+    final String sql = ""
+        + "SELECT array[1, 2, 3][1]";
+    final String expected = ""
+        + "SELECT array[1, 2, 3][ORDINAL(1)]";
+    sql(sql)
+        .withBigQuery().ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
