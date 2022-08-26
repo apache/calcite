@@ -331,6 +331,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsQualifyClause() {
+    return true;
+  }
+
   @Override public boolean supportsAnalyticalFunctionInAggregate() {
     return false;
   }
@@ -1058,9 +1062,18 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "PARSE_TIME":
       unparseDateTime(writer, call, leftPrec, rightPrec);
       break;
+    case "FALSE":
+    case "TRUE":
+      unparseBoolean(writer, call);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseBoolean(SqlWriter writer, SqlCall call) {
+    writer.print(call.getOperator().getName());
+    writer.print(" ");
   }
 
   protected void unparseDateTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

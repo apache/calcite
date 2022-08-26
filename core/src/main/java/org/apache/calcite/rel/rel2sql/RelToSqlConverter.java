@@ -336,8 +336,18 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
+    RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
-    if (input instanceof Aggregate) {
+    if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)) {
+      // ignoreClauses will always be true because in case of false, new select wrap gets applied
+      // with this current Qualify filter e. So, the input query won't remain as it is.
+      final Result x = visitInput(e, 0, isAnon(), true,
+          ImmutableSet.of(Clause.QUALIFY));
+      parseCorrelTable(e, x);
+      final Builder builder = x.builder(e);
+      builder.setQualify(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    } else if (input instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
       final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
