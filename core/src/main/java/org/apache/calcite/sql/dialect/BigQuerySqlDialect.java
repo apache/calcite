@@ -188,9 +188,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
     case ITEM:
-      SqlBasicCall firstOperand = call.operand(0);
-      if (firstOperand.getOperator().equals(ARRAY_VALUE_CONSTRUCTOR)
-          || firstOperand.getOperator().equals(ARRAY_QUERY)) {
+      if (call.operand(0) instanceof SqlBasicCall
+          && (((SqlBasicCall) call.operand(0)).getOperator().equals(ARRAY_VALUE_CONSTRUCTOR)
+          || ((SqlBasicCall) call.operand(0)).getOperator().equals(ARRAY_QUERY))) {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         final SqlWriter.Frame indexFrame = writer.startList("[", "]");
         // Because Calcite use 1-based array index, use `ORDINAL` to access the target array.
