@@ -1093,6 +1093,19 @@ class JdbcAdapterTest {
         .runs();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5243">[CALCITE-5243]
+   * "SELECT NULL AS C causes NoSuchMethodException: java.sql.ResultSet.getVoid(int)</a>. */
+  @Test void testNullSelect() {
+    final String sql = "select NULL AS C from \"days\"";
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query(sql)
+        .runs()
+        .returnsCount(7)
+        .returns("C=null\nC=null\nC=null\nC=null\nC=null\nC=null\nC=null\n");
+  }
+
   /** Acquires a lock, and releases it when closed. */
   static class LockWrapper implements AutoCloseable {
     private final Lock lock;
