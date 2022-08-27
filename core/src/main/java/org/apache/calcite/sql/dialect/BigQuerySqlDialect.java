@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
@@ -52,6 +53,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_QUERY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
 
 import static java.util.Objects.requireNonNull;
 
@@ -184,13 +188,19 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
     case ITEM:
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      final SqlWriter.Frame indexFrame = writer.startList("[", "]");
-      // Because Calcite use 1-based array index, use `ORDINAL` to access the target array.
-      final SqlWriter.Frame funcFrame = writer.startFunCall("ORDINAL");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(funcFrame);
-      writer.endList(indexFrame);
+      SqlBasicCall firstOperand = call.operand(0);
+      if (firstOperand.getOperator().equals(ARRAY_VALUE_CONSTRUCTOR)
+          || firstOperand.getOperator().equals(ARRAY_QUERY)) {
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        final SqlWriter.Frame indexFrame = writer.startList("[", "]");
+        // Because Calcite use 1-based array index, use `ORDINAL` to access the target array.
+        final SqlWriter.Frame funcFrame = writer.startFunCall("ORDINAL");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(funcFrame);
+        writer.endList(indexFrame);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
