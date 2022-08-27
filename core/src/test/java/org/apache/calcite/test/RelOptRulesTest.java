@@ -7145,6 +7145,46 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
+   *    * FilterJoinRule cannot simplify left join to inner join for `WHERE RHS.C1 IS NOT NULL OR
+   *    RHS.C2 IS NOT NULL`</a>.
+   *
+   *    This tests the case where the condition contains an OR between the IS NOT NULL filters
+   */
+  @Test void testFilterJoinRuleOrIsNotNull() {
+    final String sql = "select * from\n"
+        + "emp LHS\n"
+        + "left join dept RHS on LHS.EMPNO = RHS.DEPTNO\n"
+        + "where\n"
+        + "RHS.DEPTNO is not null\n"
+        + "OR RHS.NAME is not null";
+
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
+   *    * FilterJoinRule cannot simplify left join to inner join for `WHERE RHS.C1 IS NOT NULL OR
+   *    RHS.C2 IS NOT NULL`</a>.
+   *
+   *    This tests the case where the condition contains an AND between the IS NOT NULL filters
+   */
+  @Test void testFilterJoinRuleAndIsNotNull() {
+    final String sql = "select * from\n"
+        + "emp LHS\n"
+        + "left join dept RHS on LHS.EMPNO = RHS.DEPTNO\n"
+        + "where\n"
+        + "RHS.DEPTNO is not null\n"
+        + "AND RHS.NAME is not null";
+
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
   @Test void testJoinCommuteRuleWithAlwaysTrueConditionAllowed() {
     checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(true);
   }
