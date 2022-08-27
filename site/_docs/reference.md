@@ -2561,7 +2561,7 @@ semantics.
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | m s | CHAR(integer) | Returns the ASCII character having the binary equivalent to *integer*; If *integer* is larger than 256 the result is equivalent to char(*integer* % 256)
-| o p | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
+| o p | CHR(integer) | Returns the UTF-8 character having the binary equivalent to *integer* as a CHAR value
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
 | m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings

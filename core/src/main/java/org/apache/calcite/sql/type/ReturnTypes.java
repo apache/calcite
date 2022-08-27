@@ -349,10 +349,10 @@ public abstract class ReturnTypes {
 
   /**
    * Type-inference strategy whereby the result type of a call is a nullable
-   * Char.
+   * Char(1).
    */
   public static final SqlReturnTypeInference CHAR_FORCE_NULLABLE =
-      CHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+      explicit(SqlTypeName.CHAR, 1).andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is an Integer.

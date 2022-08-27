@@ -650,6 +650,9 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
+  /**
+   * The "CHAR(bigint)" function; returns the ASCII character having the binary equivalent
+   * to bigint; If bigint is larger than 256 the result is equivalent to char(bigint % 256). */
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction CHAR =
       new SqlFunction("CHAR",
@@ -659,6 +662,9 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
+  /**
+   * The "CHR(bigint)" function; returns the UTF-8 character
+   * having the binary equivalent to bigint. */
   @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction CHR =
       new SqlFunction("CHR",
