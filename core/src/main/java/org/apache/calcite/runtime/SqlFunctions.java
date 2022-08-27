@@ -465,7 +465,7 @@ public class SqlFunctions {
   /**
    * SQL CHAR(long) function.
    * Returns the ASCII character having the binary equivalent to long;
-   * If bigint is larger than 256 the result is equivalent to char(bigint % 256).
+   * If long is larger than 256 the result is equivalent to char(long % 256).
    */
   public static @Nullable String charN(long n) {
     if (n < 0) {

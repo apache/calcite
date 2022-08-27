@@ -1749,6 +1749,7 @@ period:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn ASCII(string)} | Returns the ASCII code of the first character of *string*; if the first character is a non-ASCII character, returns its Unicode code point; returns 0 if *string* is empty
+| {fn CHAR(integer)} | Returns the ASCII character having the binary equivalent to *integer*; If *integer* is larger than 256 the result is equivalent to char(*integer* % 256)
 | {fn CONCAT(character, character)} | Returns the concatenation of character strings
 | {fn INSERT(string1, start, length, string2)} | Inserts *string2* into a slot in *string1*
 | {fn LCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to lower case
