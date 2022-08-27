@@ -463,7 +463,9 @@ public class SqlFunctions {
   }
 
   /**
-   * SQL CHAR(int) function.
+   * SQL CHAR(long) function.
+   * Returns the ASCII character having the binary equivalent to long;
+   * If bigint is larger than 256 the result is equivalent to char(bigint % 256).
    */
   public static @Nullable String charN(long n) {
     if (n < 0) {
@@ -472,7 +474,10 @@ public class SqlFunctions {
     return String.valueOf(Character.toChars((int) (n % 256)));
   }
 
-  /** SQL CHR(long) function. */
+  /**
+   * SQL CHR(long) function.
+   * Returns the UTF-8 character having the binary equivalent to long.
+   */
   public static String chr(long n) {
     return String.valueOf(Character.toChars((int) n));
   }
