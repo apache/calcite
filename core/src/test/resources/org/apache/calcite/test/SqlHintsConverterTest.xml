@@ -200,9 +200,8 @@ EnumerableProject(ENAME=[$3], JOB=[$4], SAL=[$7], NAME=[$1])
   </TestCase>
   <TestCase name="testHintsPropagationInVolcanoPlannerRules2">
     <Resource name="sql">
-      <![CDATA[select /*+ my_hint */ ename, job
-from emp where not exists (select 1 from dept where emp.deptno = dept.deptno)
-]]>
+      <![CDATA[select /*+ no_hash_join */ ename, job
+from emp where not exists (select 1 from dept where emp.deptno = dept.deptno)]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -232,9 +231,8 @@ EnumerableProject(ENAME=[$0], JOB=[$1])
   </TestCase>
   <TestCase name="testHintsPropagationInVolcanoPlannerRules3">
     <Resource name="sql">
-      <![CDATA[select /*+ my_hint */ ename, job
-from emp where not exists (select 1 from dept where emp.deptno = dept.deptno) order by ename
-]]>
+      <![CDATA[select /*+ no_hash_join */ ename, job
+from emp where not exists (select 1 from dept where emp.deptno = dept.deptno) order by ename]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -358,6 +356,19 @@ on emp.deptno = dept.deptno]]>
 Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}]]
 TableScan:[[INDEX inheritPath:[] options:[IDX1, IDX2]], [PROPERTIES inheritPath:[0, 0] options:{K1=v1, K2=v2}]]
 TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [PROPERTIES inheritPath:[0, 1] options:{K1=v1, K2=v2}]]
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSnapshotHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ fast_snapshot(products_temporal) */ stream * from
+ orders join products_temporal for system_time as of timestamp '2022-08-11 15:00:00'
+ on orders.productid = products_temporal.productid]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[FAST_SNAPSHOT inheritPath:[] options:[PRODUCTS_TEMPORAL]]]
+Snapshot:[[FAST_SNAPSHOT inheritPath:[0, 1] options:[PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
