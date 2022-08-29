@@ -9131,8 +9131,15 @@ class RelToSqlConverterTest {
   }
 
   @Test public void testExtractEpoch() {
-    String query = "SELECT EXTRACT(EPOCH FROM DATE '2008-08-29')";
-    final String expectedBQ = "SELECT UNIX_SECONDS(DATE '2008-08-29')";
+    String query = "SELECT EXTRACT(EPOCH FROM CAST(\"birth_date\" AS TIMESTAMP)), " +
+        "EXTRACT(EPOCH FROM CAST('2018-01-01 00:00:00' AS TIMESTAMP)), " +
+        "EXTRACT(EPOCH FROM CAST(CURRENT_DATE AS TIMESTAMP)), " +
+        "EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)\n" +
+        "FROM  \"employee\"";
+    final String expectedBQ = "SELECT UNIX_SECONDS(CAST(birth_date AS TIMESTAMP)), UNIX_SECONDS" +
+        "(CAST('2018-01-01 00:00:00' AS TIMESTAMP)), UNIX_SECONDS(CAST(CURRENT_DATE AS TIMESTAMP)), " +
+        "UNIX_SECONDS(CURRENT_TIMESTAMP())\n" +
+        "FROM foodmart.employee";
 
     sql(query)
             .withBigQuery()
