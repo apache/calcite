@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.util.TestUtil.round;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,6 +39,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for TestUtil.
  */
 class TestUtilTest {
+
+  /** Tests {@link TestUtil#round}. */
+  @Test void testRound() {
+    assertThat(round("1", 3), is("1"));
+    assertThat(round("1.28", 3), is("1.28"));
+    assertThat(round("1.278", 3), is("1.278"));
+    assertThat(round("1.2784", 3), is("1.278")); // < 5 rounds down
+    assertThat(round("1.2785", 3), is("1.278")); // = 5 rounds down
+    assertThat(round("1.27850001", 3), is("1.279")); // > 5 rounds up
+    assertThat(round("1.27950001", 3), is("1.280"));
+    assertThat(round("1.29950001", 3), is("1.300"));
+    assertThat(round("19.99950001", 3), is("20.000"));
+    assertThat(round("2 9.99950001", 3), is("2 10.000"));
+    assertThat(round("23 9.99950001", 3), is("23 10.000"));
+    assertThat(round("234 9.99950001", 3), is("234 10.000"));
+    assertThat(round("POINT(-1.23456, 9.87654)", 3),
+        is("POINT(-1.235, 9.877)"));
+  }
 
   @Test void javaMajorVersionExceeds6() {
     // shouldn't throw any exceptions (for current JDK)
