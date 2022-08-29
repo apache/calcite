@@ -242,6 +242,13 @@ class SqlHintsConverterTest {
     sql(sql).ok();
   }
 
+  @Test void testSnapshotHints() {
+    final String sql = "select /*+ fast_snapshot(products_temporal) */ stream * from\n"
+        + " orders join products_temporal for system_time as of timestamp '2022-08-11 15:00:00'\n"
+        + " on orders.productid = products_temporal.productid";
+    sql(sql).ok();
+  }
+
   @Test void testHintsInSubQueryWithDecorrelation() {
     final String sql = "select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
@@ -889,6 +896,11 @@ class SqlHintsConverterTest {
           if (window.getHints().size() > 0) {
             this.hintsCollect.add("Window:" + window.getHints());
           }
+        } else if (other instanceof Snapshot) {
+          Snapshot snapshot = (Snapshot) other;
+          if (snapshot.getHints().size() > 0) {
+            this.hintsCollect.add("Snapshot:" + snapshot.getHints());
+          }
         }
         return super.visit(other);
       }
@@ -978,6 +990,7 @@ class SqlHintsConverterTest {
         .hintStrategy("async_merge", HintPredicates.SORT)
         .hintStrategy("mini_batch",
                 HintPredicates.and(HintPredicates.WINDOW, HintPredicates.PROJECT))
+        .hintStrategy("fast_snapshot", HintPredicates.SNAPSHOT)
         .hintStrategy("use_merge_join",
             HintStrategy.builder(
                 HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
