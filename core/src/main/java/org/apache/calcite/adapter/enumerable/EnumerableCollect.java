@@ -25,7 +25,10 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
+
+import static java.util.Objects.requireNonNull;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Collect} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -91,15 +94,24 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
     Expression child_ =
         builder.append(
             "child", result.block);
-    // In the internal representation of multisets , every element must be a record. In case the
-    // result above is a scalar type we have to wrap it around a physical type capable of
-    // representing records. For this reason the following conversion is necessary.
-    // REVIEW zabetak January 7, 2019: If we can ensure that the input to this operator
-    // has the correct physical type (e.g., respecting the Prefer.ARRAY above) then this conversion
-    // can be removed.
-    Expression conv_ =
-        builder.append(
-            "converted", result.physType.convertTo(child_, JavaRowFormat.ARRAY));
+
+    RelDataType collectionComponentType =
+        requireNonNull(rowType().getFieldList().get(0).getType().getComponentType());
+    RelDataType childRecordType = result.physType.getRowType().getFieldList().get(0).getType();
+
+    Expression conv_ = child_;
+    if (!SqlTypeUtil.sameNamedType(collectionComponentType, childRecordType)) {
+      // In the internal representation of multisets , every element must be a record. In case the
+      // result above is a scalar type we have to wrap it around a physical type capable of
+      // representing records. For this reason the following conversion is necessary.
+      // REVIEW zabetak January 7, 2019: If we can ensure that the input to this operator
+      // has the correct physical type (e.g., respecting the Prefer.ARRAY above)
+      // then this conversion can be removed.
+      conv_ =
+          builder.append(
+              "converted", result.physType.convertTo(child_, JavaRowFormat.ARRAY));
+    }
+
     Expression list_ =
         builder.append("list",
             Expressions.call(conv_,

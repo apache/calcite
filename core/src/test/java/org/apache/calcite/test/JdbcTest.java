@@ -2112,7 +2112,7 @@ public class JdbcTest {
         .query("select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
             + "from (values (1))")
-        .returnsUnordered("A=[{10}, {20}, {10}, {10}]");
+        .returnsUnordered("A=[10, 20, 10, 10]");
   }
 
   @Test void testUnnestArray() {
