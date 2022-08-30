@@ -440,7 +440,7 @@ public class SparkSqlDialect extends SqlDialect {
    * @return Modified SqlNode
    */
 
-  public static SqlNode modifySqlNode(SqlWriter writer, SqlNode intervalOperand) {
+  private static SqlNode modifySqlNode(SqlWriter writer, SqlNode intervalOperand) {
 
     if (intervalOperand.getKind() == SqlKind.LITERAL) {
       return modifySqlNodeForLiteral(writer, intervalOperand);
