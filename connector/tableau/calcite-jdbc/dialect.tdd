@@ -493,8 +493,8 @@
       <argument type='int' />
     </function>
     <function group='cast' name='DATE' return-type='date'>
-      <!-- First cast to DATETIME, then DATE, in case the string has a time component. -->
-      <formula>CAST(CAST((%1) AS DATETIME) AS DATE)</formula>
+      <!-- First cast to TIMESTAMP, then DATE, in case the string has a time component. -->
+      <formula>CAST(CAST((%1) AS TIMESTAMP) AS DATE)</formula>
       <argument type='str' />
     </function>
     <function group='cast' name='DATE' return-type='date'>
