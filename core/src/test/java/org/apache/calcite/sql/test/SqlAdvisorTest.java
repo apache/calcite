@@ -309,6 +309,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(FORMAT)",
           "KEYWORD(ILIKE)",
           "KEYWORD(RLIKE)",
+          "KEYWORD(REGEXP)",
           "KEYWORD(IMMEDIATELY)",
           "KEYWORD(IN)",
           "KEYWORD(IS)",

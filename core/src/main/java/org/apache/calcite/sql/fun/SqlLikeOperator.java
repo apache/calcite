@@ -127,6 +127,10 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       return negated
           ? SqlStdOperatorTable.NOT_SIMILAR_TO
           : SqlStdOperatorTable.SIMILAR_TO;
+    case REGEXP:
+      return negated
+          ? SqlLibraryOperators.NOT_REGEXP
+          : SqlLibraryOperators.REGEXP;
     case RLIKE:
       return negated
           ? SqlLibraryOperators.NOT_RLIKE
