@@ -449,11 +449,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * Returns a list of all atomic types in a list.
    */
   private static void getTypeList(
-      ImmutableList<RelDataType> inTypes,
+      List<RelDataType> inTypes,
       List<RelDataType> flatTypes) {
     for (RelDataType inType : inTypes) {
       if (inType instanceof RelCrossType) {
-        getTypeList(((RelCrossType) inType).types, flatTypes);
+        getTypeList(((RelCrossType) inType).getTypes(), flatTypes);
       } else {
         flatTypes.add(inType);
       }
@@ -470,7 +470,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       List<RelDataTypeField> fieldList) {
     if (type instanceof RelCrossType) {
       final RelCrossType crossType = (RelCrossType) type;
-      for (RelDataType type1 : crossType.types) {
+      for (RelDataType type1 : crossType.getTypes()) {
         addFields(type1, fieldList);
       }
     } else {
