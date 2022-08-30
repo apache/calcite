@@ -10194,6 +10194,105 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test void testFilterWithInnerJoinGivingAssertionError() {
+    String query = "SELECT * FROM  \n"
+        + "\"foodmart\".\"employee\" E1\n"
+        + "INNER JOIN\n"
+        + "\"foodmart\".\"employee\" E2\n"
+        + "ON CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
+        + "ELSE UPPER(E1.\"first_name\") = UPPER(E2.\"first_name\") END AND "
+        + "CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
+        + "ELSE INITCAP(E1.\"first_name\") = INITCAP(E2.\"first_name\") END";
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.employee AS employee0 ON CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE UPPER(employee.first_name) = UPPER(employee0.first_name) END AND CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE INITCAP(employee.first_name) = INITCAP(employee0.first_name) END";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test public void testSubQueryWithFunctionCallInGroupByClause() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode lengthFunctionCall = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.field(1));
+    final RelNode subQueryInClause = builder
+        .project(builder.alias(lengthFunctionCall, "A2301"))
+        .aggregate(builder.groupKey(builder.field(0)))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+            builder.call(SqlStdOperatorTable.CHARACTER_LENGTH,
+                builder.literal("TEST")), builder.literal(2)))
+        .project(Arrays.asList(builder.field(0)), Arrays.asList("a2301"), true)
+        .build();
+
+    builder.scan("EMP");
+    final RelNode root = builder
+        .filter(RexSubQuery.in(subQueryInClause, ImmutableList.of(builder.field(0))))
+        .project(builder.field(0)).build();
+
+    final String expectedSql = "SELECT \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" IN (SELECT CHAR_LENGTH(\"ENAME\") AS \"a2301\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY CHAR_LENGTH(\"ENAME\")\n"
+        + "HAVING CHARACTER_LENGTH('TEST') = 2)";
+
+    final String expectedBiqQuery = "SELECT EMPNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO IN (SELECT A2301 AS a2301\n"
+        + "FROM (SELECT LENGTH(ENAME) AS A2301\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY A2301\n"
+        + "HAVING LENGTH('TEST') = 2) AS t1)";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSubQueryWithFunctionCallInGroupByAndAggregateInHavingClause() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode lengthFunctionCall = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.field(1));
+    final RelNode subQueryInClause = builder
+        .project(builder.alias(lengthFunctionCall, "A2301"), builder.field("EMPNO"))
+        .aggregate(builder.groupKey(builder.field(0)),
+            builder.countStar("EXPR$1354574361"))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("EXPR$1354574361"), builder.literal(2)))
+        .project(Arrays.asList(builder.field(0)), Arrays.asList("a2301"), true)
+        .build();
+
+    builder.scan("EMP");
+    final RelNode root = builder
+        .filter(RexSubQuery.in(subQueryInClause, ImmutableList.of(builder.field(0))))
+        .project(builder.field(0)).build();
+
+    final String expectedSql = "SELECT \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" IN (SELECT CHAR_LENGTH(\"ENAME\") AS \"a2301\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY CHAR_LENGTH(\"ENAME\")\n"
+        + "HAVING COUNT(*) = 2)";
+
+    final String expectedBiqQuery = "SELECT EMPNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO IN (SELECT A2301 AS a2301\n"
+        + "FROM (SELECT LENGTH(ENAME) AS A2301\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY A2301\n"
+        + "HAVING COUNT(*) = 2) AS t1)";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testForAddingMonths() {
     final RelBuilder builder = relBuilder();
 
