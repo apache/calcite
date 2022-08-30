@@ -1490,10 +1490,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseExtractFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.operand(0).toString()) {
     case "EPOCH" :
-      if (call.operand(1) instanceof SqlBasicCall
-          && ((SqlBasicCall) call.operand(1)).getOperator().kind == SqlKind.MINUS) {
-        SqlNode leftOperand = ((SqlBasicCall) call.operand(1)).getOperands()[0];
-        SqlNode rightOperand = ((SqlBasicCall) call.operand(1)).getOperands()[1];
+      SqlNode op1 = call.operand(1);
+      if (op1 instanceof SqlBasicCall
+          && ((SqlBasicCall) op1).getOperator().kind == SqlKind.MINUS) {
+        SqlNode leftOperand = ((SqlBasicCall) op1).getOperands()[0];
+        SqlNode rightOperand = ((SqlBasicCall) op1).getOperands()[1];
         final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
         unparseOperandAsTimestamp(writer, leftOperand, leftPrec, rightPrec);
         writer.endFunCall(epochFrame);
@@ -1503,7 +1504,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         writer.endFunCall(epochFrame);
       } else {
         final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
-        unparseOperandAsTimestamp(writer, call.operand(1), leftPrec, rightPrec);
+        unparseOperandAsTimestamp(writer, op1, leftPrec, rightPrec);
         writer.endFunCall(epochFrame);
       }
       break;
@@ -1514,12 +1515,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  private boolean isCastToDatetime(SqlNode operand) {
+  private boolean isDatetimeCast(SqlNode operand) {
     boolean isCastCall = ((SqlBasicCall) operand).getOperator() == CAST;
-    boolean isCastDatetime = isCastCall
+    boolean isDatetimeCast = isCastCall
         && ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
             .getTypeName().toString().equals("TIMESTAMP");
-    return isCastDatetime;
+    return isDatetimeCast;
   }
 
   private void unparseCurrentTimestampCall(SqlWriter writer) {
@@ -1532,7 +1533,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (operand instanceof SqlBasicCall) {
       if (((SqlBasicCall) operand).getOperator() == SqlStdOperatorTable.CURRENT_TIMESTAMP) {
         unparseCurrentTimestampCall(writer);
-      } else if (isCastToDatetime(operand)) {
+      } else if (isDatetimeCast(operand)) {
         SqlNode node = ((SqlBasicCall) operand).operands[0];
         castNodeToTimestamp(writer, node, leftPrec, rightPrec);
       }
