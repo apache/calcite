@@ -6194,14 +6194,14 @@ class RelToSqlConverterTest {
     final String expectedSnowflake = "SELECT DATEADD(DAY, -1, DATE '2018-01-01')\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query)
-        .withHive()
-        .ok(expectedHive)
-        .withBigQuery()
-        .ok(expectedBigQuery)
+//        .withHive()
+//        .ok(expectedHive)
+//        .withBigQuery()
+//        .ok(expectedBigQuery)
         .withSpark()
-        .ok(expectedSpark)
-        .withSnowflake()
-        .ok(expectedSnowflake);
+        .ok(expectedSpark);
+//        .withSnowflake()
+//        .ok(expectedSnowflake)
   }
 
   @Test public void testDateIntColumnFunction() {

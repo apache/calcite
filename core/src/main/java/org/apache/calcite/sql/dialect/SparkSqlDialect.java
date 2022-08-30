@@ -93,9 +93,9 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD_DAY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB_DAY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
@@ -231,9 +231,9 @@ public class SparkSqlDialect extends SqlDialect {
         switch (call.getOperands().get(1).getType().getSqlTypeName()) {
         case INTERVAL_DAY:
           if (call.op.kind == SqlKind.MINUS) {
-            return DATE_SUB_DAY;
+            return DATE_SUB;
           }
-          return DATE_ADD_DAY;
+          return DATE_ADD;
         case INTERVAL_MONTH:
           if (call.getOperator() instanceof SqlMonotonicBinaryOperator) {
             return call.getOperator();
@@ -385,6 +385,12 @@ public class SparkSqlDialect extends SqlDialect {
     switch (call.operand(1).getKind()) {
     case LITERAL:
     case TIMES:
+      String opName = call.getOperator().toString();
+      if (opName.equalsIgnoreCase("DATE_SUB")
+          || opName.equalsIgnoreCase("DATE_ADD")) {
+        unparseIntervalOperandCallWithBinaryOperator(call, writer, leftPrec, rightPrec);
+        break;
+      }
       unparseIntervalOperandCall(call, writer, leftPrec, rightPrec);
       break;
     default:
@@ -401,6 +407,18 @@ public class SparkSqlDialect extends SqlDialect {
     SqlNode intervalValue = modifySqlNode(writer, call.operand(1));
     writer.print(intervalValue.toString().replace("`", ""));
     writer.print(")");
+  }
+
+  private void unparseIntervalOperandCallWithBinaryOperator(
+      SqlCall call, SqlWriter writer, int leftPrec, int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.getKind() == SqlKind.MINUS) {
+      writer.sep("-");
+    } else {
+      writer.sep("+");
+    }
+    SqlNode intervalValue = modifySqlNode(writer, call.operand(1));
+    writer.print(intervalValue.toString().replace("`", ""));
   }
 
   /**

@@ -67,12 +67,13 @@ public class SparkDateTimestampInterval {
       case "INTERVAL_MONTH":
         handleIntervalMonth(writer, call, leftPrec, rightPrec, sign);
         break;
-      case "INTERVAL_DAY":
       case "INTERVAL_HOUR":
       case "INTERVAL_MINUTE":
       case "INTERVAL_SECOND":
         handleIntervalDatetimeUnit(writer, call, leftPrec, rightPrec, sign);
         break;
+      default:
+        return false;
       }
     } else if ("ADD_MONTHS".equals(call.getOperator().getName())) {
       new IntervalUtils().unparse(writer, call, leftPrec, rightPrec,
