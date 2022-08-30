@@ -10235,7 +10235,7 @@ class RelToSqlConverterTest {
         + "MONTHNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f1\", "
         + "QUARTERNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f2\""
         + "\nFROM \"scott\".\"EMP\"";
-    final String expectedSpark = "SELECT WEEKOFYEAR(CURRENT_DATE) $f0,"
+    final String expectedSpark = "SELECT WEEKOFYEAR(CURRENT_DATE) $f0, "
         + "MONTH(CURRENT_TIMESTAMP) $f1, "
         + "QUARTER(CURRENT_TIMESTAMP) $f2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));

@@ -275,8 +275,9 @@ public class SparkSqlDialect extends SqlDialect {
         break;
       case EXTRACT:
         String extractDateTimeUnit = call.operand(0).toString();
-        String resolvedDateTimeFunctionName = extractDateTimeUnit.equalsIgnoreCase("WEEK")
-            ? "WEEKOFYEAR" : extractDateTimeUnit;
+        String resolvedDateTimeFunctionName =
+            extractDateTimeUnit.equalsIgnoreCase(DateTimestampFormatUtil.WEEK)
+            ? DateTimestampFormatUtil.WEEK_OF_YEAR : extractDateTimeUnit;
         final SqlWriter.Frame extractFrame = writer.startFunCall(resolvedDateTimeFunctionName);
         call.operand(1).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(extractFrame);
