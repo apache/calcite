@@ -1499,9 +1499,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         writer.print(" - ");
         unparseExtractEpochOperands(writer, rightOperand, leftPrec, rightPrec);
       } else {
-        final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
-        unparseOperandAsTimestamp(writer, firstOperand, leftPrec, rightPrec);
-        writer.endFunCall(epochFrame);
+        unparseExtractEpochOperands(writer, firstOperand, leftPrec, rightPrec);
       }
       break;
     default :
