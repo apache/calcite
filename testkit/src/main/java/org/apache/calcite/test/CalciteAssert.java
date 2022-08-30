@@ -823,6 +823,8 @@ public class CalciteAssert {
           SpatialTypeFunctions.class.getName(), "*", true);
       ModelHandler.addFunctions(rootSchema, null, emptyPath,
           SqlSpatialTypeFunctions.class.getName(), "*", true);
+      ModelHandler.addFunctions(rootSchema, "roundGeom", emptyPath,
+          TestUtil.class.getName(), "round", true);
       final SchemaPlus s =
           rootSchema.add(schema.schemaName, new AbstractSchema());
       ModelHandler.addFunctions(s, "countries", emptyPath,

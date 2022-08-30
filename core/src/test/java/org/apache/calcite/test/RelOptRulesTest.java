@@ -6548,7 +6548,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Constant reduction on geo-spatial expression. */
   @Test void testSpatialReduce() {
     final String sql = "select\n"
-        + "  ST_Buffer(ST_Point(0.0, 1.0), 2) as b\n"
+        + "  ST_Buffer(ST_Point(0.0, 0.0), 1, 4) as b\n"
         + "from GEO.Restaurants as r";
     spatial(sql)
         .withRelBuilderSimplify(false)
