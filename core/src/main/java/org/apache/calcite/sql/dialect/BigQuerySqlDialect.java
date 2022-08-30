@@ -1495,13 +1495,9 @@ public class BigQuerySqlDialect extends SqlDialect {
           && ((SqlBasicCall) firstOperand).getOperator().kind == SqlKind.MINUS) {
         SqlNode leftOperand = ((SqlBasicCall) firstOperand).getOperands()[0];
         SqlNode rightOperand = ((SqlBasicCall) firstOperand).getOperands()[1];
-        final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
-        unparseOperandAsTimestamp(writer, leftOperand, leftPrec, rightPrec);
-        writer.endFunCall(epochFrame);
+        unparseExtractEpochOperands(writer, leftOperand, leftPrec, rightPrec);
         writer.print(" - ");
-        writer.startFunCall("UNIX_SECONDS");
-        unparseOperandAsTimestamp(writer, rightOperand, leftPrec, rightPrec);
-        writer.endFunCall(epochFrame);
+        unparseExtractEpochOperands(writer, rightOperand, leftPrec, rightPrec);
       } else {
         final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
         unparseOperandAsTimestamp(writer, firstOperand, leftPrec, rightPrec);
@@ -1513,6 +1509,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlCall extractCall = extractFormatUtil.unparseCall(call, this);
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseExtractEpochOperands(SqlWriter writer, SqlNode operand,
+                                           int leftPrec, int rightPrec) {
+    final SqlWriter.Frame epochFrame = writer.startFunCall("UNIX_SECONDS");
+    unparseOperandAsTimestamp(writer, operand, leftPrec, rightPrec);
+    writer.endFunCall(epochFrame);
   }
 
   private boolean isDateTimeCast(SqlNode operand) {
