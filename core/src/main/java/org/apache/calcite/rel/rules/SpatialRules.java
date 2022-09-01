@@ -101,7 +101,7 @@ public abstract class SpatialRules {
       FilterHilbertRule.Config.DEFAULT.toRule();
 
   /** Returns a geometry if an expression is constant, null otherwise. */
-  private static Geometry constantGeom(RexNode e) {
+  private static @Nullable Geometry constantGeom(RexNode e) {
     switch (e.getKind()) {
     case CAST:
       return constantGeom(((RexCall) e).getOperands().get(0));

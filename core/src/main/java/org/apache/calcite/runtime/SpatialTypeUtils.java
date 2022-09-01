@@ -32,6 +32,7 @@ import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Utilities for spatial types.
@@ -113,7 +114,7 @@ public class SpatialTypeUtils {
       GeoJsonReader reader = new GeoJsonReader();
       return reader.read(geoJson);
     } catch (ParseException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Unable to parse GeoJSON");
     }
   }
 
@@ -127,7 +128,7 @@ public class SpatialTypeUtils {
       WKBReader reader = new WKBReader();
       return reader.read(wkb);
     } catch (ParseException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Unable to parse WKB");
     }
   }
 
@@ -138,10 +139,23 @@ public class SpatialTypeUtils {
    * @return a geometry
    */
   public static Geometry fromEWKT(String ewkt) {
-    String[] array = ewkt.split(";");
-    Integer srid = Integer.parseInt(array[0].substring(4));
-    Geometry geometry = fromWKT(array[1]);
-    geometry.setSRID(srid);
+    Pattern pattern = Pattern.compile("^(?:srid:(\\d*);)?(.*)$");
+    java.util.regex.Matcher matcher = pattern.matcher(ewkt);
+    if (!matcher.matches()) {
+      throw new RuntimeException("Unable to parse EWKT");
+    }
+
+    String wkt = matcher.group(2);
+    if (wkt == null) {
+      throw new RuntimeException("Unable to parse EWKT");
+    }
+
+    Geometry geometry = fromWKT(wkt);
+    String srid = matcher.group(1);
+    if (srid != null) {
+      geometry.setSRID(Integer.parseInt(srid));
+    }
+
     return geometry;
   }
 
@@ -155,7 +169,7 @@ public class SpatialTypeUtils {
       WKTReader reader = new WKTReader();
       return reader.read(wkt);
     } catch (ParseException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Unable to parse WKT");
     }
   }
 
