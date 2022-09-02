@@ -106,10 +106,11 @@ public class SpatialTypeUtils {
 
   /**
    * Constructs a geometry from a GeoJson representation.
+   *
    * @param geoJson a GeoJson
    * @return a geometry
    */
-  public static Geometry fromGeoJSON(String geoJson) {
+  public static Geometry fromGeoJson(String geoJson) {
     try {
       GeoJsonReader reader = new GeoJsonReader();
       return reader.read(geoJson);
@@ -120,10 +121,11 @@ public class SpatialTypeUtils {
 
   /**
    * Constructs a geometry from a Well-Known binary (WKB) representation.
+   *
    * @param wkb a WKB
    * @return a geometry
    */
-  public static Geometry fromWKB(byte[] wkb) {
+  public static Geometry fromWkb(byte[] wkb) {
     try {
       WKBReader reader = new WKBReader();
       return reader.read(wkb);
@@ -135,10 +137,11 @@ public class SpatialTypeUtils {
   /**
    * Constructs a geometry from an Extended Well-Known text (EWKT) representation.
    * EWKT representations are prefixed with the SRID.
+   *
    * @param ewkt an EWKT
    * @return a geometry
    */
-  public static Geometry fromEWKT(String ewkt) {
+  public static Geometry fromEwkt(String ewkt) {
     Pattern pattern = Pattern.compile("^(?:srid:(\\d*);)?(.*)$");
     java.util.regex.Matcher matcher = pattern.matcher(ewkt);
     if (!matcher.matches()) {
@@ -150,7 +153,7 @@ public class SpatialTypeUtils {
       throw new RuntimeException("Unable to parse EWKT");
     }
 
-    Geometry geometry = fromWKT(wkt);
+    Geometry geometry = fromWkt(wkt);
     String srid = matcher.group(1);
     if (srid != null) {
       geometry.setSRID(Integer.parseInt(srid));
@@ -161,10 +164,11 @@ public class SpatialTypeUtils {
 
   /**
    * Constructs a geometry from a Well-Known text (WKT) representation.
+   *
    * @param wkt a WKT
    * @return a geometry
    */
-  public static Geometry fromWKT(String wkt) {
+  public static Geometry fromWkt(String wkt) {
     try {
       WKTReader reader = new WKTReader();
       return reader.read(wkt);
@@ -175,20 +179,22 @@ public class SpatialTypeUtils {
 
   /**
    * Returns the GeoJson representation of the geometry.
+   *
    * @param geometry a geometry
    * @return a GeoJson
    */
-  public static String asGeoJSON(Geometry geometry) {
+  public static String asGeoJson(Geometry geometry) {
     GeoJsonWriter geoJsonWriter = new GeoJsonWriter();
     return geoJsonWriter.write(geometry);
   }
 
   /**
    * Returns the Extended Well-Known binary (WKB) representation of the geometry.
+   *
    * @param geometry a geometry
    * @return an WKB
    */
-  public static byte[] asWKB(Geometry geometry) {
+  public static byte[] asWkb(Geometry geometry) {
     int outputDimension = dimension(geometry);
     WKBWriter wkbWriter = new WKBWriter(outputDimension);
     return wkbWriter.write(geometry);
@@ -197,19 +203,21 @@ public class SpatialTypeUtils {
   /**
    * Returns the Extended Well-Known text (EWKT) representation of the geometry.
    * EWKT representations are prefixed with the SRID.
+   *
    * @param geometry a geometry
    * @return an EWKT
    */
-  public static String asEWKT(Geometry geometry) {
-    return String.format(Locale.ROOT, "srid:%s;%s", geometry.getSRID(), asWKT(geometry));
+  public static String asEwkt(Geometry geometry) {
+    return String.format(Locale.ROOT, "srid:%s;%s", geometry.getSRID(), asWkt(geometry));
   }
 
   /**
    * Returns the Well-Known text (WKT) representation of the geometry.
+   *
    * @param geometry a geometry
    * @return a WKT
    */
-  public static String asWKT(Geometry geometry) {
+  public static String asWkt(Geometry geometry) {
     int outputDimension = dimension(geometry);
     WKTWriter wktWriter = new WKTWriter(outputDimension);
     return wktWriter.write(geometry);

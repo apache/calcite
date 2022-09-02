@@ -39,13 +39,13 @@ import java.util.Objects;
 
 import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
 import static org.apache.calcite.runtime.SpatialTypeUtils.NO_SRID;
-import static org.apache.calcite.runtime.SpatialTypeUtils.asEWKT;
-import static org.apache.calcite.runtime.SpatialTypeUtils.asGeoJSON;
-import static org.apache.calcite.runtime.SpatialTypeUtils.asWKB;
-import static org.apache.calcite.runtime.SpatialTypeUtils.asWKT;
-import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJSON;
-import static org.apache.calcite.runtime.SpatialTypeUtils.fromWKB;
-import static org.apache.calcite.runtime.SpatialTypeUtils.fromWKT;
+import static org.apache.calcite.runtime.SpatialTypeUtils.asEwkt;
+import static org.apache.calcite.runtime.SpatialTypeUtils.asGeoJson;
+import static org.apache.calcite.runtime.SpatialTypeUtils.asWkb;
+import static org.apache.calcite.runtime.SpatialTypeUtils.asWkt;
+import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJson;
+import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
+import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
 
 /**
  * Helper methods to implement spatial type (ST) functions in generated code.
@@ -78,47 +78,47 @@ public class SpatialTypeFunctions {
   // Geometry conversion functions (2D and 3D) ================================
 
   public static @Nullable String ST_AsGeoJSON(Geometry g) {
-    return asGeoJSON(g);
+    return asGeoJson(g);
   }
 
   public static @Nullable String ST_AsText(Geometry g) {
-    return asWKT(g);
+    return asWkt(g);
   }
 
   public static @Nullable ByteString ST_AsWKB(Geometry g) {
-    return new ByteString(asWKB(g));
+    return new ByteString(asWkb(g));
   }
 
   public static @Nullable String ST_AsWKT(Geometry g) {
-    return asWKT(g);
+    return asWkt(g);
   }
 
   public static @Nullable String ST_AsEWKT(Geometry g) {
-    return asEWKT(g);
+    return asEwkt(g);
   }
 
   public static @Nullable Geometry ST_GeomFromText(String s) {
-    return fromWKT(s);
+    return fromWkt(s);
   }
 
   public static @Nullable Geometry ST_GeomFromText(String s, int srid) {
-    final Geometry g = fromWKT(s);
+    final Geometry g = fromWkt(s);
     g.setSRID(srid);
     return g;
   }
 
   public static @Nullable Geometry ST_GeomFromWKB(ByteString b) {
-    return fromWKB(b.getBytes());
+    return fromWkb(b.getBytes());
   }
 
   public static @Nullable Geometry ST_GeomFromWKB(byte[] b, int srid) {
-    final Geometry g = fromWKB(b);
+    final Geometry g = fromWkb(b);
     g.setSRID(srid);
     return g;
   }
 
   public static @Nullable Geometry ST_GeomFromGeoJSON(String geoJSON) {
-    return fromGeoJSON(geoJSON);
+    return fromGeoJson(geoJSON);
   }
 
   public static @Nullable Geometry ST_LineFromText(String s) {
@@ -126,7 +126,7 @@ public class SpatialTypeFunctions {
   }
 
   public static @Nullable Geometry ST_LineFromText(String wkt, int srid) {
-    final Geometry g = fromWKT(wkt);
+    final Geometry g = fromWkt(wkt);
     g.setSRID(srid);
     return g == null ? null : g;
   }
@@ -136,7 +136,7 @@ public class SpatialTypeFunctions {
   }
 
   public static @Nullable Geometry ST_MPointFromText(String wkt, int srid) {
-    final Geometry g = fromWKT(wkt);
+    final Geometry g = fromWkt(wkt);
     g.setSRID(srid);
     return g == null ? null : g;
   }
@@ -146,7 +146,7 @@ public class SpatialTypeFunctions {
   }
 
   public static @Nullable Geometry ST_PointFromText(String wkt, int srid) {
-    final Geometry g = fromWKT(wkt);
+    final Geometry g = fromWkt(wkt);
     g.setSRID(srid);
     return g == null ? null : g;
   }
@@ -156,7 +156,7 @@ public class SpatialTypeFunctions {
   }
 
   public static @Nullable Geometry ST_PolyFromText(String wkt, int srid) {
-    final Geometry g = fromWKT(wkt);
+    final Geometry g = fromWkt(wkt);
     g.setSRID(srid);
     return g == null ? null : g;
   }
@@ -166,7 +166,7 @@ public class SpatialTypeFunctions {
   }
 
   public static @Nullable Geometry ST_MLineFromText(String wkt, int srid) {
-    final Geometry g = fromWKT(wkt);
+    final Geometry g = fromWkt(wkt);
     g.setSRID(srid);
     return g == null ? null : g;
   }
@@ -176,7 +176,7 @@ public class SpatialTypeFunctions {
   }
 
   public static @Nullable Geometry ST_MPolyFromText(String wkt, int srid) {
-    final Geometry g = fromWKT(wkt); // NOTE: there is no Geometry.Type.MultiPolygon
+    final Geometry g = fromWkt(wkt);
     g.setSRID(srid);
     return g == null ? null : g;
   }

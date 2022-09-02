@@ -254,7 +254,7 @@ public abstract class TestUtil {
    * <p>For example,
    * {@code round("POINT(-1.23456, 9.87654)", 3)}
    * returns "POINT(-1.235, 9.877)". */
-  public static String round(String s, int precision) {
+  public static String roundGeom(String s, int precision) {
     final StringBuilder b = new StringBuilder();
     boolean carried = false;
     int end = -1;

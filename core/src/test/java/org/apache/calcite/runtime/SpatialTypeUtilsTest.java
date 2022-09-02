@@ -28,21 +28,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class SpatialTypeUtilsTest {
 
-  @Test void fromEWKT() {
-    Geometry g1 = SpatialTypeUtils.fromEWKT("POINT(1 2)");
+  @Test void testFromEwkt() {
+    Geometry g1 = SpatialTypeUtils.fromEwkt("POINT(1 2)");
     assertEquals(1, g1.getCoordinate().getX());
     assertEquals(2, g1.getCoordinate().getY());
 
-    Geometry g2 = SpatialTypeUtils.fromEWKT("srid:1234;POINT(1 2)");
+    Geometry g2 = SpatialTypeUtils.fromEwkt("srid:1234;POINT(1 2)");
     assertEquals(1234, g2.getSRID());
     assertEquals(1, g2.getCoordinate().getX());
     assertEquals(2, g2.getCoordinate().getY());
   }
 
-  @Test void asEWKT() {
+  @Test void testAsEwkt() {
     GeometryFactory gf = new GeometryFactory();
     Geometry g1 = gf.createPoint(new Coordinate(1, 2));
     g1.setSRID(1234);
-    assertEquals("srid:1234;POINT (1 2)", SpatialTypeUtils.asEWKT(g1));
+    assertEquals("srid:1234;POINT (1 2)", SpatialTypeUtils.asEwkt(g1));
   }
 }
