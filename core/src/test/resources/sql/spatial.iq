@@ -39,6 +39,12 @@ C
 # ST_AsBinary(geom) Geometry to Well Known Binary
 # Not implemented
 
+# ST_AsEWKT(geom) Geometry to EWKT
+SELECT ST_AsEWKT(ST_GeomFromText('LINESTRING (1 2, 3 4)'));
+EXPR$0
+srid:0;LINESTRING (1 2, 3 4)
+!ok
+
 # ST_AsGeoJSON(geom) Geometry to GeoJSON
 SELECT ST_AsGeoJSON(ST_GeomFromText('LINESTRING (1 2, 3 4)'));
 EXPR$0
@@ -77,6 +83,12 @@ null
 
 # ST_Force2D(geom) 3D Geometry to 2D Geometry
 # Not implemented
+
+# ST_GeomFromEWKT(ewkt) EWKT to Geometry
+SELECT ST_GeomFromEWKT('srid:4326;LINESTRING (1 2, 3 4)');
+EXPR$0
+LINESTRING (1 2, 3 4)
+!ok
 
 # ST_GeomFromGeoJSON(geoJSON) GeoJSON to Geometry
 SELECT ST_GeomFromGeoJSON('{"type":"LineString","coordinates":[[1,2],[3,4]],"crs":{"type":"name","properties":{"name":"EPSG:0"}}}');

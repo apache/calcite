@@ -41,6 +41,7 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.NO_SRID;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asEwkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asGeoJson;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asWkt;
+import static org.apache.calcite.runtime.SpatialTypeUtils.fromEwkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJson;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
 
@@ -74,12 +75,12 @@ public class SpatialTypeFunctions {
 
   // Geometry conversion functions (2D and 3D) ================================
 
-  public static @Nullable String ST_AsGeoJSON(Geometry g) {
-    return asGeoJson(g);
-  }
-
   public static @Nullable String ST_AsEWKT(Geometry g) {
     return asEwkt(g);
+  }
+
+  public static @Nullable String ST_AsGeoJSON(Geometry g) {
+    return asGeoJson(g);
   }
 
   public static @Nullable String ST_AsText(Geometry g) {
@@ -90,8 +91,12 @@ public class SpatialTypeFunctions {
     return asWkt(g);
   }
 
-  public static @Nullable Geometry ST_GeomFromGeoJSON(String geoJSON) {
-    return fromGeoJson(geoJSON);
+  public static @Nullable Geometry ST_GeomFromEWKT(String s) {
+    return fromEwkt(s);
+  }
+
+  public static @Nullable Geometry ST_GeomFromGeoJSON(String s) {
+    return fromGeoJson(s);
   }
 
   public static @Nullable Geometry ST_GeomFromText(String s) {
