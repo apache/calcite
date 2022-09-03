@@ -755,7 +755,16 @@ POLYGON, true, true, false, false
 !ok
 
 # ST_Covers(geom1, geom2) Returns whether no point in *geom2* is outside *geom1*
-# Not implemented
+
+SELECT ST_Covers(ST_Buffer(ST_GeomFromText('POINT(0 0)'), 1), ST_GeomFromText('POINT(0 0)'));
+EXPR$0
+true
+!ok
+
+SELECT ST_Covers(ST_Buffer(ST_GeomFromText('POINT(0 0)'), 1), ST_GeomFromText('POINT(1 1)'));
+EXPR$0
+false
+!ok
 
 # ST_Crosses(geom1, geom2) Returns whether *geom1* crosses *geom2*
 
