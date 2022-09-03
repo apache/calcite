@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.runtime;
 
+import java.io.IOException;
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Strict;
@@ -33,6 +36,10 @@ import org.locationtech.jts.io.geojson.GeoJsonWriter;
 
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import org.locationtech.jts.io.gml2.GMLReader;
+import org.locationtech.jts.io.gml2.GMLWriter;
+import org.xml.sax.SAXException;
 
 /**
  * Utilities for spatial types.
@@ -120,6 +127,21 @@ public class SpatialTypeUtils {
   }
 
   /**
+   * Constructs a geometry from a GML representation.
+   *
+   * @param gml a GML
+   * @return a geometry
+   */
+  public static Geometry fromGml(String gml) {
+    try {
+      GMLReader reader = new GMLReader();
+      return reader.read(gml, GEOMETRY_FACTORY);
+    } catch (SAXException | IOException | ParserConfigurationException e) {
+      throw new RuntimeException("Unable to parse GML");
+    }
+  }
+
+  /**
    * Constructs a geometry from a Well-Known binary (WKB) representation.
    *
    * @param wkb a WKB
@@ -186,6 +208,21 @@ public class SpatialTypeUtils {
   public static String asGeoJson(Geometry geometry) {
     GeoJsonWriter geoJsonWriter = new GeoJsonWriter();
     return geoJsonWriter.write(geometry);
+  }
+
+  /**
+   * Returns the GML representation of the geometry.
+   *
+   * @param geometry a geometry
+   * @return a GML
+   */
+  public static String asGml(Geometry geometry) {
+    GMLWriter gmlWriter = new GMLWriter();
+    // remove line breaks and indentation
+    String minified = gmlWriter.write(geometry)
+        .replaceAll("\n","")
+        .replaceAll("  ", "");
+    return minified;
   }
 
   /**

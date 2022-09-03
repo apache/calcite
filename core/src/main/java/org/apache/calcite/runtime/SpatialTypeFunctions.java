@@ -41,10 +41,12 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
 import static org.apache.calcite.runtime.SpatialTypeUtils.NO_SRID;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asEwkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asGeoJson;
+import static org.apache.calcite.runtime.SpatialTypeUtils.asGml;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asWkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromEwkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJson;
+import static org.apache.calcite.runtime.SpatialTypeUtils.fromGml;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
 
@@ -86,6 +88,10 @@ public class SpatialTypeFunctions {
     return asGeoJson(g);
   }
 
+  public static @Nullable String ST_AsGML(Geometry g) {
+    return asGml(g);
+  }
+
   public static @Nullable String ST_AsText(Geometry g) {
     return asWkt(g);
   }
@@ -104,6 +110,16 @@ public class SpatialTypeFunctions {
 
   public static @Nullable Geometry ST_GeomFromGeoJSON(String s) {
     return fromGeoJson(s);
+  }
+
+  public static @Nullable Geometry ST_GeomFromGML(String s) {
+    return fromGml(s);
+  }
+
+  public static @Nullable Geometry ST_GeomFromGML(String s, int srid) {
+    final Geometry g = fromGml(s);
+    g.setSRID(srid);
+    return g;
   }
 
   public static @Nullable Geometry ST_GeomFromText(String s) {
