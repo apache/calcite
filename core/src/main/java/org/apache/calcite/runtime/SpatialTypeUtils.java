@@ -219,7 +219,7 @@ public class SpatialTypeUtils {
     GMLWriter gmlWriter = new GMLWriter();
     // remove line breaks and indentation
     String minified = gmlWriter.write(geometry)
-        .replaceAll("\n","")
+        .replaceAll("\n", "")
         .replaceAll("  ", "");
     return minified;
   }

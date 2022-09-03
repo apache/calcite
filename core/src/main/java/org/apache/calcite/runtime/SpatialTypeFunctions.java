@@ -364,14 +364,34 @@ public class SpatialTypeFunctions {
     return false;
   }
 
-  /** Returns the x-value of the first coordinate of {@code geom}. */
+  /** Return the X coordinate of the point, or NULL if not available. Input must be a point.. */
   public static @Nullable Double ST_X(Geometry geom) {
     return geom instanceof Point ? ((Point) geom).getX() : null;
+  }
+
+  /** Returns the X maxima of a 2D or 3D bounding box or a geometry. */
+  public static @Nullable Double ST_XMax(Geometry geom) {
+    return geom.getEnvelopeInternal().getMaxX();
+  }
+
+  /** Returns the X minima of a 2D or 3D bounding box or a geometry. */
+  public static @Nullable Double ST_XMin(Geometry geom) {
+    return geom.getEnvelopeInternal().getMinX();
   }
 
   /** Returns the y-value of the first coordinate of {@code geom}. */
   public static @Nullable Double ST_Y(Geometry geom) {
     return geom instanceof Point ? ((Point) geom).getY() : null;
+  }
+
+  /** Returns the Y maxima of a 2D or 3D bounding box or a geometry. */
+  public static @Nullable Double ST_YMax(Geometry geom) {
+    return geom.getEnvelopeInternal().getMaxY();
+  }
+
+  /** Returns the Y minima of a 2D or 3D bounding box or a geometry. */
+  public static @Nullable Double ST_YMin(Geometry geom) {
+    return geom.getEnvelopeInternal().getMinY();
   }
 
   /** Returns the z-value of the first coordinate of {@code geom}. */
