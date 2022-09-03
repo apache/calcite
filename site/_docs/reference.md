@@ -1,3 +1,4 @@
+
 ---
 layout: docs
 title: SQL language
@@ -1181,11 +1182,11 @@ or binary strings encoded as
 Where you would use a literal, apply the `ST_GeomFromText` function,
 for example `ST_GeomFromText('POINT (30 10)')`.
 
-| Data type   | Type code | Examples in WKT
-|:----------- |:--------- |:---------------------
+| Data type          | Type code | Examples in WKT
+|:-------------------|:--------- |:---------------------
 | GEOMETRY           |  0 | generalization of Point, Curve, Surface, GEOMETRYCOLLECTION
 | POINT              |  1 | <code>ST_GeomFromText(&#8203;'POINT (30 10)')</code> is a point in 2D space; <code>ST_GeomFromText(&#8203;'POINT Z(30 10 2)')</code> is point in 3D space
-| CURVE            | 13 | generalization of LINESTRING
+| CURVE              | 13 | generalization of LINESTRING
 | LINESTRING         |  2 | <code>ST_GeomFromText(&#8203;'LINESTRING (30 10, 10 30, 40 40)')</code>
 | SURFACE            | 14 | generalization of Polygon, PolyhedralSurface
 | POLYGON            |  3 | <code>ST_GeomFromText(&#8203;'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')</code> is a pentagon; <code>ST_GeomFromText(&#8203;'POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))')</code> is a pentagon with a quadrilateral hole
@@ -2159,59 +2160,67 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| p | ST_AsBinary(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKB(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKT(geom) | Converts GEOMETRY → EWKT
+| p | ST_AsGeoJSON(geom) | Converts GEOMETRY → GeoJSON
+| p | ST_AsGML(geom) | Converts GEOMETRY → GML
 | p | ST_AsText(geom) | Synonym for `ST_AsWKT`
-| o | ST_AsWKT(geom) | Converts *geom* → WKT
-| o | ST_GeomFromText(wkt [, srid ]) | Returns a specified GEOMETRY value from WKT representation
+| o | ST_AsWKB(geom) | Converts GEOMETRY → WKB
+| o | ST_AsWKT(geom) | Converts GEOMETRY → WKT
+| o | ST_Force2D(geom) | 3D GEOMETRY → 2D GEOMETRY
+| o | ST_GeomFromEWKB(wkb [, srid ]) | Synonym for `ST_GeomFromWKB`
+| o | ST_GeomFromEWKT(wkb [, srid ]) | Converts EWKT → GEOMETRY
+| o | ST_GeomFromGeoJSON(json) | Converts GeoJSON → GEOMETRY
+| o | ST_GeomFromGML(wkb [, srid ]) | Converts GML → GEOMETRY
+| o | ST_GeomFromText(wkt [, srid ]) | Synonym for `ST_GeomFromWKT`
+| o | ST_GeomFromWKB(wkb [, srid ]) | Converts WKB → GEOMETRY
+| o | ST_GeomFromWKT(wkb [, srid ]) | Converts WKT → GEOMETRY
 | o | ST_LineFromText(wkt [, srid ]) | Converts WKT → LINESTRING
+| o | ST_LineFromWKB(wkt [, srid ]) | Converts WKT → LINESTRING
 | o | ST_MLineFromText(wkt [, srid ]) | Converts WKT → MULTILINESTRING
 | o | ST_MPointFromText(wkt [, srid ]) | Converts WKT → MULTIPOINT
 | o | ST_MPolyFromText(wkt [, srid ]) Converts WKT → MULTIPOLYGON
 | o | ST_PointFromText(wkt [, srid ]) | Converts WKT → POINT
+| o | ST_PointFromWKB(wkt [, srid ]) | Converts WKB → POINT
 | o | ST_PolyFromText(wkt [, srid ]) | Converts WKT → POLYGON
+| o | ST_PolyFromWKB(wkt [, srid ]) | Converts WKB → POLYGON
+| h | ST_ToMultiPoint(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
+| h | ST_ToMultiLine(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
+| h | ST_ToMultiSegments(geom) | Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
 
 Not implemented:
 
-* ST_AsBinary(geom) GEOMETRY → WKB
-* ST_AsGML(geom) GEOMETRY → GML
-* ST_Force2D(geom) 3D GEOMETRY → 2D GEOMETRY
-* ST_GeomFromGML(gml [, srid ]) GML → GEOMETRY
-* ST_GeomFromWKB(wkb [, srid ]) WKB → GEOMETRY
 * ST_GoogleMapLink(geom [, layerType [, zoom ]]) GEOMETRY → Google map link
-* ST_LineFromWKB(wkb [, srid ]) WKB → LINESTRING
 * ST_OSMMapLink(geom [, marker ]) GEOMETRY → OSM map link
-* ST_PointFromWKB(wkb [, srid ]) WKB → POINT
-* ST_PolyFromWKB(wkb [, srid ]) WKB → POLYGON
-* ST_ToMultiLine(geom) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
-* ST_ToMultiPoint(geom)) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
-* ST_ToMultiSegments(geom) Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
 
 #### Geometry conversion functions (3D)
 
-Not implemented:
-
-* ST_Force3D(geom) 2D GEOMETRY → 3D GEOMETRY
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Force3D(geom) | 2D GEOMETRY → 3D GEOMETRY
 
 #### Geometry creation functions (2D)
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| h | ST_BoundingCircle(geom) | Returns the minimum bounding circle of *geom*
+| h | ST_Expand(geom, distance) | Expands *geom*'s envelope
+| h | ST_Expand(geom, deltaX, deltaY) | Expands *geom*'s envelope
+| h | ST_MakeEllipse(point, width, height) | Constructs an ellipse
 | p | ST_MakeEnvelope(xMin, yMin, xMax, yMax  [, srid ]) | Creates a rectangular POLYGON
 | h | ST_MakeGrid(geom, deltaX, deltaY) | Calculates a regular grid of POLYGONs based on *geom*
 | h | ST_MakeGridPoints(geom, deltaX, deltaY) | Calculates a regular grid of points based on *geom*
 | o | ST_MakeLine(point1 [, point ]*) | Creates a line-string from the given POINTs (or MULTIPOINTs)
 | p | ST_MakePoint(x, y [, z ]) | Synonym for `ST_Point`
+| p | ST_MakePolygon(lineString [, hole ]*)| Creates a POLYGON from *lineString* with the given holes (which are required to be closed LINESTRINGs)
+| h | ST_MinimumDiameter(geom) | Returns the minimum diameter of *geom*
+| h | ST_MinimumRectangle(geom) | Returns the minimum rectangle enclosing *geom*
+| h | ST_OctogonalEnvelope(geom) | Returns the octogonal envelope of *geom*
 | o | ST_Point(x, y [, z ]) | Constructs a point from two or three coordinates
 
 Not implemented:
 
-* ST_BoundingCircle(geom) Returns the minimum bounding circle of *geom*
-* ST_Expand(geom, distance) Expands *geom*'s envelope
-* ST_Expand(geom, deltaX, deltaY) Expands *geom*'s envelope
-* ST_MakeEllipse(point, width, height) Constructs an ellipse
-* ST_MakePolygon(lineString [, hole ]*) Creates a POLYGON from *lineString* with the given holes (which are required to be closed LINESTRINGs)
-* ST_MinimumDiameter(geom) Returns the minimum diameter of *geom*
-* ST_MinimumRectangle(geom) Returns the minimum rectangle enclosing *geom*
-* ST_OctogonalEnvelope(geom) Returns the octogonal envelope of *geom*
 * ST_RingBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Returns a MULTIPOLYGON of buffers centered at *geom* and of increasing buffer size
 
 ### Geometry creation functions (3D)
@@ -2227,47 +2236,47 @@ Not implemented:
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Boundary(geom [, srid ]) | Returns the boundary of *geom*
+| o | ST_Centroid(geom) | Returns the centroid of *geom*
+| o | ST_CoordDim(geom) | Returns the dimension of the coordinates of *geom*
+| o | ST_Dimension(geom) | Returns the dimension of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
+| h | ST_ExteriorRing(geom) | Returns the exterior ring of *geom*, or null if *geom* is not a polygon
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
+| p | ST_EndPoint(lineString) | Returns the last coordinate of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
+| o | ST_Extent(geom) | Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_GeometryN(geomCollection, n) | Returns the *n*th GEOMETRY of *geomCollection*
+| h | ST_InteriorRingN(geom) | Returns the nth interior ring of *geom*, or null if *geom* is not a polygon
+| h | ST_IsClosed(geom) | Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
+| o | ST_IsEmpty(geom) | Returns whether *geom* is empty
+| o | ST_IsRectangle(geom) | Returns whether *geom* is a rectangle
+| h | ST_IsRing(geom) | Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
+| o | ST_IsSimple(geom) | Returns whether *geom* is simple
+| o | ST_IsValid(geom) | Returns whether *geom* is valid
+| h | ST_NPoints(geom)  | Returns the number of points in *geom*
+| h | ST_NumGeometries(geom) | Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
+| h | ST_NumInteriorRing(geom) | Synonym for `ST_NumInteriorRings`
+| h | ST_NumInteriorRings(geom) | Returns the number of interior rings of *geom*
+| h | ST_NumPoints(geom) | Returns the number of points in *geom*
+| p | ST_PointN(geom, n) | Returns the *n*th point of a *geom*
+| p | ST_PointOnSurface(geom) | Returns an interior or boundary point of *geom*
+| o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
+| p | ST_StartPoint(geom) | Returns the first point of *geom*
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
+| o | ST_XMax(geom) | Returns the maximum x-value of *geom*
+| o | ST_XMin(geom) | Returns the minimum x-value of *geom*
 | o | ST_Y(geom) | Returns the y-value of the first coordinate of *geom*
+| o | ST_YMax(geom) | Returns the maximum y-value of *geom*
+| o | ST_YMin(geom) | Returns the minimum y-value of *geom*
 
 Not implemented:
 
-* ST_Centroid(geom) Returns the centroid of *geom* (which may be a GEOMETRYCOLLECTION)
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
-* ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
-* ST_Dimension(geom) Returns the dimension of *geom*
-* ST_EndPoint(lineString) Returns the last coordinate of *lineString*
-* ST_Envelope(geom [, srid ]) Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
-* ST_Extent(geom) Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
-* ST_GeometryN(geomCollection, n) Returns the *n*th GEOMETRY of *geomCollection*
-* ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*
-* ST_IsClosed(geom) Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
-* ST_IsEmpty(geom) Returns whether *geom* is empty
-* ST_IsRectangle(geom) Returns whether *geom* is a rectangle
-* ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
-* ST_IsSimple(geom) Returns whether *geom* is simple
-* ST_IsValid(geom) Returns whether *geom* is valid
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
-* ST_NPoints(geom) Returns the number of points in *geom*
-* ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
-* ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
-* ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
-* ST_NumPoints(lineString) Returns the number of points in *lineString*
-* ST_PointN(geom, n) Returns the *n*th point of a *lineString*
-* ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
-* ST_SRID(geom) Returns SRID value of *geom* or 0 if it does not have one
-* ST_StartPoint(lineString) Returns the first coordinate of *lineString*
-* ST_XMax(geom) Returns the maximum x-value of *geom*
-* ST_XMin(geom) Returns the minimum x-value of *geom*
-* ST_YMax(geom) Returns the maximum y-value of *geom*
-* ST_YMin(geom) Returns the minimum y-value of *geom*
+
 
 #### Geometry properties (3D)
 
@@ -2275,11 +2284,8 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | p | ST_Is3D(s) | Returns whether *geom* has at least one z-coordinate
 | o | ST_Z(geom) | Returns the z-value of the first coordinate of *geom*
-
-Not implemented:
-
-* ST_ZMax(geom) Returns the maximum z-value of *geom*
-* ST_ZMin(geom) Returns the minimum z-value of *geom*
+| o | ST_ZMax(geom) | Returns the maximum z-value of *geom*
+| o | ST_ZMin(geom) | Returns the minimum z-value of *geom*
 
 ### Geometry predicates
 
@@ -2287,6 +2293,7 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | o | ST_Contains(geom1, geom2) | Returns whether *geom1* contains *geom2*
 | p | ST_ContainsProperly(geom1, geom2) | Returns whether *geom1* contains *geom2* but does not intersect its boundary
+| p | ST_Covers(geom1, geom2) | Returns whether no point in *geom2* is outside *geom1*
 | o | ST_Crosses(geom1, geom2) | Returns whether *geom1* crosses *geom2*
 | o | ST_Disjoint(geom1, geom2) | Returns whether *geom1* and *geom2* are disjoint
 | p | ST_DWithin(geom1, geom2, distance) | Returns whether *geom1* and *geom* are within *distance* of one another
@@ -2294,15 +2301,14 @@ Not implemented:
 | o | ST_Equals(geom1, geom2) | Returns whether *geom1* equals *geom2*
 | o | ST_Intersects(geom1, geom2) | Returns whether *geom1* intersects *geom2*
 | o | ST_Overlaps(geom1, geom2) | Returns whether *geom1* overlaps *geom2*
+| o | ST_Relate(geom1, geom2) | Returns the DE-9IM intersection matrix of *geom1* and *geom2*
+| o | ST_Relate(geom1, geom2, iMatrix) | Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 | o | ST_Touches(geom1, geom2) | Returns whether *geom1* touches *geom2*
 | o | ST_Within(geom1, geom2) | Returns whether *geom1* is within *geom2*
 
 Not implemented:
 
-* ST_Covers(geom1, geom2) Returns whether no point in *geom2* is outside *geom1*
 * ST_OrderingEquals(geom1, geom2) Returns whether *geom1* equals *geom2* and their coordinates and component Geometries are listed in the same order
-* ST_Relate(geom1, geom2) Returns the DE-9IM intersection matrix of *geom1* and *geom2*
-* ST_Relate(geom1, geom2, iMatrix) Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 
 #### Geometry operators (2D)
 
@@ -2311,23 +2317,27 @@ The following functions combine 2D geometries.
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Buffer(geom, distance [, quadSegs \| style ]) | Computes a buffer around *geom*
+| o | ST_ConvexHull(geom) | Computes the smallest convex polygon that contains all the points in *geom*
+| o | ST_Difference(geom1, geom2) | Computes the difference between two geometries
+| o | ST_SymDifference(geom1, geom2) | Computes the symmetric difference between two geometries
+| o | ST_Intersection(geom1, geom2) | Computes the intersection of *geom1* and *geom2*
 | o | ST_Union(geom1, geom2) | Computes the union of *geom1* and *geom2*
 | o | ST_Union(geomCollection) | Computes the union of the geometries in *geomCollection*
 
 See also: the `ST_Union` aggregate function.
 
-Not implemented:
-
-* ST_ConvexHull(geom) Computes the smallest convex polygon that contains all the points in *geom*
-* ST_Difference(geom1, geom2) Computes the difference between two geometries
-* ST_Intersection(geom1, geom2) Computes the intersection of two geometries
-* ST_SymDifference(geom1, geom2) Computes the symmetric difference between two geometries
-
 #### Affine transformation functions (3D and 2D)
 
+The following functions transform 2D geometries.
+
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Rotate(geom, angle [, origin \| x, y]) | Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
+| o | ST_Scale(geom, xFactor, yFactor) | Scales *geom* by multiplying the ordinates by the indicated scale factors
+| o | ST_Translate(geom, x, y) | Translates *geom* by the vector (x, y)
+
 Not implemented:
 
-* ST_Rotate(geom, angle [, origin \| x, y]) Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
 * ST_Scale(geom, xFactor, yFactor [, zFactor ]) Scales *geom* by multiplying the ordinates by the indicated scale factors
 * ST_Translate(geom, x, y, [, z]) Translates *geom*
 
@@ -2390,18 +2400,23 @@ Not implemented:
 
 The following functions process geometries.
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_LineMerge(geom)  | Merges a collection of linear components to form a line-string of maximal length
+| o | ST_MakeValid(geom)  | Makes a valid geometry of a given invalid geometry
+| o | ST_Polygonize(geom)  | Creates a MULTIPOLYGON from edges of *geom*
+| o | ST_PrecisionReducer(geom, n) | Reduces *geom*'s precision to *n* decimal places
+| o | ST_Simplify(geom, distance)  | Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
+| o | ST_SimplifyPreserveTopology(geom, distance) | Simplifies *geom*, preserving its topology
+| o | ST_Snap(geom1, geom2, tolerance) | Snaps *geom1* and *geom2* together
+
 Not implemented:
 
 * ST_LineIntersector(geom1, geom2) Splits *geom1* (a line-string) with *geom2*
 * ST_LineMerge(geom) Merges a collection of linear components to form a line-string of maximal length
 * ST_MakeValid(geom [, preserveGeomDim [, preserveDuplicateCoord [, preserveCoordDim]]]) Makes *geom* valid
-* ST_Polygonize(geom) Creates a MULTIPOLYGON from edges of *geom*
-* ST_PrecisionReducer(geom, n) Reduces *geom*'s precision to *n* decimal places
 * ST_RingSideBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 * ST_SideBuffer(geom, distance [, bufferStyle ]) Compute a single buffer on one side
-* ST_Simplify(geom, distance) Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
-* ST_SimplifyPreserveTopology(geom) Simplifies *geom*, preserving its topology
-* ST_Snap(geom1, geom2, tolerance) Snaps *geom1* and *geom2* together
 * ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line
 
 #### Geometry projection functions

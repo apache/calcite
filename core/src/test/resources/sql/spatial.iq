@@ -36,11 +36,29 @@ C
 
 #### Geometry conversion functions (2D)
 
-# ST_AsBinary(geom) Geometry to Well Known Binary
-# Not implemented
+# ST_AsBinary(geom) Geometry to WKB
+SELECT ST_AsBinary(ST_GeomFromText('LINESTRING (1 2, 3 4)'));
+EXPR$0
+0000000002000000023ff0000000000000400000000000000040080000000000004010000000000000
+!ok
+
+# ST_AsEWKT(geom) Geometry to EWKT
+SELECT ST_AsEWKT(ST_GeomFromText('LINESTRING (1 2, 3 4)'));
+EXPR$0
+srid:0;LINESTRING (1 2, 3 4)
+!ok
+
+# ST_AsGeoJSON(geom) Geometry to GeoJSON
+SELECT ST_AsGeoJSON(ST_GeomFromText('LINESTRING (1 2, 3 4)'));
+EXPR$0
+{"type":"LineString","coordinates":[[1,2],[3,4]],"crs":{"type":"name","properties":{"name":"EPSG:0"}}}
+!ok
 
 # ST_AsGML(geom) Geometry to GML
-# Not implemented
+SELECT ST_AsGML(ST_GeomFromText('LINESTRING (1 2, 3 4)'));
+EXPR$0
+<gml:LineString><gml:coordinates>1.0,2.0 3.0,4.0 </gml:coordinates></gml:LineString>
+!ok
 
 # ST_AsText(geom) Alias for `ST_AsWKT`
 SELECT ST_AsText(ST_GeomFromText('POINT(-71.064544 42.28787)'));
@@ -49,10 +67,15 @@ POINT (-71.064544 42.28787)
 !ok
 
 # ST_AsWKT(geom) Converts *geom* → Well-Known Text
-
 SELECT ST_AsWKT(ST_GeomFromText('POINT(-71.064544 42.28787)'));
 EXPR$0
 POINT (-71.064544 42.28787)
+!ok
+
+# ST_AsEWKB(geom) Geometry to WKB
+SELECT ST_AsWKB(ST_GeomFromText('LINESTRING (1 2, 3 4)'));
+EXPR$0
+0000000002000000023ff0000000000000400000000000000040080000000000004010000000000000
 !ok
 
 # PostGIS can implicitly assign from CHAR to GEOMETRY; we can't
@@ -71,13 +94,47 @@ null
 !ok
 
 # ST_Force2D(geom) 3D Geometry to 2D Geometry
-# Not implemented
 
-# ST_GeomFromGML(gml [, srid ]) GML to Geometry
-# Not implemented
+SELECT ST_AsText(ST_Force2D(ST_GeomFromText('POINT(-10 10)')));
+EXPR$0
+POINT (-10 10)
+!ok
+
+SELECT ST_AsText(ST_Force2D(ST_GeomFromText('POINT(-10 10 6)')));
+EXPR$0
+POINT (-10 10)
+!ok
+
+SELECT ST_AsText(ST_Force2D(ST_GeomFromText('LINESTRING(-10 10 2, 10 10 3)')));
+EXPR$0
+LINESTRING (-10 10, 10 10)
+!ok
+
+# ST_GeomFromEWKT(ewkt) EWKT to Geometry
+SELECT ST_AsEWKT(ST_GeomFromEWKT('srid:4326;LINESTRING (1 2, 3 4)'));
+EXPR$0
+srid:4326;LINESTRING (1 2, 3 4)
+!ok
+
+# ST_GeomFromGeoJSON(geoJSON) GeoJSON to Geometry
+SELECT ST_GeomFromGeoJSON('{"type":"LineString","coordinates":[[1,2],[3,4]],"crs":{"type":"name","properties":{"name":"EPSG:0"}}}');
+EXPR$0
+LINESTRING (1 2, 3 4)
+!ok
+
+# ST_GeomFromGML(gml) GML to Geometry
+SELECT ST_GeomFromGML('<gml:LineString><gml:coordinates>1.0,2.0 3.0,4.0</gml:coordinates></gml:LineString>');
+EXPR$0
+LINESTRING (1 2, 3 4)
+!ok
+
+# ST_GeomFromGML(gml, srid) GML to Geometry
+SELECT ST_AsEWKT(ST_GeomFromGML('<gml:LineString><gml:coordinates>1.0,2.0 3.0,4.0</gml:coordinates></gml:LineString>', 4326));
+EXPR$0
+srid:4326;LINESTRING (1 2, 3 4)
+!ok
 
 # ST_GeomFromText(wkt [, srid ]) Returns a specified geometry value from Well-Known Text representation
-
 SELECT ST_GeomFromText('LINESTRING(-71.160281 42.258729,-71.160837 42.259113,-71.161144 42.25932)');
 EXPR$0
 LINESTRING (-71.160281 42.258729, -71.160837 42.259113, -71.161144 42.25932)
@@ -155,8 +212,17 @@ EXPR$0
 GEOMETRYCOLLECTION EMPTY
 !ok
 
-# ST_GeomFromWKB(wkb [, srid ]) Well Known Binary to Geometry
-# Not implemented
+# ST_GeomFromWKB(wkb) WKB to Geometry
+SELECT ST_GeomFromWKB(ST_AsWKB(ST_GeomFromText('LINESTRING (1 2, 3 4)')));
+EXPR$0
+LINESTRING (1 2, 3 4)
+!ok
+
+# ST_GeomFromWKB(wkb, srid) WKB to Geometry
+SELECT ST_AsEWKT(ST_GeomFromWKB(ST_AsWKB(ST_GeomFromText('LINESTRING (1 2, 3 4)')), 4326));
+EXPR$0
+srid:4326;LINESTRING (1 2, 3 4)
+!ok
 
 # ST_GoogleMapLink(geom [, layerType [, zoom ]]) Geometry to Google map link
 # Not implemented
@@ -165,7 +231,7 @@ GEOMETRYCOLLECTION EMPTY
 SELECT ST_LineFromText('LINESTRING(1 2, 3 4)') AS aline,
   ST_LineFromText('POINT(1 2)') AS null_return;
 ALINE, NULL_RETURN
-LINESTRING (1 2, 3 4), POINT (1 2)
+LINESTRING (1 2, 3 4), null
 !ok
 
 # ST_LineFromWKB(wkb [, srid ]) Well Known Binary to LINESTRING
@@ -237,36 +303,118 @@ POLYGON ((0 0, 0 1, 1 1, 0 0))
 # Not implemented
 
 # ST_ToMultiLine(geom) Converts the coordinates of *geom* (which may be a geometry-collection) into a multi-line-string
-# Not implemented
+
+SELECT ST_ToMultiLine(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1))'));
+EXPR$0
+MULTILINESTRING ((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1))
+!ok
+
+SELECT ST_ToMultiLine(ST_GeomFromText('GEOMETRYCOLLECTION(LINESTRING(1 4 3, 10 7 9, 12 9 22), POLYGON((1 1 -1, 3 1 0, 3 2 1, 1 2 2, 1 1 -1)))'));
+EXPR$0
+MULTILINESTRING ((1 4, 10 7, 12 9), (1 1, 3 1, 3 2, 1 2, 1 1))
+!ok
 
 # ST_ToMultiPoint(geom)) Converts the coordinates of *geom* (which may be a geometry-collection) into a multi-point
-# Not implemented
+
+SELECT ST_ToMultiPoint(ST_GeomFromText('POINT(5 5)'));
+EXPR$0
+MULTIPOINT ((5 5))
+!ok
+
+SELECT ST_ToMultiPoint(ST_GeomFromText('MULTIPOINT(5 5, 1 2, 3 4, 99 3)'));
+EXPR$0
+MULTIPOINT ((5 5), (1 2), (3 4), (99 3))
+!ok
+
+SELECT ST_ToMultiPoint(ST_GeomFromText('LINESTRING(5 5, 1 2, 3 4, 1 5)'));
+EXPR$0
+MULTIPOINT ((5 5), (1 2), (3 4), (1 5))
+!ok
 
 # ST_ToMultiSegments(geom) Converts *geom* (which may be a geometry-collection) into a set of distinct segments stored in a multi-line-string
-# Not implemented
+
+SELECT ST_ToMultiSegments(ST_GeomFromText('LINESTRING(5 4, 1 1, 3 4, 4 5)'));
+EXPR$0
+MULTILINESTRING ((5 4, 1 1), (1 1, 3 4), (3 4, 4 5))
+!ok
+
+SELECT ST_ToMultiSegments(ST_GeomFromText('MULTILINESTRING((1 4 3, 15 7 9, 16 17 22), (0 0 0, 1 0 0, 1 2 0, 0 2 1))'));
+EXPR$0
+MULTILINESTRING ((1 4, 15 7), (15 7, 16 17), (0 0, 1 0), (1 0, 1 2), (1 2, 0 2))
+!ok
+
+SELECT ST_ToMultiSegments(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1))'));
+EXPR$0
+MULTILINESTRING ((0 0, 10 0), (10 0, 10 6), (10 6, 0 6), (0 6, 0 0), (1 1, 2 1), (2 1, 2 5), (2 5, 1 5), (1 5, 1 1))
+!ok
 
 #### Geometry conversion functions (3D)
 
 # ST_Force3D(geom) 2D Geometry to 3D Geometry
-# Not implemented
+
+SELECT ST_AsText(ST_Force3D(ST_GeomFromText('POINT(-10 10 6)')));
+EXPR$0
+POINT Z(-10 10 6)
+!ok
+
+SELECT ST_AsText(ST_Force3D(ST_GeomFromText('POINT(-10 10)')));
+EXPR$0
+POINT Z(-10 10 0)
+!ok
+
+SELECT ST_AsText(ST_Force3D(ST_GeomFromText('LINESTRING(-10 10, 10 10 3)')));
+EXPR$0
+LINESTRING Z(-10 10 0, 10 10 3)
+!ok
 
 #### Geometry creation functions (2D)
 
 # ST_BoundingCircle(geom) Returns the minimum bounding circle of *geom*
-# Not implemented
+
+SELECT roundGeom(ST_asText(ST_BoundingCircle(ST_GeomFromText('POLYGON((1 1, 1 4, 4 4, 4 1, 1 1))'))), 2);
+EXPR$0
+POLYGON ((4.63 2.5, 4.59 2.09, 4.46 1.69, 4.27 1.33, 4 1.01, 3.68 0.74, 3.32 0.55, 2.92 0.42, 2.5 0.38, 2.09 0.42, 1.69 0.55, 1.33 0.74, 1.01 1, 0.74 1.33, 0.55 1.69, 0.42 2.09, 0.38 2.50, 0.42 2.92, 0.55 3.32, 0.74 3.68, 1.00 4, 1.33 4.27, 1.69 4.46, 2.09 4.59, 2.50 4.63, 2.92 4.59, 3.32 4.46, 3.68 4.27, 4.00 4, 4.27 3.68, 4.46 3.32, 4.59 2.92, 4.63 2.5))
+!ok
+
+SELECT roundGeom(ST_asText(ST_BoundingCircle(ST_GeomFromText('MULTIPOINT((1 1), (4 2))'))), 2);
+EXPR$0
+POLYGON ((4.09 1.5, 4.06 1.20, 3.97 0.90, 3.82 0.63, 3.62 0.39, 3.38 0.19, 3.11 0.04, 2.81 -0.06, 2.5 -0.09, 2.20 -0.06, 1.90 0.04, 1.63 0.19, 1.39 0.39, 1.19 0.63, 1.04 0.90, 0.95 1.20, 0.92 1.50, 0.95 1.81, 1.04 2.11, 1.19 2.38, 1.39 2.62, 1.63 2.82, 1.90 2.97, 2.20 3.06, 2.50 3.09, 2.81 3.06, 3.11 2.97, 3.38 2.82, 3.62 2.62, 3.82 2.38, 3.97 2.11, 4.06 1.81, 4.09 1.5))
+!ok
+
+SELECT roundGeom(ST_asText(ST_BoundingCircle(ST_GeomFromText('LINESTRING(1 1, 4 5, 3 2)'))), 2);
+EXPR$0
+POLYGON ((5 3, 4.96 2.52, 4.81 2.05, 4.58 1.62, 4.27 1.24, 3.89 0.93, 3.46 0.70, 2.99 0.55, 2.5 0.5, 2.02 0.55, 1.55 0.70, 1.12 0.93, 0.74 1.24, 0.43 1.62, 0.20 2.05, 0.05 2.52, 0 3.00, 0.05 3.49, 0.20 3.96, 0.43 4.39, 0.74 4.77, 1.12 5.08, 1.55 5.31, 2.02 5.46, 2.50 5.5, 2.99 5.46, 3.46 5.31, 3.89 5.08, 4.27 4.77, 4.58 4.39, 4.81 3.96, 4.96 3.49, 5 3))
+!ok
 
 # ST_Expand(geom, distance) Expands *geom*'s envelope
-# Not implemented
+
+SELECT ST_Expand(ST_GeomFromText('POINT(1 1)'), 1);
+EXPR$0
+POLYGON ((0 0, 0 2, 2 2, 2 0, 0 0))
+!ok
 
 # ST_Expand(geom, deltaX, deltaY) Expands *geom*'s envelope
-# Not implemented
+
+SELECT ST_Expand(ST_GeomFromText('POINT(4 4)'), 5, 2);
+EXPR$0
+POLYGON ((-1 2, -1 6, 9 6, 9 2, -1 2))
+!ok
+
+SELECT ST_Expand(ST_GeomFromText('LINESTRING(3 2, 7 5, 2 7)'), 2, 1);
+EXPR$0
+POLYGON ((0 1, 0 8, 9 8, 9 1, 0 1))
+!ok
 
 # ST_MakeEllipse(point, width, height) Constructs an ellipse
-# Not implemented
+
+SELECT roundGeom(ST_AsText(ST_MakeEllipse(ST_GeomFromText('POINT(5 5)'), 2, 5)), 2);
+EXPR$0
+POLYGON ((6 5, 6.00 5.16, 6.00 5.32, 5.99 5.47, 5.97 5.63, 5.96 5.78, 5.93 5.93, 5.91 6.07, 5.88 6.21, 5.85 6.34, 5.81 6.47, 5.78 6.60, 5.73 6.72, 5.69 6.83, 5.64 6.93, 5.59 7.03, 5.54 7.12, 5.49 7.20, 5.43 7.27, 5.37 7.33, 5.31 7.38, 5.25 7.43, 5.19 7.46, 5.13 7.49, 5.07 7.50, 5 7.5, 4.94 7.50, 4.88 7.49, 4.82 7.46, 4.76 7.43, 4.70 7.38, 4.64 7.33, 4.58 7.27, 4.52 7.20, 4.47 7.12, 4.42 7.03, 4.37 6.93, 4.32 6.83, 4.28 6.72, 4.23 6.60, 4.20 6.47, 4.16 6.34, 4.13 6.21, 4.10 6.07, 4.08 5.93, 4.05 5.78, 4.04 5.63, 4.02 5.47, 4.01 5.32, 4.01 5.16, 4 5.00, 4.01 4.85, 4.01 4.69, 4.02 4.54, 4.04 4.38, 4.05 4.23, 4.08 4.08, 4.10 3.94, 4.13 3.80, 4.16 3.67, 4.20 3.54, 4.23 3.41, 4.28 3.29, 4.32 3.18, 4.37 3.08, 4.42 2.98, 4.47 2.89, 4.52 2.81, 4.58 2.74, 4.64 2.68, 4.70 2.63, 4.76 2.58, 4.82 2.55, 4.88 2.52, 4.94 2.51, 5 2.5, 5.07 2.51, 5.13 2.52, 5.19 2.55, 5.25 2.58, 5.31 2.63, 5.37 2.68, 5.43 2.74, 5.49 2.81, 5.54 2.89, 5.59 2.98, 5.64 3.08, 5.69 3.18, 5.73 3.29, 5.78 3.41, 5.81 3.54, 5.85 3.67, 5.88 3.80, 5.91 3.94, 5.93 4.08, 5.96 4.23, 5.97 4.38, 5.99 4.54, 6.00 4.69, 6.00 4.85, 6 5))
+!ok
 
 # ST_MakeEnvelope(xMin, yMin, xMax, yMax  [, srid ]) Creates a rectangular Polygon
-SELECT ST_AsText(ST_MakeEnvelope(10.0, 10.0, 11.0, 11.0, 4326));
 
+SELECT ST_AsText(ST_MakeEnvelope(10.0, 10.0, 11.0, 11.0, 4326));
 EXPR$0
 POLYGON ((10 10, 10 11, 11 11, 11 10, 10 10))
 !ok
@@ -361,16 +509,51 @@ Greenland, POINT (-42.604303 71.706936)
 !ok
 
 # ST_MakePolygon(lineString [, hole ]*) Creates a polygon from *lineString* with the given holes (which are required to be closed line-strings)
-# Not implemented
+
+SELECT ST_MakePolygon(ST_GeomFromText('LINESTRING(100 250, 100 350, 200 350, 200 250, 100 250)'));
+EXPR$0
+POLYGON ((100 250, 100 350, 200 350, 200 250, 100 250))
+!ok
+
+SELECT ST_MakePolygon(ST_GeomFromText('LINESTRING(0 5, 4 5, 4 0, 0 0, 0 5)'), ST_GeomFromText('LINESTRING(1 1, 1 2, 2 2, 2 1, 1 1)'));
+EXPR$0
+POLYGON ((0 5, 4 5, 4 0, 0 0, 0 5), (1 1, 1 2, 2 2, 2 1, 1 1))
+!ok
+
+SELECT ST_MakePolygon(ST_GeomFromText('POINT(1 1)'));
+Only supports LINESTRINGs.
+!error
 
 # ST_MinimumDiameter(geom) Returns the minimum diameter of *geom*
-# Not implemented
+
+SELECT ST_MinimumDiameter(ST_GeomFromText('POINT(395 278)'));
+EXPR$0
+LINESTRING (395 278, 395 278)
+!ok
+
+SELECT ST_MinimumDiameter(ST_GeomFromText('LINESTRING(0 0, 1 1, 3 9, 7 1)'));
+EXPR$0
+LINESTRING (1 3, 7 1)
+!ok
 
 # ST_MinimumRectangle(geom) Returns the minimum rectangle enclosing *geom*
-# Not implemented
 
-# ST_OctogonalEnvelope(geom) Returns the octogonal envelope of *geom*
-# Not implemented
+SELECT ST_MinimumRectangle(ST_GeomFromText('MULTIPOINT((8 3), (4 6))'));
+EXPR$0
+LINESTRING (4 6, 8 3)
+!ok
+
+SELECT ST_MinimumRectangle(ST_GeomFromText('POLYGON((1 2, 3 0, 5 2, 3 2, 2 3, 1 2))'));
+EXPR$0
+POLYGON ((1.4 3.1999999999999993, 0.6 0.8, 4.2 -0.3999999999999996, 4.999999999999999 1.9999999999999993, 1.4 3.1999999999999993))
+!ok
+
+# ST_OctagonalEnvelope(geom) Returns the octogonal envelope of *geom*
+
+SELECT ST_OctagonalEnvelope(ST_GeomFromText('POLYGON((2 1, 1 2, 2 2, 2 4, 3 5, 3 3, 5 5, 7 2, 5 2, 6 1, 2 1))'));
+EXPR$0
+POLYGON ((1 2, 1 3, 3 5, 5 5, 7 3, 7 2, 6 1, 2 1, 1 2))
+!ok
 
 # ST_RingBuffer(geom, bufferSize, bufferCount [, endCapStyle [, doDifference]]) Returns a multi-polygon of buffers centered at *geom* and of increasing buffer size
 # Not implemented
@@ -412,16 +595,77 @@ MULTIPOINT Z((-1 1 1), (1 1 1))
 !ok
 
 # ST_Centroid(geom) Returns the centroid of *geom* (which may be a geometry-collection)
-# Not implemented
+
+SELECT ST_Centroid(ST_GeomFromText('MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+POINT (1.5 2)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2)'));
+EXPR$0
+POINT (2.472556942838389 2.3241856476127962)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('MULTILINESTRING((1 5, 6 5), (5 1, 5 4))'));
+EXPR$0
+POINT (4.0625 4.0625)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('POLYGON((1 5, 1 2, 6 2, 3 3, 3 4, 5 6, 1 5))'));
+EXPR$0
+POINT (2.5964912280701755 3.666666666666667)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('MULTIPOLYGON(((0 2, 3 2, 3 6, 0 6, 0 2)), ((5 0, 7 0, 7 1, 5 1, 5 0)))'));
+EXPR$0
+POINT (2.142857142857143 3.5)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('GEOMETRYCOLLECTION(
+                      POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)),
+                      LINESTRING(2 6, 6 2),
+                      MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+POINT (2.5 4)
+!ok
+
 
 # ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
 # Not implemented
 
 # ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
-# Not implemented
+
+SELECT ST_CoordDim(ST_GeomFromText('Point(1 2 3)'));
+EXPR$0
+3
+!ok
+
+SELECT ST_CoordDim(ST_GeomFromText('Point(1 2)'));
+EXPR$0
+2
+!ok
+
+SELECT ST_CoordDim(ST_GeomFromText('Point Empty'));
+EXPR$0
+2
+!ok
 
 # ST_Dimension(geom) Returns the dimension of *geom*
-# Not implemented
+
+SELECT ST_Dimension(ST_GeomFromText('MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+0
+!ok
+
+SELECT ST_Dimension(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2)'));
+EXPR$0
+1
+!ok
+
+SELECT ST_Dimension(ST_GeomFromText('MULTIPOLYGON(((0 2, 3 2, 3 6, 0 6, 0 2)), ((5 0, 7 0, 7 1, 5 1, 5 0)))'));
+EXPR$0
+2
+!ok
 
 # ST_Distance(geom1, geom2) Returns the distance between *geom1* and *geom2*
 
@@ -478,8 +722,12 @@ FROM (SELECT
 !ok
 !}
 
-# ST_EndPoint(lineString) Returns the last coordinate of *lineString*
-# Not implemented
+# ST_EndPoint(geom) Returns the last coordinate of *geom*
+
+SELECT ST_EndPoint(ST_GeomFromText('MULTILINESTRING((1 1, 1 6, 2 2, -1 2))'));
+EXPR$0
+POINT (-1 2)
+!ok
 
 # ST_Envelope(geom [, srid ]) Returns the envelope of *geom* (which may be a geometry-collection) as a geometry
 
@@ -507,19 +755,50 @@ POLYGON ((0 0, 0 1, 1.0000000001 1, 1.0000000001 0, 0 0))
 # Not implemented
 
 # ST_Extent(geom) Returns the minimum bounding box of *geom* (which may be a geometry-collection)
-# Not implemented
+
+SELECT ST_Extent(ST_GeomFromText('MULTIPOINT((5 6), (1 2), (3 4), (10 3))'));
+EXPR$0
+POLYGON ((1 2, 1 6, 10 6, 10 2, 1 2))
+!ok
+
+SELECT ST_Extent(ST_GeomFromText('POINT(5 6)'));
+EXPR$0
+POINT (5 6)
+!ok
+
+SELECT ST_Extent(ST_GeomFromText('GEOMETRYCOLLECTION(
+  POLYGON((0 0, 3 -1, 1.5 2, 0 0)),
+  POLYGON((2 0, 3 3, 4 2, 2 0)),
+  POINT(5 6),
+  LINESTRING(1 1, 1 6))'));
+EXPR$0
+POLYGON ((0 -1, 0 6, 5 6, 5 -1, 0 -1))
+!ok
 
 # ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
-# Not implemented
+
+SELECT ST_ExteriorRing(ST_GeomFromText('POLYGON((0 -1, 0 2, 3 2, 3 -1, 0 -1))'));
+EXPR$0
+LINEARRING (0 -1, 0 2, 3 2, 3 -1, 0 -1)
+!ok
+
+SELECT ST_ExteriorRing(ST_GeomFromText('POINT(1 2)'));
+EXPR$0
+null
+!ok
 
 # ST_GeometryN(geomCollection, n) Returns the *n*th geometry of *geomCollection*
-# Not implemented
+
+SELECT ST_ExteriorRing(ST_GeomFromText('POINT(1 2)'));
+EXPR$0
+null
+!ok
 
 # ST_GeometryType(geom) Returns the type of *geom*
 
-SELECT ST_GeometryType(ST_Point(0.0, 0.0));
+SELECT ST_GeometryN(ST_GeomFromText('MULTIPOLYGON(((0 0, 3 -1, 1.5 2, 0 0)), ((1 2, 4 2, 4 6, 1 6, 1 2)))'), 0);
 EXPR$0
-POINT
+POLYGON ((0 0, 3 -1, 1.5 2, 0 0))
 !ok
 
 # ST_GeometryTypeCode(geom) Returns the type code of *geom*
@@ -538,25 +817,127 @@ p , POINT, 1
 !ok
 
 # ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*
-# Not implemented
+
+SELECT ST_InteriorRing(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1), (8 5, 8 4, 9 4, 9 5, 8 5))'), 0);
+EXPR$0
+LINEARRING (1 1, 2 1, 2 5, 1 5, 1 1)
+!ok
+
+SELECT ST_InteriorRing(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1), (8 5, 8 4, 9 4, 9 5, 8 5))'), 1);
+EXPR$0
+LINEARRING (8 5, 8 4, 9 4, 9 5, 8 5)
+!ok
 
 # ST_IsClosed(geom) Returns whether *geom* is a closed line-string or multi-line-string
-# Not implemented
+
+SELECT ST_IsClosed(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2)'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsClosed(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2, 2 1)'));
+EXPR$0
+true
+!ok
 
 # ST_IsEmpty(geom) Returns whether *geom* is empty
-# Not implemented
+
+SELECT ST_IsEmpty(ST_GeomFromText('MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsEmpty(ST_GeomFromText('GEOMETRYCOLLECTION(
+  MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+  LINESTRING(2 6, 6 2),
+  POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)))'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsEmpty(ST_GeomFromText('POLYGON EMPTY'));
+EXPR$0
+true
+!ok
 
 # ST_IsRectangle(geom) Returns whether *geom* is a rectangle
-# Not implemented
+
+SELECT ST_IsRectangle(ST_GeomFromText('POLYGON((0 0, 10 0, 10 5, 0 5, 0 0))'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsRectangle(ST_GeomFromText('POLYGON((0 0, 10 0, 10 7, 0 5, 0 0))'));
+EXPR$0
+false
+!ok
 
 # ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or multi-line-string
-# Not implemented
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 2 1)'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6)'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 5 7, 5 2, 2 1)'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 5 7, 5 2)'));
+EXPR$0
+false
+!ok
 
 # ST_IsSimple(geom) Returns whether *geom* is simple
-# Not implemented
+
+SELECT ST_IsSimple(ST_GeomFromText(
+ 'POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1), (8 5, 8 4, 9 4, 9 5, 8 5))'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsSimple(ST_GeomFromText(
+  'MULTILINESTRING((0 2, 3 2, 3 6, 0 6, 0 2), (5 0, 7 0, 7 1, 5 1, 5 0))'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsSimple(ST_GeomFromText(
+ 'GEOMETRYCOLLECTION(
+   MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+   LINESTRING(2 6, 6 2),
+   POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)))'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsSimple(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 5 7, 5 6)'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsSimple(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 5 7, 5 2)'));
+EXPR$0
+false
+!ok
 
 # ST_IsValid(geom) Returns whether *geom* is valid
-# Not implemented
+
+SELECT ST_IsValid(ST_GeomFromText('POLYGON((0 0, 10 0, 10 5, 0 5, 0 0))'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsValid(ST_GeomFromText('POLYGON((0 0, 10 0, 10 5, 6 -2, 0 0))'));
+EXPR$0
+false
+!ok
 
 # ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 # Not implemented
@@ -568,28 +949,175 @@ p , POINT, 1
 # Not implemented
 
 # ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a geometry-collection)
-# Not implemented
 
-# ST_NumInteriorRing(geom) Alias for `ST_NumInteriorRings`
-# Not implemented
+SELECT ST_NumGeometries(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2)'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('MULTILINESTRING(
+  (0 2, 3 2, 3 6, 0 6, 0 1),
+  (5 0, 7 0, 7 1, 5 1, 5 0))'));
+EXPR$0
+2
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('POLYGON(
+  (0 0, 10 0, 10 6, 0 6, 0 0),
+  (1 1, 2 1, 2 5, 1 5, 1 1),
+  (8 5, 8 4, 9 4, 9 5, 8 5))'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('MULTIPOLYGON(
+  ((0 0, 10 0, 10 6, 0 6, 0 0)),
+  ((1 1, 2 1, 2 5, 1 5, 1 1)),
+  ((8 5, 8 4, 9 4, 9 5, 8 5)))'));
+EXPR$0
+3
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('GEOMETRYCOLLECTION(
+  MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+  LINESTRING(2 6, 6 2),
+  POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)))'));
+EXPR$0
+3
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('MULTIPOINT(
+  (0 2), (3 2), (3 6), (0 6),
+  (0 1), (5 0), (7 0))'));
+EXPR$0
+7
+!ok
 
 # ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
-# Not implemented
 
-# ST_NumPoints(lineString) Returns the number of points in *lineString*
-# Not implemented
+SELECT ST_NumInteriorRings(ST_GeomFromText('POLYGON(
+  (0 0, 10 0, 10 6, 0 6, 0 0),
+  (1 1, 2 1, 2 5, 1 5, 1 1),
+  (8 5, 8 4, 9 4, 9 5, 8 5))'));
+EXPR$0
+2
+!ok
 
-# ST_PointN(geom, n) Returns the *n*th point of a *lineString*
-# Not implemented
+SELECT ST_NumInteriorRings(ST_GeomFromText('MULTIPOLYGON(
+  ((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1)),
+  ((1 1, 2 1, 2 5, 1 5, 1 1)),
+  ((8 5, 8 4, 9 4, 9 5, 8 5)))'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumInteriorRings(ST_GeomFromText('GEOMETRYCOLLECTION(
+  MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+  LINESTRING(2 6, 6 2),
+  POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)))'));
+EXPR$0
+0
+!ok
+
+SELECT ST_NumInteriorRings(ST_GeomFromText(
+  'GEOMETRYCOLLECTION(
+    MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+    LINESTRING(2 6, 6 2),
+    POLYGON((1 2, 4 2, 4 6, 1 6, 1 2), (2 4, 3 4, 3 5, 2 5, 2 4)))'));
+EXPR$0
+1
+!ok
+
+
+# ST_NumPoints(geom) Returns the number of points in *geom*
+
+SELECT ST_NumPoints(ST_GeomFromText('POINT(2 2)'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('MULTIPOINT(2 2, 4 4)'));
+EXPR$0
+2
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('MULTIPOINT(2 2, 4 4, 4 4)'));
+EXPR$0
+3
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('MULTILINESTRING((2 2, 4 4), (3 1, 6 3))'));
+EXPR$0
+4
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1), (8 5, 8 4, 9 4, 9 5, 8 5))'));
+EXPR$0
+15
+!ok
+
+# ST_PointN(geom, n) Returns the *n*th point of a *geom*
+
+SELECT ST_PointN(ST_GeomFromText('LINESTRING(1 1, 1 6, 2 2, -1 2))'), 2);
+EXPR$0
+POINT (2 2)
+!ok
+
+SELECT ST_PointN(ST_GeomFromText('MULTILINESTRING((1 1, 1 6, 2 2, -1 2))'), 3);
+EXPR$0
+POINT (-1 2)
+!ok
+
+SELECT ST_PointN(ST_GeomFromText('MULTIPOINT(1 1, 1 6, 2 2, -1 2)'), -1);
+EXPR$0
+POINT (-1 2)
+!ok
+
+SELECT ST_PointN(ST_GeomFromText('MULTILINESTRING((1 1, 1 6, 2 2, -1 2), (0 1, 2 4))'), 4);
+EXPR$0
+POINT (0 1)
+!ok
 
 # ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
-# Not implemented
+
+SELECT ST_PointOnSurface(ST_GeomFromText('POINT(1 5)'));
+EXPR$0
+POINT (1 5)
+!ok
+
+SELECT ST_PointOnSurface(ST_GeomFromText('MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+POINT (1 1)
+!ok
+
+SELECT ST_PointOnSurface(ST_GeomFromText('LINESTRING(-1 5, 0 10)'));
+EXPR$0
+POINT (0 10)
+!ok
+
+SELECT ST_PointOnSurface(ST_GeomFromText('POLYGON((0 0, 0 5, 5 5, 5 0, 0 0))'));
+EXPR$0
+POINT (2.5 2.5)
+!ok
 
 # ST_SRID(geom) Returns SRID value of *geom* or 0 if it does not have one
-# Not implemented
 
-# ST_StartPoint(lineString) Returns the first coordinate of *lineString*
-# Not implemented
+SELECT ST_SRID(ST_GeomFromText('POINT(15 25)', 2154));
+EXPR$0
+2154
+!ok
+
+SELECT ST_SRID(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2, 2 1)', 4326));
+EXPR$0
+4326
+!ok
+
+# ST_StartPoint(geom) Returns the first coordinate of *geom*
+
+SELECT ST_StartPoint(ST_GeomFromText('MULTILINESTRING((1 1, 1 6, 2 2, -1 2))'));
+EXPR$0
+POINT (1 1)
+!ok
 
 # ST_X(geom) Returns the x-value of the first coordinate of *geom*
 
@@ -604,10 +1132,16 @@ EXPR$0
 !ok
 
 # ST_XMax(geom) Returns the maximum x-value of *geom*
-# Not implemented
+SELECT ST_XMax(ST_GeomFromText('LINESTRING(1 3 4, 5 6 7)'));
+EXPR$0
+5.0
+!ok
 
 # ST_XMin(geom) Returns the minimum x-value of *geom*
-# Not implemented
+SELECT ST_XMin(ST_GeomFromText('LINESTRING(1 3 4, 5 6 7)'));
+EXPR$0
+1.0
+!ok
 
 # ST_Y(geom) Returns the y-value of the first coordinate of *geom*
 
@@ -622,10 +1156,16 @@ EXPR$0
 !ok
 
 # ST_YMax(geom) Returns the maximum y-value of *geom*
-# Not implemented
+SELECT ST_YMax(ST_GeomFromText('LINESTRING(1 3 4, 5 6 7)'));
+EXPR$0
+6.0
+!ok
 
 # ST_YMin(geom) Returns the minimum y-value of *geom*
-# Not implemented
+SELECT ST_YMin(ST_GeomFromText('LINESTRING(1 3 4, 5 6 7)'));
+EXPR$0
+3.0
+!ok
 
 #### Geometry properties (3D)
 
@@ -650,16 +1190,32 @@ EXPR$0
 
 SELECT ST_Z(ST_GeomFromText('POINT (1 2)'));
 EXPR$0
-null
+NaN
 !ok
 
-# Not implemented
-
 # ST_ZMax(geom) Returns the maximum z-value of *geom*
-# Not implemented
+
+SELECT ST_ZMax(ST_GeomFromText('LINESTRING(1 2 3, 4 5 6)'));
+EXPR$0
+6.0
+!ok
+
+SELECT ST_ZMax(ST_GeomFromText('LINESTRING(1 2, 4 5)'));
+EXPR$0
+NaN
+!ok
 
 # ST_ZMin(geom) Returns the minimum z-value of *geom*
-# Not implemented
+
+SELECT ST_ZMin(ST_GeomFromText('LINESTRING(1 2 3, 4 5 6)'));
+EXPR$0
+3.0
+!ok
+
+SELECT ST_ZMin(ST_GeomFromText('LINESTRING(1 2, 4 5)'));
+EXPR$0
+NaN
+!ok
 
 ### Geometry predicates
 
@@ -691,7 +1247,16 @@ POLYGON, true, true, false, false
 !ok
 
 # ST_Covers(geom1, geom2) Returns whether no point in *geom2* is outside *geom1*
-# Not implemented
+
+SELECT ST_Covers(ST_Buffer(ST_GeomFromText('POINT(0 0)'), 1), ST_GeomFromText('POINT(0 0)'));
+EXPR$0
+true
+!ok
+
+SELECT ST_Covers(ST_Buffer(ST_GeomFromText('POINT(0 0)'), 1), ST_GeomFromText('POINT(1 1)'));
+EXPR$0
+false
+!ok
 
 # ST_Crosses(geom1, geom2) Returns whether *geom1* crosses *geom2*
 
@@ -782,10 +1347,41 @@ false
 !ok
 
 # ST_Relate(geom1, geom2) Returns the DE-9IM intersection matrix of *geom1* and *geom2*
-# Not implemented
+
+SELECT ST_Relate(ST_GeomFromText('LINESTRING(1 2, 3 4)'),
+                 ST_GeomFromText('LINESTRING(5 6, 7 3)'));
+EXPR$0
+FF1FF0102
+!ok
+
+SELECT ST_Relate(ST_GeomFromText('POLYGON((1 1, 4 1, 4 5, 1 5, 1 1))'),
+                 ST_GeomFromText('POLYGON((3 2, 6 2, 6 6, 3 6, 3 2))'));
+EXPR$0
+212101212
+!ok
 
 # ST_Relate(geom1, geom2, iMatrix) Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
-# Not implemented
+
+SELECT ST_Relate(ST_GeomFromText('POLYGON((1 1, 4 1, 4 5, 1 5, 1 1))'),
+                 ST_GeomFromText('POLYGON((3 2, 6 2, 6 6, 3 6, 3 2))'),
+                 '212101212');
+EXPR$0
+true
+!ok
+
+SELECT ST_Relate(ST_GeomFromText('POLYGON((1 1, 4 1, 4 5, 1 5, 1 1))'),
+                 ST_GeomFromText('POLYGON((3 2, 6 2, 6 6, 3 6, 3 2))'),
+                 '112101212');
+EXPR$0
+false
+!ok
+
+SELECT ST_Relate(ST_GeomFromText('POINT(1 2)'),
+                 ST_Buffer(ST_GeomFromText('POINT(1 2)'), 2),
+                 '0F*FFF212');
+EXPR$0
+true
+!ok
 
 # ST_Touches(geom1, geom2) Returns whether *geom1* touches *geom2*
 
@@ -855,23 +1451,75 @@ at org.apache.calcite.runtime.Geometries.todo
 !}
 
 # ST_ConvexHull(geom) Computes the smallest convex polygon that contains all the points in the Geometry
-# Not implemented
+
+SELECT ST_ConvexHull(ST_GeomFromText('GEOMETRYCOLLECTION(
+                        POINT(1 2),
+                        LINESTRING(1 4, 4 7),
+                        POLYGON((3 1, 7 1, 7 6, 3 1)))'));
+EXPR$0
+POLYGON ((3 1, 1 2, 1 4, 4 7, 7 6, 7 1, 3 1))
+!ok
 
 # ST_Difference(geom1, geom2) Computes the difference between two geometries
-# Not implemented
+
+SELECT ST_Difference(ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'),
+                     ST_GeomFromText('POLYGON((3 2, 8 2, 8 8, 3 8, 3 2))'));
+EXPR$0
+POLYGON ((7 2, 7 1, 1 1, 1 6, 3 6, 3 2, 7 2))
+!ok
+
+SELECT ST_Difference(ST_GeomFromText('POLYGON((3 2, 8 2, 8 8, 3 8, 3 2))'),
+                     ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'));
+EXPR$0
+POLYGON ((3 6, 3 8, 8 8, 8 2, 7 2, 7 6, 3 6))
+!ok
 
 # ST_Intersection(geom1, geom2) Computes the intersection of two geometries
-# Not implemented
+
+SELECT ST_Intersection(ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'),
+                       ST_GeomFromText('POLYGON((3 2, 8 2, 8 8, 3 8, 3 2))'));
+EXPR$0
+POLYGON ((3 6, 7 6, 7 2, 3 2, 3 6))
+!ok
+
+SELECT ST_Intersection(ST_GeomFromText('POLYGON((1 1, 4 1, 4 6, 1 6, 1 1))'),
+                       ST_GeomFromText('POLYGON((4 2, 8 2, 8 8, 4 8, 4 2))'));
+EXPR$0
+LINESTRING (4 2, 4 6)
+!ok
+
+SELECT ST_Intersection(ST_GeomFromText('POLYGON((1 1, 4 1, 4 6, 1 6, 1 1))'),
+                       ST_GeomFromText('POLYGON((4 6, 8 6, 8 8, 4 8, 4 6))'));
+EXPR$0
+POINT (4 6)
+!ok
+
+SELECT ST_Intersection(ST_GeomFromText('LINESTRING(2 2, 6 6)'),
+                       ST_GeomFromText('LINESTRING(2 8, 8 2)'));
+EXPR$0
+POINT (5 5)
+!ok
+
+SELECT ST_Intersection(ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'),
+                       ST_GeomFromText('POINT(3 5)'));
+EXPR$0
+POINT (3 5)
+!ok
+
 
 # ST_SymDifference(geom1, geom2) Computes the symmetric difference between two geometries
-# Not implemented
+
+SELECT ST_SymDifference(ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'),
+                        ST_GeomFromText('POLYGON((3 2, 8 2, 8 8, 3 8, 3 2))'));
+EXPR$0
+MULTIPOLYGON (((7 2, 7 1, 1 1, 1 6, 3 6, 3 2, 7 2)), ((7 2, 7 6, 3 6, 3 8, 8 8, 8 2, 7 2)))
+!ok
 
 # ST_Union(geom1, geom2) Computes the union of two or more geometries
 
 # NOTE: PostGIS altered the order: it returned MULTIPOINT(-2 3,1 2)
 SELECT ST_AsText(ST_Union(ST_GeomFromText('POINT(1 2)'),
     ST_GeomFromText('POINT(-2 3)')));
-
 EXPR$0
 MULTIPOINT ((-2 3), (1 2))
 !ok
@@ -915,13 +1563,63 @@ MULTILINESTRING((3 4,4 5),(1 2,3 4))
 #### Affine transformation functions (3D and 2D)
 
 # ST_Rotate(geom, angle [, origin | x, y]) Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
-# Not implemented
 
-# ST_Scale(geom, xFactor, yFactor [, zFactor ]) Scales *geom* by multiplying the ordinates by the indicated scale factors
-# Not implemented
+SELECT ST_Rotate(ST_GeomFromText('LINESTRING(1 3, 1 1, 2 1)'), pi());
+EXPR$0
+LINESTRING (-1.0000000000000004 -3, -1.0000000000000002 -0.9999999999999999, -2 -0.9999999999999998)
+!ok
+
+SELECT ST_Rotate(ST_GeomFromText('LINESTRING(1 3, 1 1, 2 1)'), pi() / 3);
+EXPR$0
+LINESTRING (-2.098076211353316 2.3660254037844393, -0.3660254037844385 1.3660254037844388, 0.1339745962155616 2.232050807568877)
+!ok
+
+SELECT ST_Rotate(ST_GeomFromText('LINESTRING(1 3, 1 1, 2 1)'), -pi() / 2, ST_PointFromText('POINT(2 1)'));
+EXPR$0
+LINESTRING (4 2, 1.9999999999999998 2, 2 1)
+!ok
+
+SELECT ST_Rotate(ST_GeomFromText('LINESTRING(1 3, 1 1, 2 1)'), pi() / 2, 1.0, 1.0);
+EXPR$0
+LINESTRING (-1 1.0000000000000002, 1 0.9999999999999999, 1 2)
+!ok
+
+# ST_Scale(geom, xFactor, yFactor) Scales *geom* by multiplying the ordinates by the indicated scale factors
+
+SELECT ST_Scale(ST_GeomFromText('LINESTRING(1 2, 4 5)'), 0.5, 0.75);
+EXPR$0
+LINESTRING (0.5 1.5, 2 3.75)
+!ok
 
 # ST_Translate(geom, x, y, [, z]) Translates *geom*
-# Not implemented
+
+SELECT ST_Translate(ST_GeomFromText('POINT(1 2)'), 10, 20);
+EXPR$0
+POINT (11 22)
+!ok
+
+SELECT ST_Translate(ST_GeomFromText('LINESTRING(0 0, 1 0)'), 1, 2);
+EXPR$0
+LINESTRING (1 2, 2 2)
+!ok
+
+SELECT ST_Translate(ST_GeomFromText('LINESTRING(-71.01 42.37, -71.11 42.38)'), 1, 0.5);
+EXPR$0
+LINESTRING (-70.01 42.87, -70.11 42.88)
+!ok
+
+SELECT ST_Translate(ST_GeomFromText('MULTIPOINT((0 1), (2 2), (1 3))'), 1, 0);
+EXPR$0
+MULTIPOINT ((1 1), (3 2), (2 3))
+!ok
+
+SELECT ST_Translate(ST_GeomFromText('GEOMETRYCOLLECTION(
+  POLYGON((0 0, 3 5, 6  6, 0 7, 0 0)),
+  MULTIPOINT((0 1), (2 2), (1 3)))'), -1, 1);
+EXPR$0
+GEOMETRYCOLLECTION (POLYGON ((-1 1, 2 6, 5 7, -1 8, -1 1)), MULTIPOINT ((-1 2), (1 3), (0 4)))
+!ok
+
 
 #### Geometry editing functions (2D)
 
@@ -1030,16 +1728,36 @@ MULTILINESTRING((3 4,4 5),(1 2,3 4))
 # Not implemented
 
 # ST_LineMerge(geom) Merges a collection of linear components to form a line-string of maximal length
-# Not implemented
+
+SELECT ST_LineMerge(ST_GeomFromText('LINESTRING (1 1, 1 4)'));
+EXPR$0
+MULTILINESTRING ((1 1, 1 4))
+!ok
+
+SELECT ST_LineMerge(ST_GeomFromText('MULTILINESTRING ((1 1, 1 4), (1 4, 5 4), (5 4, 5 1), (3 3, 3 4))'));
+EXPR$0
+MULTILINESTRING ((1 1, 1 4, 5 4, 5 1), (3 3, 3 4))
+!ok
 
 # ST_MakeValid(geom [, preserveGeomDim [, preserveDuplicateCoord [, preserveCoordDim]]]) Makes *geom* valid
-# Not implemented
+
+SELECT ST_MakeValid(ST_GeomFromText('LINESTRING(0 0, 0 0)'));
+EXPR$0
+LINESTRING EMPTY
+!ok
 
 # ST_Polygonize(geom) Creates a multi-polygon from edges of *geom*
-# Not implemented
+
+SELECT ST_Polygonize(ST_GeomFromText('LINESTRING(1 2, 2 4, 4 4, 5 2, 1 2)'));
+EXPR$0
+POLYGON ((1 2, 2 4, 4 4, 5 2, 1 2))
+!ok
 
 # ST_PrecisionReducer(geom, n) Reduces *geom*'s precision to *n* decimal places
-# Not implemented
+SELECT ST_PrecisionReducer(ST_GeomFromText('MULTIPOINT((190.1239999997 300), (10 11.1233))'), 3);
+EXPR$0
+MULTIPOINT ((190.124 300), (10 11.123))
+!ok
 
 # ST_RingSideBuffer(geom, bufferSize, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 # Not implemented
@@ -1048,13 +1766,85 @@ MULTILINESTRING((3 4,4 5),(1 2,3 4))
 # Not implemented
 
 # ST_Simplify(geom, distance) Simplifies *geom* using the Douglas-Peuker algorithm with a *distance* tolerance
-# Not implemented
 
-# ST_SimplifyPreserveTopology(geom) Simplifies *geom*, preserving its topology
-# Not implemented
+SELECT ST_Simplify(ST_GeomFromText('POLYGON((2 1, 1 2, 2 2, 2 3, 3 3, 3 2, 4 2, 4 1, 3 0, 2 0, 2 1))'), 0.5);
+EXPR$0
+POLYGON ((2 1, 1 2, 3 3, 4 1, 3 0, 2 0, 2 1))
+!ok
+
+SELECT ST_Simplify(ST_GeomFromText('POLYGON((2 1, 1 2, 2 2, 2 3, 3 3, 3 2, 4 2, 4 1, 3 0, 2 0, 2 1))'), 1);
+EXPR$0
+POLYGON ((2 1, 1 2, 3 3, 4 1, 2 1))
+!ok
+
+SELECT ST_Simplify(ST_GeomFromText('POLYGON((2 1, 1 2, 2 2, 2 3, 3 3, 3 2, 4 2, 4 1, 3 0, 2 0, 2 1))'), 2);
+EXPR$0
+POLYGON EMPTY
+!ok
+
+SELECT ST_Simplify(ST_GeomFromText('MULTIPOINT((190 300), (10 11))'), 4);
+EXPR$0
+MULTIPOINT ((190 300), (10 11))
+!ok
+
+SELECT ST_Simplify(ST_GeomFromText('LINESTRING(250 250, 280 290, 300 230, 340 300, 360 260, 440 310, 470 360, 604 286)'), 40);
+EXPR$0
+LINESTRING (250 250, 280 290, 300 230, 470 360, 604 286)
+!ok
+
+# ST_SimplifyPreserveTopology(geom, distance) Simplifies *geom*, preserving its topology
+
+SELECT ST_SimplifyPreserveTopology(ST_GeomFromText('POLYGON((8 25, 28 22, 28 20, 15 11, 33 3, 56 30, 46 33,  46 34, 47 44, 35 36, 45 33, 43 19, 29 21, 29 22, 35 26, 24 39, 8 25))'), 10);
+EXPR$0
+POLYGON ((8 25, 28 22, 15 11, 33 3, 56 30, 47 44, 35 36, 43 19, 24 39, 8 25))
+!ok
+
+SELECT ST_SimplifyPreserveTopology(ST_GeomFromText('POLYGON((8 25, 28 22, 28 20, 15 11, 33 3, 56 30, 46 33,  46 34, 47 44, 35 36, 45 33, 43 19, 29 21, 29 22, 35 26, 24 39, 8 25))'), 20);
+EXPR$0
+POLYGON ((8 25, 33 3, 56 30, 47 44, 43 19, 8 25))
+!ok
+
+SELECT ST_SimplifyPreserveTopology(ST_GeomFromText('POLYGON((8 25, 28 22, 28 20, 15 11, 33 3, 56 30, 46 33,  46 34, 47 44, 35 36, 45 33, 43 19, 29 21, 29 22, 35 26, 24 39, 8 25))'), 30);
+EXPR$0
+POLYGON ((8 25, 33 3, 56 30, 47 44, 8 25))
+!ok
 
 # ST_Snap(geom1, geom2, tolerance) Snaps *geom1* and *geom2* together
-# Not implemented
+
+SELECT ST_Snap(
+  ST_GeomFromText('LINESTRING(1 2, 2 4, 4 4, 5 2)'),
+  ST_GeomFromText('LINESTRING(5 2, 2 1, 1 2)'), 1);
+EXPR$0
+LINESTRING (1 2, 2 4, 4 4, 5 2)
+!ok
+
+SELECT ST_Snap(
+  ST_GeomFromText('LINESTRING(1 2, 2 4, 4 4, 5 2)'),
+  ST_GeomFromText('LINESTRING(5 2, 2 1, 1 2)'), 2);
+EXPR$0
+LINESTRING (1 2, 2 1, 2 4, 4 4, 5 2)
+!ok
+
+SELECT ST_Snap(
+  ST_GeomFromText('LINESTRING(1 2, 2 4, 4 4, 5 2)'),
+  ST_GeomFromText('LINESTRING(5 2, 2 1, 1 2)'), 3);
+EXPR$0
+LINESTRING (1 2, 1 2, 2 1, 5 2, 5 2)
+!ok
+
+SELECT ST_Snap(
+  ST_GeomFromText('POLYGON((1 1, 1 7, 7 7, 7 1, 1 1))'),
+  ST_GeomFromText('POLYGON((3 3, 1 2, 0 2, 0 1, -2 1, -1 7, 3 6, 4 8, 7 8, 6 6, 9 6, 8 1, 8 1, 3 3))'), 2);
+EXPR$0
+POLYGON ((0 1, 1 2, 0 2, -1 7, 1 7, 3 6, 6 6, 8 1, 0 1))
+!ok
+
+SELECT ST_Snap(
+  ST_GeomFromText('POLYGON((3 3, 1 2, 0 2, 0 1, -2 1, -1 7, 3 6, 4 8, 7 8, 6 6, 9 6, 8 1, 8 1, 3 3))'),
+  ST_GeomFromText('POLYGON((1 1, 1 7, 7 7, 7 1, 1 1))'), 2);
+EXPR$0
+POLYGON ((3 3, 1 1, 1 1, 1 1, -2 1, -1 7, 1 7, 3 6, 4 8, 7 7, 7 7, 9 6, 7 1, 7 1, 3 3))
+!ok
 
 # ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line
 # Not implemented
@@ -1262,5 +2052,6 @@ values hilbert(ST_Point(20.0, 20.0));
 EXPR$0
 33204
 !ok
+
 
 # End spatial.iq
