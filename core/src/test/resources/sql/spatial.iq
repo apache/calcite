@@ -855,10 +855,41 @@ false
 !ok
 
 # ST_Relate(geom1, geom2) Returns the DE-9IM intersection matrix of *geom1* and *geom2*
-# Not implemented
+
+SELECT ST_Relate(ST_GeomFromText('LINESTRING(1 2, 3 4)'),
+                 ST_GeomFromText('LINESTRING(5 6, 7 3)'));
+EXPR$0
+FF1FF0102
+!ok
+
+SELECT ST_Relate(ST_GeomFromText('POLYGON((1 1, 4 1, 4 5, 1 5, 1 1))'),
+                 ST_GeomFromText('POLYGON((3 2, 6 2, 6 6, 3 6, 3 2))'));
+EXPR$0
+212101212
+!ok
 
 # ST_Relate(geom1, geom2, iMatrix) Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
-# Not implemented
+
+SELECT ST_Relate(ST_GeomFromText('POLYGON((1 1, 4 1, 4 5, 1 5, 1 1))'),
+                 ST_GeomFromText('POLYGON((3 2, 6 2, 6 6, 3 6, 3 2))'),
+                 '212101212');
+EXPR$0
+true
+!ok
+
+SELECT ST_Relate(ST_GeomFromText('POLYGON((1 1, 4 1, 4 5, 1 5, 1 1))'),
+                 ST_GeomFromText('POLYGON((3 2, 6 2, 6 6, 3 6, 3 2))'),
+                 '112101212');
+EXPR$0
+false
+!ok
+
+SELECT ST_Relate(ST_GeomFromText('POINT(1 2)'),
+                 ST_Buffer(ST_GeomFromText('POINT(1 2)'), 2),
+                 '0F*FFF212');
+EXPR$0
+true
+!ok
 
 # ST_Touches(geom1, geom2) Returns whether *geom1* touches *geom2*
 

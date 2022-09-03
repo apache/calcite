@@ -521,6 +521,16 @@ public class SpatialTypeFunctions {
     return geom.buffer(distance, quadSegs, endCapStyle);
   }
 
+  /** Returnsthe DE-9IM intersection matrix for geom1 and geom2  */
+  public static String ST_Relate(Geometry geom1, Geometry geom2) {
+    return geom1.relate(geom2).toString();
+  }
+
+  /** Returns true if geom1 and geom2 are related by the intersection matrix specified by iMatrix */
+  public static boolean ST_Relate(Geometry geom1, Geometry geom2, String iMatrix) {
+    return geom1.relate(geom2, iMatrix);
+  }
+
   /** Computes the union of {@code geom1} and {@code geom2}. */
   public static Geometry ST_Union(Geometry geom1, Geometry geom2) {
     return geom1.union(geom2);

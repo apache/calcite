@@ -2308,14 +2308,14 @@ Not implemented:
 | o | ST_Equals(geom1, geom2) | Returns whether *geom1* equals *geom2*
 | o | ST_Intersects(geom1, geom2) | Returns whether *geom1* intersects *geom2*
 | o | ST_Overlaps(geom1, geom2) | Returns whether *geom1* overlaps *geom2*
+| o | ST_Relate(geom1, geom2) | Returns the DE-9IM intersection matrix of *geom1* and *geom2*
+| o | ST_Relate(geom1, geom2, iMatrix) | Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 | o | ST_Touches(geom1, geom2) | Returns whether *geom1* touches *geom2*
 | o | ST_Within(geom1, geom2) | Returns whether *geom1* is within *geom2*
 
 Not implemented:
 
 * ST_OrderingEquals(geom1, geom2) Returns whether *geom1* equals *geom2* and their coordinates and component Geometries are listed in the same order
-* ST_Relate(geom1, geom2) Returns the DE-9IM intersection matrix of *geom1* and *geom2*
-* ST_Relate(geom1, geom2, iMatrix) Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 
 #### Geometry operators (2D)
 
