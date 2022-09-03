@@ -969,7 +969,18 @@ POLYGON ((3 1, 1 2, 1 4, 4 7, 7 6, 7 1, 3 1))
 !ok
 
 # ST_Difference(geom1, geom2) Computes the difference between two geometries
-# Not implemented
+
+SELECT ST_Difference(ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'),
+                     ST_GeomFromText('POLYGON((3 2, 8 2, 8 8, 3 8, 3 2))'));
+EXPR$0
+POLYGON ((1 1, 7 1, 7 2, 3 2, 3 6, 1 6, 1 1))
+!ok
+
+SELECT ST_Difference(ST_GeomFromText('POLYGON((3 2, 8 2, 8 8, 3 8, 3 2))'),
+                     ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'));
+EXPR$0
+POLYGON((7 2, 8 2, 8 8, 3 8, 3 6, 7 6, 7 2))
+!ok
 
 # ST_Intersection(geom1, geom2) Computes the intersection of two geometries
 
@@ -1005,7 +1016,12 @@ POINT (3 5)
 
 
 # ST_SymDifference(geom1, geom2) Computes the symmetric difference between two geometries
-# Not implemented
+
+SELECT ST_SymDifference(ST_GeomFromText('POLYGON((1 1, 7 1, 7 6, 1 6, 1 1))'),
+                        ST_GeomFromText('POLYGON((3 2, 8 2, 8 8, 3 8, 3 2))'));
+EXPR$0
+MULTIPOLYGON (((1 1, 7 1, 7 2, 3 2, 3 6, 1 6, 1 1)), ((7 2, 8 2, 8 8, 3 8, 3 6, 7 6, 7 2)))
+!ok
 
 # ST_Union(geom1, geom2) Computes the union of two or more geometries
 

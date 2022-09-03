@@ -2324,17 +2324,14 @@ The following functions combine 2D geometries.
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Buffer(geom, distance [, quadSegs \| style ]) | Computes a buffer around *geom*
+| o | ST_ConvexHull(geom) | Computes the smallest convex polygon that contains all the points in *geom*
+| o | ST_Difference(geom1, geom2) | Computes the difference between two geometries
+| o | ST_SymDifference(geom1, geom2) | Computes the symmetric difference between two geometries
 | o | ST_Intersection(geom1, geom2) | Computes the intersection of *geom1* and *geom2*
 | o | ST_Union(geom1, geom2) | Computes the union of *geom1* and *geom2*
 | o | ST_Union(geomCollection) | Computes the union of the geometries in *geomCollection*
 
 See also: the `ST_Union` aggregate function.
-
-Not implemented:
-
-* ST_ConvexHull(geom) Computes the smallest convex polygon that contains all the points in *geom*
-* ST_Difference(geom1, geom2) Computes the difference between two geometries
-* ST_SymDifference(geom1, geom2) Computes the symmetric difference between two geometries
 
 #### Affine transformation functions (3D and 2D)
 

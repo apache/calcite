@@ -526,7 +526,17 @@ public class SpatialTypeFunctions {
     return geom.convexHull();
   }
 
-  /** Computes the intersection between geom1 and geom1. */
+  /** Computes the difference between geom1 and geom2. */
+  public static Geometry ST_Difference(Geometry geom1, Geometry geom2) {
+    return geom1.difference(geom2);
+  }
+
+  /** Computes the symmetric difference between geom1 and geom2. */
+  public static Geometry ST_SymDifference(Geometry geom1, Geometry geom2) {
+    return geom1.symDifference(geom2);
+  }
+
+  /** Computes the intersection between geom1 and geom2. */
   public static Geometry ST_Intersection(Geometry geom1, Geometry geom2) {
     return geom1.intersection(geom2);
   }
