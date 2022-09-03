@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Deterministic;
@@ -40,9 +41,11 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
 import static org.apache.calcite.runtime.SpatialTypeUtils.NO_SRID;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asEwkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asGeoJson;
+import static org.apache.calcite.runtime.SpatialTypeUtils.asWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asWkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromEwkt;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJson;
+import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
 
 /**
@@ -87,6 +90,10 @@ public class SpatialTypeFunctions {
     return asWkt(g);
   }
 
+  public static @Nullable ByteString ST_AsWKB(Geometry g) {
+    return new ByteString(asWkb(g));
+  }
+
   public static @Nullable String ST_AsWKT(Geometry g) {
     return asWkt(g);
   }
@@ -105,6 +112,16 @@ public class SpatialTypeFunctions {
 
   public static @Nullable Geometry ST_GeomFromText(String s, int srid) {
     final Geometry g = fromWkt(s);
+    g.setSRID(srid);
+    return g;
+  }
+
+  public static @Nullable Geometry ST_GeomFromWKB(ByteString b) {
+    return fromWkb(b.getBytes());
+  }
+
+  public static @Nullable Geometry ST_GeomFromWKB(ByteString b, int srid) {
+    final Geometry g = fromWkb(b.getBytes());
     g.setSRID(srid);
     return g;
   }
