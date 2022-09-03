@@ -521,6 +521,11 @@ public class SpatialTypeFunctions {
     return geom.buffer(distance, quadSegs, endCapStyle);
   }
 
+  /** Computes the smallest convex POLYGON that contains all the points of geom. */
+  public static Geometry ST_ConvexHull(Geometry geom) {
+    return geom.convexHull();
+  }
+
   /** Returnsthe DE-9IM intersection matrix for geom1 and geom2  */
   public static String ST_Relate(Geometry geom1, Geometry geom2) {
     return geom1.relate(geom2).toString();
