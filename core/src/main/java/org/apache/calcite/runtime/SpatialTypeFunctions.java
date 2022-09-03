@@ -80,6 +80,10 @@ public class SpatialTypeFunctions {
 
   // Geometry conversion functions (2D and 3D) ================================
 
+  public static @Nullable ByteString ST_AsBinary(Geometry g) {
+    return new ByteString(asWkb(g));
+  }
+
   public static @Nullable String ST_AsEWKT(Geometry g) {
     return asEwkt(g);
   }
