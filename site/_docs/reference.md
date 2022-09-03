@@ -2163,28 +2163,36 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| p | ST_AsBinary(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKB(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKT(geom) | Converts GEOMETRY → EWKT
+| p | ST_AsGeoJSON(geom) | Converts GEOMETRY → GeoJSON
+| p | ST_AsGML(geom) | Converts GEOMETRY → GML
 | p | ST_AsText(geom) | Synonym for `ST_AsWKT`
-| o | ST_AsWKT(geom) | Converts *geom* → WKT
-| o | ST_GeomFromText(wkt [, srid ]) | Returns a specified GEOMETRY value from WKT representation
+| o | ST_AsWKB(geom) | Converts GEOMETRY → WKB
+| o | ST_AsWKT(geom) | Converts GEOMETRY → WKT
+| o | ST_GeomFromEWKB(wkb [, srid ]) | Synonym for `ST_GeomFromWKB`
+| o | ST_GeomFromEWKT(wkb [, srid ]) | Converts EWKT → GEOMETRY
+| o | ST_GeomFromGeoJSON(json) | Converts GeoJSON → GEOMETRY
+| o | ST_GeomFromGML(wkb [, srid ]) | Converts GML → GEOMETRY
+| o | ST_GeomFromText(wkt [, srid ]) | Synonym for `ST_GeomFromWKT`
+| o | ST_GeomFromWKB(wkb [, srid ]) | Converts WKB → GEOMETRY
+| o | ST_GeomFromWKT(wkb [, srid ]) | Converts WKT → GEOMETRY
 | o | ST_LineFromText(wkt [, srid ]) | Converts WKT → LINESTRING
+| o | ST_LineFromWKB(wkt [, srid ]) | Converts WKT → LINESTRING
 | o | ST_MLineFromText(wkt [, srid ]) | Converts WKT → MULTILINESTRING
 | o | ST_MPointFromText(wkt [, srid ]) | Converts WKT → MULTIPOINT
 | o | ST_MPolyFromText(wkt [, srid ]) Converts WKT → MULTIPOLYGON
 | o | ST_PointFromText(wkt [, srid ]) | Converts WKT → POINT
+| o | ST_PointFromWKB(wkt [, srid ]) | Converts WKB → POINT
 | o | ST_PolyFromText(wkt [, srid ]) | Converts WKT → POLYGON
+| o | ST_PolyFromWKB(wkt [, srid ]) | Converts WKB → POLYGON
 
 Not implemented:
 
-* ST_AsBinary(geom) GEOMETRY → WKB
-* ST_AsGML(geom) GEOMETRY → GML
 * ST_Force2D(geom) 3D GEOMETRY → 2D GEOMETRY
-* ST_GeomFromGML(gml [, srid ]) GML → GEOMETRY
-* ST_GeomFromWKB(wkb [, srid ]) WKB → GEOMETRY
 * ST_GoogleMapLink(geom [, layerType [, zoom ]]) GEOMETRY → Google map link
-* ST_LineFromWKB(wkb [, srid ]) WKB → LINESTRING
 * ST_OSMMapLink(geom [, marker ]) GEOMETRY → OSM map link
-* ST_PointFromWKB(wkb [, srid ]) WKB → POINT
-* ST_PolyFromWKB(wkb [, srid ]) WKB → POLYGON
 * ST_ToMultiLine(geom) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
 * ST_ToMultiPoint(geom)) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
 * ST_ToMultiSegments(geom) Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING

@@ -80,130 +80,158 @@ public class SpatialTypeFunctions {
 
   // Geometry conversion functions (2D and 3D) ================================
 
-  public static @Nullable ByteString ST_AsBinary(Geometry g) {
-    return new ByteString(asWkb(g));
+  public static @Nullable ByteString ST_AsBinary(Geometry geometry) {
+    return ST_AsWKB(geometry);
   }
 
-  public static @Nullable String ST_AsEWKT(Geometry g) {
-    return asEwkt(g);
+  public static @Nullable String ST_AsEWKT(Geometry geometry) {
+    return asEwkt(geometry);
   }
 
-  public static @Nullable String ST_AsGeoJSON(Geometry g) {
-    return asGeoJson(g);
+  public static @Nullable String ST_AsGeoJSON(Geometry geometry) {
+    return asGeoJson(geometry);
   }
 
-  public static @Nullable String ST_AsGML(Geometry g) {
-    return asGml(g);
+  public static @Nullable String ST_AsGML(Geometry geometry) {
+    return asGml(geometry);
   }
 
-  public static @Nullable String ST_AsText(Geometry g) {
-    return asWkt(g);
+  public static @Nullable String ST_AsText(Geometry geometry) {
+    return ST_AsWKT(geometry);
   }
 
-  public static @Nullable ByteString ST_AsWKB(Geometry g) {
-    return new ByteString(asWkb(g));
+  public static @Nullable ByteString ST_AsEWKB(Geometry geometry) {
+    return ST_AsWKB(geometry);
   }
 
-  public static @Nullable String ST_AsWKT(Geometry g) {
-    return asWkt(g);
+  public static @Nullable ByteString ST_AsWKB(Geometry geometry) {
+    return asWkb(geometry);
   }
 
-  public static @Nullable Geometry ST_GeomFromEWKT(String s) {
-    return fromEwkt(s);
+  public static @Nullable String ST_AsWKT(Geometry geometry) {
+    return asWkt(geometry);
   }
 
-  public static @Nullable Geometry ST_GeomFromGeoJSON(String s) {
-    return fromGeoJson(s);
+  public static @Nullable Geometry ST_GeomFromEWKB(ByteString ewkb) {
+    return ST_GeomFromWKB(ewkb);
   }
 
-  public static @Nullable Geometry ST_GeomFromGML(String s) {
-    return fromGml(s);
+  public static @Nullable Geometry ST_GeomFromEWKT(String ewkt) {
+    return fromEwkt(ewkt);
   }
 
-  public static @Nullable Geometry ST_GeomFromGML(String s, int srid) {
-    final Geometry g = fromGml(s);
-    g.setSRID(srid);
-    return g;
+  public static @Nullable Geometry ST_GeomFromGeoJSON(String geojson) {
+    return fromGeoJson(geojson);
   }
 
-  public static @Nullable Geometry ST_GeomFromText(String s) {
-    return fromWkt(s);
+  public static @Nullable Geometry ST_GeomFromGML(String gml) {
+    return ST_GeomFromGML(gml, NO_SRID);
   }
 
-  public static @Nullable Geometry ST_GeomFromText(String s, int srid) {
-    final Geometry g = fromWkt(s);
-    g.setSRID(srid);
-    return g;
+  public static @Nullable Geometry ST_GeomFromGML(String gml, int srid) {
+    Geometry geometry = fromGml(gml);
+    geometry.setSRID(srid);
+    return geometry;
   }
 
-  public static @Nullable Geometry ST_GeomFromWKB(ByteString b) {
-    return fromWkb(b.getBytes());
+  public static @Nullable Geometry ST_GeomFromText(String wkt) {
+    return ST_GeomFromWKT(wkt);
   }
 
-  public static @Nullable Geometry ST_GeomFromWKB(ByteString b, int srid) {
-    final Geometry g = fromWkb(b.getBytes());
-    g.setSRID(srid);
-    return g;
+  public static @Nullable Geometry ST_GeomFromText(String wkt, int srid) {
+    return ST_GeomFromWKT(wkt, srid);
   }
 
-  public static @Nullable Geometry ST_LineFromText(String s) {
-    return ST_GeomFromText(s, NO_SRID);
+  public static @Nullable Geometry ST_GeomFromWKB(ByteString wkb) {
+    return fromWkb(wkb);
+  }
+
+  public static @Nullable Geometry ST_GeomFromWKB(ByteString wkb, int srid) {
+    Geometry geometry = fromWkb(wkb);
+    geometry.setSRID(srid);
+    return geometry;
+  }
+
+  public static @Nullable Geometry ST_GeomFromWKT(String wkt) {
+    return ST_GeomFromWKT(wkt, NO_SRID);
+  }
+
+  public static @Nullable Geometry ST_GeomFromWKT(String wkt, int srid) {
+    Geometry geometry = fromWkt(wkt);
+    geometry.setSRID(srid);
+    return geometry;
+  }
+
+  public static @Nullable Geometry ST_LineFromText(String wkt) {
+    return ST_GeomFromWKT(wkt);
   }
 
   public static @Nullable Geometry ST_LineFromText(String wkt, int srid) {
-    final Geometry g = fromWkt(wkt);
-    g.setSRID(srid);
-    return g == null ? null : g;
+    return ST_GeomFromWKT(wkt, srid);
   }
 
-  public static @Nullable Geometry ST_MPointFromText(String s) {
-    return ST_GeomFromText(s, NO_SRID);
+  public static @Nullable Geometry ST_LineFromWKB(ByteString wkb) {
+    return ST_GeomFromWKB(wkb);
   }
 
-  public static @Nullable Geometry ST_MPointFromText(String wkt, int srid) {
-    final Geometry g = fromWkt(wkt);
-    g.setSRID(srid);
-    return g == null ? null : g;
+  public static @Nullable Geometry ST_LineFromWKB(ByteString wkt, int srid) {
+    return ST_GeomFromWKB(wkt, srid);
   }
 
-  public static @Nullable Geometry ST_PointFromText(String s) {
-    return ST_GeomFromText(s, NO_SRID);
-  }
-
-  public static @Nullable Geometry ST_PointFromText(String wkt, int srid) {
-    final Geometry g = fromWkt(wkt);
-    g.setSRID(srid);
-    return g == null ? null : g;
-  }
-
-  public static @Nullable Geometry ST_PolyFromText(String s) {
-    return ST_GeomFromText(s, NO_SRID);
-  }
-
-  public static @Nullable Geometry ST_PolyFromText(String wkt, int srid) {
-    final Geometry g = fromWkt(wkt);
-    g.setSRID(srid);
-    return g == null ? null : g;
-  }
-
-  public static @Nullable Geometry ST_MLineFromText(String s) {
-    return ST_GeomFromText(s, NO_SRID);
+  public static @Nullable Geometry ST_MLineFromText(String wkt) {
+    return ST_GeomFromWKT(wkt);
   }
 
   public static @Nullable Geometry ST_MLineFromText(String wkt, int srid) {
-    final Geometry g = fromWkt(wkt);
-    g.setSRID(srid);
-    return g == null ? null : g;
+    return ST_GeomFromWKT(wkt, srid);
   }
 
-  public static @Nullable Geometry ST_MPolyFromText(String s) {
-    return ST_GeomFromText(s, NO_SRID);
+  public static @Nullable Geometry ST_MPointFromText(String wkt) {
+    return ST_GeomFromWKT(wkt);
+  }
+
+  public static @Nullable Geometry ST_MPointFromText(String wkt, int srid) {
+    return ST_GeomFromWKT(wkt, srid);
+  }
+
+  public static @Nullable Geometry ST_MPolyFromText(String wkt) {
+    return ST_GeomFromWKT(wkt);
   }
 
   public static @Nullable Geometry ST_MPolyFromText(String wkt, int srid) {
-    final Geometry g = fromWkt(wkt);
-    g.setSRID(srid);
-    return g == null ? null : g;
+    return ST_GeomFromWKT(wkt, srid);
+  }
+
+  public static @Nullable Geometry ST_PointFromText(String wkt) {
+    return ST_GeomFromWKT(wkt);
+  }
+
+  public static @Nullable Geometry ST_PointFromText(String wkt, int srid) {
+    return ST_GeomFromWKT(wkt, srid);
+  }
+
+  public static @Nullable Geometry ST_PointFromWKB(ByteString wkb) {
+    return ST_GeomFromWKB(wkb);
+  }
+
+  public static @Nullable Geometry ST_PointFromWKB(ByteString wkb, int srid) {
+    return ST_GeomFromWKB(wkb, srid);
+  }
+
+  public static @Nullable Geometry ST_PolyFromText(String wkt) {
+    return ST_GeomFromWKT(wkt);
+  }
+
+  public static @Nullable Geometry ST_PolyFromText(String wkt, int srid) {
+    return ST_GeomFromWKT(wkt, srid);
+  }
+
+  public static @Nullable Geometry ST_PolyFromWKB(ByteString wkb) {
+    return ST_GeomFromWKB(wkb);
+  }
+
+  public static @Nullable Geometry ST_PolyFromWKB(ByteString wkb, int srid) {
+    return ST_GeomFromWKB(wkb, srid);
   }
 
   // Geometry creation functions ==============================================

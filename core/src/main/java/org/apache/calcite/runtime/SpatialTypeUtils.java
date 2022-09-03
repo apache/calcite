@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
-import java.io.IOException;
-import javax.xml.parsers.ParserConfigurationException;
-
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Strict;
@@ -33,13 +31,14 @@ import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-
-import java.util.Locale;
-import java.util.regex.Pattern;
-
 import org.locationtech.jts.io.gml2.GMLReader;
 import org.locationtech.jts.io.gml2.GMLWriter;
 import org.xml.sax.SAXException;
+
+import java.io.IOException;
+import java.util.Locale;
+import java.util.regex.Pattern;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Utilities for spatial types.
@@ -147,10 +146,10 @@ public class SpatialTypeUtils {
    * @param wkb a WKB
    * @return a geometry
    */
-  public static Geometry fromWkb(byte[] wkb) {
+  public static Geometry fromWkb(ByteString wkb) {
     try {
       WKBReader reader = new WKBReader();
-      return reader.read(wkb);
+      return reader.read(wkb.getBytes());
     } catch (ParseException e) {
       throw new RuntimeException("Unable to parse WKB");
     }
@@ -231,10 +230,10 @@ public class SpatialTypeUtils {
    * @param geometry a geometry
    * @return an WKB
    */
-  public static byte[] asWkb(Geometry geometry) {
+  public static ByteString asWkb(Geometry geometry) {
     int outputDimension = dimension(geometry);
     WKBWriter wkbWriter = new WKBWriter(outputDimension);
-    return wkbWriter.write(geometry);
+    return new ByteString(wkbWriter.write(geometry));
   }
 
   /**
