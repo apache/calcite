@@ -464,7 +464,40 @@ MULTIPOINT Z((-1 1 1), (1 1 1))
 !ok
 
 # ST_Centroid(geom) Returns the centroid of *geom* (which may be a geometry-collection)
-# Not implemented
+
+SELECT ST_Centroid(ST_GeomFromText('MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+POINT (1.5 2)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2)'));
+EXPR$0
+POINT (2.472556942838389 2.3241856476127962)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('MULTILINESTRING((1 5, 6 5), (5 1, 5 4))'));
+EXPR$0
+POINT (4.0625 4.0625)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('POLYGON((1 5, 1 2, 6 2, 3 3, 3 4, 5 6, 1 5))'));
+EXPR$0
+POINT (2.5964912280701755 3.666666666666667)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('MULTIPOLYGON(((0 2, 3 2, 3 6, 0 6, 0 2)), ((5 0, 7 0, 7 1, 5 1, 5 0)))'));
+EXPR$0
+POINT (2.142857142857143 3.5)
+!ok
+
+SELECT ST_Centroid(ST_GeomFromText('GEOMETRYCOLLECTION(
+                      POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)),
+                      LINESTRING(2 6, 6 2),
+                      MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+POINT (2.5 4)
+!ok
+
 
 # ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
 # Not implemented

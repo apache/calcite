@@ -409,6 +409,10 @@ public class SpatialTypeFunctions {
     return geom.getBoundary();
   }
 
+  public static Geometry ST_Centroid(Geometry geom) {
+    return geom.getCentroid();
+  }
+
   /** Returns the distance between {@code geom1} and {@code geom2}. */
   public static double ST_Distance(Geometry geom1, Geometry geom2) {
     return geom1.distance(geom2);

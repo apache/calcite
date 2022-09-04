@@ -2239,6 +2239,7 @@ Not implemented:
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Boundary(geom [, srid ]) | Returns the boundary of *geom*
+| o | ST_Centroid(geom) | Returns the centroid of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
@@ -2252,7 +2253,6 @@ Not implemented:
 
 Not implemented:
 
-* ST_Centroid(geom) Returns the centroid of *geom* (which may be a GEOMETRYCOLLECTION)
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
 * ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
 * ST_Dimension(geom) Returns the dimension of *geom*
@@ -2400,6 +2400,12 @@ Not implemented:
 
 The following functions process geometries.
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Simplify(geom, distance)  | Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
+| o | ST_SimplifyPreserveTopology(geom, distance) | Simplifies *geom*, preserving its topology
+| o | ST_Snap(geom1, geom2, tolerance) | Snaps *geom1* and *geom2* together
+
 Not implemented:
 
 * ST_LineIntersector(geom1, geom2) Splits *geom1* (a line-string) with *geom2*
@@ -2409,9 +2415,6 @@ Not implemented:
 * ST_PrecisionReducer(geom, n) Reduces *geom*'s precision to *n* decimal places
 * ST_RingSideBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 * ST_SideBuffer(geom, distance [, bufferStyle ]) Compute a single buffer on one side
-* ST_Simplify(geom, distance) Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
-* ST_SimplifyPreserveTopology(geom) Simplifies *geom*, preserving its topology
-* ST_Snap(geom1, geom2, tolerance) Snaps *geom1* and *geom2* together
 * ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line
 
 #### Geometry projection functions
