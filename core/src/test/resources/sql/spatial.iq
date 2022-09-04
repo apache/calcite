@@ -217,7 +217,7 @@ srid:4326;LINESTRING (1 2, 3 4)
 SELECT ST_LineFromText('LINESTRING(1 2, 3 4)') AS aline,
   ST_LineFromText('POINT(1 2)') AS null_return;
 ALINE, NULL_RETURN
-LINESTRING (1 2, 3 4), POINT (1 2)
+LINESTRING (1 2, 3 4), null
 !ok
 
 # ST_LineFromWKB(wkb [, srid ]) Well Known Binary to LINESTRING
@@ -1209,7 +1209,11 @@ LINESTRING (-1 1.0000000000000002, 1 0.9999999999999999, 1 2)
 !ok
 
 # ST_Scale(geom, xFactor, yFactor [, zFactor ]) Scales *geom* by multiplying the ordinates by the indicated scale factors
-# Not implemented
+
+SELECT ST_Scale(ST_GeomFromText('LINESTRING(1 2, 4 5)'), 0.5, 0.75);
+EXPR$0
+LINESTRING (0.5 1.5, 2 3.75)
+!ok
 
 # ST_Translate(geom, x, y, [, z]) Translates *geom*
 # Not implemented

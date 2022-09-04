@@ -2337,6 +2337,7 @@ See also: the `ST_Union` aggregate function.
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Rotate(geom, angle [, origin \| x, y]) | Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
+| o | ST_Scale(geom, xFactor, yFactor) | Scales *geom* by multiplying the ordinates by the indicated scale factors
 
 Not implemented:
 

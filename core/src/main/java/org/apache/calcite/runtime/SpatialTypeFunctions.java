@@ -171,148 +171,94 @@ public class SpatialTypeFunctions {
     return geometry;
   }
 
-  public static @Nullable LineString ST_LineFromText(String wkt) {
+  public static @Nullable Geometry ST_LineFromText(String wkt) {
     Geometry geometry = ST_GeomFromWKT(wkt);
-    if (geometry instanceof LineString) {
-      return (LineString) geometry;
-    }
-    return null;
+    return geometry instanceof LineString ? geometry : null;
   }
 
-  public static @Nullable LineString ST_LineFromText(String wkt, int srid) {
+  public static @Nullable Geometry ST_LineFromText(String wkt, int srid) {
     Geometry geometry = ST_GeomFromWKT(wkt, srid);
-    if (geometry instanceof LineString) {
-      return (LineString) geometry;
-    }
-    return null;
+    return geometry instanceof LineString ? geometry : null;
   }
 
-  public static @Nullable LineString ST_LineFromWKB(ByteString wkb) {
+  public static @Nullable Geometry ST_LineFromWKB(ByteString wkb) {
     Geometry geometry = ST_GeomFromWKB(wkb);
-    if (geometry instanceof LineString) {
-      return (LineString) geometry;
-    }
-    return null;
+    return geometry instanceof LineString ? geometry : null;
   }
 
-  public static @Nullable LineString ST_LineFromWKB(ByteString wkt, int srid) {
+  public static @Nullable Geometry ST_LineFromWKB(ByteString wkt, int srid) {
     Geometry geometry = ST_GeomFromWKB(wkt, srid);
-    if (geometry instanceof LineString) {
-      return (LineString) geometry;
-    }
-    return null;
+    return geometry instanceof LineString ? geometry : null;
   }
 
-  public static @Nullable MultiLineString ST_MLineFromText(String wkt) {
+  public static @Nullable Geometry ST_MLineFromText(String wkt) {
     Geometry geometry = ST_GeomFromWKT(wkt);
-    if (geometry instanceof MultiLineString) {
-      return (MultiLineString) geometry;
-    }
-    return null;
+    return geometry instanceof MultiLineString ? geometry : null;
   }
 
-  public static @Nullable MultiLineString ST_MLineFromText(String wkt, int srid) {
+  public static @Nullable Geometry ST_MLineFromText(String wkt, int srid) {
     Geometry geometry = ST_GeomFromWKT(wkt, srid);
-    if (geometry instanceof MultiLineString) {
-      return (MultiLineString) geometry;
-    }
-    return null;
+    return geometry instanceof MultiLineString ? geometry : null;
   }
 
-  public static @Nullable MultiPoint ST_MPointFromText(String wkt) {
+  public static @Nullable Geometry ST_MPointFromText(String wkt) {
     Geometry geometry = ST_GeomFromWKT(wkt);
-    if (geometry instanceof MultiPoint) {
-      return (MultiPoint) geometry;
-    }
-    return null;
+    return geometry instanceof MultiPoint ? geometry : null;
   }
 
-  public static @Nullable MultiPoint ST_MPointFromText(String wkt, int srid) {
+  public static @Nullable Geometry ST_MPointFromText(String wkt, int srid) {
     Geometry geometry = ST_GeomFromWKT(wkt, srid);
-    if (geometry instanceof MultiPoint) {
-      return (MultiPoint) geometry;
-    }
-    return null;
+    return geometry instanceof MultiPoint ? geometry : null;
   }
 
-  public static @Nullable MultiPolygon ST_MPolyFromText(String wkt) {
+  public static @Nullable Geometry ST_MPolyFromText(String wkt) {
     Geometry geometry = ST_GeomFromWKT(wkt);
-    if (geometry instanceof MultiPolygon) {
-      return (MultiPolygon) geometry;
-    }
-    return null;
+    return geometry instanceof MultiPolygon ? geometry : null;
   }
 
-  public static @Nullable MultiPolygon ST_MPolyFromText(String wkt, int srid) {
+  public static @Nullable Geometry ST_MPolyFromText(String wkt, int srid) {
     Geometry geometry = ST_GeomFromWKT(wkt, srid);
-    if (geometry instanceof MultiPolygon) {
-      return (MultiPolygon) geometry;
-    }
-    return null;
+    return geometry instanceof MultiPolygon ? geometry : null;
   }
 
-  public static @Nullable Point ST_PointFromText(String wkt) {
+  public static @Nullable Geometry ST_PointFromText(String wkt) {
     Geometry geometry = ST_GeomFromWKT(wkt);
-    if (geometry instanceof Point) {
-      return (Point) geometry;
-    }
-    return null;
+    return geometry instanceof Point ? geometry : null;
   }
 
-  public static @Nullable Point ST_PointFromText(String wkt, int srid) {
+  public static @Nullable Geometry ST_PointFromText(String wkt, int srid) {
     Geometry geometry = ST_GeomFromWKT(wkt, srid);
-    if (geometry instanceof Point) {
-      return (Point) geometry;
-    }
-    return null;
+    return geometry instanceof Point ? geometry : null;
   }
 
-  public static @Nullable Point ST_PointFromWKB(ByteString wkb) {
+  public static @Nullable Geometry ST_PointFromWKB(ByteString wkb) {
     Geometry geometry = ST_GeomFromWKB(wkb);
-    if (geometry instanceof Point) {
-      return (Point) geometry;
-    }
-    return null;
+    return geometry instanceof Point ? geometry : null;
   }
 
-  public static @Nullable Point ST_PointFromWKB(ByteString wkb, int srid) {
+  public static @Nullable Geometry ST_PointFromWKB(ByteString wkb, int srid) {
     Geometry geometry = ST_GeomFromWKB(wkb, srid);
-    if (geometry instanceof Point) {
-      return (Point) geometry;
-    }
-    return null;
+    return geometry instanceof Point ? geometry : null;
   }
 
-  public static @Nullable Polygon ST_PolyFromText(String wkt) {
+  public static @Nullable Geometry ST_PolyFromText(String wkt) {
     Geometry geometry = ST_GeomFromWKT(wkt);
-    if (geometry instanceof Polygon) {
-      return (Polygon) geometry;
-    }
-    return null;
+    return geometry instanceof Polygon ? geometry : null;
   }
 
-  public static @Nullable Polygon ST_PolyFromText(String wkt, int srid) {
+  public static @Nullable Geometry ST_PolyFromText(String wkt, int srid) {
     Geometry geometry = ST_GeomFromWKT(wkt, srid);
-    if (geometry instanceof Polygon) {
-      return (Polygon) geometry;
-    }
-    return null;
+    return geometry instanceof Polygon ? geometry : null;
   }
 
-  public static @Nullable Polygon ST_PolyFromWKB(ByteString wkb) {
+  public static @Nullable Geometry ST_PolyFromWKB(ByteString wkb) {
     Geometry geometry = ST_GeomFromWKB(wkb);
-    if (geometry instanceof Polygon) {
-      return (Polygon) geometry;
-    }
-    return null;
+    return geometry instanceof Polygon ? geometry : null;
   }
 
-  public static @Nullable Polygon ST_PolyFromWKB(ByteString wkb, int srid) {
+  public static @Nullable Geometry ST_PolyFromWKB(ByteString wkb, int srid) {
     Geometry geometry = ST_GeomFromWKB(wkb, srid);
-    if (geometry instanceof Polygon) {
-      return (Polygon) geometry;
-    }
-    return null;
+    return geometry instanceof Polygon ? geometry : null;
   }
 
   // Geometry creation functions ==============================================
@@ -832,9 +778,14 @@ public class SpatialTypeFunctions {
   /**
    * Rotates geom counter-clockwise by angle (in radians) about the point origin.
    */
-  public static Geometry ST_Rotate(Geometry geom, BigDecimal angle, Point origin) {
+  public static Geometry ST_Rotate(Geometry geom, BigDecimal angle, Geometry origin) {
+    // Note: check whether we can add support for the Point type.
+    if (!(origin instanceof Point)) {
+      throw new RuntimeException("The origin must be a point");
+    }
+    Point point = (Point) origin;
     AffineTransformation transformation = new AffineTransformation();
-    transformation.rotate(angle.doubleValue(), origin.getX(), origin.getY());
+    transformation.rotate(angle.doubleValue(), point.getX(), point.getY());
     return transformation.transform(geom);
   }
 
@@ -844,6 +795,15 @@ public class SpatialTypeFunctions {
   public static Geometry ST_Rotate(Geometry geom, BigDecimal angle, BigDecimal x, BigDecimal y) {
     AffineTransformation transformation = new AffineTransformation();
     transformation.rotate(angle.doubleValue(), x.doubleValue(), y.doubleValue());
+    return transformation.transform(geom);
+  }
+
+  /**
+   * Scales geom Geometry by multiplying the ordinates by the indicated scale factors.
+   */
+  public static Geometry ST_Scale(Geometry geom, BigDecimal xFactor, BigDecimal yFactor) {
+    AffineTransformation transformation = new AffineTransformation();
+    transformation.scale(xFactor.doubleValue(), yFactor.doubleValue());
     return transformation.transform(geom);
   }
 
