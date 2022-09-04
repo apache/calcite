@@ -367,6 +367,11 @@ public class SpatialTypeFunctions {
     return false;
   }
 
+  /** Returns true if geom is empty. */
+  public static boolean ST_IsEmpty(Geometry geom) {
+    return geom.isEmpty();
+  }
+
   /** Returns true if geom is simple. */
   public static boolean ST_IsSimple(Geometry geom) {
     return geom.isSimple();

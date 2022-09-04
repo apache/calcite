@@ -629,7 +629,24 @@ p , POINT, 1
 # Not implemented
 
 # ST_IsEmpty(geom) Returns whether *geom* is empty
-# Not implemented
+
+SELECT ST_IsEmpty(ST_GeomFromText('MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsEmpty(ST_GeomFromText('GEOMETRYCOLLECTION(
+  MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+  LINESTRING(2 6, 6 2),
+  POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)))'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsEmpty(ST_GeomFromText('POLYGON EMPTY'));
+EXPR$0
+true
+!ok
 
 # ST_IsRectangle(geom) Returns whether *geom* is a rectangle
 # Not implemented
