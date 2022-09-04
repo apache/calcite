@@ -2334,9 +2334,12 @@ See also: the `ST_Union` aggregate function.
 
 #### Affine transformation functions (3D and 2D)
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Rotate(geom, angle [, origin \| x, y]) | Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
+
 Not implemented:
 
-* ST_Rotate(geom, angle [, origin \| x, y]) Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
 * ST_Scale(geom, xFactor, yFactor [, zFactor ]) Scales *geom* by multiplying the ordinates by the indicated scale factors
 * ST_Translate(geom, x, y, [, z]) Translates *geom*
 
