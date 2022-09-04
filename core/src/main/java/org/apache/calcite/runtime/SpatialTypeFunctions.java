@@ -37,6 +37,9 @@ import org.locationtech.jts.geom.Polygon;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
+import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
+
 import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
 import static org.apache.calcite.runtime.SpatialTypeUtils.NO_SRID;
 import static org.apache.calcite.runtime.SpatialTypeUtils.asEwkt;
@@ -596,6 +599,22 @@ public class SpatialTypeFunctions {
   @Hints({"SqlKind:HILBERT"})
   public static long hilbert(BigDecimal x, BigDecimal y) {
     return new HilbertCurve2D(8).toIndex(x.doubleValue(), y.doubleValue());
+  }
+
+  // Process Geometries
+
+  /** Simplifies geom a geometry using the Douglas-Peuker algorithm. */
+  public static Geometry ST_Simplify(Geometry geom, BigDecimal distance) {
+    DouglasPeuckerSimplifier simplifier = new DouglasPeuckerSimplifier(geom);
+    simplifier.setDistanceTolerance(distance.doubleValue());
+    return simplifier.getResultGeometry();
+  }
+
+  /** Simplifies a geometry and preserves its topology. */
+  public static Geometry ST_SimplifyPreserveTopology(Geometry geom, BigDecimal distance) {
+    TopologyPreservingSimplifier simplifier = new TopologyPreservingSimplifier(geom);
+    simplifier.setDistanceTolerance(distance.doubleValue());
+    return simplifier.getResultGeometry();
   }
 
   // Inner classes ============================================================
