@@ -671,7 +671,16 @@ false
 !ok
 
 # ST_IsValid(geom) Returns whether *geom* is valid
-# Not implemented
+
+SELECT ST_IsValid(ST_GeomFromText('POLYGON((0 0, 10 0, 10 5, 0 5, 0 0))'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsValid(ST_GeomFromText('POLYGON((0 0, 10 0, 10 5, 6 -2, 0 0))'));
+EXPR$0
+false
+!ok
 
 # ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 # Not implemented
