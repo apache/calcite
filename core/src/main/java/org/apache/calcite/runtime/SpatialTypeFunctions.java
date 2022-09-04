@@ -367,6 +367,11 @@ public class SpatialTypeFunctions {
     return false;
   }
 
+  /** Returns SRID value or 0 if input Geometry does not have one. */
+  public static @Nullable int ST_SRID(Geometry geom) {
+    return geom.getSRID();
+  }
+
   /** Return the X coordinate of the point, or NULL if not available. Input must be a point.. */
   public static @Nullable Double ST_X(Geometry geom) {
     return geom instanceof Point ? ((Point) geom).getX() : null;

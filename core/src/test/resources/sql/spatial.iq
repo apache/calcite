@@ -671,7 +671,16 @@ p , POINT, 1
 # Not implemented
 
 # ST_SRID(geom) Returns SRID value of *geom* or 0 if it does not have one
-# Not implemented
+
+SELECT ST_SRID(ST_GeomFromText('POINT(15 25)', 2154));
+EXPR$0
+2154
+!ok
+
+SELECT ST_SRID(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2, 2 1)', 4326));
+EXPR$0
+4326
+!ok
 
 # ST_StartPoint(lineString) Returns the first coordinate of *lineString*
 # Not implemented

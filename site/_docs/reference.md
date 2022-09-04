@@ -2244,6 +2244,7 @@ Not implemented:
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
+| o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
 | o | ST_XMax(geom) | Returns the maximum x-value of *geom*
 | o | ST_XMin(geom) | Returns the minimum x-value of *geom*
@@ -2278,7 +2279,6 @@ Not implemented:
 * ST_NumPoints(lineString) Returns the number of points in *lineString*
 * ST_PointN(geom, n) Returns the *n*th point of a *lineString*
 * ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
-* ST_SRID(geom) Returns SRID value of *geom* or 0 if it does not have one
 * ST_StartPoint(lineString) Returns the first coordinate of *lineString*
 
 
