@@ -33,12 +33,12 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
+import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
+import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 
 import java.math.BigDecimal;
 import java.util.Objects;
-
-import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
-import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 
 import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
 import static org.apache.calcite.runtime.SpatialTypeUtils.NO_SRID;
@@ -581,6 +581,28 @@ public class SpatialTypeFunctions {
     return geom;
   }
 
+  // Process Geometries
+
+  /** Simplifies geom a geometry using the Douglas-Peuker algorithm. */
+  public static Geometry ST_Simplify(Geometry geom, BigDecimal distance) {
+    DouglasPeuckerSimplifier simplifier = new DouglasPeuckerSimplifier(geom);
+    simplifier.setDistanceTolerance(distance.doubleValue());
+    return simplifier.getResultGeometry();
+  }
+
+  /** Simplifies a geometry and preserves its topology. */
+  public static Geometry ST_SimplifyPreserveTopology(Geometry geom, BigDecimal distance) {
+    TopologyPreservingSimplifier simplifier = new TopologyPreservingSimplifier(geom);
+    simplifier.setDistanceTolerance(distance.doubleValue());
+    return simplifier.getResultGeometry();
+  }
+
+  /** Snaps geom1 and geom2 together with the given snapTolerance. */
+  public static Geometry ST_Snap(Geometry geom1, Geometry geom2, BigDecimal snapTolerance) {
+    GeometrySnapper snapper = new GeometrySnapper(geom1);
+    return snapper.snapTo(geom2, snapTolerance.doubleValue());
+  }
+
   // Space-filling curves
 
   /** Returns the position of a point on the Hilbert curve,
@@ -601,21 +623,7 @@ public class SpatialTypeFunctions {
     return new HilbertCurve2D(8).toIndex(x.doubleValue(), y.doubleValue());
   }
 
-  // Process Geometries
 
-  /** Simplifies geom a geometry using the Douglas-Peuker algorithm. */
-  public static Geometry ST_Simplify(Geometry geom, BigDecimal distance) {
-    DouglasPeuckerSimplifier simplifier = new DouglasPeuckerSimplifier(geom);
-    simplifier.setDistanceTolerance(distance.doubleValue());
-    return simplifier.getResultGeometry();
-  }
-
-  /** Simplifies a geometry and preserves its topology. */
-  public static Geometry ST_SimplifyPreserveTopology(Geometry geom, BigDecimal distance) {
-    TopologyPreservingSimplifier simplifier = new TopologyPreservingSimplifier(geom);
-    simplifier.setDistanceTolerance(distance.doubleValue());
-    return simplifier.getResultGeometry();
-  }
 
   // Inner classes ============================================================
 
