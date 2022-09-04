@@ -2244,6 +2244,7 @@ Not implemented:
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
+| o | ST_IsSimple(geom) | Returns whether *geom* is simple
 | o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
 | o | ST_XMax(geom) | Returns the maximum x-value of *geom*
@@ -2268,7 +2269,6 @@ Not implemented:
 * ST_IsEmpty(geom) Returns whether *geom* is empty
 * ST_IsRectangle(geom) Returns whether *geom* is a rectangle
 * ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
-* ST_IsSimple(geom) Returns whether *geom* is simple
 * ST_IsValid(geom) Returns whether *geom* is valid
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why

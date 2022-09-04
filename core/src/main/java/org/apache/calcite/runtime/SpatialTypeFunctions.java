@@ -367,8 +367,13 @@ public class SpatialTypeFunctions {
     return false;
   }
 
+  /** Returns true if geom is simple. */
+  public static boolean ST_IsSimple(Geometry geom) {
+    return geom.isSimple();
+  }
+
   /** Returns SRID value or 0 if input Geometry does not have one. */
-  public static @Nullable int ST_SRID(Geometry geom) {
+  public static int ST_SRID(Geometry geom) {
     return geom.getSRID();
   }
 
