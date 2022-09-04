@@ -2244,6 +2244,7 @@ Not implemented:
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
+| o | ST_Extent(geom) | Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
 | o | ST_IsEmpty(geom) | Returns whether *geom* is empty
 | o | ST_IsSimple(geom) | Returns whether *geom* is simple
 | o | ST_IsValid(geom) | Returns whether *geom* is valid
@@ -2261,9 +2262,7 @@ Not implemented:
 * ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
 * ST_Dimension(geom) Returns the dimension of *geom*
 * ST_EndPoint(lineString) Returns the last coordinate of *lineString*
-* ST_Envelope(geom [, srid ]) Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
-* ST_Extent(geom) Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
 * ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
 * ST_GeometryN(geomCollection, n) Returns the *n*th GEOMETRY of *geomCollection*
 * ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*

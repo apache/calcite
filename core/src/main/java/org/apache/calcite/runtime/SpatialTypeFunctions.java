@@ -357,6 +357,12 @@ public class SpatialTypeFunctions {
 
   // Geometry properties (2D and 3D) ==========================================
 
+  /** Returns the minimum bounding box that encloses geom as a Geometry. */
+  public static @Nullable Geometry ST_Extent(Geometry geom) {
+    // Note: check whether the extent and the envelope are the same.
+    return geom.getEnvelope();
+  }
+
   /** Returns whether {@code geom} has at least one z-coordinate. */
   public static boolean ST_Is3D(Geometry geom) {
     for (Coordinate coordinate : geom.getCoordinates()) {
