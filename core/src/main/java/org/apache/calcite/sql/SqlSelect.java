@@ -127,7 +127,7 @@ public class SqlSelect extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch, hints);
+        groupBy, having, qualify, windowDecls, orderBy, offset, fetch, hints);
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
@@ -207,6 +207,11 @@ public class SqlSelect extends SqlCall {
 
   public void setHaving(@Nullable SqlNode having) {
     this.having = having;
+  }
+
+  @Pure
+  public final @Nullable SqlNode getQualify() {
+    return qualify;
   }
 
   public void setQualify(@Nullable SqlNode qualify) {
