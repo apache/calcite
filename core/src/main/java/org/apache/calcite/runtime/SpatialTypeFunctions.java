@@ -796,7 +796,7 @@ public class SpatialTypeFunctions {
    * Creates a multipolygon from the geometry.
    */
   public static Geometry ST_Polygonize(Geometry geometry) {
-    Polygonizer polygonizer = new Polygonizer();
+    Polygonizer polygonizer = new Polygonizer(true);
     polygonizer.add(geometry);
     return polygonizer.getGeometry();
   }
