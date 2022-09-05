@@ -427,6 +427,13 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns true if geom is rectangle.
+   */
+  public static boolean ST_IsRectangle(Geometry geom) {
+    return geom.isRectangle();
+  }
+
+  /**
    * Returns true if geom is simple.
    */
   public static boolean ST_IsSimple(Geometry geom) {

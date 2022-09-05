@@ -667,7 +667,16 @@ true
 !ok
 
 # ST_IsRectangle(geom) Returns whether *geom* is a rectangle
-# Not implemented
+
+SELECT ST_IsRectangle(ST_GeomFromText('POLYGON((0 0, 10 0, 10 5, 0 5, 0 0))'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsRectangle(ST_GeomFromText('POLYGON((0 0, 10 0, 10 7, 0 5, 0 0))'));
+EXPR$0
+false
+!ok
 
 # ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or multi-line-string
 # Not implemented
