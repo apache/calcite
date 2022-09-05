@@ -111,9 +111,18 @@ import java.util.stream.IntStream;
 
 import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -10291,6 +10300,71 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+
+  @Test public void dayOccurenceOfMonth() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayOccurenceOfMonth = builder.call(DAYOCCURRENCE_OF_MONTH,
+        builder.call(CURRENT_DATE));
+    final RelNode root = builder.scan("EMP")
+        .project(dayOccurenceOfMonth)
+        .build();
+    final String expectedSql = "SELECT DAYOCCURRENCE_OF_MONTH(CURRENT_DATE) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedSpark = "SELECT CEIL(DAY(CURRENT_DATE) / 7) $f0\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testDateTimeNumberOfYear() {
+    final RelBuilder builder = relBuilder();
+    final RexNode weekNumberOfYearCall = builder.call(WEEKNUMBER_OF_YEAR,
+        builder.call(CURRENT_DATE));
+    final RexNode monthNumberOfYearCall = builder.call(MONTHNUMBER_OF_YEAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RexNode quarterNumberOfYearCall = builder.call(QUARTERNUMBER_OF_YEAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder.scan("EMP")
+        .project(weekNumberOfYearCall,
+            monthNumberOfYearCall,
+            quarterNumberOfYearCall)
+        .build();
+    final String expectedSql = "SELECT WEEKNUMBER_OF_YEAR(CURRENT_DATE) AS \"$f0\", "
+        + "MONTHNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f1\", "
+        + "QUARTERNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f2\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String expectedSpark = "SELECT WEEKOFYEAR(CURRENT_DATE) $f0, "
+        + "MONTH(CURRENT_TIMESTAMP) $f1, "
+        + "QUARTER(CURRENT_TIMESTAMP) $f2\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testXNumberOfCalendar() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayNumberOfCalendarCall = builder.call(DAYNUMBER_OF_CALENDAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RexNode weekNumberOfCalendarCall = builder.call(WEEKNUMBER_OF_CALENDAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RexNode yearNumberOfCalendarCall = builder.call(YEARNUMBER_OF_CALENDAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder.scan("EMP")
+        .project(dayNumberOfCalendarCall,
+            weekNumberOfCalendarCall,
+            yearNumberOfCalendarCall)
+        .build();
+    final String expectedSql = "SELECT DAYNUMBER_OF_CALENDAR(CURRENT_TIMESTAMP) AS \"$f0\", "
+        + "WEEKNUMBER_OF_CALENDAR(CURRENT_TIMESTAMP) AS \"$f1\", "
+        + "YEARNUMBER_OF_CALENDAR(CURRENT_TIMESTAMP) AS \"$f2\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String expectedSpark = "SELECT DATEDIFF(CURRENT_TIMESTAMP, DATE '1899-12-31') $f0,"
+        + " FLOOR((DATEDIFF(CURRENT_TIMESTAMP, DATE '1900-01-01') + 1) / 7) $f1,"
+        + " YEAR(CURRENT_TIMESTAMP) $f2"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testForAddingMonths() {

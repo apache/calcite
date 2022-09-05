@@ -93,6 +93,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
@@ -100,6 +101,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
@@ -283,7 +287,11 @@ public class SparkSqlDialect extends SqlDialect {
         writer.endFunCall(lengthFrame);
         break;
       case EXTRACT:
-        final SqlWriter.Frame extractFrame = writer.startFunCall(call.operand(0).toString());
+        String extractDateTimeUnit = call.operand(0).toString();
+        String resolvedDateTimeFunctionName =
+            extractDateTimeUnit.equalsIgnoreCase(DateTimestampFormatUtil.WEEK)
+            ? DateTimestampFormatUtil.WEEK_OF_YEAR : extractDateTimeUnit;
+        final SqlWriter.Frame extractFrame = writer.startFunCall(resolvedDateTimeFunctionName);
         call.operand(1).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(extractFrame);
         break;
@@ -594,9 +602,34 @@ public class SparkSqlDialect extends SqlDialect {
       SqlCall errorCall = RAISE_ERROR.createCall(SqlParserPos.ZERO, (SqlNode) call.operand(0));
       super.unparseCall(writer, errorCall, leftPrec, rightPrec);
       break;
+    case DateTimestampFormatUtil.DAYOCCURRENCE_OF_MONTH:
+      unparseDayOccurenceOfMonth(writer, call, leftPrec, rightPrec);
+      break;
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_YEAR:
+    case DateTimestampFormatUtil.QUARTERNUMBER_OF_YEAR:
+    case DateTimestampFormatUtil.MONTHNUMBER_OF_YEAR:
+    case DateTimestampFormatUtil.DAYNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.YEARNUMBER_OF_CALENDAR:
+    case DateTimestampFormatUtil.WEEKNUMBER_OF_CALENDAR:
+      DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
+      dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  protected void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlCall dateDiffCall = DATEDIFF.createCall(SqlParserPos.ZERO,
+        call.operand(0), call.operand(1));
+    if (call.operandCount() == 3 && call.operand(2).toString().equalsIgnoreCase("WEEK")) {
+      SqlNode[] divideOperands = new SqlNode[]{ PLUS.createCall(SqlParserPos.ZERO, dateDiffCall,
+          SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)), SqlLiteral.createExactNumeric("7",
+          SqlParserPos.ZERO)};
+      dateDiffCall = FLOOR.createCall(SqlParserPos.ZERO,
+          DIVIDE.createCall(SqlParserPos.ZERO, divideOperands));
+    }
+    super.unparseCall(writer, dateDiffCall, leftPrec, rightPrec);
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -667,5 +700,15 @@ public class SparkSqlDialect extends SqlDialect {
     SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+  }
+
+  private void unparseDayOccurenceOfMonth(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode extractUnit = SqlLiteral.createSymbol(TimeUnitRange.DAY, SqlParserPos.ZERO);
+    SqlCall dayExtractCall = EXTRACT.createCall(SqlParserPos.ZERO, extractUnit, call.operand(0));
+    SqlCall weekNumberCall = DIVIDE.createCall(SqlParserPos.ZERO, dayExtractCall,
+        SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
+    SqlCall ceilCall = CEIL.createCall(SqlParserPos.ZERO, weekNumberCall);
+    unparseCall(writer, ceilCall, leftPrec, rightPrec);
   }
 }
