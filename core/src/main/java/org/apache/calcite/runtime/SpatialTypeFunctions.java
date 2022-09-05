@@ -434,6 +434,13 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns the first point of {@code geom}.
+   */
+  public static Geometry ST_EndPoint(Geometry geom) {
+    return ST_PointN(geom, -1);
+  }
+
+  /**
    * Returns whether {@code geom} has at least one z-coordinate.
    */
   public static boolean ST_Is3D(Geometry geom) {
@@ -476,6 +483,13 @@ public class SpatialTypeFunctions {
   /**
    * Returns the number of points in {@code geom}.
    */
+  public static int ST_NPoints(Geometry geom) {
+    return ST_NumPoints(geom);
+  }
+
+  /**
+   * Returns the number of points in {@code geom}.
+   */
   public static int ST_NumPoints(Geometry geom) {
     return geom.getCoordinates().length;
   }
@@ -494,6 +508,13 @@ public class SpatialTypeFunctions {
    */
   public static int ST_SRID(Geometry geom) {
     return geom.getSRID();
+  }
+
+  /**
+   * Returns the first point of {@code geom}.
+   */
+  public static Geometry ST_StartPoint(Geometry geom) {
+    return ST_PointN(geom, 0);
   }
 
   /**

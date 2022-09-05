@@ -605,8 +605,12 @@ FROM (SELECT
 !ok
 !}
 
-# ST_EndPoint(lineString) Returns the last coordinate of *lineString*
-# Not implemented
+# ST_EndPoint(geom) Returns the last coordinate of *geom*
+
+SELECT ST_EndPoint(ST_GeomFromText('MULTILINESTRING((1 1, 1 6, 2 2, -1 2))'));
+EXPR$0
+POINT (-1 2)
+!ok
 
 # ST_Envelope(geom [, srid ]) Returns the envelope of *geom* (which may be a geometry-collection) as a geometry
 
@@ -850,8 +854,12 @@ EXPR$0
 4326
 !ok
 
-# ST_StartPoint(lineString) Returns the first coordinate of *lineString*
-# Not implemented
+# ST_StartPoint(geom) Returns the first coordinate of *geom*
+
+SELECT ST_StartPoint(ST_GeomFromText('MULTILINESTRING((1 1, 1 6, 2 2, -1 2))'));
+EXPR$0
+POINT (1 1)
+!ok
 
 # ST_X(geom) Returns the x-value of the first coordinate of *geom*
 

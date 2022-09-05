@@ -2244,15 +2244,18 @@ Not implemented:
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
+| p | ST_EndPoint(lineString) | Returns the last coordinate of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
 | o | ST_Extent(geom) | Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
 | o | ST_IsEmpty(geom) | Returns whether *geom* is empty
 | o | ST_IsRectangle(geom) | Returns whether *geom* is a rectangle
 | o | ST_IsSimple(geom) | Returns whether *geom* is simple
 | o | ST_IsValid(geom) | Returns whether *geom* is valid
+| h | ST_NPoints(geom)  | Returns the number of points in *geom*
 | h | ST_NumPoints(geom) | Returns the number of points in *geom*
 | p | ST_PointN(geom, n) | Returns the *n*th point of a *geom*
 | o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
+| p | ST_StartPoint(geom) | Returns the first point of *geom*
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
 | o | ST_XMax(geom) | Returns the maximum x-value of *geom*
 | o | ST_XMin(geom) | Returns the minimum x-value of *geom*
@@ -2264,7 +2267,6 @@ Not implemented:
 
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
 * ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
-* ST_EndPoint(lineString) Returns the last coordinate of *lineString*
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
 * ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
 * ST_GeometryN(geomCollection, n) Returns the *n*th GEOMETRY of *geomCollection*
@@ -2273,12 +2275,10 @@ Not implemented:
 * ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
-* ST_NPoints(geom) Returns the number of points in *geom*
 * ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
 * ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
 * ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
 * ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
-* ST_StartPoint(lineString) Returns the first coordinate of *lineString*
 
 
 #### Geometry properties (3D)
