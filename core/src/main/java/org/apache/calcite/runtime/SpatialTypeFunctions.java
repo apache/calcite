@@ -815,7 +815,7 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   * Translates geom by the vector (x, y)
+   * Translates geom by the vector (x, y).
    */
   public static Geometry ST_Translate(Geometry geom, BigDecimal x, BigDecimal y) {
     AffineTransformation transformation = new AffineTransformation();
