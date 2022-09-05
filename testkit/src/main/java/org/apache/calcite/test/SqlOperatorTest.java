@@ -7125,6 +7125,37 @@ public class SqlOperatorTest {
     f.checkFails("^Array[]^", "Require at least 1 argument", false);
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]
+   * ARRAY, MULTISET functions should return an collection of scalars
+   * if a sub-query returns 1 column</a>.
+   */
+  @Test void testArrayQueryConstructor() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.ARRAY_QUERY, SqlOperatorFixture.VmName.EXPAND);
+    f.checkScalar("array(select 1)", "[1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.check("select array(select ROW(1,2))",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL",
+        "[{1, 2}]");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]
+   * ARRAY, MULTISET functions should return an collection of scalars
+   * if a sub-query returns 1 column</a>.
+   */
+  @Test void testMultisetQueryConstructor() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.MULTISET_QUERY, SqlOperatorFixture.VmName.EXPAND);
+    f.checkScalar("multiset(select 1)", "[1]", "INTEGER NOT NULL MULTISET NOT NULL");
+    f.check("select multiset(select ROW(1,2))",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL",
+        "[{1, 2}]");
+  }
+
   @Test void testItemOp() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ITEM, VmName.EXPAND);

@@ -27,7 +27,7 @@ import java.util.Objects;
  * <p>The first characteristic is semantics. The table has either
  * row semantics or set semantics.
  *
- * <p>Row semantics means that the the result of the table function is decided
+ * <p>Row semantics means that the result of the table function is decided
  * on a row-by-row basis.
  *
  * <p>Example of a table function with row semantics input table parameter:
@@ -304,7 +304,7 @@ public class TableCharacteristic {
    */
   public enum Semantics {
     /**
-     * Row semantics means that the the result of the Window TableFunction
+     * Row semantics means that the result of the Window TableFunction
      * is decided on a row-by-row basis.
      * As an extreme example, the DBMS could atomize the input table into
      * individual rows, and send each single row to a different virtual

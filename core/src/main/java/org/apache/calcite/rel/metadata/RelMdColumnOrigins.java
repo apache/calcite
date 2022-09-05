@@ -30,6 +30,7 @@ import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -162,6 +163,16 @@ public class RelMdColumnOrigins
     // Anything else is a derivation, possibly from multiple columns.
     final Set<RelColumnOrigin> set = getMultipleColumns(rexNode, input, mq);
     return createDerivedColumnOrigins(set);
+  }
+
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(TableScan scan,
+      RelMetadataQuery mq, int iOutputColumn) {
+    final BuiltInMetadata.ColumnOrigin.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.ColumnOrigin.Handler.class);
+    if (handler != null) {
+      return handler.getColumnOrigins(scan, mq, iOutputColumn);
+    }
+    return getColumnOrigins((RelNode) scan, mq, iOutputColumn);
   }
 
   public @Nullable Set<RelColumnOrigin> getColumnOrigins(Filter rel,

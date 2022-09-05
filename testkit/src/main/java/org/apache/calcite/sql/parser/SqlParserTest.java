@@ -4915,6 +4915,18 @@ public class SqlParserTest {
         .fails("(?s).*when1.*");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4802">[CALCITE-4802]
+   * Babel parser doesn't parse IF(condition, then, else) statements </a>.
+   */
+  @Test void testIf() {
+    expr("if(true, 1, 0)")
+        .ok("`IF`(TRUE, 1, 0)");
+
+    sql("select 1 as if")
+        .ok("SELECT 1 AS `IF`");
+  }
+
   @Test void testNullIf() {
     expr("nullif(v1,v2)")
         .ok("NULLIF(`V1`, `V2`)");

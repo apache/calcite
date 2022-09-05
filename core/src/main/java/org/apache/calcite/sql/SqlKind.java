@@ -133,7 +133,7 @@ public enum SqlKind {
   /**
    * Input tables have either row semantics or set semantics.
    * <ul>
-   * <li>Row semantics means that the the result of the table function is
+   * <li>Row semantics means that the result of the table function is
    * decided on a row-by-row basis.
    * <li>Set semantics means that the outcome of the function depends on how
    * the data is partitioned.

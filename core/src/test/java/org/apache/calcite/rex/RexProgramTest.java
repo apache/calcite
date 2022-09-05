@@ -405,8 +405,11 @@ class RexProgramTest extends RexProgramTestBase {
 
     // If i0 is null, then "i0 is not null" is false
     RexNode i0NotNull = isNotNull(i0);
+    RexNode i1NotNull = isNotNull(i1);
     assertThat(Strong.isNull(i0NotNull, c0), is(false));
     assertThat(Strong.isNotTrue(i0NotNull, c0), is(true));
+    assertThat(Strong.isNotTrue(or(i0NotNull, i1NotNull), c01), is(true));
+    assertThat(Strong.isNotTrue(and(i0NotNull, i1NotNull), c1), is(true));
 
     // If i0 is null, then "not(i0 is not null)" is true.
     // Join-strengthening relies on this.

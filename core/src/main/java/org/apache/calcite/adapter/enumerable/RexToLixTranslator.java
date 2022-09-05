@@ -50,8 +50,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
-import org.apache.calcite.runtime.GeoFunctions;
-import org.apache.calcite.runtime.Geometries;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -69,6 +68,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -802,9 +802,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
               literal.getValueAs(byte[].class),
               byte[].class));
     case GEOMETRY:
-      final Geometries.Geom geom = requireNonNull(literal.getValueAs(Geometries.Geom.class),
+      final Geometry geom = requireNonNull(literal.getValueAs(Geometry.class),
           () -> "getValueAs(Geometries.Geom) for " + literal);
-      final String wkt = GeoFunctions.ST_AsWKT(geom);
+      final String wkt = SpatialTypeFunctions.ST_AsWKT(geom);
       return Expressions.call(null, BuiltInMethod.ST_GEOM_FROM_TEXT.method,
           Expressions.constant(wkt));
     case SYMBOL:

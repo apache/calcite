@@ -58,6 +58,11 @@ public class RelMdParallelism
   }
 
   public Boolean isPhaseTransition(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.Parallelism.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.Parallelism.Handler.class);
+    if (handler != null) {
+      return handler.isPhaseTransition(rel, mq);
+    }
     return true;
   }
 

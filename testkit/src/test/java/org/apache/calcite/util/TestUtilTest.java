@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.util.TestUtil.roundGeom;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,6 +39,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for TestUtil.
  */
 class TestUtilTest {
+
+  /** Tests {@link TestUtil#roundGeom}. */
+  @Test void testRoundGeom() {
+    assertThat(roundGeom("1", 3), is("1"));
+    assertThat(roundGeom("1.28", 3), is("1.28"));
+    assertThat(roundGeom("1.278", 3), is("1.278"));
+    assertThat(roundGeom("1.2784", 3), is("1.278")); // < 5 rounds down
+    assertThat(roundGeom("1.2785", 3), is("1.278")); // = 5 rounds down
+    assertThat(roundGeom("1.27850001", 3), is("1.279")); // > 5 rounds up
+    assertThat(roundGeom("1.27950001", 3), is("1.280"));
+    assertThat(roundGeom("1.29950001", 3), is("1.300"));
+    assertThat(roundGeom("19.99950001", 3), is("20.000"));
+    assertThat(roundGeom("2 9.99950001", 3), is("2 10.000"));
+    assertThat(roundGeom("23 9.99950001", 3), is("23 10.000"));
+    assertThat(roundGeom("234 9.99950001", 3), is("234 10.000"));
+    assertThat(roundGeom("POINT(-1.23456, 9.87654)", 3),
+        is("POINT(-1.235, 9.877)"));
+  }
 
   @Test void javaMajorVersionExceeds6() {
     // shouldn't throw any exceptions (for current JDK)

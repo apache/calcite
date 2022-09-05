@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.runtime.Geometries;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
@@ -39,6 +38,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -216,7 +216,7 @@ public class JavaTypeFactoryImpl
       case VARBINARY:
         return ByteString.class;
       case GEOMETRY:
-        return Geometries.Geom.class;
+        return Geometry.class;
       case SYMBOL:
         return Enum.class;
       case ANY:

@@ -17,10 +17,10 @@
 package org.apache.calcite.sql.util;
 
 import org.apache.calcite.prepare.CalciteCatalogReader;
-import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.fun.SqlGeoFunctions;
+import org.apache.calcite.sql.fun.SqlSpatialTypeFunctions;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -41,8 +41,8 @@ public class SqlOperatorTables {
 
   private static SqlOperatorTable createSpatial() {
     return CalciteCatalogReader.operatorTable(
-        GeoFunctions.class.getName(),
-        SqlGeoFunctions.class.getName());
+        SpatialTypeFunctions.class.getName(),
+        SqlSpatialTypeFunctions.class.getName());
   }
 
   /** Returns the Spatial operator table, creating it if necessary. */

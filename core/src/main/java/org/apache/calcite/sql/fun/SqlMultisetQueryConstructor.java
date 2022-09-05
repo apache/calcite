@@ -52,7 +52,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
 
   public SqlMultisetQueryConstructor() {
     this("MULTISET", SqlKind.MULTISET_QUERY_CONSTRUCTOR,
-        SqlTypeTransforms.TO_MULTISET);
+        SqlTypeTransforms.TO_MULTISET_QUERY);
   }
 
   protected SqlMultisetQueryConstructor(String name, SqlKind kind,
