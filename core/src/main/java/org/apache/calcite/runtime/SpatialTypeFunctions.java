@@ -481,6 +481,15 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns the nth point of a {@code geom}.
+   */
+  public static Geometry ST_PointN(Geometry geom, int n) {
+    Coordinate[] coordinates = geom.getCoordinates();
+    int i = (coordinates.length + (n % coordinates.length)) % coordinates.length;
+    return geom.getFactory().createPoint(coordinates[i]);
+  }
+
+  /**
    * Returns SRID value or 0 if input Geometry does not have one.
    */
   public static int ST_SRID(Geometry geom) {
