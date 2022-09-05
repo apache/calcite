@@ -67,13 +67,12 @@ public class SparkDateTimestampInterval {
       case "INTERVAL_MONTH":
         handleIntervalMonth(writer, call, leftPrec, rightPrec, sign);
         break;
+      case "INTERVAL_DAY":
       case "INTERVAL_HOUR":
       case "INTERVAL_MINUTE":
       case "INTERVAL_SECOND":
         handleIntervalDatetimeUnit(writer, call, leftPrec, rightPrec, sign);
         break;
-      default:
-        return false;
       }
     } else if ("ADD_MONTHS".equals(call.getOperator().getName())) {
       new IntervalUtils().unparse(writer, call, leftPrec, rightPrec,
@@ -88,17 +87,14 @@ public class SparkDateTimestampInterval {
       int leftPrec, int rightPrec, String sign) {
     if ("DATE_ADD".equals(call.getOperator().getName())
         || "DATE_SUB".equals(call.getOperator().getName())) {
-      final SqlWriter.Frame dateFrame = writer.startFunCall("-".equals(sign)
-          ? "DATE_SUB" : "DATE_ADD");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
+      writer.sep(sign);
       String valueSign = String.valueOf(
           ((SqlIntervalLiteral.IntervalValue)
           ((SqlIntervalLiteral) call.operand(1)).
               getValue()).getSign()).replace("1", "");
       writer.print(valueSign);
       writer.print(intValue(((SqlIntervalLiteral) call.operand(1)).getValue().toString()));
-      writer.endFunCall(dateFrame);
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
     }

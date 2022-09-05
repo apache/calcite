@@ -31,7 +31,6 @@ import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -385,13 +384,14 @@ public class SparkSqlDialect extends SqlDialect {
     switch (call.operand(1).getKind()) {
     case LITERAL:
     case TIMES:
-      String opName = call.getOperator().toString();
-      if (opName.equalsIgnoreCase("DATE_SUB")
-          || opName.equalsIgnoreCase("DATE_ADD")) {
+      switch (call.getOperator().toString()) {
+      case "DATE_ADD":
+      case "DATE_SUB":
         unparseIntervalOperandCallWithBinaryOperator(call, writer, leftPrec, rightPrec);
         break;
+      default:
+        unparseIntervalOperandCall(call, writer, leftPrec, rightPrec);
       }
-      unparseIntervalOperandCall(call, writer, leftPrec, rightPrec);
       break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
@@ -418,7 +418,7 @@ public class SparkSqlDialect extends SqlDialect {
       writer.sep("+");
     }
     SqlNode intervalValue = modifySqlNode(writer, call.operand(1));
-    writer.print(intervalValue.toString().replace("`", ""));
+    intervalValue.unparse(writer, leftPrec, rightPrec);
   }
 
   /**
@@ -440,7 +440,7 @@ public class SparkSqlDialect extends SqlDialect {
    * @return Modified SqlNode
    */
 
-  private static SqlNode modifySqlNode(SqlWriter writer, SqlNode intervalOperand) {
+  private SqlNode modifySqlNode(SqlWriter writer, SqlNode intervalOperand) {
 
     if (intervalOperand.getKind() == SqlKind.LITERAL) {
       return modifySqlNodeForLiteral(writer, intervalOperand);
@@ -462,7 +462,7 @@ public class SparkSqlDialect extends SqlDialect {
    * @param intervalOperand store_id * INTERVAL 2 DAY
    * @return Modified SqlNode store_id * 2
    */
-  private static SqlNode modifySqlNodeForExpression(SqlWriter writer, SqlNode intervalOperand) {
+  private SqlNode modifySqlNodeForExpression(SqlWriter writer, SqlNode intervalOperand) {
     SqlLiteral intervalLiteralValue = getIntervalLiteral(intervalOperand);
     SqlNode identifierValue = getIdentifier(intervalOperand);
     SqlIntervalLiteral.IntervalValue interval =
@@ -471,7 +471,7 @@ public class SparkSqlDialect extends SqlDialect {
     if (interval.getIntervalLiteral().equals("1")) {
       return identifierValue;
     }
-    SqlNode intervalValue = new SqlIdentifier(interval.toString(),
+    SqlNode intervalValue = SqlLiteral.createExactNumeric(interval.toString(),
         intervalOperand.getParserPosition());
     SqlNode[] sqlNodes = new SqlNode[]{identifierValue,
         intervalValue};
@@ -490,11 +490,11 @@ public class SparkSqlDialect extends SqlDialect {
    * @param intervalOperand INTERVAL 1 DAY
    * @return Modified SqlNode 1
    */
-  private static SqlNode modifySqlNodeForLiteral(SqlWriter writer, SqlNode intervalOperand) {
+  private SqlNode modifySqlNodeForLiteral(SqlWriter writer, SqlNode intervalOperand) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) intervalOperand).getValue();
     writeNegativeLiteral(interval, writer);
-    return new SqlIdentifier(interval.toString(), intervalOperand.getParserPosition());
+    return SqlLiteral.createExactNumeric(interval.toString(), intervalOperand.getParserPosition());
   }
 
   /**
@@ -503,7 +503,7 @@ public class SparkSqlDialect extends SqlDialect {
    * @param intervalOperand store_id * INTERVAL 1 DAY
    * @return SqlLiteral INTERVAL 1 DAY
    */
-  public static SqlLiteral getIntervalLiteral(SqlNode intervalOperand) {
+  public SqlLiteral getIntervalLiteral(SqlNode intervalOperand) {
     if ((((SqlBasicCall) intervalOperand).operand(1).getKind() == SqlKind.IDENTIFIER)
         || (((SqlBasicCall) intervalOperand).operand(1) instanceof SqlNumericLiteral)) {
       return ((SqlBasicCall) intervalOperand).operand(0);
@@ -517,7 +517,7 @@ public class SparkSqlDialect extends SqlDialect {
    * @param intervalOperand Store_id * INTERVAL 1 DAY
    * @return SqlIdentifier Store_id
    */
-  public static SqlNode getIdentifier(SqlNode intervalOperand) {
+  public SqlNode getIdentifier(SqlNode intervalOperand) {
     if (((SqlBasicCall) intervalOperand).operand(1).getKind() == SqlKind.IDENTIFIER
         || (((SqlBasicCall) intervalOperand).operand(1) instanceof SqlNumericLiteral)) {
       return ((SqlBasicCall) intervalOperand).operand(1);
@@ -525,7 +525,7 @@ public class SparkSqlDialect extends SqlDialect {
     return ((SqlBasicCall) intervalOperand).operand(0);
   }
 
-  private static void writeNegativeLiteral(
+  private void writeNegativeLiteral(
       SqlIntervalLiteral.IntervalValue interval,
       SqlWriter writer) {
     if (interval.signum() == -1) {
