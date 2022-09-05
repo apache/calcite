@@ -282,6 +282,16 @@ class BabelParserTest extends SqlParserTest {
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)");
   }
 
+  @Test void testLeftSemiJoin() {
+    final String sql = "SELECT e.empno\n"
+        + "FROM emp e\n"
+        + "LEFT SEMI JOIN dept d\n"
+        + "ON (a.deptno = d.deptno)";
+    sql(sql).ok("SELECT `E`.`EMPNO`\n"
+        + "FROM `EMP` AS `E`\n"
+        + "LEFT SEMI JOIN `DEPT` AS `D` ON (`A`.`DEPTNO` = `D`.`DEPTNO`)");
+  }
+
   @Test void testCreateTableWithNoCollectionTypeSpecified() {
     final String sql = "create table foo (bar integer not null, baz varchar(30))";
     final String expected = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";

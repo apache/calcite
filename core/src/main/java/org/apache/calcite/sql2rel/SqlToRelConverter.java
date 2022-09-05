@@ -3310,6 +3310,8 @@ public class SqlToRelConverter {
       return JoinRelType.LEFT;
     case RIGHT:
       return JoinRelType.RIGHT;
+    case LEFT_SEMI_JOIN:
+      return JoinRelType.SEMI;
     default:
       throw Util.unexpected(joinType);
     }
