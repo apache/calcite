@@ -1374,5 +1374,4 @@ public abstract class SqlLibraryOperators {
           null,
           null,
           SqlFunctionCategory.SYSTEM);
-
 }
