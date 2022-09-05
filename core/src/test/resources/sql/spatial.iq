@@ -1373,7 +1373,11 @@ MULTILINESTRING ((1 1, 1 4, 5 4, 5 1), (3 3, 3 4))
 !ok
 
 # ST_MakeValid(geom [, preserveGeomDim [, preserveDuplicateCoord [, preserveCoordDim]]]) Makes *geom* valid
-# Not implemented
+
+SELECT ST_MakeValid(ST_GeomFromText('LINESTRING(0 0, 0 0)'));
+EXPR$0
+LINESTRING EMPTY
+!ok
 
 # ST_Polygonize(geom) Creates a multi-polygon from edges of *geom*
 # Not implemented

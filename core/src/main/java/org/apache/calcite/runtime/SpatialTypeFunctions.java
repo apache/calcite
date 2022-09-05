@@ -38,6 +38,7 @@ import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
@@ -747,6 +748,9 @@ public class SpatialTypeFunctions {
 
   // Process Geometries
 
+  /**
+   * Merges a collection of linear components to form a line-string of maximal length.
+   */
   public static Geometry ST_LineMerge(Geometry geom) {
     LineMerger merger = new LineMerger();
     merger.add(geom);
@@ -754,6 +758,13 @@ public class SpatialTypeFunctions {
         .map(LineString.class::cast)
         .toArray(size -> new LineString[size]);
     return GEOMETRY_FACTORY.createMultiLineString(geometries);
+  }
+
+  /**
+   * Makes a valid geometry of a given invalid geometry.
+   */
+  public static Geometry ST_MakeValid(Geometry geometry) {
+    return new GeometryFixer(geometry).getResult();
   }
 
   /**
