@@ -2250,6 +2250,7 @@ Not implemented:
 | o | ST_IsRectangle(geom) | Returns whether *geom* is a rectangle
 | o | ST_IsSimple(geom) | Returns whether *geom* is simple
 | o | ST_IsValid(geom) | Returns whether *geom* is valid
+| h | ST_NumPoints(geom) | Returns the number of points in *geom*
 | o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
 | o | ST_XMax(geom) | Returns the maximum x-value of *geom*
@@ -2275,7 +2276,6 @@ Not implemented:
 * ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
 * ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
 * ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
-* ST_NumPoints(lineString) Returns the number of points in *lineString*
 * ST_PointN(geom, n) Returns the *n*th point of a *lineString*
 * ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
 * ST_StartPoint(lineString) Returns the first coordinate of *lineString*

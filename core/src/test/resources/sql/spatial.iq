@@ -786,8 +786,32 @@ false
 # ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
 # Not implemented
 
-# ST_NumPoints(lineString) Returns the number of points in *lineString*
-# Not implemented
+# ST_NumPoints(geom) Returns the number of points in *geom*
+
+SELECT ST_NumPoints(ST_GeomFromText('POINT(2 2)'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('MULTIPOINT(2 2, 4 4)'));
+EXPR$0
+2
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('MULTIPOINT(2 2, 4 4, 4 4)'));
+EXPR$0
+3
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('MULTILINESTRING((2 2, 4 4), (3 1, 6 3))'));
+EXPR$0
+4
+!ok
+
+SELECT ST_NumPoints(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1), (8 5, 8 4, 9 4, 9 5, 8 5))'));
+EXPR$0
+15
+!ok
 
 # ST_PointN(geom, n) Returns the *n*th point of a *lineString*
 # Not implemented

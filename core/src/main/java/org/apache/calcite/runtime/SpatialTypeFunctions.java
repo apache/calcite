@@ -474,6 +474,13 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns the number of points in {@code geom}.
+   */
+  public static int ST_NumPoints(Geometry geom) {
+    return geom.getCoordinates().length;
+  }
+
+  /**
    * Returns SRID value or 0 if input Geometry does not have one.
    */
   public static int ST_SRID(Geometry geom) {
