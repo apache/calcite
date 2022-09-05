@@ -41,6 +41,7 @@ import org.locationtech.jts.geom.util.AffineTransformation;
 import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
+import org.locationtech.jts.operation.polygonize.Polygonizer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 
@@ -765,6 +766,17 @@ public class SpatialTypeFunctions {
    */
   public static Geometry ST_MakeValid(Geometry geometry) {
     return new GeometryFixer(geometry).getResult();
+  }
+
+  /**
+   * Creates a multipolygon from the geometry.
+   * @param geometry
+   * @return
+   */
+  public static Geometry ST_Polygonize(Geometry geometry) {
+    Polygonizer polygonizer = new Polygonizer();
+    polygonizer.add(geometry);
+    return polygonizer.getGeometry();
   }
 
   /**
