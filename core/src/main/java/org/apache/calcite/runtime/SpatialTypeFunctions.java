@@ -38,12 +38,14 @@ import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
 import static org.apache.calcite.runtime.SpatialTypeUtils.NO_SRID;
@@ -744,6 +746,15 @@ public class SpatialTypeFunctions {
   }
 
   // Process Geometries
+
+  public static Geometry ST_LineMerge(Geometry geom) {
+    LineMerger merger = new LineMerger();
+    merger.add(geom);
+    LineString[] geometries = ((Stream<Object>) merger.getMergedLineStrings().stream())
+        .map(LineString.class::cast)
+        .toArray(size -> new LineString[size]);
+    return GEOMETRY_FACTORY.createMultiLineString(geometries);
+  }
 
   /**
    * Simplifies geom a geometry using the Douglas-Peuker algorithm.

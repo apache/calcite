@@ -2408,6 +2408,7 @@ The following functions process geometries.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| o | ST_LineMerge(geom)  | Merges a collection of linear components to form a line-string of maximal length
 | o | ST_Simplify(geom, distance)  | Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
 | o | ST_SimplifyPreserveTopology(geom, distance) | Simplifies *geom*, preserving its topology
 | o | ST_Snap(geom1, geom2, tolerance) | Snaps *geom1* and *geom2* together
