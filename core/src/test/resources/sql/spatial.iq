@@ -1388,11 +1388,14 @@ GEOMETRYCOLLECTION (POLYGON ((1 2, 2 4, 4 4, 5 2, 1 2)))
 
 SELECT ST_Polygonize(ST_GeomFromText('MULTILINESTRING((1 2, 2 4, 5 2), (5 2, 2 1, 1 2))'));
 EXPR$0
-GEOMETRYCOLLECTION (POLYGON ((1 2, 2 4, 5 2, 2 1, 1 2)))
+GEOMETRYCOLLECTION (POLYGON ((5 2, 2 1, 1 2, 2 4, 5 2)))
 !ok
 
 # ST_PrecisionReducer(geom, n) Reduces *geom*'s precision to *n* decimal places
-# Not implemented
+SELECT ST_PrecisionReducer(ST_GeomFromText('MULTIPOINT((190.1239999997 300), (10 11.1233))'), 3);
+EXPR$0
+MULTIPOINT ((190.124 300), (10 11.123))
+!ok
 
 # ST_RingSideBuffer(geom, bufferSize, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 # Not implemented

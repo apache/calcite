@@ -2411,6 +2411,7 @@ The following functions process geometries.
 | o | ST_LineMerge(geom)  | Merges a collection of linear components to form a line-string of maximal length
 | o | ST_MakeValid(geom)  | Makes a valid geometry of a given invalid geometry
 | o | ST_Polygonize(geom)  | Creates a MULTIPOLYGON from edges of *geom*
+| o | ST_PrecisionReducer(geom, n) | Reduces *geom*'s precision to *n* decimal places
 | o | ST_Simplify(geom, distance)  | Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
 | o | ST_SimplifyPreserveTopology(geom, distance) | Simplifies *geom*, preserving its topology
 | o | ST_Snap(geom1, geom2, tolerance) | Snaps *geom1* and *geom2* together
@@ -2420,7 +2421,6 @@ Not implemented:
 * ST_LineIntersector(geom1, geom2) Splits *geom1* (a line-string) with *geom2*
 * ST_LineMerge(geom) Merges a collection of linear components to form a line-string of maximal length
 * ST_MakeValid(geom [, preserveGeomDim [, preserveDuplicateCoord [, preserveCoordDim]]]) Makes *geom* valid
-* ST_PrecisionReducer(geom, n) Reduces *geom*'s precision to *n* decimal places
 * ST_RingSideBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 * ST_SideBuffer(geom, distance [, bufferStyle ]) Compute a single buffer on one side
 * ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line

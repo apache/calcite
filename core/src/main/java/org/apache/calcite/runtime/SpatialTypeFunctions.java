@@ -37,11 +37,13 @@ import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.geom.util.AffineTransformation;
 import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
 import org.locationtech.jts.operation.polygonize.Polygonizer;
+import org.locationtech.jts.precision.GeometryPrecisionReducer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 
@@ -770,13 +772,21 @@ public class SpatialTypeFunctions {
 
   /**
    * Creates a multipolygon from the geometry.
-   * @param geometry
-   * @return
    */
   public static Geometry ST_Polygonize(Geometry geometry) {
     Polygonizer polygonizer = new Polygonizer();
     polygonizer.add(geometry);
     return polygonizer.getGeometry();
+  }
+
+  /**
+   * Reduces the geometry's precision to n decimal places.
+   */
+  public static Geometry ST_PrecisionReducer(Geometry geometry, BigDecimal decimal) {
+    double scale = Math.pow(10, decimal.doubleValue());
+    PrecisionModel precisionModel = new PrecisionModel(scale);
+    GeometryPrecisionReducer precisionReducer = new GeometryPrecisionReducer(precisionModel);
+    return precisionReducer.reduce(geometry);
   }
 
   /**
