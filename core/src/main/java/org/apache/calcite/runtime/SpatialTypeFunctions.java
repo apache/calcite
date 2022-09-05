@@ -807,6 +807,15 @@ public class SpatialTypeFunctions {
     return transformation.transform(geom);
   }
 
+  /**
+   * Translates geom by the vector (x, y)
+   */
+  public static Geometry ST_Translate(Geometry geom, BigDecimal x, BigDecimal y) {
+    AffineTransformation transformation = new AffineTransformation();
+    transformation.translate(x.doubleValue(), y.doubleValue());
+    return transformation.transform(geom);
+  }
+
   // Space-filling curves
 
   /**
