@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.runtime.SpatialTypeUtils.SpatialType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
@@ -289,6 +290,15 @@ public class SpatialTypeFunctions {
     // in SqlSpatialTypeFunctions.
   }
 
+  // Geometry creation functions (2D)
+
+  /**
+   * Returns the minimum bounding circle of {@code geom}.
+   */
+  public static Geometry ST_BoundingCircle(Geometry geom) {
+    return new MinimumBoundingCircle(geom).getCircle();
+  }
+
   /**
    * Creates a rectangular Polygon.
    */
@@ -511,6 +521,8 @@ public class SpatialTypeFunctions {
         ? geom.getCoordinate().getZ() : null;
   }
 
+  // Geometry properties (2D)
+
   /**
    * Returns the boundary of {@code geom}.
    */
@@ -518,8 +530,18 @@ public class SpatialTypeFunctions {
     return geom.getBoundary();
   }
 
+  /**
+   * Returns the centroid of {@code geom}.
+   */
   public static Geometry ST_Centroid(Geometry geom) {
     return geom.getCentroid();
+  }
+
+  /**
+   * Returns the dimension of {@code geom}.
+   */
+  public static int ST_Dimension(Geometry geom) {
+    return geom.getDimension();
   }
 
   /**

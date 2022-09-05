@@ -2207,6 +2207,7 @@ Not implemented:
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| h | ST_BoundingCircle(geom) | Returns the minimum bounding circle of *geom*
 | p | ST_MakeEnvelope(xMin, yMin, xMax, yMax  [, srid ]) | Creates a rectangular POLYGON
 | h | ST_MakeGrid(geom, deltaX, deltaY) | Calculates a regular grid of POLYGONs based on *geom*
 | h | ST_MakeGridPoints(geom, deltaX, deltaY) | Calculates a regular grid of points based on *geom*
@@ -2216,7 +2217,6 @@ Not implemented:
 
 Not implemented:
 
-* ST_BoundingCircle(geom) Returns the minimum bounding circle of *geom*
 * ST_Expand(geom, distance) Expands *geom*'s envelope
 * ST_Expand(geom, deltaX, deltaY) Expands *geom*'s envelope
 * ST_MakeEllipse(point, width, height) Constructs an ellipse
@@ -2240,6 +2240,7 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | o | ST_Boundary(geom [, srid ]) | Returns the boundary of *geom*
 | o | ST_Centroid(geom) | Returns the centroid of *geom*
+| o | ST_Dimension(geom) | Returns the dimension of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
@@ -2261,7 +2262,6 @@ Not implemented:
 
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
 * ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
-* ST_Dimension(geom) Returns the dimension of *geom*
 * ST_EndPoint(lineString) Returns the last coordinate of *lineString*
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
 * ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
