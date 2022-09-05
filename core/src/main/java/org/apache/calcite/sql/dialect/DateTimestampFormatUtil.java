@@ -48,6 +48,9 @@ public class DateTimestampFormatUtil {
   public static final String DAYOCCURRENCE_OF_MONTH = "DAYOCCURRENCE_OF_MONTH";
   public static final String DAYNUMBER_OF_CALENDAR = "DAYNUMBER_OF_CALENDAR";
   public static final String DAY_OF_YEAR = "DAYOFYEAR";
+  public static final String WEEK_OF_YEAR = "WEEKOFYEAR";
+
+  public static final String WEEK = "WEEK";
 
   private static final String DEFAULT_DATE = "1900-01-01";
 
