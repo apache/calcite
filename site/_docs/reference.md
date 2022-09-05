@@ -2187,6 +2187,7 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 | o | ST_PointFromWKB(wkt [, srid ]) | Converts WKB → POINT
 | o | ST_PolyFromText(wkt [, srid ]) | Converts WKT → POLYGON
 | o | ST_PolyFromWKB(wkt [, srid ]) | Converts WKB → POLYGON
+| h | ST_ToMultiPoint(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
 
 Not implemented:
 
@@ -2194,7 +2195,6 @@ Not implemented:
 * ST_GoogleMapLink(geom [, layerType [, zoom ]]) GEOMETRY → Google map link
 * ST_OSMMapLink(geom [, marker ]) GEOMETRY → OSM map link
 * ST_ToMultiLine(geom) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
-* ST_ToMultiPoint(geom)) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
 * ST_ToMultiSegments(geom) Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
 
 #### Geometry conversion functions (3D)

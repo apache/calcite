@@ -29,6 +29,7 @@ import org.apache.calcite.runtime.SpatialTypeUtils.SpatialType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
@@ -266,6 +267,15 @@ public class SpatialTypeFunctions {
   public static @Nullable Geometry ST_PolyFromWKB(ByteString wkb, int srid) {
     Geometry geometry = ST_GeomFromWKB(wkb, srid);
     return geometry instanceof Polygon ? geometry : null;
+  }
+
+  /**
+   * Converts the coordinates of {@code geom} into a MULTIPOINT.
+   */
+  public static Geometry ST_ToMultiPoint(Geometry geom) {
+    CoordinateSequence coordinateSequence = GEOMETRY_FACTORY
+        .getCoordinateSequenceFactory().create(geom.getCoordinates());
+    return GEOMETRY_FACTORY.createMultiPoint(coordinateSequence);
   }
 
   // Geometry creation functions ==============================================
