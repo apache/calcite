@@ -534,10 +534,10 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   * Returns the minimum rectangle of {@code geom}.
+   * Returns the minimum rectangle enclosing {@code geom}.
    */
-  public static @Nullable Geometry ST_MinimumDiameter(Geometry geom) {
-    return new MinimumDiameter(geom).getDiameter();
+  public static @Nullable Geometry ST_MinimumRectangle(Geometry geom) {
+    return new MinimumDiameter(geom).getMinimumRectangle();
   }
 
   /**
