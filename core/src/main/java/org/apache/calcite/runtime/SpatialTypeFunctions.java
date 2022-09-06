@@ -40,6 +40,7 @@ import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.OctagonalEnvelope;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
@@ -538,6 +539,13 @@ public class SpatialTypeFunctions {
    */
   public static @Nullable Geometry ST_MinimumRectangle(Geometry geom) {
     return new MinimumDiameter(geom).getMinimumRectangle();
+  }
+
+  /**
+   * Returns the octagonal envelope of {@code geom}.
+   */
+  public static @Nullable Geometry ST_OctagonalEnvelope(Geometry geom) {
+    return new OctagonalEnvelope(geom).toGeometry(geom.getFactory());
   }
 
   /**
