@@ -434,6 +434,16 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns the exterior ring of {@code geom}, or null if {@code geom} is not a polygon.
+   */
+  public static @Nullable Geometry ST_ExteriorRing(Geometry geom) {
+    if (geom instanceof Polygon) {
+      return ((Polygon) geom).getExteriorRing();
+    }
+    return null;
+  }
+
+  /**
    * Returns the first point of {@code geom}.
    */
   public static Geometry ST_EndPoint(Geometry geom) {

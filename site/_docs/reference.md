@@ -2242,6 +2242,7 @@ Not implemented:
 | o | ST_Centroid(geom) | Returns the centroid of *geom*
 | o | ST_Dimension(geom) | Returns the dimension of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
+| o | ST_ExteriorRing(geom) | Returns the minimum bounding box that encloses geom as a Geometry.
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
 | p | ST_EndPoint(lineString) | Returns the last coordinate of *geom*
@@ -2268,7 +2269,6 @@ Not implemented:
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
 * ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
-* ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
 * ST_GeometryN(geomCollection, n) Returns the *n*th GEOMETRY of *geomCollection*
 * ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*
 * ST_IsClosed(geom) Returns whether *geom* is a closed LINESTRING or MULTILINESTRING

@@ -659,7 +659,16 @@ POLYGON ((0 -1, 0 6, 5 6, 5 -1, 0 -1))
 !ok
 
 # ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
-# Not implemented
+
+SELECT ST_ExteriorRing(ST_GeomFromText('POLYGON((0 -1, 0 2, 3 2, 3 -1, 0 -1))'));
+EXPR$0
+LINEARRING (0 -1, 0 2, 3 2, 3 -1, 0 -1)
+!ok
+
+SELECT ST_ExteriorRing(ST_GeomFromText('POINT(1 2)'));
+EXPR$0
+null
+!ok
 
 # ST_GeometryN(geomCollection, n) Returns the *n*th geometry of *geomCollection*
 # Not implemented
