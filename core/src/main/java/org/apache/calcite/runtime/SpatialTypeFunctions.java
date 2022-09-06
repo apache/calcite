@@ -290,7 +290,7 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   * Converts the coordinates of a {@code geom} into a MULTILINESTRING.
+   * Converts the a {@code geom} into a MULTILINESTRING.
    */
   public static Geometry ST_ToMultiLine(Geometry geom) {
     GeometryFactory factory = geom.getFactory();
@@ -298,6 +298,28 @@ public class SpatialTypeFunctions {
     geom.apply((GeometryComponentFilter) inputGeom -> {
       if (inputGeom instanceof LineString) {
         lines.add(factory.createLineString(inputGeom.getCoordinates()));
+      }
+    });
+    if (lines.isEmpty()) {
+      return factory.createMultiLineString();
+    } else {
+      return factory.createMultiLineString(lines.toArray(new LineString[lines.size()]));
+    }
+  }
+
+  /**
+   * Converts a {@code geom} into a set of distinct segments stored in a MULTILINESTRING.
+   */
+  public static Geometry ST_ToMultiSegments(Geometry geom) {
+    GeometryFactory factory = geom.getFactory();
+    ArrayList<LineString> lines = new ArrayList<>();
+    geom.apply((GeometryComponentFilter) inputGeom -> {
+      if (inputGeom instanceof LineString) {
+        Coordinate[] coordinates = inputGeom.getCoordinates();
+        for (int i = 1; i < coordinates.length; i++) {
+          Coordinate[] pair = new Coordinate[] { coordinates[i - 1], coordinates[i] };
+          lines.add(factory.createLineString(pair));
+        }
       }
     });
     if (lines.isEmpty()) {
