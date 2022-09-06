@@ -1135,6 +1135,13 @@ public abstract class SqlLibraryOperators {
             number -> number == 2),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATEDIFF =
+      new SqlFunction("DATEDIFF", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction DATE_MOD = new SqlFunction(
       "DATE_MOD",

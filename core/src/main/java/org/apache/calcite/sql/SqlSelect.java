@@ -47,6 +47,7 @@ public class SqlSelect extends SqlCall {
   @Nullable SqlNode where;
   @Nullable SqlNodeList groupBy;
   @Nullable SqlNode having;
+  @Nullable SqlNode qualify;
   SqlNodeList windowDecls;
   @Nullable SqlNodeList orderBy;
   @Nullable SqlNode offset;
@@ -83,6 +84,36 @@ public class SqlSelect extends SqlCall {
     this.hints = hints;
   }
 
+  public SqlSelect(SqlParserPos pos,
+      @Nullable SqlNodeList keywordList,
+      @Nullable SqlNodeList selectList,
+      @Nullable SqlNode from,
+      @Nullable SqlNode where,
+      @Nullable SqlNodeList groupBy,
+      @Nullable SqlNode having,
+      @Nullable SqlNode qualify,
+      @Nullable SqlNodeList windowDecls,
+      @Nullable SqlNodeList orderBy,
+      @Nullable SqlNode offset,
+      @Nullable SqlNode fetch,
+      @Nullable SqlNodeList hints) {
+    super(pos);
+    this.keywordList = Objects.requireNonNull(keywordList != null
+        ? keywordList : new SqlNodeList(pos));
+    this.selectList = selectList;
+    this.from = from;
+    this.where = where;
+    this.groupBy = groupBy;
+    this.having = having;
+    this.qualify = qualify;
+    this.windowDecls = Objects.requireNonNull(windowDecls != null
+        ? windowDecls : new SqlNodeList(pos));
+    this.orderBy = orderBy;
+    this.offset = offset;
+    this.fetch = fetch;
+    this.hints = hints;
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlOperator getOperator() {
@@ -96,7 +127,7 @@ public class SqlSelect extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch, hints);
+        groupBy, having, qualify, windowDecls, orderBy, offset, fetch, hints);
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
@@ -176,6 +207,15 @@ public class SqlSelect extends SqlCall {
 
   public void setHaving(@Nullable SqlNode having) {
     this.having = having;
+  }
+
+  @Pure
+  public final @Nullable SqlNode getQualify() {
+    return qualify;
+  }
+
+  public void setQualify(@Nullable SqlNode qualify) {
+    this.qualify = qualify;
   }
 
   @Pure
