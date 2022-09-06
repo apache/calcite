@@ -683,7 +683,7 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   * Returns the nth geometry of a geometry collection
+   * Returns the nth geometry of a geometry collection.
    */
   public static @Nullable Geometry ST_GeometryN(Geometry geom, int n) {
     if (!(geom instanceof GeometryCollection)) {
