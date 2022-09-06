@@ -96,7 +96,7 @@ public class RelToSqlUtils {
   /** Returns whether any Analytical Function (RexOver) is present in projection. */
   protected boolean isAnalyticalFunctionPresentInProjection(Project projectRel) {
     for (RexNode currentRex : projectRel.getChildExps()) {
-      if (isAnalyticalRex(currentRex)) {
+      if (currentRex instanceof RexOver) {
         return true;
       }
     }

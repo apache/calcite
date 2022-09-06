@@ -308,13 +308,6 @@ public abstract class SqlImplementor {
     if (node.isAlwaysFalse()) {
       return SqlLiteral.createBoolean(false, POS);
     }
-    if (node instanceof RexInputRef) {
-      Context joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    }
-    if (!(node instanceof RexCall)) {
-      throw new AssertionError(node);
-    }
     final List<RexNode> operands;
     final SqlOperator op;
     final Context joinContext;
@@ -369,31 +362,9 @@ public abstract class SqlImplementor {
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
-
-    case SEARCH:
-      joinContext =
-          leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-
-    case IS_NULL:
-    case IS_NOT_NULL:
-      operands = ((RexCall) node).getOperands();
-      if (operands.size() == 1
-          && operands.get(0) instanceof RexInputRef) {
-        op = ((RexCall) node).getOperator();
-        final RexInputRef op0 = (RexInputRef) operands.get(0);
-        if (op0.getIndex() < leftFieldCount) {
-          return op.createCall(POS, leftContext.field(op0.getIndex()));
-        } else {
-          return op.createCall(POS,
-              rightContext.field(op0.getIndex() - leftFieldCount));
-        }
-      }
-      joinContext =
-          leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
     default:
-      throw new AssertionError(node);
+      joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
+      return joinContext.toSql(null, node);
     }
   }
 
@@ -2156,6 +2127,14 @@ public abstract class SqlImplementor {
         }
       }
 
+      if (rel instanceof Project
+          && clauses.contains(Clause.HAVING)
+          && !hasAliasUsedInHavingClause()
+          && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
+        stripHavingClauseIfAggregateFromProjection();
+        return true;
+      }
+
       return false;
     }
 
@@ -2187,6 +2166,16 @@ public abstract class SqlImplementor {
       return false;
     }
 
+    private void stripHavingClauseIfAggregateFromProjection() {
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      final SqlNode havingSelectList = ((SqlBasicCall) ((SqlSelect) node).getHaving()).operands[0];
+      if (selectList != null && havingSelectList != null
+          && havingSelectList instanceof SqlCall
+          && ((SqlCall) havingSelectList).getOperator().isAggregator()) {
+        selectList.remove(havingSelectList);
+        ((SqlSelect) node).setSelectList(selectList);
+      }
+    }
     boolean hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection(Project rel) {
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) node).getGroup();

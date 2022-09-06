@@ -111,8 +111,18 @@ import java.util.stream.IntStream;
 
 import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -6047,7 +6057,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - INTERVAL -'1' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, -1)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - INTERVAL '1' MONTH\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, -1)\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL -1 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
@@ -6063,7 +6073,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, -10)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + -10 * INTERVAL '1' MONTH\nFROM foodmart"
+    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, -10)\nFROM foodmart"
         + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL -10 MONTH)\n"
         + "FROM foodmart.employee";
@@ -6091,7 +6101,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" +  \"store_id\" * INTERVAL '10' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, store_id * 10)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '10' MONTH\nFROM "
+    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, store_id * 10)\nFROM "
         + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 10 MONTH)\n"
         + "FROM foodmart.employee";
@@ -6108,7 +6118,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + 10 * INTERVAL '2' MONTH from \"employee\"";
     final String expectedHive = "SELECT ADD_MONTHS(birth_date, 10 * 2)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + 10 * INTERVAL '2' MONTH\nFROM foodmart"
+    final String expectedSpark = "SELECT ADD_MONTHS(birth_date, 10 * 2)\nFROM foodmart"
         + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * 2 MONTH)\n"
         + "FROM foodmart.employee";
@@ -6125,7 +6135,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + 1\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, 1, \"birth_date\")\n"
@@ -6145,7 +6155,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - INTERVAL '1' DAY\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date - 1\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, -1, \"birth_date\")\n"
@@ -6165,7 +6175,7 @@ class RelToSqlConverterTest {
     String query = "select DATE'2018-01-01' + INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(DATE '2018-01-01', 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT DATE '2018-01-01' + INTERVAL '1' DAY\nFROM foodmart"
+    final String expectedSpark = "SELECT DATE '2018-01-01' + 1\nFROM foodmart"
         + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
@@ -6186,7 +6196,7 @@ class RelToSqlConverterTest {
     String query = "select DATE'2018-01-01' - INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(DATE '2018-01-01', 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT DATE '2018-01-01' - INTERVAL '1' DAY\n"
+    final String expectedSpark = "SELECT DATE '2018-01-01' - 1\n"
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(DATE '2018-01-01', INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
@@ -6207,7 +6217,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + INTERVAL '2' day from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 2) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '2' DAY\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date + 2\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 2 DAY)\n"
         + "FROM foodmart.employee";
     final String expectedSnowflake = "SELECT DATEADD(DAY, 2, \"birth_date\")\n"
@@ -6259,7 +6269,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - INTERVAL '2' day from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, 2) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - INTERVAL '2' DAY"
+    final String expectedSpark = "SELECT birth_date - 2"
         + "\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL 2 DAY)\n"
         + "FROM foodmart.employee";
@@ -6280,7 +6290,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + \"store_id\" * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '1' DAY"
+    final String expectedSpark = "SELECT birth_date + store_id"
         + "\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
@@ -6301,7 +6311,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" +  INTERVAL '1' DAY * \"store_id\" from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY * store_id\nFROM foodmart"
+    final String expectedSpark = "SELECT birth_date + store_id\nFROM foodmart"
         + ".employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
@@ -6322,7 +6332,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" +  INTERVAL '1' DAY * 10 from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 10) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY * 10\n"
+    final String expectedSpark = "SELECT birth_date + 10\n"
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 DAY)\n"
         + "FROM foodmart.employee";
@@ -6343,7 +6353,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - \"store_id\" * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - store_id * INTERVAL '1' DAY"
+    final String expectedSpark = "SELECT birth_date - store_id"
         + "\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
@@ -6364,7 +6374,7 @@ class RelToSqlConverterTest {
     String query = "select DATE'2018-01-01' + \"store_id\" * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(DATE '2018-01-01', store_id) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT DATE '2018-01-01' + store_id * INTERVAL '1' DAY\nFROM "
+    final String expectedSpark = "SELECT DATE '2018-01-01' + store_id\nFROM "
         + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(DATE '2018-01-01', INTERVAL store_id DAY)\n"
         + "FROM foodmart.employee";
@@ -6385,7 +6395,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + \"store_id\" *11 * INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id * 11) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * 11 * INTERVAL '1' DAY\nFROM "
+    final String expectedSpark = "SELECT birth_date + store_id * 11\nFROM "
         +  "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
@@ -6406,7 +6416,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + \"store_id\"  * INTERVAL '11' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, store_id * 11) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + store_id * INTERVAL '11' DAY\nFROM "
+    final String expectedSpark = "SELECT birth_date + store_id * 11\nFROM "
         + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
@@ -6427,7 +6437,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" - \"store_id\"  * INTERVAL '11' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_SUB(birth_date, store_id * 11) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date - store_id * INTERVAL '11' DAY\nFROM "
+    final String expectedSpark = "SELECT birth_date - store_id * 11\nFROM "
         + "foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_SUB(birth_date, INTERVAL store_id * 11 DAY)\n"
         + "FROM foodmart.employee";
@@ -6448,7 +6458,7 @@ class RelToSqlConverterTest {
     String query = "select \"birth_date\" + 10 * INTERVAL '2' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 10 * 2) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + 10 * INTERVAL '2' DAY\n"
+    final String expectedSpark = "SELECT birth_date + 10 * 2\n"
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 10 * 2 DAY)\n"
         + "FROM foodmart.employee";
@@ -6469,7 +6479,7 @@ class RelToSqlConverterTest {
     String query = "select  INTERVAL '1' DAY + \"birth_date\" from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 1) AS DATE)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT birth_date + INTERVAL '1' DAY\n"
+    final String expectedSpark = "SELECT birth_date + 1\n"
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 DAY)\n"
         + "FROM foodmart.employee";
@@ -9915,7 +9925,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 DAY) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT DATE '1999-07-01' + INTERVAL '1' DAY FD\n"
+    final String expectedSparkQuery = "SELECT DATE '1999-07-01' + 1 FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
@@ -9935,7 +9945,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedBiqQuery = "SELECT DATE_SUB(DATE '1999-07-01', INTERVAL 1 DAY) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT DATE '1999-07-01' - INTERVAL '1' DAY FD\n"
+    final String expectedSparkQuery = "SELECT DATE '1999-07-01' - 1 FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
@@ -10192,5 +10202,185 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test void testFilterWithInnerJoinGivingAssertionError() {
+    String query = "SELECT * FROM  \n"
+        + "\"foodmart\".\"employee\" E1\n"
+        + "INNER JOIN\n"
+        + "\"foodmart\".\"employee\" E2\n"
+        + "ON CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
+        + "ELSE UPPER(E1.\"first_name\") = UPPER(E2.\"first_name\") END AND "
+        + "CASE WHEN E1.\"first_name\" = '' THEN E1.\"first_name\" <> 'abc' "
+        + "ELSE INITCAP(E1.\"first_name\") = INITCAP(E2.\"first_name\") END";
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.employee AS employee0 ON CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE UPPER(employee.first_name) = UPPER(employee0.first_name) END AND CASE WHEN employee.first_name = '' THEN employee.first_name <> 'abc' ELSE INITCAP(employee.first_name) = INITCAP(employee0.first_name) END";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test public void testSubQueryWithFunctionCallInGroupByClause() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode lengthFunctionCall = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.field(1));
+    final RelNode subQueryInClause = builder
+        .project(builder.alias(lengthFunctionCall, "A2301"))
+        .aggregate(builder.groupKey(builder.field(0)))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+            builder.call(SqlStdOperatorTable.CHARACTER_LENGTH,
+                builder.literal("TEST")), builder.literal(2)))
+        .project(Arrays.asList(builder.field(0)), Arrays.asList("a2301"), true)
+        .build();
+
+    builder.scan("EMP");
+    final RelNode root = builder
+        .filter(RexSubQuery.in(subQueryInClause, ImmutableList.of(builder.field(0))))
+        .project(builder.field(0)).build();
+
+    final String expectedSql = "SELECT \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" IN (SELECT CHAR_LENGTH(\"ENAME\") AS \"a2301\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY CHAR_LENGTH(\"ENAME\")\n"
+        + "HAVING CHARACTER_LENGTH('TEST') = 2)";
+
+    final String expectedBiqQuery = "SELECT EMPNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO IN (SELECT A2301 AS a2301\n"
+        + "FROM (SELECT LENGTH(ENAME) AS A2301\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY A2301\n"
+        + "HAVING LENGTH('TEST') = 2) AS t1)";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSubQueryWithFunctionCallInGroupByAndAggregateInHavingClause() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode lengthFunctionCall = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.field(1));
+    final RelNode subQueryInClause = builder
+        .project(builder.alias(lengthFunctionCall, "A2301"), builder.field("EMPNO"))
+        .aggregate(builder.groupKey(builder.field(0)),
+            builder.countStar("EXPR$1354574361"))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("EXPR$1354574361"), builder.literal(2)))
+        .project(Arrays.asList(builder.field(0)), Arrays.asList("a2301"), true)
+        .build();
+
+    builder.scan("EMP");
+    final RelNode root = builder
+        .filter(RexSubQuery.in(subQueryInClause, ImmutableList.of(builder.field(0))))
+        .project(builder.field(0)).build();
+
+    final String expectedSql = "SELECT \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" IN (SELECT CHAR_LENGTH(\"ENAME\") AS \"a2301\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY CHAR_LENGTH(\"ENAME\")\n"
+        + "HAVING COUNT(*) = 2)";
+
+    final String expectedBiqQuery = "SELECT EMPNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO IN (SELECT A2301 AS a2301\n"
+        + "FROM (SELECT LENGTH(ENAME) AS A2301\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY A2301\n"
+        + "HAVING COUNT(*) = 2) AS t1)";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+
+  @Test public void dayOccurenceOfMonth() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayOccurenceOfMonth = builder.call(DAYOCCURRENCE_OF_MONTH,
+        builder.call(CURRENT_DATE));
+    final RelNode root = builder.scan("EMP")
+        .project(dayOccurenceOfMonth)
+        .build();
+    final String expectedSql = "SELECT DAYOCCURRENCE_OF_MONTH(CURRENT_DATE) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedSpark = "SELECT CEIL(DAY(CURRENT_DATE) / 7) $f0\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testDateTimeNumberOfYear() {
+    final RelBuilder builder = relBuilder();
+    final RexNode weekNumberOfYearCall = builder.call(WEEKNUMBER_OF_YEAR,
+        builder.call(CURRENT_DATE));
+    final RexNode monthNumberOfYearCall = builder.call(MONTHNUMBER_OF_YEAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RexNode quarterNumberOfYearCall = builder.call(QUARTERNUMBER_OF_YEAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder.scan("EMP")
+        .project(weekNumberOfYearCall,
+            monthNumberOfYearCall,
+            quarterNumberOfYearCall)
+        .build();
+    final String expectedSql = "SELECT WEEKNUMBER_OF_YEAR(CURRENT_DATE) AS \"$f0\", "
+        + "MONTHNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f1\", "
+        + "QUARTERNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f2\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String expectedSpark = "SELECT WEEKOFYEAR(CURRENT_DATE) $f0, "
+        + "MONTH(CURRENT_TIMESTAMP) $f1, "
+        + "QUARTER(CURRENT_TIMESTAMP) $f2\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testXNumberOfCalendar() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayNumberOfCalendarCall = builder.call(DAYNUMBER_OF_CALENDAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RexNode weekNumberOfCalendarCall = builder.call(WEEKNUMBER_OF_CALENDAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RexNode yearNumberOfCalendarCall = builder.call(YEARNUMBER_OF_CALENDAR,
+        builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder.scan("EMP")
+        .project(dayNumberOfCalendarCall,
+            weekNumberOfCalendarCall,
+            yearNumberOfCalendarCall)
+        .build();
+    final String expectedSql = "SELECT DAYNUMBER_OF_CALENDAR(CURRENT_TIMESTAMP) AS \"$f0\", "
+        + "WEEKNUMBER_OF_CALENDAR(CURRENT_TIMESTAMP) AS \"$f1\", "
+        + "YEARNUMBER_OF_CALENDAR(CURRENT_TIMESTAMP) AS \"$f2\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String expectedSpark = "SELECT DATEDIFF(CURRENT_TIMESTAMP, DATE '1899-12-31') $f0,"
+        + " FLOOR((DATEDIFF(CURRENT_TIMESTAMP, DATE '1900-01-01') + 1) / 7) $f1,"
+        + " YEAR(CURRENT_TIMESTAMP) $f2"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testForAddingMonths() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(10),
+            new SqlIntervalQualifier(MONTH, 6, MONTH,
+                -1, SqlParserPos.ZERO)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedSparkQuery = "SELECT DATE '1999-07-01' + INTERVAL '10' MONTH FD"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 }
