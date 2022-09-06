@@ -32,6 +32,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryComponentFilter;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiLineString;
@@ -50,6 +52,7 @@ import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -278,12 +281,30 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   * Converts the coordinates of {@code geom} into a MULTIPOINT.
+   * Converts the coordinates of a {@code geom} into a MULTIPOINT.
    */
   public static Geometry ST_ToMultiPoint(Geometry geom) {
     CoordinateSequence coordinateSequence = GEOMETRY_FACTORY
         .getCoordinateSequenceFactory().create(geom.getCoordinates());
     return GEOMETRY_FACTORY.createMultiPoint(coordinateSequence);
+  }
+
+  /**
+   * Converts the coordinates of a {@code geom} into a MULTILINESTRING.
+   */
+  public static Geometry ST_ToMultiLine(Geometry geom) {
+    GeometryFactory factory = geom.getFactory();
+    ArrayList<LineString> lines = new ArrayList<>();
+    geom.apply((GeometryComponentFilter) inputGeom -> {
+      if (inputGeom instanceof LineString) {
+        lines.add(factory.createLineString(inputGeom.getCoordinates()));
+      }
+    });
+    if (lines.isEmpty()) {
+      return factory.createMultiLineString();
+    } else {
+      return factory.createMultiLineString(lines.toArray(new LineString[lines.size()]));
+    }
   }
 
   // Geometry creation functions ==============================================
