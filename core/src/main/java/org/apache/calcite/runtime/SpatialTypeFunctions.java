@@ -318,7 +318,7 @@ public class SpatialTypeFunctions {
       if (inputGeom instanceof LineString) {
         Coordinate[] coordinates = inputGeom.getCoordinates();
         for (int i = 1; i < coordinates.length; i++) {
-          Coordinate[] pair = new Coordinate[] { coordinates[i - 1], coordinates[i] };
+          Coordinate[] pair = new Coordinate[]{coordinates[i - 1], coordinates[i]};
           lines.add(factory.createLineString(pair));
         }
       }
@@ -383,14 +383,146 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   *  Constructs an ellipse.
+   * Makes an ellipse.
    */
-  public static Geometry ST_MakeEllipse(Geometry geom, BigDecimal width, BigDecimal height) {
-    GeometricShapeFactory factory = new GeometricShapeFactory(geom.getFactory());
-    factory.setCentre(geom.getCoordinate());
+  public static @Nullable Geometry ST_MakeEllipse(Geometry point, BigDecimal width,
+      BigDecimal height) {
+    if (!(point instanceof Point)) {
+      return null;
+    }
+    GeometricShapeFactory factory = new GeometricShapeFactory(point.getFactory());
+    factory.setCentre(point.getCoordinate());
     factory.setWidth(width.doubleValue());
     factory.setHeight(height.doubleValue());
     return factory.createEllipse();
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell) {
+    return makePolygon(shell);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell, Geometry hole0) {
+    return makePolygon(shell, hole0);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1) {
+    return makePolygon(shell,
+        hole0, hole1);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2) {
+    return makePolygon(shell,
+        hole0, hole1, hole2);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3) {
+    return makePolygon(shell,
+        hole0, hole1, hole2, hole3);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4) {
+    return makePolygon(shell,
+        hole0, hole1, hole2, hole3, hole4);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
+      Geometry hole5) {
+    return makePolygon(shell,
+        hole0, hole1, hole2, hole3, hole4,
+        hole5);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
+      Geometry hole5, Geometry hole6) {
+    return makePolygon(shell,
+        hole0, hole1, hole2, hole3, hole4,
+        hole5, hole6);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
+      Geometry hole5, Geometry hole6, Geometry hole7) {
+    return makePolygon(shell,
+        hole0, hole1, hole2, hole3, hole4,
+        hole5, hole6, hole7);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
+      Geometry hole5, Geometry hole6, Geometry hole7, Geometry hole8) {
+    return makePolygon(shell,
+        hole0, hole1, hole2, hole3, hole4,
+        hole5, hole6, hole7, hole8);
+  }
+
+  /**
+   * Makes a polygon.
+   */
+  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
+      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
+      Geometry hole5, Geometry hole6, Geometry hole7, Geometry hole8, Geometry hole9) {
+    return makePolygon(shell,
+        hole0, hole1, hole2, hole3, hole4,
+        hole5, hole6, hole7, hole8, hole9);
+  }
+
+  private static @Nullable Geometry makePolygon(Geometry shell, Geometry... holes) {
+    if (!(shell instanceof LineString)) {
+      throw new RuntimeException("Only supports LINESTRINGs.");
+    }
+    if (!((LineString) shell).isClosed()) {
+      throw new RuntimeException("The LINESTRING must be closed.");
+    }
+    for (Geometry hole : holes) {
+      if (!(hole instanceof LineString)) {
+        throw new RuntimeException("Only supports LINESTRINGs.");
+      }
+      if (!((LineString) hole).isClosed()) {
+        throw new RuntimeException("The LINESTRING must be closed.");
+      }
+    }
+    LinearRing shellRing = shell.getFactory().createLinearRing(shell.getCoordinates());
+    LinearRing[] holeRings = new LinearRing[holes.length];
+    for (int i = 0; i < holes.length; i++) {
+      holeRings[i] = holes[i].getFactory().createLinearRing(holes[i].getCoordinates());
+    }
+    return shell.getFactory().createPolygon(shellRing, holeRings);
   }
 
   /**
