@@ -720,6 +720,19 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns whether {@code geom} is a closed LINESTRING or MULTILINESTRING.
+   */
+  public static boolean ST_IsClosed(Geometry geom) {
+    if (geom instanceof LineString) {
+      return ((LineString) geom).isClosed();
+    }
+    if (geom instanceof MultiLineString) {
+      return ((MultiLineString) geom).isClosed();
+    }
+    return false;
+  }
+
+  /**
    * Returns whether {@code geom} has at least one z-coordinate.
    */
   public static boolean ST_Is3D(Geometry geom) {

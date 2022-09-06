@@ -815,7 +815,16 @@ LINEARRING (8 5, 8 4, 9 4, 9 5, 8 5)
 !ok
 
 # ST_IsClosed(geom) Returns whether *geom* is a closed line-string or multi-line-string
-# Not implemented
+
+SELECT ST_IsClosed(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2)'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsClosed(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2, 2 1)'));
+EXPR$0
+true
+!ok
 
 # ST_IsEmpty(geom) Returns whether *geom* is empty
 
