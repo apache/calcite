@@ -2199,9 +2199,9 @@ Not implemented:
 
 #### Geometry conversion functions (3D)
 
-Not implemented:
-
-* ST_Force3D(geom) 2D GEOMETRY → 3D GEOMETRY
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Force3D(geom) | 2D GEOMETRY → 3D GEOMETRY
 
 #### Geometry creation functions (2D)
 

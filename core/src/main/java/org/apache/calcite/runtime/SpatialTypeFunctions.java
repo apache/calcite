@@ -329,6 +329,18 @@ public class SpatialTypeFunctions {
     }
   }
 
+  // Geometry conversion functions (3D)
+
+  public static @Nullable Geometry ST_Force3D(Geometry geometry) {
+    Function<Coordinate, Coordinate> transform =
+        coordinate -> new Coordinate(
+            coordinate.getX(),
+            coordinate.getY(),
+            Double.isNaN(coordinate.getZ()) ? 0d : coordinate.getZ());
+    CoordinateTransformer transformer = new CoordinateTransformer(transform);
+    return transformer.transform(geometry);
+  }
+
   // Geometry creation functions ==============================================
 
   /**

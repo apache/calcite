@@ -95,17 +95,17 @@ null
 
 # ST_Force2D(geom) 3D Geometry to 2D Geometry
 
-SELECT ST_Force2D(ST_GeomFromText('POINT(-10 10)'));
+SELECT ST_AsText(ST_Force2D(ST_GeomFromText('POINT(-10 10)')));
 EXPR$0
 POINT (-10 10)
 !ok
 
-SELECT ST_Force2D(ST_GeomFromText('POINT(-10 10 6)'));
+SELECT ST_AsText(ST_Force2D(ST_GeomFromText('POINT(-10 10 6)')));
 EXPR$0
 POINT (-10 10)
 !ok
 
-SELECT ST_Force2D(ST_GeomFromText('LINESTRING(-10 10 2, 10 10 3)'));
+SELECT ST_AsText(ST_Force2D(ST_GeomFromText('LINESTRING(-10 10 2, 10 10 3)')));
 EXPR$0
 LINESTRING (-10 10, 10 10)
 !ok
@@ -351,7 +351,21 @@ MULTILINESTRING ((0 0, 10 0), (10 0, 10 6), (10 6, 0 6), (0 6, 0 0), (1 1, 2 1),
 #### Geometry conversion functions (3D)
 
 # ST_Force3D(geom) 2D Geometry to 3D Geometry
-# Not implemented
+
+SELECT ST_AsText(ST_Force3D(ST_GeomFromText('POINT(-10 10 6)')));
+EXPR$0
+POINT Z(-10 10 6)
+!ok
+
+SELECT ST_AsText(ST_Force3D(ST_GeomFromText('POINT(-10 10)')));
+EXPR$0
+POINT Z(-10 10 0)
+!ok
+
+SELECT ST_AsText(ST_Force3D(ST_GeomFromText('LINESTRING(-10 10, 10 10 3)')));
+EXPR$0
+LINESTRING Z(-10 10 0, 10 10 3)
+!ok
 
 #### Geometry creation functions (2D)
 
