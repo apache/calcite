@@ -696,7 +696,16 @@ p , POINT, 1
 !ok
 
 # ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*
-# Not implemented
+
+SELECT ST_InteriorRing(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1), (8 5, 8 4, 9 4, 9 5, 8 5))'), 0);
+EXPR$0
+LINEARRING (1 1, 2 1, 2 5, 1 5, 1 1)
+!ok
+
+SELECT ST_InteriorRing(ST_GeomFromText('POLYGON((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1), (8 5, 8 4, 9 4, 9 5, 8 5))'), 1);
+EXPR$0
+LINEARRING (8 5, 8 4, 9 4, 9 5, 8 5)
+!ok
 
 # ST_IsClosed(geom) Returns whether *geom* is a closed line-string or multi-line-string
 # Not implemented

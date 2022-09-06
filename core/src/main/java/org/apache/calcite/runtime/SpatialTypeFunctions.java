@@ -451,6 +451,16 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns the nth interior ring of {@code geom}, or null if {@code geom} is not a polygon.
+   */
+  public static @Nullable Geometry ST_InteriorRing(Geometry geom, int n) {
+    if (geom instanceof Polygon) {
+      return ((Polygon) geom).getInteriorRingN(n);
+    }
+    return null;
+  }
+
+  /**
    * Returns whether {@code geom} has at least one z-coordinate.
    */
   public static boolean ST_Is3D(Geometry geom) {

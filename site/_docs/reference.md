@@ -2242,12 +2242,13 @@ Not implemented:
 | o | ST_Centroid(geom) | Returns the centroid of *geom*
 | o | ST_Dimension(geom) | Returns the dimension of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
-| o | ST_ExteriorRing(geom) | Returns the minimum bounding box that encloses geom as a Geometry.
+| h | ST_ExteriorRing(geom) | Returns the exterior ring of *geom*, or null if *geom* is not a polygon
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
 | p | ST_EndPoint(lineString) | Returns the last coordinate of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
 | o | ST_Extent(geom) | Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_InteriorRingN(geom) | Returns the nth interior ring of *geom*, or null if *geom* is not a polygon
 | o | ST_IsEmpty(geom) | Returns whether *geom* is empty
 | o | ST_IsRectangle(geom) | Returns whether *geom* is a rectangle
 | o | ST_IsSimple(geom) | Returns whether *geom* is simple
@@ -2270,7 +2271,6 @@ Not implemented:
 * ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
 * ST_GeometryN(geomCollection, n) Returns the *n*th GEOMETRY of *geomCollection*
-* ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*
 * ST_IsClosed(geom) Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
 * ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
