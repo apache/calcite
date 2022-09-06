@@ -28,6 +28,7 @@ import org.apache.calcite.runtime.SpatialTypeUtils.SpatialType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.locationtech.jts.algorithm.MinimumBoundingCircle;
+import org.locationtech.jts.algorithm.MinimumDiameter;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
@@ -523,6 +524,20 @@ public class SpatialTypeFunctions {
       holeRings[i] = holes[i].getFactory().createLinearRing(holes[i].getCoordinates());
     }
     return shell.getFactory().createPolygon(shellRing, holeRings);
+  }
+
+  /**
+   * Returns the minimum diameter of {@code geom}.
+   */
+  public static @Nullable Geometry ST_MinimumDiameter(Geometry geom) {
+    return new MinimumDiameter(geom).getDiameter();
+  }
+
+  /**
+   * Returns the minimum rectangle of {@code geom}.
+   */
+  public static @Nullable Geometry ST_MinimumDiameter(Geometry geom) {
+    return new MinimumDiameter(geom).getDiameter();
   }
 
   /**

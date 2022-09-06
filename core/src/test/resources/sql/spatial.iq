@@ -525,7 +525,16 @@ Only supports LINESTRINGs.
 !error
 
 # ST_MinimumDiameter(geom) Returns the minimum diameter of *geom*
-# Not implemented
+
+SELECT ST_MinimumDiameter(ST_GeomFromText('POINT(395 278)'));
+EXPR$0
+LINESTRING (395 278, 395 278)
+!ok
+
+SELECT ST_MinimumDiameter(ST_GeomFromText('LINESTRING(0 0, 1 1, 3 9, 7 1)'));
+EXPR$0
+LINESTRING (1 3, 7 1)
+!ok
 
 # ST_MinimumRectangle(geom) Returns the minimum rectangle enclosing *geom*
 # Not implemented
