@@ -31,7 +31,6 @@ import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -42,6 +41,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -91,8 +91,11 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
@@ -223,15 +226,25 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   @Override public SqlOperator getTargetFunc(RexCall call) {
-    switch (call.type.getSqlTypeName()) {
-    case DATE:
-      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
-      case INTERVAL_DAY:
-      case INTERVAL_MONTH:
-        if (call.op.kind == SqlKind.MINUS) {
-          return MINUS;
+    switch (call.getOperator().getKind()) {
+    case PLUS:
+    case MINUS:
+      switch (call.type.getSqlTypeName()) {
+      case DATE:
+        switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        case INTERVAL_DAY:
+          if (call.op.kind == SqlKind.MINUS) {
+            return DATE_SUB;
+          }
+          return DATE_ADD;
+        case INTERVAL_MONTH:
+          if (call.getOperator() instanceof SqlMonotonicBinaryOperator) {
+            return call.getOperator();
+          }
+          return ADD_MONTHS;
         }
-        return PLUS;
+      default:
+        return super.getTargetFunc(call);
       }
     default:
       return super.getTargetFunc(call);
@@ -379,7 +392,14 @@ public class SparkSqlDialect extends SqlDialect {
     switch (call.operand(1).getKind()) {
     case LITERAL:
     case TIMES:
-      unparseIntervalOperandCall(call, writer, leftPrec, rightPrec);
+      switch (call.getOperator().toString()) {
+      case "DATE_ADD":
+      case "DATE_SUB":
+        unparseIntervalOperandCallWithBinaryOperator(call, writer, leftPrec, rightPrec);
+        break;
+      default:
+        unparseIntervalOperandCall(call, writer, leftPrec, rightPrec);
+      }
       break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
@@ -395,6 +415,18 @@ public class SparkSqlDialect extends SqlDialect {
     SqlNode intervalValue = modifySqlNode(writer, call.operand(1));
     writer.print(intervalValue.toString().replace("`", ""));
     writer.print(")");
+  }
+
+  private void unparseIntervalOperandCallWithBinaryOperator(
+      SqlCall call, SqlWriter writer, int leftPrec, int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.getKind() == SqlKind.MINUS) {
+      writer.sep("-");
+    } else {
+      writer.sep("+");
+    }
+    SqlNode intervalValue = modifySqlNode(writer, call.operand(1));
+    intervalValue.unparse(writer, leftPrec, rightPrec);
   }
 
   /**
@@ -447,7 +479,7 @@ public class SparkSqlDialect extends SqlDialect {
     if (interval.getIntervalLiteral().equals("1")) {
       return identifierValue;
     }
-    SqlNode intervalValue = new SqlIdentifier(interval.toString(),
+    SqlNode intervalValue = SqlLiteral.createExactNumeric(interval.toString(),
         intervalOperand.getParserPosition());
     SqlNode[] sqlNodes = new SqlNode[]{identifierValue,
         intervalValue};
@@ -470,7 +502,7 @@ public class SparkSqlDialect extends SqlDialect {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) intervalOperand).getValue();
     writeNegativeLiteral(interval, writer);
-    return new SqlIdentifier(interval.toString(), intervalOperand.getParserPosition());
+    return SqlLiteral.createExactNumeric(interval.toString(), intervalOperand.getParserPosition());
   }
 
   /**
