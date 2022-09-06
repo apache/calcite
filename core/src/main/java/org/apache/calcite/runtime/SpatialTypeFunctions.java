@@ -33,6 +33,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryComponentFilter;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
@@ -671,7 +672,7 @@ public class SpatialTypeFunctions {
     return g;
   }
 
-  // Geometry properties (2D and 3D) ==========================================
+  // Geometry properties (2D)
 
   /**
    * Returns the minimum bounding box that encloses geom as a Geometry.
@@ -679,6 +680,16 @@ public class SpatialTypeFunctions {
   public static @Nullable Geometry ST_Extent(Geometry geom) {
     // Note: check whether the extent and the envelope are the same.
     return geom.getEnvelope();
+  }
+
+  /**
+   * Returns the nth geometry of a geometry collection
+   */
+  public static @Nullable Geometry ST_GeometryN(Geometry geom, int n) {
+    if (!(geom instanceof GeometryCollection)) {
+      return null;
+    }
+    return geom.getGeometryN(n);
   }
 
   /**

@@ -774,13 +774,17 @@ null
 !ok
 
 # ST_GeometryN(geomCollection, n) Returns the *n*th geometry of *geomCollection*
-# Not implemented
+
+SELECT ST_ExteriorRing(ST_GeomFromText('POINT(1 2)'));
+EXPR$0
+null
+!ok
 
 # ST_GeometryType(geom) Returns the type of *geom*
 
-SELECT ST_GeometryType(ST_Point(0.0, 0.0));
+SELECT ST_GeometryN(ST_GeomFromText('MULTIPOLYGON(((0 0, 3 -1, 1.5 2, 0 0)), ((1 2, 4 2, 4 6, 1 6, 1 2)))'), 0);
 EXPR$0
-POINT
+POLYGON ((0 0, 3 -1, 1.5 2, 0 0))
 !ok
 
 # ST_GeometryTypeCode(geom) Returns the type code of *geom*
