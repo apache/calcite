@@ -1182,11 +1182,11 @@ or binary strings encoded as
 Where you would use a literal, apply the `ST_GeomFromText` function,
 for example `ST_GeomFromText('POINT (30 10)')`.
 
-| Data type   | Type code | Examples in WKT
-|:----------- |:--------- |:---------------------
+| Data type          | Type code | Examples in WKT
+|:-------------------|:--------- |:---------------------
 | GEOMETRY           |  0 | generalization of Point, Curve, Surface, GEOMETRYCOLLECTION
 | POINT              |  1 | <code>ST_GeomFromText(&#8203;'POINT (30 10)')</code> is a point in 2D space; <code>ST_GeomFromText(&#8203;'POINT Z(30 10 2)')</code> is point in 3D space
-| CURVE            | 13 | generalization of LINESTRING
+| CURVE              | 13 | generalization of LINESTRING
 | LINESTRING         |  2 | <code>ST_GeomFromText(&#8203;'LINESTRING (30 10, 10 30, 40 40)')</code>
 | SURFACE            | 14 | generalization of Polygon, PolyhedralSurface
 | POLYGON            |  3 | <code>ST_GeomFromText(&#8203;'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')</code> is a pentagon; <code>ST_GeomFromText(&#8203;'POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))')</code> is a pentagon with a quadrilateral hole
@@ -2171,6 +2171,7 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 | p | ST_AsText(geom) | Synonym for `ST_AsWKT`
 | o | ST_AsWKB(geom) | Converts GEOMETRY → WKB
 | o | ST_AsWKT(geom) | Converts GEOMETRY → WKT
+| o | ST_Force2D(geom) | 3D GEOMETRY → 2D GEOMETRY
 | o | ST_GeomFromEWKB(wkb [, srid ]) | Synonym for `ST_GeomFromWKB`
 | o | ST_GeomFromEWKT(wkb [, srid ]) | Converts EWKT → GEOMETRY
 | o | ST_GeomFromGeoJSON(json) | Converts GeoJSON → GEOMETRY
@@ -2191,7 +2192,7 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 
 Not implemented:
 
-* ST_Force2D(geom) 3D GEOMETRY → 2D GEOMETRY
+
 * ST_GoogleMapLink(geom [, layerType [, zoom ]]) GEOMETRY → Google map link
 * ST_OSMMapLink(geom [, marker ]) GEOMETRY → OSM map link
 * ST_ToMultiLine(geom) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING

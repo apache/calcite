@@ -94,7 +94,21 @@ null
 !ok
 
 # ST_Force2D(geom) 3D Geometry to 2D Geometry
-# Not implemented
+
+SELECT ST_Force2D(ST_GeomFromText('POINT(-10 10)'));
+EXPR$0
+POINT (-10 10)
+!ok
+
+SELECT ST_Force2D(ST_GeomFromText('POINT(-10 10 6)'));
+EXPR$0
+POINT (-10 10)
+!ok
+
+SELECT ST_Force2D(ST_GeomFromText('LINESTRING(-10 10 2, 10 10 3)'));
+EXPR$0
+LINESTRING (-10 10, 10 10)
+!ok
 
 # ST_GeomFromEWKT(ewkt) EWKT to Geometry
 SELECT ST_AsEWKT(ST_GeomFromEWKT('srid:4326;LINESTRING (1 2, 3 4)'));

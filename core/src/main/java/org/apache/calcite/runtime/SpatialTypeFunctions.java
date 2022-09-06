@@ -51,6 +51,7 @@ import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
@@ -95,7 +96,7 @@ public class SpatialTypeFunctions {
   private SpatialTypeFunctions() {
   }
 
-  // Geometry conversion functions (2D and 3D) ================================
+  // Geometry conversion functions (2D)
 
   public static @Nullable ByteString ST_AsBinary(Geometry geometry) {
     return ST_AsWKB(geometry);
@@ -127,6 +128,13 @@ public class SpatialTypeFunctions {
 
   public static @Nullable String ST_AsWKT(Geometry geometry) {
     return asWkt(geometry);
+  }
+
+  public static @Nullable Geometry ST_Force2D(Geometry geometry) {
+    Function<Coordinate, Coordinate> transform =
+        coordinate -> new Coordinate(coordinate.getX(), coordinate.getY());
+    CoordinateTransformer transformer = new CoordinateTransformer(transform);
+    return transformer.transform(geometry);
   }
 
   public static @Nullable Geometry ST_GeomFromEWKB(ByteString ewkb) {
