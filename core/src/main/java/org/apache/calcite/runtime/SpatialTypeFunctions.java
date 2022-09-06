@@ -373,6 +373,24 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Expands {@code geom}'s envelope.
+   */
+  public static Geometry ST_Expand(Geometry geom, BigDecimal distance) {
+    Envelope envelope = geom.getEnvelopeInternal().copy();
+    envelope.expandBy(distance.doubleValue());
+    return geom.getFactory().toGeometry(envelope);
+  }
+
+  /**
+   * Expands {@code geom}'s envelope.
+   */
+  public static Geometry ST_Expand(Geometry geom, BigDecimal deltaX, BigDecimal deltaY) {
+    Envelope envelope = geom.getEnvelopeInternal().copy();
+    envelope.expandBy(deltaX.doubleValue(), deltaY.doubleValue());
+    return geom.getFactory().toGeometry(envelope);
+  }
+
+  /**
    * Creates a rectangular Polygon.
    */
   public static Geometry ST_MakeEnvelope(BigDecimal xMin, BigDecimal yMin,
