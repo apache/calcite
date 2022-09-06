@@ -50,6 +50,7 @@ import org.locationtech.jts.operation.polygonize.Polygonizer;
 import org.locationtech.jts.precision.GeometryPrecisionReducer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
+import org.locationtech.jts.util.GeometricShapeFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -379,6 +380,17 @@ public class SpatialTypeFunctions {
     Envelope envelope = geom.getEnvelopeInternal().copy();
     envelope.expandBy(distance.doubleValue());
     return geom.getFactory().toGeometry(envelope);
+  }
+
+  /**
+   *  Constructs an ellipse.
+   */
+  public static Geometry ST_MakeEllipse(Geometry geom, BigDecimal width, BigDecimal height) {
+    GeometricShapeFactory factory = new GeometricShapeFactory(geom.getFactory());
+    factory.setCentre(geom.getCoordinate());
+    factory.setWidth(width.doubleValue());
+    factory.setHeight(height.doubleValue());
+    return factory.createEllipse();
   }
 
   /**
