@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.runtime.SpatialTypeUtils.SpatialType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.algorithm.InteriorPoint;
 import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.algorithm.MinimumDiameter;
 import org.locationtech.jts.geom.Coordinate;
@@ -794,21 +795,21 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION)
+   * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION).
    */
   public static int ST_NumGeometries(Geometry geom) {
     return geom.getNumGeometries();
   }
 
   /**
-   * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION)
+   * Returns the number of interior rings of {@code geom}.
    */
   public static int ST_NumInteriorRing(Geometry geom) {
     return ST_NumInteriorRings(geom);
   }
 
   /**
-   * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION)
+   * Returns the number of interior rings of {@code geom}.
    */
   public static int ST_NumInteriorRings(Geometry geom) {
     int[] num = new int[]{0};
@@ -836,6 +837,13 @@ public class SpatialTypeFunctions {
     Coordinate[] coordinates = geom.getCoordinates();
     int i = (coordinates.length + (n % coordinates.length)) % coordinates.length;
     return geom.getFactory().createPoint(coordinates[i]);
+  }
+
+  /**
+   * Returns an interior or boundary point of {@code geom}.
+   */
+  public static Geometry ST_PointOnSurface(Geometry geom) {
+    return geom.getFactory().createPoint(InteriorPoint.getInteriorPoint(geom));
   }
 
   /**

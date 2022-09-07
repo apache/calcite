@@ -1065,7 +1065,26 @@ POINT (0 1)
 !ok
 
 # ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
-# Not implemented
+
+SELECT ST_PointOnSurface(ST_GeomFromText('POINT(1 5)'));
+EXPR$0
+POINT (1 5)
+!ok
+
+SELECT ST_PointOnSurface(ST_GeomFromText('MULTIPOINT((4 4), (1 1), (1 0), (0 3)))'));
+EXPR$0
+POINT (1 1)
+!ok
+
+SELECT ST_PointOnSurface(ST_GeomFromText('LINESTRING(-1 5, 0 10)'));
+EXPR$0
+POINT (0 10)
+!ok
+
+SELECT ST_PointOnSurface(ST_GeomFromText('POLYGON((0 0, 0 5, 5 5, 5 0, 0 0))'));
+EXPR$0
+POINT (2.5 2.5)
+!ok
 
 # ST_SRID(geom) Returns SRID value of *geom* or 0 if it does not have one
 

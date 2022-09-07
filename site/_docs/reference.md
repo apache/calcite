@@ -2262,6 +2262,7 @@ Not implemented:
 | h | ST_NumInteriorRings(geom) | Returns the number of interior rings of *geom*
 | h | ST_NumPoints(geom) | Returns the number of points in *geom*
 | p | ST_PointN(geom, n) | Returns the *n*th point of a *geom*
+| p | ST_PointOnSurface(geom) | Returns an interior or boundary point of *geom*
 | o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
 | p | ST_StartPoint(geom) | Returns the first point of *geom*
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
@@ -2278,7 +2279,6 @@ Not implemented:
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
-* ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
 
 
 #### Geometry properties (3D)
