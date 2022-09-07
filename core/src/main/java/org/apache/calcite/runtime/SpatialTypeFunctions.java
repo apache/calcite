@@ -793,6 +793,13 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION)
+   */
+  public static int ST_NumGeometries(Geometry geom) {
+    return geom.getNumGeometries();
+  }
+
+  /**
    * Returns the number of points in {@code geom}.
    */
   public static int ST_NumPoints(Geometry geom) {

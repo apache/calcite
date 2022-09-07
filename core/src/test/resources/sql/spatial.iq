@@ -935,7 +935,49 @@ false
 # Not implemented
 
 # ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a geometry-collection)
-# Not implemented
+
+SELECT ST_NumGeometries(ST_GeomFromText('LINESTRING(2 1, 1 3, 5 2)'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('MULTILINESTRING(
+  (0 2, 3 2, 3 6, 0 6, 0 1),
+  (5 0, 7 0, 7 1, 5 1, 5 0))'));
+EXPR$0
+2
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('POLYGON(
+  (0 0, 10 0, 10 6, 0 6, 0 0),
+  (1 1, 2 1, 2 5, 1 5, 1 1),
+  (8 5, 8 4, 9 4, 9 5, 8 5))'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('MULTIPOLYGON(
+  ((0 0, 10 0, 10 6, 0 6, 0 0)),
+  ((1 1, 2 1, 2 5, 1 5, 1 1)),
+  ((8 5, 8 4, 9 4, 9 5, 8 5)))'));
+EXPR$0
+3
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('GEOMETRYCOLLECTION(
+  MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+  LINESTRING(2 6, 6 2),
+  POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)))'));
+EXPR$0
+3
+!ok
+
+SELECT ST_NumGeometries(ST_GeomFromText('MULTIPOINT(
+  (0 2), (3 2), (3 6), (0 6),
+  (0 1), (5 0), (7 0))'));
+EXPR$0
+7
+!ok
 
 # ST_NumInteriorRing(geom) Alias for `ST_NumInteriorRings`
 # Not implemented
