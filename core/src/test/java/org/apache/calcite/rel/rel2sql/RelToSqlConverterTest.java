@@ -266,36 +266,42 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test void testAggregateFilterWhereToSqlFromProductTable() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4321">[CALCITE-4321]
+   * JDBC adapter omits FILTER (WHERE ...) expressions when generating SQL</a>
+   * and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5270">[CALCITE-5270]
+   * JDBC adapter should not generate FILTER (WHERE) in Firebolt dialect</a>. */
+  @Test void testAggregateFilterWhere() {
     String query = "select\n"
         + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
         + "  sum(\"shelf_width\")\n"
         + "from \"foodmart\".\"product\"\n"
         + "where \"product_id\" > 0\n"
         + "group by \"product_id\"";
-    final String expected = "SELECT"
+    final String expectedDefault = "SELECT"
         + " SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE),"
         + " SUM(\"shelf_width\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" > 0\n"
         + "GROUP BY \"product_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testAggregateFilterWhereToBigQuerySqlFromProductTable() {
-    String query = "select\n"
-        + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
-        + "  sum(\"shelf_width\")\n"
-        + "from \"foodmart\".\"product\"\n"
-        + "where \"product_id\" > 0\n"
-        + "group by \"product_id\"";
-    final String expected = "SELECT SUM(CASE WHEN net_weight > 0 IS TRUE"
+    final String expectedBigQuery = "SELECT"
+        + " SUM(CASE WHEN net_weight > 0 IS TRUE"
         + " THEN shelf_width ELSE NULL END), "
         + "SUM(shelf_width)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id > 0\n"
         + "GROUP BY product_id";
-    sql(query).withBigQuery().ok(expected);
+    final String expectedFirebolt = "SELECT"
+        + " SUM(CASE WHEN \"net_weight\" > 0 IS TRUE"
+        + " THEN \"shelf_width\" ELSE NULL END), "
+        + "SUM(\"shelf_width\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" > 0\n"
+        + "GROUP BY \"product_id\"";
+    sql(query).ok(expectedDefault)
+        .withBigQuery().ok(expectedBigQuery)
+        .withFirebolt().ok(expectedFirebolt);
   }
 
   @Test void testPivotToSqlFromProductTable() {
