@@ -979,11 +979,41 @@ EXPR$0
 7
 !ok
 
-# ST_NumInteriorRing(geom) Alias for `ST_NumInteriorRings`
-# Not implemented
-
 # ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
-# Not implemented
+
+SELECT ST_NumInteriorRings(ST_GeomFromText('POLYGON(
+  (0 0, 10 0, 10 6, 0 6, 0 0),
+  (1 1, 2 1, 2 5, 1 5, 1 1),
+  (8 5, 8 4, 9 4, 9 5, 8 5))'));
+EXPR$0
+2
+!ok
+
+SELECT ST_NumInteriorRings(ST_GeomFromText('MULTIPOLYGON(
+  ((0 0, 10 0, 10 6, 0 6, 0 0), (1 1, 2 1, 2 5, 1 5, 1 1)),
+  ((1 1, 2 1, 2 5, 1 5, 1 1)),
+  ((8 5, 8 4, 9 4, 9 5, 8 5)))'));
+EXPR$0
+1
+!ok
+
+SELECT ST_NumInteriorRings(ST_GeomFromText('GEOMETRYCOLLECTION(
+  MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+  LINESTRING(2 6, 6 2),
+  POLYGON((1 2, 4 2, 4 6, 1 6, 1 2)))'));
+EXPR$0
+0
+!ok
+
+SELECT ST_NumInteriorRings(ST_GeomFromText(
+  'GEOMETRYCOLLECTION(
+    MULTIPOINT((4 4), (1 1), (1 0), (0 3)),
+    LINESTRING(2 6, 6 2),
+    POLYGON((1 2, 4 2, 4 6, 1 6, 1 2), (2 4, 3 4, 3 5, 2 5, 2 4)))'));
+EXPR$0
+1
+!ok
+
 
 # ST_NumPoints(geom) Returns the number of points in *geom*
 

@@ -36,6 +36,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryComponentFilter;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.GeometryFilter;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiLineString;
@@ -797,6 +798,28 @@ public class SpatialTypeFunctions {
    */
   public static int ST_NumGeometries(Geometry geom) {
     return geom.getNumGeometries();
+  }
+
+  /**
+   * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION)
+   */
+  public static int ST_NumInteriorRing(Geometry geom) {
+    return ST_NumInteriorRings(geom);
+  }
+
+  /**
+   * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION)
+   */
+  public static int ST_NumInteriorRings(Geometry geom) {
+    int[] num = new int[]{0};
+    geom.apply(new GeometryFilter() {
+      @Override public void filter(Geometry geom) {
+        if (geom instanceof Polygon) {
+          num[0] += ((Polygon) geom).getNumInteriorRing();
+        }
+      }
+    });
+    return num[0];
   }
 
   /**

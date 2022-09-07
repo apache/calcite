@@ -2258,6 +2258,8 @@ Not implemented:
 | o | ST_IsValid(geom) | Returns whether *geom* is valid
 | h | ST_NPoints(geom)  | Returns the number of points in *geom*
 | h | ST_NumGeometries(geom) | Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
+| h | ST_NumInteriorRing(geom) | Synonym for `ST_NumInteriorRings`
+| h | ST_NumInteriorRings(geom) | Returns the number of interior rings of *geom*
 | h | ST_NumPoints(geom) | Returns the number of points in *geom*
 | p | ST_PointN(geom, n) | Returns the *n*th point of a *geom*
 | o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
@@ -2276,8 +2278,6 @@ Not implemented:
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
-* ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
-* ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
 * ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
 
 
