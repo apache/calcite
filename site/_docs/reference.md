@@ -2287,11 +2287,8 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | p | ST_Is3D(s) | Returns whether *geom* has at least one z-coordinate
 | o | ST_Z(geom) | Returns the z-value of the first coordinate of *geom*
-
-Not implemented:
-
-* ST_ZMax(geom) Returns the maximum z-value of *geom*
-* ST_ZMin(geom) Returns the minimum z-value of *geom*
+| o | ST_ZMax(geom) | Returns the maximum z-value of *geom*
+| o | ST_ZMin(geom) | Returns the minimum z-value of *geom*
 
 ### Geometry predicates
 

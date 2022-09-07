@@ -1190,14 +1190,32 @@ EXPR$0
 
 SELECT ST_Z(ST_GeomFromText('POINT (1 2)'));
 EXPR$0
-null
+NaN
 !ok
 
 # ST_ZMax(geom) Returns the maximum z-value of *geom*
-# Not implemented
+
+SELECT ST_ZMax(ST_GeomFromText('LINESTRING(1 2 3, 4 5 6)'));
+EXPR$0
+6.0
+!ok
+
+SELECT ST_ZMax(ST_GeomFromText('LINESTRING(1 2, 4 5)'));
+EXPR$0
+NaN
+!ok
 
 # ST_ZMin(geom) Returns the minimum z-value of *geom*
-# Not implemented
+
+SELECT ST_ZMin(ST_GeomFromText('LINESTRING(1 2 3, 4 5 6)'));
+EXPR$0
+3.0
+!ok
+
+SELECT ST_ZMin(ST_GeomFromText('LINESTRING(1 2, 4 5)'));
+EXPR$0
+NaN
+!ok
 
 ### Geometry predicates
 

@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.runtime;
 
-import java.util.Arrays;
-
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -61,6 +59,7 @@ import org.locationtech.jts.util.GeometricShapeFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -902,10 +901,35 @@ public class SpatialTypeFunctions {
   /**
    * Returns the z-value of the first coordinate of {@code geom}.
    */
-  public static @Nullable Double ST_Z(Geometry geom) {
-    return geom instanceof Point
-        && !Double.isNaN(geom.getCoordinate().getZ())
-        ? geom.getCoordinate().getZ() : null;
+  public static Double ST_Z(Geometry geom) {
+    if (geom.getCoordinate() != null) {
+      return geom.getCoordinate().getZ();
+    } else {
+      return Double.NaN;
+    }
+
+  }
+
+  /**
+   * Returns the maximum z-value of {@code geom}.
+   */
+  public static Double ST_ZMax(Geometry geom) {
+    return Arrays.stream(geom.getCoordinates())
+        .filter(c -> !Double.isNaN(c.getZ()))
+        .map(c -> c.getZ())
+        .max(Double::compareTo)
+        .orElse(Double.NaN);
+  }
+
+  /**
+   * Returns the minimum z-value of {@code geom}.
+   */
+  public static Double ST_ZMin(Geometry geom) {
+    return Arrays.stream(geom.getCoordinates())
+        .filter(c -> !Double.isNaN(c.getZ()))
+        .map(c -> c.getZ())
+        .min(Double::compareTo)
+        .orElse(Double.NaN);
   }
 
   // Geometry properties (2D)
