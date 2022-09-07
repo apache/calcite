@@ -759,6 +759,19 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns whether {@code geom} is a closed and simple linestring or multi-linestring.
+   */
+  public static boolean ST_IsRing(Geometry geom) {
+    if (geom instanceof LineString) {
+      return ((LineString) geom).isClosed() && geom.isSimple();
+    }
+    if (geom instanceof MultiLineString) {
+      return ((MultiLineString) geom).isClosed() && geom.isSimple();
+    }
+    return false;
+  }
+
+  /**
    * Returns true if geom is simple.
    */
   public static boolean ST_IsSimple(Geometry geom) {

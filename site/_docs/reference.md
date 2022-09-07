@@ -2253,6 +2253,7 @@ Not implemented:
 | h | ST_IsClosed(geom) | Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
 | o | ST_IsEmpty(geom) | Returns whether *geom* is empty
 | o | ST_IsRectangle(geom) | Returns whether *geom* is a rectangle
+| h | ST_IsRing(geom) | Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
 | o | ST_IsSimple(geom) | Returns whether *geom* is simple
 | o | ST_IsValid(geom) | Returns whether *geom* is valid
 | h | ST_NPoints(geom)  | Returns the number of points in *geom*
@@ -2272,7 +2273,6 @@ Not implemented:
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
 * ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
-* ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
 * ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)

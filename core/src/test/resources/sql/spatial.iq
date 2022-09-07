@@ -859,7 +859,26 @@ false
 !ok
 
 # ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or multi-line-string
-# Not implemented
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 2 1)'));
+EXPR$0
+true
+!ok
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6)'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 5 7, 5 2, 2 1)'));
+EXPR$0
+false
+!ok
+
+SELECT ST_IsRing(ST_GeomFromText('LINESTRING(2 1, 1 3, 6 6, 5 7, 5 2)'));
+EXPR$0
+false
+!ok
 
 # ST_IsSimple(geom) Returns whether *geom* is simple
 
