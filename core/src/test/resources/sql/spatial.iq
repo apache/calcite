@@ -634,7 +634,21 @@ POINT (2.5 4)
 # Not implemented
 
 # ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
-# Not implemented
+
+SELECT ST_CoordDim(ST_GeomFromText('Point(1 2 3)'));
+EXPR$0
+3
+!ok
+
+SELECT ST_CoordDim(ST_GeomFromText('Point(1 2)'));
+EXPR$0
+2
+!ok
+
+SELECT ST_CoordDim(ST_GeomFromText('Point Empty'));
+EXPR$0
+2
+!ok
 
 # ST_Dimension(geom) Returns the dimension of *geom*
 
@@ -1178,8 +1192,6 @@ SELECT ST_Z(ST_GeomFromText('POINT (1 2)'));
 EXPR$0
 null
 !ok
-
-# Not implemented
 
 # ST_ZMax(geom) Returns the maximum z-value of *geom*
 # Not implemented

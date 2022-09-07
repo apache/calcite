@@ -2240,6 +2240,7 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | o | ST_Boundary(geom [, srid ]) | Returns the boundary of *geom*
 | o | ST_Centroid(geom) | Returns the centroid of *geom*
+| o | ST_CoordDim(geom) | Returns the dimension of the coordinates of *geom*
 | o | ST_Dimension(geom) | Returns the dimension of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
 | h | ST_ExteriorRing(geom) | Returns the exterior ring of *geom*, or null if *geom* is not a polygon
@@ -2275,7 +2276,6 @@ Not implemented:
 Not implemented:
 
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
-* ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why

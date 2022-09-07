@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import java.util.Arrays;
+
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -738,12 +740,7 @@ public class SpatialTypeFunctions {
    * Returns whether {@code geom} has at least one z-coordinate.
    */
   public static boolean ST_Is3D(Geometry geom) {
-    for (Coordinate coordinate : geom.getCoordinates()) {
-      if (!Double.isNaN(coordinate.getZ())) {
-        return true;
-      }
-    }
-    return false;
+    return ST_CoordDim(geom) == 3;
   }
 
   /**
@@ -925,6 +922,17 @@ public class SpatialTypeFunctions {
    */
   public static Geometry ST_Centroid(Geometry geom) {
     return geom.getCentroid();
+  }
+
+  /**
+   * Returns the dimension of the coordinates of {@code geom}.
+   */
+  public static int ST_CoordDim(Geometry geom) {
+    Coordinate coordinate = geom.getCoordinate();
+    if (coordinate != null && !Double.isNaN(coordinate.getZ())) {
+      return 3;
+    }
+    return 2;
   }
 
   /**
