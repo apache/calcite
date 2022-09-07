@@ -567,6 +567,53 @@ from "scott".dept as d;
 !ok
 !}
 
+# Correlated scalar sub-query
+SELECT d.dname,
+    (WITH clerks AS
+      (SELECT *
+       FROM "scott".emp
+       WHERE deptno = d.deptno)
+     SELECT min(sal)
+     FROM clerks) AS min_clerk_sal
+FROM "scott".dept AS d;
++------------+---------------+
+| DNAME      | MIN_CLERK_SAL |
++------------+---------------+
+| ACCOUNTING |       1300.00 |
+| OPERATIONS |               |
+| RESEARCH   |        800.00 |
+| SALES      |        950.00 |
++------------+---------------+
+(4 rows)
+
+!ok
+
+# As previous, minimal
+SELECT (WITH t2 AS (SELECT t.a)
+        SELECT a FROM t2) AS c
+FROM (SELECT 1 AS a) AS t;
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# As above, converting CTE to inline view
+SELECT (SELECT a
+        FROM (SELECT t.a) AS t2) AS c
+FROM (SELECT 1 AS a) AS t;
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
 # [CALCITE-1494] Inefficient plan for correlated sub-queries
 # Plan must have only one scan each of emp and dept.
 select sal
