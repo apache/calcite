@@ -101,7 +101,6 @@ public class AggregateCaseToFilterRule
   @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final Project project = call.rel(1);
-    final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
     final List<AggregateCall> newCalls =
         new ArrayList<>(aggregate.getAggCallList().size());
     final List<RexNode> newProjects = new ArrayList<>(project.getProjects());
