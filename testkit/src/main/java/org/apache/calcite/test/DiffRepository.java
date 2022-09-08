@@ -44,6 +44,7 @@ import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
 import java.net.URL;
 import java.util.AbstractList;
@@ -52,6 +53,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -174,6 +176,22 @@ public class DiffRepository {
   private static final LoadingCache<Key, DiffRepository> REPOSITORY_CACHE =
       CacheBuilder.newBuilder().build(CacheLoader.from(Key::toRepo));
 
+  private static final ThreadLocal<@Nullable DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
+      ThreadLocal.withInitial(() -> {
+        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setXIncludeAware(false);
+        documentBuilderFactory.setExpandEntityReferences(false);
+        documentBuilderFactory.setNamespaceAware(true);
+        try {
+          documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+          documentBuilderFactory
+              .setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        } catch (final ParserConfigurationException e) {
+          throw new IllegalStateException("Document Builder configuration failed", e);
+        }
+        return documentBuilderFactory;
+      });
+
   //~ Instance fields --------------------------------------------------------
 
   private final DiffRepository baseRepository;
@@ -207,19 +225,17 @@ public class DiffRepository {
     this.modCount = 0;
 
     // Load the document.
-    DocumentBuilderFactory fac = DocumentBuilderFactory.newInstance();
     try {
-      DocumentBuilder docBuilder = fac.newDocumentBuilder();
-      try {
+      DocumentBuilder docBuilder =
+          Nullness.castNonNull(DOCUMENT_BUILDER_FACTORY.get()).newDocumentBuilder();
+      try (InputStream inputStream = refFile.openStream()) {
         // Parse the reference file.
-        this.doc = docBuilder.parse(refFile.openStream());
-        // Don't write a log file yet -- as far as we know, it's still
-        // identical.
+        this.doc = docBuilder.parse(inputStream);
+        // Don't write a log file yet -- as far as we know, it's still identical.
       } catch (IOException e) {
         // There's no reference file. Create and write a log file.
         this.doc = docBuilder.newDocument();
-        this.doc.appendChild(
-            doc.createElement(ROOT_TAG));
+        this.doc.appendChild(doc.createElement(ROOT_TAG));
         flushDoc();
       }
       this.root = doc.getDocumentElement();
