@@ -75,6 +75,7 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -585,6 +586,24 @@ class SqlHintsConverterTest {
         .check();
   }
 
+  @Test void testHintExcludeRules() {
+    final String sql = "select empno from (select * from "
+            + "(select /*+ preserved_project */ empno, ename, deptno from emp)"
+            + " where deptno = 20)";
+
+    final RelNode rel = ruleFixture().sql(sql).toRel();
+    HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(rel);
+    RelNode newRel = planner.findBestExp();
+    Assertions.assertTrue(rel.deepEquals(newRel),
+        "Expected:\n"
+        + RelOptUtil.toString(rel) + "Computed:\n"
+        + RelOptUtil.toString(newRel));
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   private static boolean equalsStringList(List<String> l, List<String> r) {
@@ -995,6 +1014,9 @@ class SqlHintsConverterTest {
             HintStrategy.builder(
                 HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
+              .hintStrategy(
+                  "preserved_project", HintStrategy.builder(
+               HintPredicates.PROJECT).excludedRules(CoreRules.FILTER_PROJECT_TRANSPOSE).build())
         .build();
     }
 
