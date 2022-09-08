@@ -29,10 +29,10 @@ Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
 {% comment %}
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.32.0">1.32.0</a> / YYYY-MM-DD
-{: #v1-32-0}
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.33.0">1.33.0</a> / YYYY-MM-DD
+{: #v1-33-0}
 
-This release comes x months after [1.31.0](#v1-31-0),
+This release comes x months after [1.32.0](#v1-32-0),
 contains contributions from x contributors, and resolves x issues.
 
 Contributors to this release:
@@ -41,6 +41,52 @@ y (release manager),
 z.
 
 #### Breaking Changes
+{: #breaking-1-33-0}
+
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 18;
+Guava versions 19.0 to 31.1-jre;
+other software versions as specified in gradle.properties.
+
+#### New features
+{: #new-features-1-33-0}
+
+#### Dependency version upgrade
+{: #dependency-1-33-0}
+
+#### Bug-fixes, API changes and minor enhancements
+{: #fixes-1-33-0}
+
+#### Build and test suite
+{: #build-1-33-0}
+
+#### Web site and documentation
+{: #site-1-33-0}
+
+{% endcomment %}
+
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.32.0">1.32.0</a> / 2022-09-12
+{: #v1-32-0}
+
+This release comes 1 month after [1.31.0](#v1-31-0),
+contains contributions from 15 contributors, and resolves x issues.
+
+Contributors to this release:
+Alessandro Solimando,
+Ali Mansour,
+Andrei Sereda,
+Benchao Li,
+Bertil Chapuis,
+Chunwei Lei,
+Dmitry Sysolyatin,
+Jiajun Bernoulli,
+Jing Zhang,
+Julian Hyde (release manager),
+Mou Wu,
+Ruben Quesada Lopez,
+Stamatis Zampetakis,
+Zhengqiang Duan.
+
 {: #breaking-1-32-0}
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
@@ -51,18 +97,79 @@ other software versions as specified in gradle.properties.
 #### New features
 {: #new-features-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5262">CALCITE-5262</a>]
+  Add many spatial functions, including support for WKB (well-known binary) and
+  GeoJSON
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5241">CALCITE-5241</a>]
+  Implement `CHAR` function for MySQL and Spark, also JDBC `{fn CHAR(n)}`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5251">CALCITE-5251</a>]
+  Support SQL hint for `Snapshot`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4802">CALCITE-4802</a>]
+  Support `IF(condition, then, else)` statements in Babel parser
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4999">CALCITE-4999</a>]
+  `ARRAY`, `MULTISET` functions should return a collection of scalars if a
+  sub-query returns 1 column
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5126">CALCITE-5126</a>]
+  Implicit column alias for single-column `UNNEST` should work with any
+  single-column `UNNEST`'s input
+
 #### Dependency version upgrade
 {: #dependency-1-32-0}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5278">CALCITE-5278</a>]
+  Upgrade Janino from 3.1.6 to 3.1.8
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5232">CALCITE-5232</a>]
+  Upgrade protobuf-java from 3.17.1 to 3.21.5
 
 #### Bug-fixes, API changes and minor enhancements
 {: #fixes-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5270">CALCITE-5270</a>]
+  JDBC adapter should not generate `FILTER (WHERE ...)` in Firebolt dialect
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5277">CALCITE-5277</a>]
+  Increase `BINDABLE_CACHE` hit rate by making the order of
+  `EnumerableRelImplementor.stashedParameters` deterministic
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5263">CALCITE-5263</a>]
+  Improve `XmlFunctions` by using an XML `DocumentBuilder`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4294">CALCITE-4294</a>]
+  Use JTS and proj4j rather than ESRI as the underlying library for geospatial
+  (`ST_`) functions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5247">CALCITE-5247</a>]
+  `FilterJoinRule` cannot simplify left join to inner join for
+  `WHERE RHS.C1 IS NOT NULL OR RHS.C2 IS NOT NULL`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5243">CALCITE-5243</a>]
+  `SELECT NULL AS C` causes
+  `NoSuchMethodException: java.sql.ResultSet.getVoid(int)`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5201">CALCITE-5201</a>]
+  Improve `SemiJoinRule` to match `Join`'s right input which is unique for join
+  keys
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4223">CALCITE-4223</a>]
+  Metadata handlers for `TableScan` should see whether the `RelOptTable`
+  implements the handler
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5178">CALCITE-5178</a>]
+  Single column with `ROW` type generates wrong plan
+
 #### Build and test suite
 {: #build-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5274">CALCITE-5274</a>]
+  In `DiffRepository`, use a more secure `DocumentBuilderFactory` instance
+* Add tests for correlated CTEs
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5192">CALCITE-5192</a>]
+  `CodeGenerationBenchmark` throws `IllegalStateException`
+
 #### Web site and documentation
 {: #site-1-32-0}
-{% endcomment %}
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5275">CALCITE-5275</a>]
+  Release notes for Calcite 1.32.0
+* Cosmetic changes to release notes
+* Remove redundant 'the' in javadoc
+* Change sereda's role from Committer to PMC
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5092">CALCITE-5092</a>]
+  Update site/README.md about how to release the site
+* Fix 1.31.0 release date to 2022-08-22 (was 2022-08-22)
+* Fix checkstyle violation for Calcite 1.31 release note
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.31.0">1.31.0</a> / 2022-08-02
 {: #v1-31-0}
@@ -89,7 +196,7 @@ Andrei Sereda (release manager),
 Benchao Li,
 Chunwei Lei,
 Daniel Henneberger,
-dssysolyatin,
+Dmitry Sysolyatin,
 Francis Chuang,
 godfreyhe,
 hannerwang,
@@ -102,7 +209,7 @@ Michael Mior,
 NobiGo,
 onTheQT,
 Roman Kondakov,
-Ruben Q L,
+Ruben Quesada Lopez,
 Sergey Nuyanzin,
 Stamatis Zampetakis,
 Viliam Durina,
