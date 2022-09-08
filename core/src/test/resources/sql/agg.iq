@@ -1334,12 +1334,17 @@ GROUP BY deptno;
 !ok
 
 # As above, but with correlation
-!if (fixed.calcite1045) {
 SELECT SUM(
   (select char_length(dname) from "scott".dept where dept.deptno = emp.empno)) as s
 FROM "scott".emp;
++---+
+| S |
++---+
+|   |
++---+
+(1 row)
+
 !ok
-!}
 
 # FUSION rolled up using CARDINALITY
 select cardinality(fusion(empnos)) as f_empnos_length
