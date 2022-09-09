@@ -41,6 +41,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
@@ -51,6 +52,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.PaddingFunctionUtil;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 
@@ -126,6 +128,8 @@ public class SparkSqlDialect extends SqlDialect {
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
+
+  private static final String DEFAULT_DATE_FOR_TIME = "1970-01-01";
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
@@ -256,18 +260,17 @@ public class SparkSqlDialect extends SqlDialect {
       return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
           castTo.getPrecision());
     } else if (castTo.getSqlTypeName() == SqlTypeName.TIME) {
-      if (castFrom.getSqlTypeName() == SqlTypeName.TIMESTAMP) {
-        return new CastCallBuilder(this)
-            .makCastCallForTimeWithPrecision(operandToCast, castTo.getPrecision());
-      }
-      return operandToCast;
+      return new CastCallBuilder(this)
+          .makeCastCallForTimeWithTimestamp(operandToCast, castTo.getPrecision());
     }
     return super.getCastCall(operandToCast, castFrom, castTo);
   }
 
   @Override public SqlNode getTimeLiteral(
       TimeString timeString, int precision, SqlParserPos pos) {
-    return SqlLiteral.createCharString(timeString.toString(), SqlParserPos.ZERO);
+    return SqlLiteral.createTimestamp(
+        new TimestampString(DEFAULT_DATE_FOR_TIME + " " + timeString),
+        precision, SqlParserPos.ZERO);
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
@@ -615,6 +618,9 @@ public class SparkSqlDialect extends SqlDialect {
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "CURRENT_TIME":
+      unparseCurrentTime(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -660,6 +666,17 @@ public class SparkSqlDialect extends SqlDialect {
     unparseCall(writer, plusNode, leftPrec, rightPrec);
   }
 
+  private void unparseCurrentTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    int precision = 0;
+    if (call.operandCount() == 1) {
+      precision = Integer.parseInt(((SqlLiteral) call.operand(0)).getValue().toString());
+    }
+    SqlCall timeStampCastCall = new CastCallBuilder(this)
+        .makeCastCallForTimeWithTimestamp(
+            SqlLibraryOperators.CURRENT_TIMESTAMP.createCall(SqlParserPos.ZERO), precision);
+    unparseCall(writer, timeStampCastCall, leftPrec, rightPrec);
+  }
+
   private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
@@ -677,7 +694,10 @@ public class SparkSqlDialect extends SqlDialect {
       switch (typeName) {
       case INTEGER:
         return createSqlDataTypeSpecByName("INT", typeName);
+      case TIME:
+      case TIME_WITH_LOCAL_TIME_ZONE:
       case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       default:
         break;
