@@ -28,10 +28,13 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.RelToSqlConverterUtil;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.ImmutableList;
 
@@ -41,6 +44,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.sql.fun.SqlBetweenOperator.LOWER_OPERAND;
+import static org.apache.calcite.sql.fun.SqlBetweenOperator.UPPER_OPERAND;
+import static org.apache.calcite.sql.fun.SqlBetweenOperator.VALUE_OPERAND;
 
 /**
  * A SqlDialect implementation for the Firebolt database.
@@ -53,6 +60,9 @@ public class FireboltSqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT =
       new FireboltSqlDialect(DEFAULT_CONTEXT);
+
+  static final SqlWriter.FrameType FRAME_TYPE =
+      SqlWriter.FrameTypeEnum.create("BETWEEN");
 
   /** Creates a FireboltSqlDialect. */
   public FireboltSqlDialect(Context context) {
@@ -190,10 +200,33 @@ public class FireboltSqlDialect extends SqlDialect {
             timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
+      case BETWEEN:
+        SqlBetweenOperator sqlBetweenOperator = (SqlBetweenOperator) call.getOperator();
+        if (sqlBetweenOperator.flag == SqlBetweenOperator.Flag.ASYMMETRIC) {
+          final SqlWriter.Frame frame =
+              writer.startList(FRAME_TYPE, StringUtils.EMPTY, StringUtils.EMPTY);
+          call.operand(VALUE_OPERAND).unparse(writer, sqlBetweenOperator.getLeftPrec(), 0);
+          unparseBetweenOperatorRightSide(writer, call, sqlBetweenOperator, frame);
+        } else {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
+        break;
 
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
+  }
+
+  private void unparseBetweenOperatorRightSide(SqlWriter writer, SqlCall call,
+      SqlBetweenOperator sqlBetweenOperator, SqlWriter.Frame frame) {
+    writer.sep(sqlBetweenOperator.getName().contains("NOT BETWEEN") ? "NOT BETWEEN" : "BETWEEN");
+    final SqlNode lower = call.operand(LOWER_OPERAND);
+    final SqlNode upper = call.operand(UPPER_OPERAND);
+    int lowerPrec = new SqlBetweenOperator.AndFinder().containsAnd(lower) ? 100 : 0;
+    lower.unparse(writer, lowerPrec, lowerPrec);
+    writer.sep("AND");
+    upper.unparse(writer, 0, sqlBetweenOperator.getRightPrec());
+    writer.endList(frame);
   }
 }

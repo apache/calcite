@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.FireboltSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -10273,6 +10274,15 @@ public class SqlParserTest {
         + "where deptno < [3:DECIMAL:40]\n"
         + "and hiredate > [4:DATE:2010-05-06]";
     assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
+  }
+
+  @Test void testBetweenShouldNotIncludeAsymmetricKeywordForFireboltDialect() {
+    sql("select * from employee where hire_date BETWEEN ASYMMETRIC TIMESTAMP "
+        + "'2018-03-01 00:00:00' AND TIMESTAMP '2018-03-15 23:59:59.999'\n ")
+        .withDialect(FireboltSqlDialect.DEFAULT)
+        .ok("SELECT *\nFROM \"EMPLOYEE\"\nWHERE (\"HIRE_DATE\" "
+            + "BETWEEN TIMESTAMP '2018-03-01 "
+            + "00:00:00' AND TIMESTAMP '2018-03-15 23:59:59.999')");
   }
 
   protected static String varToStr(Hoist.Variable v) {
