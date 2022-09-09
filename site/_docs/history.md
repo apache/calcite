@@ -87,7 +87,6 @@ Ruben Quesada Lopez,
 Stamatis Zampetakis,
 Zhengqiang Duan.
 
-#### Breaking Changes
 {: #breaking-1-32-0}
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
@@ -98,6 +97,13 @@ other software versions as specified in gradle.properties.
 #### New features
 {: #new-features-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5262">CALCITE-5262</a>]
+  Add many spatial functions, including support for WKB (well-known binary) and
+  GeoJSON
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5241">CALCITE-5241</a>]
+  Implement `CHAR` function for MySQL and Spark, also JDBC `{fn CHAR(n)}`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5251">CALCITE-5251</a>]
+  Support SQL hint for `Snapshot`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4802">CALCITE-4802</a>]
   Support `IF(condition, then, else)` statements in Babel parser
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4999">CALCITE-4999</a>]
@@ -110,12 +116,19 @@ other software versions as specified in gradle.properties.
 #### Dependency version upgrade
 {: #dependency-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5278">CALCITE-5278</a>]
+  Upgrade Janino from 3.1.6 to 3.1.8
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5232">CALCITE-5232</a>]
   Upgrade protobuf-java from 3.17.1 to 3.21.5
 
 #### Bug-fixes, API changes and minor enhancements
 {: #fixes-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5270">CALCITE-5270</a>]
+  JDBC adapter should not generate `FILTER (WHERE ...)` in Firebolt dialect
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5277">CALCITE-5277</a>]
+  Increase `BINDABLE_CACHE` hit rate by making the order of
+  `EnumerableRelImplementor.stashedParameters` deterministic
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5263">CALCITE-5263</a>]
   Improve `XmlFunctions` by using an XML `DocumentBuilder`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4294">CALCITE-4294</a>]
@@ -139,6 +152,8 @@ other software versions as specified in gradle.properties.
 #### Build and test suite
 {: #build-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5274">CALCITE-5274</a>]
+  In `DiffRepository`, use a more secure `DocumentBuilderFactory` instance
 * Add tests for correlated CTEs
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5192">CALCITE-5192</a>]
   `CodeGenerationBenchmark` throws `IllegalStateException`
@@ -146,6 +161,8 @@ other software versions as specified in gradle.properties.
 #### Web site and documentation
 {: #site-1-32-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5275">CALCITE-5275</a>]
+  Release notes for Calcite 1.32.0
 * Cosmetic changes to release notes
 * Remove redundant 'the' in javadoc
 * Change sereda's role from Committer to PMC
