@@ -167,6 +167,10 @@ public class SparkSqlDialect extends SqlDialect {
         put(ANTE_MERIDIAN_INDICATOR1, "a");
       }};
 
+  private static final String AND = "&";
+  private static final String OR = "|";
+  private static final String XOR = "^";
+
   /**
    * Creates a SparkSqlDialect.
    */
@@ -620,6 +624,19 @@ public class SparkSqlDialect extends SqlDialect {
     case "CURRENT_TIME":
       unparseCurrentTime(writer, call, leftPrec, rightPrec);
       break;
+    case "BITWISE_AND":
+      unparseBitwiseOperand(writer, call, leftPrec, rightPrec, AND);
+      break;
+    case "BITWISE_OR":
+      unparseBitwiseOperand(writer, call, leftPrec, rightPrec, OR);
+      break;
+    case "BITWISE_XOR":
+      unparseBitwiseOperand(writer, call, leftPrec, rightPrec, XOR);
+      break;
+    case "PI":
+      SqlWriter.Frame piFrame = writer.startFunCall("PI");
+      writer.endFunCall(piFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -684,6 +701,13 @@ public class SparkSqlDialect extends SqlDialect {
         .makeCastCallForTimeWithTimestamp(
             SqlLibraryOperators.CURRENT_TIMESTAMP.createCall(SqlParserPos.ZERO), precision);
     unparseCall(writer, timeStampCastCall, leftPrec, rightPrec);
+  }
+
+  private void unparseBitwiseOperand(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      String op) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.literal(op);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
   }
 
   private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {

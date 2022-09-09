@@ -8994,7 +8994,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 ^ 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 ^ 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testInt2Shl() {
@@ -9018,7 +9022,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 & 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 & 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testInt1Or() {
@@ -9030,7 +9038,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 | 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 | 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testCot() {
@@ -10408,5 +10420,16 @@ class RelToSqlConverterTest {
     sql(query)
         .withSpark()
         .ok(expectedSpark);
+  }
+
+  @Test public void testForPI() {
+    final RelBuilder builder = relBuilder();
+    final RexNode piNode = builder.call(SqlStdOperatorTable.PI);
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(piNode, "t"))
+        .build();
+
+    final String expectedSpark = "SELECT PI() t\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 }
