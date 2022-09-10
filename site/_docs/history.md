@@ -28,6 +28,7 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+<!--
 {% comment %}
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.33.0">1.33.0</a> / YYYY-MM-DD
 {: #v1-33-0}
@@ -64,12 +65,28 @@ other software versions as specified in gradle.properties.
 {: #site-1-33-0}
 
 {% endcomment %}
+-->
 
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.32.0">1.32.0</a> / 2022-09-12
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.32.0">1.32.0</a> / 2022-09-10
 {: #v1-32-0}
 
-This release comes 1 month after [1.31.0](#v1-31-0),
-contains contributions from 15 contributors, and resolves x issues.
+Coming 1 month after [1.31.0](#v1-31-0) with 19 issues fixed by 16
+contributors, this release fixes
+<a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-39135">CVE-2022-39135</a>,
+an XML External Entity (XEE) vulnerability that allows a SQL query to
+read the contents of files via the SQL functions `EXISTS_NODE`,
+`EXTRACT_XML`, `XML_TRANSFORM` or `EXTRACT_VALUE`.
+
+With contributions from 16 contributors, this release
+<a href="https://issues.apache.org/jira/browse/CALCITE-4294">replaces
+the ESRI spatial engine with JTS and proj4j</a>, adds
+<a href="https://issues.apache.org/jira/browse/CALCITE-5262">65
+spatial SQL functions</a> including `ST_Centroid`, `ST_Covers` and
+`ST_GeomFromGeoJSON`, adds the
+<a href="https://issues.apache.org/jira/browse/CALCITE-5241">CHAR</a>
+SQL function, and improves the return type of the
+<a href="https://issues.apache.org/jira/browse/CALCITE-4999">ARRAY and
+MULTISET</a> functions.
 
 Contributors to this release:
 Alessandro Solimando,
@@ -82,9 +99,11 @@ Dmitry Sysolyatin,
 Jiajun Bernoulli,
 Jing Zhang,
 Julian Hyde (release manager),
+Lincoln Lee,
 Mou Wu,
 Ruben Quesada Lopez,
 Stamatis Zampetakis,
+TJ Banghart,
 Zhengqiang Duan.
 
 {: #breaking-1-32-0}
@@ -130,7 +149,10 @@ other software versions as specified in gradle.properties.
   Increase `BINDABLE_CACHE` hit rate by making the order of
   `EnumerableRelImplementor.stashedParameters` deterministic
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5263">CALCITE-5263</a>]
-  Improve `XmlFunctions` by using an XML `DocumentBuilder`
+  SQL functions `EXISTS_NODE`, `EXTRACT_XML`, `XML_TRANSFORM` and `EXTRACT_VALUE`
+  allow user files to be read via XML External Entity (XEE) vulnerability
+  <a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-39135">CVE-2022-39135</a>
+  (fixed by using a secure implementation of XML `DocumentBuilder`)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4294">CALCITE-4294</a>]
   Use JTS and proj4j rather than ESRI as the underlying library for geospatial
   (`ST_`) functions
@@ -166,9 +188,7 @@ other software versions as specified in gradle.properties.
 * Cosmetic changes to release notes
 * Remove redundant 'the' in javadoc
 * Change sereda's role from Committer to PMC
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-5092">CALCITE-5092</a>]
-  Update site/README.md about how to release the site
-* Fix 1.31.0 release date to 2022-08-22 (was 2022-08-22)
+* Fix 1.31.0 release date to 2022-08-02 (was 2022-08-01)
 * Fix checkstyle violation for Calcite 1.31 release note
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.31.0">1.31.0</a> / 2022-08-02
@@ -416,6 +436,9 @@ other software versions as specified in gradle.properties.
 #### Web site and documentation
 {: #site-1-31-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5092">CALCITE-5092</a>]
+  Update [site/README.md](https://github.com/apache/calcite/blob/main/site/README.md)
+  about how to release the site
 * Site: Add Jing Zhang as committer
 * Site: Add Benchao Li as committer
 * Site: Add Chunwei Lei and Vladimir Ozerov as PMC members
