@@ -266,6 +266,12 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .addAll(SqlTypeName.NUMERIC_TYPES)
             .build());
 
+    // GEOMETRY is castable from ...
+    coerceRules.add(SqlTypeName.GEOMETRY,
+        coerceRules.copyValues(SqlTypeName.GEOMETRY)
+            .addAll(SqlTypeName.CHAR_TYPES)
+            .build());
+
     INSTANCE = new SqlTypeCoercionRule(coerceRules.map);
   }
 

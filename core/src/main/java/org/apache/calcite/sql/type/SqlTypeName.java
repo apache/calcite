@@ -187,6 +187,9 @@ public enum SqlTypeName {
   public static final List<SqlTypeName> STRING_TYPES =
       combine(CHAR_TYPES, BINARY_TYPES);
 
+  public static final List<SqlTypeName> GEOMETRY_TYPES =
+      ImmutableList.of(GEOMETRY);
+
   public static final List<SqlTypeName> DATETIME_TYPES =
       ImmutableList.of(DATE, TIME, TIME_WITH_LOCAL_TIME_ZONE,
           TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE);

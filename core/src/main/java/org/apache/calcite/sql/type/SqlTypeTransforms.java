@@ -227,4 +227,5 @@ public abstract class SqlTypeTransforms {
         assert fields.size() == 1;
         return fields.get(0).getType();
       };
+
 }

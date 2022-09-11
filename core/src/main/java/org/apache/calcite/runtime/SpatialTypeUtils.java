@@ -163,7 +163,7 @@ public class SpatialTypeUtils {
    * @return a geometry
    */
   public static Geometry fromEwkt(String ewkt) {
-    Pattern pattern = Pattern.compile("^(?:srid:(\\d*);)?(.*)$");
+    Pattern pattern = Pattern.compile("^(?:srid:(\\d*);)?(.*)$", Pattern.DOTALL);
     java.util.regex.Matcher matcher = pattern.matcher(ewkt);
     if (!matcher.matches()) {
       throw new RuntimeException("Unable to parse EWKT");

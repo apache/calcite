@@ -523,6 +523,12 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_MAP);
 
   /**
+   * Type-inference strategy that always returns GEOMETRY.
+   */
+  public static final SqlReturnTypeInference GEOMETRY =
+      explicit(SqlTypeName.GEOMETRY);
+
+  /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #ARG0_INTERVAL_NULLABLE} and {@link #LEAST_RESTRICTIVE}. These rules
    * are used for integer division.
