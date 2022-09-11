@@ -272,6 +272,16 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case ANY:
       convert = operand;
       break;
+    case GEOMETRY:
+      switch (sourceType.getSqlTypeName()) {
+      case CHAR:
+      case VARCHAR:
+        convert = Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand);
+        break;
+      default:
+        break;
+      }
+      break;
     case DATE:
       convert = translateCastToDate(sourceType, operand);
       break;
@@ -805,7 +815,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       final Geometry geom = requireNonNull(literal.getValueAs(Geometry.class),
           () -> "getValueAs(Geometries.Geom) for " + literal);
       final String wkt = SpatialTypeFunctions.ST_AsWKT(geom);
-      return Expressions.call(null, BuiltInMethod.ST_GEOM_FROM_TEXT.method,
+      return Expressions.call(null, BuiltInMethod.ST_GEOM_FROM_EWKT.method,
           Expressions.constant(wkt));
     case SYMBOL:
       value2 = requireNonNull(literal.getValueAs(Enum.class),

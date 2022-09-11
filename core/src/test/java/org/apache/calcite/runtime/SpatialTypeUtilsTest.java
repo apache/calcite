@@ -37,6 +37,13 @@ class SpatialTypeUtilsTest {
     assertEquals(1234, g2.getSRID());
     assertEquals(1, g2.getCoordinate().getX());
     assertEquals(2, g2.getCoordinate().getY());
+
+    Geometry g3 = SpatialTypeUtils.fromEwkt("GEOMETRYCOLLECTION(\n"
+        + "  POLYGON((0 0, 3 -1, 1.5 2, 0 0)),\n"
+        + "  POLYGON((2 0, 3 3, 4 2, 2 0)),\n"
+        + "  POINT(5 6),\n"
+        + "  LINESTRING(1 1, 1 6))");
+    assertEquals(g3.getSRID(), 0);
   }
 
   @Test void testAsEwkt() {
