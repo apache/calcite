@@ -70,14 +70,15 @@ other software versions as specified in gradle.properties.
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.32.0">1.32.0</a> / 2022-09-10
 {: #v1-32-0}
 
-Coming 1 month after [1.31.0](#v1-31-0) with 19 issues fixed by 16
-contributors, this release fixes
+This release
+<a href="https://issues.apache.org/jira/browse/CALCITE-5263">fixes</a>
 <a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-39135">CVE-2022-39135</a>,
 an XML External Entity (XEE) vulnerability that allows a SQL query to
 read the contents of files via the SQL functions `EXISTS_NODE`,
 `EXTRACT_XML`, `XML_TRANSFORM` or `EXTRACT_VALUE`.
 
-With contributions from 16 contributors, this release
+Coming 1 month after [1.31.0](#v1-31-0) with 19 issues fixed by 17
+contributors, this release also
 <a href="https://issues.apache.org/jira/browse/CALCITE-4294">replaces
 the ESRI spatial engine with JTS and proj4j</a>, adds
 <a href="https://issues.apache.org/jira/browse/CALCITE-5262">65
@@ -95,6 +96,7 @@ Andrei Sereda,
 Benchao Li,
 Bertil Chapuis,
 Chunwei Lei,
+David Handermann,
 Dmitry Sysolyatin,
 Jiajun Bernoulli,
 Jing Zhang,
