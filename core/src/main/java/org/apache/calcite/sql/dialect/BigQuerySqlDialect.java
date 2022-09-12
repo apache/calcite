@@ -147,6 +147,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FARM_FINGERPRINT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
@@ -1013,11 +1015,30 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(date_diff);
       break;
-
+/*
+    In BigQuery, the equivalent for HASHROW is FARM_FINGERPRINT, and FARM_FINGERPRINT supports
+    only one argument.
+    In Teradata, HASHROW supports multiple arguments.
+    So, to handle this scenario, we CONCAT all the arguments of HASHROW.
+    And
+    For single argument,we directly cast that element to VARCHAR.
+    Example:
+    TD:  HASHROW(first_name,employee_id,last_name,hire_date)
+    BQ:  FARM_FINGERPRINT(CONCAT(first_name, employee_id, last_name, hire_date))
+*/
     case "HASHROW":
-      final SqlWriter.Frame farm_fingerprint = writer.startFunCall("FARM_FINGERPRINT");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(farm_fingerprint);
+      SqlNode farmFingerprintOperandCall;
+      if (call.operandCount() > 1) {
+        farmFingerprintOperandCall = CONCAT2.createCall(SqlParserPos.ZERO, call.getOperandList());
+      } else {
+        SqlNode varcharNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT,
+            SqlTypeName.VARCHAR));
+        farmFingerprintOperandCall = CAST.createCall(SqlParserPos.ZERO, call.operand(0),
+            varcharNode);
+      }
+      SqlCall farmFingerprintCall = FARM_FINGERPRINT.createCall(SqlParserPos.ZERO,
+          farmFingerprintOperandCall);
+      super.unparseCall(writer, farmFingerprintCall, leftPrec, rightPrec);
       break;
     case "TRUNC":
       final SqlWriter.Frame trunc = getTruncFrame(writer, call);
