@@ -8182,7 +8182,8 @@ class RelToSqlConverterTest {
         + "UNIX_TIMESTAMP('20181106', 'yyyyMMdd'), 'yyyy-MM-dd') AS DATE) date1, "
         + "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP('2018/11/06', 'yyyy/MM/dd'), 'yyyy-MM-dd') AS DATE) date2\n"
         + "FROM scott.EMP";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT TO_DATE('20181106', 'yyyyMMdd') date1, "
+        + "TO_DATE('2018/11/06', 'yyyy/MM/dd') date2\nFROM scott.EMP";
     final String expectedSnowflake =
         "SELECT TO_DATE('20181106', 'YYYYMMDD') AS \"date1\", "
         + "TO_DATE('2018/11/06', 'YYYY/MM/DD') AS \"date2\"\n"

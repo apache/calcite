@@ -730,7 +730,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SPARK})
   public static final SqlFunction TO_DATE =
       new SqlFunction("TO_DATE",
           SqlKind.OTHER_FUNCTION,
