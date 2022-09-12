@@ -1539,7 +1539,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         castNodeToTimestamp(writer, node, leftPrec, rightPrec);
       }
     } else {
-      operand.unparse(writer, leftPrec, rightPrec);
+      castNodeToTimestamp(writer, operand, leftPrec, rightPrec);
     }
   }
 
