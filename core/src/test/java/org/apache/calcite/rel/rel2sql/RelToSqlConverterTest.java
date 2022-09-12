@@ -7938,13 +7938,15 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     final String expected = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss'), ' ')[1]\n"
         + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT CAST('1970-01-01 ' || DATE_FORMAT(hire_date, 'HH:mm:ss') "
+        + "AS TIMESTAMP)\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT CAST(hire_date AS TIME)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expected)
+        .ok(expectedSpark)
         .withBigQuery()
         .ok(expectedBigQuery);
   }
@@ -7955,8 +7957,8 @@ class RelToSqlConverterTest {
     final String expectedHive = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss.sss'), "
         + "' ')[1]\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss.SSS'),"
-        + " ' ')[1]\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT CAST('1970-01-01 ' || DATE_FORMAT(hire_date, 'HH:mm:ss"
+        + ".SSS') AS TIMESTAMP)\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(hire_date AS TIME))"
         + " AS TIME)\n"
         + "FROM foodmart.employee";
@@ -7974,8 +7976,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     final String expectedHive = "SELECT CONCAT('12:00', ':05')\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT '12:00' || ':05'\n"
-        + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT CAST('1970-01-01 ' || "
+        + "DATE_FORMAT('12:00' || ':05', 'HH:mm:ss.SSS') AS TIMESTAMP)\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
         + "':05') AS TIME)) AS TIME)\n"
         + "FROM foodmart.employee";
@@ -7997,7 +7999,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     final String expectedHive = "SELECT '12:00:05'\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT TIMESTAMP '1970-01-01 12:00:05.000'\n"
+        + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT TIME '12:00:05.000'\n"
         + "FROM foodmart.employee";
     sql(query)
@@ -8007,6 +8010,16 @@ class RelToSqlConverterTest {
         .ok(expectedSpark)
         .withBigQuery()
         .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTimeWithPrecisionWithTimeZoneStringLiteral() {
+    String query = "SELECT cast('12:00:05+08:30' as TIME(3)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedSpark =  "SELECT CAST('1970-01-01 ' || "
+        + "DATE_FORMAT('12:00:05+08:30', 'HH:mm:ss.SSS') AS TIMESTAMP)\nFROM foodmart.employee";
+    sql(query)
+        .withSpark()
+        .ok(expectedSpark);
   }
 
   @Test public void testFormatDateRelToSql() {
@@ -8169,7 +8182,8 @@ class RelToSqlConverterTest {
         + "UNIX_TIMESTAMP('20181106', 'yyyyMMdd'), 'yyyy-MM-dd') AS DATE) date1, "
         + "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP('2018/11/06', 'yyyy/MM/dd'), 'yyyy-MM-dd') AS DATE) date2\n"
         + "FROM scott.EMP";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT TO_DATE('20181106', 'yyyyMMdd') date1, "
+        + "TO_DATE('2018/11/06', 'yyyy/MM/dd') date2\nFROM scott.EMP";
     final String expectedSnowflake =
         "SELECT TO_DATE('20181106', 'YYYYMMDD') AS \"date1\", "
         + "TO_DATE('2018/11/06', 'YYYY/MM/DD') AS \"date2\"\n"
@@ -10382,5 +10396,18 @@ class RelToSqlConverterTest {
     final String expectedSparkQuery = "SELECT DATE '1999-07-01' + INTERVAL '10' MONTH FD"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testForSparkCurrentTime() {
+    String query = "SELECT CURRENT_TIME(2) > '08:00:00', "
+        + "CAST(\"hire_date\" AS TIME(4)) = '00:00:00'"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedSpark = "SELECT CAST('1970-01-01 ' || DATE_FORMAT(CURRENT_TIMESTAMP, "
+        + "'HH:mm:ss.SS') AS TIMESTAMP) > TIMESTAMP '1970-01-01 08:00:00.00', "
+        + "CAST('1970-01-01 ' || DATE_FORMAT(hire_date, 'HH:mm:ss.SSS') AS TIMESTAMP) = "
+        + "TIMESTAMP '1970-01-01 00:00:00.000'\nFROM foodmart.employee";
+    sql(query)
+        .withSpark()
+        .ok(expectedSpark);
   }
 }

@@ -41,6 +41,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
@@ -51,6 +52,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.PaddingFunctionUtil;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 
@@ -96,10 +98,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -127,6 +128,8 @@ public class SparkSqlDialect extends SqlDialect {
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
+
+  private static final String DEFAULT_DATE_FOR_TIME = "1970-01-01";
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
@@ -257,18 +260,17 @@ public class SparkSqlDialect extends SqlDialect {
       return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
           castTo.getPrecision());
     } else if (castTo.getSqlTypeName() == SqlTypeName.TIME) {
-      if (castFrom.getSqlTypeName() == SqlTypeName.TIMESTAMP) {
-        return new CastCallBuilder(this)
-            .makCastCallForTimeWithPrecision(operandToCast, castTo.getPrecision());
-      }
-      return operandToCast;
+      return new CastCallBuilder(this)
+          .makeCastCallForTimeWithTimestamp(operandToCast, castTo.getPrecision());
     }
     return super.getCastCall(operandToCast, castFrom, castTo);
   }
 
   @Override public SqlNode getTimeLiteral(
       TimeString timeString, int precision, SqlParserPos pos) {
-    return SqlLiteral.createCharString(timeString.toString(), SqlParserPos.ZERO);
+    return SqlLiteral.createTimestamp(
+        new TimestampString(DEFAULT_DATE_FOR_TIME + " " + timeString),
+        precision, SqlParserPos.ZERO);
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
@@ -568,7 +570,9 @@ public class SparkSqlDialect extends SqlDialect {
       unparseCall(writer, dateFormatCall, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
-      unparseStrToDate(writer, call, leftPrec, rightPrec);
+      SqlCall toDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
+          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
+      unparseCall(writer, toDateCall, leftPrec, rightPrec);
       break;
     case "RPAD":
     case "LPAD":
@@ -614,6 +618,9 @@ public class SparkSqlDialect extends SqlDialect {
       DateTimestampFormatUtil dateTimestampFormatUtil = new DateTimestampFormatUtil();
       dateTimestampFormatUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
+    case "CURRENT_TIME":
+      unparseCurrentTime(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -646,16 +653,6 @@ public class SparkSqlDialect extends SqlDialect {
         : operatorName;
   }
 
-  private void unparseStrToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall unixTimestampCall = UNIX_TIMESTAMP.createCall(SqlParserPos.ZERO, call.operand(0),
-        creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
-    SqlCall fromUnixTimeCall = FROM_UNIXTIME.createCall(SqlParserPos.ZERO, unixTimestampCall,
-        SqlLiteral.createCharString("yyyy-MM-dd", SqlParserPos.ZERO));
-    SqlCall castToDateCall = CAST.createCall(SqlParserPos.ZERO, fromUnixTimeCall,
-        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE)));
-    unparseCall(writer, castToDateCall, leftPrec, rightPrec);
-  }
-
   /**
    * unparse method for Random function.
    */
@@ -667,6 +664,17 @@ public class SparkSqlDialect extends SqlDialect {
     SqlCall floorDoubleValue = FLOOR.createCall(SqlParserPos.ZERO, numberGenerator);
     SqlCall plusNode = PLUS.createCall(SqlParserPos.ZERO, floorDoubleValue, call.operand(0));
     unparseCall(writer, plusNode, leftPrec, rightPrec);
+  }
+
+  private void unparseCurrentTime(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    int precision = 0;
+    if (call.operandCount() == 1) {
+      precision = Integer.parseInt(((SqlLiteral) call.operand(0)).getValue().toString());
+    }
+    SqlCall timeStampCastCall = new CastCallBuilder(this)
+        .makeCastCallForTimeWithTimestamp(
+            SqlLibraryOperators.CURRENT_TIMESTAMP.createCall(SqlParserPos.ZERO), precision);
+    unparseCall(writer, timeStampCastCall, leftPrec, rightPrec);
   }
 
   private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
@@ -686,7 +694,10 @@ public class SparkSqlDialect extends SqlDialect {
       switch (typeName) {
       case INTEGER:
         return createSqlDataTypeSpecByName("INT", typeName);
+      case TIME:
+      case TIME_WITH_LOCAL_TIME_ZONE:
       case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       default:
         break;
