@@ -10411,7 +10411,7 @@ class RelToSqlConverterTest {
         .ok(expectedSpark);
   }
 
-  @Test public void testhashrowformultipleargument() {
+  @Test public void testhashrowformultiplearguments() {
     final RelBuilder builder = relBuilder();
     final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
         builder.literal("employee"),builder.scan("EMP").field(1),builder.literal("dm"));
