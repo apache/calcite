@@ -18,8 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import java.util.stream.Collectors;
-
 /**
  * A <code>SqlFieldAccess</code> is a list of {@link SqlNode}s
  * occurring in a Field Access operation. It is also a
@@ -35,10 +33,12 @@ public class SqlFieldAccess extends SqlNodeList {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.IDENTIFIER);
-    writer.print(getList().stream().map(n -> n.toSqlString(writer.getDialect()).toString())
-        .collect(Collectors.joining(".")));
-    writer.setNeedWhitespace(true);
+        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+    for (int i = 0; i < getList().size(); i++) {
+      writer.sep(".");
+      writer.print(getList().get(i).toSqlString(writer.getDialect()).toString());
+      writer.setNeedWhitespace(true);
+    }
     writer.endList(frame);
   }
 }
