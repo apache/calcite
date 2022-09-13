@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
@@ -46,7 +45,6 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -60,14 +58,11 @@ import org.junit.jupiter.api.Test;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -8029,88 +8024,37 @@ public class SqlParserTest {
   /** Tests that EXTRACT, FLOOR, CEIL functions accept abbreviations for
    * time units (such as "Y" for "YEAR") when configured via
    * {@link Config#timeUnitCodes()}. */
-  @Test void testTimeUnitCodes() {
-    final Map<String, TimeUnit> simpleCodes =
-        ImmutableMap.<String, TimeUnit>builder()
-            .put("Y", TimeUnit.YEAR)
-            .put("M", TimeUnit.MONTH)
-            .put("D", TimeUnit.DAY)
-            .put("H", TimeUnit.HOUR)
-            .put("N", TimeUnit.MINUTE)
-            .put("S", TimeUnit.SECOND)
-            .build();
+  @Test protected void testTimeUnitCodes() {
+    // YEAR is a built-in time frame. When unparsed, it looks like a keyword.
+    // (Note no backticks around YEAR.)
+    expr("floor(d to year)")
+        .ok("FLOOR(`D` TO YEAR)");
+    // Y is an extension time frame. (Or rather, it could be, if you configure
+    // it.) When unparsed, it looks like an identifier (backticks around Y.)
+    expr("floor(d to y)")
+        .ok("FLOOR(`D` TO `Y`)");
 
-    // Time unit abbreviations for Microsoft SQL Server
-    final Map<String, TimeUnit> mssqlCodes =
-        ImmutableMap.<String, TimeUnit>builder()
-            .put("Y", TimeUnit.YEAR)
-            .put("YY", TimeUnit.YEAR)
-            .put("YYYY", TimeUnit.YEAR)
-            .put("Q", TimeUnit.QUARTER)
-            .put("QQ", TimeUnit.QUARTER)
-            .put("M", TimeUnit.MONTH)
-            .put("MM", TimeUnit.MONTH)
-            .put("W", TimeUnit.WEEK)
-            .put("WK", TimeUnit.WEEK)
-            .put("WW", TimeUnit.WEEK)
-            .put("DY", TimeUnit.DOY)
-            .put("DW", TimeUnit.DOW)
-            .put("D", TimeUnit.DAY)
-            .put("DD", TimeUnit.DAY)
-            .put("H", TimeUnit.HOUR)
-            .put("HH", TimeUnit.HOUR)
-            .put("N", TimeUnit.MINUTE)
-            .put("MI", TimeUnit.MINUTE)
-            .put("S", TimeUnit.SECOND)
-            .put("SS", TimeUnit.SECOND)
-            .put("MS", TimeUnit.MILLISECOND)
-            .build();
+    // As for FLOOR, so for CEIL.
+    expr("ceil(d to year)").ok("CEIL(`D` TO YEAR)");
+    expr("ceil(d to y)").ok("CEIL(`D` TO `Y`)");
 
-    checkTimeUnitCodes(Config.DEFAULT.timeUnitCodes());
-    checkTimeUnitCodes(simpleCodes);
-    checkTimeUnitCodes(mssqlCodes);
-  }
+    // CEILING is a synonym for CEIL.
+    expr("ceiling(d to year)").ok("CEIL(`D` TO YEAR)");
+    expr("ceiling(d to y)").ok("CEIL(`D` TO `Y`)");
 
-  /** Checks parsing of built-in functions that accept time unit
-   * abbreviations.
-   *
-   * <p>For example, {@code EXTRACT(Y FROM orderDate)} is using
-   * "Y" as an abbreviation for "YEAR".
-   *
-   * <p>Override if your parser supports more such functions. */
-  protected void checkTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
-    SqlParserFixture f = fixture()
-        .withConfig(config -> config.withTimeUnitCodes(timeUnitCodes));
-    BiConsumer<String, TimeUnit> validConsumer = (abbrev, timeUnit) -> {
-      f.sql("select extract(" + abbrev + " from x)")
-          .ok("SELECT EXTRACT(" + timeUnit + " FROM `X`)");
-      f.sql("select floor(x to " + abbrev + ")")
-          .ok("SELECT FLOOR(`X` TO " + timeUnit + ")");
-      f.sql("select ceil(x to " + abbrev + ")")
-          .ok("SELECT CEIL(`X` TO " + timeUnit + ")");
-    };
-    BiConsumer<String, TimeUnit> invalidConsumer = (abbrev, timeUnit) -> {
-      final String upAbbrev = abbrev.toUpperCase(Locale.ROOT);
-      f.sql("select extract(^" + abbrev + "^ from x)")
-          .fails("'" + upAbbrev + "' is not a valid datetime format");
-      f.sql("SELECT FLOOR(x to ^" + abbrev + "^)")
-          .fails("'" + upAbbrev + "' is not a valid datetime format");
-      f.sql("SELECT CEIL(x to ^" + abbrev + "^)")
-          .fails("'" + upAbbrev + "' is not a valid datetime format");
-    };
+    // As for FLOOR, so for EXTRACT.
+    expr("extract(year from d)").ok("EXTRACT(YEAR FROM `D`)");
+    expr("extract(y from d)").ok("EXTRACT(`Y` FROM `D`)");
 
-    // Check that each valid code passes each query that it should.
-    timeUnitCodes.forEach(validConsumer);
-
-    // If "M" is a valid code then "m" should be also.
-    timeUnitCodes.forEach((abbrev, timeUnit) ->
-        validConsumer.accept(abbrev.toLowerCase(Locale.ROOT), timeUnit));
-
-    // Check that invalid codes generate the right error messages.
-    final Map<String, TimeUnit> invalidCodes =
-        ImmutableMap.of("A", TimeUnit.YEAR,
-            "a", TimeUnit.YEAR);
-    invalidCodes.forEach(invalidConsumer);
+    // MICROSECOND, NANOSECOND used to be native for EXTRACT but not for FLOOR
+    // or CEIL. Now they are native, and so appear as keywords, without
+    // backticks.
+    expr("floor(d to nanosecond)").ok("FLOOR(`D` TO NANOSECOND)");
+    expr("floor(d to microsecond)").ok("FLOOR(`D` TO MICROSECOND)");
+    expr("ceil(d to nanosecond)").ok("CEIL(`D` TO NANOSECOND)");
+    expr("ceiling(d to microsecond)").ok("CEIL(`D` TO MICROSECOND)");
+    expr("extract(nanosecond from d)").ok("EXTRACT(NANOSECOND FROM `D`)");
+    expr("extract(microsecond from d)").ok("EXTRACT(MICROSECOND FROM `D`)");
   }
 
   @Test void testGeometry() {
@@ -8204,58 +8148,52 @@ public class SqlParserTest {
         .ok("CAST(`X` AS VARBINARY)");
   }
 
-  @Test void testTimestampAddAndDiff() {
-    Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
-        .put("MICROSECOND",
-            Arrays.asList("FRAC_SECOND", "MICROSECOND", "SQL_TSI_MICROSECOND"))
-        .put("NANOSECOND", Arrays.asList("NANOSECOND", "SQL_TSI_FRAC_SECOND"))
-        .put("SECOND", Arrays.asList("SECOND", "SQL_TSI_SECOND"))
-        .put("MINUTE", Arrays.asList("MINUTE", "SQL_TSI_MINUTE"))
-        .put("HOUR", Arrays.asList("HOUR", "SQL_TSI_HOUR"))
-        .put("DAY", Arrays.asList("DAY", "SQL_TSI_DAY"))
-        .put("WEEK", Arrays.asList("WEEK", "SQL_TSI_WEEK"))
-        .put("MONTH", Arrays.asList("MONTH", "SQL_TSI_MONTH"))
-        .put("QUARTER", Arrays.asList("QUARTER", "SQL_TSI_QUARTER"))
-        .put("YEAR", Arrays.asList("YEAR", "SQL_TSI_YEAR"))
-        .build();
-
-    List<String> functions = ImmutableList.<String>builder()
-        .add("timestampadd(%1$s, 12, current_timestamp)")
-        .add("timestampdiff(%1$s, current_timestamp, current_timestamp)")
-        .build();
-
-    for (Map.Entry<String, List<String>> intervalGroup : tsi.entrySet()) {
-      for (String function : functions) {
-        for (String interval : intervalGroup.getValue()) {
-          expr(String.format(Locale.ROOT, function, interval, ""))
-              .ok(String.format(Locale.ROOT, function, intervalGroup.getKey(), "`")
-                  .toUpperCase(Locale.ROOT));
-        }
-      }
-    }
-
-    expr("timestampadd(^incorrect^, 1, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
-    expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
-  }
-
   @Test void testTimestampAdd() {
     final String sql = "select * from t\n"
-        + "where timestampadd(sql_tsi_month, 5, hiredate) < curdate";
+        + "where timestampadd(month, 5, hiredate) < curdate";
     final String expected = "SELECT *\n"
         + "FROM `T`\n"
         + "WHERE (TIMESTAMPADD(MONTH, 5, `HIREDATE`) < `CURDATE`)";
     sql(sql).ok(expected);
+
+    // SQL_TSI_MONTH is treated as a user-defined time frame, hence appears as
+    // an identifier (with backticks) when unparsed. It will be resolved to
+    // MICROSECOND during validation.
+    final String sql2 = "select * from t\n"
+        + "where timestampadd(sql_tsi_month, 5, hiredate) < curdate";
+    final String expected2 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (TIMESTAMPADD(`SQL_TSI_MONTH`, 5, `HIREDATE`) < `CURDATE`)";
+    sql(sql2).ok(expected2);
+
+    // Previously a parse error, now an identifier that the validator will find
+    // to be invalid.
+    expr("timestampadd(incorrect, 1, current_timestamp)")
+        .ok("TIMESTAMPADD(`INCORRECT`, 1, CURRENT_TIMESTAMP)");
   }
 
   @Test void testTimestampDiff() {
     final String sql = "select * from t\n"
-        + "where timestampdiff(frac_second, 5, hiredate) < curdate";
+        + "where timestampdiff(microsecond, 5, hiredate) < curdate";
     final String expected = "SELECT *\n"
         + "FROM `T`\n"
         + "WHERE (TIMESTAMPDIFF(MICROSECOND, 5, `HIREDATE`) < `CURDATE`)";
     sql(sql).ok(expected);
+
+    // FRAC_SECOND is treated as a user-defined time frame, hence appears as
+    // an identifier (with backticks) when unparsed. It will be resolved to
+    // MICROSECOND during validation.
+    final String sql2 = "select * from t\n"
+        + "where timestampdiff(frac_second, 5, hiredate) < curdate";
+    final String expected2 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (TIMESTAMPDIFF(`FRAC_SECOND`, 5, `HIREDATE`) < `CURDATE`)";
+    sql(sql2).ok(expected2);
+
+    // Previously a parse error, now an identifier that the validator will find
+    // to be invalid.
+    expr("timestampdiff(incorrect, current_timestamp, current_timestamp)")
+        .ok("TIMESTAMPDIFF(`INCORRECT`, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
   }
 
   @Test void testTimeTrunc() {
@@ -8264,9 +8202,18 @@ public class SqlParserTest {
         + "FROM `T`";
     sql(sql).ok(expected);
 
-    // should fail for time unit not appropriate for TIME type.
-    final String weekSql = "select time_trunc(time '15:30:00', ^week^) from t";
-    sql(weekSql).fails("(?s).*Was expecting one of.*");
+    // Syntactically valid; validator will complain because WEEK is for DATE or
+    // TIMESTAMP but not for TIME.
+    final String sql2 = "select time_trunc(time '15:30:00', week) from t";
+    final String expected2 = "SELECT TIME_TRUNC(TIME '15:30:00', WEEK)\n"
+        + "FROM `T`";
+    sql(sql2).ok(expected2);
+
+    // note backticks
+    final String sql3 = "select time_trunc(time '15:30:00', incorrect) from t";
+    final String expected3 = "SELECT TIME_TRUNC(TIME '15:30:00', `INCORRECT`)\n"
+        + "FROM `T`";
+    sql(sql3).ok(expected3);
   }
 
   @Test void testTimestampTrunc() {
@@ -8274,6 +8221,12 @@ public class SqlParserTest {
     final String expected = "SELECT TIMESTAMP_TRUNC(TIMESTAMP '2008-12-25 15:30:00', WEEK)\n"
         + "FROM `T`";
     sql(sql).ok(expected);
+
+    // note backticks
+    final String sql3 = "select timestamp_trunc(time '15:30:00', incorrect) from t";
+    String expected3 = "SELECT TIMESTAMP_TRUNC(TIME '15:30:00', `INCORRECT`)\n"
+        + "FROM `T`";
+    sql(sql3).ok(expected3);
   }
 
   @Test void testUnnest() {

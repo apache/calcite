@@ -584,8 +584,8 @@ public interface CalciteResource {
   @BaseMessage("Cannot call table function here: ''{0}''")
   ExInst<CalciteException> cannotCallTableFunctionHere(String a0);
 
-  @BaseMessage("''{0}'' is not a valid datetime format")
-  ExInst<CalciteException> invalidDatetimeFormat(String a0);
+  @BaseMessage("''{0}'' is not a valid time frame")
+  ExInst<SqlValidatorException> invalidTimeFrame(String a0);
 
   @BaseMessage("Cannot INSERT into generated column ''{0}''")
   ExInst<SqlValidatorException> insertIntoAlwaysGenerated(String a0);

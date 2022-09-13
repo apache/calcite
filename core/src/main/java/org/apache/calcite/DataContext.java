@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 
@@ -116,6 +117,11 @@ public interface DataContext {
      * defaults to the time zone of the JVM if the connection does not specify a
      * time zone. */
     TIME_ZONE("timeZone", TimeZone.class),
+
+    /** Set of built-in and custom time frames for use in functions such as
+     * {@code FLOOR} and {@code EXTRACT}. Required; defaults to
+     * {@link org.apache.calcite.rel.type.TimeFrames#CORE}. */
+    TIME_FRAME_SET("timeFrameSet", TimeFrameSet.class),
 
     /** The query user.
      *

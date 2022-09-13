@@ -17,6 +17,11 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 
@@ -59,6 +64,11 @@ class BabelTest {
     return propBuilder ->
         propBuilder.set(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP,
             Boolean.toString(lenient));
+  }
+
+  static SqlOperatorTable operatorTableFor(SqlLibrary library) {
+    return SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+        SqlLibrary.STANDARD, library);
   }
 
   static Connection connect() throws SQLException {
@@ -128,6 +138,57 @@ class BabelTest {
     // Postgres cast is invalid with core parser
     p.sql("select 1 ^:^: integer as x")
         .fails("(?s).*Encountered \":\" at .*");
+  }
+
+  /** Tests that DATEADD, DATEDIFF, DATEPART, DATE_PART allow custom time
+   * frames. */
+  @Test void testTimeFrames() {
+    final SqlValidatorFixture f = Fixtures.forValidator()
+        .withParserConfig(p -> p.withParserFactory(SqlBabelParserImpl.FACTORY))
+        .withOperatorTable(operatorTableFor(SqlLibrary.MSSQL))
+        .withFactory(tf ->
+            tf.withTypeSystem(typeSystem ->
+                new DelegatingTypeSystem(typeSystem) {
+                  @Override public TimeFrameSet deriveTimeFrameSet(
+                      TimeFrameSet frameSet) {
+                    return TimeFrameSet.builder()
+                        .addAll(frameSet)
+                        .addDivision("minute15", 4, "HOUR")
+                        .build();
+                  }
+                }));
+
+    final String ts = "timestamp '2020-06-27 12:34:56'";
+    final String ts2 = "timestamp '2020-06-27 13:45:56'";
+    f.withSql("SELECT DATEADD(YEAR, 3, " + ts + ")").ok();
+    f.withSql("SELECT DATEADD(HOUR^.^A, 3, " + ts + ")")
+        .fails("(?s).*Encountered \".\" at .*");
+    f.withSql("SELECT DATEADD(^A^, 3, " + ts + ")")
+        .fails("'A' is not a valid time frame");
+    f.withSql("SELECT DATEADD(minute15, 3, " + ts + ")")
+        .ok();
+    f.withSql("SELECT DATEDIFF(^A^, " + ts + ", " + ts2 + ")")
+        .fails("'A' is not a valid time frame");
+    f.withSql("SELECT DATEDIFF(minute15, " + ts + ", " + ts2 + ")")
+        .ok();
+    f.withSql("SELECT DATEPART(^A^, " + ts + ")")
+        .fails("'A' is not a valid time frame");
+    f.withSql("SELECT DATEPART(minute15, " + ts + ")")
+        .ok();
+
+    // Where DATEPART is MSSQL, DATE_PART is Postgres
+    f.withSql("SELECT ^DATE_PART(A, " + ts + ")^")
+        .fails("No match found for function signature "
+            + "DATE_PART\\(<INTERVAL_DAY_TIME>, <TIMESTAMP>\\)");
+    final SqlValidatorFixture f2 =
+        f.withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
+    f2.withSql("SELECT ^DATEPART(A, " + ts + ")^")
+        .fails("No match found for function signature "
+            + "DATEPART\\(<INTERVAL_DAY_TIME>, <TIMESTAMP>\\)");
+    f2.withSql("SELECT DATE_PART(^A^, " + ts + ")")
+        .fails("'A' is not a valid time frame");
+    f2.withSql("SELECT DATE_PART(minute15, " + ts + ")")
+        .ok();
   }
 
   @Test void testNullSafeEqual() {

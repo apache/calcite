@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -27,6 +28,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -89,8 +91,9 @@ public abstract class OperandTypes {
    * a given date/time type. For example, the time frame HOUR is appropriate for
    * type TIMESTAMP or DATE but not TIME.
    */
-  public static SqlSingleOperandTypeChecker interval(SqlTypeName typeName) {
-    return new IntervalOperandTypeChecker(typeName);
+  public static SqlSingleOperandTypeChecker interval(
+      Iterable<TimeUnitRange> ranges) {
+    return new IntervalOperandTypeChecker(ImmutableSet.copyOf(ranges));
   }
 
   /**
@@ -284,6 +287,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker DATE =
       family(SqlTypeFamily.DATE);
+
+  public static final SqlSingleOperandTypeChecker TIME =
+      family(SqlTypeFamily.TIME);
 
   public static final SqlSingleOperandTypeChecker TIMESTAMP =
       family(SqlTypeFamily.TIMESTAMP);
@@ -569,19 +575,6 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker INTERVAL_NUMERIC =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.NUMERIC);
-
-  public static final SqlOperandTypeChecker TIME_INTERVAL =
-      and_(
-          ImmutableList.of(family(SqlTypeFamily.TIME, SqlTypeFamily.ANY),
-              nth(1, 2, interval(SqlTypeName.TIME))))
-          .withGenerator((op, opName) -> opName + "(<TIME>, <INTERVAL>)");
-
-  public static final SqlOperandTypeChecker TIMESTAMP_INTERVAL =
-      and_(
-          ImmutableList.of(family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY),
-              nth(1, 2, interval(SqlTypeName.TIMESTAMP))))
-          .withGenerator((op, opName) ->
-              "'" + opName + "(<TIMESTAMP>, <DATETIME_INTERVAL>)'");
 
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);

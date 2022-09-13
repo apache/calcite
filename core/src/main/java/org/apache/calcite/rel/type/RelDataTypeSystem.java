@@ -407,4 +407,11 @@ public interface RelDataTypeSystem {
     return null;
   }
 
+  /** Returns a list of supported time frames.
+   *
+   * @param frameSet Set of built-in time frames
+   */
+  default TimeFrameSet deriveTimeFrameSet(TimeFrameSet frameSet) {
+    return frameSet;
+  }
 }

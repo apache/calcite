@@ -271,6 +271,8 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     }
     // Check again, to cause error to be thrown.
     switch (composition) {
+    default:
+      break;
     case OR:
     case SEQUENCE:
       check(callBinding, true);

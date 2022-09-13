@@ -16,36 +16,40 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.util.Static;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Parameter type-checking strategy whether the operand must be an interval.
  */
 public class IntervalOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
-  private final SqlTypeName typeName;
+  private final ImmutableSet<TimeUnitRange> unitSet;
 
-  public IntervalOperandTypeChecker(SqlTypeName typeName) {
-    this.typeName = typeName;
+  IntervalOperandTypeChecker(ImmutableSet<TimeUnitRange> unitSet) {
+    this.unitSet = unitSet;
   }
 
-  @Override public boolean checkSingleOperandType(
-      SqlCallBinding callBinding,
-      SqlNode node,
-      int iFormalOperand,
-      boolean throwOnFailure) {
-    SqlNode operand = callBinding.operand(iFormalOperand);
-    SqlIntervalQualifier qualifier =
-        (SqlIntervalQualifier) operand;
-    switch (typeName) {
-    case TIME:
-      return false;
-    default:
-      return true;
+  @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
+      SqlNode node, int iFormalOperand, boolean throwOnFailure) {
+    final SqlNode operand = callBinding.operand(iFormalOperand);
+    if (operand instanceof SqlIntervalQualifier) {
+      final SqlIntervalQualifier interval = (SqlIntervalQualifier) operand;
+      if (unitSet.contains(interval.timeUnitRange)) {
+        return true;
+      }
+      if (throwOnFailure) {
+        throw callBinding.getValidator().newValidationError(operand,
+            Static.RESOURCE.invalidTimeFrame(interval.timeUnitRange.name()));
+      }
     }
+    return false;
   }
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
@@ -288,6 +289,7 @@ public class SqlLiteral extends SqlNode {
       return clazz.cast(NullSentinel.INSTANCE);
     }
     requireNonNull(value, "value");
+    final SqlIntervalQualifier qualifier;
     switch (typeName) {
     case CHAR:
       if (clazz == String.class) {
@@ -345,15 +347,18 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_MONTH:
       final SqlIntervalLiteral.IntervalValue valMonth =
           (SqlIntervalLiteral.IntervalValue) value;
+      qualifier = valMonth.getIntervalQualifier();
       if (clazz == Long.class) {
         return clazz.cast(valMonth.getSign()
             * SqlParserUtil.intervalToMonths(valMonth));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
-        return clazz.cast(valMonth.getIntervalQualifier().timeUnitRange);
+        return clazz.cast(qualifier.timeUnitRange);
+      } else if (clazz == TimeUnit.class) {
+        return clazz.cast(qualifier.timeUnitRange.startUnit);
       } else if (clazz == SqlIntervalQualifier.class) {
-        return clazz.cast(valMonth.getIntervalQualifier());
+        return clazz.cast(qualifier);
       }
       break;
     case INTERVAL_DAY:
@@ -368,15 +373,18 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_SECOND:
       final SqlIntervalLiteral.IntervalValue valTime =
           (SqlIntervalLiteral.IntervalValue) value;
+      qualifier = valTime.getIntervalQualifier();
       if (clazz == Long.class) {
         return clazz.cast(valTime.getSign()
             * SqlParserUtil.intervalToMillis(valTime));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
-        return clazz.cast(valTime.getIntervalQualifier().timeUnitRange);
+        return clazz.cast(qualifier.timeUnitRange);
+      } else if (clazz == TimeUnit.class) {
+        return clazz.cast(qualifier.timeUnitRange.startUnit);
       } else if (clazz == SqlIntervalQualifier.class) {
-        return clazz.cast(valTime.getIntervalQualifier());
+        return clazz.cast(qualifier);
       }
       break;
     default:

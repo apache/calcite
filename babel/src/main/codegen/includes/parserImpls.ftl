@@ -44,20 +44,21 @@ SqlNode DateFunctionCall() :
 
 SqlNode DateaddFunctionCall() :
 {
-    final SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
     final Span s;
-    final SqlIdentifier qualifiedName;
-    final TimeUnit unit;
+    final SqlOperator op;
+    final SqlIntervalQualifier unit;
     final List<SqlNode> args;
     SqlNode e;
 }
 {
-    ( <DATEADD> | <DATEDIFF> | <DATE_PART> ) {
-        s = span();
-        qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
-    }
-    <LPAREN> unit = TimeUnit() {
-        args = startList(new SqlIntervalQualifier(unit, null, getPos()));
+    (   <DATE_PART>  { op = SqlLibraryOperators.DATE_PART; }
+    |   <DATEADD> { op = SqlLibraryOperators.DATEADD; }
+    |   <DATEDIFF> { op = SqlLibraryOperators.DATEDIFF; }
+    |   <DATEPART>  { op = SqlLibraryOperators.DATEPART; }
+    )
+    { s = span(); }
+    <LPAREN> unit = TimeUnitOrName() {
+        args = startList(unit);
     }
     (
         <COMMA> e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -65,7 +66,7 @@ SqlNode DateaddFunctionCall() :
         }
     )*
     <RPAREN> {
-        return createCall(qualifiedName, s.end(this), funcType, null, args);
+        return op.createCall(s.end(this), args);
     }
 }
 
@@ -174,6 +175,7 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     < DATE_PART: "DATE_PART" >
 |   < DATEADD: "DATEADD" >
 |   < DATEDIFF: "DATEDIFF" >
+|   < DATEPART: "DATEPART" >
 |   < NEGATE: "!" >
 |   < TILDE: "~" >
 }
