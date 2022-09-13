@@ -1015,30 +1015,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(date_diff);
       break;
-/*
-    In BigQuery, the equivalent for HASHROW is FARM_FINGERPRINT, and FARM_FINGERPRINT supports
-    only one argument.
-    In Teradata, HASHROW supports multiple arguments.
-    So, to handle this scenario, we CONCAT all the arguments of HASHROW.
-    And
-    For single argument,we directly cast that element to VARCHAR.
-    Example:
-    TD:  HASHROW(first_name,employee_id,last_name,hire_date)
-    BQ:  FARM_FINGERPRINT(CONCAT(first_name, employee_id, last_name, hire_date))
-*/
     case "HASHROW":
-      SqlNode farmFingerprintOperandCall;
-      if (call.operandCount() > 1) {
-        farmFingerprintOperandCall = CONCAT2.createCall(SqlParserPos.ZERO, call.getOperandList());
-      } else {
-        SqlNode varcharNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT,
-            SqlTypeName.VARCHAR));
-        farmFingerprintOperandCall = CAST.createCall(SqlParserPos.ZERO, call.operand(0),
-            varcharNode);
-      }
-      SqlCall farmFingerprintCall = FARM_FINGERPRINT.createCall(SqlParserPos.ZERO,
-          farmFingerprintOperandCall);
-      super.unparseCall(writer, farmFingerprintCall, leftPrec, rightPrec);
+      unparseHashrowFunction(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
       final SqlWriter.Frame trunc = getTruncFrame(writer, call);
@@ -1673,5 +1651,30 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
     }
     return frame;
+  }
+
+  /*
+      In BigQuery, the equivalent for HASHROW is FARM_FINGERPRINT, and FARM_FINGERPRINT supports
+      only one argument.
+      So, to handle this scenario, we CONCAT all the arguments of HASHROW.
+      And
+      For single argument,we directly cast that element to VARCHAR.
+      Example:
+      BQ:  FARM_FINGERPRINT(CONCAT(first_name, employee_id, last_name, hire_date))
+  */
+
+  private void unparseHashrowFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode farmFingerprintOperandCall;
+    if (call.operandCount() > 1) {
+      farmFingerprintOperandCall = CONCAT2.createCall(SqlParserPos.ZERO, call.getOperandList());
+    } else {
+      SqlNode varcharNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT,
+          SqlTypeName.VARCHAR));
+      farmFingerprintOperandCall = CAST.createCall(SqlParserPos.ZERO, call.operand(0),
+          varcharNode);
+    }
+    SqlCall farmFingerprintCall = FARM_FINGERPRINT.createCall(SqlParserPos.ZERO,
+        farmFingerprintOperandCall);
+    super.unparseCall(writer, farmFingerprintCall, leftPrec, rightPrec);
   }
 }
