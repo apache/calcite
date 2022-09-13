@@ -730,7 +730,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SPARK})
   public static final SqlFunction TO_DATE =
       new SqlFunction("TO_DATE",
           SqlKind.OTHER_FUNCTION,
@@ -1133,6 +1133,13 @@ public abstract class SqlLibraryOperators {
               ImmutableList.of(SqlTypeFamily.DATE, SqlTypeFamily.DATE,
             SqlTypeFamily.STRING),
             number -> number == 2),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATEDIFF =
+      new SqlFunction("DATEDIFF", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})

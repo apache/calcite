@@ -32,6 +32,7 @@ import java.util.Locale;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRING_SPLIT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
 
 /**
@@ -77,4 +78,19 @@ public class CastCallBuilder {
     return ITEM.createCall(POS, splitFunctionCall, SqlLiteral.createExactNumeric("1", POS));
   }
 
+  public SqlCall makeCastCallForTimeWithTimestamp(SqlNode operandToCast, int precision) {
+    SqlNode timestampWithoutPrecision =
+        dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+    SqlCharStringLiteral dateStringLiteral = SqlLiteral.createCharString("1970-01-01 ", POS);
+    SqlCharStringLiteral timeFormatString;
+    if (precision == 0) {
+      timeFormatString = SqlLiteral.createCharString("HH24:MI:SS", POS);
+    } else {
+      timeFormatString = SqlLiteral.createCharString(String.format
+          (Locale.ROOT, "%s%s%s", "HH24:MI:SS.S(", precision, ")"), POS);
+    }
+    SqlCall formatCall = FORMAT_TIMESTAMP.createCall(POS, timeFormatString, operandToCast);
+    SqlCall timeStampConstructCall = CONCAT.createCall(POS, dateStringLiteral, formatCall);
+    return CAST.createCall(POS, timeStampConstructCall, timestampWithoutPrecision);
+  }
 }
