@@ -64,6 +64,7 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR1;
@@ -84,6 +85,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
@@ -100,6 +102,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
@@ -134,7 +137,7 @@ public class SparkSqlDialect extends SqlDialect {
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
         put(DAYOFMONTH, "dd");
-        put(DAYOFYEAR, "ddd");
+        put(DAYOFYEAR, "D");
         put(NUMERICMONTH, "MM");
         put(ABBREVIATEDMONTH, "MMM");
         put(MONTHNAME, "MMMM");
@@ -147,6 +150,8 @@ public class SparkSqlDialect extends SqlDialect {
         put(YYYYMMDD, "yyyyMMdd");
         put(YYMMDD, "yyMMdd");
         put(DAYOFWEEK, "EEEE");
+        put(ABBREVIATED_NAME_OF_DAY, "MM");
+        put(NAME_OF_DAY, "MMM");
         put(ABBREVIATEDDAYOFWEEK, "EEE");
         put(TWENTYFOURHOUR, "HH");
         put(HOUR, "hh");
@@ -247,6 +252,19 @@ public class SparkSqlDialect extends SqlDialect {
           return ADD_MONTHS;
         }
       default:
+        return super.getTargetFunc(call);
+      }
+    case OTHER_FUNCTION:
+      switch (call.type.getSqlTypeName()) {
+      case VARCHAR:
+        if (call.getOperator() == TO_CHAR) {
+          switch (call.getOperands().get(0).getType().getSqlTypeName()) {
+          case DATE:
+          case TIME:
+          case TIMESTAMP:
+            return DATE_FORMAT;
+          }
+        }
         return super.getTargetFunc(call);
       }
     default:
@@ -545,6 +563,15 @@ public class SparkSqlDialect extends SqlDialect {
 
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
+    case "DATE_FORMAT":
+      SqlCharStringLiteral formatString =
+          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString());
+      SqlWriter.Frame dateFormatFrame = writer.startFunCall(call.getOperator().getName());
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",", true);
+      formatString.unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(dateFormatFrame);
+      break;
     case "CURRENT_TIMESTAMP":
       if (((SqlBasicCall) call).getOperands().length > 0) {
         new CurrentTimestampHandler(this)
@@ -565,8 +592,8 @@ public class SparkSqlDialect extends SqlDialect {
     case "FORMAT_TIME":
     case "FORMAT_DATE":
     case "FORMAT_DATETIME":
-      SqlCall dateFormatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(1),
-          creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()));
+      SqlCall dateFormatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO,
+          call.operand(1), call.operand(0));
       unparseCall(writer, dateFormatCall, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
@@ -594,7 +621,7 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case "DAYOFYEAR":
       SqlCall formatCall = DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
-          SqlLiteral.createCharString("D", SqlParserPos.ZERO));
+          SqlLiteral.createCharString("DDD", SqlParserPos.ZERO));
       SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, formatCall,
           getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
       unparseCall(writer, castCall, leftPrec, rightPrec);
