@@ -10465,17 +10465,18 @@ class RelToSqlConverterTest {
         .ok(expectedSpark);
   }
 
-  @Test public void testhashrowformultiplearguments() {
+  @Test public void testForHashrowWithMultipleArguments() {
     final RelBuilder builder = relBuilder();
     final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
-        builder.literal("employee"),builder.scan("EMP").field(1),builder.literal("dm"));
+        builder.literal("employee"), builder.scan("EMP").field(1),
+        builder.literal("dm"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(hashrow, "FD"))
+        .project(builder.alias(hashrow, "HASHCODE"))
         .build();
 
-    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CONCAT('employee', ENAME, 'dm')) AS FD\n"
-        + "FROM scott.EMP";
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CONCAT('employee', ENAME, 'dm')) AS " +
+        "HASHCODE\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
