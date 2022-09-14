@@ -64,6 +64,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -92,7 +93,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   private boolean open;
 
   // set in STATE_2_READY
-  private @Nullable SchemaPlus defaultSchema;
+  private List<SchemaPlus> defaultSchemas;
   private @Nullable JavaTypeFactory typeFactory;
   private @Nullable RelOptPlanner planner;
   private @Nullable RexExecutor executor;
@@ -106,7 +107,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   @SuppressWarnings("method.invocation.invalid")
   public PlannerImpl(FrameworkConfig config) {
     this.costFactory = config.getCostFactory();
-    this.defaultSchema = config.getDefaultSchema();
+    this.defaultSchemas = config.getDefaultSchemas();
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
     this.parserConfig = config.getParserConfig();
@@ -320,12 +321,17 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   // CalciteCatalogReader is stateless; no need to store one
   private CalciteCatalogReader createCatalogReader() {
-    SchemaPlus defaultSchema = requireNonNull(this.defaultSchema, "defaultSchema");
-    final SchemaPlus rootSchema = rootSchema(defaultSchema);
+    assert this.defaultSchemas.size() > 0 : "PlannerImpl requires a default Schema";
+    final SchemaPlus rootSchema = rootSchema(defaultSchemas.get(0));
+    List<List<String>> defaultSchemaPaths = new ArrayList<>();
+    for (SchemaPlus defaultSchema: defaultSchemas) {
+      defaultSchemaPaths.add(CalciteSchema.from(defaultSchema).path(null));
+    }
 
     return new CalciteCatalogReader(
         CalciteSchema.from(rootSchema),
-        CalciteSchema.from(defaultSchema).path(null),
+        defaultSchemaPaths,
+        defaultSchemaPaths.size(),
         getTypeFactory(), connectionConfig);
   }
 
