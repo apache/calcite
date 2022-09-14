@@ -34,9 +34,9 @@ public class SqlFieldAccess extends SqlNodeList {
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
-    for (int i = 0; i < getList().size(); i++) {
+    for (SqlNode node : getList()) {
       writer.sep(".");
-      writer.print(getList().get(i).toSqlString(writer.getDialect()).toString());
+      writer.print(node.toSqlString(writer.getDialect()).toString());
       writer.setNeedWhitespace(true);
     }
     writer.endList(frame);

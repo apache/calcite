@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -30,14 +29,10 @@ import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.test.RelBuilderTest;
-import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -174,36 +169,11 @@ class RelToSqlConverterArraysTest {
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
-  /** Creates a RelBuilder. */
-  private static RelBuilder relBuilder() {
-    return RelBuilder.create(RelBuilderTest.config().build());
-  }
-
-  /** Converts a relational expression to SQL in a given dialect. */
-  private static String toSql(RelNode root, SqlDialect dialect) {
-    return toSql(root, dialect, c ->
-        c.withAlwaysUseParentheses(false)
-            .withSelectListItemsOnSeparateLines(false)
-            .withUpdateSetListNewline(false)
-            .withIndentation(0));
-  }
-
-  /** Converts a relational expression to SQL in a given dialect
-   * and with a particular writer configuration. */
-  private static String toSql(RelNode root, SqlDialect dialect,
-      UnaryOperator<SqlWriterConfig> transform) {
-    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
-    return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
-        .getSql();
-  }
-
   @Test public void testFieldAccessInArrayOfStruct() {
     final String query = "SELECT \"n1\"[1].\"b\" FROM \"myTable\"";
-    final String expected = "SELECT n1[1].b"
-        + "\nFROM myDb.myTable";
+    final String expected = "SELECT \"n1\"[1].\"b\""
+        + "\nFROM \"myDb\".\"myTable\"";
     sql(query)
-        .withBigQuery()
         .ok(expected);
   }
 }
