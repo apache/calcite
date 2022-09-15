@@ -96,8 +96,14 @@ As you make changes to the site, the site will automatically rebuild.
 
 # Publishing the website
 
-Publishing the website is usually simple, you just need to copy the newly generated site content to the [calcite-site](https://github.com/apache/calcite-site) repository.
+Calcite publishes the website automatically since [CALCITE-3129](https://issues.apache.org/jira/browse/CALCITE-3129), you do not need to do anything but just merge your changes to the `main` branch, Github workflows will identify changes to website and automatically cherry-pick it to the `site` branch, compile and publish it to [calcite-site](https://github.com/apache/calcite-site) repo.
 
-But sometimes, especially when we upgraded Jekyll version, the `js` and `css` files may be renamed or removed, copying will not remove these stale files in calcite-site.
+## Non-release publishing
 
-Hence, a safer way is to remove the old files in calcite-site for the first step, then do the copying.
+We'll publish the website changes such as community member changes and new blogs immediately after merging.
+The rules and scripts are in `.github/workflows/publish-non-release-website-updates.yml`.
+
+## Release publishing
+
+We identify release publishing by checking new release tags. If you are the Release Manager, you only need to push the new tag 'calcite-x.y.z' to [Calcite Github repo](https://github.com/apache/calcite), and the Github workflow will do all the rest.
+The rules and scripts are in `.github/workflows/publish-website-on-release.yml`.
