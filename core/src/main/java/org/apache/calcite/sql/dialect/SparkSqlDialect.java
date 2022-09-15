@@ -37,7 +37,6 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
@@ -88,6 +87,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEOFDAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
@@ -137,6 +137,7 @@ public class SparkSqlDialect extends SqlDialect {
         put(DAYOFYEAR, "ddd");
         put(NUMERICMONTH, "MM");
         put(ABBREVIATEDMONTH, "MMM");
+        put(TIMEOFDAY, "EE MMM dd HH:mm:ss yyyy zz");
         put(MONTHNAME, "MMMM");
         put(TWODIGITYEAR, "yy");
         put(FOURDIGITYEAR, "yyyy");
@@ -283,10 +284,6 @@ public class SparkSqlDialect extends SqlDialect {
       SqlUtil.unparseFunctionSyntax(SPARKSQL_SUBSTRING, writer, call, false);
     } else {
       switch (call.getKind()) {
-      case MOD:
-        SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
-        SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
-        break;
       case CHAR_LENGTH:
         final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
@@ -638,6 +635,7 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
+
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
