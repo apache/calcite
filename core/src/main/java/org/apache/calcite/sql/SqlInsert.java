@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
@@ -42,7 +43,8 @@ public class SqlInsert extends SqlCall {
               (SqlNodeList) operands[0],
               operands[1],
               operands[2],
-              (SqlNodeList) operands[3]);
+              (SqlNodeList) operands[3],
+              operands[4]);
         }
       };
 
@@ -51,18 +53,25 @@ public class SqlInsert extends SqlCall {
   SqlNode source;
   @Nullable SqlNodeList columnList;
 
+  @Nullable SqlNode condition;
+
+  @Nullable SqlSelect sourceSelect;
+
   //~ Constructors -----------------------------------------------------------
 
   public SqlInsert(SqlParserPos pos,
       SqlNodeList keywords,
       SqlNode targetTable,
       SqlNode source,
-      @Nullable SqlNodeList columnList) {
+      @Nullable SqlNodeList columnList,
+      @Nullable SqlNode condition) {
     super(pos);
     this.keywords = keywords;
     this.targetTable = targetTable;
     this.source = source;
     this.columnList = columnList;
+    this.condition = condition;
+    this.sourceSelect = null;
     assert keywords != null;
   }
 
@@ -78,7 +87,7 @@ public class SqlInsert extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(keywords, targetTable, source, columnList);
+    return ImmutableNullableList.of(keywords, targetTable, source, columnList, condition);
   }
 
   /** Returns whether this is an UPSERT statement.
@@ -106,6 +115,9 @@ public class SqlInsert extends SqlCall {
     case 3:
       columnList = (SqlNodeList) operand;
       break;
+    case 4:
+      condition = (SqlNode) operand;
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -116,6 +128,14 @@ public class SqlInsert extends SqlCall {
    */
   public SqlNode getTargetTable() {
     return targetTable;
+  }
+
+
+  /**
+   * Return the condition for the insertion.
+   */
+  public @Nullable SqlNode getCondition() {
+    return condition;
   }
 
   /**
@@ -147,6 +167,21 @@ public class SqlInsert extends SqlCall {
       }
     }
     return null;
+  }
+
+  /**
+   * Gets the source SELECT expression for the data to be inserted. Returns
+   * null before the statement has been expanded by
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
+   *
+   * @return the source SELECT for the data to be inserted
+   */
+  public @Nullable SqlSelect getSourceSelect() {
+    return sourceSelect;
+  }
+
+  public void setSourceSelect(@Nullable SqlSelect sourceSelect) {
+    this.sourceSelect = sourceSelect;
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

@@ -1612,7 +1612,7 @@ SqlNode SqlInsert() :
     ]
     source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
         return new SqlInsert(s.end(source), keywordList, table, source,
-            columnList);
+            columnList, null);
     }
 }
 
@@ -1717,12 +1717,19 @@ SqlNode SqlMerge() :
     SqlNodeList extendList = null;
     SqlIdentifier alias = null;
     SqlNode sourceTableRef;
-    SqlNode condition;
-    SqlUpdate updateCall = null;
-    SqlDelete deleteCall = null;
-    SqlInsert insertCall = null;
+    final SqlNode condition;
+    Span matchedSpan = Span.of();
+    Span notMatchedSpan = Span.of();
+    // Should contain only Delete's and Update's
+    List<SqlNode> matchedCallList = new ArrayList();
+    List<SqlInsert> notMatchedCallList = new ArrayList();
+    SqlInsert insertCall;
+    SqlUpdate updateCall;
+    SqlDelete deleteCall;
     final Span s;
-    final Span matchedSpan;
+
+    SqlNode clauseCondition;
+
 }
 {
     (<MERGE_INTO> { s = span(); } | (<MERGE> { s = span(); } <INTO>)) table = TableRefWithHintsOpt()
@@ -1735,44 +1742,113 @@ SqlNode SqlMerge() :
     [ [ <AS> ] alias = SimpleIdentifier() ]
     <USING> sourceTableRef = TableRef()
     <ON> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)
+
     (
+        // We have two choices, depending on if the first clause is WHEN MATCHED or WHEN NOT MATCHED
+        // Therefore we need LOOKAHEAD 2 to distinguish WHEN MATCHED or WHEN NOT MATCHED
         LOOKAHEAD(2)
-        matchedSpan = WhenMatchedClauseCommon()
         (
-            updateCall = WhenMatchedClauseUpdate(table, alias, matchedSpan)
-        |
-            deleteCall = WhenMatchedClauseDelete(table, alias, matchedSpan)
-        )
-        [ insertCall = WhenNotMatchedClause(table) ]
+            // Case 1, the first clause is WHEN MATCHED
+
+            // Within this expansion, we have two choices, depending on if the next clause is
+            // WHEN MATCHED or WHEN NOT MATCHED
+            // Therefore we need LOOKAHEAD 2 to distinguish WHEN MATCHED or WHEN NOT MATCHED
+            // for this variadic expansion
+            LOOKAHEAD(2)
+            clauseCondition = WhenMatchedClauseCommon(matchedSpan)
+            (
+                updateCall = WhenMatchedClauseUpdate(table, alias)
+                {
+                    updateCall.setOperand(3, clauseCondition);
+                    matchedCallList.add(updateCall);
+                    matchedSpan.add(updateCall);
+                }
+            |
+                deleteCall = WhenMatchedClauseDelete(table, alias)
+                {
+                    deleteCall.setOperand(1, clauseCondition);
+                    matchedCallList.add(deleteCall);
+                    matchedSpan.add(deleteCall);
+                }
+            )
+        )+
+
+        ( insertCall = WhenNotMatchedClause(table, notMatchedSpan)
+          { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); }
+        )*
+        // Note, in the case that we have no not matched clauses, the not matched span will be initialized to include
+        // only the final token of the final matched clause. This is incorrect, but we need to intialize not matched
+        // SqlNodeList with a valid parser position, and it should never be used anyway, since the sqlNodeList is empty
+        // See https://bodo.atlassian.net/browse/BE-3528
+        { notMatchedSpan.add(span().pos()); }
+
     |
-        insertCall = WhenNotMatchedClause(table)
+        // Case 2, the first clause is WHEN NOT MATCHED/ we have no WHEN MATCHED clauses.
+        // Note, since we have no matched clauses, the matched span will be initialized to include only the previous
+        // token. This is incorrect, but we need to intialize matched SqlNodeList with a valid parser position, and
+        // the parser position should never be used anyway, since the sqlNodeList is empty
+        // See https://bodo.atlassian.net/browse/BE-3528
+        { matchedSpan = span(); }
+        ( insertCall = WhenNotMatchedClause(table, notMatchedSpan) { notMatchedCallList.add(insertCall); notMatchedSpan.add(insertCall); })+
     )
     {
-        return new SqlMerge(s.addIf(updateCall).addIf(insertCall).addIf(deleteCall).pos(), table,
-            condition, sourceTableRef, updateCall, insertCall, deleteCall, null, alias);
+
+        return new SqlMerge(s.add(matchedSpan.pos()).add(notMatchedSpan.pos()).pos(), table,
+            condition, sourceTableRef, new SqlNodeList(matchedCallList, matchedSpan.pos()),
+            new SqlNodeList(notMatchedCallList, notMatchedSpan.pos()),
+            null, alias);
     }
 }
 
-Span WhenMatchedClauseCommon() :
+SqlNode WhenMatchedClauseCommon(Span matchedSpan) :
 {
-    final Span s;
+    SqlNode condition;
 }
 {
-    <WHEN> { s = span(); } <MATCHED> <THEN>
+    <WHEN> { matchedSpan.add(span().pos()); } <MATCHED>
+
+    // add condition (if it is present)
+    // The condition can be any valid expression that evaluates to boolean
+    // Specifically, according to DBR syntax:
+    /**
+    * { literal |
+        column_reference |
+        field_reference |
+        parameter_reference |
+        CAST expression |
+        CASE expression |
+        expr operator expr |
+        operator expr |
+        expr [ expr ] |
+        function_invocation |
+        ( expr ) |
+        scalar_subquery }
+
+      scalar_subquery
+        ( query )
+     */
+        // ACCEPT_SUB_QUERY basically just says that any query expression must be parenthesized
+        // IE, it'll accept (SELECT A from ...) but not SELECT A FROM ...
+        {condition = null;}
+        [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
+
+        <THEN>
     {
-        return s;
+        return condition;
     }
 }
 
-SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
+SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias) :
 {
     SqlIdentifier id;
     final SqlNodeList updateColumnList = new SqlNodeList(SqlParserPos.ZERO);
     SqlNode exp;
     final SqlNodeList updateExprList = new SqlNodeList(SqlParserPos.ZERO);
+    final Span s;
 }
 {
-    <UPDATE> <SET> id = CompoundIdentifier() {
+
+    <UPDATE> { s = span(); } <SET> id = CompoundIdentifier() {
         updateColumnList.add(id);
     }
     <EQ> exp = Expression(ExprContext.ACCEPT_SUB_QUERY) {
@@ -1787,22 +1863,23 @@ SqlUpdate WhenMatchedClauseUpdate(SqlNode table, SqlIdentifier alias, Span match
             updateExprList.add(exp);
         }
     )*
-        {
-        return new SqlUpdate(matchedSpan.addAll(updateExprList).pos(), table,
+    {
+        return new SqlUpdate(s.addAll(updateExprList).pos(), table,
             updateColumnList, updateExprList, null, null, alias);
     }
 }
 
-SqlDelete WhenMatchedClauseDelete(SqlNode table, SqlIdentifier alias, Span matchedSpan) :
+SqlDelete WhenMatchedClauseDelete(SqlNode table, SqlIdentifier alias) :
 {}
 {
+
     <DELETE>
     {
-        return new SqlDelete(matchedSpan.add(table).addIf(alias).pos(), table, null, null, alias);
+        return new SqlDelete(span().pos(), table, null, null, alias);
     }
 }
 
-SqlInsert WhenNotMatchedClause(SqlNode table) :
+SqlInsert WhenNotMatchedClause(SqlNode table, Span notMatchedSpan) :
 {
     final Span insertSpan, valuesSpan;
     final List<SqlLiteral> keywords = new ArrayList<SqlLiteral>();
@@ -1810,9 +1887,19 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
     SqlNodeList insertColumnList = null;
     SqlNode rowConstructor;
     SqlNode insertValues;
+    SqlNode condition;
 }
 {
-    <WHEN> <NOT> <MATCHED> <THEN> <INSERT> {
+    <WHEN> { notMatchedSpan.add(span().pos()); }<NOT> <MATCHED>
+
+    // add condition (if it is present)
+    // The condition can be any valid expression that evaluates to Boolean
+    // see WhenMatchedClause for explanation
+    {condition = null;}
+    [<AND> condition = Expression(ExprContext.ACCEPT_SUB_QUERY)]
+
+
+    <THEN> <INSERT> {
         insertSpan = span();
     }
     SqlInsertKeywords(keywords) {
@@ -1833,7 +1920,7 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
         insertValues = SqlStdOperatorTable.VALUES.createCall(
             valuesSpan.end(this), rowConstructor);
         return new SqlInsert(insertSpan.end(this), keywordList,
-            table, insertValues, insertColumnList);
+            table, insertValues, insertColumnList, condition);
     }
 }
 

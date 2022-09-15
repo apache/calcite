@@ -151,7 +151,7 @@ public class SqlUpdate extends SqlCall {
     return sourceSelect;
   }
 
-  public void setSourceSelect(SqlSelect sourceSelect) {
+  public void setSourceSelect(@Nullable SqlSelect sourceSelect) {
     this.sourceSelect = sourceSelect;
   }
 

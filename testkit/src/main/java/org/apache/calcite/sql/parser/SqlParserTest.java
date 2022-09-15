@@ -4454,6 +4454,62 @@ public class SqlParserTest {
     sql(sql2).ok(expected);
   }
 
+  @Test void testMergeInvalidSyntax() {
+    final String sql1 = "merge into emps e "
+        + "using tempemps as t "
+        + "on e.empno = t.empno "
+        + "when ^true^ then update "
+        + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 ";
+
+    final String sql2 = "merge into emps e "
+        + "using tempemps as t "
+        + "on e.empno = t.empno "
+        + "when not ^'hello world'^ then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+
+    String fail1 = "Encountered \"true\" at line 1, column 65\\.\n"
+        + "Was expecting one of:\n"
+        + "    \"NOT\" \\.\\.\\.\n"
+        + "    \"MATCHED\" \\.\\.\\.\n"
+        + "    ";
+
+    String fail2 = "Encountered \"\\\\'hello world\\\\'\" at line 1, column 69\\.\n"
+        + "Was expecting:\n"
+        + "    \"MATCHED\" \\.\\.\\.\n"
+        + "    ";
+
+    sql(sql1).fails(fail1);
+    sql(sql2).fails(fail2);
+  }
+
+  @Test void testMergeWrongClause() {
+    final String sql1 = "merge into emps e "
+        + "using tempemps as t "
+        + "on e.empno = t.empno "
+        + "when not matched then ^update^ "
+        + "set e.name = t.name, e.deptno = t.deptno, e.salary = t.salary * .1 ";
+
+    final String sql2 = "merge into emps e "
+        + "using tempemps as t "
+        + "on e.empno = t.empno "
+        + "when matched then ^insert^ (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+
+    String fail1 = "Encountered \"update\" at line 1, column 82\\.\n"
+        + "Was expecting:\n"
+        + "    \"INSERT\" \\.\\.\\.\n"
+        + "    ";
+
+    String fail2 = "Encountered \"insert\" at line 1, column 78\\.\n"
+        + "Was expecting one of:\n"
+        + "    \"DELETE\" \\.\\.\\.\n"
+        + "    \"UPDATE\" \\.\\.\\.\n"
+        + "    ";
+
+    sql(sql1).fails(fail1);
+    sql(sql2).fails(fail2);
+  }
+
   @Test void testBitStringNotImplemented() {
     // Bit-string is longer part of the SQL standard. We do not support it.
     sql("select (B^'1011'^ || 'foobar') from (values (true))")

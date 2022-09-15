@@ -47,7 +47,8 @@ public class EnumerableTableModify extends TableModify
   public EnumerableTableModify(RelOptCluster cluster, RelTraitSet traits,
       RelOptTable table, Prepare.CatalogReader catalogReader, RelNode child,
       Operation operation, @Nullable List<String> updateColumnList,
-      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
+      @Nullable List<RexNode> sourceExpressionList,
+      boolean flattened) {
     super(cluster, traits, table, catalogReader, child, operation,
         updateColumnList, sourceExpressionList, flattened);
     assert child.getConvention() instanceof EnumerableConvention;

@@ -65,7 +65,40 @@ public abstract class TableModify extends SingleRel {
    * Enumeration of supported modification operations.
    */
   public enum Operation {
-    INSERT, UPDATE, DELETE, MERGE
+
+    //We assign each enum an integer value. This is used when converting "MERGE INTO" into a
+    // LogicalTableModify node, to enumerate which action should be taken for each row.
+    INSERT(0),
+    UPDATE(1),
+    DELETE(2),
+    MERGE(3);
+
+    private final int value;
+    private static final Operation[] VALUEMAP;
+
+    Operation(int value) {
+      this.value = value;
+    }
+
+    static {
+      VALUEMAP = new Operation[4];
+      VALUEMAP[0] = INSERT;
+      VALUEMAP[1] = UPDATE;
+      VALUEMAP[2] = DELETE;
+      VALUEMAP[3] = MERGE;
+    }
+
+    public static @Nullable Operation valueOf(int value) {
+      if (0 <= value && value <= 3) {
+        return VALUEMAP[value];
+      } else {
+        return null;
+      }
+    }
+
+    public int getValue() {
+      return value;
+    }
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -83,6 +116,8 @@ public abstract class TableModify extends SingleRel {
   private final @Nullable List<String> updateColumnList;
   private final @Nullable List<RexNode> sourceExpressionList;
   private @MonotonicNonNull RelDataType inputRowType;
+
+
   private final boolean flattened;
 
   //~ Constructors -----------------------------------------------------------
