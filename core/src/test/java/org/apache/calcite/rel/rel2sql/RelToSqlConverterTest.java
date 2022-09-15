@@ -10475,8 +10475,8 @@ class RelToSqlConverterTest {
         .project(builder.alias(hashrow, "HASHCODE"))
         .build();
 
-    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CONCAT('employee', ENAME, 'dm')) AS " +
-        "HASHCODE\nFROM scott.EMP";
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CONCAT('employee', ENAME, 'dm')) AS "
+        + "HASHCODE\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
