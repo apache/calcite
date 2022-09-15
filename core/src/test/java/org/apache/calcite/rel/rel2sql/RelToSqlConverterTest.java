@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -8182,7 +8183,8 @@ class RelToSqlConverterTest {
         + "UNIX_TIMESTAMP('20181106', 'yyyyMMdd'), 'yyyy-MM-dd') AS DATE) date1, "
         + "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP('2018/11/06', 'yyyy/MM/dd'), 'yyyy-MM-dd') AS DATE) date2\n"
         + "FROM scott.EMP";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT TO_DATE('20181106', 'yyyyMMdd') date1, "
+        + "TO_DATE('2018/11/06', 'yyyy/MM/dd') date2\nFROM scott.EMP";
     final String expectedSnowflake =
         "SELECT TO_DATE('20181106', 'YYYYMMDD') AS \"date1\", "
         + "TO_DATE('2018/11/06', 'YYYY/MM/DD') AS \"date2\"\n"
@@ -9167,11 +9169,64 @@ class RelToSqlConverterTest {
 
   @Test public void testExtractEpoch() {
     String query = "SELECT EXTRACT(EPOCH FROM DATE '2008-08-29')";
-    final String expectedBQ = "SELECT UNIX_SECONDS(DATE '2008-08-29')";
+    final String expectedBQ = "SELECT UNIX_SECONDS(CAST(DATE '2008-08-29' AS TIMESTAMP))";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
+  @Test public void testExtractEpochWithDifferentOperands() {
+    String query = "SELECT EXTRACT(EPOCH FROM \"birth_date\"), "
+        + "EXTRACT(EPOCH FROM TIMESTAMP '2018-01-01 00:00:00'), "
+        + "EXTRACT(EPOCH FROM TIMESTAMP'2018-01-01 12:12:12'), "
+        + "EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)\n"
+        + "FROM  \"employee\"";
+    final String expectedBQ = "SELECT UNIX_SECONDS(CAST(birth_date AS TIMESTAMP)), "
+        + "UNIX_SECONDS(CAST('2018-01-01 00:00:00' AS TIMESTAMP)), "
+        + "UNIX_SECONDS(CAST('2018-01-01 12:12:12' AS TIMESTAMP)), "
+        + "UNIX_SECONDS(CURRENT_TIMESTAMP())\n"
+        + "FROM foodmart.employee";
 
     sql(query)
             .withBigQuery()
             .ok(expectedBQ);
+  }
+
+  @Test public void testExtractEpochWithMinusOperandBetweenCurrentTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.EPOCH), builder.call(SqlStdOperatorTable.MINUS,
+            builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+            builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractEpochRexNode, "EE"))
+        .build();
+    final String expectedSql = "SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP - CURRENT_TIMESTAMP) "
+        + "AS \"EE\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT UNIX_SECONDS(CURRENT_TIMESTAMP())  - UNIX_SECONDS"
+        + "(CURRENT_TIMESTAMP()) AS EE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testExtractEpochWithCurrentDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.EPOCH), builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractEpochRexNode, "EE"))
+        .build();
+    final String expectedSql = "SELECT EXTRACT(EPOCH FROM CURRENT_DATE) AS \"EE\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT UNIX_SECONDS() AS EE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testExtractMillennium() {
