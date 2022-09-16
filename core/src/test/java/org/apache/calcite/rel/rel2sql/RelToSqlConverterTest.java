@@ -9436,7 +9436,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT HASHBUCKET(HASHROW(\"EMPNO\")) AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(EMPNO) AS FD\n"
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CAST(EMPNO AS STRING)) AS FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9791,7 +9791,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT HASHROW(\"ENAME\") AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(ENAME) AS FD\n"
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CAST(ENAME AS STRING)) AS FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -10463,5 +10463,21 @@ class RelToSqlConverterTest {
     sql(query)
         .withSpark()
         .ok(expectedSpark);
+  }
+
+  @Test public void testForHashrowWithMultipleArguments() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
+        builder.literal("employee"), builder.scan("EMP").field(1),
+        builder.literal("dm"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashrow, "HASHCODE"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CONCAT('employee', ENAME, 'dm')) AS "
+        + "HASHCODE\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
