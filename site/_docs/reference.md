@@ -1,4 +1,3 @@
-
 ---
 layout: docs
 title: SQL language
