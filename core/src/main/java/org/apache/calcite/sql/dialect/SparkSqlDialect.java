@@ -622,6 +622,9 @@ public class SparkSqlDialect extends SqlDialect {
     case "CURRENT_TIME":
       unparseCurrentTime(writer, call, leftPrec, rightPrec);
       break;
+    case "SESSION_USER":
+      writer.print("CURRENT_USER");
+      break;
     case "BITWISE_AND":
       unparseBitwiseOperand(writer, call, leftPrec, rightPrec, AND);
       break;

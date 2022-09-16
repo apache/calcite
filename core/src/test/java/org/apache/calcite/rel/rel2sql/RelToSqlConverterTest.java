@@ -10493,4 +10493,12 @@ class RelToSqlConverterTest {
     final String expectedSpark = "SELECT PI() t\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
+
+  @Test public void testSessionUser() {
+    String query = "select SESSION_USER";
+    final String expectedSparkSql = "SELECT CURRENT_USER SESSION_USER";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
 }
