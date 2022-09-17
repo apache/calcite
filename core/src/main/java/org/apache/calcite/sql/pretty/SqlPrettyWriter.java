@@ -396,6 +396,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public boolean inQuery() {
     return (frame == null)
+        || (frame.frameType == FrameTypeEnum.SELECT)
         || (frame.frameType == FrameTypeEnum.ORDER_BY)
         || (frame.frameType == FrameTypeEnum.WITH)
         || (frame.frameType == FrameTypeEnum.SETOP);

@@ -4410,8 +4410,8 @@ public class SqlParserTest {
 
   @Test void testInsertSelect() {
     final String expected = "INSERT INTO `EMPS`\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql("insert into emps select * from emps")
         .ok(expected)
         .node(not(isDdl()));
@@ -4456,29 +4456,29 @@ public class SqlParserTest {
 
   @Test void testInsertColumnList() {
     final String expected = "INSERT INTO `EMPS` (`X`, `Y`)\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql("insert into emps(x,y) select * from emps")
         .ok(expected);
   }
 
   @Test void testInsertCaseSensitiveColumnList() {
     final String expected = "INSERT INTO `emps` (`x`, `y`)\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql("insert into \"emps\"(\"x\",\"y\") select * from emps")
         .ok(expected);
   }
 
   @Test void testInsertExtendedColumnList() {
     String expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`)\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql("insert into emps(z boolean)(x,y) select * from emps")
         .ok(expected);
     expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`, `Z`)\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql("insert into emps(x, y, z boolean) select * from emps")
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected);
@@ -4515,13 +4515,13 @@ public class SqlParserTest {
 
   @Test void testInsertCaseSensitiveExtendedColumnList() {
     String expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`)\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql("insert into \"emps\"(\"z\" boolean)(\"x\",\"y\") select * from emps")
         .ok(expected);
     expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`, `z`)\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql("insert into \"emps\"(\"x\", \"y\", \"z\" boolean) select * from emps")
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok(expected);
@@ -4531,8 +4531,8 @@ public class SqlParserTest {
     final String expected = "EXPLAIN PLAN INCLUDING ATTRIBUTES"
         + " WITH IMPLEMENTATION FOR\n"
         + "INSERT INTO `EMPS1`\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS2`)";
+        + "SELECT *\n"
+        + "FROM `EMPS2`";
     sql("explain plan for insert into emps1 select * from emps2")
         .ok(expected)
         .node(not(isDdl()));
@@ -4552,8 +4552,8 @@ public class SqlParserTest {
   @Test void testUpsertSelect() {
     final String sql = "upsert into emps select * from emp as e";
     final String expected = "UPSERT INTO `EMPS`\n"
-        + "(SELECT *\n"
-        + "FROM `EMP` AS `E`)";
+        + "SELECT *\n"
+        + "FROM `EMP` AS `E`";
     if (isReserved("UPSERT")) {
       sql(sql).ok(expected);
     }
@@ -6672,8 +6672,8 @@ public class SqlParserTest {
       }
     });
     final String str0 = "INSERT INTO `EMPS`\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     assertThat(str0, is(toLinux(sqlNodeVisited0.toString())));
 
     final String sql1 = "insert into emps select empno from emps";
@@ -6685,8 +6685,8 @@ public class SqlParserTest {
       }
     });
     final String str1 = "INSERT INTO `EMPS`\n"
-        + "(SELECT `EMPNO`\n"
-        + "FROM `EMPS`)";
+        + "SELECT `EMPNO`\n"
+        + "FROM `EMPS`";
     assertThat(str1, is(toLinux(sqlNodeVisited1.toString())));
   }
 
@@ -10177,8 +10177,8 @@ public class SqlParserTest {
         + "select * from emps";
     final String expected = "INSERT INTO `EMPS`\n"
         + "/*+ `PROPERTIES`(`K1` = 'v1', `K2` = 'v2'), `INDEX`(`IDX0`, `IDX1`) */\n"
-        + "(SELECT *\n"
-        + "FROM `EMPS`)";
+        + "SELECT *\n"
+        + "FROM `EMPS`";
     sql(sql).ok(expected);
   }
 

@@ -982,11 +982,11 @@ class JdbcAdapterTest {
         final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
             + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
             + " \"category_id\", \"currency_id\", \"amount\")\n"
-            + "(SELECT \"store_id\", \"account_id\", \"exp_date\","
+            + "SELECT \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\" + 1 AS \"time_id\", \"category_id\","
             + " \"currency_id\", \"amount\"\n"
             + "FROM \"foodmart\".\"expense_fact\"\n"
-            + "WHERE \"store_id\" = 666)";
+            + "WHERE \"store_id\" = 666";
         that.query(sql)
             .explainContains(explain)
             .planUpdateHasSql(jdbcSql, 1);
