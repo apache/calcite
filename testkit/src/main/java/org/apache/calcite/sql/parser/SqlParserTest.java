@@ -2269,6 +2269,21 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5252">[CALCITE-5252]
+   * Unparsing "WITH ... AS (SELECT ... UNION SELECT ...)" missing parentheses</a>. */
+  @Test void testWithAsUnion() {
+    final String sql = "with emp2 as (select * from emp union select * from emp)\n"
+        + "select * from emp2\n";
+    final String expected = "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testIdentifier() {
     expr("ab").ok("`AB`");
     expr("     \"a  \"\" b!c\"").ok("`a  \" b!c`");
