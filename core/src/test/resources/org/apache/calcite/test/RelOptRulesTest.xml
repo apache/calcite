@@ -3683,21 +3683,23 @@ from e2]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(EMPNO=[$0], D=[IN(CASE(true, CAST($7):INTEGER, null:INTEGER), {
+LogicalProject(EMPNO=[$0], D=[IN($1, {
 LogicalProject(DEPTNO=[$1])
   LogicalFilter(condition=[<($0, 20)])
     LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(true, CAST($7):INTEGER, null:INTEGER)), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false)])
-  LogicalJoin(condition=[=(CASE(true, CAST($7):INTEGER, null:INTEGER), $11)], joinType=[left])
+LogicalProject(EMPNO=[$0], D=[CASE(=($2, 0), false, IS NULL($1), null:BOOLEAN, IS NOT NULL($5), true, <($3, $2), null:BOOLEAN, false)])
+  LogicalJoin(condition=[=($1, $4)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
         LogicalProject(DEPTNO=[$1])
           LogicalFilter(condition=[<($0, 20)])
