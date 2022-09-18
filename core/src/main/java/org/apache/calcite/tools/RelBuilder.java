@@ -1908,9 +1908,19 @@ public class RelBuilder {
       fieldNameList.add(null);
     }
 
+    // Do not merge projections when top project contains RexSubQuery
+    boolean containsSubQuery = false;
+    for (RexNode node : nodes) {
+      if (RexUtil.containsSubQuery(node)) {
+        containsSubQuery = true;
+        break;
+      }
+    }
+
     bloat:
     if (frame.rel instanceof Project
-        && config.bloat() >= 0) {
+        && config.bloat() >= 0
+        && !containsSubQuery) {
       final Project project = (Project) frame.rel;
       // Populate field names. If the upper expression is an input ref and does
       // not have a recommended name, use the name of the underlying field.

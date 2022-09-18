@@ -3383,6 +3383,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withDecorrelate(true).ok();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5127">[CALCITE-5127]
+   * Error when executing query with subquery in select list that uses outer column of array
+   * type</a>.
+   */
+  @Test void testCorrelationWithProjection() {
+    final String sql = "SELECT ARRAY(SELECT s.x) FROM (SELECT sal + 10 as x FROM emp) s";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();

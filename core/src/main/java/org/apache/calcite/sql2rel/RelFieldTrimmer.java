@@ -481,6 +481,18 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final int fieldCount = rowType.getFieldCount();
     final RelNode input = project.getInput();
 
+    boolean containsSubQuery = false;
+    for (RexNode node : project.getProjects()) {
+      if (RexUtil.containsSubQuery(node)) {
+        containsSubQuery = true;
+        break;
+      }
+    }
+    // Do not trim Project's fields before SubQueryRemoveRule applies.
+    if (containsSubQuery) {
+      return result(project, Mappings.createIdentity(fieldCount));
+    }
+
     // Which fields are required from the input?
     final Set<RelDataTypeField> inputExtraFields =
         new LinkedHashSet<>(extraFields);

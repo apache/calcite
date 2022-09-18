@@ -2232,6 +2232,16 @@ public class RexUtil {
     }
   }
 
+  /** Returns whether an expression contains a {@link RexSubQuery}. */
+  public static boolean containsSubQuery(RexNode node) {
+    try {
+      node.accept(SubQueryFinder.INSTANCE);
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+  }
+
   /**
    * Given an expression, it will swap the table references contained in its
    * {@link RexTableInputRef} using the contents in the map.

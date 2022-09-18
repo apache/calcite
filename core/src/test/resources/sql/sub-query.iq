@@ -3519,4 +3519,16 @@ EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
         EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+# [CALCITE-5127] Error when executing query with subquery in select list that uses outer column of array type
+SELECT ARRAY(SELECT * FROM UNNEST(s.x) y)
+FROM (SELECT ARRAY[1,2,3] as x) s;
++-----------+
+| EXPR$0    |
++-----------+
+| [1, 2, 3] |
++-----------+
+(1 row)
+
+!ok
+
 # End sub-query.iq
