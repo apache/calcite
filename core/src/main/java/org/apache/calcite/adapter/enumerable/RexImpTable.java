@@ -156,6 +156,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TRUNC;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
@@ -458,6 +460,17 @@ public class RexImpTable {
         new FloorImplementor(BuiltInMethod.CEIL.method.getName(),
             BuiltInMethod.UNIX_TIMESTAMP_CEIL.method,
             BuiltInMethod.UNIX_DATE_CEIL.method));
+
+    // TIMESTAMP_TRUNC and TIME_TRUNC methods are syntactic sugar for standard datetime FLOOR
+    map.put(TIMESTAMP_TRUNC,
+        new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
+            BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
+            BuiltInMethod.UNIX_DATE_FLOOR.method));
+    map.put(TIME_TRUNC,
+        new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
+            BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
+            BuiltInMethod.UNIX_DATE_FLOOR.method));
+
 
     defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
     map.put(DAYNAME,

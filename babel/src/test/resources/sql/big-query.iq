@@ -766,15 +766,17 @@ SELECT TIMESTAMP(DATE "2008-12-25") AS timestamp_date;
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+
 SELECT TIMESTAMP_SECONDS(1230219000) AS timestamp_value;
-+-------------------------+
-| timestamp_value         |
-+-------------------------+
-| 2008-12-25 15:30:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_value     |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
+
 
 #####################################################################
 # TIMESTAMP_MILLIS
@@ -786,15 +788,17 @@ SELECT TIMESTAMP_SECONDS(1230219000) AS timestamp_value;
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+
 SELECT TIMESTAMP_MILLIS(1230219000000) AS timestamp_value;
-+-------------------------+
-| timestamp_value         |
-+-------------------------+
-| 2008-12-25 15:30:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_value     |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
+
 
 #####################################################################
 # TIMESTAMP_MICROS
@@ -946,7 +950,7 @@ order by v;
 
 select unix_seconds(timestamp '2008-12-25 15:30:00') as t;
 +------------+
-| T          |
+| t          |
 +------------+
 | 1230219000 |
 +------------+
@@ -956,7 +960,7 @@ select unix_seconds(timestamp '2008-12-25 15:30:00') as t;
 
 select unix_millis(timestamp '2008-12-25 15:30:00') as t;
 +---------------+
-| T             |
+| t             |
 +---------------+
 | 1230219000000 |
 +---------------+
@@ -966,7 +970,7 @@ select unix_millis(timestamp '2008-12-25 15:30:00') as t;
 
 select unix_micros(timestamp '2008-12-25 15:30:00') as t;
 +------------------+
-| T                |
+| t                |
 +------------------+
 | 1230219000000000 |
 +------------------+
@@ -1812,17 +1816,17 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME "15:30:00" as original,
   TIME_TRUNC(TIME "15:30:00", HOUR) as truncated;
-+----------------------------+------------------------+
-| original                   | truncated              |
-+----------------------------+------------------------+
-| 15:30:00                   | 15:00:00               |
-+----------------------------+------------------------+
++----------+-----------+
+| original | truncated |
++----------+-----------+
+| 15:30:00 | 15:00:00  |
++----------+-----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_TRUNC

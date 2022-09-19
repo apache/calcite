@@ -4083,6 +4083,55 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Was expecting one of.*");
   }
 
+  @Test void testTimestampTrunc() {
+    List<String> timeUnits = ImmutableList.<String>builder()
+        .add("MINUTE")
+        .add("HOUR")
+        .add("DAY")
+        .add("WEEK")
+        .add("MONTH")
+        .add("QUARTER")
+        .add("YEAR")
+        .add("ISOYEAR")
+        .build();
+
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    String test = "TIMESTAMP_TRUNC(TIMESTAMP '2000-01-01 01:00:00', %s)";
+
+    for (String unit : timeUnits) {
+      wholeExpr(String.format(Locale.ROOT, test, unit))
+          .fails("No match found for function signature "
+              + "TIMESTAMP_TRUNC\\(<TIMESTAMP>,.*\\)");
+      expr(String.format(Locale.ROOT, test, unit))
+          .withOperatorTable(opTable)
+          .columnType("TIMESTAMP(0) NOT NULL");
+    }
+  }
+
+  @Test void testTimeTrunc() {
+    List<String> timeUnits = ImmutableList.<String>builder()
+        .add("MILLISECOND")
+        .add("SECOND")
+        .add("MINUTE")
+        .add("HOUR")
+        .build();
+
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    String test = "TIME_TRUNC(TIME '15:30:00.00', %s)";
+
+    for (String unit : timeUnits) {
+      wholeExpr(String.format(Locale.ROOT, test, unit))
+          .fails("No match found for function signature "
+              + "TIME_TRUNC\\(<TIME>,.*\\)");
+      expr(String.format(Locale.ROOT, test, unit))
+          .withOperatorTable(opTable)
+          .columnType("TIME(0) NOT NULL");
+    }
+    // should fail on incompatible time unit
+    expr("TIME_TRUNC(TIME '15:30:00.00', ^DAY^)")
+        .fails("(?s).*Was expecting one of.*");
+  }
+
   @Test void testTimestampAddNullInterval() {
     expr("timestampadd(SQL_TSI_SECOND, cast(NULL AS INTEGER),"
         + " current_timestamp)")

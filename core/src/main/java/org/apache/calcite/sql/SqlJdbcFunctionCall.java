@@ -390,8 +390,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   private static final String TIME_DATE_FUNCTIONS = constructFuncList(
       "CONVERT_TIMEZONE", "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
       "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
-      "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF", "TO_DATE", "TO_TIMESTAMP",
-      "WEEK", "YEAR");
+      "QUARTER", "SECOND", "TIME_TRUNC", "TIMESTAMPADD", "TIMESTAMPDIFF", "TO_DATE",
+      "TIMESTAMP_TRUNC", "TO_TIMESTAMP", "WEEK", "YEAR");
 
   /** List of all system function names defined by JDBC. */
   private static final String SYSTEM_FUNCTIONS = constructFuncList(
@@ -745,8 +745,10 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("CURDATE", simple(SqlStdOperatorTable.CURRENT_DATE));
       map.put("CURTIME", simple(SqlStdOperatorTable.LOCALTIME));
       map.put("NOW", simple(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+      map.put("TIME_TRUNC", simple(SqlLibraryOperators.TIME_TRUNC));
       map.put("TIMESTAMPADD", simple(SqlStdOperatorTable.TIMESTAMP_ADD));
       map.put("TIMESTAMPDIFF", simple(SqlStdOperatorTable.TIMESTAMP_DIFF));
+      map.put("TIMESTAMP_TRUNC", simple(SqlLibraryOperators.TIMESTAMP_TRUNC));
       map.put("TO_DATE", simple(SqlLibraryOperators.TO_DATE));
       map.put("TO_TIMESTAMP", simple(SqlLibraryOperators.TO_TIMESTAMP));
 

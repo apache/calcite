@@ -520,7 +520,9 @@ public class SqlParserTest {
       "TEMPORARY",                     "92", "99",
       "THEN",                          "92", "99", "2003", "2011", "2014", "c",
       "TIME",                          "92", "99", "2003", "2011", "2014", "c",
+      "TIME_TRUNC", // BigQuery
       "TIMESTAMP",                     "92", "99", "2003", "2011", "2014", "c",
+      "TIMESTAMP_TRUNC", // BigQuery
       "TIMEZONE_HOUR",                 "92", "99", "2003", "2011", "2014", "c",
       "TIMEZONE_MINUTE",               "92", "99", "2003", "2011", "2014", "c",
       "TINYINT",                                                           "c",
@@ -8147,6 +8149,24 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `T`\n"
         + "WHERE (TIMESTAMPDIFF(MICROSECOND, 5, `HIREDATE`) < `CURDATE`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTimeTrunc() {
+    final String sql = "select time_trunc(TIME '15:30:00', hour) from t";
+    final String expected = "SELECT TIME_TRUNC(TIME '15:30:00', HOUR)\n"
+        + "FROM `T`";
+    sql(sql).ok(expected);
+
+    // should fail for time unit not appropriate for TIME type.
+    final String weekSql = "select time_trunc(time '15:30:00', ^week^) from t";
+    sql(weekSql).fails("(?s).*Was expecting one of.*");
+  }
+
+  @Test void testTimestampTrunc() {
+    final String sql = "select timestamp_trunc(timestamp '2008-12-25 15:30:00', week) from t";
+    final String expected = "SELECT TIMESTAMP_TRUNC(TIMESTAMP '2008-12-25 15:30:00'), WEEK)\n"
+        + "FROM `T`";
     sql(sql).ok(expected);
   }
 
