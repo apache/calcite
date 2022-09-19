@@ -1738,6 +1738,21 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test void testBigQueryTimeTruncFunctions() {
+    String timestampTrunc = "select timestamp_trunc(timestamp '2012-02-03 15:30:00', month)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedTimestampTrunc =
+        "SELECT TIMESTAMP_TRUNC(TIMESTAMP '2012-02-03 15:30:00', MONTH)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(timestampTrunc).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedTimestampTrunc);
+
+    String timeTrunc = "select time_trunc(time '15:30:00', minute)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedTimeTrunc = "SELECT TIME_TRUNC(TIME '15:30:00', MINUTE)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(timeTrunc).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedTimeTrunc);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,

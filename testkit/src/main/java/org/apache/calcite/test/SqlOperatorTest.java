@@ -7602,6 +7602,74 @@ public class SqlOperatorTest {
         isNullValue(), "INTEGER");
   }
 
+  @Test void testTimeTrunc() {
+    SqlOperatorFixture nonBigQuery = fixture()
+        .setFor(SqlLibraryOperators.TIME_TRUNC);
+    nonBigQuery.checkFails("^time_trunc(time '15:30:00', hour)^",
+        "No match found for function signature "
+            + "TIME_TRUNC\\(<TIME>, <INTERVAL_DAY_TIME>\\)",
+        false);
+
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.TIME_TRUNC);
+    f.checkFails("time_trunc(time '12:34:56', ^year^)",
+        "Encountered \"year\" at line 1, column 37\\.\n"
+            + "Was expecting one of:\n"
+            + "    \"HOUR\" \\.\\.\\.\n"
+            + "    \"MILLISECOND\" \\.\\.\\.\n"
+            + "    \"MINUTE\" \\.\\.\\.\n"
+            + "    \"SECOND\" \\.\\.\\.\n"
+            + "    ", false);
+    f.checkFails("^time_trunc(123.45, minute)^",
+        "Cannot apply 'TIME_TRUNC' to arguments of type "
+            + "'TIME_TRUNC\\(<DECIMAL\\(5, 2\\)>, <INTERVAL MINUTE>\\)'\\. "
+            + "Supported form\\(s\\): 'TIME_TRUNC\\(<TIME>, <DATETIME_INTERVAL>\\)'", false);
+    f.checkScalar("time_trunc(time '12:34:56', second)",
+        "12:34:56", "TIME(0) NOT NULL");
+    f.checkScalar("time_trunc(time '12:34:56', minute)",
+        "12:34:00", "TIME(0) NOT NULL");
+    f.checkScalar("time_trunc(time '12:34:56', hour)",
+        "12:00:00", "TIME(0) NOT NULL");
+    f.checkNull("time_trunc(cast(null as time), second)");
+  }
+
+  @Test void testTimestampTrunc() {
+    SqlOperatorFixture nonBigQuery = fixture()
+        .setFor(SqlLibraryOperators.TIMESTAMP_TRUNC);
+    nonBigQuery.checkFails("^timestamp_trunc(timestamp '2012-05-02 15:30:00', hour)^",
+        "No match found for function signature "
+            + "TIMESTAMP_TRUNC\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)",
+        false);
+
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.TIMESTAMP_TRUNC);
+    f.checkFails("^timestamp_trunc(100, hour)^",
+        "Cannot apply 'TIMESTAMP_TRUNC' to arguments of type "
+            + "'TIMESTAMP_TRUNC\\(<INTEGER>, <INTERVAL HOUR>\\)'\\. "
+            + "Supported form\\(s\\): 'TIMESTAMP_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
+        false);
+    f.checkFails("timestamp_trunc(timestamp '2015-02-19 12:34:56.78', ^microsecond^)",
+        "'MICROSECOND' is not a valid datetime format", false);
+    f.checkFails("timestamp_trunc(timestamp '2015-02-19 12:34:56.78', ^nanosecond^)",
+        "'NANOSECOND' is not a valid datetime format", false);
+    f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56.78', second)",
+        "2015-02-19 12:34:56", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', minute)",
+        "2015-02-19 12:34:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', hour)",
+        "2015-02-19 12:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', day)",
+        "2015-02-19 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', week)",
+        "2015-02-15 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', month)",
+        "2015-02-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', year)",
+        "2015-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+  }
+
   @Test void testDenseRankFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);

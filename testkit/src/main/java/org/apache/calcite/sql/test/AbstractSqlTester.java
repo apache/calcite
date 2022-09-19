@@ -119,7 +119,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       if (expectedMsgPattern == null) {
         throw new RuntimeException("Error while parsing query:" + sap, spe);
       } else if (errMessage == null
-          || !errMessage.matches(expectedMsgPattern)) {
+          || !Util.toLinux(errMessage).matches(expectedMsgPattern)) {
         throw new RuntimeException("Error did not match expected ["
             + expectedMsgPattern + "] while parsing query ["
             + sap + "]", spe);

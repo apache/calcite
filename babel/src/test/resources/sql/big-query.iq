@@ -766,15 +766,25 @@ SELECT TIMESTAMP(DATE "2008-12-25") AS timestamp_date;
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+
+# Note that BigQuery prints "2008-12-25 15:30:00 UTC" as the result,
+# whereas Calcite's result does not include "UTC". This is because
+# BigQuery's TIMESTAMP type is an instant (the equivalent of Calcite's
+# TIMESTAMP WITH LOCAL TIME ZONE type). It would have been too confusing
+# for a function called 'TIMESTAMP_SECONDS' to return a TIMESTAMP WITH
+# LOCAL TIME ZONE, so this function returns a Calcite TIMESTAMP which,
+# as a local time does not include UTC or any time zone.
+
 SELECT TIMESTAMP_SECONDS(1230219000) AS timestamp_value;
-+-------------------------+
-| timestamp_value         |
-+-------------------------+
-| 2008-12-25 15:30:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_value     |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
+
 
 #####################################################################
 # TIMESTAMP_MILLIS
@@ -786,15 +796,20 @@ SELECT TIMESTAMP_SECONDS(1230219000) AS timestamp_value;
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+
+# BigQuery's result ends in "UTC" but Calcite's does not, for the reasons
+# explained in TIMESTAMP_SECONDS.
+
 SELECT TIMESTAMP_MILLIS(1230219000000) AS timestamp_value;
-+-------------------------+
-| timestamp_value         |
-+-------------------------+
-| 2008-12-25 15:30:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_value     |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
+
 
 #####################################################################
 # TIMESTAMP_MICROS
@@ -1812,17 +1827,17 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME "15:30:00" as original,
   TIME_TRUNC(TIME "15:30:00", HOUR) as truncated;
-+----------------------------+------------------------+
-| original                   | truncated              |
-+----------------------------+------------------------+
-| 15:30:00                   | 15:00:00               |
-+----------------------------+------------------------+
++----------+-----------+
+| original | truncated |
++----------+-----------+
+| 15:30:00 | 15:00:00  |
++----------+-----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_TRUNC

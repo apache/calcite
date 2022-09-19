@@ -8150,6 +8150,24 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testTimeTrunc() {
+    final String sql = "select time_trunc(TIME '15:30:00', hour) from t";
+    final String expected = "SELECT TIME_TRUNC(TIME '15:30:00', HOUR)\n"
+        + "FROM `T`";
+    sql(sql).ok(expected);
+
+    // should fail for time unit not appropriate for TIME type.
+    final String weekSql = "select time_trunc(time '15:30:00', ^week^) from t";
+    sql(weekSql).fails("(?s).*Was expecting one of.*");
+  }
+
+  @Test void testTimestampTrunc() {
+    final String sql = "select timestamp_trunc(timestamp '2008-12-25 15:30:00', week) from t";
+    final String expected = "SELECT TIMESTAMP_TRUNC(TIMESTAMP '2008-12-25 15:30:00', WEEK)\n"
+        + "FROM `T`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testUnnest() {
     sql("select*from unnest(x)")
         .ok("SELECT *\n"

@@ -4987,6 +4987,19 @@ TimeUnit TimeUnitForExtract() :
 }
 
 /**
+ * Parses time unit for the TIME_TRUNC function.
+ * This is a subset of time units appropriate for TIME data type.
+ */
+TimeUnit TimeUnitForTimeTrunc() :
+{}
+{
+    <MILLISECOND> { return TimeUnit.MILLISECOND; }
+|   <SECOND> { return TimeUnit.SECOND; }
+|   <MINUTE> { return TimeUnit.MINUTE; }
+|   <HOUR> { return TimeUnit.HOUR; }
+}
+
+/**
  * Parses a simple identifier as a TimeUnit.
  */
 TimeUnit TimeUnitIdentifier() :
@@ -6023,6 +6036,10 @@ SqlNode BuiltinFunctionCall() :
     |
         node = TimestampDiffFunctionCall() { return node; }
     |
+        node = TimestampTruncFunctionCall() { return node; }
+    |
+        node = TimeTruncFunctionCall() { return node; }
+    |
 <#list (parser.builtinFunctionCallMethods!default.parser.builtinFunctionCallMethods) as method>
         node = ${method} { return node; }
     |
@@ -6572,10 +6589,54 @@ SqlCall TimestampDiffFunctionCall() :
 }
 
 /**
+ * Parses a call to TIMESTAMP_TRUNC.
+ */
+SqlCall TimestampTruncFunctionCall() :
+{
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    final TimeUnit unit;
+}
+{
+    <TIMESTAMP_TRUNC> { s = span(); }
+    <LPAREN>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    unit = TimeUnit() {
+        args.add(new SqlIntervalQualifier(unit, null, getPos()));
+    }
+    <RPAREN> {
+        return SqlLibraryOperators.TIMESTAMP_TRUNC.createCall(s.end(this), args);
+    }
+}
+
+/**
+ * Parses a call to TIME_TRUNC.
+ */
+SqlCall TimeTruncFunctionCall() :
+{
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    final TimeUnit unit;
+}
+{
+    <TIME_TRUNC> { s = span(); }
+    <LPAREN>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    unit = TimeUnitForTimeTrunc() {
+        args.add(new SqlIntervalQualifier(unit, null, getPos()));
+    }
+    <RPAREN> {
+        return SqlLibraryOperators.TIME_TRUNC.createCall(s.end(this), args);
+    }
+}
+
+/**
  * Parses a call to a grouping function inside the GROUP BY clause,
  * for example {@code TUMBLE(rowtime, INTERVAL '1' MINUTE)}.
  */
-SqlCall GroupByWindowingCall():
+SqlCall GroupByWindowingCall() :
 {
     final Span s;
     final List<SqlNode> args;
@@ -7061,6 +7122,18 @@ SqlNode JdbcFunctionCall() :
     (
         LOOKAHEAD(1)
         call = TimestampAddFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
+        }
+    |
+        LOOKAHEAD(1)
+        call = TimestampTruncFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
+        }
+    |
+        LOOKAHEAD(1)
+        call = TimeTruncFunctionCall() {
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
         }
@@ -7905,9 +7978,11 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < THEN: "THEN" >
 |   < TIES: "TIES" >
 |   < TIME: "TIME" >
+|   < TIME_TRUNC: "TIME_TRUNC" >
 |   < TIMESTAMP: "TIMESTAMP" >
 |   < TIMESTAMPADD: "TIMESTAMPADD" >
 |   < TIMESTAMPDIFF: "TIMESTAMPDIFF" >
+|   < TIMESTAMP_TRUNC: "TIMESTAMP_TRUNC" >
 |   < TIMEZONE_HOUR: "TIMEZONE_HOUR" >
 |   < TIMEZONE_MINUTE: "TIMEZONE_MINUTE" >
 |   < TINYINT: "TINYINT" >

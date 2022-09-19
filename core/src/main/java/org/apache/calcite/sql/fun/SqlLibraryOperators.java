@@ -602,6 +602,31 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
+   * truncates a TIME value to the granularity of time_part. The TIME value is
+   * always rounded to the beginning of time_part. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_TRUNC =
+      new SqlFunction("TIME_TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME_NULLABLE,
+          null,
+          OperandTypes.TIME_INTERVAL,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])"
+   * function (BigQuery); truncates a TIMESTAMP value to the granularity of
+   * date_time_part. The TIMESTAMP value is always rounded to the beginning of
+   * date_time_part. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_TRUNC =
+      new SqlFunction("TIMESTAMP_TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          null,
+          OperandTypes.TIMESTAMP_INTERVAL,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
    * a given number of seconds after 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})

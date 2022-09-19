@@ -1006,8 +1006,10 @@ TIES,
 **TIMESTAMP**,
 TIMESTAMPADD,
 TIMESTAMPDIFF,
+TIMESTAMP_TRUNC,
 **TIMEZONE_HOUR**,
 **TIMEZONE_MINUTE**,
+TIME_TRUNC,
 **TINYINT**,
 **TO**,
 TOP_LEVEL_COUNT,
@@ -2627,6 +2629,8 @@ semantics.
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
+| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates a *timestamp* value to the granularity of *timeUnit*. The *timestamp* value is always rounded to the beginning of the *timeUnit*.
+| b | TIME_TRUNC(time, timeUnit)                     | Truncates a *time* value to the granularity of *timeUnit*. The *time* value is always rounded to the beginning of timeUnit, which can be one of the following: MILLISECOND, SECOND, MINUTE, HOUR.
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
