@@ -1243,6 +1243,20 @@ class RexProgramTest extends RexProgramTestBase {
         RelOptPredicateList.of(rexBuilder,
             ImmutableList.of(le(aRef, literal(5)), le(bRef, literal(5)))),
         "false");
+
+    // condition "(a >= 1 and a <= 3) or (a >= 2 and a <= 4)"
+    // yelds "a >= 1 and a <= 4"
+    checkSimplifyFilter(
+        or(and(ge(aRef, literal(1)), le(aRef, literal(3))),
+            and(ge(aRef, literal(2)), le(aRef, literal(4)))),
+        "SEARCH(?0.a, Sarg[[1..4]])");
+
+    // condition "(a >= 1 and a <= 3) or (a >= 0 and a <= 2)"
+    // yelds "a >= 0 and a <= 3"
+    checkSimplifyFilter(
+        or(and(ge(aRef, literal(1)), le(aRef, literal(3))),
+            and(ge(aRef, literal(0)), le(aRef, literal(2)))),
+        "SEARCH(?0.a, Sarg[[0..3]])");
   }
 
   /** Test case for
