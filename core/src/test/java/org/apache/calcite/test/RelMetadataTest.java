@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -27,6 +30,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -642,6 +646,39 @@ public class RelMetadataTest {
     /* 14 - 5 */
     final RelMetadataFixture fixture = sql(sql);
     fixture.assertThatRowCount(is(9D), is(0D), is(10d));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5286">[CALCITE-5286]
+   * Join with parameterized LIMIT throws AssertionError "not a literal". </a>. */
+  @Test void testRowCountJoinWithDynamicParameters() {
+    final String sql = "select r.ename, s.sal from\n"
+        + "(select * from emp limit ?) r join bonus s\n"
+        + "on r.ename=s.ename where r.sal+1=s.sal";
+    sql(sql)
+        .withCluster(cluster -> {
+          RelOptPlanner planner = new VolcanoPlanner();
+          planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+          return RelOptCluster.create(planner, cluster.getRexBuilder());
+        })
+        .withRelTransform(rel -> {
+          RelOptPlanner planner = rel.getCluster().getPlanner();
+          planner.setRoot(rel);
+          RelTraitSet requiredOutputTraits =
+              rel.getCluster().traitSet().replace(EnumerableConvention.INSTANCE);
+          final RelNode rootRel2 = planner.changeTraits(rel, requiredOutputTraits);
+
+          planner.setRoot(rootRel2);
+          final RelOptPlanner planner2 = planner.chooseDelegate();
+          final RelNode rootRel3 = planner2.findBestExp();
+          return rootRel3;
+        })
+        .assertThatRowCount(is(1.0), is(0D), is(Double.POSITIVE_INFINITY));
   }
 
   @Test void testRowCountSortLimitOffsetDynamic() {
