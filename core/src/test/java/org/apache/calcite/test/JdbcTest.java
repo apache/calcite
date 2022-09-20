@@ -6842,17 +6842,17 @@ public class JdbcTest {
             DatabaseMetaData metaData = connection.getMetaData();
             assertThat(metaData.getIdentifierQuoteString(), equalTo("`"));
             assertThat(metaData.supportsMixedCaseIdentifiers(),
-                equalTo(true));
-            assertThat(metaData.storesMixedCaseIdentifiers(),
                 equalTo(false));
+            assertThat(metaData.storesMixedCaseIdentifiers(),
+                equalTo(true));
             assertThat(metaData.storesUpperCaseIdentifiers(),
                 equalTo(false));
             assertThat(metaData.storesLowerCaseIdentifiers(),
                 equalTo(false));
             assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
-                equalTo(true));
-            assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
                 equalTo(false));
+            assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                equalTo(true));
             assertThat(metaData.storesUpperCaseIdentifiers(),
                 equalTo(false));
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),

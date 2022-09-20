@@ -36,7 +36,7 @@ public enum Lex {
    * a back-tick is escaped using a backslash.
    * Character literals may be enclosed in single or double quotes. */
   BIG_QUERY(Quoting.BACK_TICK_BACKSLASH, Casing.UNCHANGED, Casing.UNCHANGED,
-      true, CharLiteralStyle.BQ_SINGLE, CharLiteralStyle.BQ_DOUBLE),
+      false, CharLiteralStyle.BQ_SINGLE, CharLiteralStyle.BQ_DOUBLE),
 
   /** Lexical policy similar to Oracle. The case of identifiers enclosed in
    * double-quotes is preserved; unquoted identifiers are converted to

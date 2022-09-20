@@ -24,7 +24,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.test.CalciteAssert;
@@ -33,7 +32,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
-import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 
 import org.junit.jupiter.api.Test;
@@ -64,7 +62,7 @@ class LexCaseSensitiveTest {
   }
 
   private static void runProjectQueryWithLex(Lex lex, String sql)
-      throws SqlParseException, ValidationException, RelConversionException {
+      throws Exception {
     Config javaLex = SqlParser.config().withLex(lex);
     Planner planner = getPlanner(null, javaLex, Programs.ofRules(Programs.RULE_SET));
     SqlNode parse = planner.parse(sql);
@@ -85,8 +83,7 @@ class LexCaseSensitiveTest {
     }
   }
 
-  @Test void testCalciteCaseOracle()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseOracle() throws Exception {
     String sql = "select \"empid\" as EMPID, \"empid\" from\n"
         + " (select \"empid\" from \"emps\" order by \"emps\".\"deptno\")";
     runProjectQueryWithLex(Lex.ORACLE, sql);
@@ -101,50 +98,43 @@ class LexCaseSensitiveTest {
     });
   }
 
-  @Test void testCalciteCaseMySql()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseMySql() throws Exception {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by `EMPS`.DEPTNO)";
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test void testCalciteCaseMySqlNoException()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseMySqlNoException() throws Exception {
     String sql = "select EMPID, empid from\n"
         + " (select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test void testCalciteCaseMySqlAnsi()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseMySqlAnsi() throws Exception {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by EMPS.DEPTNO)";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test void testCalciteCaseMySqlAnsiNoException()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseMySqlAnsiNoException() throws Exception {
     String sql = "select EMPID, empid from\n"
         + " (select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test void testCalciteCaseSqlServer()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseSqlServer() throws Exception {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by EMPS.DEPTNO)";
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test void testCalciteCaseSqlServerNoException()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseSqlServerNoException() throws Exception {
     String sql = "select EMPID, empid from\n"
         + " (select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test void testCalciteCaseJava()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseJava() throws Exception {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.JAVA, sql);
@@ -159,8 +149,7 @@ class LexCaseSensitiveTest {
     });
   }
 
-  @Test void testCalciteCaseJoinOracle()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseJoinOracle() throws Exception {
     String sql = "select t.\"empid\" as EMPID, s.\"empid\" from\n"
         + "(select * from \"emps\" where \"emps\".\"deptno\" > 100) t join\n"
         + "(select * from \"emps\" where \"emps\".\"deptno\" < 200) s\n"
@@ -168,35 +157,57 @@ class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.ORACLE, sql);
   }
 
-  @Test void testCalciteCaseJoinMySql()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseJoinMySql() throws Exception {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"
         + "(select * from emps where emps.deptno < 200) s on t.empid = s.empid";
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test void testCalciteCaseJoinMySqlAnsi()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseJoinMySqlAnsi() throws Exception {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"
         + "(select * from emps where emps.deptno < 200) s on t.empid = s.empid";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test void testCalciteCaseJoinSqlServer()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseJoinSqlServer() throws Exception {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"
         + "(select * from emps where emps.deptno < 200) s on t.empid = s.empid";
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test void testCalciteCaseJoinJava()
-      throws SqlParseException, ValidationException, RelConversionException {
+  @Test void testCalciteCaseJoinJava() throws Exception {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"
         + "(select * from emps where emps.deptno < 200) s on t.empid = s.empid";
     runProjectQueryWithLex(Lex.JAVA, sql);
+  }
+
+  @Test void testCalciteCaseBigQuery() throws Exception {
+    String sql = "select empid as EMPID, empid from (\n"
+        + "  select empid from emps order by EMPS.DEPTNO)";
+    runProjectQueryWithLex(Lex.BIG_QUERY, sql);
+  }
+
+  @Test void testCalciteCaseBigQueryNoException() throws Exception {
+    String sql = "select EMPID, empid from\n"
+        + " (select empid from emps order by emps.deptno)";
+    runProjectQueryWithLex(Lex.BIG_QUERY, sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5291">[CALCITE-5291]
+   * Make BigQuery lexical policy case insensitive</a>.
+   *
+   * <p>In reality, BigQuery treats table names as case-sensitive, column names
+   * and aliases as case-insensitive. Calcite cannot currently support a hybrid
+   * policy, so it treats table names as case-insensitive. */
+  @Test void testCalciteCaseJoinBigQuery() throws Exception {
+    String sql = "select t.empid as EMPID, s.empid from\n"
+        + "(select * from emps where emps.deptno > 100) t join\n"
+        + "(select * from emps where emps.deptno < 200) s on t.empid = s.empid";
+    runProjectQueryWithLex(Lex.BIG_QUERY, sql);
   }
 }
