@@ -44,6 +44,10 @@ z.
 #### Breaking Changes
 {: #breaking-1-33-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5293">CALCITE-5293</a>]
+  Support general set operators in PruneEmptyRules. The default configuration of PruneEmptyRules for Set operators has changed: the rules matching scope has increased.
+
+
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;
 Guava versions 19.0 to 31.1-jre;

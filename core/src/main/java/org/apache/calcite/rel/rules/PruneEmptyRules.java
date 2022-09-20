@@ -27,14 +27,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
-import org.apache.calcite.rel.logical.LogicalIntersect;
-import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
@@ -81,7 +81,7 @@ public abstract class PruneEmptyRules {
 
   /**
    * Rule that removes empty children of a
-   * {@link org.apache.calcite.rel.logical.LogicalUnion}.
+   * {@link org.apache.calcite.rel.core.Union}.
    *
    * <p>Examples:
    *
@@ -94,7 +94,7 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule UNION_INSTANCE =
       ImmutableUnionEmptyPruneRuleConfig.of()
           .withOperandSupplier(b0 ->
-              b0.operand(LogicalUnion.class).unorderedInputs(b1 ->
+              b0.operand(Union.class).unorderedInputs(b1 ->
                   b1.operand(Values.class)
                       .predicate(Values::isEmpty).noInputs()))
           .withDescription("Union")
@@ -103,7 +103,7 @@ public abstract class PruneEmptyRules {
 
   /**
    * Rule that removes empty children of a
-   * {@link org.apache.calcite.rel.logical.LogicalMinus}.
+   * {@link org.apache.calcite.rel.core.Minus}.
    *
    * <p>Examples:
    *
@@ -115,7 +115,7 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule MINUS_INSTANCE =
       ImmutableMinusEmptyPruneRuleConfig.of()
           .withOperandSupplier(b0 ->
-              b0.operand(LogicalMinus.class).unorderedInputs(b1 ->
+              b0.operand(Minus.class).unorderedInputs(b1 ->
                   b1.operand(Values.class).predicate(Values::isEmpty)
                       .noInputs()))
           .withDescription("Minus")
@@ -123,7 +123,7 @@ public abstract class PruneEmptyRules {
 
   /**
    * Rule that converts a
-   * {@link org.apache.calcite.rel.logical.LogicalIntersect} to
+   * {@link org.apache.calcite.rel.core.Intersect} to
    * empty if any of its children are empty.
    *
    * <p>Examples:
@@ -136,7 +136,7 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule INTERSECT_INSTANCE =
       ImmutableIntersectEmptyPruneRuleConfig.of()
           .withOperandSupplier(b0 ->
-              b0.operand(LogicalIntersect.class).unorderedInputs(b1 ->
+              b0.operand(Intersect.class).unorderedInputs(b1 ->
                   b1.operand(Values.class).predicate(Values::isEmpty)
                       .noInputs()))
           .withDescription("Intersect")
@@ -164,7 +164,7 @@ public abstract class PruneEmptyRules {
   }
 
   /**
-   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalProject}
+   * Rule that converts a {@link org.apache.calcite.rel.core.Project}
    * to empty if its child is empty.
    *
    * <p>Examples:
@@ -180,7 +180,7 @@ public abstract class PruneEmptyRules {
           .toRule();
 
   /**
-   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalFilter}
+   * Rule that converts a {@link org.apache.calcite.rel.core.Filter}
    * to empty if its child is empty.
    *
    * <p>Examples:
@@ -368,7 +368,7 @@ public abstract class PruneEmptyRules {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
-          final LogicalUnion union = call.rel(0);
+          final Union union = call.rel(0);
           final List<RelNode> inputs = union.getInputs();
           assert inputs != null;
           final RelBuilder builder = call.builder();
@@ -400,7 +400,7 @@ public abstract class PruneEmptyRules {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
-          final LogicalMinus minus = call.rel(0);
+          final Minus minus = call.rel(0);
           final List<RelNode> inputs = minus.getInputs();
           assert inputs != null;
           int nonEmptyInputs = 0;
@@ -438,7 +438,7 @@ public abstract class PruneEmptyRules {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
-          LogicalIntersect intersect = call.rel(0);
+          Intersect intersect = call.rel(0);
           final RelBuilder builder = call.builder();
           builder.push(intersect).empty();
           call.transformTo(builder.build());
