@@ -2232,10 +2232,12 @@ public class RexUtil {
     }
   }
 
-  /** Returns whether an expression contains a {@link RexSubQuery}. */
-  public static boolean containsSubQuery(RexNode node) {
+  /** Returns whether the expressions contain a {@link RexSubQuery}. */
+  public static boolean containsSubQuery(Iterable<? extends RexNode> nodes) {
     try {
-      node.accept(SubQueryFinder.INSTANCE);
+      for (RexNode node : nodes) {
+        node.accept(SubQueryFinder.INSTANCE);
+      }
       return false;
     } catch (Util.FoundOne e) {
       return true;

@@ -3388,7 +3388,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Error when executing query with subquery in select list that uses outer column of array
    * type</a>.
    */
-  @Test void testCorrelationWithProjection() {
+  @Test void testNotMergeProjectionsWhenCorrelationPresent() {
     final String sql = "SELECT ARRAY(SELECT s.x) FROM (SELECT sal + 10 as x FROM emp) s";
     sql(sql).withExpand(false).ok();
   }

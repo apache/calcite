@@ -1143,21 +1143,6 @@ LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testCorrelationWithProjection">
-    <Resource name="sql">
-      <![CDATA[SELECT ARRAY(SELECT s.x) FROM (SELECT sal + 10 as x FROM emp) s]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalProject(EXPR$0=[ARRAY({
-LogicalProject(X=[$cor0.X])
-  LogicalValues(tuples=[[{ 0 }]])
-})])
-  LogicalProject(X=[+($5, 10)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testCountNoGroup">
     <Resource name="sql">
       <![CDATA[select count(*), sum(sal)
@@ -4880,6 +4865,21 @@ LogicalProject(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
     </Resource>
     <Resource name="sql">
       <![CDATA[values ('a' not like 'b' escape 'c')]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNotMergeProjectionsWhenCorrelationPresent">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT s.x) FROM (SELECT sal + 10 as x FROM emp) s]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY({
+LogicalProject(X=[$cor0.X])
+  LogicalValues(tuples=[[{ 0 }]])
+})])
+  LogicalProject(X=[+($5, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testNotNotIn">

@@ -44,6 +44,13 @@ z.
 #### Breaking Changes
 {: #breaking-1-33-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5127">CALCITE-5127</a>]
+  Error when executing query with correlated sub-query in SELECT clause
+  * Old behavior: RelBuilder#project will merge with underlying Project;
+    RelFieldTrimmer will trim Project's input without considering RexSubQuery
+  * New behavior: RelBuilder#project will not merge with underlying Project if top Project contains RexSubQuery;
+    RelFieldTrimmer will not trim Project's input if it contains RexSubQuery.
+
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;
 Guava versions 19.0 to 31.1-jre;
