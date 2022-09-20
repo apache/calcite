@@ -158,6 +158,19 @@ class LexCaseSensitiveTest {
       runProjectQueryWithLex(Lex.JAVA, sql);
     });
   }
+  @Test void testCalciteCaseBigQuery()
+      throws SqlParseException, ValidationException, RelConversionException {
+    String sql = "select empid as EMPID, empid from (\n"
+        + "  select empid from emps order by EMPS.DEPTNO)";
+    runProjectQueryWithLex(Lex.BIG_QUERY, sql);
+  }
+
+  @Test void testCalciteCaseBigQueryNoException()
+      throws SqlParseException, ValidationException, RelConversionException {
+    String sql = "select EMPID, empid from\n"
+        + " (select empid from emps order by emps.deptno)";
+    runProjectQueryWithLex(Lex.BIG_QUERY, sql);
+  }
 
   @Test void testCalciteCaseJoinOracle()
       throws SqlParseException, ValidationException, RelConversionException {
@@ -198,5 +211,13 @@ class LexCaseSensitiveTest {
         + "(select * from emps where emps.deptno > 100) t join\n"
         + "(select * from emps where emps.deptno < 200) s on t.empid = s.empid";
     runProjectQueryWithLex(Lex.JAVA, sql);
+  }
+
+  @Test void testCalciteCaseJoinBigQuery()
+      throws SqlParseException, ValidationException, RelConversionException {
+    String sql = "select t.empid as EMPID, s.empid from\n"
+        + "(select * from emps where emps.deptno > 100) t join\n"
+        + "(select * from emps where emps.deptno < 200) s on t.empid = s.empid";
+    runProjectQueryWithLex(Lex.BIG_QUERY, sql);
   }
 }
