@@ -717,6 +717,14 @@ public class SqlDialect {
     return val;
   }
 
+  /**
+   * Unparses <code>TITLE</code> present in the column's definition.
+   **/
+  public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
+                                              int leftPrec, int rightPrec) {
+    throw new UnsupportedOperationException();
+  }
+
   protected boolean allowsAs() {
     return true;
   }
