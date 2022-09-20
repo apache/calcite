@@ -43,6 +43,7 @@ import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -310,6 +311,72 @@ class RelFieldTrimmerTest {
     assertTrue(trimmed.getInput(0) instanceof Project);
     final Project project = (Project) trimmed.getInput(0);
     assertTrue(project.getHints().contains(projectHint));
+  }
+
+  @Test void testNotTrimProjectWithSubQuery() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .projectNamed(
+                Arrays.asList(
+                    builder.field("EMPNO"),
+                    builder.field("ENAME"),
+                    builder.scalarQuery(b -> b.scan("EMP")
+                        .aggregate(b.groupKey(), b.countStar("CNT"))
+                        .build())),
+                Arrays.asList("EMPNO", "ENAME", "CNT"),
+                false)
+            .exchange(RelDistributions.SINGLETON)
+            .project(builder.field("ENAME"), builder.field("CNT"))
+            .build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+
+    final String expected = ""
+        + "LogicalProject(ENAME=[$1], CNT=[$2])\n"
+        + "  LogicalExchange(distribution=[single])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], CNT=[$SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], CNT=[COUNT()])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  @Test void testTrimInputForProjectionWithSubQuery() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("ENAME"), builder.field("EMPNO"),
+                builder.field("DEPTNO"))
+            .exchange(RelDistributions.SINGLETON)
+            .project(builder.field("ENAME"), builder.field("EMPNO"))
+            .exchange(RelDistributions.SINGLETON)
+            .projectNamed(
+                Arrays.asList(
+                    builder.field("EMPNO"),
+                    builder.field("ENAME"),
+                    builder.scalarQuery(b -> b.scan("EMP")
+                        .aggregate(b.groupKey(), b.countStar("CNT"))
+                        .build())),
+                Arrays.asList("EMPNO", "ENAME", "CNT"),
+                false)
+            .build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$1], ENAME=[$0], CNT=[$SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], CNT=[COUNT()])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalExchange(distribution=[single])\n"
+        + "    LogicalExchange(distribution=[single])\n"
+        + "      LogicalProject(ENAME=[$1], EMPNO=[$0])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
   }
 
   @Test void testCalcFieldTrimmer0() {

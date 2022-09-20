@@ -49,7 +49,7 @@ z.
   * Old behavior: RelBuilder#project will merge with underlying Project;
     RelFieldTrimmer will trim Project's input without considering RexSubQuery
   * New behavior: RelBuilder#project will not merge with underlying Project if top Project contains RexSubQuery;
-    RelFieldTrimmer will not trim Project's input if it contains RexSubQuery.
+    RelFieldTrimmer will treat all Project's fields are used if it contains RexSubQuery.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;

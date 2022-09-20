@@ -483,7 +483,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Do not trim Project's fields before SubQueryRemoveRule applies.
     if (RexUtil.containsSubQuery(project.getProjects())) {
-      return result(project, Mappings.createIdentity(fieldCount));
+      return trimFields((RelNode) project, fieldsUsed, extraFields);
     }
 
     // Which fields are required from the input?
