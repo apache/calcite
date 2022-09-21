@@ -520,9 +520,7 @@ public class SqlParserTest {
       "TEMPORARY",                     "92", "99",
       "THEN",                          "92", "99", "2003", "2011", "2014", "c",
       "TIME",                          "92", "99", "2003", "2011", "2014", "c",
-      "TIME_TRUNC", // BigQuery
       "TIMESTAMP",                     "92", "99", "2003", "2011", "2014", "c",
-      "TIMESTAMP_TRUNC", // BigQuery
       "TIMEZONE_HOUR",                 "92", "99", "2003", "2011", "2014", "c",
       "TIMEZONE_MINUTE",               "92", "99", "2003", "2011", "2014", "c",
       "TINYINT",                                                           "c",

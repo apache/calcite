@@ -1604,10 +1604,6 @@ public class SqlOperatorTest {
     f.checkScalar("{fn TIMESTAMPDIFF(MONTH,"
         + " TIMESTAMP '2019-09-01 00:00:00',"
         + " TIMESTAMP '2020-03-01 00:00:00')}", "6", "INTEGER NOT NULL");
-    f.checkScalar("{fn TIMESTAMP_TRUNC(TIMESTAMP '2019-09-20 15:30:00', MONTH) }",
-        "2019-09-01 00:00:00", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("{fn TIME_TRUNC(TIME '15:30:00', HOUR) }",
-        "15:00:00", "TIME(0) NOT NULL");
 
     if (Bug.CALCITE_2539_FIXED) {
       f.checkFails("{fn WEEK(DATE '2014-12-10')}",
@@ -7607,6 +7603,13 @@ public class SqlOperatorTest {
   }
 
   @Test void testTimeTrunc() {
+    SqlOperatorFixture nonBigQuery = fixture()
+        .setFor(SqlLibraryOperators.TIME_TRUNC);
+    nonBigQuery.checkFails("^time_trunc(time '15:30:00', hour)^",
+        "No match found for function signature "
+            + "TIME_TRUNC\\(<TIME>, <INTERVAL_DAY_TIME>\\)",
+        false);
+
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.TIME_TRUNC);
@@ -7632,6 +7635,13 @@ public class SqlOperatorTest {
   }
 
   @Test void testTimestampTrunc() {
+    SqlOperatorFixture nonBigQuery = fixture()
+        .setFor(SqlLibraryOperators.TIMESTAMP_TRUNC);
+    nonBigQuery.checkFails("^timestamp_trunc(timestamp '2012-05-02 15:30:00', hour)^",
+        "No match found for function signature "
+            + "TIMESTAMP_TRUNC\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)",
+        false);
+
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.TIMESTAMP_TRUNC);
