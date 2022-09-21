@@ -2613,11 +2613,8 @@ where unique (select comm from "scott".emp where comm is null);
 
 !ok
 
-EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
-  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-      EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableValues(tuples=[[]])
+EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+  EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Previous, as scalar sub-query.
@@ -2636,11 +2633,8 @@ from "scott".dept;
 
 !ok
 
-EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
-  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-      EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableValues(tuples=[[]])
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], DEPTNO=[$t0], U=[$t3])
+  EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # composite keys have unique value which excludes fully or partially null rows.
