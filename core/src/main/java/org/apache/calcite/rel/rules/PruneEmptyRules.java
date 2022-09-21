@@ -492,6 +492,7 @@ public abstract class PruneEmptyRules {
           if (join.getJoinType().generatesNullsOnLeft()) {
             // "select * from emp right join dept" is not necessarily empty if
             // emp is empty
+            // join can be removed and take the right branch, all columns come from emp are null
             List<RexNode> projects = new ArrayList<>(
                 empty.getRowType().getFieldCount() + right.getRowType().getFieldCount());
             List<String> columnNames = new ArrayList<>(
@@ -525,7 +526,6 @@ public abstract class PruneEmptyRules {
   public static void copyProjects(RexBuilder rexBuilder, RelDataType inRowType,
       RelDataType castRowType, int castRowTypeOffset,
       List<RexNode> outProjects, List<String> outProjectNames) {
-
     for (int i = 0; i < inRowType.getFieldCount(); ++i) {
       RelDataTypeField relDataTypeField = inRowType.getFieldList().get(i);
       RexInputRef inputRef = rexBuilder.makeInputRef(relDataTypeField.getType(), i);
@@ -550,6 +550,7 @@ public abstract class PruneEmptyRules {
           if (join.getJoinType().generatesNullsOnRight()) {
             // "select * from emp left join dept" is not necessarily empty if
             // dept is empty
+            // join can be removed and take the left branch, all columns come from dept are null
             List<RexNode> projects = new ArrayList<>(
                 left.getRowType().getFieldCount() + empty.getRowType().getFieldCount());
             List<String> columnNames = new ArrayList<>(
