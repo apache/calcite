@@ -36,13 +36,19 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -480,14 +486,53 @@ public abstract class PruneEmptyRules {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
           Join join = call.rel(0);
+          Values empty = call.rel(1);
+          RelNode right = call.rel(2);
+          RexBuilder rexBuilder = call.builder().getRexBuilder();
           if (join.getJoinType().generatesNullsOnLeft()) {
             // "select * from emp right join dept" is not necessarily empty if
             // emp is empty
+            List<RexNode> projects = new ArrayList<>(
+                empty.getRowType().getFieldCount() + right.getRowType().getFieldCount());
+            List<String> columnNames = new ArrayList<>(
+                empty.getRowType().getFieldCount() + right.getRowType().getFieldCount());
+            // left
+            addNullLiterals(rexBuilder, empty, projects, columnNames);
+            // right
+            copyProjects(rexBuilder, right.getRowType(),
+                join.getRowType(), empty.getRowType().getFieldCount(), projects, columnNames);
+
+            RelNode project = call.builder().push(right).project(projects, columnNames).build();
+            call.transformTo(project);
             return;
           }
           call.transformTo(call.builder().push(join).empty().build());
         }
       };
+    }
+  }
+
+  private static void addNullLiterals(RexBuilder rexBuilder, Values empty,
+      List<RexNode> projectFields, List<String> newColumnNames) {
+    for (int i = 0; i < empty.getRowType().getFieldList().size(); ++i) {
+      RelDataTypeField relDataTypeField = empty.getRowType().getFieldList().get(i);
+      RexNode nullLiteral = rexBuilder.makeNullLiteral(relDataTypeField.getType());
+      projectFields.add(nullLiteral);
+      newColumnNames.add(empty.getRowType().getFieldList().get(i).getName());
+    }
+  }
+
+  public static void copyProjects(RexBuilder rexBuilder, RelDataType inRowType,
+      RelDataType castRowType, int castRowTypeOffset,
+      List<RexNode> outProjects, List<String> outProjectNames) {
+
+    for (int i = 0; i < inRowType.getFieldCount(); ++i) {
+      RelDataTypeField relDataTypeField = inRowType.getFieldList().get(i);
+      RexInputRef inputRef = rexBuilder.makeInputRef(relDataTypeField.getType(), i);
+      RexNode cast = rexBuilder.makeCast(
+          castRowType.getFieldList().get(castRowTypeOffset + i).getType(), inputRef);
+      outProjects.add(cast);
+      outProjectNames.add(relDataTypeField.getName());
     }
   }
 
@@ -499,9 +544,24 @@ public abstract class PruneEmptyRules {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
           Join join = call.rel(0);
+          RelNode left = call.rel(1);
+          Values empty = call.rel(2);
+          RexBuilder rexBuilder = call.builder().getRexBuilder();
           if (join.getJoinType().generatesNullsOnRight()) {
             // "select * from emp left join dept" is not necessarily empty if
             // dept is empty
+            List<RexNode> projects = new ArrayList<>(
+                left.getRowType().getFieldCount() + empty.getRowType().getFieldCount());
+            List<String> columnNames = new ArrayList<>(
+                left.getRowType().getFieldCount() + empty.getRowType().getFieldCount());
+            // left
+            copyProjects(
+                rexBuilder, left.getRowType(), join.getRowType(), 0, projects, columnNames);
+            // right
+            addNullLiterals(rexBuilder, empty, projects, columnNames);
+
+            RelNode project = call.builder().push(left).project(projects, columnNames).build();
+            call.transformTo(project);
             return;
           }
           if (join.getJoinType() == JoinRelType.ANTI) {
