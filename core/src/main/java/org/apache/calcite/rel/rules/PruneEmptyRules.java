@@ -555,12 +555,11 @@ public abstract class PruneEmptyRules {
   }
 
   private static Stream<RexNode> castToNullable(
-      RexBuilder rexBuilder, Stream<RexNode> leftExpressions) {
+      RexBuilder rexBuilder, Stream<RexNode> expressions) {
     RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    leftExpressions = leftExpressions.map(
+    return expressions.map(
         rexNode -> rexBuilder.makeCast(
             typeFactory.createTypeWithNullability(rexNode.getType(), true), rexNode));
-    return leftExpressions;
   }
 
   private static Stream<RexNode> getNullLiteralStream(
