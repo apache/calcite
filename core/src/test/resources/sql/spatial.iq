@@ -1492,33 +1492,26 @@ EXPR$0
 MULTIPOLYGON (((7 2, 7 1, 1 1, 1 6, 3 6, 3 2, 7 2)), ((7 2, 7 6, 3 6, 3 8, 8 8, 8 2, 7 2)))
 !ok
 
-# ST_Union(geom1, geom2) Computes the union of two or more geometries
+# ST_UnaryUnion(geom1, geom2) Computes the union of two or more geometries
 
-# NOTE: PostGIS altered the order: it returned MULTIPOINT(-2 3,1 2)
-SELECT ST_AsText(ST_Union('POINT(1 2)', 'POINT(-2 3)'));
+SELECT ST_AsText(ST_UnaryUnion('POINT(1 2)', 'POINT(-2 3)'));
 EXPR$0
 MULTIPOINT ((-2 3), (1 2))
 !ok
 
-# NOTE: PostGIS returned a point not a multipoint: POINT(1 2). ESRI bug?
-SELECT ST_AsText(ST_Union('POINT(1 2)', 'POINT(1 2)'));
+SELECT ST_AsText(ST_UnaryUnion('POINT(1 2)', 'POINT(1 2)'));
 EXPR$0
 POINT (1 2)
 !ok
 
-# ST_Union(geomCollection) Computes the union of two or more geometries
-
-# Disabled: ST_GeomFromText cannot handle GEOMETRYCOLLECTION
-!if (false) {
-SELECT ST_AsText(st_union('GEOMETRYCOLLECTION(
-  POLYGON((-7 4.2,-7.1 4.2,-7.1 4.3,-7 4.2))
-  POINT(5 5)
-  POINT(-2 3)
-  LINESTRING(5 5, 10 10)'));
+SELECT ST_AsText(ST_UnaryUnion('GEOMETRYCOLLECTION(
+  POLYGON((-7 4.2,-7.1 4.2,-7.1 4.3,-7 4.2)),
+  POINT(5 5),
+  POINT(-2 3),
+  LINESTRING(5 5, 10 10))'));
 EXPR$0
-null
+GEOMETRYCOLLECTION (POINT (-2 3), LINESTRING (5 5, 10 10), POLYGON ((-7 4.2, -7.1 4.2, -7.1 4.3, -7 4.2)))
 !ok
-!}
 
 # ST_UNION(ARRAY[GEOMETRY]) is a PostGIS extension
 # We don't support it
@@ -2078,32 +2071,51 @@ POLYGON ((-71.1776848523 42.3902896513, -71.1776843767 42.3903829479, -71.177584
 
 #### Geometry aggregate functions
 
-# ST_Accum(geom) Accumulates *geom* into a geometry-collection (or multi-point, multi-line-string or multi-polygon if possible)
-# Not implemented
+# ST_Accum(geom) Accumulates *geom* into an array
+SELECT ST_Accum(tmp.geom)
+FROM (
+  SELECT ST_GeomFromText('POINT(1 1)') as geom
+  UNION ALL
+  SELECT ST_GeomFromText('POINT(2 2)') as geom
+) AS tmp;
+EXPR$0
+[POINT (1 1), POINT (2 2)]
+!ok
 
-# ST_Collect(geom) Alias for `ST_Accum`
-# Not implemented
+# ST_Collect(geom) Collects *geom* into a GeometryCollection
+SELECT ST_Collect(tmp.geom)
+FROM (
+  SELECT ST_GeomFromText('POINT(1 1)') as geom
+  UNION ALL
+  SELECT ST_GeomFromText('POINT(2 2)') as geom
+) AS tmp;
+EXPR$0
+GEOMETRYCOLLECTION (POINT (1 1), POINT (2 2))
+!ok
 
 # ST_Union(geom) Computes the union of geometries
-# Not implemented
+SELECT ST_Union(tmp.geom)
+FROM (
+  SELECT ST_GeomFromText('POINT(1 1)') as geom
+  UNION ALL
+  SELECT ST_GeomFromText('POINT(2 2)') as geom
+) AS tmp;
+EXPR$0
+MULTIPOINT ((1 1), (2 2))
+!ok
 
-# Disabled - ST_Union agg function is not implemented
-!if (false) {
+# ST_Union agg function is not implemented
 SELECT ST_AsText(st_union(the_geom))
 FROM (VALUES
   ST_GeomFromText('POLYGON((-7 4.2,-7.1 4.2,-7.1 4.3,-7 4.2))'),
   ST_GeomFromText('POINT(5 5)'),
   ST_GeomFromText('POINT(-2 3)'),
   ST_GeomFromText('LINESTRING(5 5, 10 10)')) as foo(the_geom);
-
-st_asewkt
----------
-GEOMETRYCOLLECTION(POINT(-2 3 1),LINESTRING(5 5 5,10 10 10),POLYGON((-7 4.2 5,-7.1 4.2 5,-7.1 4.3 5,-7 4.2 5)))
+EXPR$0
+GEOMETRYCOLLECTION (POINT (-2 3), LINESTRING (5 5, 10 10), POLYGON ((-7 4.2, -7.1 4.2, -7.1 4.3, -7 4.2)))
 !ok
-!}
 
 # 3d example - sort of supports 3d (and with mixed dimensions!)
-# WRONG: Currently returns 4 rows, should return 1 row when ST_Union is aggregate function
 SELECT ST_AsText(st_union(the_geom))
 FROM (
   SELECT ST_GeomFromText('POLYGON((-7 4.2,-7.1 4.2,-7.1 4.3,-7 4.2))') as the_geom
@@ -2113,16 +2125,11 @@ FROM (
   SELECT ST_GeomFromText('POINT Z(-2 3 1)') as the_geom
   UNION ALL
   SELECT ST_GeomFromText('LINESTRING Z(5 5 5, 10 10 10)') as the_geom ) as foo;
-
 EXPR$0
-LINESTRING Z(5 5 5, 10 10 10)
-POINT Z(-2 3 1)
-POINT Z(5 5 5)
-POLYGON ((-7 4.2, -7.1 4.2, -7.1 4.3, -7 4.2))
+GEOMETRYCOLLECTION (POINT (-2 3), LINESTRING (5 5, 10 10), POLYGON ((-7 4.2, -7.1 4.2, -7.1 4.3, -7 4.2)))
 !ok
 
 # 3d example not mixing dimensions
-# WRONG: Currently returns 4 rows, should return 1 row when ST_Union is aggregate function
 SELECT ST_AsText(st_union(the_geom))
 FROM (
   SELECT ST_GeomFromText('POLYGON Z((-7 4.2 2,-7.1 4.2 3,-7.1 4.3 2,-7 4.2 2))') as the_geom
@@ -2134,10 +2141,7 @@ FROM (
   SELECT ST_GeomFromText('LINESTRING Z(5 5 5, 10 10 10)') as the_geom ) as foo;
 
 EXPR$0
-LINESTRING Z(5 5 5, 10 10 10)
-POINT Z(-2 3 1)
-POINT Z(5 5 5)
-POLYGON Z((-7 4.2 2, -7.1 4.2 3, -7.1 4.3 2, -7 4.2 2))
+GEOMETRYCOLLECTION Z(POINT Z(-2 3 1), LINESTRING Z(5 5 5, 10 10 10), POLYGON Z((-7 4.2 2, -7.1 4.2 3, -7.1 4.3 2, -7 4.2 2)))
 !ok
 
 # Polygon-to-polygon joins
