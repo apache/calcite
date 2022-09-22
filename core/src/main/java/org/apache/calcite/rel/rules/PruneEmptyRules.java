@@ -36,7 +36,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
-import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
@@ -492,16 +492,16 @@ public abstract class PruneEmptyRules {
             // "select * from emp right join dept" is not necessarily empty if
             // emp is empty
             // join can be removed and take the right branch, all columns come from emp are null
-            List<RexNode> projects =
-                Stream
-                    .concat(
-                        getNullLiteralStream(empty, rexBuilder),
-                        getProjectStream(right.getRowType(), join.getRowType(),
-                            empty.getRowType().getFieldCount(), rexBuilder))
-                    .collect(Collectors.toList());
+            RelBuilder relBuilder = call.builder().push(right);
+            Stream<RexNode> rightFields = relBuilder.fields().stream();
+            if (join.getJoinType() == JoinRelType.FULL) {
+              rightFields = castToNullable(rexBuilder, rightFields);
+            }
 
-            RelNode project = call.builder()
-                .push(right)
+            List<RexNode> projects = Stream.concat(
+                getNullLiteralStream(empty, rexBuilder), rightFields).collect(Collectors.toList());
+
+            RelNode project = relBuilder
                 .project(projects, join.getRowType().getFieldNames())
                 .build();
             call.transformTo(project);
@@ -528,13 +528,16 @@ public abstract class PruneEmptyRules {
             // "select * from emp left join dept" is not necessarily empty if
             // dept is empty
             // join can be removed and take the left branch, all columns come from dept are null
-            List<RexNode> projects =
-                Stream.concat(
-                    getProjectStream(left.getRowType(), join.getRowType(), 0, rexBuilder),
-                    getNullLiteralStream(empty, rexBuilder)).collect(Collectors.toList());
+            RelBuilder relBuilder = call.builder().push(left);
+            Stream<RexNode> leftfields = relBuilder.fields().stream();
+            if (join.getJoinType() == JoinRelType.FULL) {
+              leftfields = castToNullable(rexBuilder, leftfields);
+            }
 
-            RelNode project = call.builder()
-                .push(left)
+            List<RexNode> projects = Stream.concat(
+                leftfields, getNullLiteralStream(empty, rexBuilder)).collect(Collectors.toList());
+
+            RelNode project = relBuilder
                 .project(projects, join.getRowType().getFieldNames())
                 .build();
             call.transformTo(project);
@@ -551,15 +554,13 @@ public abstract class PruneEmptyRules {
     }
   }
 
-  private static Stream<RexNode> getProjectStream(
-      RelDataType inRowType,
-      RelDataType castRowType,
-      int castRowTypeOffset,
-      RexBuilder rexBuilder) {
-    return inRowType.getFieldList().stream().map(
-        typeField -> rexBuilder.makeCast(
-                castRowType.getFieldList().get(castRowTypeOffset + typeField.getIndex()).getType(),
-                rexBuilder.makeInputRef(typeField.getType(), typeField.getIndex())));
+  private static Stream<RexNode> castToNullable(
+      RexBuilder rexBuilder, Stream<RexNode> leftExpressions) {
+    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    leftExpressions = leftExpressions.map(
+        rexNode -> rexBuilder.makeCast(
+            typeFactory.createTypeWithNullability(rexNode.getType(), true), rexNode));
+    return leftExpressions;
   }
 
   private static Stream<RexNode> getNullLiteralStream(
