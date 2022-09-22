@@ -71,7 +71,7 @@ class UnnestNamespace extends AbstractNamespace {
    * @param queryFieldName Name of column
    * @return A SqlQualified if subfield comes from this unnest, null if not found
    */
-  public @Nullable SqlQualified getColumnUnnestedFrom(String queryFieldName) {
+  @Nullable SqlQualified getColumnUnnestedFrom(String queryFieldName) {
     for (SqlNode operand : unnest.getOperandList()) {
       // Ignore operands that are inline ARRAY[] literals
       if (operand instanceof SqlIdentifier) {
