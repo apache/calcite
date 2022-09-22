@@ -562,8 +562,7 @@ public abstract class PruneEmptyRules {
             typeFactory.createTypeWithNullability(rexNode.getType(), true), rexNode));
   }
 
-  private static Stream<RexNode> getNullLiteralStream(
-      Values empty, RexBuilder rexBuilder) {
+  private static Stream<RexNode> getNullLiteralStream(Values empty, RexBuilder rexBuilder) {
     return empty.getRowType().getFieldList().stream().map(
         typeField -> rexBuilder.makeNullLiteral(typeField.getType()));
   }
