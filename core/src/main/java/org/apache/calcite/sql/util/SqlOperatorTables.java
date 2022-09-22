@@ -16,11 +16,9 @@
  */
 package org.apache.calcite.sql.util;
 
-import org.apache.calcite.prepare.CalciteCatalogReader;
-import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.fun.SqlSpatialTypeFunctions;
+import org.apache.calcite.sql.SqlSpatialTypeOperatorTable;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -37,13 +35,7 @@ public class SqlOperatorTables {
 
   @SuppressWarnings("FunctionalExpressionCanBeFolded")
   private static final Supplier<SqlOperatorTable> SPATIAL =
-      Suppliers.memoize(SqlOperatorTables::createSpatial)::get;
-
-  private static SqlOperatorTable createSpatial() {
-    return CalciteCatalogReader.operatorTable(
-        SpatialTypeFunctions.class.getName(),
-        SqlSpatialTypeFunctions.class.getName());
-  }
+      Suppliers.memoize(SqlSpatialTypeOperatorTable::new)::get;
 
   /** Returns the Spatial operator table, creating it if necessary. */
   public static SqlOperatorTable spatialInstance() {

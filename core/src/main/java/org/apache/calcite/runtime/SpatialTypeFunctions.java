@@ -52,6 +52,7 @@ import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
 import org.locationtech.jts.operation.polygonize.Polygonizer;
+import org.locationtech.jts.operation.union.UnaryUnionOp;
 import org.locationtech.jts.precision.GeometryPrecisionReducer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
@@ -60,6 +61,7 @@ import org.locationtech.jts.util.GeometricShapeFactory;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -1169,14 +1171,14 @@ public class SpatialTypeFunctions {
   /**
    * Computes the union of {@code geom1} and {@code geom2}.
    */
-  public static Geometry ST_Union(Geometry geom1, Geometry geom2) {
+  public static Geometry ST_UnaryUnion(Geometry geom1, Geometry geom2) {
     return geom1.union(geom2);
   }
 
   /**
    * Computes the union of the geometries in {@code geomCollection}.
    */
-  @SemiStrict public static Geometry ST_Union(Geometry geomCollection) {
+  @SemiStrict public static Geometry ST_UnaryUnion(Geometry geomCollection) {
     return geomCollection.union();
   }
 
@@ -1428,4 +1430,61 @@ public class SpatialTypeFunctions {
     }
   }
 
+  /**
+   * Used at run time by the ST_Union function.
+   */
+  public static class Union {
+
+    public List<Geometry> init() {
+      return new ArrayList<>();
+    }
+
+    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
+      accumulator.add(geometry);
+      return accumulator;
+    }
+
+    public Geometry result(List<Geometry> accumulator) {
+      return new UnaryUnionOp(accumulator).union();
+    }
+  }
+
+  /**
+   * Used at run time by the ST_Accum function.
+   */
+  public static class Accum {
+
+    public List<Geometry> init() {
+      return new ArrayList<>();
+    }
+
+    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
+      accumulator.add(geometry);
+      return accumulator;
+    }
+
+    public List<Geometry> result(List<Geometry> accumulator) {
+      return accumulator;
+    }
+  }
+
+  /**
+   * Used at run time by the ST_Collect function.
+   */
+  public static class Collect {
+
+    public List<Geometry> init() {
+      return new ArrayList<>();
+    }
+
+    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
+      accumulator.add(geometry);
+      return accumulator;
+    }
+
+    public Geometry result(List<Geometry> accumulator) {
+      Geometry[] array = accumulator.toArray(new Geometry[accumulator.size()]);
+      return GEOMETRY_FACTORY.createGeometryCollection(array);
+    }
+  }
 }
