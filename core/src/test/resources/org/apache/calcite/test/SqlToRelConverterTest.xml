@@ -1561,6 +1561,17 @@ LogicalProject(FAKE2=[ITEM($0, 'fake_col2')])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDynamicParameterDoubleCast">
+    <Resource name="sql">
+      <![CDATA[SELECT CAST(CAST(? AS INTEGER) AS CHAR)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST(?0):CHAR(1)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDynamicSchemaUnnest">
     <Resource name="sql">
       <![CDATA[select t1.c_nationkey, t3.fake_col3

@@ -4678,4 +4678,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5297">[CALCITE-5297]
+   * Casting dynamic variable twice throws exception</a>.
+   */
+  @Test void testDynamicParameterDoubleCast() {
+    String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
+    sql(sql).ok();
+  }
 }
