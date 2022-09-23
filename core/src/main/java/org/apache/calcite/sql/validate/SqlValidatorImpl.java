@@ -458,9 +458,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     selectItems.add(expanded);
     aliases.add(alias);
 
-    if (expanded != null) {
-      inferUnknownTypes(targetType, scope, expanded);
-    }
+    inferUnknownTypes(targetType, selectScope, expanded);
+
     RelDataType type = deriveType(selectScope, expanded);
     // Re-derive SELECT ITEM's data type that may be nullable in AggregatingSelectScope when it
     // appears in advanced grouping elements such as CUBE, ROLLUP , GROUPING SETS.

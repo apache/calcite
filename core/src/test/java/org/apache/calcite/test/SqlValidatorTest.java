@@ -7336,6 +7336,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by rollup(empno), deptno")
         .ok()
         .type("RecordType(INTEGER NOT NULL DEPTNO, INTEGER EMPNO) NOT NULL");
+
+    // empno becomes NULL because it is rolled up, and so does empno + 1.
+    sql("select empno, empno + 1 as e1\n"
+        + "from emp\n"
+        + "group by rollup(empno)")
+        .ok()
+        .type("RecordType(INTEGER EMPNO, INTEGER E1) NOT NULL");
   }
 
   @Test void testGroupByCorrelatedColumn() {
