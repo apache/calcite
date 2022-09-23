@@ -4688,4 +4688,28 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5296">[CALCITE-5296]
+   * In a query with ROLLUP, validator wrongly infers that a column is NOT NULL</a>.
+   */
+  @Test void testFunctionWithGroupsetsItem1() {
+    final String sql = "select deptno, case when grouping(deptno) = 0 then deptno else 1 end\n"
+        + "from emp\n"
+        + "group by rollup(deptno, job)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5296">[CALCITE-5296]
+   * In a query with ROLLUP, validator wrongly infers that a column is NOT NULL</a>.
+   */
+  @Test void testFunctionWithGroupsetsItem2() {
+    final String sql = "select deptno, deptno + 1, job * 10\n"
+        + "from emp\n"
+        + "group by rollup(deptno, job)";
+    sql(sql).ok();
+  }
 }
