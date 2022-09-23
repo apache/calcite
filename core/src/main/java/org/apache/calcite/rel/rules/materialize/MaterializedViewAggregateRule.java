@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules.materialize;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -41,6 +42,7 @@ import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
@@ -50,6 +52,7 @@ import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -937,6 +940,53 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       }
     }
     return Pair.of(resultTopViewProject, requireNonNull(resultViewNode, "resultViewNode"));
+  }
+
+  /**
+   * If the view contains a FLOOR(col) and the query contains a range predicate on the col then
+   * rewrite the view to include a predicate based on the query predicate so that the view
+   * can be used.
+   * @return pair of view and added view predicate, or null if the rewrite can't be done
+   */
+  @Override public @Nullable  Pair<RelNode, RexNode> rewriteInputView(RelOptRuleCall call,
+      RelNode view, RelNode viewNode, RexBuilder rexBuilder, Pair<RexNode, RexNode> queryPreds,
+      RexNode viewPred) {
+    if (!queryPreds.right.isAlwaysTrue() && viewPred.isAlwaysTrue()) {
+      // If there is no view predicate add one based on the query predicate if the
+      // view is a rollup ( contains an aggregation that groups by FLOOR )
+      if (viewNode instanceof Aggregate) {
+        Aggregate aggregate = (Aggregate) viewNode;
+        RelNode input = aggregate.getInput();
+        if (input instanceof Project) {
+          Project project = (Project) input;
+          int viewColumnIndex = 0;
+          for (RexNode rexNode : project.getProjects()) {
+            if (rexNode instanceof RexCall) {
+              RexCall rexCall = (RexCall) rexNode;
+              if (rexCall.getKind() == SqlKind.FLOOR) {
+                RexInputRef rexInputRef = RexInputRef.of(viewColumnIndex, view.getRowType());
+                ImplicitViewPredicateShuttle viewPredicateShuttle =
+                    new ImplicitViewPredicateShuttle(rexBuilder, rexCall, rexInputRef, false);
+                ImplicitViewPredicateShuttle viewPredicateShuttle2 =
+                    new ImplicitViewPredicateShuttle(rexBuilder, rexCall, rexInputRef, true);
+                RexNode viewPredicate = queryPreds.right.accept(viewPredicateShuttle);
+                if (viewPredicateShuttle.isRangeMatched()) {
+                  RexNode viewFilter = queryPreds.right.accept(viewPredicateShuttle2);
+                  RelBuilder builder =
+                      call.builder().transform(c -> c.withPruneInputOfAggregate(false));
+                  RelNode rewrittenView = builder.push(view).filter(viewFilter).build();
+                  return new Pair<>(rewrittenView, viewPredicate);
+                }
+              }
+            }
+            viewColumnIndex++;
+          }
+        }
+      }
+      return null;
+    }
+    // return original view and viewPred
+    return Pair.of(view, viewPred);
   }
 
   /**

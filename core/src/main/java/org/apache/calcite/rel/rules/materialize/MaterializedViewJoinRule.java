@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules.materialize;
 
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
@@ -295,5 +296,12 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
       @Nullable RelNode topViewProject, RelNode viewNode, RexNode cond) {
     // Nothing to do
     return Pair.of(topViewProject, viewNode);
+  }
+
+  @Override public @Nullable Pair<RelNode, RexNode> rewriteInputView(RelOptRuleCall call,
+      RelNode view, RelNode viewNode, RexBuilder rexBuilder, Pair<RexNode, RexNode> queryPreds,
+      RexNode viewPred) {
+    // return original view and viewPred
+    return Pair.of(view, viewPred);
   }
 }

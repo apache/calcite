@@ -328,11 +328,15 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     if (values.get(0) == N) {
       return N;
     }
-    final Long v = (Long) values.get(0);
+    Long v = (Long) values.get(0);
     final TimeUnitRange unit = (TimeUnitRange) values.get(1);
     switch (unit) {
     case YEAR:
+    case QUARTER:
     case MONTH:
+    case WEEK:
+    case DAY:
+      v = ceilSubDay(call.getKind(), v, TimeUnitRange.DAY);
       switch (call.getKind()) {
       case FLOOR:
         return DateTimeUtils.unixTimestampFloor(unit, v);
@@ -340,27 +344,17 @@ public class RexInterpreter implements RexVisitor<Comparable> {
         return DateTimeUtils.unixTimestampCeil(unit, v);
       }
     default:
-      switch (call.getKind()) {
-      case FLOOR:
-        return SqlFunctions.floor(v, getFloorMod(unit));
-      default:
-        return SqlFunctions.ceil(v, getFloorMod(unit));
-      }
+      break;
     }
+    return ceilSubDay(call.getKind(), v, unit);
   }
 
-  public static long getFloorMod(TimeUnitRange unit) {
-    switch (unit) {
-    case DAY:
-      return DateTimeUtils.MILLIS_PER_DAY;
-    case HOUR:
-      return DateTimeUtils.MILLIS_PER_HOUR;
-    case MINUTE:
-      return DateTimeUtils.MILLIS_PER_MINUTE;
-    case SECOND:
-      return DateTimeUtils.MILLIS_PER_SECOND;
+  private static long ceilSubDay(SqlKind kind, Long v, TimeUnitRange unit) {
+    switch (kind) {
+    case FLOOR:
+      return SqlFunctions.floor(v, unit.startUnit.multiplier.longValue());
     default:
-      throw new AssertionError(unit);
+      return SqlFunctions.ceil(v, unit.startUnit.multiplier.longValue());
     }
   }
 
