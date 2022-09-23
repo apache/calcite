@@ -36,11 +36,8 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -49,8 +46,8 @@ import org.immutables.value.Value;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static com.google.common.collect.Iterables.concat;
 
 /**
  * Collection of rules which remove sections of a query plan known never to
@@ -484,30 +481,24 @@ public abstract class PruneEmptyRules {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
-          Join join = call.rel(0);
-          Values empty = call.rel(1);
-          RelNode right = call.rel(2);
-          RexBuilder rexBuilder = call.builder().getRexBuilder();
+          final Join join = call.rel(0);
+          final Values empty = call.rel(1);
+          final RelNode right = call.rel(2);
+          final RelBuilder b = call.builder();
           if (join.getJoinType().generatesNullsOnLeft()) {
-            // "select * from emp right join dept" is not necessarily empty if
-            // emp is empty
-            // join can be removed and take the right branch, all columns come from emp are null
-            RelBuilder relBuilder = call.builder().push(right);
-            Stream<RexNode> rightFields = relBuilder.fields().stream();
-            if (join.getJoinType() == JoinRelType.FULL) {
-              rightFields = castToNullable(rexBuilder, rightFields);
-            }
-
-            List<RexNode> projects = Stream.concat(
-                getNullLiteralStream(empty, rexBuilder), rightFields).collect(Collectors.toList());
-
-            RelNode project = relBuilder
-                .project(projects, join.getRowType().getFieldNames())
-                .build();
-            call.transformTo(project);
+            // If "emp" is empty, "select * from emp right join dept" will have
+            // the same number of rows as "dept", and null values for the
+            // columns from "emp". The left side of the join can be removed.
+            final List<RexLiteral> nullLiterals =
+                Collections.nCopies(empty.getRowType().getFieldCount(), b.literal(null));
+            call.transformTo(
+                b.push(right)
+                    .project(concat(nullLiterals, b.fields()))
+                    .convert(join.getRowType(), true)
+                    .build());
             return;
           }
-          call.transformTo(call.builder().push(join).empty().build());
+          call.transformTo(b.push(join).empty().build());
         }
       };
     }
@@ -520,27 +511,21 @@ public abstract class PruneEmptyRules {
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
-          Join join = call.rel(0);
-          RelNode left = call.rel(1);
-          Values empty = call.rel(2);
-          RexBuilder rexBuilder = call.builder().getRexBuilder();
+          final Join join = call.rel(0);
+          final RelNode left = call.rel(1);
+          final Values empty = call.rel(2);
+          final RelBuilder b = call.builder();
           if (join.getJoinType().generatesNullsOnRight()) {
-            // "select * from emp left join dept" is not necessarily empty if
-            // dept is empty
-            // join can be removed and take the left branch, all columns come from dept are null
-            RelBuilder relBuilder = call.builder().push(left);
-            Stream<RexNode> leftfields = relBuilder.fields().stream();
-            if (join.getJoinType() == JoinRelType.FULL) {
-              leftfields = castToNullable(rexBuilder, leftfields);
-            }
-
-            List<RexNode> projects = Stream.concat(
-                leftfields, getNullLiteralStream(empty, rexBuilder)).collect(Collectors.toList());
-
-            RelNode project = relBuilder
-                .project(projects, join.getRowType().getFieldNames())
-                .build();
-            call.transformTo(project);
+            // If "dept" is empty, "select * from emp left join dept" will have
+            // the same number of rows as "emp", and null values for the
+            // columns from "dept". The right side of the join can be removed.
+            final List<RexLiteral> nullLiterals =
+                Collections.nCopies(empty.getRowType().getFieldCount(), b.literal(null));
+            call.transformTo(
+                b.push(left)
+                    .project(concat(b.fields(), nullLiterals))
+                    .convert(join.getRowType(), true)
+                    .build());
             return;
           }
           if (join.getJoinType() == JoinRelType.ANTI) {
@@ -548,22 +533,9 @@ public abstract class PruneEmptyRules {
             call.transformTo(join.getLeft());
             return;
           }
-          call.transformTo(call.builder().push(join).empty().build());
+          call.transformTo(b.push(join).empty().build());
         }
       };
     }
-  }
-
-  private static Stream<RexNode> castToNullable(
-      RexBuilder rexBuilder, Stream<RexNode> expressions) {
-    RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-    return expressions.map(
-        rexNode -> rexBuilder.makeCast(
-            typeFactory.createTypeWithNullability(rexNode.getType(), true), rexNode));
-  }
-
-  private static Stream<RexNode> getNullLiteralStream(Values empty, RexBuilder rexBuilder) {
-    return empty.getRowType().getFieldList().stream().map(
-        typeField -> rexBuilder.makeNullLiteral(typeField.getType()));
   }
 }
