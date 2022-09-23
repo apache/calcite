@@ -8847,6 +8847,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select min(deptno) from dept as depts2)").ok();
   }
 
+  @Test void dynamicParameterType() {
+    expr("CAST(? AS INTEGER)")
+        .columnType("INTEGER");
+  }
+
   @Test void testRecordType() {
     // Have to qualify columns with table name.
     sql("SELECT ^coord^.x, coord.y FROM customer.contact")
