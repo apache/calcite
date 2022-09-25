@@ -196,8 +196,13 @@ public final class CalciteSystemProperty<T> {
             "../../calcite-test-dataset"
         };
         for (String s : dirs) {
-          if (new File(s).exists() && new File(s, "vm").exists()) {
-            return s;
+          try {
+            if (new File(s).exists() && new File(s, "vm").exists()) {
+              return s;
+            }
+          } catch (SecurityException ignore) {
+            // Ignore SecurityException on purpose because if
+            // we can't get to the file we fall through.
           }
         }
         return ".";
@@ -449,10 +454,9 @@ public final class CalciteSystemProperty<T> {
       }
     } catch (IOException e) {
       throw new RuntimeException("while reading from saffron.properties file", e);
-    } catch (RuntimeException e) {
-      if (!"java.security.AccessControlException".equals(e.getClass().getName())) {
-        throw e;
-      }
+    } catch (SecurityException ignore) {
+      // Ignore SecurityException on purpose because if
+      // we can't get to the file we fall through.
     }
 
     // Merge system and saffron properties, mapping deprecated saffron
