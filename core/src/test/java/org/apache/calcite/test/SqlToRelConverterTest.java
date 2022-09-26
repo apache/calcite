@@ -4685,7 +4685,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Casting dynamic variable twice throws exception</a>.
    */
   @Test void testDynamicParameterDoubleCast() {
-    String sql = "SELECT CAST(CAST(? AS INTEGER) AS INTEGER)";
+    String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
 }
