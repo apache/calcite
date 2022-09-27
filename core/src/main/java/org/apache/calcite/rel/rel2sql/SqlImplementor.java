@@ -63,6 +63,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlFieldAccess;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -699,31 +700,29 @@ public abstract class SqlImplementor {
           accesses.offerLast((RexFieldAccess) referencedExpr);
           referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
         }
-        SqlIdentifier sqlIdentifier;
+        SqlFieldAccess sqlFieldAccess = new SqlFieldAccess(POS);
         switch (referencedExpr.getKind()) {
         case CORREL_VARIABLE:
           final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
           final Context correlAliasContext = getAliasContext(variable);
           final RexFieldAccess lastAccess = accesses.pollLast();
           assert lastAccess != null;
-          sqlIdentifier = (SqlIdentifier) correlAliasContext
-              .field(lastAccess.getField().getIndex());
+          sqlFieldAccess.add((SqlIdentifier) correlAliasContext
+              .field(lastAccess.getField().getIndex()));
           break;
         case ROW:
           final SqlNode expr = toSql(program, referencedExpr);
-          sqlIdentifier = new SqlIdentifier(expr.toString(), POS);
+          sqlFieldAccess.add(expr);
           break;
         default:
-          sqlIdentifier = (SqlIdentifier) toSql(program, referencedExpr);
+          sqlFieldAccess.add(toSql(program, referencedExpr));
         }
 
-        int nameIndex = sqlIdentifier.names.size();
         RexFieldAccess access;
         while ((access = accesses.pollLast()) != null) {
-          sqlIdentifier = sqlIdentifier.add(nameIndex++, access.getField().getName(), POS);
+          sqlFieldAccess.add(new SqlIdentifier(access.getField().getName(), POS));
         }
-        return sqlIdentifier;
-
+        return sqlFieldAccess;
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
         String pv = ref.getAlpha();

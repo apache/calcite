@@ -135,7 +135,9 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MI;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHHMISS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FARM_FINGERPRINT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
@@ -361,6 +363,11 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public JoinType emulateJoinTypeForCrossJoin() {
     return JoinType.INNER;
+  }
+
+  @Override public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
+      int leftPrec, int rightPrec) {
+    writer.print("OPTIONS(description=" + title + ")");
   }
 
   @Override public boolean castRequiredForStringOperand(RexCall node) {
@@ -1013,11 +1020,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(date_diff);
       break;
-
     case "HASHROW":
-      final SqlWriter.Frame farm_fingerprint = writer.startFunCall("FARM_FINGERPRINT");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(farm_fingerprint);
+      unparseHashrowFunction(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
       final SqlWriter.Frame trunc = getTruncFrame(writer, call);
@@ -1702,5 +1706,30 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
     }
     return frame;
+  }
+
+  /**
+   * In BigQuery, the equivalent for HASHROW is FARM_FINGERPRINT, and FARM_FINGERPRINT supports
+   * only one argument.
+   * So, to handle this scenario, we CONCAT all the arguments of HASHROW.
+   * And
+   * For single argument,we directly cast that element to VARCHAR.
+   * Example:
+   * BQ:  FARM_FINGERPRINT(CONCAT(first_name, employee_id, last_name, hire_date))
+   */
+  private void unparseHashrowFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode farmFingerprintOperandCall;
+    if (call.operandCount() > 1) {
+      farmFingerprintOperandCall = CONCAT2.createCall(SqlParserPos.ZERO, call.getOperandList());
+    } else {
+      SqlNode varcharNode = getCastSpec(
+          new BasicSqlType(RelDataTypeSystem.DEFAULT,
+          SqlTypeName.VARCHAR));
+      farmFingerprintOperandCall = CAST.createCall(SqlParserPos.ZERO, call.operand(0),
+          varcharNode);
+    }
+    SqlCall farmFingerprintCall = FARM_FINGERPRINT.createCall(SqlParserPos.ZERO,
+        farmFingerprintOperandCall);
+    super.unparseCall(writer, farmFingerprintCall, leftPrec, rightPrec);
   }
 }

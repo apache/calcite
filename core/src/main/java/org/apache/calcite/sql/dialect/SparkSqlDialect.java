@@ -225,6 +225,12 @@ public class SparkSqlDialect extends SqlDialect {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
+  @Override public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
+                                                        int leftPrec, int rightPrec) {
+    writer.keyword("COMMENT");
+    writer.print(title);
+  }
+
   @Override public SqlNode emulateNullDirection(
     SqlNode node, boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
