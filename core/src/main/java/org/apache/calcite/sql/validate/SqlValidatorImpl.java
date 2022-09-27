@@ -235,11 +235,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private int nextGeneratedId;
   protected final RelDataTypeFactory typeFactory;
-  /**
-   * The type of dynamic parameters until a type is imposed on them.
-   * It is assumed that dynamic parameter is nullable.
-   * See {@link #inferUnknownTypes(RelDataType, SqlValidatorScope, SqlNode)}
-   */
   protected final RelDataType unknownType;
   private final RelDataType booleanType;
 
@@ -299,6 +294,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     this.typeFactory = requireNonNull(typeFactory, "typeFactory");
     this.config = requireNonNull(config, "config");
 
+    // It is assumed that unknown type is nullable by default
     unknownType = typeFactory.createTypeWithNullability(typeFactory.createUnknownType(), true);
     booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
