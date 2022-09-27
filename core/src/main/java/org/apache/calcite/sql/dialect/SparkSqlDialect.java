@@ -37,7 +37,6 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
@@ -88,6 +87,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEOFDAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
@@ -137,6 +137,7 @@ public class SparkSqlDialect extends SqlDialect {
         put(DAYOFYEAR, "ddd");
         put(NUMERICMONTH, "MM");
         put(ABBREVIATEDMONTH, "MMM");
+        put(TIMEOFDAY, "EE MMM dd HH:mm:ss yyyy zz");
         put(MONTHNAME, "MMMM");
         put(TWODIGITYEAR, "yy");
         put(FOURDIGITYEAR, "yyyy");
@@ -165,6 +166,10 @@ public class SparkSqlDialect extends SqlDialect {
         put(POST_MERIDIAN_INDICATOR1, "a");
         put(ANTE_MERIDIAN_INDICATOR1, "a");
       }};
+
+  private static final String AND = "&";
+  private static final String OR = "|";
+  private static final String XOR = "^";
 
   /**
    * Creates a SparkSqlDialect.
@@ -285,10 +290,6 @@ public class SparkSqlDialect extends SqlDialect {
       SqlUtil.unparseFunctionSyntax(SPARKSQL_SUBSTRING, writer, call, false);
     } else {
       switch (call.getKind()) {
-      case MOD:
-        SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
-        SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
-        break;
       case CHAR_LENGTH:
         final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
@@ -627,6 +628,23 @@ public class SparkSqlDialect extends SqlDialect {
     case "CURRENT_TIME":
       unparseCurrentTime(writer, call, leftPrec, rightPrec);
       break;
+    case "SESSION_USER":
+      writer.print("CURRENT_USER");
+      break;
+    case "BITWISE_AND":
+      unparseBitwiseOperand(writer, call, leftPrec, rightPrec, AND);
+      break;
+    case "BITWISE_OR":
+      unparseBitwiseOperand(writer, call, leftPrec, rightPrec, OR);
+      break;
+    case "BITWISE_XOR":
+      unparseBitwiseOperand(writer, call, leftPrec, rightPrec, XOR);
+      break;
+    case "PI":
+      SqlWriter.Frame piFrame = writer.startFunCall("PI");
+      writer.endFunCall(piFrame);
+      break;
+
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -681,6 +699,13 @@ public class SparkSqlDialect extends SqlDialect {
         .makeCastCallForTimeWithTimestamp(
             SqlLibraryOperators.CURRENT_TIMESTAMP.createCall(SqlParserPos.ZERO), precision);
     unparseCall(writer, timeStampCastCall, leftPrec, rightPrec);
+  }
+
+  private void unparseBitwiseOperand(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      String op) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.literal(op);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
   }
 
   private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
