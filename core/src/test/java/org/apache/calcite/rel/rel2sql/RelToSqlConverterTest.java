@@ -6354,7 +6354,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
-   * Select operator' parentheses should be same with Union operator</a>. */
+   * Unparsing should not add parentheses for SELECT in INSERT</a>. */
   @Test void testInsertValueWithDynamicParams() {
     final String sql = "insert into \"DEPT\" values (?,?,?)";
     final String expected = ""
