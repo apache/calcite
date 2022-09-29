@@ -752,7 +752,24 @@ POLYGON ((0 0, 0 1, 1.0000000001 1, 1.0000000001 0, 0 0))
 !ok
 
 # ST_Explode(query [, fieldName]) Explodes the geometry-collections in the *fieldName* column of a query into multiple geometries
-# Not implemented
+
+SELECT t.geom, t.index FROM table(ST_Explode(ST_GeomFromText('MULTIPOINT((1 1), (2 2), (3 3), (4 4))'))) as t(geom, index);
+GEOM, INDEX
+POINT (1 1), 0
+POINT (2 2), 1
+POINT (3 3), 2
+POINT (4 4), 3
+!ok
+
+SELECT t1.id, t2.geom, t2.index
+FROM (SELECT 1 as id, 'MULTIPOINT((1 1), (2 2))' as points UNION ALL SELECT 2 as id, 'MULTIPOINT((3 3), (4 4))' as points) as t1,
+LATERAL table(ST_Explode(t1.points)) as t2(geom, index);
+ID, GEOM, INDEX
+1, POINT (1 1), 0
+1, POINT (2 2), 1
+2, POINT (3 3), 0
+2, POINT (4 4), 1
+!ok
 
 # ST_Extent(geom) Returns the minimum bounding box of *geom* (which may be a geometry-collection)
 

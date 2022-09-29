@@ -994,6 +994,15 @@ public class SpatialTypeFunctions {
     return geom.getEnvelope();
   }
 
+  /**
+   * Explodes the {@code geom} into multiple geometries.
+   */
+  private static void ST_Explode(final Geometry geom) {
+    // This is a dummy function. We cannot include table functions in this
+    // package, because they have too many dependencies. See the real definition
+    // in SqlSpatialTypeFunctions.
+  }
+
   // Geometry predicates ======================================================
 
   /**
