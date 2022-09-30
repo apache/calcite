@@ -118,6 +118,20 @@ public final class SqlParserUtil {
     return new BigDecimal(s);
   }
 
+  /**
+   * Returns true if the specific character is a base-8 digit.
+   */
+  public static boolean isOctalDigit(final char ch) {
+    return ch >= '0' && ch <= '7';
+  }
+
+  /**
+   * Returns true if the specified character is a base-16 digit.
+   */
+  public static boolean isHexDigit(final char ch) {
+    return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f');
+  }
+
   // CHECKSTYLE: IGNORE 1
   /** @deprecated this method is not localized for Farrago standards */
   @Deprecated // to be removed before 2.0

@@ -46,6 +46,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Calendar;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -1049,6 +1050,142 @@ public class SqlLiteral extends SqlNode {
         ns.getCollation());
     return new SqlCharStringLiteral(ns, getParserPosition());
   }
+
+  /**
+   * Creates a string literal from "escape" string.
+   * The method body has been copy-pasted from <a href="https://github.com/crate/crate/blob/master/libs/sql-parser/src/main/java/io/crate/sql/Literals.java#L44">Literals.java</a>
+   *
+   * @param input   a "escape" string constants
+   * @param pos     Parser position
+   * @see <a href="https://www.postgresql.org/docs/14/sql-syntax-lexical.html#SQL-SYNTAX-CONSTANTS">4.1.2.2. String Constants With C-Style Escapes</a>
+   * @return A string literal
+   */
+  public static SqlLiteral createCharStringFromEscapeString(String input,
+      SqlParserPos pos) {
+    int length = input.length();
+    if (input.length() <= 1) {
+      SqlLiteral.createCharString(input, "UTF16", pos);
+    }
+
+    StringBuilder builder = new StringBuilder(length);
+    int endIdx;
+    for (int i = 0; i < length; i++) {
+      char currentChar = input.charAt(i);
+      if (currentChar == '\\' && i + 1 < length) {
+        char nextChar = input.charAt(i + 1);
+        switch (nextChar) {
+        case 'b':
+          builder.append('\b');
+          i++;
+          break;
+        case 'f':
+          builder.append('\f');
+          i++;
+          break;
+        case 'n':
+          builder.append('\n');
+          i++;
+          break;
+        case 'r':
+          builder.append('\r');
+          i++;
+          break;
+        case 't':
+          builder.append('\t');
+          i++;
+          break;
+        case '\\':
+        case '\'':
+          builder.append(nextChar);
+          i++;
+          break;
+        case 'u':
+        case 'U':
+          // handle unicode case
+          final int charsToConsume = (nextChar == 'u') ? 4 : 8;
+          if (i + 1 + charsToConsume >= length) {
+            throw SqlUtil.newContextException(pos,
+                RESOURCE.unicodeEscapeMalformed(i));
+          }
+          endIdx = calculateMaxCharsInSequence(input,
+              i + 2,
+              charsToConsume,
+              SqlParserUtil::isHexDigit);
+          if (endIdx != i + 2 + charsToConsume) {
+            throw SqlUtil.newContextException(pos,
+                RESOURCE.unicodeEscapeMalformed(i));
+          }
+          builder.appendCodePoint(Integer.parseInt(input.substring(i + 2, endIdx), 16));
+          i = endIdx - 1; // skip already consumed chars
+          break;
+        case 'x':
+          // handle hex byte case - up to 2 chars for hex value
+          endIdx = calculateMaxCharsInSequence(input,
+              i + 2,
+              2,
+              SqlParserUtil::isHexDigit);
+          if (endIdx > i + 2) {
+            builder.appendCodePoint(Integer.parseInt(input.substring(i + 2, endIdx), 16));
+            i = endIdx - 1; // skip already consumed chars
+          } else {
+            // hex sequence unmatched - output original char
+            builder.append(nextChar);
+            i++;
+          }
+          break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+          // handle octal case - up to 3 chars
+          endIdx = calculateMaxCharsInSequence(input,
+              i + 2,
+              2,      // first char is already "consumed"
+              SqlParserUtil::isOctalDigit);
+          builder.appendCodePoint(Integer.parseInt(input.substring(i + 1, endIdx), 8));
+          i = endIdx - 1; // skip already consumed chars
+          break;
+        default:
+          // non-valid escaped char sequence
+          builder.append(currentChar);
+        }
+      } else {
+        builder.append(currentChar);
+      }
+    }
+    return SqlLiteral.createCharString(builder.toString(), "UTF16", pos);
+  }
+
+  /**
+   * Calculates the maximum number of consecutive characters of the {@link CharSequence} argument,
+   * starting from {@code beginIndex}, that match a given {@link Predicate}.
+   * The number of characters to match are either capped from the {@code maxCharsToMatch} parameter
+   * or the sequence length.
+   *
+   * Examples:
+   * <pre>
+   * {@code
+   *    calculateMaxCharsInSequence("12345", 0, 2, Character::isDigit) -> 2
+   *    calculateMaxCharsInSequence("12345", 3, 2, Character::isDigit) -> 5
+   *    calculateMaxCharsInSequence("12345", 4, 2, Character::isDigit) -> 5
+   * }
+   * </pre>
+   *
+   * @return the index of the first non-matching character
+   */
+  private static int calculateMaxCharsInSequence(CharSequence seq,
+      int beginIndex,
+      int maxCharsToMatch,
+      Predicate<Character> predicate) {
+    int idx = beginIndex;
+    final int end = Math.min(seq.length(), beginIndex + maxCharsToMatch);
+    while (idx < end && predicate.test(seq.charAt(idx))) {
+      idx++;
+    }
+    return idx;
+  }
+
+
 
   //~ Inner Interfaces -------------------------------------------------------
 
