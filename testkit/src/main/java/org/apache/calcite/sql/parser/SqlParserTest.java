@@ -72,6 +72,7 @@ import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.util.Static.RESOURCE;
 import static org.apache.calcite.util.Util.toLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -1898,6 +1899,73 @@ public class SqlParserTest {
 
   @Test void testConcat() {
     expr("'a' || 'b'").ok("('a' || 'b')");
+  }
+
+  @Test void testCStyleEscapedString() {
+    expr("E'Apache\\tCalcite'")
+        .ok("_UTF16'Apache\tCalcite'");
+    expr("E'Apache\\bCalcite'")
+        .ok("_UTF16'Apache\bCalcite'");
+    expr("E'Apache\\fCalcite'")
+        .ok("_UTF16'Apache\fCalcite'");
+    expr("E'Apache\\nCalcite'")
+        .ok("_UTF16'Apache\nCalcite'");
+    expr("E'Apache\\rCalcite'")
+        .ok("_UTF16'Apache\rCalcite'");
+    expr("E'\\t\\n\\f'")
+        .ok("_UTF16'\t\n\f'");
+    expr("E'\\Apache Calcite'")
+        .ok("_UTF16'\\Apache Calcite'");
+
+    expr("E'\141'")
+        .ok("_UTF16'a'");
+    expr("E'\141\141\141'")
+        .ok("_UTF16'aaa'");
+    expr("E'\1411'")
+        .ok("_UTF16'a1'");
+
+    expr("E'\\x61'")
+        .ok("_UTF16'a'");
+    expr("E'\\x61\\x61\\x61'")
+        .ok("_UTF16'aaa'");
+    expr("E'\\x61\\x61\\x61'")
+        .ok("_UTF16'aaa'");
+    expr("E'\\xDg0000'")
+        .ok("_UTF16'\rg0000'");
+
+    expr("E'\\u0061'")
+        .ok("_UTF16'a'");
+    expr("E'\\u0061\\u0061\\u0061'")
+        .ok("_UTF16'aaa'");
+
+    expr("E'\\U00000061'")
+        .ok("_UTF16'a'");
+    expr("E'\\U00000061\\U00000061\\U00000061'")
+        .ok("_UTF16'aaa'");
+
+    expr("E'\\0'")
+        .ok("_UTF16'\u0000'");
+    expr("E'\\07'")
+        .ok("_UTF16'\u0007'");
+    expr("E'\\07'")
+        .ok("_UTF16'\u0007'");
+
+    expr("E'a\\'a\\'a\\''")
+        .ok("_UTF16'a''a''a'''");
+    expr("E'a''a''a'''")
+        .ok("_UTF16'a''a''a'''");
+
+    expr("E^'\\'^")
+        .fails("(?s).*Encountered .*");
+    expr("E^'a\\'^")
+        .fails("(?s).*Encountered.*");
+    expr("E'a\\''^a^'")
+        .fails("(?s).*Encountered.*");
+
+    expr("^E'A\\U0061'^")
+        .fails(RESOURCE.unicodeEscapeMalformed(1).str());
+    expr("^E'AB\\U0000006G'^")
+        .fails(RESOURCE.unicodeEscapeMalformed(2).str());
   }
 
   @Test void testReverseSolidus() {

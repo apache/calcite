@@ -4505,6 +4505,17 @@ SqlNode StringLiteral() :
         }
     }
 |
+    <C_STYLE_ESCAPED_STRING_LITERAL>
+    {
+        try {
+            p = SqlParserUtil.parseCString(getToken(0).image);
+        } catch (SqlParserUtil.MalformedUnicodeEscape e) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.unicodeEscapeMalformed(e.i));
+       }
+       return SqlLiteral.createCharString(p, "UTF16", getPos());
+    }
+|
     <BIG_QUERY_DOUBLE_QUOTED_STRING>
     {
         p = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, "\\\"",
@@ -8178,6 +8189,8 @@ void NonReservedKeyWord2of3() :
     < PREFIXED_STRING_LITERAL: ("_" <CHARSETNAME> | "N") <QUOTED_STRING> >
 |
     < UNICODE_STRING_LITERAL: "U" "&" <QUOTED_STRING> >
+|
+    < C_STYLE_ESCAPED_STRING_LITERAL: "E" <QUOTE> ( (~["'", "\\"]) | ("\\" ~[]) | "''")* <QUOTE> >
 |
     < #CHARSETNAME: (["a"-"z","A"-"Z","0"-"9"])
     (["a"-"z","A"-"Z","0"-"9",":",".","-","_"])*

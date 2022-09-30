@@ -1123,7 +1123,7 @@ name will have been converted to upper case also.
 | NUMERIC     | Fixed point               |
 | REAL, FLOAT | 4 byte floating point     | 6 decimal digits precision
 | DOUBLE      | 8 byte floating point     | 15 decimal digits precision
-| CHAR(n), CHARACTER(n) | Fixed-width character string | 'Hello', '' (empty string), _latin1'Hello', n'Hello', _UTF16'Hello', 'Hello' 'there' (literal split into multiple parts)
+| CHAR(n), CHARACTER(n) | Fixed-width character string | 'Hello', '' (empty string), _latin1'Hello', n'Hello', _UTF16'Hello', 'Hello' 'there' (literal split into multiple parts), e'Hello\nthere' (literal containing C-style escapes)
 | VARCHAR(n), CHARACTER VARYING(n) | Variable-length character string | As CHAR(n)
 | BINARY(n)   | Fixed-width binary string | x'45F0AB', x'' (empty binary string), x'AB' 'CD' (multi-part binary string literal)
 | VARBINARY(n), BINARY VARYING(n) | Variable-length binary string | As BINARY(n)
