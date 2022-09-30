@@ -43,7 +43,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -72,7 +71,6 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -85,7 +83,6 @@ import java.sql.DriverManager;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

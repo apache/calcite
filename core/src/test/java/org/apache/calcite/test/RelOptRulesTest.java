@@ -125,7 +125,6 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -138,7 +137,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
