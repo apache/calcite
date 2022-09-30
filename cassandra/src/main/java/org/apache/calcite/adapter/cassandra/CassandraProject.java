@@ -52,11 +52,8 @@ public class CassandraProject extends Project implements CassandraRel {
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
-    Preconditions.checkArgument(variableSet.isEmpty(),
-        "CassandraProject does not allow variables");
-    return new CassandraProject(getCluster(), traitSet, input, projects,
-        rowType);
+      List<RexNode> projects, RelDataType rowType) {
+    return new CassandraProject(getCluster(), traitSet, input, projects, rowType);
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,

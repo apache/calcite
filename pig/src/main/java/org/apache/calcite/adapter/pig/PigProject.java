@@ -44,9 +44,7 @@ public class PigProject extends Project implements PigRel {
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input, List<RexNode> projects,
-      RelDataType rowType, Set<CorrelationId> variableSet) {
-    Preconditions.checkArgument(variableSet.isEmpty(),
-        "PigProject does not allow variables");
+      RelDataType rowType) {
     return new PigProject(input.getCluster(), traitSet, input, projects, rowType);
   }
 

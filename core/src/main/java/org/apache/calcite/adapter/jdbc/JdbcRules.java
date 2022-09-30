@@ -555,9 +555,7 @@ public class JdbcRules {
     }
 
     @Override public JdbcProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
-      Preconditions.checkArgument(variableSet.isEmpty(),
-          "JdbcProject does not allow variables");
+        List<RexNode> projects, RelDataType rowType) {
       return new JdbcProject(getCluster(), traitSet, input, projects, rowType);
     }
 

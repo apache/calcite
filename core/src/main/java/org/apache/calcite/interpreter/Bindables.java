@@ -414,9 +414,7 @@ public class Bindables {
     }
 
     @Override public BindableProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
-      Preconditions.checkArgument(variableSet.isEmpty(),
-          "BindableProject does not allow variables");
+        List<RexNode> projects, RelDataType rowType) {
       return new BindableProject(getCluster(), traitSet, input,
           projects, rowType);
     }

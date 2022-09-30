@@ -52,9 +52,7 @@ public class InnodbProject extends Project implements InnodbRel {
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
-    Preconditions.checkArgument(variableSet.isEmpty(),
-        "InnodbProject does not allow variables");
+      List<RexNode> projects, RelDataType rowType) {
     return new InnodbProject(getCluster(), traitSet, input, projects, rowType);
   }
 

@@ -391,9 +391,7 @@ class TraitPropagationTest {
     }
 
     public PhysProj copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> exps, RelDataType rowType, Set<CorrelationId> variableSet) {
-      Preconditions.checkArgument(variableSet.isEmpty(),
-          "PhysProj does not allow variables");
+        List<RexNode> exps, RelDataType rowType) {
       return new PhysProj(getCluster(), traitSet, input, exps, rowType);
     }
 

@@ -53,9 +53,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
   }
 
   @Override public Project copy(RelTraitSet relTraitSet, RelNode input, List<RexNode> projects,
-      RelDataType relDataType, Set<CorrelationId> variableSet) {
-    Preconditions.checkArgument(variableSet.isEmpty(),
-        "ElasticsearchProject does not allow variables");
+      RelDataType relDataType) {
     return new ElasticsearchProject(getCluster(), traitSet, input, projects, relDataType);
   }
 

@@ -6890,9 +6890,7 @@ class RelOptRulesTest extends RelOptTestBase {
     }
 
     public MyProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
-      Preconditions.checkArgument(variableSet.isEmpty(),
-          "MyProject does not allow variables");
+        List<RexNode> projects, RelDataType rowType) {
       return new MyProject(getCluster(), traitSet, input, projects, rowType);
     }
   }

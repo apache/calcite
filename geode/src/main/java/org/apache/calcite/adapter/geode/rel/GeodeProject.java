@@ -55,9 +55,7 @@ public class GeodeProject extends Project implements GeodeRel {
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet) {
-    Preconditions.checkArgument(variableSet.isEmpty(),
-        "GeodeProject does not allow variables");
+      List<RexNode> projects, RelDataType rowType) {
     return new GeodeProject(getCluster(), traitSet, input, projects, rowType);
   }
 
