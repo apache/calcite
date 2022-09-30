@@ -1184,7 +1184,7 @@ public class SqlLiteral extends SqlNode {
     }
     return idx;
   }
-  
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
