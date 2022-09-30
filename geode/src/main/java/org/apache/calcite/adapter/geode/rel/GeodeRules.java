@@ -147,11 +147,7 @@ public class GeodeRules {
           return false;
         }
       }
-      if (!project.getVariablesSet().isEmpty()) {
-        return false;
-      }
-
-      return true;
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {

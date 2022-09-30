@@ -45,10 +45,7 @@ class EnumerableProjectRule extends ConverterRule {
 
   @Override public boolean matches(RelOptRuleCall call) {
     LogicalProject project = call.rel(0);
-    if (!project.getVariablesSet().isEmpty()) {
-      return false;
-    }
-    return true;
+    return project.getVariablesSet().isEmpty();
   }
 
   @Override public RelNode convert(RelNode rel) {

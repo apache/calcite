@@ -313,10 +313,7 @@ public class MongoRules {
 
     @Override public boolean matches(RelOptRuleCall call) {
       final LogicalProject project = call.rel(0);
-      if (!project.getVariablesSet().isEmpty()) {
-        return false;
-      }
-      return true;
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {

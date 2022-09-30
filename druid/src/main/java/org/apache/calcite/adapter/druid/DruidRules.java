@@ -358,10 +358,7 @@ public class DruidRules {
 
     @Override public boolean matches(RelOptRuleCall call) {
       final Project project = call.rel(0);
-      if (!project.getVariablesSet().isEmpty()) {
-        return false;
-      }
-      return true;
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
