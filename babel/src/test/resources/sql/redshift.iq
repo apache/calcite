@@ -2002,6 +2002,31 @@ EXPR$0
 123.456
 !ok
 
+select cast(3.141592653 as decimal(5,3));
+EXPR$0
+3.142
+!ok
+
+select cast(3.141592653 as decimal(5,2));
+EXPR$0
+3.14
+!ok
+
+select cast('3.141592653' as decimal(5,2));
+EXPR$0
+3.14
+!ok
+
+select cast('3.141592653' as decimal(5,3));
+EXPR$0
+3.142
+!ok
+
+select cast(3.141592653 as decimal(1,0));
+EXPR$0
+3
+!ok
+
 !if (position) {
 select convert(integer, comm) from emp;
 !ok
