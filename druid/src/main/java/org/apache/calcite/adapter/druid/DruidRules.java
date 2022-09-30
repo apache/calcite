@@ -400,11 +400,10 @@ public class DruidRules {
         }
         builder.add(name, e.getType());
       }
-      final RelNode newProject = project.copy(project.getTraitSet(), input, below, builder.build(),
-          project.getVariablesSet());
+      final RelNode newProject = project.copy(project.getTraitSet(), input, below, builder.build());
       final DruidQuery newQuery = DruidQuery.extendQuery(query, newProject);
       final RelNode newProject2 = project.copy(project.getTraitSet(), newQuery, above,
-              project.getRowType(), project.getVariablesSet());
+              project.getRowType());
       call.transformTo(newProject2);
     }
 

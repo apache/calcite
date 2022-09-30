@@ -186,8 +186,8 @@ public class FilterProjectTransposeRule
 
     RelNode newProject =
         config.isCopyProject()
-            ? project.copy(project.getTraitSet(), newFilterRel,
-                project.getProjects(), project.getRowType(), project.getVariablesSet())
+            ? project.copy(project.getTraitSet(), newFilterRel, project.getProjects(),
+                project.getRowType())
             : relBuilder.push(newFilterRel)
                 .project(project.getProjects(), project.getRowType().getFieldNames(), false,
                     project.getVariablesSet())

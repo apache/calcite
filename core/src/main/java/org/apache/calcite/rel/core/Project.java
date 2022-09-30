@@ -144,7 +144,7 @@ public abstract class Project extends SingleRel implements Hintable {
             Util.transform(
                 Optional.ofNullable(input.getIntegerList("variablesSet"))
                     .orElse(ImmutableList.of()),
-                id -> new CorrelationId(id)
+                CorrelationId::new
             )
         ));
   }
@@ -153,7 +153,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), exps, getRowType(), ImmutableSet.of());
+    return copy(traitSet, sole(inputs), exps, getRowType());
   }
 
   /**
@@ -163,7 +163,6 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param input Input
    * @param projects Project expressions
    * @param rowType Output row type
-   * @param variableSet The variable set.
    * @return New {@code Project} if any parameter differs from the value of this
    *   {@code Project}, or just {@code this} if all the parameters are
    *   the same
@@ -171,19 +170,13 @@ public abstract class Project extends SingleRel implements Hintable {
    * @see #copy(RelTraitSet, List)
    */
   public abstract Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variableSet);
-
-  @Deprecated // to be removed before 2.0
-  public Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType) {
-    return copy(traitSet, input, projects, rowType, ImmutableSet.of());
-  }
+      List<RexNode> projects, RelDataType rowType);
 
   @Deprecated // to be removed before 2.0
   public Project copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType, int flags) {
     Util.discard(flags);
-    return copy(traitSet, input, projects, rowType, ImmutableSet.of());
+    return copy(traitSet, input, projects, rowType);
   }
 
   @Deprecated // to be removed before 2.0
@@ -202,7 +195,7 @@ public abstract class Project extends SingleRel implements Hintable {
             exps,
             getRowType().getFieldNames(),
             null);
-    return copy(traitSet, getInput(), exps, rowType, ImmutableSet.of());
+    return copy(traitSet, getInput(), exps, rowType);
   }
 
   /**

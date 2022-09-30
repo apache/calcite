@@ -183,8 +183,7 @@ public class ProjectWindowTransposeRule
         newLogicalWindow.getTraitSet(),
         newLogicalWindow,
         topProjExps,
-        project.getRowType(),
-        project.getVariablesSet());
+        project.getRowType());
 
     if (ProjectRemoveRule.isTrivial(newTopProj)) {
       call.transformTo(newLogicalWindow);
