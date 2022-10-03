@@ -1013,6 +1013,13 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns whether no point in {@code geom1} is outside {@code geom2}.
+   */
+  public static boolean ST_CoveredBy(Geometry geom1, Geometry geom2) {
+    return geom1.coveredBy(geom2);
+  }
+
+  /**
    * Returns whether no point in {@code geom2} is outside {@code geom1}.
    */
   public static boolean ST_Covers(Geometry geom1, Geometry geom2) {

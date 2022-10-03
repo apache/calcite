@@ -2295,6 +2295,7 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | o | ST_Contains(geom1, geom2) | Returns whether *geom1* contains *geom2*
 | p | ST_ContainsProperly(geom1, geom2) | Returns whether *geom1* contains *geom2* but does not intersect its boundary
+| p | ST_CoveredBy(geom1, geom2) | Returns whether no point in *geom1* is outside *geom2*.
 | p | ST_Covers(geom1, geom2) | Returns whether no point in *geom2* is outside *geom1*
 | o | ST_Crosses(geom1, geom2) | Returns whether *geom1* crosses *geom2*
 | o | ST_Disjoint(geom1, geom2) | Returns whether *geom1* and *geom2* are disjoint

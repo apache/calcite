@@ -1244,6 +1244,18 @@ POINT, true, true, false, false
 POLYGON, true, true, false, false
 !ok
 
+# ST_CoveredBy(geom1, geom2) Returns whether no point in *geom1* is outside *geom2*
+
+SELECT ST_CoveredBy('POINT(0 0)', ST_Buffer('POINT(0 0)', 1));
+EXPR$0
+true
+!ok
+
+SELECT ST_CoveredBy('POINT(1 1)', ST_Buffer('POINT(0 0)', 1));
+EXPR$0
+false
+!ok
+
 # ST_Covers(geom1, geom2) Returns whether no point in *geom2* is outside *geom1*
 
 SELECT ST_Covers(ST_Buffer('POINT(0 0)', 1), 'POINT(0 0)');
