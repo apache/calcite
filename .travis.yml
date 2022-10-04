@@ -21,7 +21,7 @@ language: java
 matrix:
   fast_finish: true
   include:
-    - jdk: openjdk8
+    - jdk: openjdk8 # LTS JDK version, EOL but don't remove until it's safe
       env:
         - TZ=America/New_York # flips between −05:00 and −04:00
         - GUAVA=19.0 # oldest supported Guava version
@@ -31,26 +31,20 @@ matrix:
       script:
         - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
         - travis_wait ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableCheckerframework :linq4j:classes :core:classes
-    - jdk: openjdk11
+    - jdk: openjdk11 # LTS JDK version, don't remove until EOL
       env:
         - ERRORPRONE=Y
-        - GUAVA=31.1-jre # ErrorProne checks for Beta APIs, so use newest supported Guava version
+        - GUAVA=31.1-jre # ErrorProne checks for Beta APIs, so use the newest supported Guava version
       script:
         - export _JAVA_OPTIONS="-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35"
         - ./gradlew --no-parallel --no-daemon --scan -Pguava.version=${GUAVA:-29.0-jre} -PenableErrorprone classes
     - jdk: openjdk11
       env:
         - TZ=Pacific/Chatham # flips between +12:45 and +13:45
-    - jdk: openjdk15
-      env:
-        - GUAVA=31.1-jre # newest supported Guava version
-    - jdk: openjdk16
+    - jdk: openjdk17 # LTS JDK version, don't remove until EOL
       env:
         - GUAVA=31.1-jre
-    - jdk: openjdk17
-      env:
-        - GUAVA=31.1-jre
-    - jdk: openjdk18
+    - jdk: openjdk18 # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
       env:
         - GUAVA=31.1-jre
 branches:

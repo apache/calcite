@@ -37,8 +37,8 @@ matrix:
   fast_finish: true
 environment:
   matrix:
-    - JAVA_HOME: C:\Program Files\Java\jdk1.8.0
-    - JAVA_HOME: C:\Program Files\Java\jdk16
+    - JAVA_HOME: C:\Program Files\Java\jdk11
+    - JAVA_HOME: C:\Program Files\Java\jdk17 # switch to latest as soon as available (see https://www.appveyor.com/docs/windows-images-software/#java)
 build_script:
   - ./gradlew assemble javadoc
 test_script:
