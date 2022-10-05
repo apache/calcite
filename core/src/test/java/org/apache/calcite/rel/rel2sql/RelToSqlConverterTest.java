@@ -8784,6 +8784,8 @@ class RelToSqlConverterTest {
     final String expectedBq = "SELECT ROUND(123.41445, product_id) AS a\nFROM foodmart.product";
     final String expected = "SELECT ROUND(123.41445, product_id) a\n"
             + "FROM foodmart.product";
+    final String expectedSparkSql = "SELECT UDF_ROUND(123.41445, product_id) a\n"
+            + "FROM foodmart.product";
     final String expectedSnowFlake = "SELECT TO_DECIMAL(ROUND(123.41445, "
             + "CASE WHEN \"product_id\" > 38 THEN 38 WHEN \"product_id\" < -12 "
             + "THEN -12 ELSE \"product_id\" END) ,38, 4) AS \"a\"\n"
@@ -8796,7 +8798,7 @@ class RelToSqlConverterTest {
             .withHive()
             .ok(expected)
             .withSpark()
-            .ok(expected)
+            .ok(expectedSparkSql)
             .withSnowflake()
             .ok(expectedSnowFlake)
             .withMssql()
@@ -10059,8 +10061,8 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n"
         + "FROM scott.EMP";
-    final String expSprk = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'EE MMM dd HH:mm:ss yyyy zz')"
-        + "FD2\n FROM scott.EMP";
+    final String expSprk = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'EE MMM dd HH:mm:ss yyyy zz') "
+        + "FD2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expSprk));
@@ -10532,7 +10534,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(toCharWithDate, "FD"), toCharWithNumber)
         .build();
     final String expectedSparkQuery = "SELECT "
-        + "DATE_FORMAT(DATE '1970-01-01', 'MM-dd-yyyy HH:mm:ss') FD, TO_CHAR(1000, '9999') $f1"
+        + "DATE_FORMAT(DATE '1970-01-01', 'MM-dd-yyyy HH:mm:ss') FD, UDF_TO_CHAR(1000, '9999') $f1"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
