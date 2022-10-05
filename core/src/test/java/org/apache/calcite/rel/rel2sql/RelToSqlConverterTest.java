@@ -2278,10 +2278,13 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql);
   }
 
-  @Test void testModFunctionForHive() {
+  @Test void testModFunction() {
     final String query = "select mod(11,3) from \"product\"";
     final String expected = "SELECT 11 % 3\n"
         + "FROM foodmart.product";
+    final String expectedSpark = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product";
+    sql(query).withSpark().ok(expectedSpark);
     sql(query).withHive().ok(expected);
   }
 
@@ -8997,7 +9000,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 ^ 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 ^ 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testInt2Shl() {
@@ -9021,7 +9028,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 & 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 & 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testInt1Or() {
@@ -9033,7 +9044,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 | 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 | 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testCot() {
@@ -9437,7 +9452,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT HASHBUCKET(HASHROW(\"EMPNO\")) AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(EMPNO) AS FD\n"
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CAST(EMPNO AS STRING)) AS FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9792,7 +9807,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT HASHROW(\"ENAME\") AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(ENAME) AS FD\n"
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CAST(ENAME AS STRING)) AS FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -10044,8 +10059,11 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n"
         + "FROM scott.EMP";
+    final String expSprk = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'EE MMM dd HH:mm:ss yyyy zz')"
+        + "FD2\n FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expSprk));
   }
 
   @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoin() {
@@ -10464,6 +10482,41 @@ class RelToSqlConverterTest {
     sql(query)
         .withSpark()
         .ok(expectedSpark);
+  }
+
+  @Test public void testForHashrowWithMultipleArguments() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
+        builder.literal("employee"), builder.scan("EMP").field(1),
+        builder.literal("dm"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashrow, "HASHCODE"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT FARM_FINGERPRINT(CONCAT('employee', ENAME, 'dm')) AS "
+        + "HASHCODE\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForPI() {
+    final RelBuilder builder = relBuilder();
+    final RexNode piNode = builder.call(SqlStdOperatorTable.PI);
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(piNode, "t"))
+        .build();
+
+    final String expectedSpark = "SELECT PI() t\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testSessionUser() {
+    String query = "select SESSION_USER";
+    final String expectedSparkSql = "SELECT CURRENT_USER SESSION_USER";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
   }
 
   @Test public void testForToChar() {
