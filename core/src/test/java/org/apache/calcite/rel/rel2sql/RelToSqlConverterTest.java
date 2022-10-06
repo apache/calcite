@@ -10538,4 +10538,10 @@ class RelToSqlConverterTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
+
+  @Test void testForSparkRound() {
+    final String query = "select round(123.41445, 2)";
+    final String expected = "SELECT ROUND(123.41445, 2)";
+    sql(query).withSpark().ok(expected);
+  }
 }

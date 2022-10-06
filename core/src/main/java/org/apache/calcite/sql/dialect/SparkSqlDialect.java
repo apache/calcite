@@ -697,7 +697,11 @@ public class SparkSqlDialect extends SqlDialect {
       unparseUDF(writer, call, leftPrec, rightPrec, "UDF_TO_CHAR");
       return;
     case "ROUND":
-      unparseUDF(writer, call, leftPrec, rightPrec, "UDF_ROUND");
+      if(call.operand(1) instanceof SqlLiteral) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      } else {
+        unparseUDF(writer, call, leftPrec, rightPrec, "UDF_ROUND");
+      }
       return;
     case "STRTOK":
       unparseUDF(writer, call, leftPrec, rightPrec, "UDF_STRTOK");
