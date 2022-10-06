@@ -431,12 +431,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Expand the select item: fully-qualify columns, and convert
     // parentheses-free functions such as LOCALTIME into explicit function
     // calls.
-//<<<<<<< HEAD
     SqlNode expanded = expandSelectExpr(selectItem, scope, select);
-//=======
-//    // SqlNode expanded = expand(selectItem, scope);
-//    SqlNode expanded = expandWithAlias(selectItem, scope, select);
-//>>>>>>> e283a7bc9 (WIP: Column Aliasing)
     final String alias =
         deriveAliasNonNull(
             selectItem,
@@ -3432,19 +3427,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       Preconditions.checkArgument(condition == null);
       break;
     case ON:
-//<<<<<<< HEAD
       requireNonNull(condition, "join.getCondition()");
-      SqlNode expandedCondition = expand(condition, joinScope);
-//=======
-//      Preconditions.checkArgument(condition != null);
-//
-//      SqlNode expandedCondition = condition;
-//      if (scope.getNode() instanceof SqlSelect) {
-//        expandedCondition = expandWithAlias(condition, joinScope, (SqlSelect) scope.getNode());
-//      } else {
-//        expandedCondition = expand(condition, joinScope);
-//      }
-//>>>>>>> e283a7bc9 (WIP: Column Aliasing)
+      SqlNode expandedCondition = condition;
+      if (scope.getNode() instanceof SqlSelect) {
+        expandedCondition = expandWithAlias(condition, joinScope, (SqlSelect) scope.getNode());
+      } else {
+        expandedCondition = expand(condition, joinScope);
+      }
       join.setOperand(5, expandedCondition);
       condition = getCondition(join);
       validateWhereOrOn(joinScope, condition, "ON");
@@ -4340,8 +4329,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
     final SqlValidatorScope whereScope = getWhereScope(select);
-//    final SqlNode expandedWhere = expand(where, whereScope);
-    final SqlNode expandedWhere = expandWhereWithAlias(where, whereScope, select);
+    final SqlNode expandedWhere = expandWithAlias(where, whereScope, select);
     select.setWhere(expandedWhere);
     validateWhereOrOn(whereScope, expandedWhere, "WHERE");
   }
@@ -6034,19 +6022,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
-  public SqlNode expandWhereWithAlias(SqlNode expr,
-      SqlValidatorScope scope, SqlSelect select) {
-    final Expander expander = new ExtendedAliasExpander(this, scope, select, true);
-    SqlNode newExpr = expr.accept(expander);
-    if (expr != newExpr) {
-      setOriginal(newExpr, expr);
-    }
-    return newExpr;
-  }
-
   public SqlNode expandWithAlias(SqlNode expr,
       SqlValidatorScope scope, SqlSelect select) {
-    final Expander expander = new ExtendedAliasExpander(this, scope, select, false);
+    final Expander expander = new ExtendedAliasExpander(this, scope, select);
     SqlNode newExpr = expr.accept(expander);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -6597,17 +6575,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
 
   /**
-   * Shuttle which walks over an expression in Where Clause
+   * Shuttle which walks over an expression replacing usage of alias with underlying expression.
    */
   static class ExtendedAliasExpander extends Expander {
     final SqlSelect select;
-    final boolean allowMoreThanOneAlias;
 
     ExtendedAliasExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
-        SqlSelect select, boolean allowMoreThanOneAlias) {
+        SqlSelect select) {
       super(validator, scope);
       this.select = select;
-      this.allowMoreThanOneAlias = allowMoreThanOneAlias;
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
@@ -6630,7 +6606,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           }
           if (n == 0) {
             return super.visit(id);
-          } else if (n > 1 && !allowMoreThanOneAlias) {
+          } else if (n > 1) {
             // More than one column has this alias.
             throw validator.newValidationError(id,
                 RESOURCE.columnAmbiguous(name));
@@ -6656,12 +6632,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * identifiers. For common columns in USING, it will be converted to
    * COALESCE(A.col, B.col) AS col.
    */
-  static class SelectExpander extends Expander {
+  static class SelectExpander extends ExtendedAliasExpander {
     final SqlSelect select;
 
     SelectExpander(SqlValidatorImpl validator, SelectScope scope,
         SqlSelect select) {
-      super(validator, scope);
+      super(validator, scope, select);
       this.select = select;
     }
 
