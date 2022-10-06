@@ -210,6 +210,20 @@ public class RexUtil {
   }
 
   /**
+   * Returns whether a node represents a {@link SqlTypeName#SYMBOL} literal.
+   */
+  public static boolean isSymbolLiteral(RexNode expr) {
+    switch (expr.getKind()) {
+    case LITERAL:
+      return ((RexLiteral) expr).getTypeName() == SqlTypeName.SYMBOL;
+    case CAST:
+      return isSymbolLiteral(((RexCall) expr).operands.get(0));
+    default:
+      return false;
+    }
+  }
+
+  /**
    * Returns whether a node represents a literal.
    *
    * <p>Examples:
