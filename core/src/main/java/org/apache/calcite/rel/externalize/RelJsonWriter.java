@@ -56,7 +56,8 @@ public class RelJsonWriter implements RelWriter {
   public RelJsonWriter(JsonBuilder jsonBuilder) {
     this.jsonBuilder = jsonBuilder;
     relList = this.jsonBuilder.list();
-    relJson = new RelJson(this.jsonBuilder);
+    relJson = new RelJson(this.jsonBuilder)
+        .withRelJsonWriter(this);
   }
 
   //~ Methods ------------------------------------------------------------------
@@ -88,6 +89,13 @@ public class RelJsonWriter implements RelWriter {
 
   private void put(Map<String, @Nullable Object> map, String name, @Nullable Object value) {
     map.put(name, relJson.toJson(value));
+  }
+
+  /**
+   * Explain a list of RelNode to JSON, and returns the id for each RelNode.
+   */
+  public List<@Nullable Object> explainRelNodes(List<RelNode> rels) {
+    return explainInputs(rels);
   }
 
   private List<@Nullable Object> explainInputs(List<RelNode> inputs) {

@@ -68,7 +68,7 @@ public class RelJsonReader {
 
   private final RelOptCluster cluster;
   private final RelOptSchema relOptSchema;
-  private final RelJson relJson = new RelJson(null);
+  private final RelJson relJson;
   private final Map<String, RelNode> relMap = new LinkedHashMap<>();
   private @Nullable RelNode lastRel;
 
@@ -76,6 +76,8 @@ public class RelJsonReader {
       Schema schema) {
     this.cluster = cluster;
     this.relOptSchema = relOptSchema;
+    this.relJson = new RelJson(null)
+        .withRelJsonReader(this);
     Util.discard(schema);
   }
 
@@ -108,10 +110,21 @@ public class RelJsonReader {
     }
   }
 
+  /**
+   * Read a RelNode with a given rel id.
+   */
+  public RelNode readRel(String id) {
+    return lookupInput(id);
+  }
+
   private void readRel(final Map<String, Object> jsonRel) {
     String id = (String) requireNonNull(jsonRel.get("id"), "jsonRel.id");
     String type = (String) requireNonNull(jsonRel.get("relOp"), "jsonRel.relOp");
     Constructor constructor = relJson.getConstructor(type);
+
+    // Copy a local reference, because the lastRel will change
+    // when we encounter a RexSubQuery
+    final RelNode localLastNode = lastRel;
     RelInput input = new RelInput() {
       @Override public RelOptCluster getCluster() {
         return cluster;
@@ -139,7 +152,7 @@ public class RelJsonReader {
       @Override public List<RelNode> getInputs() {
         final List<String> jsonInputs = getStringList("inputs");
         if (jsonInputs == null) {
-          return ImmutableList.of(requireNonNull(lastRel, "lastRel"));
+          return ImmutableList.of(requireNonNull(localLastNode, "localLastNode"));
         }
         final ImmutableList.Builder<RelNode> inputs = new ImmutableList.Builder<>();
         for (String jsonInput : jsonInputs) {

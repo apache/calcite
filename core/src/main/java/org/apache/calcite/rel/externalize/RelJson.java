@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -93,6 +94,8 @@ public class RelJson {
   private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;
   private final InputTranslator inputTranslator;
+  private final @Nullable RelJsonWriter relJsonWriter;
+  private final @Nullable RelJsonReader relJsonReader;
 
   public static final List<String> PACKAGES =
       ImmutableList.of(
@@ -103,15 +106,17 @@ public class RelJson {
           "org.apache.calcite.adapter.jdbc.JdbcRules$");
 
   /** Private constructor. */
-  private RelJson(@Nullable JsonBuilder jsonBuilder,
-      InputTranslator inputTranslator) {
+  private RelJson(@Nullable JsonBuilder jsonBuilder, InputTranslator inputTranslator,
+      @Nullable RelJsonReader relJsonReader, @Nullable RelJsonWriter relJsonWriter) {
     this.jsonBuilder = jsonBuilder;
     this.inputTranslator = requireNonNull(inputTranslator, "inputTranslator");
+    this.relJsonReader = relJsonReader;
+    this.relJsonWriter = relJsonWriter;
   }
 
   /** Creates a RelJson. */
   public RelJson(@Nullable JsonBuilder jsonBuilder) {
-    this(jsonBuilder, RelJson::translateInput);
+    this(jsonBuilder, RelJson::translateInput, null, null);
   }
 
   /** Returns a RelJson with a given InputTranslator. */
@@ -119,11 +124,35 @@ public class RelJson {
     if (inputTranslator == this.inputTranslator) {
       return this;
     }
-    return new RelJson(jsonBuilder, inputTranslator);
+    return new RelJson(jsonBuilder, inputTranslator, relJsonReader, relJsonWriter);
+  }
+
+  /** Returns a RelJson with a given RelJsonReader. */
+  public RelJson withRelJsonReader(RelJsonReader relJsonReader) {
+    if (relJsonReader == this.relJsonReader) {
+      return this;
+    }
+    return new RelJson(jsonBuilder, inputTranslator, relJsonReader, relJsonWriter);
+  }
+
+  /** Returns a RelJson with a given RelJsonWriter. */
+  public RelJson withRelJsonWriter(RelJsonWriter relJsonWriter) {
+    if (relJsonWriter == this.relJsonWriter) {
+      return this;
+    }
+    return new RelJson(jsonBuilder, inputTranslator, relJsonReader, relJsonWriter);
   }
 
   private JsonBuilder jsonBuilder() {
     return requireNonNull(jsonBuilder, "jsonBuilder");
+  }
+
+  private RelJsonWriter relJsonWriter() {
+    return requireNonNull(relJsonWriter, "relJsonWriter");
+  }
+
+  private RelJsonReader relJsonReader() {
+    return requireNonNull(relJsonReader, "relJsonReader");
   }
 
   @SuppressWarnings("unchecked")
@@ -540,6 +569,13 @@ public class RelJson {
           map.put("type", toJson(node.getType()));
           map.put("window", toJson(over.getWindow()));
         }
+        if (call instanceof RexSubQuery) {
+          RexSubQuery subQuery = (RexSubQuery) node;
+          List<Object> inputs = relJsonWriter().explainRelNodes(ImmutableList.of(subQuery.rel));
+          assert inputs.size() == 1;
+          map.put("rel", inputs.get(0));
+          map.put("type", toJson(node.getType()));
+        }
         return map;
       }
       throw new UnsupportedOperationException("unknown rex " + node);
@@ -659,6 +695,11 @@ public class RelJson {
             type = toType(typeFactory, jsonType);
           } else {
             type = rexBuilder.deriveReturnType(operator, rexOperands);
+          }
+
+          if (map.get("rel") != null) {
+            final RelNode rel = relJsonReader().readRel((String) requireNonNull(map.get("rel")));
+            return new RexSubQuery(type, operator, ImmutableList.copyOf(rexOperands), rel);
           }
           return rexBuilder.makeCall(type, operator, rexOperands);
         }
@@ -821,7 +862,7 @@ public class RelJson {
   public static RexNode readExpression(RelOptCluster cluster,
       InputTranslator translator, Map<String, Object> o) {
     RelInput relInput = new RelInputForCluster(cluster);
-    return new RelJson(null, translator).toRex(relInput, o);
+    return new RelJson(null, translator, null, null).toRex(relInput, o);
   }
 
   /**
