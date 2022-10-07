@@ -108,7 +108,8 @@ public class RelJson {
 
   /** Private constructor. */
   private RelJson(@Nullable JsonBuilder jsonBuilder, InputTranslator inputTranslator,
-      @Nullable RelJsonReader relJsonReader, @Nullable RelJsonWriter relJsonWriter) {
+      @Nullable @UnknownInitialization RelJsonReader relJsonReader,
+      @Nullable @UnknownInitialization RelJsonWriter relJsonWriter) {
     this.jsonBuilder = jsonBuilder;
     this.inputTranslator = requireNonNull(inputTranslator, "inputTranslator");
     this.relJsonReader = relJsonReader;
