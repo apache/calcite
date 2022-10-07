@@ -28,20 +28,20 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.runtime.GeoFunctions;
-import org.apache.calcite.runtime.Geometries;
 import org.apache.calcite.runtime.HilbertCurve2D;
 import org.apache.calcite.runtime.SpaceFillingCurve2D;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
-import com.esri.core.geometry.Envelope;
-import com.esri.core.geometry.Point;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -101,12 +101,12 @@ public abstract class SpatialRules {
       FilterHilbertRule.Config.DEFAULT.toRule();
 
   /** Returns a geometry if an expression is constant, null otherwise. */
-  private static Geometries.@Nullable Geom constantGeom(RexNode e) {
+  private static @Nullable Geometry constantGeom(RexNode e) {
     switch (e.getKind()) {
     case CAST:
       return constantGeom(((RexCall) e).getOperands().get(0));
     case LITERAL:
-      return (Geometries.Geom) ((RexLiteral) e).getValue();
+      return (Geometry) ((RexLiteral) e).getValue();
     default:
       return null;
     }
@@ -198,14 +198,14 @@ public abstract class SpatialRules {
         RexInputRef ref, RexCall hilbert) {
       final RexNode op0;
       final RexNode op1;
-      final Geometries.Geom g0;
+      final Geometry g0;
       switch (conjunction.getKind()) {
       case ST_DWITHIN:
         final RexCall within = (RexCall) conjunction;
         op0 = within.operands.get(0);
         g0 = constantGeom(op0);
         op1 = within.operands.get(1);
-        final Geometries.Geom g1 = constantGeom(op1);
+        final Geometry g1 = constantGeom(op1);
         if (RexUtil.isLiteral(within.operands.get(2), true)) {
           final Number distance = requireNonNull(
               (Number) value(within.operands.get(2)),
@@ -277,28 +277,27 @@ public abstract class SpatialRules {
      * is 0. But usually returns a list of ranges,
      * {@code ref BETWEEN c1 AND c2 OR ref BETWEEN c3 AND c4}. */
     private static RexNode hilbertPredicate(RexBuilder rexBuilder,
-        RexInputRef ref, Geometries.Geom g, Number distance) {
-      if (distance.doubleValue() == 0D
-          && Geometries.type(g.g()) == Geometries.Type.POINT) {
-        final Point p = (Point) g.g();
+        RexInputRef ref, Geometry g, Number distance) {
+      if (distance.doubleValue() == 0D && g instanceof Point) {
+        final Point p = (Point) g;
         final HilbertCurve2D hilbert = new HilbertCurve2D(8);
         final long index = hilbert.toIndex(p.getX(), p.getY());
         return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, ref,
             rexBuilder.makeExactLiteral(BigDecimal.valueOf(index)));
       }
-      final Geometries.Geom g2 =
-          GeoFunctions.ST_Buffer(g, distance.doubleValue());
+      final Geometry g2 =
+          SpatialTypeFunctions.ST_Buffer(g, distance.doubleValue());
       return hilbertPredicate(rexBuilder, ref, g2);
     }
 
     private static RexNode hilbertPredicate(RexBuilder rexBuilder,
-        RexInputRef ref, Geometries.Geom g2) {
-      final Geometries.Geom g3 = GeoFunctions.ST_Envelope(g2);
-      final Envelope env = (Envelope) g3.g();
+        RexInputRef ref, Geometry g2) {
+      final Geometry g3 = SpatialTypeFunctions.ST_Envelope(g2);
+      final Envelope env =  g3.getEnvelopeInternal();
       final HilbertCurve2D hilbert = new HilbertCurve2D(8);
       final List<SpaceFillingCurve2D.IndexRange> ranges =
-          hilbert.toRanges(env.getXMin(), env.getYMin(), env.getXMax(),
-              env.getYMax(), new SpaceFillingCurve2D.RangeComputeHints());
+          hilbert.toRanges(env.getMinX(), env.getMinY(), env.getMaxX(),
+              env.getMaxY(), new SpaceFillingCurve2D.RangeComputeHints());
       final List<RexNode> nodes = new ArrayList<>();
       for (SpaceFillingCurve2D.IndexRange range : ranges) {
         final BigDecimal lowerBd = BigDecimal.valueOf(range.lower());

@@ -86,6 +86,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -366,7 +367,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.wraps = ImmutableList.of();
     }
 
-    void addWrap(Object wrap) {
+    public void addWrap(Object wrap) {
       if (wraps instanceof ImmutableList) {
         wraps = new ArrayList<>(wraps);
       }
@@ -903,7 +904,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return LogicalProject.create(rel,
           ImmutableList.of(),
           Pair.left(projects),
-          Pair.right(projects));
+          Pair.right(projects),
+          ImmutableSet.of());
     }
 
     @Override public <T> T unwrap(Class<T> clazz) {

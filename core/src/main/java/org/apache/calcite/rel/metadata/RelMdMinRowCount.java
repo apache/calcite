@@ -147,7 +147,12 @@ public class RelMdMinRowCount
     return 0D;
   }
 
-  public Double getMinRowCount(TableScan rel, RelMetadataQuery mq) {
+  public @Nullable Double getMinRowCount(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.MinRowCount.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.MinRowCount.Handler.class);
+    if (handler != null) {
+      return handler.getMinRowCount(rel, mq);
+    }
     return 0D;
   }
 
@@ -163,7 +168,7 @@ public class RelMdMinRowCount
     for (RelNode node : rel.getRels()) {
       if (node instanceof Sort) {
         Sort sort = (Sort) node;
-        if (sort.fetch != null) {
+        if (sort.fetch instanceof RexLiteral) {
           return (double) RexLiteral.intValue(sort.fetch);
         }
       }

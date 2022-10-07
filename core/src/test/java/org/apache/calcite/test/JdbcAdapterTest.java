@@ -982,11 +982,11 @@ class JdbcAdapterTest {
         final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
             + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
             + " \"category_id\", \"currency_id\", \"amount\")\n"
-            + "(SELECT \"store_id\", \"account_id\", \"exp_date\","
+            + "SELECT \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\" + 1 AS \"time_id\", \"category_id\","
             + " \"currency_id\", \"amount\"\n"
             + "FROM \"foodmart\".\"expense_fact\"\n"
-            + "WHERE \"store_id\" = 666)";
+            + "WHERE \"store_id\" = 666";
         that.query(sql)
             .explainContains(explain)
             .planUpdateHasSql(jdbcSql, 1);
@@ -1091,6 +1091,19 @@ class JdbcAdapterTest {
             + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5243">[CALCITE-5243]
+   * "SELECT NULL AS C causes NoSuchMethodException: java.sql.ResultSet.getVoid(int)</a>. */
+  @Test void testNullSelect() {
+    final String sql = "select NULL AS C from \"days\"";
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query(sql)
+        .runs()
+        .returnsCount(7)
+        .returns("C=null\nC=null\nC=null\nC=null\nC=null\nC=null\nC=null\n");
   }
 
   /** Acquires a lock, and releases it when closed. */

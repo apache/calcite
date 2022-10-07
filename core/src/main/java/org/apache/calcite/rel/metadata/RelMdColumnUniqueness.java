@@ -78,9 +78,14 @@ public class RelMdColumnUniqueness
     return BuiltInMetadata.ColumnUniqueness.DEF;
   }
 
-  public Boolean areColumnsUnique(TableScan rel, RelMetadataQuery mq,
+  public Boolean areColumnsUnique(TableScan scan, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    return rel.getTable().isKey(columns);
+    final BuiltInMetadata.ColumnUniqueness.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.ColumnUniqueness.Handler.class);
+    if (handler != null) {
+      return handler.areColumnsUnique(scan, mq, columns, ignoreNulls);
+    }
+    return scan.getTable().isKey(columns);
   }
 
   public @Nullable Boolean areColumnsUnique(Filter rel, RelMetadataQuery mq,

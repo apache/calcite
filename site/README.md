@@ -23,14 +23,6 @@ This directory contains the sources/templates for generating the Apache Calcite 
 [calcite.apache.org](https://calcite.apache.org/). The actual generated content of the website
 is present in the [calcite-site](https://github.com/apache/calcite-site) repository.
 
-We want to deploy project changes (for example, new committers, PMC members or upcoming talks)
-immediately, but we want to deploy documentation of project features only when that feature appears
-in a release.
-
-The building and publishing of the website is completely automated using Github actions, so you should simply commit
-your changes to main. If you are committing a change to the website that needs to be published immediately, the
-Github action uses these [rules](../.github/workflows/publish-non-release-website-updates.yml#L7).
-
 # Previewing the website locally
 
 ## Manually
@@ -93,3 +85,26 @@ You can preview your work while working on the site.
 The web server will be started on [http://localhost:4000](http://localhost:4000)
 
 As you make changes to the site, the site will automatically rebuild.
+
+# Publishing the website
+
+We want to deploy project changes (for example, new committers, PMC members or upcoming talks)
+immediately, but we want to deploy documentation of project features only when that feature appears
+in a release.
+
+Calcite publishes the website automatically since [CALCITE-3129](https://issues.apache.org/jira/browse/CALCITE-3129),
+you do not need to do anything but just merge your changes to the `main` branch,
+Github workflows will identify changes to website and automatically cherry-pick it to the `site` branch,
+compile and publish it to [calcite-site](https://github.com/apache/calcite-site) repo.
+
+## Non-release publishing
+
+We'll publish the website changes such as community member changes and new blogs immediately after merging.
+The rules and scripts are in `.github/workflows/publish-non-release-website-updates.yml`.
+
+## Release publishing
+
+We identify release publishing by checking new release tags. If you are the Release Manager,
+you only need to push the new tag 'calcite-x.y.z' to [Calcite Github repo](https://github.com/apache/calcite),
+and the Github workflow will do all the rest.
+The rules and scripts are in `.github/workflows/publish-website-on-release.yml`.

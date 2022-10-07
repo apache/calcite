@@ -25,8 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.runtime.GeoFunctions;
-import org.apache.calcite.runtime.Geometries;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -51,6 +50,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
+import org.locationtech.jts.geom.Geometry;
 
 import java.io.PrintWriter;
 import java.math.BigDecimal;
@@ -384,7 +384,7 @@ public class RexLiteral extends RexNode {
     case MULTISET:
       return value instanceof List;
     case GEOMETRY:
-      return value instanceof Geometries.Geom;
+      return value instanceof Geometry;
     case ANY:
       // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
       // an integer literal surrounded by a cast function.
@@ -724,7 +724,7 @@ public class RexLiteral extends RexNode {
               sb3.append(list.get(i).computeDigest(includeType))));
       break;
     case GEOMETRY:
-      final String wkt = GeoFunctions.ST_AsWKT((Geometries.Geom) castNonNull(value));
+      final String wkt = SpatialTypeFunctions.ST_AsWKT((Geometry) castNonNull(value));
       sb.append(wkt);
       break;
     default:

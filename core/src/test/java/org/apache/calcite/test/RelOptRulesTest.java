@@ -126,6 +126,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
@@ -1142,6 +1143,28 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.FILTER_INTO_JOIN,
             CoreRules.PROJECT_MERGE)
         .withRule(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .check();
+  }
+
+  @Test void testSemiJoinRuleDoNotMatchAggregate() {
+    final String sql = "select *\n"
+        + "from emp\n"
+        + "where exists(select * from dept where emp.deptno = dept.deptno)";
+    sql(sql)
+        .withDecorrelate(true)
+        .withPreRule(CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
+        .checkUnchanged();
+  }
+
+  @Test void testSemiJoinRuleWithJoinOnUniqueInput() {
+    final String sql = "select *\n"
+        + "from emp\n"
+        + "where exists(select * from dept where emp.deptno = dept.deptno)";
+    sql(sql)
+        .withDecorrelate(true)
+        .withTrim(true)
+        .withRule(CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
         .check();
   }
 
@@ -6526,7 +6549,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Constant reduction on geo-spatial expression. */
   @Test void testSpatialReduce() {
     final String sql = "select\n"
-        + "  ST_Buffer(ST_Point(0.0, 1.0), 2) as b\n"
+        + "  ST_Buffer(ST_Point(0.0, 0.0), 1, 4) as b\n"
         + "from GEO.Restaurants as r";
     spatial(sql)
         .withRelBuilderSimplify(false)
@@ -6861,7 +6884,7 @@ class RelOptRulesTest extends RelOptTestBase {
         RelNode input,
         List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     }
 
     public MyProject copy(RelTraitSet traitSet, RelNode input,
@@ -7121,6 +7144,46 @@ class RelOptRulesTest extends RelOptTestBase {
         .withDynamicTable()
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .checkUnchanged();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
+   *    * FilterJoinRule cannot simplify left join to inner join for `WHERE RHS.C1 IS NOT NULL OR
+   *    RHS.C2 IS NOT NULL`</a>.
+   *
+   *    This tests the case where the condition contains an OR between the IS NOT NULL filters
+   */
+  @Test void testFilterJoinRuleOrIsNotNull() {
+    final String sql = "select * from\n"
+        + "emp LHS\n"
+        + "left join dept RHS on LHS.EMPNO = RHS.DEPTNO\n"
+        + "where\n"
+        + "RHS.DEPTNO is not null\n"
+        + "OR RHS.NAME is not null";
+
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
+   *    * FilterJoinRule cannot simplify left join to inner join for `WHERE RHS.C1 IS NOT NULL OR
+   *    RHS.C2 IS NOT NULL`</a>.
+   *
+   *    This tests the case where the condition contains an AND between the IS NOT NULL filters
+   */
+  @Test void testFilterJoinRuleAndIsNotNull() {
+    final String sql = "select * from\n"
+        + "emp LHS\n"
+        + "left join dept RHS on LHS.EMPNO = RHS.DEPTNO\n"
+        + "where\n"
+        + "RHS.DEPTNO is not null\n"
+        + "AND RHS.NAME is not null";
+
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN)
+        .check();
   }
 
   @Test void testJoinCommuteRuleWithAlwaysTrueConditionAllowed() {

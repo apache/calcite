@@ -2217,6 +2217,91 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionWithPartitionKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by productid, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultiplePartitionKeys() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by (orderId, productid), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithOrderKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by orderId, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleOrderKeys() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by (orderId, productid), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithComplexOrderBy() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by (orderId desc, productid desc nulls last), 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithOrderByWithNullLast() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders order by orderId desc nulls last, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithPartitionKeyAndOrderKey() {
+    final String sql = "select *\n"
+        + "from table(topn(table orders partition by productid order by orderId, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "topn(\n"
+        + "  DATA => table orders partition by productid order by orderId,\n"
+        + "  COL => 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithSubQuery() {
+    final String sql = "select *\n"
+        + "from table(topn("
+        + "select * from orders partition by productid order by orderId desc nulls last, 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithSubQueryWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "topn(\n"
+        + "  DATA => select * from orders partition by productid order by orderId nulls first,\n"
+        + "  COL => 3))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleInputTables() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "similarlity(\n"
+        + "  table emp partition by deptno order by empno nulls first,\n"
+        + "  table emp_b partition by deptno order by empno nulls first))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionWithMultipleInputTablesWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "similarlity(\n"
+        + "  LTABLE => table emp partition by deptno order by empno nulls first,\n"
+        + "  RTABLE => table emp_b partition by deptno order by empno nulls first))";
+    sql(sql).ok();
+  }
+
   @Test void testNotNotIn() {
     final String sql = "select * from EMP where not (ename not in ('Fred') )";
     sql(sql).ok();
@@ -3298,6 +3383,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withDecorrelate(true).ok();
   }
 
+  @Test void testCorrelationInProjectionWithScan() {
+    final String sql = "select array(select e.deptno) from emp e";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  @Test void testCorrelationInProjectionWithProjection() {
+    final String sql = "select array(select e.deptno)\n"
+        + "from (select deptno, ename from emp) e";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  @Test void testMultiCorrelationInProjectionWithProjection() {
+    final String sql = "select cardinality(array(select e.deptno)), array(select e.ename)[0]\n"
+        + "from (select deptno, ename from emp) e";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  @Test void testCorrelationInProjectionWithCorrelatedProjection() {
+    final String sql = "select cardinality(arr) from"
+        + "(select array(select e.deptno) arr\n"
+        + "from (select deptno, ename from emp) e)";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
   @Test void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();
@@ -3555,7 +3664,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testDynamicSchemaUnnest() {
     final String sql = "select t1.c_nationkey, t3.fake_col3\n"
         + "from SALES.CUSTOMER as t1,\n"
-        + "lateral (select t2.\"$unnest\" as fake_col3\n"
+        + "lateral (select t2 as fake_col3\n"
         + "         from unnest(t1.fake_col) as t2) as t3";
     sql(sql).withDynamicTable().ok();
   }
@@ -3563,7 +3672,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testStarDynamicSchemaUnnest() {
     final String sql = "select *\n"
         + "from SALES.CUSTOMER as t1,\n"
-        + "lateral (select t2.\"$unnest\" as fake_col3\n"
+        + "lateral (select t2 as fake_col3\n"
         + "         from unnest(t1.fake_col) as t2) as t3";
     sql(sql).withDynamicTable().ok();
   }
@@ -4592,5 +4701,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql)
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5297">[CALCITE-5297]
+   * Casting dynamic variable twice throws exception</a>.
+   */
+  @Test void testDynamicParameterDoubleCast() {
+    String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
+    sql(sql).ok();
   }
 }

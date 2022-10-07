@@ -86,7 +86,8 @@ public class StreamRules {
           LogicalProject.create(newDelta,
               project.getHints(),
               project.getProjects(),
-              project.getRowType().getFieldNames());
+              project.getRowType().getFieldNames(),
+              project.getVariablesSet());
       call.transformTo(newProject);
     }
 

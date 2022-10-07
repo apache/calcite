@@ -42,8 +42,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.runtime.CalciteException;
-import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -60,7 +60,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.fun.SqlGeoFunctions;
+import org.apache.calcite.sql.fun.SqlSpatialTypeFunctions;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -820,9 +820,11 @@ public class CalciteAssert {
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
     case GEO:
       ModelHandler.addFunctions(rootSchema, null, emptyPath,
-          GeoFunctions.class.getName(), "*", true);
+          SpatialTypeFunctions.class.getName(), "*", true);
       ModelHandler.addFunctions(rootSchema, null, emptyPath,
-          SqlGeoFunctions.class.getName(), "*", true);
+          SqlSpatialTypeFunctions.class.getName(), "*", true);
+      ModelHandler.addFunctions(rootSchema, "roundGeom", emptyPath,
+          TestUtil.class.getName(), "roundGeom", true);
       final SchemaPlus s =
           rootSchema.add(schema.schemaName, new AbstractSchema());
       ModelHandler.addFunctions(s, "countries", emptyPath,

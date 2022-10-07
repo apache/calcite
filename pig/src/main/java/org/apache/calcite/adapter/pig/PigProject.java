@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class PigProject extends Project implements PigRel {
   /** Creates a PigProject. */
   public PigProject(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     assert getConvention() == PigRel.CONVENTION;
   }
 

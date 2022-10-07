@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -27,6 +30,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -642,6 +646,39 @@ public class RelMetadataTest {
     /* 14 - 5 */
     final RelMetadataFixture fixture = sql(sql);
     fixture.assertThatRowCount(is(9D), is(0D), is(10d));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5286">[CALCITE-5286]
+   * Join with parameterized LIMIT throws AssertionError "not a literal". </a>. */
+  @Test void testRowCountJoinWithDynamicParameters() {
+    final String sql = "select r.ename, s.sal from\n"
+        + "(select * from emp limit ?) r join bonus s\n"
+        + "on r.ename=s.ename where r.sal+1=s.sal";
+    sql(sql)
+        .withCluster(cluster -> {
+          RelOptPlanner planner = new VolcanoPlanner();
+          planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+          return RelOptCluster.create(planner, cluster.getRexBuilder());
+        })
+        .withRelTransform(rel -> {
+          RelOptPlanner planner = rel.getCluster().getPlanner();
+          planner.setRoot(rel);
+          RelTraitSet requiredOutputTraits =
+              rel.getCluster().traitSet().replace(EnumerableConvention.INSTANCE);
+          final RelNode rootRel2 = planner.changeTraits(rel, requiredOutputTraits);
+
+          planner.setRoot(rootRel2);
+          final RelOptPlanner planner2 = planner.chooseDelegate();
+          final RelNode rootRel3 = planner2.findBestExp();
+          return rootRel3;
+        })
+        .assertThatRowCount(is(1.0), is(0D), is(Double.POSITIVE_INFINITY));
   }
 
   @Test void testRowCountSortLimitOffsetDynamic() {
@@ -1583,7 +1620,8 @@ public class RelMetadataTest {
     final LogicalProject project = LogicalProject.create(empSort,
         ImmutableList.of(),
         projects,
-        ImmutableList.of("a", "b", "c", "d"));
+        ImmutableList.of("a", "b", "c", "d"),
+        ImmutableSet.of());
 
     final LogicalTableScan deptScan =
         LogicalTableScan.create(cluster, deptTable, ImmutableList.of());
@@ -1831,7 +1869,8 @@ public class RelMetadataTest {
                     rexBuilder.makeExactLiteral(BigDecimal.ONE)),
                 rexBuilder.makeCall(SqlStdOperatorTable.CHAR_LENGTH,
                     rexBuilder.makeInputRef(filter, 1))),
-            (List<String>) null);
+            (List<String>) null,
+            ImmutableSet.of());
     rowSize = mq.getAverageRowSize(deptProject);
     columnSizes = mq.getAverageColumnSizes(deptProject);
     assertThat(columnSizes.size(), equalTo(4));
@@ -3261,6 +3300,44 @@ public class RelMetadataTest {
     });
   }
 
+  /** Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getAverageColumnSizes(org.apache.calcite.rel.RelNode)}
+   * with a table that has its own implementation of {@link BuiltInMetadata.Size}. */
+  @Test void testCustomizedAverageColumnSizes() {
+    SqlTestFactory.CatalogReaderFactory factory = (typeFactory, caseSensitive) -> {
+      CompositeKeysCatalogReader catalogReader =
+          new CompositeKeysCatalogReader(typeFactory, false);
+      catalogReader.init();
+      return catalogReader;
+    };
+
+    final RelNode rel = sql("select key1, key2 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    List<Double> columnSizes = mq.getAverageColumnSizes(rel);
+    assertThat(columnSizes.size(), is(2));
+    assertThat(columnSizes.get(0), is(2.0));
+    assertThat(columnSizes.get(1), is(3.0));
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMetadataQuery#getDistinctRowCount(RelNode, ImmutableBitSet, RexNode)}
+   * with a table that has its own implementation of {@link BuiltInMetadata.Size}. */
+  @Test void testCustomizedDistinctRowcount() {
+    SqlTestFactory.CatalogReaderFactory factory = (typeFactory, caseSensitive) -> {
+      CompositeKeysCatalogReader catalogReader =
+          new CompositeKeysCatalogReader(typeFactory, false);
+      catalogReader.init();
+      return catalogReader;
+    };
+
+    final RelNode rel = sql("select key1, key2 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    Double ndv = mq.getDistinctRowCount(rel, ImmutableBitSet.of(0, 1), null);
+    assertThat(ndv, is(100.0));
+  }
+
   private void checkInputForCollationAndLimit(RelOptCluster cluster, RelOptTable empTable,
       RelOptTable deptTable) {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -3404,8 +3481,48 @@ public class RelMetadataTest {
       t1.addColumn("key1", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
       t1.addColumn("key2", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
       t1.addColumn("value1", typeFactory.createSqlType(SqlTypeName.INTEGER));
+      addSizeHandler(t1);
+      addDistinctRowcountHandler(t1);
+      addUniqueKeyHandler(t1);
       registerTable(t1);
       return this;
+    }
+
+    private void addSizeHandler(MockTable table) {
+      table.addWrap(
+          new BuiltInMetadata.Size.Handler() {
+            @Override public @Nullable Double averageRowSize(RelNode r, RelMetadataQuery mq) {
+              return null;
+            }
+
+            @Override public @Nullable List<@Nullable Double> averageColumnSizes(RelNode r,
+                RelMetadataQuery mq) {
+              List<Double> colSize = new ArrayList<>();
+              colSize.add(2D);
+              colSize.add(3D);
+              return colSize;
+            }
+          });
+    }
+
+    private void addDistinctRowcountHandler(MockTable table) {
+      table.addWrap(
+          new BuiltInMetadata.DistinctRowCount.Handler() {
+            @Override public @Nullable Double getDistinctRowCount(RelNode r, RelMetadataQuery mq,
+                ImmutableBitSet groupKey, @Nullable RexNode predicate) {
+              return 100D;
+            }
+          });
+    }
+
+    private void addUniqueKeyHandler(MockTable table) {
+      table.addWrap(
+          new BuiltInMetadata.UniqueKeys.Handler() {
+            @Override public @Nullable Set<ImmutableBitSet> getUniqueKeys(RelNode r,
+                RelMetadataQuery mq, boolean ignoreNulls) {
+              return ImmutableSet.of(ImmutableBitSet.of(0, 1));
+            }
+          });
     }
   }
 }

@@ -90,6 +90,8 @@ public final class GeneratedMetadata_ColumnOriginHandler
       return provider0.getColumnOrigins((org.apache.calcite.rel.core.TableFunctionScan) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.core.TableModify) {
       return provider0.getColumnOrigins((org.apache.calcite.rel.core.TableModify) r, mq, a2);
+    } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
+      return provider0.getColumnOrigins((org.apache.calcite.rel.core.TableScan) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getColumnOrigins((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {

@@ -31,7 +31,7 @@ import java.util.List;
 public class RelCrossType extends RelDataTypeImpl {
   //~ Instance fields --------------------------------------------------------
 
-  public final ImmutableList<RelDataType> types;
+  private final ImmutableList<RelDataType> types;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -56,6 +56,15 @@ public class RelCrossType extends RelDataTypeImpl {
 
   @Override public boolean isStruct() {
     return false;
+  }
+
+  /**
+   * Returns the contained types.
+   *
+   * @return data types.
+   */
+  public List<RelDataType> getTypes() {
+    return types;
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

@@ -267,36 +267,42 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test void testAggregateFilterWhereToSqlFromProductTable() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4321">[CALCITE-4321]
+   * JDBC adapter omits FILTER (WHERE ...) expressions when generating SQL</a>
+   * and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5270">[CALCITE-5270]
+   * JDBC adapter should not generate FILTER (WHERE) in Firebolt dialect</a>. */
+  @Test void testAggregateFilterWhere() {
     String query = "select\n"
         + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
         + "  sum(\"shelf_width\")\n"
         + "from \"foodmart\".\"product\"\n"
         + "where \"product_id\" > 0\n"
         + "group by \"product_id\"";
-    final String expected = "SELECT"
+    final String expectedDefault = "SELECT"
         + " SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE),"
         + " SUM(\"shelf_width\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" > 0\n"
         + "GROUP BY \"product_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testAggregateFilterWhereToBigQuerySqlFromProductTable() {
-    String query = "select\n"
-        + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
-        + "  sum(\"shelf_width\")\n"
-        + "from \"foodmart\".\"product\"\n"
-        + "where \"product_id\" > 0\n"
-        + "group by \"product_id\"";
-    final String expected = "SELECT SUM(CASE WHEN net_weight > 0 IS TRUE"
+    final String expectedBigQuery = "SELECT"
+        + " SUM(CASE WHEN net_weight > 0 IS TRUE"
         + " THEN shelf_width ELSE NULL END), "
         + "SUM(shelf_width)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id > 0\n"
         + "GROUP BY product_id";
-    sql(query).withBigQuery().ok(expected);
+    final String expectedFirebolt = "SELECT"
+        + " SUM(CASE WHEN \"net_weight\" > 0 IS TRUE"
+        + " THEN \"shelf_width\" ELSE NULL END), "
+        + "SUM(\"shelf_width\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" > 0\n"
+        + "GROUP BY \"product_id\"";
+    sql(query).ok(expectedDefault)
+        .withBigQuery().ok(expectedBigQuery)
+        .withFirebolt().ok(expectedFirebolt);
   }
 
   @Test void testPivotToSqlFromProductTable() {
@@ -1751,6 +1757,21 @@ class RelToSqlConverterTest {
             + "CAST(CAST(employee_id AS STRING) AS BOOL)\n"
             + "FROM foodmart.reserve_employee";
     sql(query).withBigQuery().ok(expected);
+  }
+
+  @Test void testBigQueryTimeTruncFunctions() {
+    String timestampTrunc = "select timestamp_trunc(timestamp '2012-02-03 15:30:00', month)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedTimestampTrunc =
+        "SELECT TIMESTAMP_TRUNC(TIMESTAMP '2012-02-03 15:30:00', MONTH)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(timestampTrunc).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedTimestampTrunc);
+
+    String timeTrunc = "select time_trunc(time '15:30:00', minute)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedTimeTrunc = "SELECT TIME_TRUNC(TIME '15:30:00', MINUTE)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(timeTrunc).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedTimeTrunc);
   }
 
   /** Test case for
@@ -6160,7 +6181,7 @@ class RelToSqlConverterTest {
     final String expected = "INSERT INTO \"foodmart\".\"account\" ("
         + "\"account_id\", \"account_parent\", \"account_description\", "
         + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-        + "(SELECT \"EXPR$0\" AS \"account_id\","
+        + "SELECT \"EXPR$0\" AS \"account_id\","
         + " \"EXPR$1\" AS \"account_parent\","
         + " CAST(NULL AS VARCHAR(30) CHARACTER SET \"ISO-8859-1\") "
         + "AS \"account_description\","
@@ -6169,7 +6190,7 @@ class RelToSqlConverterTest {
         + " CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") "
         + "AS \"Custom_Members\"\n"
         + "FROM (VALUES (1, NULL, '123', '123')) "
-        + "AS \"t\" (\"EXPR$0\", \"EXPR$1\", \"EXPR$2\", \"EXPR$3\"))";
+        + "AS \"t\" (\"EXPR$0\", \"EXPR$1\", \"EXPR$2\", \"EXPR$3\")";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -6189,7 +6210,7 @@ class RelToSqlConverterTest {
     final String expected = "INSERT INTO \"foodmart\".\"account\" "
         + "(\"account_id\", \"account_parent\", \"account_description\", "
         + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-        + "(SELECT \"product\".\"product_id\" AS \"account_id\", "
+        + "SELECT \"product\".\"product_id\" AS \"account_id\", "
         + "CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR"
         + "(30) CHARACTER SET \"ISO-8859-1\") AS \"account_description\", "
         + "CAST(\"product\".\"product_id\" AS VARCHAR CHARACTER SET "
@@ -6199,7 +6220,7 @@ class RelToSqlConverterTest {
         + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
-        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\")";
+        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
     sql(query).ok(expected);
     // validate
     sql(expected).exec();
@@ -6365,6 +6386,44 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracleX)
         .withMssql().ok(expectedMssqlX)
         .withCalcite().ok(expectedCalciteX);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
+   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in INSERT</a>. */
+  @Test void testInsertSelect() {
+    final String sql = "insert into \"DEPT\" select * from \"DEPT\"";
+    final String expected = ""
+        + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+        + "SELECT *\n"
+        + "FROM \"SCOTT\".\"DEPT\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
+   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in INSERT</a>. */
+  @Test void testInsertUnionThenIntersect() {
+    final String sql = ""
+        + "insert into \"DEPT\"\n"
+        + "(select * from \"DEPT\" union select * from \"DEPT\")\n"
+        + "intersect select * from \"DEPT\"";
+    final String expected = ""
+        + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+        + "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM \"SCOTT\".\"DEPT\")\n"
+        + "INTERSECT\n"
+        + "SELECT *\n"
+        + "FROM \"SCOTT\".\"DEPT\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
   }
 
   @Test void testInsertValuesWithDynamicParams() {

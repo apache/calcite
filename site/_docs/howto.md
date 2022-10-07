@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.30.0-src.tar.gz
-$ cd apache-calcite-1.30.0-src
+$ tar xvfz apache-calcite-1.32.0-src.tar.gz
+$ cd apache-calcite-1.32.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -605,7 +605,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.30.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.20.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
@@ -755,7 +755,7 @@ The release candidate process does not add commits,
 so there's no harm if it fails. It might leave `-rc` tag behind
 which can be removed if required.
 
-You can perform a dry-run release with a help of
+If you wish, you can perform a dry-run release with a help of
 [asflike-release-environment](https://github.com/vlsi/asflike-release-environment);
 it would perform the same steps, but it would push changes to the mock Nexus, Git, and SVN servers.
 
@@ -820,11 +820,8 @@ Verify the staged artifacts in the Nexus repository:
 * Go to [https://repository.apache.org/](https://repository.apache.org/) and login
 * Under `Build Promotion`, click `Staging Repositories`
 * In the `Staging Repositories` tab there should be a line with profile `org.apache.calcite`
+  and status `closed`
 * Navigate through the artifact tree and make sure the .jar, .pom, .asc files are present
-* Check the box on in the first column of the row,
-  and press the 'Close' button to publish the repository at
-  https://repository.apache.org/content/repositories/orgapachecalcite-1000
-  (or a similar URL)
 
 ## Cleaning up after a failed release attempt
 

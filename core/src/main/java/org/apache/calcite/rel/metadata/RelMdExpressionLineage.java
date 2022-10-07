@@ -119,6 +119,12 @@ public class RelMdExpressionLineage
    */
   public @Nullable Set<RexNode> getExpressionLineage(TableScan rel,
       RelMetadataQuery mq, RexNode outputExpression) {
+    final BuiltInMetadata.ExpressionLineage.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.ExpressionLineage.Handler.class);
+    if (handler != null) {
+      return handler.getExpressionLineage(rel, mq, outputExpression);
+    }
+
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
     // Extract input fields referenced by expression

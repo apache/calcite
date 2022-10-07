@@ -152,9 +152,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    * expression but also used and therefore not available to parents of this
    * relational expression.
    *
-   * <p>Note: only {@link org.apache.calcite.rel.core.Correlate} should set
-   * variables.
-   *
    * @return Names of variables which are set in this relational
    *   expression
    */

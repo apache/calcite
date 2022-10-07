@@ -1006,8 +1006,10 @@ TIES,
 **TIMESTAMP**,
 TIMESTAMPADD,
 TIMESTAMPDIFF,
+TIMESTAMP_TRUNC,
 **TIMEZONE_HOUR**,
 **TIMEZONE_MINUTE**,
+TIME_TRUNC,
 **TINYINT**,
 **TO**,
 TOP_LEVEL_COUNT,
@@ -1181,11 +1183,11 @@ or binary strings encoded as
 Where you would use a literal, apply the `ST_GeomFromText` function,
 for example `ST_GeomFromText('POINT (30 10)')`.
 
-| Data type   | Type code | Examples in WKT
-|:----------- |:--------- |:---------------------
+| Data type          | Type code | Examples in WKT
+|:-------------------|:--------- |:---------------------
 | GEOMETRY           |  0 | generalization of Point, Curve, Surface, GEOMETRYCOLLECTION
 | POINT              |  1 | <code>ST_GeomFromText(&#8203;'POINT (30 10)')</code> is a point in 2D space; <code>ST_GeomFromText(&#8203;'POINT Z(30 10 2)')</code> is point in 3D space
-| CURVE            | 13 | generalization of LINESTRING
+| CURVE              | 13 | generalization of LINESTRING
 | LINESTRING         |  2 | <code>ST_GeomFromText(&#8203;'LINESTRING (30 10, 10 30, 40 40)')</code>
 | SURFACE            | 14 | generalization of Polygon, PolyhedralSurface
 | POLYGON            |  3 | <code>ST_GeomFromText(&#8203;'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')</code> is a pentagon; <code>ST_GeomFromText(&#8203;'POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))')</code> is a pentagon with a quadrilateral hole
@@ -1513,23 +1515,24 @@ Calcite type conversions. The table shows all possible conversions,
 without regard to the context in which it is made. The rules governing
 these details follow the table.
 
-| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY
-|:------------------- |:---- |:------- |:------- |:-------- |:--- |:------ |:------- |:------------- |:------ |:-------- |:---- |:---- |:--------- |:--------------- |:-----------
-| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i
-| BOOLEAN             | x    | i       | e       | e        | e   | e      | e       | e             | e      | x        | x    | x    | x         | i               | x
-| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
-| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
-| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x
-| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x
-| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x
-| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x
-| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i
-| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i
+| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY
+|:--------------------|:---- |:------- |:------- |:-------- |:--- |:------ |:------- |:------------- |:------ |:-------- |:-----|:-----|:----------|:--------------- |:--------------------|:--------
+| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i
+| BOOLEAN             | x    | i       | e       | e        | e   | e      | e       | e             | e      | x        | x    | x    | x         | i               | x                   | x
+| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
+| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
+| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
+| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
+| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
+| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x
+| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x
+| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x
+| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x
+| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x
+| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x
+| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i
+| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x
+| GEOMETRY            | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i
 
 i: implicit cast / e: explicit cast / x: not allowed
 
@@ -1749,6 +1752,7 @@ period:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn ASCII(string)} | Returns the ASCII code of the first character of *string*; if the first character is a non-ASCII character, returns its Unicode code point; returns 0 if *string* is empty
+| {fn CHAR(integer)} | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | {fn CONCAT(character, character)} | Returns the concatenation of character strings
 | {fn INSERT(string1, start, length, string2)} | Inserts *string2* into a slot in *string1*
 | {fn LCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to lower case
@@ -1758,14 +1762,10 @@ period:
 | {fn LTRIM(string)} | Returns *string* with leading space characters removed
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
 | {fn REVERSE(string)} | Returns *string* with the order of the characters reversed
-| {fn RIGHT(string, integer)} | Returns the rightmost *length* characters from *string*
+| {fn RIGHT(string, length)} | Returns the rightmost *length* characters from *string*
 | {fn RTRIM(string)} | Returns *string* with trailing space characters removed
 | {fn SUBSTRING(string, offset, length)} | Returns a character string that consists of *length* characters from *string* starting at the *offset* position
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
-
-Not implemented:
-
-* {fn CHAR(string)}
 
 #### Date/time
 
@@ -1961,12 +1961,46 @@ Not implemented:
 
 Table functions occur in the `FROM` clause.
 
+Table functions may have generic table parameters (i.e., no row type is
+declared when the table function is created), and the row type of the result
+ might depend on the row type(s) of the input tables.
+Besides, input tables are classified by three characteristics.
+The first characteristic is semantics. Input tables have either row semantics
+or set semantics, as follows:
+* Row semantics means that the result of the table function depends on a
+row-by-row basis.
+* Set semantics means that the outcome of the function depends on how the
+data is partitioned.
+
+The second characteristic, which applies only to input tables with
+set semantics, is whether the table function can generate a result row
+even if the input table is empty.
+* If the table function can generate a result row on empty input,
+the table is said to be "keep when empty".
+* The alternative is called "prune when empty", meaning that
+the result would be pruned out if the input table is empty.
+
+The third characteristic is whether the input table supports
+pass-through columns or not. Pass-through columns is a mechanism
+enabling the table function to copy every column of an input row
+into columns of an output row.
+
+The input tables with set semantics may be partitioned on one or more columns.
+The input tables with set semantics may be ordered on one or more columns.
+
+Note:
+* The input tables with row semantics may not be partitioned or ordered.
+* A polymorphic table function may have multiple input tables. However,
+at most one input table could have row semantics.
+
 #### TUMBLE
 
 In streaming queries, TUMBLE assigns a window for each row of a relation based
 on a timestamp column. An assigned window is specified by its beginning and
 ending. All assigned windows have the same length, and that's why tumbling
 sometimes is named as "fixed windowing".
+The first parameter of the TUMBLE table function is a generic table parameter.
+The input table has row semantics and supports pass-through columns.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -1998,7 +2032,8 @@ whether data is complete.
 
 In streaming queries, HOP assigns windows that cover rows within the interval of *size* and shifting every *slide* based
 on a timestamp column. Windows assigned could have overlapping so hopping sometime is named as "sliding windowing".
-
+The first parameter of the HOP table function is a generic table parameter.
+The input table has row semantics and supports pass-through columns.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2032,7 +2067,10 @@ orders that tells data completeness.
 
 In streaming queries, SESSION assigns windows that cover rows based on *datetime*. Within a session window, distances
 of rows are less than *interval*. Session window is applied per *key*.
-
+The first parameter of the SESSION table function is a generic table parameter.
+The input table has set semantics and supports pass-through columns.
+Besides, the SESSION table function would not generate a result row
+if the input table is empty.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2043,18 +2081,16 @@ Here is an example:
 {% highlight sql %}
 SELECT * FROM TABLE(
   SESSION(
-    TABLE orders,
+    TABLE orders PARTITION BY product,
     DESCRIPTOR(rowtime),
-    DESCRIPTOR(product),
     INTERVAL '20' MINUTE));
 
 -- or with the named params
 -- note: the DATA param must be the first
 SELECT * FROM TABLE(
   SESSION(
-    DATA => TABLE orders,
+    DATA => TABLE orders PARTITION BY product,
     TIMECOL => DESCRIPTOR(rowtime),
-    KEY => DESCRIPTOR(product),
     SIZE => INTERVAL '20' MINUTE));
 {% endhighlight %}
 
@@ -2126,59 +2162,67 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| p | ST_AsBinary(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKB(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKT(geom) | Converts GEOMETRY → EWKT
+| p | ST_AsGeoJSON(geom) | Converts GEOMETRY → GeoJSON
+| p | ST_AsGML(geom) | Converts GEOMETRY → GML
 | p | ST_AsText(geom) | Synonym for `ST_AsWKT`
-| o | ST_AsWKT(geom) | Converts *geom* → WKT
-| o | ST_GeomFromText(wkt [, srid ]) | Returns a specified GEOMETRY value from WKT representation
+| o | ST_AsWKB(geom) | Converts GEOMETRY → WKB
+| o | ST_AsWKT(geom) | Converts GEOMETRY → WKT
+| o | ST_Force2D(geom) | 3D GEOMETRY → 2D GEOMETRY
+| o | ST_GeomFromEWKB(wkb [, srid ]) | Synonym for `ST_GeomFromWKB`
+| o | ST_GeomFromEWKT(wkb [, srid ]) | Converts EWKT → GEOMETRY
+| o | ST_GeomFromGeoJSON(json) | Converts GeoJSON → GEOMETRY
+| o | ST_GeomFromGML(wkb [, srid ]) | Converts GML → GEOMETRY
+| o | ST_GeomFromText(wkt [, srid ]) | Synonym for `ST_GeomFromWKT`
+| o | ST_GeomFromWKB(wkb [, srid ]) | Converts WKB → GEOMETRY
+| o | ST_GeomFromWKT(wkb [, srid ]) | Converts WKT → GEOMETRY
 | o | ST_LineFromText(wkt [, srid ]) | Converts WKT → LINESTRING
+| o | ST_LineFromWKB(wkt [, srid ]) | Converts WKT → LINESTRING
 | o | ST_MLineFromText(wkt [, srid ]) | Converts WKT → MULTILINESTRING
 | o | ST_MPointFromText(wkt [, srid ]) | Converts WKT → MULTIPOINT
 | o | ST_MPolyFromText(wkt [, srid ]) Converts WKT → MULTIPOLYGON
 | o | ST_PointFromText(wkt [, srid ]) | Converts WKT → POINT
+| o | ST_PointFromWKB(wkt [, srid ]) | Converts WKB → POINT
 | o | ST_PolyFromText(wkt [, srid ]) | Converts WKT → POLYGON
+| o | ST_PolyFromWKB(wkt [, srid ]) | Converts WKB → POLYGON
+| h | ST_ToMultiPoint(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
+| h | ST_ToMultiLine(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
+| h | ST_ToMultiSegments(geom) | Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
 
 Not implemented:
 
-* ST_AsBinary(geom) GEOMETRY → WKB
-* ST_AsGML(geom) GEOMETRY → GML
-* ST_Force2D(geom) 3D GEOMETRY → 2D GEOMETRY
-* ST_GeomFromGML(gml [, srid ]) GML → GEOMETRY
-* ST_GeomFromWKB(wkb [, srid ]) WKB → GEOMETRY
 * ST_GoogleMapLink(geom [, layerType [, zoom ]]) GEOMETRY → Google map link
-* ST_LineFromWKB(wkb [, srid ]) WKB → LINESTRING
 * ST_OSMMapLink(geom [, marker ]) GEOMETRY → OSM map link
-* ST_PointFromWKB(wkb [, srid ]) WKB → POINT
-* ST_PolyFromWKB(wkb [, srid ]) WKB → POLYGON
-* ST_ToMultiLine(geom) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
-* ST_ToMultiPoint(geom)) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
-* ST_ToMultiSegments(geom) Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
 
 #### Geometry conversion functions (3D)
 
-Not implemented:
-
-* ST_Force3D(geom) 2D GEOMETRY → 3D GEOMETRY
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Force3D(geom) | 2D GEOMETRY → 3D GEOMETRY
 
 #### Geometry creation functions (2D)
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| h | ST_BoundingCircle(geom) | Returns the minimum bounding circle of *geom*
+| h | ST_Expand(geom, distance) | Expands *geom*'s envelope
+| h | ST_Expand(geom, deltaX, deltaY) | Expands *geom*'s envelope
+| h | ST_MakeEllipse(point, width, height) | Constructs an ellipse
 | p | ST_MakeEnvelope(xMin, yMin, xMax, yMax  [, srid ]) | Creates a rectangular POLYGON
 | h | ST_MakeGrid(geom, deltaX, deltaY) | Calculates a regular grid of POLYGONs based on *geom*
 | h | ST_MakeGridPoints(geom, deltaX, deltaY) | Calculates a regular grid of points based on *geom*
 | o | ST_MakeLine(point1 [, point ]*) | Creates a line-string from the given POINTs (or MULTIPOINTs)
 | p | ST_MakePoint(x, y [, z ]) | Synonym for `ST_Point`
+| p | ST_MakePolygon(lineString [, hole ]*)| Creates a POLYGON from *lineString* with the given holes (which are required to be closed LINESTRINGs)
+| h | ST_MinimumDiameter(geom) | Returns the minimum diameter of *geom*
+| h | ST_MinimumRectangle(geom) | Returns the minimum rectangle enclosing *geom*
+| h | ST_OctogonalEnvelope(geom) | Returns the octogonal envelope of *geom*
 | o | ST_Point(x, y [, z ]) | Constructs a point from two or three coordinates
 
 Not implemented:
 
-* ST_BoundingCircle(geom) Returns the minimum bounding circle of *geom*
-* ST_Expand(geom, distance) Expands *geom*'s envelope
-* ST_Expand(geom, deltaX, deltaY) Expands *geom*'s envelope
-* ST_MakeEllipse(point, width, height) Constructs an ellipse
-* ST_MakePolygon(lineString [, hole ]*) Creates a POLYGON from *lineString* with the given holes (which are required to be closed LINESTRINGs)
-* ST_MinimumDiameter(geom) Returns the minimum diameter of *geom*
-* ST_MinimumRectangle(geom) Returns the minimum rectangle enclosing *geom*
-* ST_OctogonalEnvelope(geom) Returns the octogonal envelope of *geom*
 * ST_RingBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Returns a MULTIPOLYGON of buffers centered at *geom* and of increasing buffer size
 
 ### Geometry creation functions (3D)
@@ -2194,47 +2238,47 @@ Not implemented:
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Boundary(geom [, srid ]) | Returns the boundary of *geom*
+| o | ST_Centroid(geom) | Returns the centroid of *geom*
+| o | ST_CoordDim(geom) | Returns the dimension of the coordinates of *geom*
+| o | ST_Dimension(geom) | Returns the dimension of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
+| h | ST_ExteriorRing(geom) | Returns the exterior ring of *geom*, or null if *geom* is not a polygon
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
+| p | ST_EndPoint(lineString) | Returns the last coordinate of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
+| o | ST_Extent(geom) | Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_GeometryN(geomCollection, n) | Returns the *n*th GEOMETRY of *geomCollection*
+| h | ST_InteriorRingN(geom) | Returns the nth interior ring of *geom*, or null if *geom* is not a polygon
+| h | ST_IsClosed(geom) | Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
+| o | ST_IsEmpty(geom) | Returns whether *geom* is empty
+| o | ST_IsRectangle(geom) | Returns whether *geom* is a rectangle
+| h | ST_IsRing(geom) | Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
+| o | ST_IsSimple(geom) | Returns whether *geom* is simple
+| o | ST_IsValid(geom) | Returns whether *geom* is valid
+| h | ST_NPoints(geom)  | Returns the number of points in *geom*
+| h | ST_NumGeometries(geom) | Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
+| h | ST_NumInteriorRing(geom) | Synonym for `ST_NumInteriorRings`
+| h | ST_NumInteriorRings(geom) | Returns the number of interior rings of *geom*
+| h | ST_NumPoints(geom) | Returns the number of points in *geom*
+| p | ST_PointN(geom, n) | Returns the *n*th point of a *geom*
+| p | ST_PointOnSurface(geom) | Returns an interior or boundary point of *geom*
+| o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
+| p | ST_StartPoint(geom) | Returns the first point of *geom*
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
+| o | ST_XMax(geom) | Returns the maximum x-value of *geom*
+| o | ST_XMin(geom) | Returns the minimum x-value of *geom*
 | o | ST_Y(geom) | Returns the y-value of the first coordinate of *geom*
+| o | ST_YMax(geom) | Returns the maximum y-value of *geom*
+| o | ST_YMin(geom) | Returns the minimum y-value of *geom*
 
 Not implemented:
 
-* ST_Centroid(geom) Returns the centroid of *geom* (which may be a GEOMETRYCOLLECTION)
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
-* ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
-* ST_Dimension(geom) Returns the dimension of *geom*
-* ST_EndPoint(lineString) Returns the last coordinate of *lineString*
-* ST_Envelope(geom [, srid ]) Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
-* ST_Extent(geom) Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
-* ST_GeometryN(geomCollection, n) Returns the *n*th GEOMETRY of *geomCollection*
-* ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*
-* ST_IsClosed(geom) Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
-* ST_IsEmpty(geom) Returns whether *geom* is empty
-* ST_IsRectangle(geom) Returns whether *geom* is a rectangle
-* ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
-* ST_IsSimple(geom) Returns whether *geom* is simple
-* ST_IsValid(geom) Returns whether *geom* is valid
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
-* ST_NPoints(geom) Returns the number of points in *geom*
-* ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
-* ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
-* ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
-* ST_NumPoints(lineString) Returns the number of points in *lineString*
-* ST_PointN(geom, n) Returns the *n*th point of a *lineString*
-* ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
-* ST_SRID(geom) Returns SRID value of *geom* or 0 if it does not have one
-* ST_StartPoint(lineString) Returns the first coordinate of *lineString*
-* ST_XMax(geom) Returns the maximum x-value of *geom*
-* ST_XMin(geom) Returns the minimum x-value of *geom*
-* ST_YMax(geom) Returns the maximum y-value of *geom*
-* ST_YMin(geom) Returns the minimum y-value of *geom*
+
 
 #### Geometry properties (3D)
 
@@ -2242,11 +2286,8 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | p | ST_Is3D(s) | Returns whether *geom* has at least one z-coordinate
 | o | ST_Z(geom) | Returns the z-value of the first coordinate of *geom*
-
-Not implemented:
-
-* ST_ZMax(geom) Returns the maximum z-value of *geom*
-* ST_ZMin(geom) Returns the minimum z-value of *geom*
+| o | ST_ZMax(geom) | Returns the maximum z-value of *geom*
+| o | ST_ZMin(geom) | Returns the minimum z-value of *geom*
 
 ### Geometry predicates
 
@@ -2254,6 +2295,8 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | o | ST_Contains(geom1, geom2) | Returns whether *geom1* contains *geom2*
 | p | ST_ContainsProperly(geom1, geom2) | Returns whether *geom1* contains *geom2* but does not intersect its boundary
+| p | ST_CoveredBy(geom1, geom2) | Returns whether no point in *geom1* is outside *geom2*.
+| p | ST_Covers(geom1, geom2) | Returns whether no point in *geom2* is outside *geom1*
 | o | ST_Crosses(geom1, geom2) | Returns whether *geom1* crosses *geom2*
 | o | ST_Disjoint(geom1, geom2) | Returns whether *geom1* and *geom2* are disjoint
 | p | ST_DWithin(geom1, geom2, distance) | Returns whether *geom1* and *geom* are within *distance* of one another
@@ -2261,15 +2304,14 @@ Not implemented:
 | o | ST_Equals(geom1, geom2) | Returns whether *geom1* equals *geom2*
 | o | ST_Intersects(geom1, geom2) | Returns whether *geom1* intersects *geom2*
 | o | ST_Overlaps(geom1, geom2) | Returns whether *geom1* overlaps *geom2*
+| o | ST_Relate(geom1, geom2) | Returns the DE-9IM intersection matrix of *geom1* and *geom2*
+| o | ST_Relate(geom1, geom2, iMatrix) | Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 | o | ST_Touches(geom1, geom2) | Returns whether *geom1* touches *geom2*
 | o | ST_Within(geom1, geom2) | Returns whether *geom1* is within *geom2*
 
 Not implemented:
 
-* ST_Covers(geom1, geom2) Returns whether no point in *geom2* is outside *geom1*
 * ST_OrderingEquals(geom1, geom2) Returns whether *geom1* equals *geom2* and their coordinates and component Geometries are listed in the same order
-* ST_Relate(geom1, geom2) Returns the DE-9IM intersection matrix of *geom1* and *geom2*
-* ST_Relate(geom1, geom2, iMatrix) Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 
 #### Geometry operators (2D)
 
@@ -2278,23 +2320,27 @@ The following functions combine 2D geometries.
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Buffer(geom, distance [, quadSegs \| style ]) | Computes a buffer around *geom*
+| o | ST_ConvexHull(geom) | Computes the smallest convex polygon that contains all the points in *geom*
+| o | ST_Difference(geom1, geom2) | Computes the difference between two geometries
+| o | ST_SymDifference(geom1, geom2) | Computes the symmetric difference between two geometries
+| o | ST_Intersection(geom1, geom2) | Computes the intersection of *geom1* and *geom2*
 | o | ST_Union(geom1, geom2) | Computes the union of *geom1* and *geom2*
 | o | ST_Union(geomCollection) | Computes the union of the geometries in *geomCollection*
 
 See also: the `ST_Union` aggregate function.
 
-Not implemented:
-
-* ST_ConvexHull(geom) Computes the smallest convex polygon that contains all the points in *geom*
-* ST_Difference(geom1, geom2) Computes the difference between two geometries
-* ST_Intersection(geom1, geom2) Computes the intersection of two geometries
-* ST_SymDifference(geom1, geom2) Computes the symmetric difference between two geometries
-
 #### Affine transformation functions (3D and 2D)
 
+The following functions transform 2D geometries.
+
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Rotate(geom, angle [, origin \| x, y]) | Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
+| o | ST_Scale(geom, xFactor, yFactor) | Scales *geom* by multiplying the ordinates by the indicated scale factors
+| o | ST_Translate(geom, x, y) | Translates *geom* by the vector (x, y)
+
 Not implemented:
 
-* ST_Rotate(geom, angle [, origin \| x, y]) Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
 * ST_Scale(geom, xFactor, yFactor [, zFactor ]) Scales *geom* by multiplying the ordinates by the indicated scale factors
 * ST_Translate(geom, x, y, [, z]) Translates *geom*
 
@@ -2357,18 +2403,23 @@ Not implemented:
 
 The following functions process geometries.
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_LineMerge(geom)  | Merges a collection of linear components to form a line-string of maximal length
+| o | ST_MakeValid(geom)  | Makes a valid geometry of a given invalid geometry
+| o | ST_Polygonize(geom)  | Creates a MULTIPOLYGON from edges of *geom*
+| o | ST_PrecisionReducer(geom, n) | Reduces *geom*'s precision to *n* decimal places
+| o | ST_Simplify(geom, distance)  | Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
+| o | ST_SimplifyPreserveTopology(geom, distance) | Simplifies *geom*, preserving its topology
+| o | ST_Snap(geom1, geom2, tolerance) | Snaps *geom1* and *geom2* together
+
 Not implemented:
 
 * ST_LineIntersector(geom1, geom2) Splits *geom1* (a line-string) with *geom2*
 * ST_LineMerge(geom) Merges a collection of linear components to form a line-string of maximal length
 * ST_MakeValid(geom [, preserveGeomDim [, preserveDuplicateCoord [, preserveCoordDim]]]) Makes *geom* valid
-* ST_Polygonize(geom) Creates a MULTIPOLYGON from edges of *geom*
-* ST_PrecisionReducer(geom, n) Reduces *geom*'s precision to *n* decimal places
 * ST_RingSideBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 * ST_SideBuffer(geom, distance [, bufferStyle ]) Compute a single buffer on one side
-* ST_Simplify(geom, distance) Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
-* ST_SimplifyPreserveTopology(geom) Simplifies *geom*, preserving its topology
-* ST_Snap(geom1, geom2, tolerance) Snaps *geom1* and *geom2* together
 * ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line
 
 #### Geometry projection functions
@@ -2528,7 +2579,8 @@ semantics.
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
-| o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
+| m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
+| o p | CHR(integer)                                 | Returns the character whose UTF-8 code is *integer*
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
 | m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
@@ -2579,6 +2631,8 @@ semantics.
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
+| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates a *timestamp* value to the granularity of *timeUnit*. The *timestamp* value is always rounded to the beginning of the *timeUnit*.
+| b | TIME_TRUNC(time, timeUnit)                     | Truncates a *time* value to the granularity of *timeUnit*. The *time* value is always rounded to the beginning of timeUnit, which can be one of the following: MILLISECOND, SECOND, MINUTE, HOUR.
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
