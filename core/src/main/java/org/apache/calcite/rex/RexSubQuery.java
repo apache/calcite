@@ -46,7 +46,7 @@ public class RexSubQuery extends RexCall {
    * The constructor is mainly used when the RexNode is deserialized from JSON
    * in {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    *
-   * <p>>For other purposes, you should use the static methods, e.g.
+   * <p> For other purposes, you should use the static methods, e.g.
    * {@link RexSubQuery#in(RelNode, ImmutableList)}, {@link RexSubQuery#exists(RelNode)},
    * {@link RexSubQuery#scalar(RelNode)}.
    */
