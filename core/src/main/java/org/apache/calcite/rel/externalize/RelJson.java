@@ -67,6 +67,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
@@ -128,7 +129,7 @@ public class RelJson {
   }
 
   /** Returns a RelJson with a given RelJsonReader. */
-  public RelJson withRelJsonReader(RelJsonReader relJsonReader) {
+  public RelJson withRelJsonReader(@UnknownInitialization RelJsonReader relJsonReader) {
     if (relJsonReader == this.relJsonReader) {
       return this;
     }
@@ -136,7 +137,7 @@ public class RelJson {
   }
 
   /** Returns a RelJson with a given RelJsonWriter. */
-  public RelJson withRelJsonWriter(RelJsonWriter relJsonWriter) {
+  public RelJson withRelJsonWriter(@UnknownInitialization RelJsonWriter relJsonWriter) {
     if (relJsonWriter == this.relJsonWriter) {
       return this;
     }
@@ -571,7 +572,8 @@ public class RelJson {
         }
         if (call instanceof RexSubQuery) {
           RexSubQuery subQuery = (RexSubQuery) node;
-          List<Object> inputs = relJsonWriter().explainRelNodes(ImmutableList.of(subQuery.rel));
+          List<@Nullable Object> inputs = relJsonWriter()
+              .explainRelNodes(ImmutableList.of(subQuery.rel));
           assert inputs.size() == 1;
           map.put("rel", inputs.get(0));
           map.put("type", toJson(node.getType()));
