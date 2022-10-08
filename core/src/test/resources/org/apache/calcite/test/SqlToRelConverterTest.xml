@@ -1866,36 +1866,6 @@ LogicalProject(ENAME=[$1], RN=[ROW_NUMBER() OVER (PARTITION BY CHAR_LENGTH($1) O
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testFunctionWithGroupsetsItem1">
-    <Resource name="sql">
-      <![CDATA[select deptno, case when grouping(deptno) = 0 then deptno else 1 end
-from emp
-group by rollup(deptno, job)]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[CASE(=($2, 0), $0, 1)])
-  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], agg#0=[GROUPING($0)])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testFunctionWithGroupsetsItem2">
-    <Resource name="sql">
-      <![CDATA[select deptno, deptno + 1, job * 10
-from emp
-group by rollup(deptno, job)]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[+($0, 1)], EXPR$2=[*(CAST($1):INTEGER, 10)])
-  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testFunctionWithStructInput">
     <Resource name="sql">
       <![CDATA[select json_type(skill)

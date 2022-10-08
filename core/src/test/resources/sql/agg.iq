@@ -566,6 +566,24 @@ having count(*) > 3;
 
 !ok
 
+# ROLLUP column used in expression; see [CALCITE-5296]
+# In a query with ROLLUP, validator wrongly infers that a column is NOT NULL
+select deptno, deptno + 1 as d1 from emp group by rollup(deptno);
++--------+----+
+| DEPTNO | D1 |
++--------+----+
+|     10 | 11 |
+|     20 | 21 |
+|     30 | 31 |
+|     50 | 51 |
+|     60 | 61 |
+|        |    |
+|        |    |
++--------+----+
+(7 rows)
+
+!ok
+
 # CUBE and DISTINCT
 select distinct count(*) from emp group by cube(deptno, gender);
 +--------+
