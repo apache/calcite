@@ -186,10 +186,6 @@ public class Matcher<E> {
       return ImmutableSet.copyOf(partialMatches);
     }
 
-    public void removePartialMatch(PartialMatch<E> pm) {
-      partialMatches.remove(pm);
-    }
-
     public void clearPartitions() {
       partialMatches.clear();
     }
