@@ -330,10 +330,6 @@ public class Resources {
       return ResourceBundle.getBundle(base, locale);
     }
 
-    public Inst localize(Locale locale) {
-      return new Inst(base, locale, method, args);
-    }
-
     public void validate(EnumSet<Validation> validations) {
       final ResourceBundle bundle = bundle();
       for (Validation validation : validations) {
