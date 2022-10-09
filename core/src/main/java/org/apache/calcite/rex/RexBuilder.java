@@ -1359,11 +1359,11 @@ public class RexBuilder {
         final List<RelDataType> types = ranges.stream()
             .map(RexNode::getType)
             .collect(Collectors.toList());
-        RelDataType searchType = typeFactory.leastRestrictive(types);
-        searchType = searchType == null ? ranges.get(0).getType() : searchType;
+        RelDataType sargType = Objects.requireNonNull(typeFactory.leastRestrictive(types),
+            () -> "Can't find leastRestrictive type for SARG among " + types);
         return makeCall(SqlStdOperatorTable.SEARCH,
             arg,
-            makeSearchArgumentLiteral(sarg, searchType));
+            makeSearchArgumentLiteral(sarg, sargType));
       }
     }
     return RexUtil.composeDisjunction(this, ranges.stream()
