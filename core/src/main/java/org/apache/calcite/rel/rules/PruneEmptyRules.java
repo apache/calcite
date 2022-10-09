@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -469,7 +470,6 @@ public abstract class PruneEmptyRules {
             call.transformTo(emptyValues);
           }
         }
-
       };
     }
   }
@@ -536,6 +536,34 @@ public abstract class PruneEmptyRules {
             return;
           }
           call.transformTo(relBuilder.push(join).empty().build());
+        }
+      };
+    }
+  }
+
+
+  public static final RelOptRule EMPTY_TABLE =
+      ImmutableEmptyTableOptimizationConfig.of()
+          .withOperandSupplier(b0 -> {
+            return b0.operand(TableScan.class).noInputs();
+          })
+          .withDescription("ConvertEmptyTableToValues")
+          .toRule();
+
+  /** Configuration for rule that transforms an empty table into an empty values node.
+   * MaxRowCount is used as the stat to transform, hence Table implementer needs
+   * to supply this metadata if this optimization needs to be applied.*/
+  @Value.Immutable
+  public interface EmptyTableOptimizationConfig extends PruneEmptyRule.Config {
+
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
+        @Override public void onMatch(RelOptRuleCall call) {
+          TableScan tableScan = call.rel(0);
+          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(tableScan);
+          if (maxRowCount != null && maxRowCount == 0.0) {
+            call.transformTo(call.builder().push(tableScan).empty().build());
+          }
         }
       };
     }

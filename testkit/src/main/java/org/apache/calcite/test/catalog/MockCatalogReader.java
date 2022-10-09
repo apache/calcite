@@ -40,6 +40,9 @@ import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.metadata.BuiltInMetadata;
+import org.apache.calcite.rel.metadata.MetadataDef;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -615,6 +618,57 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           List<String> names) {
         return resolver.resolveColumn(rowType, typeFactory, names);
       }
+    }
+  }
+
+  /**
+   * Mock implementation of
+   * {@link org.apache.calcite.prepare.Prepare.PreparingTable} which supplies MaxRow stat.
+   */
+  public static class MaxRowMockTable
+      extends MockTable implements BuiltInMetadata.MaxRowCount.Handler {
+
+    private final double maxRowCount;
+
+    public MaxRowMockTable(MockCatalogReader catalogReader, String catalogName, String schemaName,
+        String name, boolean stream, boolean temporal, double rowCount, ColumnResolver resolver,
+        InitializerExpressionFactory initializerFactory, double maxRowCount) {
+      super(catalogReader, catalogName, schemaName, name, stream, temporal, rowCount, resolver,
+          initializerFactory);
+      this.maxRowCount = maxRowCount;
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory,
+        boolean temporal, double maxRowCount) {
+      MockTable table =
+          new MaxRowMockTable(catalogReader, schema.getCatalogName(), schema.name,
+              name, stream, temporal, rowCount, resolver,
+              initializerExpressionFactory, maxRowCount);
+      schema.addTable(name);
+      return table;
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount, double maxRowCount) {
+      return create(catalogReader, schema, name, stream, rowCount, null, maxRowCount);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        ColumnResolver resolver, double maxRowCount) {
+      return create(catalogReader, schema, name, stream, rowCount, resolver,
+          NullInitializerExpressionFactory.INSTANCE, false, maxRowCount);
+    }
+
+    @Override public @Nullable Double getMaxRowCount(RelNode r, RelMetadataQuery mq) {
+      return maxRowCount;
+    }
+
+    @Override public MetadataDef<BuiltInMetadata.MaxRowCount> getDef() {
+      return BuiltInMetadata.MaxRowCount.Handler.super.getDef();
     }
   }
 

@@ -3413,6 +3413,54 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testEmptyTableProject() {
+    // table is transformed to empty values and extra project will be removed.
+    final String sql = "select * from EMPTY_PRODUCTS\n";
+    sql(sql)
+        .withRule(
+            PruneEmptyRules.EMPTY_TABLE,
+            PruneEmptyRules.PROJECT_INSTANCE)
+        .check();
+  }
+
+  @Test void testEmptyTableJoinLeft() {
+    // inner join is eliminated after the left table is transformed to empty values.
+    final String sql = "select * from EMPTY_PRODUCTS as e\n"
+        + ",products as d where e.PRODUCTID = d.PRODUCTID\n";
+    sql(sql)
+        .withRule(
+            PruneEmptyRules.EMPTY_TABLE,
+            PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testEmptyTableJoinRight() {
+    // inner join is eliminated after the right table is transformed to empty values.
+    final String sql = "select * from products as e\n"
+        + ",EMPTY_PRODUCTS as d where e.PRODUCTID = d.PRODUCTID\n";
+    sql(sql)
+        .withRule(
+            PruneEmptyRules.EMPTY_TABLE,
+            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testComplexEmptyTable() {
+    // inner join is eliminated after the table is transformed into empty
+    final String sql = "select * from products left join "
+        + "(select * from products as e\n"
+        + " inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID "
+        + " where e.SUPPLIERID > 10) dt\n"
+        + " on products.PRODUCTID = dt.PRODUCTID";
+    sql(sql)
+        .withRule(
+            PruneEmptyRules.EMPTY_TABLE,
+            PruneEmptyRules.JOIN_RIGHT_INSTANCE,
+            PruneEmptyRules.FILTER_INSTANCE,
+            PruneEmptyRules.PROJECT_INSTANCE)
+        .check();
+  }
+
   @Test void testLeftEmptyInnerJoin() {
     // Plan should be empty
     final String sql = "select * from (\n"

@@ -87,6 +87,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.EMP_B)",
           "TABLE(CATALOG.SALES.EMP_20)",
           "TABLE(CATALOG.SALES.EMPNULLABLES_20)",
+          "TABLE(CATALOG.SALES.EMPTY_PRODUCTS)",
           "TABLE(CATALOG.SALES.EMP_ADDRESS)",
           "TABLE(CATALOG.SALES.DEPT)",
           "TABLE(CATALOG.SALES.DEPT_NESTED)",
