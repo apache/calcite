@@ -67,6 +67,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -95,8 +96,8 @@ public class RelJson {
   private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;
   private final InputTranslator inputTranslator;
-  private final @Nullable RelJsonWriter relJsonWriter;
-  private final @Nullable RelJsonReader relJsonReader;
+  private @NotOnlyInitialized @Nullable RelJsonWriter relJsonWriter;
+  private @NotOnlyInitialized @Nullable RelJsonReader relJsonReader;
 
   public static final List<String> PACKAGES =
       ImmutableList.of(
@@ -107,18 +108,15 @@ public class RelJson {
           "org.apache.calcite.adapter.jdbc.JdbcRules$");
 
   /** Private constructor. */
-  private RelJson(@Nullable JsonBuilder jsonBuilder, InputTranslator inputTranslator,
-      @Nullable @UnknownInitialization RelJsonReader relJsonReader,
-      @Nullable @UnknownInitialization RelJsonWriter relJsonWriter) {
+  private RelJson(@Nullable JsonBuilder jsonBuilder,
+      InputTranslator inputTranslator) {
     this.jsonBuilder = jsonBuilder;
     this.inputTranslator = requireNonNull(inputTranslator, "inputTranslator");
-    this.relJsonReader = relJsonReader;
-    this.relJsonWriter = relJsonWriter;
   }
 
   /** Creates a RelJson. */
   public RelJson(@Nullable JsonBuilder jsonBuilder) {
-    this(jsonBuilder, RelJson::translateInput, null, null);
+    this(jsonBuilder, RelJson::translateInput);
   }
 
   /** Returns a RelJson with a given InputTranslator. */
@@ -126,23 +124,21 @@ public class RelJson {
     if (inputTranslator == this.inputTranslator) {
       return this;
     }
-    return new RelJson(jsonBuilder, inputTranslator, relJsonReader, relJsonWriter);
+    return new RelJson(jsonBuilder, inputTranslator);
   }
 
   /** Returns a RelJson with a given RelJsonReader. */
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
   public RelJson withRelJsonReader(@UnknownInitialization RelJsonReader relJsonReader) {
-    if (relJsonReader == this.relJsonReader) {
-      return this;
-    }
-    return new RelJson(jsonBuilder, inputTranslator, relJsonReader, relJsonWriter);
+    this.relJsonReader = relJsonReader;
+    return this;
   }
 
   /** Returns a RelJson with a given RelJsonWriter. */
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
   public RelJson withRelJsonWriter(@UnknownInitialization RelJsonWriter relJsonWriter) {
-    if (relJsonWriter == this.relJsonWriter) {
-      return this;
-    }
-    return new RelJson(jsonBuilder, inputTranslator, relJsonReader, relJsonWriter);
+    this.relJsonWriter = relJsonWriter;
+    return this;
   }
 
   private JsonBuilder jsonBuilder() {
@@ -865,7 +861,7 @@ public class RelJson {
   public static RexNode readExpression(RelOptCluster cluster,
       InputTranslator translator, Map<String, Object> o) {
     RelInput relInput = new RelInputForCluster(cluster);
-    return new RelJson(null, translator, null, null).toRex(relInput, o);
+    return new RelJson(null, translator).toRex(relInput, o);
   }
 
   /**
