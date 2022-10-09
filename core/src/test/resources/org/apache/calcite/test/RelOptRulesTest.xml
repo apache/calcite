@@ -3061,6 +3061,50 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEmptyTable">
+    <Resource name="sql">
+      <![CDATA[select * from EMPTY_PRODUCTS
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEmptyTableTransformsComplexQueryToSingleTableScan">
+    <Resource name="sql">
+      <![CDATA[select products.PRODUCTID, products.NAME from products left join
+(select * from products as e
+ inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID
+ where e.SUPPLIERID > 10) dt
+ on products.PRODUCTID = dt.PRODUCTID]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
+      LogicalFilter(condition=[>($2, 10)])
+        LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEnumerableCalcRule">
     <Resource name="sql">
       <![CDATA[select FNAME, LNAME

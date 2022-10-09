@@ -135,6 +135,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -3424,6 +3425,31 @@ class RelOptRulesTest extends RelOptTestBase {
             PruneEmptyRules.PROJECT_INSTANCE,
             PruneEmptyRules.MINUS_INSTANCE)
         .check();
+  }
+
+  @Test void testEmptyTable() {
+    // table is transformed to empty values and extra project will be removed.
+    final String sql = "select * from EMPTY_PRODUCTS\n";
+    sql(sql)
+        .withRule(
+            PruneEmptyRules.EMPTY_TABLE_INSTANCE,
+            PruneEmptyRules.PROJECT_INSTANCE)
+        .check();
+  }
+
+  @Test void testEmptyTableTransformsComplexQueryToSingleTableScan() {
+    final String sql = "select products.PRODUCTID, products.NAME from products left join\n"
+        + "(select * from products as e\n"
+        + " inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID\n"
+        + " where e.SUPPLIERID > 10) dt\n"
+        + " on products.PRODUCTID = dt.PRODUCTID";
+    Collection<RelOptRule> rules = Arrays.asList(
+        PruneEmptyRules.EMPTY_TABLE_INSTANCE,
+        PruneEmptyRules.JOIN_RIGHT_INSTANCE,
+        PruneEmptyRules.FILTER_INSTANCE,
+        PruneEmptyRules.PROJECT_INSTANCE,
+        CoreRules.PROJECT_MERGE);
+    sql(sql).withProgram(HepProgram.builder().addRuleCollection(rules).build()).check();
   }
 
   @Test void testLeftEmptyInnerJoin() {

@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -164,6 +165,19 @@ public abstract class PruneEmptyRules {
     }
     return false;
   }
+
+  /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.TableScan}
+   * to empty if the table has no rows in it.
+   *
+   * The rule exploits the {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount} to derive if
+   * the table is empty or not.
+   */
+  public static final RelOptRule EMPTY_TABLE_INSTANCE =
+      ImmutableZeroMaxRowsRuleConfig.of()
+          .withOperandSupplier(b0 -> b0.operand(TableScan.class).noInputs())
+          .withDescription("PruneZeroRowsTable")
+          .toRule();
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Project}
@@ -536,6 +550,37 @@ public abstract class PruneEmptyRules {
             return;
           }
           call.transformTo(relBuilder.push(join).empty().build());
+        }
+      };
+    }
+  }
+
+  /** Configuration for rule that transforms an empty relational expression into an empty values.
+   *
+   * It relies on {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount} to derive if the relation
+   * is empty or not. If the stats are not available then the rule is a noop. */
+  @Value.Immutable
+  public interface ZeroMaxRowsRuleConfig extends PruneEmptyRule.Config {
+
+    @Override default PruneEmptyRule toRule() {
+      return new PruneEmptyRule(this) {
+        @Override public boolean matches(RelOptRuleCall call) {
+          RelNode node = call.rel(0);
+          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
+          return maxRowCount != null && maxRowCount == 0.0;
+        }
+
+        @Override public void onMatch(RelOptRuleCall call) {
+          RelNode node = call.rel(0);
+          RelNode emptyValues = call.builder().push(node).empty().build();
+          RelTraitSet traits = node.getTraitSet();
+          // propagate all traits (except convention) from the original tableScan
+          // into the empty values
+          if (emptyValues.getConvention() != null) {
+            traits = traits.replace(emptyValues.getConvention());
+          }
+          emptyValues = emptyValues.copy(traits, Collections.emptyList());
+          call.transformTo(emptyValues);
         }
       };
     }
