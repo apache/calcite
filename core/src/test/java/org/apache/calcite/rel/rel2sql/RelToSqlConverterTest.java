@@ -10059,7 +10059,7 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n"
         + "FROM scott.EMP";
     final String expSprk = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'EE MMM dd HH:mm:ss yyyy zz')"
-        + "FD2\n FROM scott.EMP";
+        + " FD2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expSprk));
