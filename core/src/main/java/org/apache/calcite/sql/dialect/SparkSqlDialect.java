@@ -644,7 +644,16 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
-
+    case "TRUNC":
+      switch (((SqlLiteral) call.operand(0)).getTypeName()) {
+      case DATE:
+      case TIMESTAMP:
+        SqlFloorFunction.unparseDatetimeFunction(writer, call, "DATE_TRUNC", false);
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
