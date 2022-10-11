@@ -10517,4 +10517,18 @@ class RelToSqlConverterTest {
         .withSpark()
         .ok(expectedSparkSql);
   }
+
+  @Test public void testTruncWithTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("DAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(trunc)
+        .build();
+    final String expectedSparkSql = "SELECT DATE_TRUNC('DD', TIMESTAMP '2017-02-14 20:38:40') "
+        + "$f0\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
 }
