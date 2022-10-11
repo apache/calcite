@@ -10527,7 +10527,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(trunc)
         .build();
-    final String expectedSparkSql = "SELECT DATE_TRUNC('DD', TIMESTAMP '2017-02-14 20:38:40') "
+    final String expectedSparkSql = "SELECT DATE_TRUNC('DAY', TIMESTAMP '2017-02-14 20:38:40') "
         + "$f0\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
