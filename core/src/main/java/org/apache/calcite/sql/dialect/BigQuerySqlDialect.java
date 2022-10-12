@@ -365,6 +365,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     return JoinType.INNER;
   }
 
+  @Override public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
+      int leftPrec, int rightPrec) {
+    writer.print("OPTIONS(description=" + title + ")");
+  }
+
   @Override public boolean supportsUnpivot() {
     return true;
   }

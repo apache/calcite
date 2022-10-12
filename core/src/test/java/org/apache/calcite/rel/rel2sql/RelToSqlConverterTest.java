@@ -2319,10 +2319,13 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql);
   }
 
-  @Test void testModFunctionForHive() {
+  @Test void testModFunction() {
     final String query = "select mod(11,3) from \"product\"";
     final String expected = "SELECT 11 % 3\n"
         + "FROM foodmart.product";
+    final String expectedSpark = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product";
+    sql(query).withSpark().ok(expectedSpark);
     sql(query).withHive().ok(expected);
   }
 
@@ -9040,7 +9043,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 ^ 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 ^ 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testInt2Shl() {
@@ -9064,7 +9071,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 & 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 & 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testInt1Or() {
@@ -9076,7 +9087,11 @@ class RelToSqlConverterTest {
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 | 6";
+    final String expectedSpark = "SELECT *\n"
+            + "FROM scott.EMP\n"
+            + "WHERE 3 | 6";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testCot() {
@@ -10087,8 +10102,11 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n"
         + "FROM scott.EMP";
+    final String expSprk = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'EE MMM dd HH:mm:ss yyyy zz')"
+        + " FD2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expSprk));
   }
 
   @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoin() {
@@ -10523,5 +10541,38 @@ class RelToSqlConverterTest {
         + "HASHCODE\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForPI() {
+    final RelBuilder builder = relBuilder();
+    final RexNode piNode = builder.call(SqlStdOperatorTable.PI);
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(piNode, "t"))
+        .build();
+
+    final String expectedSpark = "SELECT PI() t\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testSessionUser() {
+    String query = "select SESSION_USER";
+    final String expectedSparkSql = "SELECT CURRENT_USER SESSION_USER";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testTruncWithTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
+        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.literal("DAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(trunc)
+        .build();
+    final String expectedSparkSql = "SELECT DATE_TRUNC('DAY', TIMESTAMP '2017-02-14 20:38:40') "
+        + "$f0\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 }
