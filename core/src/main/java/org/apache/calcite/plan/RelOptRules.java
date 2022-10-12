@@ -103,6 +103,7 @@ public class RelOptRules {
       PruneEmptyRules.JOIN_LEFT_INSTANCE,
       PruneEmptyRules.JOIN_RIGHT_INSTANCE,
       PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE,
+      PruneEmptyRules.EMPTY_TABLE_INSTANCE,
       CoreRules.UNION_MERGE,
       CoreRules.INTERSECT_MERGE,
       CoreRules.MINUS_MERGE,

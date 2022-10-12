@@ -1500,33 +1500,6 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testComplexEmptyTable">
-    <Resource name="sql">
-      <![CDATA[select * from products as e
-,EMPTY_PRODUCTS as d where e.PRODUCTID = d.PRODUCTID
-]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5], PRODUCTID00=[$6], NAME00=[$7], SUPPLIERID00=[$8])
-  LogicalJoin(condition=[=($0, $3)], joinType=[left])
-    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
-    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
-      LogicalFilter(condition=[>($2, 10)])
-        LogicalJoin(condition=[=($0, $3)], joinType=[inner])
-          LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
-          LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5], PRODUCTID00=[$6], NAME00=[$7], SUPPLIERID00=[$8])
-  LogicalJoin(condition=[=($0, $3)], joinType=[left])
-    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
-    LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testConvertMultiJoinRule">
     <Resource name="sql">
       <![CDATA[select e1.ename from emp e1, dept d, emp e2
@@ -3088,52 +3061,7 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testEmptyTableJoinLeft">
-    <Resource name="sql">
-      <![CDATA[select * from EMPTY_PRODUCTS as e,
-      products as d where e.PRODUCTID = d.PRODUCTID]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
-  LogicalFilter(condition=[=($0, $3)])
-    LogicalJoin(condition=[true], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
-      LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
-  LogicalFilter(condition=[=($0, $3)])
-    LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyTableJoinRight">
-    <Resource name="sql">
-      <![CDATA[select * from products as e
-,EMPTY_PRODUCTS as d where e.PRODUCTID = d.PRODUCTID
-]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
-  LogicalFilter(condition=[=($0, $3)])
-    LogicalJoin(condition=[true], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
-  LogicalFilter(condition=[=($0, $3)])
-    LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyTableProject">
+  <TestCase name="testEmptyTable">
     <Resource name="sql">
       <![CDATA[select * from EMPTY_PRODUCTS
 ]]>
@@ -3150,19 +3078,30 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testEmptytableMinus">
+  <TestCase name="testEmptyTableInComplexQuery">
     <Resource name="sql">
-      <![CDATA[select * from EMPTY_PRODUCTS]]>
+      <![CDATA[select * from products left join (select * from products as e
+ inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID  where e.SUPPLIERID > 10) dt
+ on products.PRODUCTID = dt.PRODUCTID]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject
-  LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
+LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5], PRODUCTID00=[$6], NAME00=[$7], SUPPLIERID00=[$8])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
+      LogicalFilter(condition=[>($2, 10)])
+        LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalValues(tuples=[[]])
+LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5], PRODUCTID00=[$6], NAME00=[$7], SUPPLIERID00=[$8])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+    LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>

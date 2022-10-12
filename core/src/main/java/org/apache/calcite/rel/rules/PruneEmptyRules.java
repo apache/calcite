@@ -470,6 +470,7 @@ public abstract class PruneEmptyRules {
             call.transformTo(emptyValues);
           }
         }
+
       };
     }
   }
@@ -542,28 +543,35 @@ public abstract class PruneEmptyRules {
   }
 
 
-  public static final RelOptRule EMPTY_TABLE =
-      ImmutableEmptyTableOptimizationConfig.of()
-          .withOperandSupplier(b0 -> {
-            return b0.operand(TableScan.class).noInputs();
-          })
-          .withDescription("ConvertEmptyTableToValues")
+  public static final RelOptRule EMPTY_TABLE_INSTANCE =
+      ImmutableZeroMaxRowsRuleConfig.of()
+          .withOperandSupplier(b0 -> b0.operand(TableScan.class).noInputs())
+          .withDescription("PruneZeroRowsTable")
           .toRule();
 
   /** Configuration for rule that transforms an empty table into an empty values node.
    * MaxRowCount is used as the stat to transform, hence Table implementer needs
    * to supply this metadata if this optimization needs to be applied.*/
   @Value.Immutable
-  public interface EmptyTableOptimizationConfig extends PruneEmptyRule.Config {
+  public interface ZeroMaxRowsRuleConfig extends PruneEmptyRule.Config {
 
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
-          TableScan tableScan = call.rel(0);
-          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(tableScan);
-          if (maxRowCount != null && maxRowCount == 0.0) {
-            call.transformTo(call.builder().push(tableScan).empty().build());
+          RelNode node = call.rel(0);
+          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
+          if (maxRowCount == null || maxRowCount > 0.0) {
+            return;
           }
+          RelNode emptyValues = call.builder().push(node).empty().build();
+          RelTraitSet traits = node.getTraitSet();
+          // propagate all traits (except convention) from the original tableScan
+          // into the empty values
+          if (emptyValues.getConvention() != null) {
+            traits = traits.replace(emptyValues.getConvention());
+          }
+          emptyValues = emptyValues.copy(traits, Collections.emptyList());
+          call.transformTo(emptyValues);
         }
       };
     }
