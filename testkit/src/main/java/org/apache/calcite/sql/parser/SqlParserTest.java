@@ -824,7 +824,7 @@ public class SqlParserTest {
         + " salary = (t.salary * 0.1)\n"
         + "WHEN NOT MATCHED THEN"
         + " INSERT (name, dept, salary)"
-        + " (VALUES (t.name, 10, (t.salary * 0.15)))";
+        + " VALUES (t.name, 10, (t.salary * 0.15))";
     sql(mergeSql)
         .fails("(?s)Encountered \"-\" at .*")
         .withDialect(BIG_QUERY)
@@ -4606,7 +4606,7 @@ public class SqlParserTest {
         + ", `DEPTNO` = `T`.`DEPTNO`"
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+        + "VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15)))";
     sql(sql).ok(expected)
         .node(not(isDdl()));
   }
@@ -4629,7 +4629,7 @@ public class SqlParserTest {
         + ", `E`.`DEPTNO` = `T`.`DEPTNO`"
         + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+        + "VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15)))";
     sql(sql).ok(expected)
         .node(not(isDdl()));
   }
@@ -4649,7 +4649,7 @@ public class SqlParserTest {
         + ", `DEPTNO` = `T`.`DEPTNO`"
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+        + "VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15)))";
     sql(sql).ok(expected);
   }
 
@@ -4669,7 +4669,7 @@ public class SqlParserTest {
         + ", `E`.`DEPTNO` = `T`.`DEPTNO`"
         + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+        + "VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15)))";
     sql(sql).ok(expected);
   }
 
@@ -4696,7 +4696,7 @@ public class SqlParserTest {
     final String expected = "MERGE INTO `EMPS` AS `E`\n"
         + "USING `TEMPS` AS `T`\n"
         + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-        + "WHEN NOT MATCHED THEN INSERT (`A`, `B`) (VALUES (ROW(1, 2)))";
+        + "WHEN NOT MATCHED THEN INSERT (`A`, `B`) VALUES (ROW(1, 2))";
     sql(sql2).ok(expected);
 
     // As sql1, removing unmatched '(', therefore valid
@@ -10225,7 +10225,7 @@ public class SqlParserTest {
         + ", `DEPTNO` = `T`.`DEPTNO`"
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+        + "VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15)))";
     sql(sql).ok(expected);
   }
 
