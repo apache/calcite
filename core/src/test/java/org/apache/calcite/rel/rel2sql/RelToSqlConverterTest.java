@@ -57,6 +57,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
@@ -90,6 +91,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
@@ -1309,12 +1311,52 @@ class RelToSqlConverterTest {
   @Test public void testTableFunctionScanWithUnnest() {
     final RelBuilder builder = relBuilder();
     String[] array = {"abc", "bcd", "fdc"};
-    RelNode root = builder.functionScan(SqlStdOperatorTable.UNNEST, 0,
+    RelNode root = builder.scan("EMP").functionScan(SqlStdOperatorTable.UNNEST, 1,
             builder.makeArrayLiteral(Arrays.asList(array))).project(builder.field(0)).build();
-    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final SqlDialect dialect = DatabaseProduct.MSSQL.getDialect();
     final String expectedSql = "SELECT *\nFROM UNNEST(ARRAY['abc', 'bcd', 'fdc'])\nAS EXPR$0";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
+
+  @Test public void testUnpivotWithIncludeNullsAsTrue() {
+    final RelBuilder builder = relBuilder();
+    RelNode root = builder
+        .scan("EMP")
+        .unpivot(true, ImmutableList.of("REMUNERATION"),
+            ImmutableList.of("REMUNERATION_TYPE"),
+            Pair.zip(
+                Arrays.asList(ImmutableList.of(builder.literal("commission")),
+                    ImmutableList.of(builder.literal("salary"))),
+                Arrays.asList(ImmutableList.of(builder.field("COMM")),
+                    ImmutableList.of(builder.field("SAL")))))
+        .build();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final String expectedSql = "SELECT *\n"
+        + "FROM scott.EMP UNPIVOT INCLUDE NULLS (REMUNERATION_TYPE FOR REMUNERATION IN (EMP.COMM "
+        + "AS 'commission', EMP.SAL AS 'salary'))";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+
+  @Test public void testUnpivotWithIncludeNullsAsFalse() {
+    final RelBuilder builder = relBuilder();
+    RelNode root = builder.scan("EMP")
+        .unpivot(false, ImmutableList.of("REMUNERATION"),
+            ImmutableList.of("REMUNERATION_TYPE"),
+            Pair.zip(
+                Arrays.asList(ImmutableList.of(builder.literal("commission")),
+                    ImmutableList.of(builder.literal("salary"))),
+                Arrays.asList(ImmutableList.of(builder.field("COMM")),
+                    ImmutableList.of(builder.field("SAL")))))
+        .build();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final String expectedSql = "SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, DEPTNO, "
+        + "REMUNERATION_TYPE, CAST(REMUNERATION AS NUMERIC) AS REMUNERATION\n"
+        + "FROM scott.EMP UNPIVOT EXCLUDE NULLS (REMUNERATION_TYPE FOR REMUNERATION IN (EMP.COMM "
+        + "AS 'commission', EMP.SAL AS 'salary'))";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3207">[CALCITE-3207]
@@ -7828,6 +7870,7 @@ class RelToSqlConverterTest {
   }
 
   @Test void testTableFunctionScan() {
+/*
     final String query = "SELECT *\n"
         + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
         + "from \"product\"), CURSOR(select  \"employee_id\", \"full_name\"\n"
@@ -7838,6 +7881,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\")), CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
         + "FROM \"foodmart\".\"employee\")), 'NAME'))";
     sql(query).ok(expected);
+*/
 
     final String query2 = "select * from table(ramp(3))";
     sql(query2).ok("SELECT *\n"

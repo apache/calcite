@@ -365,6 +365,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return JoinType.INNER;
   }
 
+  @Override public boolean supportsUnpivot() {
+    return true;
+  }
+
   @Override public boolean castRequiredForStringOperand(RexCall node) {
     if (super.castRequiredForStringOperand(node)) {
       return true;

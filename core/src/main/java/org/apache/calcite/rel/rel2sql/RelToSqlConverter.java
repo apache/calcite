@@ -45,8 +45,10 @@ import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -58,8 +60,10 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -73,8 +77,11 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
@@ -101,6 +108,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -337,60 +345,100 @@ public class RelToSqlConverter extends SqlImplementor
   /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
     RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
-    final RelNode input = e.getInput();
-    if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)) {
-      // ignoreClauses will always be true because in case of false, new select wrap gets applied
-      // with this current Qualify filter e. So, the input query won't remain as it is.
-      final Result x = visitInput(e, 0, isAnon(), true,
-          ImmutableSet.of(Clause.QUALIFY));
-      parseCorrelTable(e, x);
-      final Builder builder = x.builder(e);
-      builder.setQualify(builder.context.toSql(null, e.getCondition()));
-      return builder.result();
-    } else if (input instanceof Aggregate) {
-      final Aggregate aggregate = (Aggregate) input;
-      final boolean ignoreClauses = aggregate.getInput() instanceof Project;
-      final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
-          ImmutableSet.of(Clause.HAVING));
-      parseCorrelTable(e, x);
-      final Builder builder = x.builder(e);
-      builder.setHaving(builder.context.toSql(null, e.getCondition()));
-      return builder.result();
-    } else {
-      final Result x = visitInput(e, 0, Clause.WHERE);
-      parseCorrelTable(e, x);
-      final Builder builder = x.builder(e);
-      builder.setWhere(builder.context.toSql(null, e.getCondition()));
-      return builder.result();
-    }
+      final RelNode input = e.getInput();
+      if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)) {
+        // ignoreClauses will always be true because in case of false, new select wrap gets applied
+        // with this current Qualify filter e. So, the input query won't remain as it is.
+        final Result x = visitInput(e, 0, isAnon(), true,
+            ImmutableSet.of(Clause.QUALIFY));
+        parseCorrelTable(e, x);
+        final Builder builder = x.builder(e);
+        builder.setQualify(builder.context.toSql(null, e.getCondition()));
+        return builder.result();
+      } else if (input instanceof Aggregate) {
+        final Aggregate aggregate = (Aggregate) input;
+        final boolean ignoreClauses = aggregate.getInput() instanceof Project;
+        final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
+            ImmutableSet.of(Clause.HAVING));
+        parseCorrelTable(e, x);
+        final Builder builder = x.builder(e);
+        builder.setHaving(builder.context.toSql(null, e.getCondition()));
+        return builder.result();
+      } else {
+        final Result x = visitInput(e, 0, Clause.WHERE);
+        parseCorrelTable(e, x);
+        final Builder builder = x.builder(e);
+        UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
+        if (dialect.supportsUnpivot() && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithExcludeNulls(e, builder, x.node)) {
+          SqlNode sqlUnpivot = createUnpivotSqlNodeWithExcludeNull((SqlSelect) x.node);
+          SqlNode select = new SqlSelect(
+              SqlParserPos.ZERO, null, null, sqlUnpivot,
+              null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+          return result(select, ImmutableList.of(Clause.SELECT), e, null);
+        } else {
+          builder.setWhere(builder.context.toSql(null, e.getCondition()));
+          return builder.result();
+        }
+      }
+  }
+
+  SqlNode createUnpivotSqlNodeWithExcludeNull(SqlSelect sqlNode) {
+    SqlUnpivot sqlUnpivot = (SqlUnpivot) sqlNode.getFrom();
+    assert sqlUnpivot != null;
+    return new SqlUnpivot(POS, sqlUnpivot.query, false, sqlUnpivot.measureList, sqlUnpivot.axisList, sqlUnpivot.inList);
   }
 
   /** Visits a Project; called by {@link #dispatch} via reflection. */
   public Result visit(Project e) {
+    UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
     final Result x = visitInput(e, 0, Clause.SELECT);
-    parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
-        || style.isExpandProjection()) {
-      final List<SqlNode> selectList = new ArrayList<>();
-      for (RexNode ref : e.getProjects()) {
-        SqlNode sqlExpr = builder.context.toSql(null, ref);
-        RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
+    if (dialect.supportsUnpivot() && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithIncludeNulls(e, builder)) {
+      SqlUnpivot sqlUnpivot = createUnpivotSqlNodeWithIncludeNull(e, builder);
+      SqlNode select = new SqlSelect(
+          SqlParserPos.ZERO, null, builder.select.getSelectList(), sqlUnpivot,
+          null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+      return result(select, ImmutableList.of(Clause.SELECT), e, null);
+    } else {
+      parseCorrelTable(e, x);
+      if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
+          || style.isExpandProjection()) {
+        final List<SqlNode> selectList = new ArrayList<>();
+        for (RexNode ref : e.getProjects()) {
+          SqlNode sqlExpr = builder.context.toSql(null, ref);
+          RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
 
-        if (SqlKind.SINGLE_VALUE == sqlExpr.getKind()) {
-          sqlExpr = dialect.rewriteSingleValueExpr(sqlExpr);
+          if (SqlKind.SINGLE_VALUE == sqlExpr.getKind()) {
+            sqlExpr = dialect.rewriteSingleValueExpr(sqlExpr);
+          }
+
+          if (SqlUtil.isNullLiteral(sqlExpr, false)
+              && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
+            sqlExpr = castNullType(sqlExpr, targetField.getType());
+          }
+          addSelect(selectList, sqlExpr, e.getRowType());
         }
 
-        if (SqlUtil.isNullLiteral(sqlExpr, false)
-            && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
-          sqlExpr = castNullType(sqlExpr, targetField.getType());
-        }
-        addSelect(selectList, sqlExpr, e.getRowType());
+        builder.setSelect(new SqlNodeList(selectList, POS));
       }
-
-      builder.setSelect(new SqlNodeList(selectList, POS));
+      return builder.result();
     }
-    return builder.result();
+  }
+
+  private SqlUnpivot createUnpivotSqlNodeWithIncludeNull(Project projectRel, SqlImplementor.Builder builder) {
+    UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
+    RelNode relNode = ((LogicalJoin) projectRel.getInput(0)).getLeft();
+    SqlNode query = dispatch(relNode).asStatement();
+    LogicalValues valuesRel = unpivotRelToSqlUtil.getValuesRel(projectRel);
+    SqlNodeList measureList = new SqlNodeList(ImmutableList.of(new SqlIdentifier(unpivotRelToSqlUtil.getValueAlias(valuesRel), POS)), POS);
+    SqlNodeList axisList = new SqlNodeList(ImmutableList.of(new SqlIdentifier(unpivotRelToSqlUtil.getAliasOfCase(projectRel), POS)), POS);
+    SqlNodeList aliasOfInSqlNodeList = unpivotRelToSqlUtil.getValuesList(valuesRel, builder);
+    SqlNodeList inSqlNodeList = unpivotRelToSqlUtil.getThenClauseSqlNodeList(projectRel, builder);
+    SqlNodeList aliasedInSqlNodeList = new SqlNodeList(POS);
+    for (int i = 0; i < inSqlNodeList.size(); i++) {
+      aliasedInSqlNodeList.add(SqlStdOperatorTable.AS.createCall(POS, inSqlNodeList.get(i), aliasOfInSqlNodeList.get(i)));
+    }
+    return new SqlUnpivot(POS, query, true, measureList, axisList, aliasedInSqlNodeList);
   }
 
   /** Wraps a NULL literal in a CAST operator to a target type.
@@ -1069,10 +1117,11 @@ public class RelToSqlConverter extends SqlImplementor
       final Result x = visitInput(e, i);
       inputSqlNodes.add(x.asStatement());
     }
+    final Result x = visitInput(e, 0);
     final Context context = tableFunctionScanContext(inputSqlNodes);
     SqlNode callNode = context.toSql(null, e.getCall());
-    // Convert to table function call, "TABLE($function_name(xxx))"
-    SqlSpecialOperator collectionTable = new SqlCollectionTableOperator("TABLE",
+    // Convert to table function call, "TABLE($function_name(xxx))
+    SqlSpecialOperator collectionTable = new SqlCollectionTableOperator(x.asStatement().toString(),
         SqlModality.RELATION, e.getRowType().getFieldNames().get(0));
     SqlNode tableCall = new SqlBasicCall(
         collectionTable,
