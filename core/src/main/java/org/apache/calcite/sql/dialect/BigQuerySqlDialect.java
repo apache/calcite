@@ -639,13 +639,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseGroupingFunction(writer, call, leftPrec, rightPrec);
       break;
     case CAST:
-      if (call.operand(1).toString().equals("`TIMESTAMP`")) {
+      String firstOperand = call.operand(1).toString();
+      if (firstOperand.equals("`TIMESTAMP`")) {
         SqlWriter.Frame castDateTimeFrame = writer.startFunCall("CAST");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.sep("AS", true);
         writer.literal("DATETIME");
         writer.endFunCall(castDateTimeFrame);
-      } else if (call.operand(1).toString().equalsIgnoreCase("INTEGER")) {
+      } else if (firstOperand.equals("INTEGER")) {
         unparseCastAsInteger(writer, call, leftPrec, rightPrec);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -658,7 +659,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseCastAsInteger(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     boolean isFirstOperandFormatCall = (call.operand(0) instanceof SqlBasicCall)
-        && ((SqlBasicCall) call.operand(0)).getOperator().getName().equalsIgnoreCase("FORMAT");
+        && ((SqlBasicCall) call.operand(0)).getOperator().getName().equals("FORMAT");
     boolean isFirstOperandString = (call.operand(0) instanceof SqlCharStringLiteral)
         && SqlTypeName.CHAR_TYPES.contains(((SqlCharStringLiteral) call.operand(0)).getTypeName());
     Matcher floatRegexMatcher = isFirstOperandString
