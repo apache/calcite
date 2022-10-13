@@ -2823,14 +2823,17 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testSelectQueryAliasInWhereClauseAndOrderBy() {
-    String query = "select  \"cases_per_pallet\" as c, upper(c) from \"product\" WHERE c > 100 ORDER BY c";
+  @Test public void testSelectQueryAliasInWhereClauseAndGroupBy() {
+    String query = "select  \"cases_per_pallet\" as c, upper(c) from"
+        + " \"product\" WHERE c > 100 Group BY c";
     final String expected = "SELECT \"cases_per_pallet\" AS \"C\", UPPER(CAST"
         + "(\"cases_per_pallet\" AS VARCHAR CHARACTER SET \"ISO-8859-1\"))\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"cases_per_pallet\" > 100\n"
-        + "ORDER BY \"cases_per_pallet\"";
-    sql(query).ok(expected);
+        + "GROUP BY \"cases_per_pallet\"";
+    // Convert rel node to SQL with MySql dialect,
+    // in which "isGroupBy" is true.
+    sql(query).withBigQuery().ok(expected);
   }
 
 
@@ -2845,20 +2848,23 @@ class RelToSqlConverterTest {
 
   @Test public void testSelectQueryAliasInOn() {
     String query = "select  \"employee_id\" as c, \"product_id\" p from \"product\" "
-            +" JOIN \"employee\" "+
-            " ON c = p ";
-    final String expected = "SELECT \"employee\".\"employee_id\" AS \"C\", \"product\".\"product_id\" AS \"P\"\n"+
-          "FROM \"foodmart\".\"product\"\n" +
-          "INNER JOIN \"foodmart\".\"employee\" ON \"product\".\"product_id\" = \"employee\".\"employee_id\"";
+            + " JOIN \"employee\" "
+            + " ON c = p ";
+    final String expected = "SELECT \"employee\".\"employee_id\" AS \"C\","
+        + " \"product\".\"product_id\" AS \"P\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"employee\" "
+        + "ON \"product\".\"product_id\" = \"employee\".\"employee_id\"";
     sql(query).ok(expected);
   }
 
   @Test public void testSelectQueryAliasPreferenceForInnerSubQuery() {
     String query = "select  \"employee_id\" as c, lower(c) from "
-            + "( SELECT \"employee_id\", \"gender\" AS c " +
-           "FROM \"employee\")";
+            + "( SELECT \"employee_id\", \"gender\" AS c "
+            + "FROM \"employee\")";
 
-    final String expected = "SELECT \"employee_id\" AS \"C\", LOWER(\"gender\")\nFROM \"foodmart\".\"employee\"";
+    final String expected = "SELECT \"employee_id\" AS \"C\", "
+        + "LOWER(\"gender\")\nFROM \"foodmart\".\"employee\"";
     sql(query).ok(expected);
   }
 

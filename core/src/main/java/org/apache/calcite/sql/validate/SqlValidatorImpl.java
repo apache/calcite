@@ -6712,7 +6712,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Shuttle which walks over an expression replacing usage of alias with underlying expression.
    */
   static class ExtendedAliasExpander extends Expander {
-    final SqlSelect select;
+    SqlSelect select;
 
     ExtendedAliasExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
         SqlSelect select) {
@@ -6767,7 +6767,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * COALESCE(A.col, B.col) AS col.
    */
   static class SelectExpander extends ExtendedAliasExpander {
-    final SqlSelect select;
 
     SelectExpander(SqlValidatorImpl validator, SelectScope scope,
         SqlSelect select) {
