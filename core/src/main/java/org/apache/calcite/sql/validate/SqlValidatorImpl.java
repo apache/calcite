@@ -3491,7 +3491,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       Preconditions.checkArgument(join.getCondition() == null);
       break;
     case ON:
-      requireNonNull(condition, "join.getCondition()");
+      SqlNode condition = getCondition(join);
       SqlNode expandedCondition = condition;
       if (scope.getNode() instanceof SqlSelect) {
         expandedCondition = expandWithAlias(condition, joinScope, (SqlSelect) scope.getNode());
