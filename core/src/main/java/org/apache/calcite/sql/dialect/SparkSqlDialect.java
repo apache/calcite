@@ -178,6 +178,17 @@ public class SparkSqlDialect extends SqlDialect {
         put(ANTE_MERIDIAN_INDICATOR1, "a");
       }};
 
+  private Map<String, String> UDF_MAP = new HashMap<String, String>() {{
+    put("TO_HEX", "UDF_CHAR2HEX");
+    put("REGEXP_INSTR", "UDF_REGEXP_INSTR");
+    put("REGEXP_REPLACE", "UDF_REGEXP_REPLACE");
+    put("ROUND", "UDF_REGEXP_REPLACE");
+    put("STRTOK", "UDF_STRTOK");
+    put("INSTR", "UDF_INSTR");
+    put("TRUNC", "UDF_TRUNC");
+    put("REGEXP_SUBSTR", "UDF_REGEXP_SUBSTR");
+  }};
+
   private static final String AND = "&";
   private static final String OR = "|";
   private static final String XOR = "^";
@@ -384,10 +395,8 @@ public class SparkSqlDialect extends SqlDialect {
         unparseTimestampDiff(writer, call, leftPrec, rightPrec);
         break;
       case TRUNCATE:
-        unparseUDF(writer, call, leftPrec, rightPrec, "UDF_TRUNC");
-        return;
       case REGEXP_SUBSTR:
-        unparseUDF(writer, call, leftPrec, rightPrec, "UDF_REGEXP_SUBSTR");
+        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind()));
         return;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -633,7 +642,7 @@ public class SparkSqlDialect extends SqlDialect {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(frame);
       } else {
-        unparseUDF(writer, call, leftPrec, rightPrec, "UDF_INSTR");
+        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       }
       break;
     case "RAND_INTEGER":
@@ -685,23 +694,17 @@ public class SparkSqlDialect extends SqlDialect {
       writer.endFunCall(piFrame);
       break;
     case "TO_HEX":
-      unparseUDF(writer, call, leftPrec, rightPrec, "UDF_CHAR2HEX");
-      return;
     case "REGEXP_INSTR":
-      unparseUDF(writer, call, leftPrec, rightPrec, "UDF_REGEXP_INSTR");
-      return;
     case "REGEXP_REPLACE":
-      unparseUDF(writer, call, leftPrec, rightPrec, "UDF_REGEXP_REPLACE");
+    case "STRTOK":
+      unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;
     case "ROUND":
-      if (call.operand(1) instanceof SqlLiteral) {
+      if(call.operand(1) instanceof SqlLiteral) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       } else {
-        unparseUDF(writer, call, leftPrec, rightPrec, "UDF_ROUND");
+        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       }
-      return;
-    case "STRTOK":
-      unparseUDF(writer, call, leftPrec, rightPrec, "UDF_STRTOK");
       return;
 
     default:
@@ -816,13 +819,14 @@ public class SparkSqlDialect extends SqlDialect {
   void unparseUDF(
       final SqlWriter writer, final SqlCall call,
       final int leftPrec, final int rightPrec, String udfName) {
-
-    final SqlWriter.Frame frame = writer.startFunCall(udfName);
-    int operandCount = call.operandCount();
-    for (int i = 0; i < operandCount; i++) {
-      writer.sep(",");
-      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    if(udfName != null) {
+      final SqlWriter.Frame frame = writer.startFunCall(udfName);
+      int operandCount = call.operandCount();
+      for (int i = 0; i < operandCount; i++) {
+        writer.sep(",");
+        call.operand(i).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(frame);
     }
-    writer.endFunCall(frame);
   }
 }
