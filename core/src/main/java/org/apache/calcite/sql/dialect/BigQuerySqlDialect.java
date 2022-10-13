@@ -646,7 +646,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         writer.sep("AS", true);
         writer.literal("DATETIME");
         writer.endFunCall(castDateTimeFrame);
-      } else if (firstOperand.equals("INTEGER")) {
+      } else if (firstOperand.equals("INTEGER") || firstOperand.equals("INT64")) {
         unparseCastAsInteger(writer, call, leftPrec, rightPrec);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
