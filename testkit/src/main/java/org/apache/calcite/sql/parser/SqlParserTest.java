@@ -2199,8 +2199,8 @@ public class SqlParserTest {
         + "select deptno from femaleEmps";
     final String expected = "WITH `FEMALEEMPS` AS (SELECT *\n"
         + "FROM `EMPS`\n"
-        + "WHERE (`GENDER` = 'F')) (SELECT `DEPTNO`\n"
-        + "FROM `FEMALEEMPS`)";
+        + "WHERE (`GENDER` = 'F')) SELECT `DEPTNO`\n"
+        + "FROM `FEMALEEMPS`";
     sql(sql).ok(expected);
   }
 
@@ -2212,8 +2212,8 @@ public class SqlParserTest {
         + "FROM `EMPS`\n"
         + "WHERE (`GENDER` = 'F')), `MARRIEDFEMALEEMPS` (`X`, `Y`) AS (SELECT *\n"
         + "FROM `FEMALEEMPS`\n"
-        + "WHERE (`MARITASTATUS` = 'M')) (SELECT `DEPTNO`\n"
-        + "FROM `FEMALEEMPS`)";
+        + "WHERE (`MARITASTATUS` = 'M')) SELECT `DEPTNO`\n"
+        + "FROM `FEMALEEMPS`";
     sql(sql).ok(expected);
   }
 
@@ -2228,8 +2228,8 @@ public class SqlParserTest {
     final String sql = "with v(i,c) as (values (1, 'a'), (2, 'bb'))\n"
         + "select c, i from v";
     final String expected = "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')),\n"
-        + "(ROW(2, 'bb'))) (SELECT `C`, `I`\n"
-        + "FROM `V`)";
+        + "(ROW(2, 'bb'))) SELECT `C`, `I`\n"
+        + "FROM `V`";
     sql(sql).ok(expected);
   }
 
@@ -2241,6 +2241,34 @@ public class SqlParserTest {
     sql(sql).fails("(?s)Encountered \"with\" at .*");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5299">[CALCITE-5299]
+   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in WITH body</a>. */
+  @Test void testWithSelect() {
+    final String sql = "with emp2 as (select * from emp)\n"
+        + "select * from emp2\n";
+    final String expected = "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`) SELECT *\n"
+        + "FROM `EMP2`";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5299">[CALCITE-5299]
+   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in WITH body</a>. */
+  @Test void testWithOrderBy() {
+    final String sql = "with emp2 as (select * from emp)\n"
+        + "select * from emp2 order by deptno\n";
+    final String expected = "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`) SELECT *\n"
+        + "FROM `EMP2`\n"
+        + "ORDER BY `DEPTNO`";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5299">[CALCITE-5299]
+   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in WITH body</a>. */
   @Test void testWithNestedInSubQuery() {
     // SQL standard does not allow sub-query to contain WITH but we do
     final String sql = "with emp2 as (select * from emp)\n"
@@ -2249,11 +2277,14 @@ public class SqlParserTest {
         + "  select 1 as uno from empDept)";
     final String expected = "WITH `EMP2` AS (SELECT *\n"
         + "FROM `EMP`) (WITH `DEPT2` AS (SELECT *\n"
-        + "FROM `DEPT`) (SELECT 1 AS `UNO`\n"
-        + "FROM `EMPDEPT`))";
+        + "FROM `DEPT`) SELECT 1 AS `UNO`\n"
+        + "FROM `EMPDEPT`)";
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5299">[CALCITE-5299]
+   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in WITH body</a>. */
   @Test void testWithUnion() {
     // Per the standard WITH ... SELECT ... UNION is valid even without parens.
     final String sql = "with emp2 as (select * from emp)\n"
@@ -2261,11 +2292,11 @@ public class SqlParserTest {
         + "union\n"
         + "select * from emp2\n";
     final String expected = "WITH `EMP2` AS (SELECT *\n"
-        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP`) SELECT *\n"
         + "FROM `EMP2`\n"
         + "UNION\n"
         + "SELECT *\n"
-        + "FROM `EMP2`)";
+        + "FROM `EMP2`";
     sql(sql).ok(expected);
   }
 
@@ -2407,8 +2438,8 @@ public class SqlParserTest {
         .withConfig(c -> c.withQuoting(Quoting.BRACKET)
             .withConformance(SqlConformanceEnum.DEFAULT));
     f2.fails(expectingAlias);
-    final String sql2b = "WITH `T` AS (SELECT 1 AS `x'y`) (SELECT `x'y`\n"
-        + "FROM `T` AS `u`)";
+    final String sql2b = "WITH `T` AS (SELECT 1 AS `x'y`) SELECT `x'y`\n"
+        + "FROM `T` AS `u`";
     f2.withConformance(SqlConformanceEnum.MYSQL_5)
         .ok(sql2b);
     f2.withConformance(SqlConformanceEnum.BIG_QUERY)
@@ -2418,8 +2449,8 @@ public class SqlParserTest {
 
     // also valid on MSSQL
     final String sql3 = "with [t] as (select 1 as [x]) select [x] from [t]";
-    final String sql3b = "WITH `t` AS (SELECT 1 AS `x`) (SELECT `x`\n"
-        + "FROM `t`)";
+    final String sql3b = "WITH `t` AS (SELECT 1 AS `x`) SELECT `x`\n"
+        + "FROM `t`";
     final SqlParserFixture f3 = sql(sql3)
         .withConfig(c -> c.withQuoting(Quoting.BRACKET)
             .withConformance(SqlConformanceEnum.DEFAULT));

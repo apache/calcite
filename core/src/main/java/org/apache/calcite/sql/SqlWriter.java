@@ -150,6 +150,11 @@ public interface SqlWriter {
     WITH,
 
     /**
+     * The body query of WITH.
+     */
+    WITH_BODY,
+
+    /**
      * OFFSET clause.
      *
      * <p>Example:</p>
@@ -542,6 +547,11 @@ public interface SqlWriter {
    * UNION, INTERSECT, EXCEPT, and the ORDER BY operator).
    */
   boolean inQuery();
+
+  /**
+   * Returns whether we are currently in a WITH body query context.
+   */
+  boolean inWithBody();
 
   //~ Inner Interfaces -------------------------------------------------------
 
