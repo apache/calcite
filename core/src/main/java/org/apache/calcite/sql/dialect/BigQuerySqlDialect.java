@@ -1024,7 +1024,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseHashrowFunction(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
-      final SqlWriter.Frame trunc = writer.startFunCall(getTruncFrame(call));
+      final SqlWriter.Frame trunc = writer.startFunCall(getTruncFunctionName(call));
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));

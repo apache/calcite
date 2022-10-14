@@ -1904,7 +1904,7 @@ public class SqlDialect {
     }
   }
 
-  protected String getTruncFrame(SqlCall call) {
+  protected String getTruncFunctionName(SqlCall call) {
     String dateFormatOperand = call.operand(1).toString();
     boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
     if (isDateTimeOperand) {
