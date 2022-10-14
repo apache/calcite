@@ -2284,6 +2284,45 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5252">[CALCITE-5252]
+   * Cover sql like "WITH ... AS (SELECT ... ORDER BY ...) ..." missing parentheses</a>. */
+  @Test void testWithAsOrderBy() {
+    final String sql = "with emp2 as (select * from emp order by deptno)\n"
+        + "select * from emp2\n";
+    final String expected = "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`\n"
+        + "ORDER BY `DEPTNO`) (SELECT *\n"
+        + "FROM `EMP2`)";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5252">[CALCITE-5252]
+   * Cover sql like "WITH ... AS (SELECT ... JOIN ...) ..." missing parentheses</a>. */
+  @Test void testWithAsJoin() {
+    final String sql = "with emp2 as (select * from emp e1 join emp e2 on e1.deptno = e2.deptno)\n"
+        + "select * from emp2\n";
+    final String expected = "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP` AS `E1`\n"
+        + "INNER JOIN `EMP` AS `E2` ON (`E1`.`DEPTNO` = `E2`.`DEPTNO`)) (SELECT *\n"
+        + "FROM `EMP2`)";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5252">[CALCITE-5252]
+   * Cover sql like "WITH ... AS (WITH ... AS (...) ...) ..." missing parentheses</a>. */
+  @Test void testWithAsWith() {
+    final String sql = "with emp3 as (with emp2 as (select * from emp) select * from emp2)\n"
+        + "select * from emp3\n";
+    final String expected = "WITH `EMP3` AS (WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`)) (SELECT *\n"
+        + "FROM `EMP3`)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testIdentifier() {
     expr("ab").ok("`AB`");
     expr("     \"a  \"\" b!c\"").ok("`a  \" b!c`");
