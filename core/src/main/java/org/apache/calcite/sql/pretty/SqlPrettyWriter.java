@@ -398,7 +398,7 @@ public class SqlPrettyWriter implements SqlWriter {
     return (frame == null)
         || (frame.frameType == FrameTypeEnum.SELECT)
         || (frame.frameType == FrameTypeEnum.ORDER_BY)
-        || (frame.frameType == FrameTypeEnum.WITH)
+        || (frame.frameType == FrameTypeEnum.WITH_BODY)
         || (frame.frameType == FrameTypeEnum.SETOP);
   }
 

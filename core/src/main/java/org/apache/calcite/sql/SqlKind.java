@@ -1199,7 +1199,7 @@ public enum SqlKind {
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
                   JSON_VALUE_EXPRESSION, UNNEST),
-              AGGREGATE, DML, DDL));
+              SET_QUERY, AGGREGATE, DML, DDL));
 
   /**
    * Category of all SQL statement types.
