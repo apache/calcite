@@ -890,8 +890,10 @@ public abstract class SqlImplementor {
         }
       case PLUS:
       case MINUS:
-      case OTHER_FUNCTION:
         op = dialect.getTargetFunc(call);
+        break;
+      case OTHER_FUNCTION:
+        op = dialect.getOperatorForOtherFunc(call);
         break;
       default:
         break;

@@ -10534,7 +10534,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(toCharWithDate, "FD"), toCharWithNumber)
         .build();
     final String expectedSparkQuery = "SELECT "
-        + "DATE_FORMAT(DATE '1970-01-01', 'MM-dd-yyyy HH:mm:ss') FD, UDF_TO_CHAR(1000, '9999') $f1"
+        + "DATE_FORMAT(DATE '1970-01-01', 'MM-dd-yyyy HH:mm:ss') FD, TO_CHAR(1000, '9999') $f1"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }

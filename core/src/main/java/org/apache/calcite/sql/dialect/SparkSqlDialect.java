@@ -178,16 +178,17 @@ public class SparkSqlDialect extends SqlDialect {
         put(ANTE_MERIDIAN_INDICATOR1, "a");
       }};
 
-  private Map<String, String> UDF_MAP = new HashMap<String, String>() {{
-    put("TO_HEX", "UDF_CHAR2HEX");
-    put("REGEXP_INSTR", "UDF_REGEXP_INSTR");
-    put("REGEXP_REPLACE", "UDF_REGEXP_REPLACE");
-    put("ROUND", "UDF_REGEXP_REPLACE");
-    put("STRTOK", "UDF_STRTOK");
-    put("INSTR", "UDF_INSTR");
-    put("TRUNC", "UDF_TRUNC");
-    put("REGEXP_SUBSTR", "UDF_REGEXP_SUBSTR");
-  }};
+  private static final Map<String, String> UDF_MAP =
+      new HashMap<String, String>() {{
+        put("TO_HEX", "UDF_CHAR2HEX");
+        put("REGEXP_INSTR", "UDF_REGEXP_INSTR");
+        put("REGEXP_REPLACE", "UDF_REGEXP_REPLACE");
+        put("ROUND", "UDF_ROUND");
+        put("STRTOK", "UDF_STRTOK");
+        put("INSTR", "UDF_INSTR");
+        put("TRUNC", "UDF_TRUNC");
+        put("REGEXP_SUBSTR", "UDF_REGEXP_SUBSTR");
+      }};
 
   private static final String AND = "&";
   private static final String OR = "|";
@@ -282,21 +283,25 @@ public class SparkSqlDialect extends SqlDialect {
       default:
         return super.getTargetFunc(call);
       }
-    case OTHER_FUNCTION:
-      switch (call.type.getSqlTypeName()) {
-      case VARCHAR:
-        if (call.getOperator() == TO_CHAR) {
-          switch (call.getOperands().get(0).getType().getSqlTypeName()) {
-          case DATE:
-          case TIME:
-          case TIMESTAMP:
-            return DATE_FORMAT;
-          }
-        }
-        return super.getTargetFunc(call);
-      }
     default:
       return super.getTargetFunc(call);
+    }
+  }
+
+  @Override public SqlOperator getOperatorForOtherFunc(RexCall call) {
+    switch (call.type.getSqlTypeName()) {
+    case VARCHAR:
+      if (call.getOperator() == TO_CHAR) {
+        switch (call.getOperands().get(0).getType().getSqlTypeName()) {
+        case DATE:
+        case TIME:
+        case TIMESTAMP:
+          return DATE_FORMAT;
+        }
+      }
+      return super.getOperatorForOtherFunc(call);
+    default:
+      return super.getOperatorForOtherFunc(call);
     }
   }
 
@@ -700,7 +705,7 @@ public class SparkSqlDialect extends SqlDialect {
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;
     case "ROUND":
-      if(call.operand(1) instanceof SqlLiteral) {
+      if (call.operand(1) instanceof SqlLiteral) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       } else {
         unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
@@ -816,17 +821,13 @@ public class SparkSqlDialect extends SqlDialect {
     unparseCall(writer, ceilCall, leftPrec, rightPrec);
   }
 
-  void unparseUDF(
-      final SqlWriter writer, final SqlCall call,
-      final int leftPrec, final int rightPrec, String udfName) {
-    if(udfName != null) {
-      final SqlWriter.Frame frame = writer.startFunCall(udfName);
-      int operandCount = call.operandCount();
-      for (int i = 0; i < operandCount; i++) {
-        writer.sep(",");
-        call.operand(i).unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(frame);
+  void unparseUDF(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, String udfName) {
+    final SqlWriter.Frame frame = writer.startFunCall(udfName);
+    int operandCount = call.operandCount();
+    for (int i = 0; i < operandCount; i++) {
+      writer.sep(",");
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
     }
+    writer.endFunCall(frame);
   }
 }
