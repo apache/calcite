@@ -1269,9 +1269,7 @@ class RelToSqlConverterTest {
             b.or(b.isNull(b.field("COMM")),
                   b.in(
                   b.field("COMM"),
-                  b.literal(new BigDecimal("1.0")), b.literal(new BigDecimal("20000.0")))
-            )
-        )
+                  b.literal(new BigDecimal("1.0")), b.literal(new BigDecimal("20000.0")))))
         .build();
     final String expected = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"

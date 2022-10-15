@@ -641,6 +641,7 @@ class RexBuilderTest {
     final RexNode sarg = ((RexCall) inCall).operands.get(1);
     final RelDataType leastRestrictiveType =
         typeFactory.leastRestrictive(ImmutableList.of(literal1.getType(), literal2.getType()));
+    assertThat(leastRestrictiveType.toString(), is("DECIMAL(6, 1)"));
 
     assertThat(sarg.getType().getSqlTypeName(), is(leastRestrictiveType.getSqlTypeName()));
     assertThat(sarg.getType().getPrecision(), is(leastRestrictiveType.getPrecision()));
