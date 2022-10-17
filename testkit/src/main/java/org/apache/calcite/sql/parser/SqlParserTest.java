@@ -2266,9 +2266,6 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5299">[CALCITE-5299]
-   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in WITH body</a>. */
   @Test void testWithNestedInSubQuery() {
     // SQL standard does not allow sub-query to contain WITH but we do
     final String sql = "with emp2 as (select * from emp)\n"
@@ -2282,9 +2279,6 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5299">[CALCITE-5299]
-   * JDBC adapter sometimes adds unnecessary parentheses around SELECT in WITH body</a>. */
   @Test void testWithUnion() {
     // Per the standard WITH ... SELECT ... UNION is valid even without parens.
     final String sql = "with emp2 as (select * from emp)\n"

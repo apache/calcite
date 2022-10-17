@@ -104,8 +104,8 @@ public class SqlWith extends SqlCall {
       writer.endList(frame1);
       final SqlWriter.Frame frame2 =
           writer.startList(SqlWriter.FrameTypeEnum.WITH_BODY);
-      // leftPrec: 2, rightPrec: 3 are the low bound to WITH operator
-      with.body.unparse(writer, 2, 3);
+      with.body.unparse(writer,
+          SqlWithOperator.INSTANCE.getLeftPrec(), SqlWithOperator.INSTANCE.getRightPrec());
       writer.endList(frame2);
       writer.endList(frame);
     }
