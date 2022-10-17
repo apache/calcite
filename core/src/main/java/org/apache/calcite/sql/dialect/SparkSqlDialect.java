@@ -645,10 +645,10 @@ public class SparkSqlDialect extends SqlDialect {
       writer.endFunCall(piFrame);
       break;
     case "TRUNC":
-      switch (((SqlLiteral) call.operand(0)).getTypeName()) {
-      case DATE:
-      case TIMESTAMP:
-        SqlFloorFunction.unparseDatetimeFunction(writer, call, "DATE_TRUNC", false);
+      String truncFrame = getTruncFunctionName(call);
+      switch (truncFrame) {
+      case "DATE_TRUNC":
+        SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFrame, false);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);

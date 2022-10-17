@@ -10575,4 +10575,39 @@ class RelToSqlConverterTest {
         + "$f0\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
+
+  @Test public void testFormatFunctionCastAsInteger() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatIntegerCastRexNode = builder.cast(
+        builder.call(SqlLibraryOperators.FORMAT,
+        builder.literal("'%.4f'"), builder.scan("EMP").field(5)), SqlTypeName.INTEGER);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatIntegerCastRexNode, "FORMATCALL"))
+        .build();
+    final String expectedSql = "SELECT CAST(FORMAT('''%.4f''', \"SAL\") AS INTEGER) AS "
+        + "\"FORMATCALL\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT CAST(CAST(FORMAT('\\'%.4f\\'', SAL) AS FLOAT64) AS "
+        + "INTEGER) AS FORMATCALL\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testCastAsIntegerForStringLiteral() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatIntegerCastRexNode = builder.cast(builder.literal("45.67"),
+        SqlTypeName.INTEGER);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatIntegerCastRexNode, "c1"))
+        .build();
+    final String expectedSql = "SELECT CAST('45.67' AS INTEGER) AS \"c1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT CAST(CAST('45.67' AS FLOAT64) AS INTEGER) AS c1\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }

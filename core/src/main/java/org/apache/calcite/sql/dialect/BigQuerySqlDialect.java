@@ -77,6 +77,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
@@ -211,6 +212,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
   private static final String TEMP_REGEX = "\\s?°([CcFf])";
+
+  private static final Pattern FLOAT_REGEX =
+      Pattern.compile("[\"|'][+\\-]?([0-9]*[.])[0-9]+[\"|']");
   /**
    * Creates a BigQuerySqlDialect.
    */
@@ -639,12 +643,15 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseGroupingFunction(writer, call, leftPrec, rightPrec);
       break;
     case CAST:
-      if (call.operand(1).toString().equals("`TIMESTAMP`")) {
+      String firstOperand = call.operand(1).toString();
+      if (firstOperand.equals("`TIMESTAMP`")) {
         SqlWriter.Frame castDateTimeFrame = writer.startFunCall("CAST");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.sep("AS", true);
         writer.literal("DATETIME");
         writer.endFunCall(castDateTimeFrame);
+      } else if (firstOperand.equals("INTEGER") || firstOperand.equals("INT64")) {
+        unparseCastAsInteger(writer, call, leftPrec, rightPrec);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -653,6 +660,31 @@ public class BigQuerySqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
+
+  private void unparseCastAsInteger(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    boolean isFirstOperandFormatCall = (call.operand(0) instanceof SqlBasicCall)
+        && ((SqlBasicCall) call.operand(0)).getOperator().getName().equals("FORMAT");
+    boolean isFirstOperandString = (call.operand(0) instanceof SqlCharStringLiteral)
+        && SqlTypeName.CHAR_TYPES.contains(((SqlCharStringLiteral) call.operand(0)).getTypeName());
+    Matcher floatRegexMatcher = isFirstOperandString
+        ? FLOAT_REGEX.matcher(call.operand(0).toString()) : null;
+    boolean isFirstOperandFloatString = floatRegexMatcher != null && floatRegexMatcher.matches();
+
+    if (isFirstOperandFormatCall || isFirstOperandFloatString) {
+      SqlWriter.Frame castIntegerFrame = writer.startFunCall("CAST");
+      SqlWriter.Frame castFloatFrame = writer.startFunCall("CAST");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep("AS", true);
+      writer.literal("FLOAT64");
+      writer.endFunCall(castFloatFrame);
+      writer.sep("AS", true);
+      writer.literal("INTEGER");
+      writer.endFunCall(castIntegerFrame);
+    } else {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
   }
@@ -1028,7 +1060,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseHashrowFunction(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
-      final SqlWriter.Frame trunc = getTruncFrame(writer, call);
+      final SqlWriter.Frame trunc = writer.startFunCall(getTruncFunctionName(call));
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));
@@ -1687,29 +1719,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static String removeSingleQuotes(SqlNode sqlNode) {
     return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
         "");
-  }
-
-  private SqlWriter.Frame getTruncFrame(SqlWriter writer, SqlCall call) {
-    SqlWriter.Frame frame = null;
-    String dateFormatOperand = call.operand(1).toString();
-    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
-    if (isDateTimeOperand) {
-      frame = writer.startFunCall("DATETIME_TRUNC");
-    } else {
-      switch (dateFormatOperand) {
-      case "'HOUR'":
-      case "'MINUTE'":
-      case "'SECOND'":
-      case "'MILLISECOND'":
-      case "'MICROSECOND'":
-        frame = writer.startFunCall("TIME_TRUNC");
-        break;
-      default:
-        frame = writer.startFunCall("DATE_TRUNC");
-
-      }
-    }
-    return frame;
   }
 
   /**
