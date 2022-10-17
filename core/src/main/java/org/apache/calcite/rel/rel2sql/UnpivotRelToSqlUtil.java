@@ -75,6 +75,7 @@ public class UnpivotRelToSqlUtil {
    *
    * <p> Rel with includeNulls = false after expansion
    *     <blockquote><pre>{@code
+   * LogicalProject.NONE.[](input=LogicalFilter#4,inputs=0..6,exprs=[CAST($7):DECIMAL(7, 2) NOT NULL])
    *   LogicalFilter(condition=[IS NOT NULL($7)])
    *     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], DEPTNO=[$7], REMUNERATION_TYPE=[$8], REMUNERATION=[CASE(=($8, 'commission'), $6, =($8, 'salary'), $5, null:NULL)])
    *       LogicalJoin(condition=[true], joinType=[inner])

@@ -436,7 +436,7 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNodeList inSqlNodeList = unpivotRelToSqlUtil.getThenClauseSqlNodeList(projectRel, builder);
     SqlNodeList aliasedInSqlNodeList = new SqlNodeList(POS);
     for (int i = 0; i < inSqlNodeList.size(); i++) {
-      aliasedInSqlNodeList.add(SqlStdOperatorTable.AS.createCall(POS, inSqlNodeList.get(i), aliasOfInSqlNodeList.get(i)));
+      aliasedInSqlNodeList.add(SqlStdOperatorTable.AS.createCall(POS, new SqlIdentifier(((SqlIdentifier)inSqlNodeList.get(i)).names.get(1),POS), aliasOfInSqlNodeList.get(i)));
     }
     return new SqlUnpivot(POS, query, true, measureList, axisList, aliasedInSqlNodeList);
   }
