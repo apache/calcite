@@ -639,13 +639,8 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
 
     final RexNode sarg = ((RexCall) inCall).operands.get(1);
-    final RelDataType leastRestrictiveType =
-        typeFactory.leastRestrictive(ImmutableList.of(literal1.getType(), literal2.getType()));
-    assertThat(leastRestrictiveType.toString(), is("DECIMAL(6, 1)"));
-
-    assertThat(sarg.getType().getSqlTypeName(), is(leastRestrictiveType.getSqlTypeName()));
-    assertThat(sarg.getType().getPrecision(), is(leastRestrictiveType.getPrecision()));
-    assertThat(sarg.getType().getScale(), is(leastRestrictiveType.getScale()));
+    RelDataType expected = typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 1);
+    assertEquals(sarg.getType(), expected);
   }
 
   /** Tests {@link RexCopier#visitOver(RexOver)}. */
