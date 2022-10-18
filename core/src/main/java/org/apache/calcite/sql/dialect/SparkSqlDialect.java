@@ -186,7 +186,7 @@ public class SparkSqlDialect extends SqlDialect {
         put("ROUND", "UDF_ROUND");
         put("STRTOK", "UDF_STRTOK");
         put("INSTR", "UDF_INSTR");
-        put("TRUNC", "UDF_TRUNC");
+        put("TRUNCATE", "UDF_TRUNC");
         put("REGEXP_SUBSTR", "UDF_REGEXP_SUBSTR");
       }};
 
