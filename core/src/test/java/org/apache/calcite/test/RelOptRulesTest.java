@@ -3954,6 +3954,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testPullConstantThroughUnionCastNeeded() {
+    final String sql = "select deptno, ename from emp where deptno = 1.0\n"
+        + "union all\n"
+        + "select deptno, ename from emp where deptno = 1.0";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  @Test void testPullConstantThroughUnionCastNeededNullableField() {
+    final String sql = "select deptno, ename from empnullables where deptno = 1.0\n"
+        + "union all\n"
+        + "select deptno, ename from empnullables where deptno = 1.0";
+    sql(sql)
+        .withTrim(true)
+        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
+            CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
   @Test void testPullConstantThroughUnionSameTypeNullableField() {
     final String sql = "select deptno, ename from empnullables where deptno = 1\n"
         + "union all\n"
