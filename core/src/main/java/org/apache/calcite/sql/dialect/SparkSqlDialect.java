@@ -698,6 +698,16 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
+    case "TRUNC":
+      String truncFrame = getTruncFunctionName(call);
+      switch (truncFrame) {
+      case "DATE_TRUNC":
+        SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFrame, false);
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
     case "TO_HEX":
     case "REGEXP_INSTR":
     case "REGEXP_REPLACE":
