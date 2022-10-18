@@ -1959,6 +1959,9 @@ public class SqlParserTest {
         .fails("(?s).*Encountered .*");
     expr("E^'a\\'^")
         .fails("(?s).*Encountered.*");
+    expr("E'a\\''^a^'")
+        .fails("(?s).*Encountered.*");
+
     expr("^E'A\\U0061'^")
         .fails(RESOURCE.unicodeEscapeMalformed(1).str());
     expr("^E'AB\\U0000006G'^")
