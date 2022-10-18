@@ -2219,6 +2219,38 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDistinctAggregateCallToJoinWithRollup">
+    <Resource name="sql">
+      <![CDATA[select count(distinct ename) as ename_countd,
+sum(distinct sal) as sal_sumd
+from sales.emp group by rollup(deptno, job)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME_COUNTD=[$2], SAL_SUMD=[$3])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], ENAME_COUNTD=[COUNT(DISTINCT $2)], SAL_SUMD=[SUM(DISTINCT $3)])
+    LogicalProject(DEPTNO=[$7], JOB=[$2], ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME_COUNTD=[$2], SAL_SUMD=[$3])
+  LogicalProject(DEPTNO=[$0], JOB=[$1], ENAME_COUNTD=[$2], SAL_SUMD=[$6])
+    LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $4), IS NOT DISTINCT FROM($1, $5), =($3, $7))], joinType=[inner])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], ENAME_COUNTD=[COUNT($2)], $g=[GROUPING($0, $1)])
+        LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 2}, {2}]])
+          LogicalProject(DEPTNO=[$0], JOB=[$1], ENAME=[$2])
+            LogicalProject(DEPTNO=[$7], JOB=[$2], ENAME=[$1], SAL=[$5])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], SAL_SUMD=[SUM($2)], $g=[GROUPING($0, $1)])
+        LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 2}, {2}]])
+          LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$3])
+            LogicalProject(DEPTNO=[$7], JOB=[$2], ENAME=[$1], SAL=[$5])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDistinctCount1">
     <Resource name="sql">
       <![CDATA[select deptno, count(distinct ename)

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import com.google.common.collect.Sets;
+
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
@@ -248,6 +250,14 @@ public final class AggregateExpandDistinctAggregatesRule
     relBuilder.push(aggregate.getInput());
     int n = 0;
     if (!newAggCallList.isEmpty()) {
+      if (!Aggregate.isSimple(aggregate)) {
+        // If origin aggregate isn't simple aggregate, we add a grouping agg call into new aggregate,
+        // and the index is last one.
+        newAggCallList.add(AggregateCall.create(SqlStdOperatorTable.GROUPING,
+            false, false, false,
+            ImmutableList.copyOf(groupSet.asList()), -1, null, RelCollations.EMPTY,
+            groupSet.size(), aggregate.getInput(), null, "$ag"));
+      }
       final RelBuilder.GroupKey groupKey =
           relBuilder.groupKey(groupSet, aggregate.getGroupSets());
       relBuilder.aggregate(groupKey, newAggCallList);
@@ -757,6 +767,15 @@ public final class AggregateExpandDistinctAggregatesRule
       aggCallList.add(newAggCall);
     }
 
+    if (!Aggregate.isSimple(aggregate)) {
+      // If origin aggregate isn't simple aggregate, we add a grouping agg call into new aggregate,
+      // and the index is last one.
+      aggCallList.add(AggregateCall.create(SqlStdOperatorTable.GROUPING,
+          false, false, false,
+          ImmutableList.copyOf(aggregate.getGroupSet().asList()), -1, null,
+          RelCollations.EMPTY, aggregate.getGroupSet().size(), aggregate.getInput(), null, "$g"));
+    }
+
     final Map<Integer, Integer> map = new HashMap<>();
     for (Integer key : aggregate.getGroupSet()) {
       map.put(key, map.size());
@@ -764,7 +783,9 @@ public final class AggregateExpandDistinctAggregatesRule
     final ImmutableBitSet newGroupSet = aggregate.getGroupSet().permute(map);
     assert newGroupSet
         .equals(ImmutableBitSet.range(aggregate.getGroupSet().cardinality()));
-    ImmutableList<ImmutableBitSet> newGroupingSets = null;
+    List<ImmutableBitSet> newGroupingSets = aggregate.getGroupSets().stream()
+        .map(e -> ImmutableBitSet.of(e.asList().stream().map(map::get)
+            .collect(Collectors.toList()))).collect(Collectors.toList());
 
     relBuilder.push(
         aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
@@ -790,6 +811,13 @@ public final class AggregateExpandDistinctAggregatesRule
               RexInputRef.of(i, leftFields),
               new RexInputRef(leftFields.size() + i,
                   distinctFields.get(i).getType())));
+    }
+
+    if (!Aggregate.isSimple(aggregate)) {
+      conditions.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+          RexInputRef.of(leftFields.size() - 1, leftFields),
+          new RexInputRef(leftFields.size() + distinctFields.size() -1,
+              distinctFields.get(distinctFields.size() - 1).getType())));
     }
 
     // Join in the new 'select distinct' relation.
@@ -879,10 +907,21 @@ public final class AggregateExpandDistinctAggregatesRule
     final List<Pair<RexNode, String>> projects = new ArrayList<>();
     final List<RelDataTypeField> childFields =
         relBuilder.peek().getRowType().getFieldList();
+
+    final List<Integer> newGroupSet = new ArrayList<>();
+    final List<Set<Integer>> newGroupSets = new ArrayList<>();
+
     for (int i : aggregate.getGroupSet()) {
+      newGroupSet.add(projects.size());
       sourceOf.put(i, projects.size());
       projects.add(RexInputRef.of2(i, childFields));
     }
+
+    for (ImmutableBitSet groupSet : aggregate.getGroupSets()) {
+      final HashSet<Integer> set = Sets.newHashSet(groupSet);
+      newGroupSets.add(set);
+    }
+
     for (Integer arg : argList) {
       if (filterArg >= 0) {
         // Implement
@@ -903,6 +942,8 @@ public final class AggregateExpandDistinctAggregatesRule
                 argRef.left,
                 rexBuilder.makeNullLiteral(argRef.left.getType()));
         sourceOf.put(arg, projects.size());
+        newGroupSet.add(projects.size());
+        newGroupSets.forEach(e -> e.add(projects.size()));
         projects.add(Pair.of(condition, "i$" + argRef.right));
         continue;
       }
@@ -910,6 +951,8 @@ public final class AggregateExpandDistinctAggregatesRule
         continue;
       }
       sourceOf.put(arg, projects.size());
+      newGroupSet.add(projects.size());
+      newGroupSets.forEach(e -> e.add(projects.size()));
       projects.add(RexInputRef.of2(arg, childFields));
     }
     relBuilder.project(Pair.left(projects), Pair.right(projects));
@@ -918,7 +961,9 @@ public final class AggregateExpandDistinctAggregatesRule
     // to the agg functions.
     relBuilder.push(
         aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
-            ImmutableBitSet.range(projects.size()), null, ImmutableList.of()));
+            ImmutableBitSet.of(newGroupSet),
+            newGroupSets.stream().map(ImmutableBitSet::of).collect(Collectors.toList()),
+            ImmutableList.of()));
     return relBuilder;
   }
 

@@ -1373,6 +1373,15 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testDistinctAggregateCallToJoinWithRollup() {
+    final String sql = "select count(distinct ename) as ename_countd,\n"
+        + "sum(distinct sal) as sal_sumd\n"
+        + "from sales.emp group by rollup(deptno, job)";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .check();
+  }
+
   @Test void testDistinctCountWithoutGroupBy() {
     final String sql = "select max(deptno), count(distinct ename)\n"
         + "from sales.emp";
