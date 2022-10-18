@@ -401,7 +401,7 @@ public class SparkSqlDialect extends SqlDialect {
         break;
       case TRUNCATE:
       case REGEXP_SUBSTR:
-        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind()));
+        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
         return;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
