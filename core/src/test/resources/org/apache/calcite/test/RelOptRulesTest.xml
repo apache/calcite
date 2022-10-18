@@ -7490,6 +7490,40 @@ LogicalProject(EXPR$0=[2], EXPR$1=[3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPullConstantThroughUnionSameTypeNullableField">
+    <Resource name="sql">
+      <![CDATA[select deptno, ename from empnullables where deptno = 1
+union all
+select deptno, ename from empnullables where deptno = 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=($1, 1)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=($1, 1)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[CAST(1):INTEGER], ENAME=[$0])
+  LogicalUnion(all=[true])
+    LogicalProject(ENAME=[$0])
+      LogicalFilter(condition=[=($1, 1)])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalProject(ENAME=[$0])
+      LogicalFilter(condition=[=($1, 1)])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPullFilterThroughAggregate">
     <Resource name="sql">
       <![CDATA[select ename, sal, deptno from (  select ename, sal, deptno  from emp  where sal > 5000)group by ename, sal, deptno]]>
