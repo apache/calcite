@@ -26,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Calendar;
 import java.util.regex.Pattern;
 
+import static java.lang.Math.floorMod;
+
 /**
  * Time literal.
  *
@@ -146,7 +148,7 @@ public class TimeString implements Comparable<TimeString> {
 
   public static TimeString fromMillisOfDay(int i) {
     return new TimeString(DateTimeUtils.unixTimeToString(i))
-        .withMillis((int) DateTimeUtils.floorMod(i, 1000));
+        .withMillis((int) floorMod(i, 1000L));
   }
 
   public TimeString round(int precision) {
