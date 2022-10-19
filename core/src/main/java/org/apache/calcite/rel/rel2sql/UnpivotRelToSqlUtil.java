@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.rel.rel2sql;
 
-import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -47,10 +45,10 @@ import java.util.Objects;
 
 import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
+/** Class to identify Rel structure which is of Unpivot type*/
 public class UnpivotRelToSqlUtil {
 
-  /**
-   * <p> SQL </p>
+  /**<p> SQL </p>
    * <blockquote><pre>{@code
    *  SELECT *
    *        FROM emp
@@ -75,9 +73,12 @@ public class UnpivotRelToSqlUtil {
    *
    * <p> Rel with includeNulls = false after expansion
    *     <blockquote><pre>{@code
-   * LogicalProject.NONE.[](input=LogicalFilter#4,inputs=0..6,exprs=[CAST($7):DECIMAL(7, 2) NOT NULL])
+   * LogicalProject.NONE.[](input=LogicalFilter#4,inputs=0..6,
+   * exprs=[CAST($7):DECIMAL(7, 2) NOT NULL])
    *   LogicalFilter(condition=[IS NOT NULL($7)])
-   *     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], DEPTNO=[$7], REMUNERATION_TYPE=[$8], REMUNERATION=[CASE(=($8, 'commission'), $6, =($8, 'salary'), $5, null:NULL)])
+   *     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], DEPTNO=[$7],
+   *     REMUNERATION_TYPE=[$8], REMUNERATION=[CASE(=($8, 'commission'), $6,
+   *     =($8, 'salary'), $5, null:NULL)])
    *       LogicalJoin(condition=[true], joinType=[inner])
    *         LogicalTableScan(table=[[scott, EMP]])
    *         LogicalValues(tuples=[[{ 'commission' }, { 'salary' }]])
@@ -85,8 +86,8 @@ public class UnpivotRelToSqlUtil {
    *
    */
 
-  protected boolean isRelEquivalentToUnpivotExpansionWithExcludeNulls(Filter filter, SqlImplementor.Builder builder, SqlNode sqlNode) {
-    SqlNode filterNode = builder.context.toSql(null, filter.getCondition());
+  protected boolean isRelEquivalentToUnpivotExpansionWithExcludeNulls(SqlNode filterNode,
+      SqlNode sqlNode) {
     if (sqlNode instanceof SqlSelect && ((SqlSelect) sqlNode).getFrom() instanceof SqlUnpivot) {
       return isNotNullFilterOnAxisColumn(filterNode, (SqlUnpivot) ((SqlSelect) sqlNode).getFrom());
     } else {
@@ -95,11 +96,12 @@ public class UnpivotRelToSqlUtil {
   }
 
   private boolean isNotNullFilterOnAxisColumn(SqlNode filterNode, SqlUnpivot sqlUnpivot) {
-    return filterNode.getKind() == SqlKind.IS_NOT_NULL && Objects.equals(((SqlIdentifier) sqlUnpivot.axisList.get(0)).names.get(0), ((SqlIdentifier) ((SqlNode[]) ((SqlBasicCall) filterNode).operands)[0]).names.get(0));
+    return filterNode.getKind() == SqlKind.IS_NOT_NULL
+        && Objects.equals(((SqlIdentifier) sqlUnpivot.axisList.get(0)).names.get(0),
+        ((SqlIdentifier) ((SqlNode[]) ((SqlBasicCall) filterNode).operands)[0]).names.get(0));
   }
 
-  /**
-   * <p> SQL </p>
+  /**<p> SQL </p>
    * <blockquote><pre>{@code
    *  SELECT *
    *        FROM emp
@@ -133,7 +135,8 @@ public class UnpivotRelToSqlUtil {
    * }</pre></blockquote>
    *
    */
-  protected boolean isRelEquivalentToUnpivotExpansionWithIncludeNulls(Project projectRel, SqlImplementor.Builder builder) {
+  protected boolean isRelEquivalentToUnpivotExpansionWithIncludeNulls(Project projectRel,
+      SqlImplementor.Builder builder) {
     // if project has atleast one case op
     // if projects input is join
     // if join with joinType = inner & condition = true
@@ -146,32 +149,41 @@ public class UnpivotRelToSqlUtil {
         && isAtleastOneCaseOperatorEquivalentToUnpivotType(projectRel, builder);
   }
 
-  private boolean isAtleastOneCaseOperatorEquivalentToUnpivotType(Project projectRel, SqlImplementor.Builder builder) {
+  private boolean isAtleastOneCaseOperatorEquivalentToUnpivotType(Project projectRel,
+      SqlImplementor.Builder builder) {
     boolean caseMatched = false;
     LogicalValues valuesRel = getValuesRel(projectRel);
     String valuesAlias = getValueAlias(valuesRel);
     SqlNodeList valuesList = getValuesList(valuesRel, builder);
     List<RexCall> caseRexCallList = getCaseOperandFromProjection(projectRel);
-    for(RexCall caseRex : caseRexCallList) {
+    for (RexCall caseRex : caseRexCallList) {
       caseMatched = checkCasePatternOfUnpivot(caseRex, projectRel, valuesAlias, valuesList);
-      if(caseMatched) break;
+      if (caseMatched) {
+        break;
+      }
     }
     return caseMatched;
   }
 
-  private boolean checkCasePatternOfUnpivot(RexCall caseRex, Project projectRel, String valuesAlias, SqlNodeList valuesList) {
-    //case when valuesAlias=value[0] then col1 when valuesAlias=value[1] then col2 ... & so on on else null
+  private boolean checkCasePatternOfUnpivot(RexCall caseRex, Project projectRel,
+      String valuesAlias, SqlNodeList valuesList) {
+    //case when valuesAlias=value[0] then col1 when valuesAlias=value[1]
+    // then col2 ... & so on on else null
     boolean casePatternMatched = false;
-    int elseClauseIndex =  caseRex.getOperands().size()-1;
-    for(int i = 0,j = 0; i < elseClauseIndex; i+=2, j++) {
-      List<RexNode> operands = ((RexCall)(caseRex.operands.get(i))).getOperands();
-      int indexOfFirstOp = ((RexInputRef)(operands.get(0))).getIndex();
-      String nameOfFirstOp = projectRel.getInput(0).getRowType().getFieldNames().get(indexOfFirstOp);
-      casePatternMatched = Objects.equals(nameOfFirstOp, valuesAlias)
+    int elseClauseIndex =  caseRex.getOperands().size() - 1;
+    for (int i = 0, j = 0; i < elseClauseIndex; i += 2, j++) {
+      List<RexNode> operands = ((RexCall) (caseRex.operands.get(i))).getOperands();
+      int indexOfFirstOperandOfWhen = ((RexInputRef) (operands.get(0))).getIndex();
+      String nameOfFirstOperandOfWhen = projectRel.getInput(0).getRowType().getFieldNames()
+          .get(indexOfFirstOperandOfWhen);
+      casePatternMatched = Objects.equals(nameOfFirstOperandOfWhen, valuesAlias)
           && Objects.equals(operands.get(1).toString(), valuesList.get(j).toString());
-      if(casePatternMatched == false) break;
+      if (casePatternMatched == false) {
+        break;
+      }
     }
-    return casePatternMatched && caseRex.getOperands().get(elseClauseIndex).getType().getSqlTypeName() == SqlTypeName.NULL ;
+    return casePatternMatched && caseRex.getOperands().get(elseClauseIndex)
+        .getType().getSqlTypeName() == SqlTypeName.NULL;
   }
 
   protected String getValueAlias(Values valuesRel) {
@@ -179,7 +191,9 @@ public class UnpivotRelToSqlUtil {
   }
 
   private boolean isCaseOperatorPresentInProjectRel(Project projectRel) {
-    return projectRel.getProjects().stream().anyMatch(projection -> projection instanceof RexCall && ((RexCall) projection).op instanceof SqlCaseOperator);
+    return projectRel.getProjects().stream().anyMatch
+        (projection -> projection instanceof RexCall && ((RexCall) projection)
+            .op instanceof SqlCaseOperator);
   }
 
   private boolean isJoinTheInputOfProject(Project projectRel) {
@@ -196,13 +210,14 @@ public class UnpivotRelToSqlUtil {
 
   protected LogicalValues getValuesRel(Project projectRel) {
     Join joinRel = (LogicalJoin) projectRel.getInput(0);
-    return (LogicalValues)joinRel.getRight();
+    return (LogicalValues) joinRel.getRight();
   }
 
   protected String getAliasOfCase(Project projectRel) {
     String aliasOfCase = "";
-    for (int i = 0; i<  projectRel.getProjects().size(); i++) {
-      if (projectRel.getProjects().get(i) instanceof RexCall && ((RexCall) projectRel.getProjects().get(i)).op instanceof SqlCaseOperator) {
+    for (int i = 0; i <  projectRel.getProjects().size(); i++) {
+      if (projectRel.getProjects().get(i) instanceof RexCall
+          && ((RexCall) projectRel.getProjects().get(i)).op instanceof SqlCaseOperator) {
         aliasOfCase = projectRel.getRowType().getFieldNames().get(i);
       }
     }
@@ -220,7 +235,8 @@ public class UnpivotRelToSqlUtil {
     return caseRexCalls;
   }
 
-  protected SqlNodeList getThenClauseSqlNodeList(Project projectRel, SqlImplementor.Builder builder) {
+  protected SqlNodeList getThenClauseSqlNodeList(Project projectRel,
+      SqlImplementor.Builder builder) {
     SqlNodeList thenClauseSqlNodeList = new SqlNodeList(POS);
     for (RexNode projection : projectRel.getProjects()) {
       if (projection instanceof RexCall && ((RexCall) projection).op instanceof SqlCaseOperator) {
@@ -232,7 +248,8 @@ public class UnpivotRelToSqlUtil {
     return thenClauseSqlNodeList;
   }
 
-  protected SqlNodeList getValuesList(LogicalValues logicalValuesRel, SqlImplementor.Builder builder) {
+  protected SqlNodeList getValuesList(LogicalValues logicalValuesRel,
+      SqlImplementor.Builder builder) {
     SqlNodeList valueSqlNodeList = new SqlNodeList(POS);
     for (ImmutableList<RexLiteral> value : logicalValuesRel.tuples.asList()) {
       SqlNode valueSqlNode = builder.context.toSql(null, value.get(0));
