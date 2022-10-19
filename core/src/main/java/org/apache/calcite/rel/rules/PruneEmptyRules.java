@@ -167,6 +167,19 @@ public abstract class PruneEmptyRules {
   }
 
   /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.TableScan}
+   * to empty if the table has no rows in it.
+   *
+   * The rule exploits the {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount} to derive if
+   * the table is empty or not.
+   */
+  public static final RelOptRule EMPTY_TABLE_INSTANCE =
+      ImmutableZeroMaxRowsRuleConfig.of()
+          .withOperandSupplier(b0 -> b0.operand(TableScan.class).noInputs())
+          .withDescription("PruneZeroRowsTable")
+          .toRule();
+
+  /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Project}
    * to empty if its child is empty.
    *
@@ -542,16 +555,10 @@ public abstract class PruneEmptyRules {
     }
   }
 
-
-  public static final RelOptRule EMPTY_TABLE_INSTANCE =
-      ImmutableZeroMaxRowsRuleConfig.of()
-          .withOperandSupplier(b0 -> b0.operand(TableScan.class).noInputs())
-          .withDescription("PruneZeroRowsTable")
-          .toRule();
-
-  /** Configuration for rule that transforms an empty table into an empty values node.
-   * MaxRowCount is used as the stat to transform, hence Table implementer needs
-   * to supply this metadata if this optimization needs to be applied.*/
+  /** Configuration for rule that transforms an empty relational expression into an empty values.
+   *
+   * It relies on {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount} to derive if the relation
+   * is empty or not. If the stats are not available then the rule is a noop. */
   @Value.Immutable
   public interface ZeroMaxRowsRuleConfig extends PruneEmptyRule.Config {
 
