@@ -197,7 +197,7 @@ class CacheGeneratorUtil {
       @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
         buff.append("    key = ")
             .append(
-                (method.getParameterTypes().length < 6
+                (method.getParameterCount() < 6
                     ? org.apache.calcite.runtime.FlatLists.class
                     : ImmutableList.class).getName())
             .append(".of(");
