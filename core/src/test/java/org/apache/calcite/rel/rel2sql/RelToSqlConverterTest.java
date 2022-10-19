@@ -556,11 +556,14 @@ class RelToSqlConverterTest {
     final String bigQueryExpected = "SELECT '1' AS a, SKU + 1 AS B, '1' AS d\n"
         + "FROM foodmart.product\n"
         + "GROUP BY 1, B";
+    final String expectedSpark = "SELECT '1' a, SKU + 1 B, '1' dn"
+        + "FROM foodmart.productn"
+        + "GROUP BY 1, B";
     sql(query)
         .withHive()
         .ok(expectedSql)
         .withSpark()
-        .ok(expectedSql)
+        .ok(expectedSpark)
         .withBigQuery()
         .ok(bigQueryExpected);
   }
@@ -1207,7 +1210,12 @@ class RelToSqlConverterTest {
         + "GROUP BY CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT rnkn"
+        + "FROM (SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
+        + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
+        + "ELSE NULL END rnkn"
+        + "FROM foodmart.employee) tn"
+        + "GROUP BY rnk";
     final String expectedBigQuery = "SELECT rnk\n"
         + "FROM (SELECT CASE WHEN CAST(salary AS NUMERIC) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
@@ -1250,7 +1258,11 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee\n"
         + "GROUP BY CASE WHEN (ROW_NUMBER() "
         + "OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT rnkn"
+        + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE "
+        + "200 END rnkn"
+        + "FROM foodmart.employee) tn"
+        + "GROUP BY rnk";
     final String expectedBigQuery = "SELECT rnk\n"
         + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER "
         + "(PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END AS rnk\n"
@@ -7033,11 +7045,16 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "GROUP BY [product_id], MAX([product_id]) OVER (PARTITION BY [product_id] "
         + "ORDER BY [product_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
+    final String expectedSpark = "SELECT product_id, ABCn"
+        + "FROM (SELECT product_id, MAX(product_id) OVER (PARTITION BY product_id RANGE BETWEEN "
+        + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ABCn"
+        + "FROM foodmart.product) tn"
+        + "GROUP BY product_id, ABC";
     sql(query)
       .withHive()
       .ok(expected)
       .withSpark()
-      .ok(expected)
+      .ok(expectedSpark)
       .withBigQuery()
       .ok(expectedBQ)
       .withSnowflake()

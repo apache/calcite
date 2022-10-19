@@ -1361,6 +1361,8 @@ public class SqlDialect {
       return SqlConformanceEnum.HIVE;
     case SNOWFLAKE:
       return SqlConformanceEnum.SNOWFLAKE;
+    case SPARK:
+      return SqlConformanceEnum.SPARK;
     default:
       return SqlConformanceEnum.PRAGMATIC_2003;
     }
