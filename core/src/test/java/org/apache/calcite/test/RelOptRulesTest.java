@@ -171,15 +171,13 @@ import static org.junit.jupiter.api.Assertions.fail;
  * for details on the schema.
  *
  * <li>Run the test. It should fail. Inspect the output in
- * {@code target/surefire/.../RelOptRulesTest.xml}.
- * (If you are running using maven and this file does not exist, add a
- * {@code -X} flag to the maven command line.)
+ * {@code build/resources/.../RelOptRulesTest.xml}.
  *
  * <li>Verify that the "planBefore" is the correct
  * translation of your SQL, and that it contains the pattern on which your rule
  * is supposed to fire. If all is well, replace
  * {@code src/test/resources/.../RelOptRulesTest.xml} and
- * with the new {@code target/surefire/.../RelOptRulesTest.xml}.
+ * with the new {@code build/resources/.../RelOptRulesTest.xml}.
  *
  * <li>Run the test again. It should fail again, but this time it should contain
  * a "planAfter" entry for your rule. Verify that your rule applied its
