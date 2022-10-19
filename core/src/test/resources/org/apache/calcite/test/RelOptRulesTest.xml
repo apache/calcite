@@ -9685,38 +9685,6 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testPushProjectPastLeftJoin2">
-    <Resource name="sql">
-      <![CDATA[select coalesce(d.name, b.job, '')
-from emp e
-left join bonus b on e.ename = b.ename
-left join dept d on e.deptno = d.deptno]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[CASE(IS NOT NULL($14), CAST($14):VARCHAR(10) NOT NULL, IS NOT NULL($10), CAST($10):VARCHAR(10) NOT NULL, '':VARCHAR(10))])
-  LogicalJoin(condition=[=($7, $13)], joinType=[left])
-    LogicalJoin(condition=[=($1, $9)], joinType=[left])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[CASE(IS NOT NULL($4), CAST($4):VARCHAR(10) NOT NULL, $1, $2, '':VARCHAR(10))])
-  LogicalJoin(condition=[=($0, $3)], joinType=[left])
-    LogicalProject(DEPTNO=[$1], EXPR$0=[IS NOT NULL($3)], EXPR$1=[CAST($3):VARCHAR(10) NOT NULL])
-      LogicalJoin(condition=[=($0, $2)], joinType=[left])
-        LogicalProject(ENAME=[$1], DEPTNO=[$7])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalProject(ENAME=[$0], JOB=[$1])
-          LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-    LogicalProject(DEPTNO=[$0], NAME=[$1])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testPushProjectPastLeftJoinStrong">
     <Resource name="sql">
       <![CDATA[select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
@@ -9801,6 +9769,38 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalProject(ENAME=[$1], EXPR$1=[CASE(<($5, 11), *(-1, $5), $5)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushProjectPastOutJoinWithCastNonNullExpr">
+    <Resource name="sql">
+      <![CDATA[select e.empno + 1 as c1, coalesce(d.name, b.job, '') as c2
+from emp e
+left join bonus b on e.ename = b.ename
+left join dept d on e.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(C1=[+($0, 1)], C2=[CASE(IS NOT NULL($14), CAST($14):VARCHAR(10) NOT NULL, IS NOT NULL($10), CAST($10):VARCHAR(10) NOT NULL, '':VARCHAR(10))])
+  LogicalJoin(condition=[=($7, $13)], joinType=[left])
+    LogicalJoin(condition=[=($1, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(C1=[$2], C2=[CASE(IS NOT NULL($5), CAST($5):VARCHAR(10) NOT NULL, $3, CAST($1):VARCHAR(10) NOT NULL, '':VARCHAR(10))])
+  LogicalJoin(condition=[=($0, $4)], joinType=[left])
+    LogicalProject(DEPTNO=[$1], JOB0=[$4], C1=[$2], EXPR$1=[IS NOT NULL($4)])
+      LogicalJoin(condition=[=($0, $3)], joinType=[left])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7], C1=[+($0, 1)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(ENAME=[$0], JOB=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
