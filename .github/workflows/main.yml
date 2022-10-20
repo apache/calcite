@@ -121,39 +121,6 @@ jobs:
           calcite.avatica.version=1.0.0-dev-main-SNAPSHOT
           enableMavenLocal=
 
-  linux-openj9:
-    if: github.event.action != 'labeled'
-    name: 'Linux (OpenJ9 8)'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 50
-      - uses: AdoptOpenJDK/install-jdk@v1
-        with:
-          impl: openj9
-          version: '8'
-          architecture: x64
-      - uses: burrunan/gradle-cache-action@v1
-        name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        with:
-          job-id: jdk8-openj9
-          remote-build-cache-proxy-enabled: false
-          # Temporarily disable hadoop related tests due to https://github.com/eclipse-openj9/openj9/issues/14950
-          arguments: --scan --no-parallel --no-daemon -x :piglet:test -x :spark:test build javadoc
-      - name: 'sqlline and sqllsh'
-        run: |
-          ./sqlline -e '!quit'
-          echo
-          echo Sqlline example/csv
-          ./example/csv/sqlline --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
-          echo
-          echo sqlsh
-          ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
-
   mac:
     if: github.event.action != 'labeled'
     name: 'macOS (JDK 18)'

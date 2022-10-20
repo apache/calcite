@@ -158,6 +158,10 @@ public class FireboltSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return false;
+  }
+
   @Override public boolean supportsFunction(SqlOperator operator,
       RelDataType type, final List<RelDataType> paramTypes) {
     switch (operator.kind) {

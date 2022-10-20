@@ -171,7 +171,12 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     return list.build();
   }
 
-  public List<@Nullable Double> averageColumnSizes(TableScan rel, RelMetadataQuery mq) {
+  public @Nullable List<@Nullable Double> averageColumnSizes(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.Size.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.Size.Handler.class);
+    if (handler != null) {
+      return handler.averageColumnSizes(rel, mq);
+    }
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final ImmutableNullableList.Builder<@Nullable Double> list = ImmutableNullableList.builder();
     for (RelDataTypeField field : fields) {

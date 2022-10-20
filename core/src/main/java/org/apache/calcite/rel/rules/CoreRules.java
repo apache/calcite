@@ -584,6 +584,12 @@ public class CoreRules {
       ReduceExpressionsRule.JoinReduceExpressionsRule.JoinReduceExpressionsRuleConfig
           .DEFAULT.toRule();
 
+  /** Rule that creates a {@link Join#isSemiJoin semi-join} from a
+   * {@link Join}, and it's right keys are unique in its right input.
+   */
+  public static final SemiJoinRule.JoinOnUniqueToSemiJoinRule JOIN_ON_UNIQUE_TO_SEMI_JOIN =
+      SemiJoinRule.JoinOnUniqueToSemiJoinRule.JoinOnUniqueToSemiJoinRuleConfig.DEFAULT.toRule();
+
   /** Rule that converts a {@link LogicalJoin}
    * into a {@link LogicalCorrelate}. */
   public static final JoinToCorrelateRule JOIN_TO_CORRELATE =

@@ -56,7 +56,18 @@ SELECT ExtractValue('<a>c</a>', '//a');
 
 # STRING Functions
 
-#CONCAT
+# CHAR
+SELECT char(null), char(-1), char(65), char(233), char(256+66);
++--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 |
++--------+--------+--------+--------+--------+
+|        |        | A      | é      | B      |
++--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# CONCAT
 SELECT CONCAT('c', 'h', 'a', 'r');
 +--------+
 | EXPR$0 |
@@ -115,7 +126,7 @@ select sinh(1);
 
 !ok
 
-#CONCAT
+# CONCAT
 select concat('a', 'b');
 +--------+
 | EXPR$0 |

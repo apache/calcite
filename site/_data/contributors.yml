@@ -39,7 +39,7 @@
   apacheId: sereda
   githubId: asereda-gs
   org:
-  role: Committer
+  role: PMC
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
@@ -132,6 +132,11 @@
   githubId: jinfengni
   org: MapR
   role: PMC
+- name: Jing Zhang
+  apacheId: jingzhang
+  githubId: beyond1920
+  org: Kuaishou
+  role: Committer
 - name: Jin Xing
   apacheId: jinxing
   githubId: jinxing64

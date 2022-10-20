@@ -708,6 +708,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("TRUNCATE", simple(SqlStdOperatorTable.TRUNCATE));
 
       map.put("ASCII", simple(SqlStdOperatorTable.ASCII));
+      map.put("CHAR", simple(SqlLibraryOperators.CHAR));
       map.put("CONCAT", simple(SqlStdOperatorTable.CONCAT));
       map.put("DIFFERENCE", simple(SqlLibraryOperators.DIFFERENCE));
       map.put("INSERT",

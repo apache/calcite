@@ -76,6 +76,8 @@ public final class GeneratedMetadata_SelectivityHandler
       return provider0.getSelectivity((org.apache.calcite.rel.core.Sort) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.core.TableModify) {
       return provider0.getSelectivity((org.apache.calcite.rel.core.TableModify) r, mq, a2);
+    } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
+      return provider0.getSelectivity((org.apache.calcite.rel.core.TableScan) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.core.Union) {
       return provider0.getSelectivity((org.apache.calcite.rel.core.Union) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {

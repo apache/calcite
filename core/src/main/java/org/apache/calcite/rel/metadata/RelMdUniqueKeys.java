@@ -322,6 +322,12 @@ public class RelMdUniqueKeys
 
   public @Nullable Set<ImmutableBitSet> getUniqueKeys(TableScan rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
+    final BuiltInMetadata.UniqueKeys.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.UniqueKeys.Handler.class);
+    if (handler != null) {
+      return handler.getUniqueKeys(rel, mq, ignoreNulls);
+    }
+
     final List<ImmutableBitSet> keys = rel.getTable().getKeys();
     if (keys == null) {
       return null;

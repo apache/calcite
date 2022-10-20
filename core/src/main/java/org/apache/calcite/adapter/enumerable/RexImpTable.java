@@ -115,6 +115,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
@@ -155,6 +156,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TRUNC;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
@@ -366,7 +369,7 @@ public class RexImpTable {
     defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
     defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);
     defineMethod(TRANSLATE3, BuiltInMethod.TRANSLATE3.method, NullPolicy.STRICT);
-    defineMethod(CHR, "chr", NullPolicy.STRICT);
+    defineMethod(CHR, BuiltInMethod.CHAR_FROM_UTF8.method, NullPolicy.STRICT);
     defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
         NullPolicy.STRICT);
     defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
@@ -380,6 +383,8 @@ public class RexImpTable {
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
     defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
+    defineMethod(CHAR, BuiltInMethod.CHAR_FROM_ASCII.method,
+        NullPolicy.SEMI_STRICT);
     defineMethod(REPEAT, BuiltInMethod.REPEAT.method, NullPolicy.STRICT);
     defineMethod(SPACE, BuiltInMethod.SPACE.method, NullPolicy.STRICT);
     defineMethod(STRCMP, BuiltInMethod.STRCMP.method, NullPolicy.STRICT);
@@ -455,6 +460,17 @@ public class RexImpTable {
         new FloorImplementor(BuiltInMethod.CEIL.method.getName(),
             BuiltInMethod.UNIX_TIMESTAMP_CEIL.method,
             BuiltInMethod.UNIX_DATE_CEIL.method));
+
+    // TIMESTAMP_TRUNC and TIME_TRUNC methods are syntactic sugar for standard datetime FLOOR
+    map.put(TIMESTAMP_TRUNC,
+        new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
+            BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
+            BuiltInMethod.UNIX_DATE_FLOOR.method));
+    map.put(TIME_TRUNC,
+        new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
+            BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
+            BuiltInMethod.UNIX_DATE_FLOOR.method));
+
 
     defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
     map.put(DAYNAME,

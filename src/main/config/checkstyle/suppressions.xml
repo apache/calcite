@@ -45,7 +45,7 @@ limitations under the License.
   <suppress checks="JavadocPackage" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]calcite[/\\]test[/\\]schemata[/\\]"/>
 
   <!-- Don't complain about method names in a class full of UDFs -->
-  <suppress checks="MethodName" files="GeoFunctions.java"/>
+  <suppress checks="MethodName" files="SpatialTypeFunctions.java"/>
 
   <!-- Suppress JavadocPackage in the test packages,
        and in the 'org.apache.calcite.server' package, which is split between

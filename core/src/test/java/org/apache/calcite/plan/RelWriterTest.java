@@ -592,7 +592,8 @@ class RelWriterTest {
                           RexWindowBounds.following(
                               rexBuilder.makeExactLiteral(BigDecimal.ONE)),
                           false, true, false, false, false)),
-                  ImmutableList.of("field0", "field1", "field2"));
+                  ImmutableList.of("field0", "field1", "field2"),
+                  ImmutableSet.of());
           final RelJsonWriter writer = new RelJsonWriter();
           project.explain(writer);
           return writer.asString();
@@ -993,6 +994,21 @@ class RelWriterTest {
     final String expected = ""
         + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST "
         + "ROWS UNBOUNDED PRECEDING)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    relFn(relFn)
+        .assertThatPlan(isLinux(expected));
+  }
+
+  @Test void testProjectionWithCorrelationVariables() {
+    final Function<RelBuilder, RelNode> relFn = b -> b.scan("EMP")
+        .project(
+            ImmutableList.of(b.field("ENAME")),
+            ImmutableList.of("ename"),
+            true,
+            ImmutableSet.of(b.getCluster().createCorrel()))
+        .build();
+
+    final String expected = "LogicalProject(variablesSet=[[$cor0]], ename=[$1])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     relFn(relFn)
         .assertThatPlan(isLinux(expected));

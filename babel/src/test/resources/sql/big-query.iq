@@ -16,7 +16,820 @@
 # limitations under the License.
 #
 !use scott-big-query
-!set outputformat csv
+!set outputformat mysql
+
+# TODO: create a means to set the current date/time/timestamp for the
+#   current session CURRENT_TIMESTAMP etc. will return those values.
+#   Then enable the CURRENT_x tests.
+!if (false) {
+!set timestamp '2022-06-03 12:15:48.678'
+!}
+
+# TODO: create a means to set the session timezone.
+# They will affect all queries that are tagged as follows:
+#   Display of results may differ, depending upon the environment and
+#   time zone where this query was executed.
+!if (false) {
+!set timezone 'America/Pacific'
+!}
+
+# BigQuery allows CTEs called 'table' and 'date'
+!if (false) {
+with table as (select 1 as x)
+select *
+from table;
+!ok
+
+with date as (select 1 as x)
+select *
+from date;
+!ok
+!}
+
+
+#####################################################################
+# DATE, DATETIME, TIME and TIMESTAMP functions ######################
+
+#####################################################################
+# CURRENT_DATE
+#
+# CURRENT_DATE([time_zone])
+#
+# Returns the current date as of the specified or default time
+# zone. Parentheses are optional when called with no arguments.
+#
+# This function supports an optional time_zone parameter. This
+# parameter is a string representing the time zone to use. If no time
+# zone is specified, the default time zone, UTC, is used. See Time
+# zone definitions for information on how to specify a time zone.
+#
+# If the time_zone parameter evaluates to NULL, this function returns NULL.
+#
+# Returns DATE
+
+!if (false) {
+SELECT CURRENT_DATE() AS the_date;
++--------------+
+| the_date     |
++--------------+
+| 2016-12-25   |
++--------------+
+!ok
+!}
+
+!if (false) {
+SELECT CURRENT_DATE AS the_date;
++--------------+
+| the_date     |
++--------------+
+| 2016-12-25   |
++--------------+
+!ok
+!}
+
+!if (false) {
+SELECT CURRENT_DATE("Europe/Moscow") AS the_date;
++--------------+
+| the_date     |
++--------------+
+| 2016-12-26   |
++--------------+
+!ok
+
+SELECT CURRENT_DATE(null) AS the_date;
++----------+
+| the_date |
++----------+
+|          |
++----------+
+!ok
+!}
+
+# When a column named current_date is present, the column name and the
+# function call without parentheses are ambiguous. To ensure the
+# function call, add parentheses; to ensure the column name, qualify
+# it with its range variable. For example, the following query will
+# select the function in the the_date column and the table column in
+# the current_date column.
+
+!if (false) {
+WITH t AS (SELECT 'column value' AS `current_date`)
+SELECT current_date() AS the_date, t.current_date FROM t;
++------------+--------------+
+| the_date   | current_date |
++------------+--------------+
+| 2016-12-25 | column value |
++------------+--------------+
+!ok
+!}
+
+#####################################################################
+# CURRENT_DATETIME
+#
+# CURRENT_DATETIME([time_zone])
+#
+# Returns the current time as a DATETIME object. Parentheses are
+# optional when called with no arguments.
+#
+# This function supports an optional time_zone parameter. See Time
+# zone definitions for information on how to specify a time zone.
+#
+# Returns DATETIME
+
+!if (false) {
+SELECT CURRENT_DATETIME() as now;
++----------------------------+
+| now                        |
++----------------------------+
+| 2016-05-19T10:38:47.046465 |
++----------------------------+
+!ok
+
+SELECT CURRENT_DATETIME as now;
++----------------------------+
+| now                        |
++----------------------------+
+| 2016-05-19T10:38:47.046465 |
++----------------------------+
+!ok
+!}
+
+# When a column named current_datetime is present, the column name and
+# the function call without parentheses are ambiguous. To ensure the
+# function call, add parentheses; to ensure the column name, qualify
+# it with its range variable. For example, the following query will
+# select the function in the now column and the table column in the
+# current_datetime column.
+
+!if (false) {
+WITH t AS (SELECT 'column value' AS `current_datetime`)
+SELECT current_datetime() as now, t.current_datetime FROM t;
++----------------------------+------------------+
+| now                        | current_datetime |
++----------------------------+------------------+
+| 2016-05-19T10:38:47.046465 | column value     |
++----------------------------+------------------+
+!ok
+!}
+
+#####################################################################
+# CURRENT_TIME
+#
+# CURRENT_TIME([time_zone])
+#
+#
+# Returns the current time as a TIME object. Parentheses are optional
+# when called with no arguments.
+#
+# This function supports an optional time_zone parameter. See Time
+# zone definitions for information on how to specify a time zone.
+#
+# Returns TIME
+
+!if (false) {
+SELECT CURRENT_TIME() as now;
+
++----------------------------+
+| now                        |
++----------------------------+
+| 15:31:38.776361            |
++----------------------------+
+!ok
+!}
+
+# When a column named current_time is present, the column name and the
+# function call without parentheses are ambiguous. To ensure the
+# function call, add parentheses; to ensure the column name, qualify
+# it with its range variable. For example, the following query will
+# select the function in the now column and the table column in the
+# current_time column.
+
+!if (false) {
+WITH t AS (SELECT 'column value' AS `current_time`)
+SELECT current_time() as now, t.current_time FROM t;
+
++-----------------+--------------+
+| now             | current_time |
++-----------------+--------------+
+| 15:31:38.776361 | column value |
++-----------------+--------------+
+!ok
+!}
+
+#####################################################################
+# CURRENT_TIMESTAMP
+# Parentheses are optional
+!if (false) {
+select current_timestamp() as now;
++---------------------+
+| now                 |
++---------------------+
+| 2022-06-02 17:58:58 |
++---------------------+
+(1 row)
+
+!ok
+!}
+
+!if (false) {
+select current_timestamp as now;
++---------------------+
+| now                 |
++---------------------+
+| 2022-06-02 17:58:58 |
++---------------------+
+(1 row)
+
+!ok
+!}
+
+# When a column named current_timestamp is present, the column name
+# and the function call without parentheses are ambiguous. To ensure
+# the function call, add parentheses; to ensure the column name,
+# qualify it with its range variable. For example, the following query
+# will select the function in the now column and the table column in
+# the current_timestamp column.
+!if (false) {
+WITH t AS (SELECT 'column value' AS `current_timestamp`)
+SELECT current_timestamp() AS now, t.current_timestamp FROM t;
++--------------------------------+-------------------+
+| now                            | current_timestamp |
++--------------------------------+-------------------+
+| 2020-06-02 23:57:12.120174 UTC | column value      |
++--------------------------------+-------------------+
+!ok
+!}
+
+#####################################################################
+# EXTRACT
+#
+# EXTRACT(part FROM date_expression)
+#   Returns the value corresponding to the specified date part
+# EXTRACT(part FROM datetime_expression)
+#   Returns a value that corresponds to the specified part from a
+#   supplied datetime_expression.
+# EXTRACT(part FROM time_expression)
+#   Returns a value that corresponds to the specified part from a
+#   supplied time_expression.
+# EXTRACT(part FROM timestamp_expression [AT TIME ZONE time_zone])
+#
+# For date, the part must be one of:
+#
+#   DAYOFWEEK: Returns values in the range [1,7] with Sunday as the
+#     first day of the week.
+#   DAY
+#   DAYOFYEAR
+#   WEEK: Returns the week number of the date in the range [0,
+#     53]. Weeks begin with Sunday, and dates prior to the first
+#     Sunday of the year are in week 0.
+#   WEEK(<WEEKDAY>): Returns the week number of the date in the range
+#     [0, 53]. Weeks begin on WEEKDAY. Dates prior to the first
+#     WEEKDAY of the year are in week 0. Valid values for WEEKDAY are
+#     SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, and
+#     SATURDAY.
+#   ISOWEEK: Returns the ISO 8601 week number of the
+#     date_expression. ISOWEEKs begin on Monday. Return values are in
+#     the range [1, 53]. The first ISOWEEK of each ISO year begins on
+#     the Monday before the first Thursday of the Gregorian calendar
+#     year.
+#   MONTH
+#   QUARTER: Returns values in the range [1,4].
+#   YEAR
+#   ISOYEAR: Returns the ISO 8601 week-numbering year, which is the
+#     Gregorian calendar year containing the Thursday of the week to
+#     which date_expression belongs.
+#
+# For time, allowed part values are:
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#
+# For timestamp and datetime, allowed part values are:
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#   DAYOFWEEK: Returns values in the range [1,7] with Sunday as the
+#     first day of of the week.
+#   DAY
+#   DAYOFYEAR
+#   WEEK: Returns the week number of the date in the range [0,
+#     53]. Weeks begin with Sunday, and dates prior to the first Sunday of
+#     the year are in week 0.
+#   WEEK(<WEEKDAY>): Returns the week number of datetime_expression in
+#     the range [0, 53]. Weeks begin on WEEKDAY. datetimes prior to the
+#     first WEEKDAY of the year are in week 0. Valid values for WEEKDAY
+#     are SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, and
+#     SATURDAY.
+#   ISOWEEK: Returns the ISO 8601 week number of the
+#     datetime_expression. ISOWEEKs begin on Monday. Return values are
+#     in the range [1, 53]. The first ISOWEEK of each ISO year begins
+#     on the Monday before the first Thursday of the Gregorian
+#     calendar year.
+#   MONTH
+#   QUARTER
+#   YEAR
+#   ISOYEAR: Returns the ISO 8601 week-numbering year, which is the
+#     Gregorian calendar year containing the Thursday of the week to
+#     which date_expression belongs.
+#   DATE
+#   TIME
+#
+# Returned values truncate lower order time periods. For example, when
+# extracting seconds, EXTRACT truncates the millisecond and
+# microsecond values.
+#
+# Returns INT64, except in the following cases:
+#   If part is DATE, returns a DATE object.
+#   If part is TIME, returns a TIME object.
+
+# In the following example, EXTRACT returns a value corresponding to
+# the DAY date part.
+
+!if (false) {
+SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
++---------+
+| the_day |
++---------+
+| 25      |
++---------+
+!ok
+!}
+
+# In the following example, EXTRACT returns values corresponding to
+# different date parts from a column of dates near the end of the
+# year.
+
+!if (false) {
+SELECT
+  d,
+  EXTRACT(ISOYEAR FROM d) AS isoyear,
+  EXTRACT(ISOWEEK FROM d) AS isoweek,
+  EXTRACT(YEAR FROM d) AS year,
+  EXTRACT(WEEK FROM d) AS week
+FROM UNNEST(
+  ARRAY [DATE '2015-12-23',
+         DATE '2015-12-24',
+         DATE '2015-12-25',
+         DATE '2015-12-26',
+         DATE '2015-12-27',
+         DATE '2015-12-28',
+         DATE '2015-12-29',
+         DATE '2015-12-30',
+         DATE '2015-12-31',
+         DATE '2016-01-01',
+         DATE '2016-01-02',
+         DATE '2016-01-03',
+         DATE '2016-01-04',
+         DATE '2016-01-05',
+         DATE '2016-01-06',
+         DATE '2016-01-07',
+         DATE '2016-01-08',
+         DATE '2016-01-09']) AS d
+ORDER BY d;
++------------+---------+---------+------+------+
+| date       | isoyear | isoweek | year | week |
++------------+---------+---------+------+------+
+| 2015-12-23 | 2015    | 52      | 2015 | 51   |
+| 2015-12-24 | 2015    | 52      | 2015 | 51   |
+| 2015-12-25 | 2015    | 52      | 2015 | 51   |
+| 2015-12-26 | 2015    | 52      | 2015 | 51   |
+| 2015-12-27 | 2015    | 52      | 2015 | 52   |
+| 2015-12-28 | 2015    | 53      | 2015 | 52   |
+| 2015-12-29 | 2015    | 53      | 2015 | 52   |
+| 2015-12-30 | 2015    | 53      | 2015 | 52   |
+| 2015-12-31 | 2015    | 53      | 2015 | 52   |
+| 2016-01-01 | 2015    | 53      | 2016 | 0    |
+| 2016-01-02 | 2015    | 53      | 2016 | 0    |
+| 2016-01-03 | 2015    | 53      | 2016 | 1    |
+| 2016-01-04 | 2016    | 1       | 2016 | 1    |
+| 2016-01-05 | 2016    | 1       | 2016 | 1    |
+| 2016-01-06 | 2016    | 1       | 2016 | 1    |
+| 2016-01-07 | 2016    | 1       | 2016 | 1    |
+| 2016-01-08 | 2016    | 1       | 2016 | 1    |
+| 2016-01-09 | 2016    | 1       | 2016 | 1    |
++------------+---------+---------+------+------+
+!ok
+!}
+
+# In the following example, date_expression falls on a Sunday. EXTRACT
+# calculates the first column using weeks that begin on Sunday, and it
+# calculates the second column using weeks that begin on Monday.
+
+!if (false) {
+WITH t AS (SELECT DATE('2017-11-05') AS d)
+SELECT
+  d,
+  EXTRACT(WEEK(SUNDAY) FROM d) AS week_sunday,
+  EXTRACT(WEEK(MONDAY) FROM d) AS week_monday FROM t;
++------------+-------------+-------------+
+| date       | week_sunday | week_monday |
++------------+-------------+-------------+
+| 2017-11-05 | 45          | 44          |
++------------+-------------+-------------+
+!ok
+!}
+
+# In the following example, EXTRACT returns a value corresponding to
+# the HOUR time part.
+!if (false) {
+SELECT EXTRACT(HOUR FROM DATETIME(2008, 12, 25, 15, 30, 00)) as hour;
++------------------+
+| hour             |
++------------------+
+| 15               |
++------------------+
+!ok
+!}
+
+# In the following example, EXTRACT returns values corresponding to
+# different time parts from a column of datetimes.
+!if (false) {
+WITH Datetimes AS (
+  SELECT DATETIME '2005-01-03 12:34:56' AS dt UNION ALL
+  SELECT DATETIME '2007-12-31' UNION ALL
+  SELECT DATETIME '2009-01-01' UNION ALL
+  SELECT DATETIME '2009-12-31' UNION ALL
+  SELECT DATETIME '2017-01-02' UNION ALL
+  SELECT DATETIME '2017-05-26'
+)
+SELECT
+  datetime,
+  EXTRACT(ISOYEAR FROM dt) AS isoyear,
+  EXTRACT(ISOWEEK FROM dt) AS isoweek,
+  EXTRACT(YEAR FROM dt) AS year,
+  EXTRACT(WEEK FROM dt) AS week
+FROM Datetimes
+ORDER BY dt;
++---------------------+---------+---------+------+------+
+| dt                  | isoyear | isoweek | year | week |
++---------------------+---------+---------+------+------+
+| 2005-01-03T12:34:56 | 2005    | 1       | 2005 | 1    |
+| 2007-12-31T00:00:00 | 2008    | 1       | 2007 | 52   |
+| 2009-01-01T00:00:00 | 2009    | 1       | 2009 | 0    |
+| 2009-12-31T00:00:00 | 2009    | 53      | 2009 | 52   |
+| 2017-01-02T00:00:00 | 2017    | 1       | 2017 | 1    |
+| 2017-05-26T00:00:00 | 2017    | 21      | 2017 | 21   |
++---------------------+---------+---------+------+------+
+!ok
+!}
+
+# In the following example, datetime_expression falls on a
+# Sunday. EXTRACT calculates the first column using weeks that begin
+# on Sunday, and it calculates the second column using weeks that
+# begin on Monday.
+!if (false) {
+WITH t AS (SELECT DATETIME(TIMESTAMP "2017-11-05 00:00:00+00", "UTC") AS dt)
+SELECT
+  dt,
+  EXTRACT(WEEK(SUNDAY) FROM dt) AS week_sunday,
+  EXTRACT(WEEK(MONDAY) FROM dt) AS week_monday
+FROM t;
++---------------------+-------------+---------------+
+| dt                  | week_sunday | week_monday   |
++---------------------+-------------+---------------+
+| 2017-11-05T00:00:00 | 45          | 44            |
++---------------------+-------------+---------------+
+!ok
+!}
+
+!if (false) {
+WITH Input AS (SELECT TIMESTAMP("2008-12-25 05:30:00+00") AS timestamp_value)
+SELECT
+  EXTRACT(DAY FROM timestamp_value AT TIME ZONE "UTC") AS the_day_utc,
+  EXTRACT(DAY FROM timestamp_value AT TIME ZONE "America/Los_Angeles") AS the_day_california
+FROM Input;
++-------------+--------------------+
+| the_day_utc | the_day_california |
++-------------+--------------------+
+| 25          | 24                 |
++-------------+--------------------+
+!ok
+!}
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+WITH Timestamps AS (
+  SELECT TIMESTAMP("2005-01-03 12:34:56+00") AS timestamp_value UNION ALL
+  SELECT TIMESTAMP("2007-12-31 12:00:00+00") UNION ALL
+  SELECT TIMESTAMP("2009-01-01 12:00:00+00") UNION ALL
+  SELECT TIMESTAMP("2009-12-31 12:00:00+00") UNION ALL
+  SELECT TIMESTAMP("2017-01-02 12:00:00+00") UNION ALL
+  SELECT TIMESTAMP("2017-05-26 12:00:00+00")
+)
+SELECT
+  timestamp_value,
+  EXTRACT(ISOYEAR FROM timestamp_value) AS isoyear,
+  EXTRACT(ISOWEEK FROM timestamp_value) AS isoweek,
+  EXTRACT(YEAR FROM timestamp_value) AS year,
+  EXTRACT(WEEK FROM timestamp_value) AS week
+FROM Timestamps
+ORDER BY timestamp_value;
++-------------------------+---------+---------+------+------+
+| timestamp_value         | isoyear | isoweek | year | week |
++-------------------------+---------+---------+------+------+
+| 2005-01-03 12:34:56 UTC | 2005    | 1       | 2005 | 1    |
+| 2007-12-31 12:00:00 UTC | 2008    | 1       | 2007 | 52   |
+| 2009-01-01 12:00:00 UTC | 2009    | 1       | 2009 | 0    |
+| 2009-12-31 12:00:00 UTC | 2009    | 53      | 2009 | 52   |
+| 2017-01-02 12:00:00 UTC | 2017    | 1       | 2017 | 1    |
+| 2017-05-26 12:00:00 UTC | 2017    | 21      | 2017 | 21   |
++-------------------------+---------+---------+------+------+
+!ok
+!}
+
+# In the following example, timestamp_expression falls on a Monday.
+# EXTRACT calculates the first column using weeks that begin on
+# Sunday, and it calculates the second column using weeks that begin
+# on Monday.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+WITH t AS (SELECT TIMESTAMP("2017-11-05 00:00:00+00") AS timestamp_value)
+SELECT
+  timestamp_value,
+  EXTRACT(WEEK(SUNDAY) FROM timestamp_value) AS week_sunday,
+  EXTRACT(WEEK(MONDAY) FROM timestamp_value) AS week_monday
+FROM t;
++-------------------------+-------------+---------------+
+| timestamp_value         | week_sunday | week_monday   |
++-------------------------+-------------+---------------+
+| 2017-11-05 00:00:00 UTC | 45          | 44            |
++-------------------------+-------------+---------------+
+!ok
+!}
+
+#####################################################################
+# STRING
+#
+# STRING(timestamp_expression[, time_zone])
+#
+# Converts a timestamp_expression to a STRING data type.
+# Supports an optional parameter to specify a time zone.
+
+!if (false) {
+SELECT STRING(TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS string;
++-------------------------------+
+| string                        |
++-------------------------------+
+| 2008-12-25 15:30:00+00        |
++-------------------------------+
+!ok
+!}
+
+
+#####################################################################
+# DATE
+#
+# 1. DATE(year, month, day)
+#   Constructs a DATE from INT64 values representing the year, month,
+#   and day.
+# 2. DATE(timestamp_expression[, time_zone])
+#   Extracts the DATE from a TIMESTAMP expression. It supports an
+#   optional parameter to specify a time zone. If no time zone is
+#   specified, the default time zone, UTC, is used.
+# 3. DATE(datetime_expression)
+#   Extracts the DATE from a DATETIME expression.
+#
+# Returns DATE
+
+!if (false) {
+SELECT
+  DATE(2016, 12, 25) AS date_ymd,
+  DATE(DATETIME "2016-12-25 23:59:59") AS date_dt,
+  DATE(TIMESTAMP "2016-12-25 05:30:00+07", "America/Los_Angeles") AS date_tstz;
++------------+------------+------------+
+| date_ymd   | date_dt    | date_tstz  |
++------------+------------+------------+
+| 2016-12-25 | 2016-12-25 | 2016-12-24 |
++------------+------------+------------+
+!ok
+!}
+
+
+#####################################################################
+# DATETIME
+#
+# DATETIME(year, month, day, hour, minute, second)
+#   Constructs a DATETIME object using INT64 values representing the
+#   year, month, day, hour, minute, and second.
+# DATETIME(date_expression[, time_expression])
+#   Constructs a DATETIME object using a DATE object and an optional
+#   TIME object.
+# DATETIME(timestamp_expression [, time_zone])
+#   Constructs a DATETIME object using a TIMESTAMP object. It supports
+#   an optional parameter to specify a time zone. If no time zone is
+#   specified, the default time zone, UTC, is used.
+#
+# Returns DATETIME
+
+!if (false) {
+SELECT
+  DATETIME(2008, 12, 25, 05, 30, 00) as datetime_ymdhms,
+  DATETIME(TIMESTAMP "2008-12-25 05:30:00+00", "America/Los_Angeles") as datetime_tstz;
++---------------------+---------------------+
+| datetime_ymdhms     | datetime_tstz       |
++---------------------+---------------------+
+| 2008-12-25T05:30:00 | 2008-12-24T21:30:00 |
++---------------------+---------------------+
+!ok
+!}
+
+#####################################################################
+# TIME
+#
+# 1. TIME(hour, minute, second)
+#   Constructs a TIME object using INT64 values representing the hour,
+#   minute, and second.
+# 2. TIME(timestamp, [time_zone])
+#   Constructs a TIME object using a TIMESTAMP object. It supports an
+#   optional parameter to specify a time zone. If no time zone is
+#   specified, the default time zone, UTC, is used.
+# 3. TIME(datetime)
+#   Constructs a TIME object using a DATETIME object.
+#
+# Returns TIME
+
+!if (false) {
+SELECT
+  TIME(15, 30, 00) as time_hms,
+  TIME(TIMESTAMP "2008-12-25 15:30:00+08", "America/Los_Angeles") as time_tstz;
+
++----------+-----------+
+| time_hms | time_tstz |
++----------+-----------+
+| 15:30:00 | 23:30:00  |
++----------+-----------+
+!ok
+!}
+
+!if (false) {
+SELECT TIME(DATETIME "2008-12-25 15:30:00.000000") AS time_dt;
+
++----------+
+| time_dt  |
++----------+
+| 15:30:00 |
++----------+
+!ok
+!}
+
+#####################################################################
+# TIMESTAMP
+#
+# TIMESTAMP(string_expression[, time_zone])
+#   Converts a STRING expression
+#   to a TIMESTAMP data type. string_expression must include a
+#   timestamp literal. If string_expression includes a
+#   time_zone in the timestamp literal, do not include an
+#   explicit time_zone argument.
+# TIMESTAMP(date_expression[, time_zone])
+#   Converts a DATE object to a TIMESTAMP data type.
+# TIMESTAMP(datetime_expression[, time_zone])
+#   Converts a DATETIME object to a TIMESTAMP data type.
+#
+# This function supports an optional parameter to specify a time zone.
+# If no time zone is specified, the default time zone, UTC, is used.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT TIMESTAMP("2008-12-25 15:30:00+00") AS timestamp_str;
++-------------------------+
+| timestamp_str           |
++-------------------------+
+| 2008-12-25 15:30:00 UTC |
++-------------------------+
+!ok
+!}
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT TIMESTAMP("2008-12-25 15:30:00", "America/Los_Angeles") AS timestamp_str;
++-------------------------+
+| timestamp_str           |
++-------------------------+
+| 2008-12-25 23:30:00 UTC |
++-------------------------+
+!ok
+!}
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT TIMESTAMP("2008-12-25 15:30:00 UTC") AS timestamp_str;
++-------------------------+
+| timestamp_str           |
++-------------------------+
+| 2008-12-25 15:30:00 UTC |
++-------------------------+
+!ok
+!}
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT TIMESTAMP(DATETIME "2008-12-25 15:30:00") AS timestamp_datetime;
++-------------------------+
+| timestamp_datetime      |
++-------------------------+
+| 2008-12-25 15:30:00 UTC |
++-------------------------+
+!ok
+!}
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT TIMESTAMP(DATE "2008-12-25") AS timestamp_date;
++-------------------------+
+| timestamp_date          |
++-------------------------+
+| 2008-12-25 00:00:00 UTC |
++-------------------------+
+!ok
+!}
+
+#####################################################################
+# TIMESTAMP_SECONDS
+#
+# TIMESTAMP_SECONDS(int64_expression)
+#
+# Interprets int64_expression as the number of seconds since
+# 1970-01-01 00:00:00 UTC and returns a timestamp.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+
+# Note that BigQuery prints "2008-12-25 15:30:00 UTC" as the result,
+# whereas Calcite's result does not include "UTC". This is because
+# BigQuery's TIMESTAMP type is an instant (the equivalent of Calcite's
+# TIMESTAMP WITH LOCAL TIME ZONE type). It would have been too confusing
+# for a function called 'TIMESTAMP_SECONDS' to return a TIMESTAMP WITH
+# LOCAL TIME ZONE, so this function returns a Calcite TIMESTAMP which,
+# as a local time does not include UTC or any time zone.
+
+SELECT TIMESTAMP_SECONDS(1230219000) AS timestamp_value;
++---------------------+
+| timestamp_value     |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
+!ok
+
+
+#####################################################################
+# TIMESTAMP_MILLIS
+#
+# TIMESTAMP_MILLIS(int64_expression)
+#
+# Interprets int64_expression as the number of milliseconds since
+# 1970-01-01 00:00:00 UTC and returns a timestamp.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+
+# BigQuery's result ends in "UTC" but Calcite's does not, for the reasons
+# explained in TIMESTAMP_SECONDS.
+
+SELECT TIMESTAMP_MILLIS(1230219000000) AS timestamp_value;
++---------------------+
+| timestamp_value     |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
+!ok
+
+
+#####################################################################
+# TIMESTAMP_MICROS
+#
+# TIMESTAMP_MICROS(int64_expression)
+#
+# Interprets int64_expression as the number of microseconds since
+# 1970-01-01 00:00:00 UTC and returns a timestamp.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT TIMESTAMP_MICROS(1230219000000000) AS timestamp_value;
++-------------------------+
+| timestamp_value         |
++-------------------------+
+| 2008-12-25 15:30:00 UTC |
++-------------------------+
+!ok
+!}
 
 # TIMESTAMP_SECONDS, TIMESTAMP_MILLIS, TIMESTAMP_MICROS
 select v,
@@ -28,27 +841,101 @@ from (values cast(0 as bigint),
    cast(1230219000 as bigint),
    cast(-1230219000 as bigint)) as t (v)
 order by v;
-V, T0, T1, T2
--1230219000, 1931-01-07 08:30:00, 1931-01-07 08:30:00, 1931-01-07 08:30:00
-0, 1970-01-01 00:00:00, 1970-01-01 00:00:00, 1970-01-01 00:00:00
-1230219000, 2008-12-25 15:30:00, 2008-12-25 15:30:00, 2008-12-25 15:30:00
-null, null, null, null
++-------------+---------------------+---------------------+---------------------+
+| v           | t0                  | t1                  | t2                  |
++-------------+---------------------+---------------------+---------------------+
+| -1230219000 | 1931-01-07 08:30:00 | 1931-01-07 08:30:00 | 1931-01-07 08:30:00 |
+|           0 | 1970-01-01 00:00:00 | 1970-01-01 00:00:00 | 1970-01-01 00:00:00 |
+|  1230219000 | 2008-12-25 15:30:00 | 2008-12-25 15:30:00 | 2008-12-25 15:30:00 |
+|             |                     |                     |                     |
++-------------+---------------------+---------------------+---------------------+
+(4 rows)
+
 !ok
 
 select timestamp_seconds(1234567890) as t;
-T
-2009-02-13 23:31:30
++---------------------+
+| t                   |
++---------------------+
+| 2009-02-13 23:31:30 |
++---------------------+
+(1 row)
+
 !ok
 
 select timestamp_millis(1234567890) as t;
-T
-1970-01-15 06:56:07
++---------------------+
+| t                   |
++---------------------+
+| 1970-01-15 06:56:07 |
++---------------------+
+(1 row)
+
 !ok
 
 select timestamp_micros(1234567890) as t;
-T
-1970-01-01 00:20:34
++---------------------+
+| t                   |
++---------------------+
+| 1970-01-01 00:20:34 |
++---------------------+
+(1 row)
+
 !ok
+
+#####################################################################
+# UNIX_SECONDS
+#
+# UNIX_SECONDS(timestamp_expression)
+#
+# Returns the number of seconds since 1970-01-01 00:00:00
+# UTC. Truncates higher levels of precision.
+
+!if (false) {
+SELECT UNIX_SECONDS(TIMESTAMP "2008-12-25 15:30:00+00") AS seconds;
++------------+
+| seconds    |
++------------+
+| 1230219000 |
++------------+
+!ok
+!}
+
+#####################################################################
+# UNIX_MILLIS
+#
+# UNIX_MILLIS(timestamp_expression)
+#
+# Returns the number of milliseconds since 1970-01-01 00:00:00
+# UTC. Truncates higher levels of precision.
+
+!if (false) {
+SELECT UNIX_MILLIS(TIMESTAMP "2008-12-25 15:30:00+00") AS millis;
++---------------+
+| millis        |
++---------------+
+| 1230219000000 |
++---------------+
+!ok
+!}
+
+#####################################################################
+# UNIX_MICROS
+#
+# UNIX_MICROS(timestamp_expression)
+#
+# Returns the number of microseconds since 1970-01-01 00:00:00
+# UTC. Truncates higher levels of precision.
+
+!if (false) {
+SELECT UNIX_MICROS(TIMESTAMP "2008-12-25 15:30:00+00") AS micros;
++------------------+
+| micros           |
++------------------+
+| 1230219000000000 |
++------------------+
+!ok
+!}
 
 # UNIX_SECONDS, UNIX_MILLIS, UNIX_MICROS
 select v,
@@ -60,28 +947,49 @@ from (values TIMESTAMP '1970-01-01 00:00:00',
    TIMESTAMP '2008-12-25 15:30:00',
    TIMESTAMP '1931-01-07 08:30:00') as t (v)
 order by v;
-V, T0, T1, T2
-1931-01-07 08:30:00, -1230219000, -1230219000000, -1230219000000000
-1970-01-01 00:00:00, 0, 0, 0
-2008-12-25 15:30:00, 1230219000, 1230219000000, 1230219000000000
-null, null, null, null
++---------------------+-------------+----------------+-------------------+
+| v                   | t0          | t1             | t2                |
++---------------------+-------------+----------------+-------------------+
+| 1931-01-07 08:30:00 | -1230219000 | -1230219000000 | -1230219000000000 |
+| 1970-01-01 00:00:00 |           0 |              0 |                 0 |
+| 2008-12-25 15:30:00 |  1230219000 |  1230219000000 |  1230219000000000 |
+|                     |             |                |                   |
++---------------------+-------------+----------------+-------------------+
+(4 rows)
+
 !ok
 
 select unix_seconds(timestamp '2008-12-25 15:30:00') as t;
-T
-1230219000
++------------+
+| t          |
++------------+
+| 1230219000 |
++------------+
+(1 row)
+
 !ok
 
 select unix_millis(timestamp '2008-12-25 15:30:00') as t;
-T
-1230219000000
++---------------+
+| t             |
++---------------+
+| 1230219000000 |
++---------------+
+(1 row)
+
 !ok
 
 select unix_micros(timestamp '2008-12-25 15:30:00') as t;
-T
-1230219000000000
++------------------+
+| t                |
++------------------+
+| 1230219000000000 |
++------------------+
+(1 row)
+
 !ok
 
+#####################################################################
 # DATE_FROM_UNIX_DATE
 select v,
   date_from_unix_date(v) as d
@@ -90,18 +998,29 @@ from (values 0,
    1230219000 / 86400,
    -1230219000 / 86400) as t (v)
 order by v;
-V, D
--14238, 1931-01-08
-0, 1970-01-01
-14238, 2008-12-25
-null, null
++--------+------------+
+| v      | d          |
++--------+------------+
+| -14238 | 1931-01-08 |
+|      0 | 1970-01-01 |
+|  14238 | 2008-12-25 |
+|        |            |
++--------+------------+
+(4 rows)
+
 !ok
 
 select date_from_unix_date(14238);
-EXPR$0
-2008-12-25
++------------+
+| EXPR$0     |
++------------+
+| 2008-12-25 |
++------------+
+(1 row)
+
 !ok
 
+#####################################################################
 # UNIX_DATE
 select v,
   unix_date(v) as d
@@ -110,28 +1029,1494 @@ from (values date '1970-01-01',
    DATE '2008-12-25',
    DATE '1931-01-07') as t (v)
 order by v;
-V, D
-1931-01-07, -14239
-1970-01-01, 0
-2008-12-25, 14238
-null, null
++------------+--------+
+| v          | d      |
++------------+--------+
+| 1931-01-07 | -14239 |
+| 1970-01-01 |      0 |
+| 2008-12-25 |  14238 |
+|            |        |
++------------+--------+
+(4 rows)
+
 !ok
 
-select unix_date(timestamp '2008-12-25');
-EXPR$0
-14238
+select unix_date(timestamp '2008-12-25') as d;
++-------+
+| d     |
++-------+
+| 14238 |
++-------+
+(1 row)
+
 !ok
 
 # DATE
 # 'date(x) is shorthand for 'cast(x as date)'
 select date('1970-01-01') as d;
-D
-1970-01-01
++------------+
+| d          |
++------------+
+| 1970-01-01 |
++------------+
+(1 row)
+
 !ok
 
+!if (false) {
 select date(cast(null as varchar(10))) as d;
-D
-null
++---+
+| D |
++---+
+|   |
++---+
+(1 row)
+
 !ok
+!}
+
+#####################################################################
+# DATE_ADD
+#
+# DATE_ADD(date_expression, INTERVAL int64_expression date_part)
+#
+# Adds a specified time interval to a DATE.
+#
+# DATE_ADD supports the following date_part values:
+#   DAY
+#   WEEK. Equivalent to 7 DAYs.
+#   MONTH
+#   QUARTER
+#   YEAR
+#
+# Special handling is required for MONTH, QUARTER, and YEAR parts when
+# the date is at (or near) the last day of the month. If the resulting
+# month has fewer days than the original date's day, then the
+# resulting date is the last date of that month.
+#
+# Returns DATE
+
+!if (false) {
+SELECT DATE_ADD(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_later;
++--------------------+
+| five_days_later    |
++--------------------+
+| 2008-12-30         |
++--------------------+
+!ok
+!}
+
+#####################################################################
+# DATETIME_ADD
+#
+# DATETIME_ADD(datetime_expression, INTERVAL int64_expression part)
+#
+# Adds int64_expression units of part to the DATETIME object.
+#
+# DATETIME_ADD supports the following values for part:
+#
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#   DAY
+#   WEEK. Equivalent to 7 DAYs.
+#   MONTH
+#   QUARTER
+#   YEAR
+#
+# Special handling is required for MONTH, QUARTER, and YEAR parts when
+# the date is at (or near) the last day of the month. If the resulting
+# month has fewer days than the original DATETIME's day, then the
+# result day is the last day of the new month.
+#
+# Returns DATETIME
+
+!if (false) {
+SELECT
+  DATETIME "2008-12-25 15:30:00" as original_date,
+  DATETIME_ADD(DATETIME "2008-12-25 15:30:00", INTERVAL 10 MINUTE) as later;
++-----------------------------+------------------------+
+| original_date               | later                  |
++-----------------------------+------------------------+
+| 2008-12-25T15:30:00         | 2008-12-25T15:40:00    |
++-----------------------------+------------------------+
+!ok
+!}
+
+#####################################################################
+# TIME_ADD
+#
+# TIME_ADD(time_expression, INTERVAL int64_expression part)
+#
+# Adds int64_expression units of part to the TIME object.
+#
+# TIME_ADD supports the following values for part:
+#
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#
+# This function automatically adjusts when values fall outside of the
+# 00:00:00 to 24:00:00 boundary. For example, if you add an hour to
+# 23:30:00, the returned value is 00:30:00.
+#
+# Returns TIME
+
+!if (false) {
+SELECT
+  TIME "15:30:00" as original_time,
+  TIME_ADD(TIME "15:30:00", INTERVAL 10 MINUTE) as later;
++-----------------------------+------------------------+
+| original_time               | later                  |
++-----------------------------+------------------------+
+| 15:30:00                    | 15:40:00               |
++-----------------------------+------------------------+
+!ok
+!}
+
+#####################################################################
+# TIMESTAMP_ADD
+#
+# TIMESTAMP_ADD(timestamp_expression, INTERVAL int64_expression date_part)
+#
+# Adds int64_expression units of date_part to the timestamp,
+# independent of any time zone.
+#
+# TIMESTAMP_ADD supports the following values for date_part:
+#  MICROSECOND
+#  MILLISECOND
+#  SECOND
+#  MINUTE
+#  HOUR. Equivalent to 60 MINUTEs.
+#  DAY. Equivalent to 24 HOURs.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT
+  TIMESTAMP("2008-12-25 15:30:00+00") AS original,
+  TIMESTAMP_ADD(TIMESTAMP "2008-12-25 15:30:00+00", INTERVAL 10 MINUTE) AS later;
++-------------------------+-------------------------+
+| original                | later                   |
++-------------------------+-------------------------+
+| 2008-12-25 15:30:00 UTC | 2008-12-25 15:40:00 UTC |
++-------------------------+-------------------------+
+!ok
+!}
+
+#####################################################################
+# DATE_SUB
+#
+# DATE_SUB(date_expression, INTERVAL int64_expression date_part)
+#
+# Subtracts a specified time interval from a DATE.
+#
+# DATE_SUB supports the following date_part values:
+#
+#   DAY
+#   WEEK. Equivalent to 7 DAYs.
+#   MONTH
+#   QUARTER
+#   YEAR
+#
+# Special handling is required for MONTH, QUARTER, and YEAR parts when
+# the date is at (or near) the last day of the month. If the resulting
+# month has fewer days than the original date's day, then the
+# resulting date is the last date of that month.
+#
+# Returns DATE
+
+!if (false) {
+SELECT DATE_SUB(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_ago;
++---------------+
+| five_days_ago |
++---------------+
+| 2008-12-20    |
++---------------+
+!ok
+!}
+
+#####################################################################
+# DATETIME_SUB
+#
+# DATETIME_SUB(datetime_expression, INTERVAL int64_expression part)
+#
+# Subtracts int64_expression units of part from the DATETIME.
+#
+# DATETIME_SUB supports the following values for part:
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#   DAY
+#   WEEK. Equivalent to 7 DAYs.
+#   MONTH
+#   QUARTER
+#   YEAR
+#
+# Special handling is required for MONTH, QUARTER, and YEAR parts when
+# the date is at (or near) the last day of the month. If the resulting
+# month has fewer days than the original DATETIME's day, then the
+# result day is the last day of the new month.
+#
+# Returns DATETIME
+
+!if (false) {
+SELECT
+  DATETIME "2008-12-25 15:30:00" as original_date,
+  DATETIME_SUB(DATETIME "2008-12-25 15:30:00", INTERVAL 10 MINUTE) as earlier;
++-----------------------------+------------------------+
+| original_date               | earlier                |
++-----------------------------+------------------------+
+| 2008-12-25T15:30:00         | 2008-12-25T15:20:00    |
++-----------------------------+------------------------+
+!ok
+!}
+
+
+#####################################################################
+# TIME_SUB
+#
+# TIME_SUB(time_expression, INTERVAL int64_expression part)
+#
+# Subtracts int64_expression units of part from the TIME object.
+#
+# TIME_SUB supports the following values for part:
+#
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#
+# This function automatically adjusts when values fall outside of the
+# 00:00:00 to 24:00:00 boundary. For example, if you subtract an hour
+# from 00:30:00, the returned value is 23:30:00.
+#
+# Returns TIME
+
+!if (false) {
+SELECT
+  TIME "15:30:00" as original_date,
+  TIME_SUB(TIME "15:30:00", INTERVAL 10 MINUTE) as earlier;
++-----------------------------+------------------------+
+| original_date               | earlier                |
++-----------------------------+------------------------+
+| 15:30:00                    | 15:20:00               |
++-----------------------------+------------------------+
+!ok
+!}
+
+#####################################################################
+# TIMESTAMP_SUB
+#
+# TIMESTAMP_SUB(timestamp_expression, INTERVAL int64_expression date_part)
+#
+# Subtracts int64_expression units of date_part from the
+# timestamp, independent of any time zone.
+#
+# TIMESTAMP_SUB supports the following values for date_part:
+#  MICROSECOND
+#  MILLISECOND
+#  SECOND
+#  MINUTE
+#  HOUR. Equivalent to 60 MINUTEs.
+# DAY. Equivalent to 24 HOURs.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT
+  TIMESTAMP("2008-12-25 15:30:00+00") AS original,
+  TIMESTAMP_SUB(TIMESTAMP "2008-12-25 15:30:00+00", INTERVAL 10 MINUTE) AS earlier;
++-------------------------+-------------------------+
+| original                | earlier                 |
++-------------------------+-------------------------+
+| 2008-12-25 15:30:00 UTC | 2008-12-25 15:20:00 UTC |
++-------------------------+-------------------------+
+!ok
+!}
+
+#####################################################################
+# DATE_DIFF
+#
+# DATE_DIFF(date_expression_a, date_expression_b, date_part)
+#
+# Returns the whole number of specified date_part intervals between
+# two DATE objects (date_expression_a - date_expression_b). If the
+# first DATE is earlier than the second one, the output is negative.
+#
+# DATE_DIFF supports the following date_part values:
+#   DAY
+#   WEEK This date part begins on Sunday.
+#   WEEK(<WEEKDAY>): This date part begins on WEEKDAY. Valid values
+#     for WEEKDAY are SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
+#     FRIDAY, and SATURDAY.
+#   ISOWEEK: Uses ISO 8601 week boundaries. ISO weeks begin on Monday.
+#   MONTH, except when the first two arguments are TIMESTAMP objects.
+#   QUARTER
+#   YEAR
+#   ISOYEAR: Uses the ISO 8601 week-numbering year boundary. The ISO
+#     year boundary is the Monday of the first week whose Thursday
+#     belongs to the corresponding Gregorian calendar year.
+#
+# Returns INT64
+
+!if (false) {
+SELECT DATE_DIFF(DATE '2010-07-07', DATE '2008-12-25', DAY) AS days_diff;
++-----------+
+| days_diff |
++-----------+
+| 559       |
++-----------+
+!ok
+!}
+
+!if (false) {
+SELECT
+  DATE_DIFF(DATE '2017-10-15', DATE '2017-10-14', DAY) AS days_diff,
+  DATE_DIFF(DATE '2017-10-15', DATE '2017-10-14', WEEK) AS weeks_diff;
++-----------+------------+
+| days_diff | weeks_diff |
++-----------+------------+
+| 1         | 1          |
++-----------+------------+
+!ok
+!}
+
+# The example above shows the result of DATE_DIFF for two days in
+# succession. DATE_DIFF with the date part WEEK returns 1 because
+# DATE_DIFF counts the number of date part boundaries in this range of
+# dates. Each WEEK begins on Sunday, so there is one date part
+# boundary between Saturday, 2017-10-14 and Sunday, 2017-10-15.
+
+# The following example shows the result of DATE_DIFF for two dates in
+# different years. DATE_DIFF with the date part YEAR returns 3 because
+# it counts the number of Gregorian calendar year boundaries between
+# the two dates. DATE_DIFF with the date part ISOYEAR returns 2
+# because the second date belongs to the ISO year 2015. The first
+# Thursday of the 2015 calendar year was 2015-01-01, so the ISO year
+# 2015 begins on the preceding Monday, 2014-12-29.
+!if (false) {
+SELECT
+  DATE_DIFF('2017-12-30', '2014-12-30', YEAR) AS year_diff,
+  DATE_DIFF('2017-12-30', '2014-12-30', ISOYEAR) AS isoyear_diff;
++-----------+--------------+
+| year_diff | isoyear_diff |
++-----------+--------------+
+| 3         | 2            |
++-----------+--------------+
+!ok
+!}
+
+# The following example shows the result of DATE_DIFF for two days in
+# succession. The first date falls on a Monday and the second date
+# falls on a Sunday. DATE_DIFF with the date part WEEK returns 0
+# because this date part uses weeks that begin on Sunday. DATE_DIFF
+# with the date part WEEK(MONDAY) returns 1. DATE_DIFF with the date
+# part ISOWEEK also returns 1 because ISO weeks begin on Monday.
+
+!if (false) {
+SELECT
+  DATE_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
+  DATE_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
+  DATE_DIFF('2017-12-18', '2017-12-17', ISOWEEK) AS isoweek_diff;
++-----------+-------------------+--------------+
+| week_diff | week_weekday_diff | isoweek_diff |
++-----------+-------------------+--------------+
+| 0         | 1                 | 1            |
++-----------+-------------------+--------------+
+!ok
+!}
+
+#####################################################################
+# DATETIME_DIFF
+#
+# DATETIME_DIFF(datetime_expression_a, datetime_expression_b, part)
+#
+# Returns the whole number of specified part intervals between two
+# DATETIME objects (datetime_expression_a - datetime_expression_b). If
+# the first DATETIME is earlier than the second one, the output is
+# negative. Throws an error if the computation overflows the result
+# type, such as if the difference in microseconds between the two
+# DATETIME objects would overflow an INT64 value.
+#
+# DATETIME_DIFF supports the following values for part:
+#
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#   DAY
+#   WEEK: This date part begins on Sunday.
+#   WEEK(<WEEKDAY>): This date part begins on WEEKDAY. Valid values
+#     for WEEKDAY are SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
+#     FRIDAY, and SATURDAY.
+#   ISOWEEK: Uses ISO 8601 week boundaries. ISO weeks begin on Monday.
+#   MONTH, except when the first two arguments are TIMESTAMP objects.
+#   QUARTER
+#   YEAR
+#   ISOYEAR: Uses the ISO 8601 week-numbering year boundary. The ISO
+#     year boundary is the Monday of the first week whose Thursday
+#     belongs to the corresponding Gregorian calendar year.
+#
+# Returns INT64
+
+!if (false) {
+SELECT
+  DATETIME "2010-07-07 10:20:00" as first_datetime,
+  DATETIME "2008-12-25 15:30:00" as second_datetime,
+  DATETIME_DIFF(DATETIME "2010-07-07 10:20:00",
+    DATETIME "2008-12-25 15:30:00", DAY) as difference;
++----------------------------+------------------------+------------------------+
+| first_datetime             | second_datetime        | difference             |
++----------------------------+------------------------+------------------------+
+| 2010-07-07T10:20:00        | 2008-12-25T15:30:00    | 559                    |
++----------------------------+------------------------+------------------------+
+!ok
+!}
+
+!if (false) {
+SELECT
+  DATETIME_DIFF(DATETIME '2017-10-15 00:00:00',
+    DATETIME '2017-10-14 00:00:00', DAY) as days_diff,
+  DATETIME_DIFF(DATETIME '2017-10-15 00:00:00',
+    DATETIME '2017-10-14 00:00:00', WEEK) as weeks_diff;
++-----------+------------+
+| days_diff | weeks_diff |
++-----------+------------+
+| 1         | 1          |
++-----------+------------+
+!ok
+!}
+
+# The example above shows the result of DATETIME_DIFF for two
+# DATETIMEs that are 24 hours apart. DATETIME_DIFF with the part WEEK
+# returns 1 because DATETIME_DIFF counts the number of part boundaries
+# in this range of DATETIMEs. Each WEEK begins on Sunday, so there is
+# one part boundary between Saturday, 2017-10-14 00:00:00 and Sunday,
+# 2017-10-15 00:00:00.
+#
+# The following example shows the result of DATETIME_DIFF for two
+# dates in different years. DATETIME_DIFF with the date part YEAR
+# returns 3 because it counts the number of Gregorian calendar year
+# boundaries between the two DATETIMEs. DATETIME_DIFF with the date
+# part ISOYEAR returns 2 because the second DATETIME belongs to the
+# ISO year 2015. The first Thursday of the 2015 calendar year was
+# 2015-01-01, so the ISO year 2015 begins on the preceding Monday,
+# 2014-12-29.
+
+!if (false) {
+SELECT
+  DATETIME_DIFF('2017-12-30 00:00:00',
+    '2014-12-30 00:00:00', YEAR) AS year_diff,
+  DATETIME_DIFF('2017-12-30 00:00:00',
+    '2014-12-30 00:00:00', ISOYEAR) AS isoyear_diff;
++-----------+--------------+
+| year_diff | isoyear_diff |
++-----------+--------------+
+| 3         | 2            |
++-----------+--------------+
+!ok
+!}
+
+# The following example shows the result of DATETIME_DIFF for two days
+# in succession. The first date falls on a Monday and the second date
+# falls on a Sunday. DATETIME_DIFF with the date part WEEK returns 0
+# because this time part uses weeks that begin on
+# Sunday. DATETIME_DIFF with the date part WEEK(MONDAY) returns
+# 1. DATETIME_DIFF with the date part ISOWEEK also returns 1 because
+# ISO weeks begin on Monday.
+
+!if (false) {
+SELECT
+  DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
+  DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
+  DATETIME_DIFF('2017-12-18', '2017-12-17', ISOWEEK) AS isoweek_diff;
++-----------+-------------------+--------------+
+| week_diff | week_weekday_diff | isoweek_diff |
++-----------+-------------------+--------------+
+| 0         | 1                 | 1            |
++-----------+-------------------+--------------+
+!ok
+!}
+
+#####################################################################
+# TIME_DIFF
+#
+# TIME_DIFF(time_expression_a, time_expression_b, part)
+#
+# Returns the whole number of specified part intervals between two
+# TIME objects (time_expression_a - time_expression_b). If the first
+# TIME is earlier than the second one, the output is negative. Throws
+# an error if the computation overflows the result type, such as if
+# the difference in microseconds between the two TIME objects would
+# overflow an INT64 value.
+#
+# TIME_DIFF supports the following values for part:
+#   MICROSECOND
+#   MILLISECOND
+#   SECOND
+#   MINUTE
+#   HOUR
+#
+# Returns INT64
+
+!if (false) {
+SELECT
+  TIME "15:30:00" as first_time,
+  TIME "14:35:00" as second_time,
+  TIME_DIFF(TIME "15:30:00", TIME "14:35:00", MINUTE) as difference;
++----------------------------+------------------------+------------------------+
+| first_time                 | second_time            | difference             |
++----------------------------+------------------------+------------------------+
+| 15:30:00                   | 14:35:00               | 55                     |
++----------------------------+------------------------+------------------------+
+!ok
+!}
+
+#####################################################################
+# TIMESTAMP_DIFF
+#
+# TIMESTAMP_DIFF(timestamp_expression_a, timestamp_expression_b, date_part)
+#
+# Returns the whole number of specified date_part intervals
+# between two TIMESTAMP objects (timestamp_expression_a -
+# timestamp_expression_b). If the first TIMESTAMP is earlier
+# than the second one, the output is negative. Throws an
+# error if the computation overflows the result type, such
+# as if the difference in microseconds between the two
+# TIMESTAMP objects would overflow an INT64 value.
+#
+# TIMESTAMP_DIFF supports the following values for date_part:
+#  MICROSECOND
+#  MILLISECOND
+#  SECOND
+#  MINUTE
+#  HOUR. Equivalent to 60 MINUTEs.
+#  DAY. Equivalent to 24 HOURs.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT
+  TIMESTAMP("2010-07-07 10:20:00+00") AS later_timestamp,
+  TIMESTAMP("2008-12-25 15:30:00+00") AS earlier_timestamp,
+  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00+00", TIMESTAMP "2008-12-25 15:30:00+00", HOUR) AS hours;
++-------------------------+-------------------------+-------+
+| later_timestamp         | earlier_timestamp       | hours |
++-------------------------+-------------------------+-------+
+| 2010-07-07 10:20:00 UTC | 2008-12-25 15:30:00 UTC | 13410 |
++-------------------------+-------------------------+-------+
+!ok
+!}
+
+# In the following example, the first timestamp occurs
+# before the second timestamp, resulting in a negative output.
+!if (false) {
+SELECT TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY);
++---------------+
+| negative_diff |
++---------------+
+| -61           |
++---------------+
+!ok
+!}
+
+# In this example, the result is 0 because only the number
+# of whole specified HOUR intervals are included.
+!if (false) {
+SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR);
++---------------+
+| negative_diff |
++---------------+
+| 0             |
++---------------+
+!ok
+!}
+
+#####################################################################
+# DATE_TRUNC
+#
+# DATE_TRUNC(date_expression, date_part)
+#
+# Truncates a DATE value to the granularity of date_part. The DATE
+# value is always rounded to the beginning of date_part, which can be
+# one of the following:
+#   DAY: The day in the Gregorian calendar year that contains the DATE
+#     value.
+#   WEEK: The first day of the week in the week that contains the DATE
+#     value. Weeks begin on Sundays. WEEK is equivalent to
+#     WEEK(SUNDAY).
+#   WEEK(WEEKDAY): The first day of the week in the week that contains
+#     the DATE value. Weeks begin on WEEKDAY. WEEKDAY must be one of
+#     the following: SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
+#     FRIDAY, or SATURDAY.
+#   ISOWEEK: The first day of the ISO 8601 week in the ISO week that
+#     contains the DATE value. The ISO week begins on Monday. The
+#     first ISO week of each ISO year contains the first Thursday of
+#     the corresponding Gregorian calendar year.
+#   MONTH: The first day of the month in the month that contains the
+#     DATE value.
+#   QUARTER: The first day of the quarter in the quarter that contains
+#     the DATE value.
+#   YEAR: The first day of the year in the year that contains the DATE
+#     value.
+#   ISOYEAR: The first day of the ISO 8601 week-numbering year in the
+#     ISO year that contains the DATE value. The ISO year is the
+#     Monday of the first week whose Thursday belongs to the
+#     corresponding Gregorian calendar year.
+#
+# Returns DATE
+
+!if (false) {
+SELECT DATE_TRUNC(DATE '2008-12-25', MONTH) AS month;
++------------+
+| month      |
++------------+
+| 2008-12-01 |
++------------+
+!ok
+!}
+
+# In the following example, the original date falls on a
+# Sunday. Because the date_part is WEEK(MONDAY), DATE_TRUNC returns
+# the DATE for the preceding Monday.
+
+!if (false) {
+SELECT date AS original, DATE_TRUNC(date, WEEK(MONDAY)) AS truncated
+FROM (SELECT DATE('2017-11-05') AS date);
++------------+------------+
+| original   | truncated  |
++------------+------------+
+| 2017-11-05 | 2017-10-30 |
++------------+------------+
+!ok
+!}
+
+# In the following example, the original date_expression is in the
+# Gregorian calendar year 2015. However, DATE_TRUNC with the ISOYEAR
+# date part truncates the date_expression to the beginning of the ISO
+# year, not the Gregorian calendar year. The first Thursday of the
+# 2015 calendar year was 2015-01-01, so the ISO year 2015 begins on
+# the preceding Monday, 2014-12-29. Therefore the ISO year boundary
+# preceding the date_expression 2015-06-15 is 2014-12-29.
+
+!if (false) {
+SELECT
+  DATE_TRUNC('2015-06-15', ISOYEAR) AS isoyear_boundary,
+  EXTRACT(ISOYEAR FROM DATE '2015-06-15') AS isoyear_number;
++------------------+----------------+
+| isoyear_boundary | isoyear_number |
++------------------+----------------+
+| 2014-12-29       | 2015           |
++------------------+----------------+
+!ok
+!}
+
+#####################################################################
+# DATETIME_TRUNC
+#
+# DATETIME_TRUNC(datetime_expression, date_time_part)
+#
+# Truncates a DATETIME value to the granularity of date_time_part. The
+# DATETIME value is always rounded to the beginning of date_time_part,
+# which can be one of the following:
+#
+#   MICROSECOND: If used, nothing is truncated from the value.
+#   MILLISECOND: The nearest lessor or equal millisecond.
+#   SECOND: The nearest lessor or equal second.
+#   MINUTE: The nearest lessor or equal minute.
+#   HOUR: The nearest lessor or equal hour.
+#   DAY: The day in the Gregorian calendar year that contains the
+#     DATETIME value.
+#   WEEK: The first day of the week in the week that contains the
+#     DATETIME value. Weeks begin on Sundays. WEEK is equivalent to
+#     WEEK(SUNDAY).
+#   WEEK(WEEKDAY): The first day of the week in the week that contains
+#     the DATETIME value. Weeks begin on WEEKDAY. WEEKDAY must be one
+#     of the following: SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
+#     FRIDAY, or SATURDAY.
+#   ISOWEEK: The first day of the ISO 8601 week in the ISO week that
+#     contains the DATETIME value. The ISO week begins on Monday. The
+#     first ISO week of each ISO year contains the first Thursday of
+#     the corresponding Gregorian calendar year.
+#   MONTH: The first day of the month in the month that contains the
+#     DATETIME value.
+#   QUARTER: The first day of the quarter in the quarter that contains
+#     the DATETIME value.
+#   YEAR: The first day of the year in the year that contains the
+#     DATETIME value.
+#   ISOYEAR: The first day of the ISO 8601 week-numbering year in the
+#     ISO year that contains the DATETIME value. The ISO year is the
+#     Monday of the first week whose Thursday belongs to the
+#     corresponding Gregorian calendar year.
+#
+# Returns DATETIME
+
+!if (false) {
+SELECT
+  DATETIME "2008-12-25 15:30:00" as original,
+  DATETIME_TRUNC(DATETIME "2008-12-25 15:30:00", DAY) as truncated;
++----------------------------+------------------------+
+| original                   | truncated              |
++----------------------------+------------------------+
+| 2008-12-25T15:30:00        | 2008-12-25T00:00:00    |
++----------------------------+------------------------+
+!ok
+!}
+
+# In the following example, the original DATETIME falls on a
+# Sunday. Because the part is WEEK(MONDAY), DATE_TRUNC returns the
+# DATETIME for the preceding Monday.
+
+!if (false) {
+SELECT
+ datetime AS original,
+ DATETIME_TRUNC(datetime, WEEK(MONDAY)) AS truncated
+FROM (SELECT DATETIME(TIMESTAMP "2017-11-05 00:00:00+00", "UTC") AS datetime);
++---------------------+---------------------+
+| original            | truncated           |
++---------------------+---------------------+
+| 2017-11-05T00:00:00 | 2017-10-30T00:00:00 |
++---------------------+---------------------+
+!ok
+!}
+
+# In the following example, the original datetime_expression is in the
+# Gregorian calendar year 2015. However, DATETIME_TRUNC with the
+# ISOYEAR date part truncates the datetime_expression to the beginning
+# of the ISO year, not the Gregorian calendar year. The first Thursday
+# of the 2015 calendar year was 2015-01-01, so the ISO year 2015
+# begins on the preceding Monday, 2014-12-29. Therefore the ISO year
+# boundary preceding the datetime_expression 2015-06-15 00:00:00 is
+# 2014-12-29.
+
+!if (false) {
+SELECT
+  DATETIME_TRUNC('2015-06-15 00:00:00', ISOYEAR) AS isoyear_boundary,
+  EXTRACT(ISOYEAR FROM DATETIME '2015-06-15 00:00:00') AS isoyear_number;
++---------------------+----------------+
+| isoyear_boundary    | isoyear_number |
++---------------------+----------------+
+| 2014-12-29T00:00:00 | 2015           |
++---------------------+----------------+
+!ok
+!}
+
+#####################################################################
+# TIME_TRUNC
+#
+# TIME_TRUNC(time_expression, time_part)
+#
+# Truncates a TIME value to the granularity of time_part. The TIME
+# value is always rounded to the beginning of time_part, which can be
+# one of the following:
+#
+#   MICROSECOND: If used, nothing is truncated from the value.
+#   MILLISECOND: The nearest lessor or equal millisecond.
+#   SECOND: The nearest lessor or equal second.
+#   MINUTE: The nearest lessor or equal minute.
+#   HOUR: The nearest lessor or equal hour.
+#
+# Returns TIME
+
+SELECT
+  TIME "15:30:00" as original,
+  TIME_TRUNC(TIME "15:30:00", HOUR) as truncated;
++----------+-----------+
+| original | truncated |
++----------+-----------+
+| 15:30:00 | 15:00:00  |
++----------+-----------+
+(1 row)
+
+!ok
+
+#####################################################################
+# TIMESTAMP_TRUNC
+#
+# TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])
+#
+# Truncates a TIMESTAMP value to the granularity of
+# date_time_part. The TIMESTAMP value is always rounded to
+# the beginning of date_time_part, which can be one of the following:
+#  MICROSECOND: If used, nothing is truncated from the value.
+#  MILLISECOND: The nearest lessor or equal millisecond.
+#  SECOND: The nearest lessor or equal second.
+#  MINUTE: The nearest lessor or equal minute.
+#  HOUR: The nearest lessor or equal hour.
+#  DAY: The day in the Gregorian calendar year that contains the
+#    TIMESTAMP value.
+#  WEEK: The first day of the week in the week that contains the
+#    TIMESTAMP value. Weeks begin on Sundays. WEEK is equivalent to
+#    WEEK(SUNDAY).
+#  WEEK(WEEKDAY): The first day of the week in the week that contains
+#    the TIMESTAMP value. Weeks begin on WEEKDAY. WEEKDAY must be one
+#    of the following: SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
+#    FRIDAY, or SATURDAY.
+#  ISOWEEK: The first day of the ISO 8601 week in the ISO week that
+#    contains the TIMESTAMP value. The ISO week begins on Monday.
+#    The first ISO week of each ISO year contains the first Thursday
+#    of the corresponding Gregorian calendar year.
+#  MONTH: The first day of the month in the month that contains the
+#    TIMESTAMP value.
+#  QUARTER: The first day of the quarter in the quarter that contains
+#    the TIMESTAMP value.
+#  YEAR: The first day of the year in the year that contains the
+#    TIMESTAMP value.
+#  ISOYEAR: The first day of the ISO 8601 week-numbering year in the
+#    ISO year that contains the TIMESTAMP value. The ISO year is the
+#    Monday of the first week whose Thursday belongs to the
+#    corresponding Gregorian calendar year.
+#
+# TIMESTAMP_TRUNC function supports an optional time_zone parameter.
+# This parameter applies to the following date_time_part:
+#  MINUTE
+#  HOUR
+#  DAY
+#  WEEK
+#  WEEK(<WEEKDAY>)
+#  ISOWEEK
+#  MONTH
+#  QUARTER
+#  YEAR
+#  ISOYEAR
+#
+# Use this parameter if you want to use a time zone other than the
+# default time zone, UTC, as part of the truncate operation.
+#
+# When truncating a TIMESTAMP to MINUTE or HOUR, TIMESTAMP_TRUNC
+# determines the civil time of the TIMESTAMP in the specified (or
+# default) time zone and subtracts the minutes and seconds (when
+# truncating to HOUR) or the seconds (when truncating to MINUTE) from
+# that TIMESTAMP. While this provides intuitive results in most cases,
+# the result is non-intuitive near daylight savings transitions that
+# are not hour aligned.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT
+  TIMESTAMP_TRUNC(TIMESTAMP "2008-12-25 15:30:00+00", DAY, "UTC") AS utc,
+  TIMESTAMP_TRUNC(TIMESTAMP "2008-12-25 15:30:00+00", DAY, "America/Los_Angeles") AS la;
++-------------------------+-----------------=-------+
+| utc                     | la                      |
++-------------------------+-------------------------+
+| 2008-12-25 00:00:00 UTC | 2008-12-25 08:00:00 UTC |
++-------------------------+-------------------------+
+!ok
+!}
+
+# In the following example, timestamp_expression has a time zone
+# offset of +12. The first column shows the timestamp_expression in
+# UTC time. The second column shows the output of TIMESTAMP_TRUNC
+# using weeks that start on Monday. Because the timestamp_expression
+# falls on a Sunday in UTC, TIMESTAMP_TRUNC truncates it to the
+# preceding Monday. The third column shows the same function with the
+# optional Time zone definition argument 'Pacific/Auckland'. Here the
+# function truncates the timestamp_expression using New Zealand
+# Daylight Time, where it falls on a Monday.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT
+  timestamp_value AS timestamp_value,
+  TIMESTAMP_TRUNC(timestamp_value, WEEK(MONDAY), "UTC") AS utc_truncated,
+  TIMESTAMP_TRUNC(timestamp_value, WEEK(MONDAY), "Pacific/Auckland") AS nzdt_truncated
+FROM (SELECT TIMESTAMP("2017-11-06 00:00:00+12") AS timestamp_value);
++-------------------------+-------------------------+-------------------------+
+| timestamp_value         | utc_truncated           | nzdt_truncated          |
++-------------------------+-------------------------+-------------------------+
+| 2017-11-05 12:00:00 UTC | 2017-10-30 00:00:00 UTC | 2017-11-05 11:00:00 UTC |
++-------------------------+-------------------------+-------------------------+
+!ok
+!}
+
+# In the following example, the original timestamp_expression is in
+# the Gregorian calendar year 2015. However, TIMESTAMP_TRUNC with the
+# ISOYEAR date part truncates the timestamp_expression to the
+# beginning of the ISO year, not the Gregorian calendar year. The
+# first Thursday of the 2015 calendar year was 2015-01-01, so the ISO
+# year 2015 begins on the preceding Monday, 2014-12-29. Therefore the
+# ISO year boundary preceding the timestamp_expression 2015-06-15
+# 00:00:00+00 is 2014-12-29.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT
+  TIMESTAMP_TRUNC("2015-06-15 00:00:00+00", ISOYEAR) AS isoyear_boundary,
+  EXTRACT(ISOYEAR FROM TIMESTAMP "2015-06-15 00:00:00+00") AS isoyear_number;
++-------------------------+----------------+
+| isoyear_boundary        | isoyear_number |
++-------------------------+----------------+
+| 2014-12-29 00:00:00 UTC | 2015           |
++-------------------------+----------------+
+!ok
+!}
+
+#####################################################################
+# LAST_DAY
+#
+# LAST_DAY(datetime_expression[, date_part])
+#
+# Returns the last day from a datetime expression that contains the
+# date. This is commonly used to return the last day of the month.
+#
+# You can optionally specify the date part for which the last day is
+# returned. If this parameter is not used, the default value is
+# MONTH. LAST_DAY supports the following values for date_part:
+#
+#   YEAR
+#   QUARTER
+#   MONTH
+#   WEEK. Equivalent to 7 DAYs.
+#   WEEK(<WEEKDAY>). <WEEKDAY> represents the starting day of the
+#     week. Valid values are SUNDAY, MONDAY, TUESDAY, WEDNESDAY,
+#     THURSDAY, FRIDAY, and SATURDAY.
+#   ISOWEEK. Uses ISO 8601 week boundaries. ISO weeks begin on Monday.
+#   ISOYEAR. Uses the ISO 8601 week-numbering year boundary. The ISO
+#     year boundary is the Monday of the first week whose Thursday
+#     belongs to the corresponding Gregorian calendar year.
+#
+# Returns DATE
+#
+# These both return the last day of the month:
+
+!if (false) {
+SELECT LAST_DAY(DATETIME '2008-11-25', MONTH) AS last_day;
++------------+
+| last_day   |
++------------+
+| 2008-11-30 |
++------------+
+!ok
+!}
+
+!if (false) {
+SELECT LAST_DAY(DATETIME '2008-11-25') AS last_day;
++------------+
+| last_day   |
++------------+
+| 2008-11-30 |
++------------+
+!ok
+!}
+
+# This returns the last day of the year:
+!if (false) {
+SELECT LAST_DAY(DATETIME '2008-11-25 15:30:00', YEAR) AS last_day;
++------------+
+| last_day   |
++------------+
+| 2008-12-31 |
++------------+
+!ok
+!}
+
+# This returns the last day of the week for a week that starts on a
+# Sunday:
+!if (false) {
+SELECT LAST_DAY(DATETIME '2008-11-10 15:30:00', WEEK(SUNDAY)) AS last_day;
++------------+
+| last_day   |
++------------+
+| 2008-11-15 |
++------------+
+!ok
+!}
+
+# This returns the last day of the week for a week that starts on a
+# Monday:
+!if (false) {
+SELECT LAST_DAY(DATETIME '2008-11-10 15:30:00', WEEK(MONDAY)) AS last_day;
++------------+
+| last_day   |
++------------+
+| 2008-11-16 |
++------------+
+!ok
+!}
+
+#####################################################################
+# FORMAT_DATE
+#
+# FORMAT_DATE(format_string, date_expr)
+#
+# Formats the date_expr according to the specified format_string.
+#
+# See Supported Format Elements For DATE for a list of format elements
+# that this function supports.
+#
+# Returns STRING
+
+!if (false) {
+SELECT FORMAT_DATE("%x", DATE "2008-12-25") AS US_format;
++------------+
+| US_format  |
++------------+
+| 12/25/08   |
++------------+
+!ok
+!}
+
+!if (false) {
+SELECT FORMAT_DATE("%b-%d-%Y", DATE "2008-12-25") AS formatted;
++-------------+
+| formatted   |
++-------------+
+| Dec-25-2008 |
++-------------+
+!ok
+!}
+
+!if (false) {
+SELECT FORMAT_DATE("%b %Y", DATE "2008-12-25") AS formatted;
++-------------+
+| formatted   |
++-------------+
+| Dec 2008    |
++-------------+
+!ok
+!}
+
+#####################################################################
+# FORMAT_DATETIME
+#
+# FORMAT_DATETIME(format_string, datetime_expression)
+# Formats a DATETIME object according to the specified
+# format_string. See Supported Format Elements For DATETIME for a list
+# of format elements that this function supports.
+#
+# Returns STRING
+
+!if (false) {
+SELECT
+  FORMAT_DATETIME("%c", DATETIME "2008-12-25 15:30:00")
+  AS formatted;
++--------------------------+
+| formatted                |
++--------------------------+
+| Thu Dec 25 15:30:00 2008 |
++--------------------------+
+!ok
+!}
+
+!if (false) {
+SELECT
+  FORMAT_DATETIME("%b-%d-%Y", DATETIME "2008-12-25 15:30:00")
+  AS formatted;
++-------------+
+| formatted   |
++-------------+
+| Dec-25-2008 |
++-------------+
+!ok
+!}
+
+!if (false) {
+SELECT
+  FORMAT_DATETIME("%b %Y", DATETIME "2008-12-25 15:30:00")
+  AS formatted;
++-------------+
+| formatted   |
++-------------+
+| Dec 2008    |
++-------------+
+!ok
+!}
+
+#####################################################################
+# FORMAT_TIME
+#
+# FORMAT_TIME(format_string, time_object)
+#
+# Formats a TIME object according to the specified format_string. See
+# Supported Format Elements For TIME for a list of format elements
+# that this function supports.
+#
+# Returns STRING
+
+!if (false) {
+SELECT FORMAT_TIME("%R", TIME "15:30:00") as formatted_time;
++----------------+
+| formatted_time |
++----------------+
+| 15:30          |
++----------------+
+!ok
+!}
+
+#####################################################################
+# FORMAT_TIMESTAMP
+#
+# FORMAT_TIMESTAMP(format_string, timestamp[, time_zone])
+#
+#
+# Formats a timestamp according to the specified format_string.
+#
+# See Supported Format Elements For TIMESTAMP for a list of format
+# elements that this function supports.
+
+!if (false) {
+SELECT FORMAT_TIMESTAMP("%c", TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS formatted;
++--------------------------+
+| formatted                |
++--------------------------+
+| Thu Dec 25 15:30:00 2008 |
++--------------------------+
+!ok
+!}
+
+!if (false) {
+SELECT FORMAT_TIMESTAMP("%b-%d-%Y", TIMESTAMP "2008-12-25 15:30:00+00") AS formatted;
++-------------+
+| formatted   |
++-------------+
+| Dec-25-2008 |
++-------------+
+!ok
+!}
+
+!if (false) {
+SELECT FORMAT_TIMESTAMP("%b %Y", TIMESTAMP "2008-12-25 15:30:00+00")
+  AS formatted;
++-------------+
+| formatted   |
++-------------+
+| Dec 2008    |
++-------------+
+!ok
+!}
+
+#####################################################################
+# PARSE_DATE
+#
+# PARSE_DATE(format_string, date_string)
+#
+# Converts a string representation of date to a DATE object.
+#
+# format_string contains the format elements that define how
+# date_string is formatted. Each element in date_string must have a
+# corresponding element in format_string. The location of each element
+# in format_string must match the location of each element in
+# date_string.
+
+!if (false) {
+# This works because elements on both sides match.
+SELECT PARSE_DATE("%A %b %e %Y", "Thursday Dec 25 2008");
+!ok
+!}
+
+!if (false) {
+# This doesn't work because the year element is in different locations.
+SELECT PARSE_DATE("%Y %A %b %e", "Thursday Dec 25 2008");
+!error
+!}
+
+!if (false) {
+# This doesn't work because one of the year elements is missing.
+SELECT PARSE_DATE("%A %b %e", "Thursday Dec 25 2008");
+!error
+!}
+
+!if (false) {
+# This works because %F can find all matching elements in date_string.
+SELECT PARSE_DATE("%F", "2000-12-30");
+!ok
+!}
+
+# When using PARSE_DATE, keep the following in mind:
+#
+# Unspecified fields. Any unspecified field is initialized from
+#   1970-01-01.
+# Case insensitivity. Names, such as Monday, February, and so on, are
+#   case insensitive.
+# Whitespace. One or more consecutive white spaces in the format
+#   string matches zero or more consecutive white spaces in the date
+#   string. In addition, leading and trailing white spaces in the date
+#   string are always allowed -- even if they are not in the format
+#   string.
+# Format precedence. When two (or more) format elements have
+#   overlapping information (for example both %F and %Y affect the
+#   year), the last one generally overrides any earlier ones.
+#
+# Returns DATE
+
+# This example converts a MM/DD/YY formatted string to a DATE object:
+
+!if (false) {
+SELECT PARSE_DATE("%x", "12/25/08") AS parsed;
++------------+
+| parsed     |
++------------+
+| 2008-12-25 |
++------------+
+!ok
+!}
+
+# This example converts a YYYYMMDD formatted string to a DATE object:
+
+!if (false) {
+SELECT PARSE_DATE("%Y%m%d", "20081225") AS parsed;
++------------+
+| parsed     |
++------------+
+| 2008-12-25 |
++------------+
+!ok
+!}
+
+#####################################################################
+# PARSE_DATETIME
+#
+# PARSE_DATETIME(format_string, datetime_string)
+#
+# Converts a string representation of a datetime to a DATETIME object.
+#
+# format_string contains the format elements that define how
+# datetime_string is formatted. Each element in datetime_string must
+# have a corresponding element in format_string. The location of each
+# element in format_string must match the location of each element in
+# datetime_string.
+
+# This works because elements on both sides match.
+!if (false) {
+SELECT PARSE_DATETIME("%a %b %e %I:%M:%S %Y", "Thu Dec 25 07:30:00 2008");
+!ok
+!}
+
+# This doesn't work because the year element is in different locations.
+!if (false) {
+SELECT PARSE_DATETIME("%a %b %e %Y %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+!error
+!}
+
+# This doesn't work because one of the year elements is missing.
+!if (false) {
+SELECT PARSE_DATETIME("%a %b %e %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+!error
+!}
+
+# This works because %c can find all matching elements in datetime_string.
+!if (false) {
+SELECT PARSE_DATETIME("%c", "Thu Dec 25 07:30:00 2008");
+!ok
+!}
+
+# The format string fully supports most format elements, except for %P.
+#
+# PARSE_DATETIME parses string according to the following rules:
+#   Unspecified fields. Any unspecified field is initialized from
+#     1970-01-01 00:00:00.0. For example, if the year is unspecified
+#     then it defaults to 1970.
+#   Case insensitivity. Names, such as Monday and February, are case
+#     insensitive.
+#   Whitespace. One or more consecutive white spaces in the format
+#     string matches zero or more consecutive white spaces in the
+#     DATETIME string. Leading and trailing white spaces in the
+#     DATETIME string are always allowed, even if they are not in the
+#     format string.
+#   Format precedence. When two or more format elements have
+#     overlapping information, the last one generally overrides any
+#     earlier ones, with some exceptions. For example, both %F and %Y
+#     affect the year, so the earlier element overrides the later. See
+#     the descriptions of %s, %C, and %y in Supported Format Elements
+#     For DATETIME.
+#   Format divergence. %p can be used with am, AM, pm, and PM.
+#
+# Returns DATETIME
+
+# The following examples parse a STRING literal as a DATETIME.
+
+!if (false) {
+SELECT PARSE_DATETIME('%Y-%m-%d %H:%M:%S', '1998-10-18 13:45:55') AS datetime;
++---------------------+
+| datetime            |
++---------------------+
+| 1998-10-18T13:45:55 |
++---------------------+
+!ok
+!}
+
+!if (false) {
+SELECT PARSE_DATETIME('%m/%d/%Y %I:%M:%S %p', '8/30/2018 2:23:38 pm') AS datetime
++---------------------+
+| datetime            |
++---------------------+
+| 2018-08-30T14:23:38 |
++---------------------+
+!ok
+!}
+
+# The following example parses a STRING literal containing a date in a
+# natural language format as a DATETIME.
+
+!if (false) {
+SELECT PARSE_DATETIME('%A, %B %e, %Y','Wednesday, December 19, 2018')
+  AS datetime;
++---------------------+
+| datetime            |
++---------------------+
+| 2018-12-19T00:00:00 |
++---------------------+
+!ok
+!}
+
+#####################################################################
+# PARSE_TIME
+#
+# PARSE_TIME(format_string, time_string)
+#
+# Converts a string representation of time to a TIME object.
+#
+# format_string contains the format elements that define how
+# time_string is formatted. Each element in time_string must have a
+# corresponding element in format_string. The location of each element
+# in format_string must match the location of each element in
+# time_string.
+#
+
+!if (false) {
+# This works because elements on both sides match.
+SELECT PARSE_TIME("%I:%M:%S", "07:30:00");
+!ok
+!}
+
+!if (false) {
+# This doesn't work because the seconds element is in different locations.
+SELECT PARSE_TIME("%S:%I:%M", "07:30:00");
+!error
+!}
+
+!if (false) {
+# This doesn't work because one of the seconds elements is missing.
+SELECT PARSE_TIME("%I:%M", "07:30:00");
+!error
+!}
+
+!if (false) {
+# This works because %T can find all matching elements in time_string.
+SELECT PARSE_TIME("%T", "07:30:00");
+!ok
+!}
+
+# The format string fully supports most format elements except for %P.
+#
+# When using PARSE_TIME, keep the following in mind:
+#   Unspecified fields. Any unspecified field is initialized from
+#     00:00:00.0. For instance, if seconds is unspecified then it
+#     defaults to 00, and so on.
+#   Whitespace. One or more consecutive white spaces in the format
+#     string matches zero or more consecutive white spaces in the TIME
+#     string. In addition, leading and trailing white spaces in the
+#     TIME string are always allowed, even if they are not in the
+#     format string.
+#   Format precedence. When two (or more) format elements have
+#     overlapping information, the last one generally overrides any
+#     earlier ones.
+#   Format divergence. %p can be used with am, AM, pm, and PM.
+#
+# Returns TIME
+
+!if (false) {
+SELECT PARSE_TIME("%H", "15") as parsed_time;
++-------------+
+| parsed_time |
++-------------+
+| 15:00:00    |
++-------------+
+!ok
+!}
+
+!if (false) {
+SELECT PARSE_TIME('%I:%M:%S %p', '2:23:38 pm') AS parsed_time;
++-------------+
+| parsed_time |
++-------------+
+| 14:23:38    |
++-------------+
+!ok
+!}
+
+#####################################################################
+# PARSE_TIMESTAMP
+#
+# PARSE_TIMESTAMP(format_string, timestamp_string[, time_zone])
+#
+# Converts a string representation of a timestamp to a TIMESTAMP
+# object.
+#
+# format_string contains the format elements that define how
+# timestamp_string is formatted. Each element in timestamp_string must
+# have a corresponding element in format_string. The location of each
+# element in format_string must match the location of each element in
+# timestamp_string.
+
+# This works because elements on both sides match.
+!if (false) {
+SELECT PARSE_TIMESTAMP("%a %b %e %I:%M:%S %Y", "Thu Dec 25 07:30:00 2008");
+!ok
+!}
+
+# This doesn't work because the year element is in different locations.
+!if (false) {
+SELECT PARSE_TIMESTAMP("%a %b %e %Y %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+!error
+!}
+
+# This doesn't work because one of the year elements is missing.
+!if (false) {
+SELECT PARSE_TIMESTAMP("%a %b %e %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+!error
+!}
+
+# This works because %c can find all matching elements in timestamp_string.
+!if (false) {
+SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008");
+!ok
+!}
+
+# The format string fully supports most format elements, except for %P.
+#
+# When using PARSE_TIMESTAMP, keep the following in mind:
+#   Unspecified fields. Any unspecified field is initialized from
+#     1970-01-01 00:00:00.0. This initialization value uses the time
+#     zone specified by the function's time zone argument, if
+#     present. If not, the initialization value uses the default time
+#     zone, UTC. For instance, if the year is unspecified then it
+#     defaults to 1970, and so on.
+#   Case insensitivity. Names, such as Monday, February, and so on,
+#     are case insensitive.
+#   Whitespace. One or more consecutive white spaces in the format
+#     string matches zero or more consecutive white spaces in the
+#     timestamp string. In addition, leading and trailing white spaces
+#     in the timestamp string are always allowed, even if they are not
+#     in the format string.
+#   Format precedence. When two (or more) format elements have
+#     overlapping information (for example both %F and %Y affect the
+#     year), the last one generally overrides any earlier ones, with
+#     some exceptions (see the descriptions of %s, %C, and %y).
+#   Format divergence. %p can be used with am, AM, pm, and PM.
+
+# Display of results may differ, depending upon the environment and
+# time zone where this query was executed.
+!if (false) {
+SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008") AS parsed;
++-------------------------+
+| parsed                  |
++-------------------------+
+| 2008-12-25 07:30:00 UTC |
++-------------------------+
+!ok
+!}
 
 # End big-query.iq

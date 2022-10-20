@@ -24,7 +24,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -33,6 +35,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
@@ -48,6 +54,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import javax.xml.xpath.XPathFactoryConfigurationException;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -60,12 +67,40 @@ import static java.util.Objects.requireNonNull;
 public class XmlFunctions {
 
   private static final ThreadLocal<@Nullable XPathFactory> XPATH_FACTORY =
-      ThreadLocal.withInitial(XPathFactory::newInstance);
+      ThreadLocal.withInitial(() -> {
+        final XPathFactory xPathFactory = XPathFactory.newInstance();
+        try {
+          xPathFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        } catch (XPathFactoryConfigurationException e) {
+          throw new IllegalStateException("XPath Factory configuration failed", e);
+        }
+        return xPathFactory;
+      });
   private static final ThreadLocal<@Nullable TransformerFactory> TRANSFORMER_FACTORY =
       ThreadLocal.withInitial(() -> {
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        final TransformerFactory transformerFactory = TransformerFactory.newInstance();
         transformerFactory.setErrorListener(new InternalErrorListener());
+        try {
+          transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        } catch (TransformerConfigurationException e) {
+          throw new IllegalStateException("Transformer Factory configuration failed", e);
+        }
         return transformerFactory;
+      });
+  private static final ThreadLocal<@Nullable DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
+      ThreadLocal.withInitial(() -> {
+        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setXIncludeAware(false);
+        documentBuilderFactory.setExpandEntityReferences(false);
+        documentBuilderFactory.setNamespaceAware(true);
+        try {
+          documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+          documentBuilderFactory
+              .setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        } catch (final ParserConfigurationException e) {
+          throw new IllegalStateException("Document Builder configuration failed", e);
+        }
+        return documentBuilderFactory;
       });
 
   private static final Pattern VALID_NAMESPACE_PATTERN = Pattern
@@ -81,10 +116,11 @@ public class XmlFunctions {
       return null;
     }
     try {
+      final Node documentNode = getDocumentNode(input);
       XPathExpression xpathExpression = castNonNull(XPATH_FACTORY.get()).newXPath().compile(xpath);
       try {
         NodeList nodes = (NodeList) xpathExpression
-            .evaluate(new InputSource(new StringReader(input)), XPathConstants.NODESET);
+            .evaluate(documentNode, XPathConstants.NODESET);
         List<@Nullable String> result = new ArrayList<>();
         for (int i = 0; i < nodes.getLength(); i++) {
           Node item = castNonNull(nodes.item(i));
@@ -94,9 +130,9 @@ public class XmlFunctions {
         }
         return StringUtils.join(result, " ");
       } catch (XPathExpressionException e) {
-        return xpathExpression.evaluate(new InputSource(new StringReader(input)));
+        return xpathExpression.evaluate(documentNode);
       }
-    } catch (XPathExpressionException ex) {
+    } catch (IllegalArgumentException | XPathExpressionException ex) {
       throw RESOURCE.invalidInputForExtractValue(input, xpath).ex();
     }
   }
@@ -140,17 +176,18 @@ public class XmlFunctions {
 
       XPathExpression xpathExpression = xPath.compile(xpath);
 
+      final Node documentNode = getDocumentNode(xml);
       try {
         List<String> result = new ArrayList<>();
         NodeList nodes = (NodeList) xpathExpression
-            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODESET);
+            .evaluate(documentNode, XPathConstants.NODESET);
         for (int i = 0; i < nodes.getLength(); i++) {
           result.add(convertNodeToString(castNonNull(nodes.item(i))));
         }
         return StringUtils.join(result, "");
       } catch (XPathExpressionException e) {
         Node node = (Node) xpathExpression
-            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODE);
+            .evaluate(documentNode, XPathConstants.NODE);
         return convertNodeToString(node);
       }
     } catch (IllegalArgumentException | XPathExpressionException | TransformerException ex) {
@@ -174,16 +211,17 @@ public class XmlFunctions {
       }
 
       XPathExpression xpathExpression = xPath.compile(xpath);
+      final Node documentNode = getDocumentNode(xml);
       try {
         NodeList nodes = (NodeList) xpathExpression
-            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODESET);
+            .evaluate(documentNode, XPathConstants.NODESET);
         if (nodes != null && nodes.getLength() > 0) {
           return 1;
         }
         return 0;
       } catch (XPathExpressionException e) {
         Node node = (Node) xpathExpression
-            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODE);
+            .evaluate(documentNode, XPathConstants.NODE);
         if (node != null) {
           return 1;
         }
@@ -213,6 +251,17 @@ public class XmlFunctions {
     transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
     transformer.transform(new DOMSource(node), new StreamResult(writer));
     return writer.toString();
+  }
+
+  private static Node getDocumentNode(final String xml) {
+    try {
+      final DocumentBuilder documentBuilder =
+          castNonNull(DOCUMENT_BUILDER_FACTORY.get()).newDocumentBuilder();
+      final InputSource inputSource = new InputSource(new StringReader(xml));
+      return documentBuilder.parse(inputSource);
+    } catch (final ParserConfigurationException | SAXException | IOException e) {
+      throw new IllegalArgumentException("XML parsing failed", e);
+    }
   }
 
   /** The internal default ErrorListener for Transformer. Just rethrows errors to

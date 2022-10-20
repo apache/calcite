@@ -181,7 +181,12 @@ public class RelMdMaxRowCount
     return left * right;
   }
 
-  public Double getMaxRowCount(TableScan rel, RelMetadataQuery mq) {
+  public @Nullable Double getMaxRowCount(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.MaxRowCount.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.MaxRowCount.Handler.class);
+    if (handler != null) {
+      return handler.getMaxRowCount(rel, mq);
+    }
     // For typical tables, there is no upper bound to the number of rows.
     return Double.POSITIVE_INFINITY;
   }
@@ -203,7 +208,7 @@ public class RelMdMaxRowCount
     for (RelNode node : rel.getRels()) {
       if (node instanceof Sort) {
         Sort sort = (Sort) node;
-        if (sort.fetch != null) {
+        if (sort.fetch instanceof RexLiteral) {
           return (double) RexLiteral.intValue(sort.fetch);
         }
       }

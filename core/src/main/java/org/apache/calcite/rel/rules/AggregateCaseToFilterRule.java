@@ -101,34 +101,18 @@ public class AggregateCaseToFilterRule
   @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final Project project = call.rel(1);
-    final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
     final List<AggregateCall> newCalls =
         new ArrayList<>(aggregate.getAggCallList().size());
     final List<RexNode> newProjects = new ArrayList<>(project.getProjects());
-    final List<RexNode> newCasts = new ArrayList<>();
-
-    for (int fieldNumber : aggregate.getGroupSet()) {
-      newCasts.add(
-          rexBuilder.makeInputRef(
-              project.getProjects().get(fieldNumber).getType(), fieldNumber));
-    }
 
     for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
       AggregateCall newCall =
           transform(aggregateCall, project, newProjects);
 
-      // Possibly CAST the new aggregator to an appropriate type.
-      final int i = newCasts.size();
-      final RelDataType oldType =
-          aggregate.getRowType().getFieldList().get(i).getType();
       if (newCall == null) {
         newCalls.add(aggregateCall);
-        newCasts.add(rexBuilder.makeInputRef(oldType, i));
       } else {
         newCalls.add(newCall);
-        newCasts.add(
-            rexBuilder.makeCast(oldType,
-                rexBuilder.makeInputRef(newCall.getType(), i)));
       }
     }
 

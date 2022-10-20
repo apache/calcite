@@ -512,6 +512,7 @@ class TypeCoercionTest {
         builder.add(type);
       }
     }
+    builder.addAll(f.geometryTypes);
     f.checkShouldCast(checkedType10, builder.build());
     f.shouldCast(checkedType10, SqlTypeFamily.DECIMAL,
         SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory));
@@ -630,6 +631,7 @@ class TypeCoercionTest {
     final ImmutableList<RelDataType> charTypes;
     final ImmutableList<RelDataType> binaryTypes;
     final ImmutableList<RelDataType> booleanTypes;
+    final ImmutableList<RelDataType> geometryTypes;
 
     // single types
     final RelDataType nullType;
@@ -649,6 +651,7 @@ class TypeCoercionTest {
     final RelDataType charType;
     final RelDataType varcharType;
     final RelDataType varchar20Type;
+    final RelDataType geometryType;
 
     /** Creates a Fixture. */
     public static Fixture create(SqlTestFactory testFactory) {
@@ -679,6 +682,7 @@ class TypeCoercionTest {
       charType = this.typeFactory.createSqlType(SqlTypeName.CHAR);
       varcharType = this.typeFactory.createSqlType(SqlTypeName.VARCHAR);
       varchar20Type = this.typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+      geometryType = this.typeFactory.createSqlType(SqlTypeName.GEOMETRY);
 
       // Initialize category types
 
@@ -698,6 +702,9 @@ class TypeCoercionTest {
         builder3.add(this.typeFactory.createSqlType(typeName));
       }
       for (SqlTypeName typeName : SqlTypeName.BOOLEAN_TYPES) {
+        builder3.add(this.typeFactory.createSqlType(typeName));
+      }
+      for (SqlTypeName typeName : SqlTypeName.GEOMETRY_TYPES) {
         builder3.add(this.typeFactory.createSqlType(typeName));
       }
       atomicTypes = builder3.build();
@@ -735,6 +742,12 @@ class TypeCoercionTest {
         builder8.add(this.typeFactory.createSqlType(typeName));
       }
       booleanTypes = builder8.build();
+      // GEOMETRY
+      ImmutableList.Builder<RelDataType> builder9 = ImmutableList.builder();
+      for (SqlTypeName typeName : SqlTypeName.GEOMETRY_TYPES) {
+        builder9.add(this.typeFactory.createSqlType(typeName));
+      }
+      geometryTypes = builder9.build();
     }
 
     public Fixture withTypeFactory(RelDataTypeFactory typeFactory) {

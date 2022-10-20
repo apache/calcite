@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -124,12 +125,39 @@ public class Collect extends SingleRel {
    * @param collectionType ARRAY, MAP or MULTISET
    * @param fieldName      Name of the sole output field
    */
+  @Deprecated // to be removed before 2.0
   public static Collect create(RelNode input,
       SqlTypeName collectionType,
       String fieldName) {
     return create(input,
         deriveRowType(input.getCluster().getTypeFactory(), collectionType,
             fieldName, input.getRowType()));
+  }
+
+  /**
+   * Creates a Collect.
+   *
+   * @param input          Input relational expression
+   * @param sqlKind        SqlKind
+   * @param fieldName      Name of the sole output field
+   */
+  public static Collect create(RelNode input,
+      SqlKind sqlKind,
+      String fieldName) {
+    SqlTypeName collectionType = getCollectionType(sqlKind);
+    RelDataType rowType;
+    switch (sqlKind) {
+    case ARRAY_QUERY_CONSTRUCTOR:
+    case MULTISET_QUERY_CONSTRUCTOR:
+      rowType = deriveRowType(input.getCluster().getTypeFactory(),
+          collectionType, fieldName,
+          SqlTypeUtil.deriveCollectionQueryComponentType(collectionType, input.getRowType()));
+      break;
+    default:
+      rowType = deriveRowType(input.getCluster().getTypeFactory(), collectionType,
+          fieldName, input.getRowType());
+    }
+    return create(input, rowType);
   }
 
   /** Returns the row type, guaranteed not null.
@@ -171,6 +199,23 @@ public class Collect extends SingleRel {
   private static SqlTypeName getCollectionType(RelDataType rowType) {
     return Iterables.getOnlyElement(rowType.getFieldList())
         .getType().getSqlTypeName();
+  }
+
+  private static SqlTypeName getCollectionType(SqlKind sqlKind) {
+    switch (sqlKind) {
+    case ARRAY_QUERY_CONSTRUCTOR:
+    case ARRAY_VALUE_CONSTRUCTOR:
+      return SqlTypeName.ARRAY;
+    case MULTISET_QUERY_CONSTRUCTOR:
+    case MULTISET_VALUE_CONSTRUCTOR:
+      return SqlTypeName.MULTISET;
+    case MAP_QUERY_CONSTRUCTOR:
+    case MAP_VALUE_CONSTRUCTOR:
+      return SqlTypeName.MAP;
+    default:
+      throw new IllegalArgumentException("not a collection kind "
+          + sqlKind);
+    }
   }
 
   @Override protected RelDataType deriveRowType() {

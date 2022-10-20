@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.plan.visualizer;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 import java.util.List;
 import java.util.Map;
 
@@ -32,8 +34,8 @@ class StepInfo {
       final Map<String, Object> updates,
       final List<String> matchedRels) {
     this.id = id;
-    this.updates = Collections.unmodifiableMap(updates);
-    this.matchedRels = Collections.unmodifiableList(matchedRels);
+    this.updates = ImmutableMap.copyOf(updates);
+    this.matchedRels = ImmutableList.copyOf(matchedRels);
   }
 
   public String getId() {

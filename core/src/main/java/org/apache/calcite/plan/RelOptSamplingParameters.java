@@ -48,7 +48,7 @@ public class RelOptSamplingParameters {
   /**
    * Indicates whether Bernoulli or system sampling should be performed.
    * Bernoulli sampling requires the decision whether to include each row in
-   * the the sample to be independent across rows. System sampling allows
+   * the sample to be independent across rows. System sampling allows
    * implementation-dependent behavior.
    *
    * @return true if Bernoulli sampling is configured, false for system

@@ -152,11 +152,36 @@ public class Strong {
   /** Returns whether an expression is definitely not true. */
   public boolean isNotTrue(RexNode node) {
     switch (node.getKind()) {
+    //TODO Enrich with more possible cases?
     case IS_NOT_NULL:
-      return anyNull(((RexCall) node).getOperands());
+      return isNull(((RexCall) node).getOperands().get(0));
+    case OR:
+      return allNotTrue(((RexCall) node).getOperands());
+    case AND:
+      return anyNotTrue(((RexCall) node).getOperands());
     default:
       return isNull(node);
     }
+  }
+
+  /** Returns whether all expressions in a list are definitely not true. */
+  private boolean allNotTrue(List<RexNode> operands) {
+    for (RexNode operand : operands) {
+      if (!isNotTrue(operand)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Returns whether any expressions in a list are definitely not true. */
+  private boolean anyNotTrue(List<RexNode> operands) {
+    for (RexNode operand : operands) {
+      if (isNotTrue(operand)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Returns whether an expression is definitely null.

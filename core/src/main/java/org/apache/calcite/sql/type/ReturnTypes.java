@@ -348,6 +348,13 @@ public abstract class ReturnTypes {
           explicit(SqlTypeName.CHAR);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * CHAR(1).
+   */
+  public static final SqlReturnTypeInference CHAR_FORCE_NULLABLE =
+      CHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is an Integer.
    */
   public static final SqlReturnTypeInference INTEGER =
@@ -514,6 +521,12 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference TO_MAP =
       ARG0.andThen(SqlTypeTransforms.TO_MAP);
+
+  /**
+   * Type-inference strategy that always returns GEOMETRY.
+   */
+  public static final SqlReturnTypeInference GEOMETRY =
+      explicit(SqlTypeName.GEOMETRY);
 
   /**
    * Type-inference strategy whereby the result type of a call is
