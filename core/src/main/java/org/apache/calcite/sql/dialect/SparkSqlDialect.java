@@ -178,6 +178,10 @@ public class SparkSqlDialect extends SqlDialect {
         put(ANTE_MERIDIAN_INDICATOR1, "a");
       }};
 
+  /**
+   * UDF_MAP provides the equivalent UDFName registered or to be reigstered
+   * for the functions not available in Spark.
+   */
   private static final Map<String, String> UDF_MAP =
       new HashMap<String, String>() {{
         put("TO_HEX", "UDF_CHAR2HEX");
@@ -831,13 +835,20 @@ public class SparkSqlDialect extends SqlDialect {
     unparseCall(writer, ceilCall, leftPrec, rightPrec);
   }
 
+  /**
+   * Unparse with equivalent UDF functions using UDFName from UDF_MAP.
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall : to get the operand list
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate right precision
+   * @param udfName equivalent UDF name from UDF_MAP
+   */
   void unparseUDF(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, String udfName) {
     final SqlWriter.Frame frame = writer.startFunCall(udfName);
-    int operandCount = call.operandCount();
-    for (int i = 0; i < operandCount; i++) {
+    call.getOperandList().forEach(op -> {
       writer.sep(",");
-      call.operand(i).unparse(writer, leftPrec, rightPrec);
-    }
+      op.unparse(writer, leftPrec, rightPrec);
+    });
     writer.endFunCall(frame);
   }
 }
