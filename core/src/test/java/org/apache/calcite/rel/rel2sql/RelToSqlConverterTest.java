@@ -1310,9 +1310,9 @@ class RelToSqlConverterTest {
   @Test public void testTableFunctionScanWithUnnest() {
     final RelBuilder builder = relBuilder();
     String[] array = {"abc", "bcd", "fdc"};
-    RelNode root = builder.scan("EMP").functionScan(SqlStdOperatorTable.UNNEST, 1,
+    RelNode root = builder.functionScan(SqlStdOperatorTable.UNNEST, 0,
             builder.makeArrayLiteral(Arrays.asList(array))).project(builder.field(0)).build();
-    final SqlDialect dialect = DatabaseProduct.MSSQL.getDialect();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
     final String expectedSql = "SELECT *\nFROM UNNEST(ARRAY['abc', 'bcd', 'fdc'])\nAS EXPR$0";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
@@ -7872,7 +7872,6 @@ class RelToSqlConverterTest {
   }
 
   @Test void testTableFunctionScan() {
-/*
     final String query = "SELECT *\n"
         + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
         + "from \"product\"), CURSOR(select  \"employee_id\", \"full_name\"\n"
@@ -7883,7 +7882,6 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\")), CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
         + "FROM \"foodmart\".\"employee\")), 'NAME'))";
     sql(query).ok(expected);
-*/
 
     final String query2 = "select * from table(ramp(3))";
     sql(query2).ok("SELECT *\n"
