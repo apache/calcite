@@ -26,6 +26,8 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.CoreRules;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -36,11 +38,23 @@ import java.util.regex.Pattern;
 /**
  * Check the output of {@link RuleMatchVisualizer}.
  */
-public class RuleMatchVisualizerTest extends RelOptTestBase {
+class RuleMatchVisualizerTest extends RelOptTestBase {
+
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
 
   @Override RelOptFixture fixture() {
-    return super.fixture()
+    RelOptFixture fixture = super.fixture()
         .withDiffRepos(DiffRepository.lookup(RuleMatchVisualizerTest.class));
+    diffRepos = fixture.diffRepos();
+    return fixture;
   }
 
   @Test void testHepPlanner() {

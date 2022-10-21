@@ -75,6 +75,7 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -101,6 +102,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
+ * See {@link RelOptRulesTest} for an explanation of how to add tests.
  */
 class SqlHintsConverterTest {
 
@@ -118,11 +120,22 @@ class SqlHintsConverterTest {
           .withConfig(c ->
               c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE));
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   protected Fixture fixture() {
     return FIXTURE;
   }
 
   protected RelOptFixture ruleFixture() {
+    diffRepos = RULE_FIXTURE.diffRepos();
     return RULE_FIXTURE;
   }
 

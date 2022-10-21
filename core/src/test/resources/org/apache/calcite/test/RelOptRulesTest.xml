@@ -3926,7 +3926,7 @@ emp LHS
 left join dept RHS on LHS.EMPNO = RHS.DEPTNO
 where
 RHS.DEPTNO is not null
-AND LHS.EMPNO is not null]]>
+AND RHS.NAME is not null]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4545,8 +4545,7 @@ LogicalJoin(condition=[true], joinType=[inner])
     <Resource name="sql">
       <![CDATA[select *
 from emp e1, emp e2, dept d2
-where e1.deptno = d2.deptno and e2.deptno = d2.deptno
-]]>
+where e1.deptno = d2.deptno and e2.deptno = d2.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4574,8 +4573,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="sql">
       <![CDATA[select *
 from emp e, dept d
-where e.deptno = d.deptno and e.empno = d.deptno
-]]>
+where e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4600,8 +4598,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="sql">
       <![CDATA[select *
 from emp e full join dept d
-on e.deptno = d.deptno and e.empno = d.deptno
-]]>
+on e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4645,8 +4642,7 @@ LogicalProject(DEPTNO=[$0])
     <Resource name="sql">
       <![CDATA[select *
 from emp e left join dept d
-on e.deptno = d.deptno and e.empno = d.deptno
-]]>
+on e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4661,8 +4657,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="sql">
       <![CDATA[select *
 from emp e right join dept d
-on e.deptno = d.deptno and e.empno = d.deptno
-]]>
+on e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4736,8 +4731,7 @@ LogicalProject(DEPTNO=[$7])
   <TestCase name="testJoinDeriveIsNotNullFilterRule12">
     <Resource name="sql">
       <![CDATA[select t1.deptno from empnullables t1 inner join
-empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr
-]]>
+empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
