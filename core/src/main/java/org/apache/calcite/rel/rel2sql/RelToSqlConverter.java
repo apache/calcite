@@ -214,6 +214,7 @@ public class RelToSqlConverter extends SqlImplementor
       break;
     }
     final Result leftResult = visitInput(e, 0).resetAlias();
+    parseCorrelTable(e, leftResult);
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
