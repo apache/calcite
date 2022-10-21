@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -761,7 +762,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
             ((SqlCharStringLiteral) operand).getValueAs(String.class));
         call.setOperand(index, arrayValue);
         updateInferredType(arrayValue, targetType);
-      } catch (Exception | Error e) {
+      } catch (SqlParseException e) {
         return false;
       }
       return true;

@@ -243,9 +243,15 @@ public class ${parser.class} extends SqlAbstractParserImpl
         return SqlStmtList();
     }
 
-    public SqlNode parseArray() throws Exception {
+    public SqlNode parseArray() throws SqlParseException {
         switchTo(LexicalState.BQID);
-        return ArrayLiteral();
+        try {
+          return ArrayLiteral();
+        } catch (ParseException ex) {
+          throw normalizeException(ex);
+        } catch (TokenMgrError ex) {
+          throw normalizeException(ex);
+        }
     }
 
     private SqlNode extend(SqlNode table, SqlNodeList extendList) {
@@ -4679,7 +4685,7 @@ SqlNode ArrayConstructor() :
         p = SimpleStringLiteral() {
             try {
                 return SqlParserUtil.parseArrayLiteral(p);
-            } catch (Throwable ex) {
+            } catch (SqlParseException ex) {
                 throw SqlUtil.newContextException(getPos(),
                     RESOURCE.illegalArrayExpression(p));
             }

@@ -39,7 +39,9 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.impl.ParseException;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.parser.impl.TokenMgrError;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
@@ -379,8 +381,10 @@ public final class SqlParserUtil {
    *
    * @param s a string to parse
    * @return a array value
+   *
+   * @throws SqlParseException if there is a parse error
    */
-  public static SqlNode parseArrayLiteral(String s) throws Exception, Error {
+  public static SqlNode parseArrayLiteral(String s) throws SqlParseException {
     SqlAbstractParserImpl parser = SqlParserImpl.FACTORY.getParser(
         new StringReader(s));
     return parser.parseArray();
