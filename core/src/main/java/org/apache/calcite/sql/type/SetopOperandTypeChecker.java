@@ -44,10 +44,6 @@ import static java.util.Objects.requireNonNull;
 public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
-
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -151,9 +147,5 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "{0} " + opName + " {1}";
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

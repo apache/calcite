@@ -31,7 +31,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -39,8 +38,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
-
-import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -108,16 +105,11 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction IF =
       new SqlFunction("IF", SqlKind.IF, SqlLibraryOperators::inferIfReturnType,
           null,
-          OperandTypes.and(
-              OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
-                  SqlTypeFamily.ANY),
-              // Arguments 1 and 2 must have same type
-              new SameOperandTypeChecker(3) {
-                @Override protected List<Integer>
-                getOperandList(int operandCount) {
-                  return ImmutableList.of(1, 2);
-                }
-              }),
+          OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
+              SqlTypeFamily.ANY)
+              .and(
+                  // Arguments 1 and 2 must have same type
+                  OperandTypes.same(3, 1, 2)),
           SqlFunctionCategory.SYSTEM) {
         @Override public boolean validRexOperands(int count, Litmus litmus) {
           // IF is translated to RexNode by expanding to CASE.
@@ -353,7 +345,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction STRING_AGG =
       SqlBasicAggFunction
           .create(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE,
-              OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING))
+              OperandTypes.STRING.or(OperandTypes.STRING_STRING))
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
@@ -369,7 +361,7 @@ public abstract class SqlLibraryOperators {
           .create(SqlKind.GROUP_CONCAT,
               ReturnTypes.andThen(ReturnTypes::stripOrderBy,
                   ReturnTypes.ARG0_NULLABLE),
-              OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING))
+              OperandTypes.STRING.or(OperandTypes.STRING_STRING))
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withAllowsNullTreatment(false)
           .withAllowsSeparator(true)
@@ -387,7 +379,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_DATETIME =
       new SqlFunction("CURRENT_DATETIME", SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE), null,
-          OperandTypes.or(OperandTypes.NILADIC, OperandTypes.STRING),
+          OperandTypes.NILADIC.or(OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
@@ -577,7 +569,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TO_BASE64", SqlKind.OTHER_FUNCTION,
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          null, OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
@@ -729,7 +721,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("MD5", SqlKind.OTHER_FUNCTION,
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          null, OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
@@ -737,7 +729,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("SHA1", SqlKind.OTHER_FUNCTION,
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          null, OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** Infix "::" cast operator used by PostgreSQL, for example

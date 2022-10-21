@@ -40,11 +40,10 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
 
   public SqlFloorFunction(SqlKind kind) {
     super(kind.name(), kind, ReturnTypes.ARG0_OR_EXACT_NO_SCALE, null,
-        OperandTypes.or(OperandTypes.NUMERIC_OR_INTERVAL,
-            OperandTypes.sequence(
-                "'" + kind + "(<DATE> TO <TIME_UNIT>)'\n"
-                + "'" + kind + "(<TIME> TO <TIME_UNIT>)'\n"
-                + "'" + kind + "(<TIMESTAMP> TO <TIME_UNIT>)'",
+        OperandTypes.NUMERIC_OR_INTERVAL.or(
+            OperandTypes.sequence("'" + kind + "(<DATE> TO <TIME_UNIT>)'\n"
+                    + "'" + kind + "(<TIME> TO <TIME_UNIT>)'\n"
+                    + "'" + kind + "(<TIMESTAMP> TO <TIME_UNIT>)'",
                 OperandTypes.DATETIME,
                 OperandTypes.ANY)),
         SqlFunctionCategory.NUMERIC);
