@@ -128,7 +128,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -171,13 +173,14 @@ import static org.junit.jupiter.api.Assertions.fail;
  * for details on the schema.
  *
  * <li>Run the test. It should fail. Inspect the output in
- * {@code build/resources/.../RelOptRulesTest.xml}.
+ * {@code build/resources/.../RelOptRulesTest_actual.xml}
+ * (e.g., {@code diff src/test/resources/.../RelOptRulesTest.xml
+ * build/resources/.../RelOptRulesTest_actual.xml}).
  *
- * <li>Verify that the "planBefore" is the correct
- * translation of your SQL, and that it contains the pattern on which your rule
- * is supposed to fire. If all is well, replace
- * {@code src/test/resources/.../RelOptRulesTest.xml} and
- * with the new {@code build/resources/.../RelOptRulesTest.xml}.
+ * <li>Verify that the "planBefore" is the correct translation of your SQL,
+ * and that it contains the pattern on which your rule is supposed to fire.
+ * If all is well, replace {@code src/test/resources/.../RelOptRulesTest.xml}
+ * with the new {@code build/resources/.../RelOptRulesTest_actual.xml}.
  *
  * <li>Run the test again. It should fail again, but this time it should contain
  * a "planAfter" entry for your rule. Verify that your rule applied its
@@ -190,9 +193,21 @@ import static org.junit.jupiter.api.Assertions.fail;
 class RelOptRulesTest extends RelOptTestBase {
   //~ Methods ----------------------------------------------------------------
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   @Override RelOptFixture fixture() {
-    return super.fixture()
+    RelOptFixture fixture = super.fixture()
         .withDiffRepos(DiffRepository.lookup(RelOptRulesTest.class));
+    diffRepos = fixture.diffRepos();
+    return fixture;
   }
 
   private static boolean skipItem(RexNode expr) {

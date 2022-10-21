@@ -24,6 +24,8 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
@@ -34,7 +36,7 @@ import java.util.function.Consumer;
  * <p>As input, the test supplies a SQL statement and rules; the SQL is
  * translated into relational algebra and then fed into a
  * {@link VolcanoPlanner}. The plan before and after "optimization" is
- * diffed against a .ref file using {@link DiffRepository}.
+ * diffed against a reference file using {@link DiffRepository}.
  *
  * <p>Procedure for adding a new test case:
  *
@@ -51,8 +53,8 @@ import java.util.function.Consumer;
  * <li>Verify that the "planBefore" is the correct
  * translation of your SQL, and that it contains the pattern on which your rule
  * is supposed to fire. If all is well, replace
- * {@code src/test/resources/.../TopDownOptTest.xml} and
- * with the new {@code build/resources/test/.../TopDownOptTest_actual.xml}.
+ * {@code src/test/resources/.../TopDownOptTest.xml} with
+ * the new {@code build/resources/test/.../TopDownOptTest_actual.xml}.
  *
  * <li>Run the test again. It should fail again, but this time it should contain
  * a "planAfter" entry for your rule. Verify that your rule applied its
@@ -63,9 +65,22 @@ import java.util.function.Consumer;
  * </ol>
  */
 class TopDownOptTest {
+
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   RelOptFixture fixture() {
-    return RelOptFixture.DEFAULT
+    RelOptFixture fixture = RelOptFixture.DEFAULT
         .withDiffRepos(DiffRepository.lookup(TopDownOptTest.class));
+    diffRepos = fixture.diffRepos();
+    return fixture;
   }
 
   RelOptFixture sql(String sql, Consumer<VolcanoPlanner> init) {

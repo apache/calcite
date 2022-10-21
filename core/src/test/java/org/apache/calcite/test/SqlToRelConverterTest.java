@@ -50,6 +50,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -67,6 +69,7 @@ import static org.hamcrest.core.Is.isA;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
+ * See {@link RelOptRulesTest} for an explanation of how to add tests;
  */
 class SqlToRelConverterTest extends SqlToRelTestBase {
 
@@ -74,7 +77,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
       SqlToRelFixture.DEFAULT
           .withDiffRepos(DiffRepository.lookup(SqlToRelConverterTest.class));
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   @Override public SqlToRelFixture fixture() {
+    diffRepos = LOCAL_FIXTURE.diffRepos();
     return LOCAL_FIXTURE;
   }
 

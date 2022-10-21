@@ -32,6 +32,8 @@ import org.apache.calcite.sql.SqlExplainLevel;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
@@ -81,11 +83,21 @@ class HepPlannerTest {
       + "  select ENAME, 50022371 as cat_id, '100' as cat_name, 0 as require_free_postage, 0 as require_15return, 0 as require_48hour,0 as require_insurance from emp where EMPNO = 20171216 and MGR = 0 and ENAME = 'Y' and SAL = 50022371\n"
       + ") a";
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
   //~ Methods ----------------------------------------------------------------
 
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    diffRepos.checkActualAndReferenceFiles();
+  }
+
   public RelOptFixture fixture() {
-    return RelOptFixture.DEFAULT
+    RelOptFixture fixture = RelOptFixture.DEFAULT
         .withDiffRepos(DiffRepository.lookup(HepPlannerTest.class));
+    diffRepos = fixture.diffRepos();
+    return fixture;
   }
 
   /** Sets the SQL statement for a test. */
