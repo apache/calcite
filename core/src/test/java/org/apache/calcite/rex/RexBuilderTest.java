@@ -627,7 +627,7 @@ class RexBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4632">[CALCITE-4632]
    * Find the least restrictive datatype for SARG</a>. */
-  @Test void testLeastRestrictiveTypeForSarg() {
+  @Test void testLeastRestrictiveTypeForSargMakeIn() {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelDataType decimalType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
@@ -639,6 +639,25 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
 
     final RexNode sarg = ((RexCall) inCall).operands.get(1);
+    RelDataType expected = typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 1);
+    assertEquals(sarg.getType(), expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4632">[CALCITE-4632]
+   * Find the least restrictive datatype for SARG</a>. */
+  @Test void testLeastRestrictiveTypeForSargMakeBetween() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType decimalType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    RexNode left = rexBuilder.makeInputRef(decimalType, 0);
+    final RexNode literal1 = rexBuilder.makeExactLiteral(new BigDecimal("1.0"));
+    final RexNode literal2 = rexBuilder.makeExactLiteral(new BigDecimal("20000.0"));
+
+    RexNode betweenCall = rexBuilder.makeBetween(left, literal1, literal2);
+    assertThat(betweenCall.getKind(), is(SqlKind.SEARCH));
+
+    final RexNode sarg = ((RexCall) betweenCall).operands.get(1);
     RelDataType expected = typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 1);
     assertEquals(sarg.getType(), expected);
   }
