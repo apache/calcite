@@ -723,7 +723,7 @@ public class CalciteAssert {
     loop:
       for (Method method1 : aClass.getMethods()) {
         if (method1.getName().equals(methodName)
-            && method1.getParameterTypes().length == args.length
+            && method1.getParameterCount() == args.length
             && Modifier.isPublic(method1.getDeclaringClass().getModifiers())) {
           for (Pair<Object, Class> pair
               : Pair.zip(args, (Class[]) method1.getParameterTypes())) {

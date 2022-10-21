@@ -1388,7 +1388,7 @@ public class SqlPrettyWriter implements SqlWriter {
       for (Method method : o.getClass().getMethods()) {
         if (method.getName().startsWith("set")
             && (method.getReturnType() == Void.class)
-            && (method.getParameterTypes().length == 1)) {
+            && (method.getParameterCount() == 1)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1397,7 +1397,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("get")
             && (method.getReturnType() != Void.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1406,7 +1406,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("is")
             && (method.getReturnType() == Boolean.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),

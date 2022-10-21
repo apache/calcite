@@ -77,7 +77,7 @@ class SqlTestGen {
       if (method.getName().startsWith("test")
           && Modifier.isPublic(method.getModifiers())
           && !Modifier.isStatic(method.getModifiers())
-          && (method.getParameterTypes().length == 0)
+          && (method.getParameterCount() == 0)
           && (method.getReturnType() == Void.TYPE)) {
         list.add(method);
       }
