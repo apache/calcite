@@ -18,12 +18,15 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Test cases for implicit type coercion converter. see {@link TypeCoercion} doc
+ * Test cases for implicit type coercion converter. See {@link TypeCoercion} doc
  * or <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
  * for conversion details.
+ * See {@link RelOptRulesTest} for an explanation of how to add tests.
  */
 class TypeCoercionConverterTest extends SqlToRelTestBase {
 
@@ -33,7 +36,18 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
           .withFactory(f -> f.withCatalogReader(TCatalogReader::create))
           .withDecorrelate(false);
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   @Override public SqlToRelFixture fixture() {
+    diffRepos = FIXTURE.diffRepos();
     return FIXTURE;
   }
 
