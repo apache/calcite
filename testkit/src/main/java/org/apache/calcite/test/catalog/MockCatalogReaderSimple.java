@@ -263,7 +263,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
 
     // Register "EMPTY_PRODUCTS" table.
     MockTable emptyProductsTable = MockTable.create(this, salesSchema, "EMPTY_PRODUCTS",
-        false, 2000D, 0.0);
+        false, 0D, 0D);
     emptyProductsTable.addColumn("PRODUCTID", fixture.intType);
     emptyProductsTable.addColumn("NAME", fixture.varchar20Type);
     emptyProductsTable.addColumn("SUPPLIERID", fixture.intType);

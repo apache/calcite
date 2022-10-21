@@ -557,6 +557,12 @@ public abstract class PruneEmptyRules {
 
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
+        @Override public boolean matches(RelOptRuleCall call) {
+          RelNode node = call.rel(0);
+          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
+          return maxRowCount != null && maxRowCount == 0.0;
+        }
+
         @Override public void onMatch(RelOptRuleCall call) {
           RelNode node = call.rel(0);
           Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
