@@ -142,10 +142,6 @@ public class SqlWindowTableFunction extends SqlFunction
       return paramNames;
     }
 
-    @Override public Consistency getConsistency() {
-      return Consistency.NONE;
-    }
-
     @Override public boolean isOptional(int i) {
       return i > getOperandCountRange().getMin()
           && i <= getOperandCountRange().getMax();

@@ -59,10 +59,6 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
-
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(paramTypes.size());
   }
@@ -105,9 +101,5 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     }
     sb.append(")");
     return sb.toString();
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

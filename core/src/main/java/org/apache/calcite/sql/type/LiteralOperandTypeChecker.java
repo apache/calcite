@@ -18,7 +18,6 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.util.Util;
@@ -34,7 +33,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
-  private boolean allowNull;
+  private final boolean allowNull;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -43,10 +42,6 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
 
   @Override public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
@@ -78,25 +73,7 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return true;
   }
 
-  @Override public boolean checkOperandTypes(
-      SqlCallBinding callBinding,
-      boolean throwOnFailure) {
-    return checkSingleOperandType(
-        callBinding,
-        callBinding.operand(0),
-        0,
-        throwOnFailure);
-  }
-
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(1);
-  }
-
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<LITERAL>";
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

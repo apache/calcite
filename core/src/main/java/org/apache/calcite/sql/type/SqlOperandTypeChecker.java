@@ -59,10 +59,14 @@ public interface SqlOperandTypeChecker {
   String getAllowedSignatures(SqlOperator op, String opName);
 
   /** Returns the strategy for making the arguments have consistency types. */
-  Consistency getConsistency();
+  default Consistency getConsistency() {
+    return Consistency.NONE;
+  }
 
   /** Returns whether the {@code i}th operand is optional. */
-  boolean isOptional(int i);
+  default boolean isOptional(int i) {
+    return false;
+  }
 
   /** Returns whether the list of parameters is fixed-length. In standard SQL,
    * user-defined functions are fixed-length.
