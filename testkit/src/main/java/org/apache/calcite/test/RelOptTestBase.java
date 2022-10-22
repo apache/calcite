@@ -34,7 +34,10 @@ abstract class RelOptTestBase {
     return RelOptFixture.DEFAULT;
   }
 
-  /** Creates a fixture and sets its SQL statement. */
+  /**
+   * Creates a test context with a SQL query.
+   * Default catalog: {@link org.apache.calcite.test.catalog.MockCatalogReaderSimple#init()}.
+   */
   protected final RelOptFixture sql(String sql) {
     return fixture().sql(sql);
   }

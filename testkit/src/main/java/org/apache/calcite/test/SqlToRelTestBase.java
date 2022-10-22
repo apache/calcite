@@ -55,7 +55,10 @@ public abstract class SqlToRelTestBase {
     return SqlToRelFixture.DEFAULT;
   }
 
-  /** Sets the SQL statement for a test. */
+  /**
+   * Creates a test context with a SQL query.
+   * Default catalog: {@link org.apache.calcite.test.catalog.MockCatalogReaderSimple#init()}.
+   */
   public final SqlToRelFixture sql(String sql) {
     return fixture().expression(false).withSql(sql);
   }
