@@ -118,7 +118,9 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
     </Resource>
   </TestCase>
   <TestCase name="testInsertUnionQuerySourceCoercion">
-    <Resource name="sql">insert into t1 select 'a', 1, 1.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'b', 2, 2, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'c', CAST(3 AS SMALLINT), 3.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'd', 4, 4.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'e', 5, 5.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false</Resource>
+    <Resource name="sql">
+      <![CDATA[insert into t1 select 'a', 1, 1.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'b', 2, 2, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'c', CAST(3 AS SMALLINT), 3.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'd', 4, 4.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union select 'e', 5, 5.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false]]>
+    </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])

@@ -971,8 +971,7 @@ where exists (select * from emp
   </TestCase>
   <TestCase name="testCorrelationInProjectionWithCorrelatedProjection">
     <Resource name="sql">
-      <![CDATA[select cardinality(arr) from
-(select array(select e.deptno) arr
+      <![CDATA[select cardinality(arr) from(select array(select e.deptno) arr
 from (select deptno, ename from emp) e)]]>
     </Resource>
     <Resource name="plan">
@@ -1623,7 +1622,7 @@ LogicalProject(EXPR$0=[CAST(?0):CHAR(1)])
     <Resource name="sql">
       <![CDATA[select t1.c_nationkey, t3.fake_col3
 from SALES.CUSTOMER as t1,
-lateral (select t2."$unnest" as fake_col3
+lateral (select t2 as fake_col3
          from unnest(t1.fake_col) as t2) as t3]]>
     </Resource>
     <Resource name="plan">
@@ -6481,7 +6480,7 @@ LogicalProject(ENAME=[$1])
     <Resource name="sql">
       <![CDATA[select *
 from SALES.CUSTOMER as t1,
-lateral (select t2."$unnest" as fake_col3
+lateral (select t2 as fake_col3
          from unnest(t1.fake_col) as t2) as t3]]>
     </Resource>
     <Resource name="plan">
