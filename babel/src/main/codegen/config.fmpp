@@ -28,7 +28,10 @@ data: {
     # Example: "org.apache.calcite.sql.*", "java.util.List".
     imports: [
       "org.apache.calcite.sql.SqlCreate",
+      "org.apache.calcite.sql.SqlInsertOverwrite",
       "org.apache.calcite.sql.babel.SqlBabelCreateTable",
+      "org.apache.calcite.sql.babel.SqlInsertOverwriteDir",
+      "org.apache.calcite.sql.babel.SqlInsertOverwriteTbl",
       "org.apache.calcite.sql.babel.TableCollectionType",
       "org.apache.calcite.sql.babel.postgresql.AndChain",
       "org.apache.calcite.sql.babel.postgresql.SqlBegin",
@@ -43,8 +46,10 @@ data: {
     # not a reserved keyword, add it to the 'nonReservedKeywords' section.
     keywords: [
       "ANTI"
+      "DIRECTORY",
       "DISCARD"
       "IF"
+      "OVERWRITE"
       "PLANS"
       "SEED"
       "SEMI"
@@ -58,10 +63,12 @@ data: {
     nonReservedKeywordsToAdd: [
       # not in core, added in babel
       "ANTI"
+      "DIRECTORY",
       "DISCARD"
       "IF"
       "PLANS"
       "SEED"
+      "OVERWRITE"
       "SEMI"
       "SEQUENCES"
       "TEMP"
@@ -571,7 +578,8 @@ data: {
       "PostgresqlSqlBegin()",
       "PostgresqlSqlDiscard()",
       "PostgresqlSqlCommit()",
-      "PostgresqlSqlRollback()"
+      "PostgresqlSqlRollback()",
+      "SqlInsertOverwrite()"
     ]
 
     # Binary operators tokens.
