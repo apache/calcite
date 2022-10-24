@@ -402,10 +402,6 @@ public class SqlPrettyWriter implements SqlWriter {
         || (frame.frameType == FrameTypeEnum.SETOP);
   }
 
-  @Override public boolean inWithBody() {
-    return frame != null && frame.frameType == FrameTypeEnum.WITH_BODY;
-  }
-
   @Deprecated
   @Override public boolean isQuoteAllIdentifiers() {
     return config.quoteAllIdentifiers();

@@ -548,11 +548,6 @@ public interface SqlWriter {
    */
   boolean inQuery();
 
-  /**
-   * Returns whether we are currently in a WITH body query context.
-   */
-  boolean inWithBody();
-
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
