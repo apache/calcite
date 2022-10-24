@@ -169,8 +169,8 @@ public class ProjectJoinTransposeRule
             final RexCall castCall = (RexCall) expr;
             final RelDataType operand0Type = castCall.getOperands().get(0).getType();
             if (relType.getSqlTypeName() == operand0Type.getSqlTypeName()
-                && relType.isNullable() != operand0Type.isNullable()) {
-              // Non push down cast's expression with the same type by default
+                && operand0Type.isNullable() && !relType.isNullable()) {
+              // Do not push down not nullable cast's expression with the same type by default
               // eg: CAST($1):VARCHAR(10) NOT NULL, and type of $1 is nullable VARCHAR(10)
               return false;
             }
