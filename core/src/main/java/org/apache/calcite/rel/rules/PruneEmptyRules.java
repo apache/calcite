@@ -572,10 +572,6 @@ public abstract class PruneEmptyRules {
 
         @Override public void onMatch(RelOptRuleCall call) {
           RelNode node = call.rel(0);
-          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
-          if (maxRowCount == null || maxRowCount > 0.0) {
-            return;
-          }
           RelNode emptyValues = call.builder().push(node).empty().build();
           RelTraitSet traits = node.getTraitSet();
           // propagate all traits (except convention) from the original tableScan
