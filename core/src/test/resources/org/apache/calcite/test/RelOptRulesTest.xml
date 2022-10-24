@@ -3078,15 +3078,17 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testEmptyTableInComplexQuery">
+  <TestCase name="testEmptyTableTransformsComplexQueryToSingleTableScan">
     <Resource name="sql">
-      <![CDATA[select * from products left join (select * from products as e
- inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID  where e.SUPPLIERID > 10) dt
+      <![CDATA[select products.PRODUCTID, products.NAME from products left join
+(select * from products as e
+ inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID
+ where e.SUPPLIERID > 10) dt
  on products.PRODUCTID = dt.PRODUCTID]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5], PRODUCTID00=[$6], NAME00=[$7], SUPPLIERID00=[$8])
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
   LogicalJoin(condition=[=($0, $3)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
     LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
@@ -3098,10 +3100,8 @@ LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5], PRODUCTID00=[$6], NAME00=[$7], SUPPLIERID00=[$8])
-  LogicalJoin(condition=[=($0, $3)], joinType=[left])
-    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
-    LogicalValues(tuples=[[]])
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
 ]]>
     </Resource>
   </TestCase>
