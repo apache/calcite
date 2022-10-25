@@ -2737,6 +2737,21 @@ public class SqlParserTest {
     sql(sql6).ok(expected6);
   }
 
+  @Test void testUnionIntersect() {
+    // Note that the union sub-query has parentheses.
+    final String sql = "(select * from a union select * from b)\n"
+        + "intersect select * from c";
+    final String expected = "(SELECT *\n"
+        + "FROM `A`\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM `B`)\n"
+        + "INTERSECT\n"
+        + "SELECT *\n"
+        + "FROM `C`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testUnionOfNonQueryFails() {
     sql("select 1 from emp union ^2^ + 5")
         .fails("Non-query expression encountered in illegal context");
