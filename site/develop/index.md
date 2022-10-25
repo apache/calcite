@@ -309,10 +309,8 @@ so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullab
 
 ## Continuous Integration Testing
 
-Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amain)
-and [Travis](https://app.travis-ci.com/github/apache/calcite) for continuous integration testing.
-In the past, there were also Jenkins jobs on the [ASF-hosted](https://builds.apache.org/)
-infrastructure, but they are not maintained anymore.
+Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amain) for continuous
+integration testing.
 
 ## Getting started
 
