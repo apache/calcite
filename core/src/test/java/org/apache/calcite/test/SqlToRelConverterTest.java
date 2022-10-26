@@ -4795,4 +4795,97 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  @Test public void testQualifyWithoutReferences() {
+    sql("SELECT empno, ename, deptno "
+        + "FROM emp "
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyWithoutReferencesAndFilter() {
+    sql("SELECT empno, ename, deptno "
+        + "FROM emp "
+        + "WHERE deptno > 5 "
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyWithReferences() {
+    sql("SELECT empno, ename, deptno, "
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num "
+        + "FROM emp "
+        + "QUALIFY row_num = 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyWithMultipleReferences() {
+    sql("SELECT empno, ename, deptno + 1 as derived_deptno, "
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num "
+        + "FROM emp "
+        + "QUALIFY row_num = derived_deptno")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyWithDerivedColumn() {
+    sql("SELECT empno, ename, deptno, SUBSTRING(ename,1,1) as DERIVED_COLUMN "
+        + "FROM emp "
+        + "QUALIFY ROW_NUMBER() OVER (PARTITION BY deptno ORDER BY DERIVED_COLUMN) = 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyWithWindowClause() {
+    sql("SELECT empno, ename, SUM(deptno) OVER myWindow as sumDeptNo "
+        + "FROM emp "
+        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno) "
+        + "QUALIFY sumDeptNo = 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyInDDL() {
+    sql("INSERT INTO dept(deptno, name) "
+        + "SELECT DISTINCT empno, ename "
+        + "FROM emp "
+        + "WHERE deptno > 5 "
+        + "QUALIFY RANK() OVER (PARTITION BY ename ORDER BY slacker DESC) = 1 ")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyInSubquery() {
+    sql("SELECT * "
+        + "FROM ("
+        + " SELECT DISTINCT empno, ename, deptno "
+        + " FROM emp "
+        + " QUALIFY RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) = 1 )")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyWithSubqueryFilter() {
+    sql("SELECT empno, ename, deptno, "
+        + "    RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) as rank_val "
+        + "FROM emp "
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  @Test public void testQualifyWithEverything() {
+    sql("SELECT DISTINCT empno, ename, deptno, "
+        + "    RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) as rank_val "
+        + "FROM emp "
+        + "WHERE sal > 1000 "
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp) "
+        + "ORDER BY deptno "
+        + "LIMIT 5")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
 }
