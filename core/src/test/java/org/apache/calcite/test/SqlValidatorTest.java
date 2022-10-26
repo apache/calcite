@@ -31,7 +31,6 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -43,7 +42,6 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
-import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -52,7 +50,6 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
@@ -60,7 +57,6 @@ import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
@@ -5019,6 +5015,113 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // this worked even before FRG-115 was fixed
     sql("select deptno from emp group by deptno having deptno + 5 > 10").ok();
+  }
+
+  /** Tests the {@code QUALIFY} clause. */
+  @Test void testQualifyPositive() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    final String qualifyWithoutAlias = "SELECT\n"
+        + "empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1";
+    f.withSql(qualifyWithoutAlias).ok();
+
+    final String qualifyWithAlias = "SELECT empno, ename, deptno,\n"
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num\n"
+        + "FROM emp\n"
+        + "QUALIFY row_num = 1";
+    f.withSql(qualifyWithAlias).ok();
+
+    final String qualifyWithWindowClause = "SELECT empno, ename,\n"
+        + " SUM(deptno) OVER myWindow as sumDeptNo\n"
+        + "FROM emp\n"
+        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
+        + "QUALIFY sumDeptNo = 1";
+    f.withSql(qualifyWithWindowClause).ok();
+
+    final String qualifyWithEverything = "SELECT DISTINCT empno, ename, deptno,\n"
+        + "    RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) as rank_val\n"
+        + "FROM emp\n"
+        + "WHERE sal > 1000\n"
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)\n"
+        + "ORDER BY deptno\n"
+        + "LIMIT 5";
+    f.withSql(qualifyWithEverything).ok();
+
+    final String qualifyReferencingCommonColumnInJoin = "SELECT * \n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by emp.deptno) = 1";
+    f.withSql(qualifyReferencingCommonColumnInJoin).ok();
+
+    final String qualifyOnMultipleWindowFunctions = "SELECT"
+        + "   AVG(deptno) OVER (PARTITION BY ename) avgDeptNo,"
+        + "   RANK() OVER (PARTITION BY deptno ORDER BY ename) as myRank\n"
+        + "FROM emp\n"
+        + "QUALIFY avgDeptNo = 1 AND myRank = 1";
+    f.withSql(qualifyOnMultipleWindowFunctions).ok();
+  }
+
+  /** Negative tests for the {@code QUALIFY} clause. */
+  @Test void testQualifyNegative() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    // The predicate in the QUALIFY clause expression must be a boolean, since
+    // we use it as a filter.
+    final String qualifyWithNonBooleanExpression = "SELECT\n"
+        + "empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ^1 + 1^";
+    f.withSql(qualifyWithNonBooleanExpression)
+        .fails("QUALIFY clause must be a condition");
+
+    // We don't allow for using ordinal column references in QUALIFY.
+    final String qualifyWithOrdinal = "SELECT\n"
+        + "empno, ename, ROW_NUMBER() over (partition by ename order by deptno) = 1\n"
+        + "FROM emp\n"
+        + "QUALIFY ^3^";
+    f.withSql(qualifyWithOrdinal)
+        .fails("QUALIFY clause must be a condition");
+
+    // 'deptno' is a common column in both the emp and dept table.
+    // We need to use emp.deptno or dept.deptno to make it unambiguous
+    final String qualifyReferencingAmbiguousCommonColumnInJoin = "SELECT *\n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by ^deptno^) = 1";
+    f.withSql(qualifyReferencingAmbiguousCommonColumnInJoin)
+        .fails("Column 'DEPTNO' is ambiguous");
+
+    // Qualify must contain a window function. This matches the behavior where
+    // HAVING needs to have an aggregate or reference a group column.
+    final String qualifyOnNonWindowFunction = "SELECT * \n"
+        + "FROM emp\n"
+        + "QUALIFY ^SUM(deptno) = 1^";
+    f.withSql(qualifyOnNonWindowFunction)
+        .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
+            + "must contain a window function");
+
+    final String qualifyOnAliasedNonWindowFunction = ""
+        + "SELECT ^SUM(deptno) as sumDeptNo\n"
+        + "FROM emp\n"
+        + "QUALIFY sumDeptNo = 1^";
+    f.withSql(qualifyOnAliasedNonWindowFunction)
+        .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
+            + "must contain a window function");
+
+    // This query fails, since it's a mix of regular aggregates and window
+    // functions. This query needs to fail, since we assume that qualify filters
+    // on the result of a window function in SqlToRelConverter and that the
+    // input Rel is a LogicalProject and not a LogicalAggregate.
+    final String mixedNonAggregateAndWindowAggregate = "SELECT\n"
+        + "   SUM(deptno) as sumDeptNo, "
+        + "   RANK() OVER (PARTITION BY ^ename^ ORDER BY deptno) myRank\n"
+        + "FROM emp\n";
+    f.withSql(mixedNonAggregateAndWindowAggregate)
+        .fails("Expression 'ENAME' is not being grouped");
   }
 
   /** Tests the {@code WITH} clause, also called common table expressions. */
@@ -11117,25 +11220,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       super(opTab, catalogReader, typeFactory, config);
     }
 
-    @Override public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
-      SqlNode rewrittenNode = rewriteNode(expr);
-      return super.expand(rewrittenNode, scope);
+    @Override public SqlNode validate(SqlNode topNode) {
+      SqlNode rewrittenNode = rewriteNode(topNode);
+      return super.validate(rewrittenNode);
     }
 
-    @Override public SqlNode expandSelectExpr(SqlNode expr, SelectScope scope,
-        SqlSelect select) {
-      SqlNode rewrittenNode = rewriteNode(expr);
-      return super.expandSelectExpr(rewrittenNode, scope, select);
-    }
-
-    @Override public SqlNode expandGroupByOrHavingExpr(SqlNode expr,
-        SqlValidatorScope scope, SqlSelect select, boolean havingExpression) {
-      SqlNode rewrittenNode = rewriteNode(expr);
-      return super.expandGroupByOrHavingExpr(rewrittenNode, scope, select,
-          havingExpression);
-    }
-
-    private SqlNode rewriteNode(SqlNode sqlNode) {
+    private static SqlNode rewriteNode(SqlNode sqlNode) {
       return sqlNode.accept(new SqlShuttle() {
         @Override public SqlNode visit(SqlIdentifier id) {
           return rewriteIdentifier(id);
@@ -11143,8 +11233,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       });
     }
 
-    private SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
-      Preconditions.checkArgument(sqlIdentifier.names.size() == 2);
+    private static SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
+      if (sqlIdentifier.names.size() != 2) {
+        return sqlIdentifier;
+      }
+
       if (sqlIdentifier.names.get(0).equals("UNEXPANDED")) {
         return new SqlIdentifier(asList("DEPT", sqlIdentifier.names.get(1)),
             null, sqlIdentifier.getParserPosition(),
@@ -11154,7 +11247,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         //  Identifiers are expanded multiple times
         return sqlIdentifier;
       } else {
-        throw new RuntimeException("Unknown Identifier " + sqlIdentifier);
+        return sqlIdentifier;
       }
     }
   }

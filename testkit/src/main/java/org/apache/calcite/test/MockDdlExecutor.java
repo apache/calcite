@@ -118,7 +118,7 @@ public class MockDdlExecutor extends DdlExecutorImpl {
                 .addAll(columnList)
                 .build());
     return new SqlSelect(p, null, selectList, from, null, null, null, null,
-        null, null, null, null);
+        null, null, null, null, null);
   }
 
   /** Executes a {@code CREATE TABLE} command. Called via reflection. */

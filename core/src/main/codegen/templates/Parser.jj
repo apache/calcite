@@ -1311,6 +1311,7 @@ SqlSelect SqlSelect() :
     final SqlNodeList groupBy;
     final SqlNode having;
     final SqlNodeList windowDecls;
+    final SqlNode qualify;
     final List<SqlNode> hints = new ArrayList<SqlNode>();
     final Span s;
 }
@@ -1337,6 +1338,7 @@ SqlSelect SqlSelect() :
         ( groupBy = GroupBy() | { groupBy = null; } )
         ( having = Having() | { having = null; } )
         ( windowDecls = Window() | { windowDecls = null; } )
+        ( qualify = Qualify() | { qualify = null; } )
     |
         E() {
             fromClause = null;
@@ -1344,13 +1346,14 @@ SqlSelect SqlSelect() :
             groupBy = null;
             having = null;
             windowDecls = null;
+            qualify = null;
         }
     )
     {
         return new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
-            fromClause, where, groupBy, having, windowDecls, null, null, null,
-            new SqlNodeList(hints, getPos()));
+            fromClause, where, groupBy, having, windowDecls, qualify,
+            null, null, null, new SqlNodeList(hints, getPos()));
     }
 }
 
@@ -2772,6 +2775,15 @@ SqlNode WindowRange() :
             return SqlWindow.createFollowing(e, getPos());
         }
     )
+}
+
+/** Parses a QUALIFY clause for SELECT. */
+SqlNode Qualify() :
+{
+    SqlNode e;
+}
+{
+    <QUALIFY> e = Expression(ExprContext.ACCEPT_SUB_QUERY) { return e; }
 }
 
 /**
@@ -7991,6 +8003,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < PRIVILEGES: "PRIVILEGES" >
 |   < PROCEDURE: "PROCEDURE" >
 |   < PUBLIC: "PUBLIC" >
+|   < QUALIFY: "QUALIFY" >
 |   < QUARTER: "QUARTER" >
 |   < QUARTERS: "QUARTERS" >
 |   < RANGE: "RANGE" >

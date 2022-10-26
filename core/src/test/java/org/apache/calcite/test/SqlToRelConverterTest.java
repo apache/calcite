@@ -111,7 +111,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test void testRowValueConstructorWithSubquery() {
+  @Test void testRowValueConstructorWithSubQuery() {
     final String sql = "select ROW("
         + "(select deptno\n"
         + "from dept\n"
@@ -3347,6 +3347,109 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+
+  @Test void testQualifyWithoutReferences() {
+    sql("SELECT empno, ename, deptno\n"
+        + "FROM emp\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1")
+        .ok();
+  }
+
+  @Test void testQualifyWithoutReferencesAndFilter() {
+    sql("SELECT empno, ename, deptno\n"
+        + "FROM emp\n"
+        + "WHERE deptno > 5\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1")
+        .ok();
+  }
+
+  @Test void testQualifyWithReferences() {
+    sql("SELECT empno, ename, deptno,\n"
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num\n"
+        + "FROM emp\n"
+        + "QUALIFY row_num = 1")
+        .ok();
+  }
+
+  @Test void testQualifyWithMultipleReferences() {
+    sql("SELECT empno, ename, deptno + 1 as derived_deptno,\n"
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num\n"
+        + "FROM emp\n"
+        + "QUALIFY row_num = derived_deptno")
+        .ok();
+  }
+
+  @Test void testQualifyWithDerivedColumn() {
+    sql("SELECT empno, ename, deptno, SUBSTRING(ename,1,1) as DERIVED_COLUMN "
+        + "FROM emp "
+        + "QUALIFY ROW_NUMBER() OVER (PARTITION BY deptno\n"
+        + "                           ORDER BY DERIVED_COLUMN) = 1")
+        .ok();
+  }
+
+  @Test void testQualifyWithWindowClause() {
+    sql("SELECT empno, ename, SUM(deptno) OVER myWindow as sumDeptNo\n"
+        + "FROM emp\n"
+        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
+        + "QUALIFY sumDeptNo = 1")
+        .ok();
+  }
+
+  @Test void testQualifyInDdl() {
+    sql("INSERT INTO dept(deptno, name)\n"
+        + "SELECT DISTINCT empno, ename\n"
+        + "FROM emp\n"
+        + "WHERE deptno > 5\n"
+        + "QUALIFY RANK() OVER (PARTITION BY ename\n"
+        + "                     ORDER BY slacker DESC) = 1")
+        .ok();
+  }
+
+  @Test void testQualifyInSubQuery() {
+    sql("SELECT *\n"
+        + "FROM (\n"
+        + " SELECT DISTINCT empno, ename, deptno\n"
+        + " FROM emp\n"
+        + " QUALIFY RANK() OVER (PARTITION BY ename\n"
+        + "                      ORDER BY deptno DESC) = 1)")
+        .ok();
+  }
+
+  @Test void testQualifyWithSubQueryFilter() {
+    sql("SELECT empno, ename, deptno,\n"
+        + "    RANK() OVER (PARTITION BY ename\n"
+        + "                 ORDER BY deptno DESC) as rank_val\n"
+        + "FROM emp\n"
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)")
+        .ok();
+  }
+
+  @Test void testQualifyWithEverything() {
+    sql("SELECT DISTINCT empno, ename, deptno,\n"
+        + "    RANK() OVER (PARTITION BY ename\n"
+        + "                 ORDER BY deptno DESC) as rank_val\n"
+        + "FROM emp\n"
+        + "WHERE sal > 1000\n"
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)\n"
+        + "ORDER BY deptno\n"
+        + "LIMIT 5")
+        .ok();
+  }
+
+  @Test void testQualifyInCorrelatedSubQuery() {
+    // The QUALIFY clause is inside a WHERE EXISTS and references columns from
+    // the enclosing query.
+    sql("SELECT *\n"
+        + "FROM emp\n"
+        + "WHERE EXISTS(\n"
+        + " SELECT name\n"
+        + " FROM dept\n"
+        + " QUALIFY RANK() OVER (PARTITION BY name\n"
+        + "                      ORDER BY dept.deptno DESC) = emp.deptno\n"
+        + ")")
+        .ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1313">[CALCITE-1313]
    * Validator should derive type of expression in ORDER BY</a>.
@@ -4798,7 +4901,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5145">[CALCITE-5145]
    * CASE statement within GROUPING SETS throws type mis-match exception</a>.
    */
-  @Test public void testCaseAliasWithinGroupingSets() {
+  @Test void testCaseAliasWithinGroupingSets() {
     sql("SELECT empno,\n"
         + "CASE\n"
         + "WHEN ename in ('Fred','Eric') THEN 'CEO'\n"

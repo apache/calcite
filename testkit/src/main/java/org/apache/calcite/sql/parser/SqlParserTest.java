@@ -5493,6 +5493,72 @@ public class SqlParserTest {
             + "FROM `BIDS`");
   }
 
+  @Test void testQualify() {
+    final String sql = "SELECT empno, ename,\n"
+        + " ROW_NUMBER() over (partition by ename order by deptno) as rn\n"
+        + "FROM emp\n"
+        + "QUALIFY rn = 1";
+    final String expected = "SELECT `EMPNO`, `ENAME`,"
+        + " (ROW_NUMBER() OVER (PARTITION BY `ENAME` ORDER BY `DEPTNO`)) AS `RN`\n"
+        + "FROM `EMP`\n"
+        + "QUALIFY (`RN` = 1)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testQualifyWithoutAlias() {
+    final String sql = "SELECT empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1";
+    final String expected = "SELECT `EMPNO`, `ENAME`\n"
+        + "FROM `EMP`\n"
+        + "QUALIFY ((ROW_NUMBER() OVER (PARTITION BY `ENAME` ORDER BY `DEPTNO`)) = 1)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testQualifyWithWindowClause() {
+    final String sql = "SELECT empno, ename,\n"
+        + " SUM(deptno) OVER myWindow as sumDeptNo\n"
+        + "FROM emp\n"
+        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
+        + "QUALIFY sumDeptNo = 1";
+    final String expected = "SELECT `EMPNO`, `ENAME`,"
+        + " (SUM(`DEPTNO`) OVER `MYWINDOW`) AS `SUMDEPTNO`\n"
+        + "FROM `EMP`\n"
+        + "WINDOW `MYWINDOW` AS (PARTITION BY `ENAME` ORDER BY `EMPNO`)\n"
+        + "QUALIFY (`SUMDEPTNO` = 1)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testQualifyWithEverything() {
+    final String sql = "SELECT DISTINCT ename,\n"
+        + " SUM(deptno) OVER (PARTITION BY ename) as r\n"
+        + "FROM emp\n"
+        + "WHERE deptno > 3\n"
+        + "GROUP BY ename, deptno\n"
+        + "HAVING SUM(empno) > 4\n"
+        + "QUALIFY sumDeptNo = 1\n"
+        + "ORDER BY ename\n"
+        + "LIMIT 5\n";
+    final String expected = "SELECT DISTINCT `ENAME`,"
+        + " (SUM(`DEPTNO`) OVER (PARTITION BY `ENAME`)) AS `R`\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`DEPTNO` > 3)\n"
+        + "GROUP BY `ENAME`, `DEPTNO`\n"
+        + "HAVING (SUM(`EMPNO`) > 4)\n"
+        + "QUALIFY (`SUMDEPTNO` = 1)\n"
+        + "ORDER BY `ENAME`\n"
+        + "FETCH NEXT 5 ROWS ONLY";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testQualifyIllegalAfterOrder() {
+    final String sql = "SELECT x\n"
+        + "FROM t\n"
+        + "ORDER BY 1 DESC\n"
+        + "^QUALIFY^ x = 1";
+    sql(sql).fails("(?s).*Encountered \"QUALIFY\" at .*");
+  }
+
   @Test void testNullTreatment() {
     sql("select lead(x) respect nulls over (w) from t")
         .ok("SELECT (LEAD(`X`) RESPECT NULLS OVER (`W`))\n"

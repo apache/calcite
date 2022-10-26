@@ -86,6 +86,7 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
@@ -215,6 +216,7 @@ import java.util.stream.Collectors;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.runtime.FlatLists.append;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static java.util.Objects.requireNonNull;
@@ -759,6 +761,8 @@ public class SqlToRelConverter {
           select,
           orderExprList);
     }
+
+    convertQualify(bb, select.getQualify());
 
     if (select.isDistinct()) {
       distinctify(bb, true);
@@ -4618,6 +4622,113 @@ public class SqlToRelConverter {
     }
     aliases.add(alias);
     return alias;
+  }
+
+  private void convertQualify(Blackboard bb, @Nullable SqlNode qualify) {
+    if (qualify == null) {
+      return;
+    }
+
+    final LogicalProject projectionFromSelect =
+        requireNonNull((LogicalProject) bb.root, "root");
+
+    // Convert qualify SqlNode to a RexNode
+    replaceSubQueries(bb, qualify, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
+    final RelNode originalRoot = requireNonNull(bb.root, "root");
+    RexNode qualifyRexNode;
+    try {
+      // Set the root to the input of the project,
+      // since QUALIFY might have an expression in the OVER clause
+      // that references a column not in the SELECT.
+      bb.setRoot(projectionFromSelect.getInput(), false);
+      qualifyRexNode = bb.convertExpression(qualify);
+    } finally {
+      bb.setRoot(originalRoot, false);
+    }
+
+    // Check to see if the qualify expression has a referenced expression and
+    // do some referencing accordingly
+    final RexNode qualifyWithReferencesRexNode =
+        qualifyRexNode.accept(
+            new DuplicateEliminator(projectionFromSelect.getProjects()));
+
+    // Create a Project with the QUALIFY expression
+    if (qualifyWithReferencesRexNode.equals(qualifyRexNode)) {
+      // The QUALIFY expression does not depend on any references like so:
+      //
+      //  SELECT A, B
+      //  FROM tbl
+      //  QUALIFY WINDOW(C) = 1
+      //
+      // Meaning we should generate a plan like:
+      //  Project(A, B, WINDOW(C) = 1 as QualifyExpression)
+      //    TableScan(tbl)
+      //
+      relBuilder.push(projectionFromSelect.getInput())
+          .project(
+              append(projectionFromSelect.getProjects(), qualifyRexNode),
+              append(projectionFromSelect.getRowType().getFieldNames(),
+                  "QualifyExpression"));
+    } else {
+      // The QUALIFY expression depended on a reference meaning
+      // we need to introduce an extra project like so:
+      //
+      //  SELECT A, B, WINDOW(C) as window_val
+      //  FROM tbl
+      //  QUALIFY window_val = 1
+      //
+      // Meaning we should generate a plan like:
+      //
+      //  Project($0, $1, $2, =($2, 1) as QualifyExpression)
+      //    Project(A, B, WINDOW(C) as window_val)
+      //      TableScan(tbl)
+      //
+      // This is a very specific application of Common Subexpression Elimination
+      // (CSE), since the window value pops up twice.
+      relBuilder.push(requireNonNull(bb.root, "root"))
+          .project(
+              append(relBuilder.fields(), qualifyWithReferencesRexNode),
+              append(relBuilder.peek().getRowType().getFieldNames(),
+                  "QualifyExpression"));
+    }
+
+    // Filter on that extra column
+    relBuilder.filter(Util.last(relBuilder.fields()));
+
+    // Remove that extra column from the projection
+    relBuilder.project(
+        Util.first(relBuilder.fields(),
+            projectionFromSelect.getProjects().size()));
+
+    // Update the root
+    bb.setRoot(relBuilder.build(), false);
+  }
+
+  /** Eliminates a common sub-expression by looking for a {@link RexNode}
+   * in the expressions of a {@link Project}; if found, returns a refIndex
+   * instead of the raw node. */
+  private static final class DuplicateEliminator extends RexShuttle {
+    private final List<RexNode> projects;
+
+    DuplicateEliminator(List<RexNode> projects) {
+      this.projects = projects;
+    }
+
+    @Override public RexNode visitCall(RexCall call) {
+      final int i = projects.indexOf(call);
+      if (i >= 0) {
+        return new RexInputRef(i, projects.get(i).getType());
+      }
+      return super.visitCall(call);
+    }
+
+    @Override public RexNode visitOver(RexOver over) {
+      final int i = projects.indexOf(over);
+      if (i >= 0) {
+        return new RexInputRef(i, projects.get(i).getType());
+      }
+      return over;
+    }
   }
 
   /**
