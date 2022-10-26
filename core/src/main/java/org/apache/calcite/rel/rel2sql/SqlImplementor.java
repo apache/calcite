@@ -546,7 +546,7 @@ public abstract class SqlImplementor {
       node = as(node, "t");
     }
     return new SqlSelect(POS, SqlNodeList.EMPTY, SqlNodeList.SINGLETON_STAR,
-        node, null, null, null, SqlNodeList.EMPTY, null, null, null, null);
+        node, null, null, null, SqlNodeList.EMPTY, null, null, null, null, null);
   }
 
   /** Returns whether we need to add an alias if this node is to be the FROM

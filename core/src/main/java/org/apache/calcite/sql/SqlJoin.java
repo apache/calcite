@@ -274,7 +274,7 @@ public class SqlJoin extends SqlCall {
     SqlNode selectWrapper =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
             SqlNodeList.SINGLETON_STAR, this, null, null, null,
-            SqlNodeList.EMPTY, null, null, null, SqlNodeList.EMPTY);
+            SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
     return selectWrapper.toSqlString(transform);
   }
 }

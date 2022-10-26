@@ -192,7 +192,7 @@ public class MysqlSqlDialect extends SqlDialect {
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
     final SqlNode unionOperand = new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
         SqlNodeList.of(nullLiteral), null, null, null, null,
-        SqlNodeList.EMPTY, null, null, null, SqlNodeList.EMPTY);
+        SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
     // For MySQL, generate
     //   CASE COUNT(*)
     //   WHEN 0 THEN NULL
