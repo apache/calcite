@@ -8810,9 +8810,13 @@ class RelToSqlConverterTest {
             + "FROM \"foodmart\".\"product\"";
     final String expectedMssql = "SELECT ROUND(123.41445, 0) AS [a]\n"
             + "FROM [foodmart].[product]";
+    final String expectedSparkSql = "SELECT ROUND(123.41445) a\n"
+            + "FROM foodmart.product";
     sql(query)
             .withMssql()
-            .ok(expectedMssql);
+            .ok(expectedMssql)
+            .withSpark()
+            .ok(expectedSparkSql);
   }
 
   @Test public void testTruncateFunctionWithColumnPlaceHandling() {

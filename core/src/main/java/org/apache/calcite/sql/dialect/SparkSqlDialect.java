@@ -719,10 +719,10 @@ public class SparkSqlDialect extends SqlDialect {
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;
     case "ROUND":
-      if (call.operand(1) instanceof SqlLiteral) {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      } else {
+      if ((call.operandCount() > 1) && !(call.operand(1) instanceof SqlLiteral)) {
         unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       return;
 
