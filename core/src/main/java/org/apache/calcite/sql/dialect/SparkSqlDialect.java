@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -719,7 +720,7 @@ public class SparkSqlDialect extends SqlDialect {
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;
     case "ROUND":
-      if ((call.operandCount() > 1) && !(call.operand(1) instanceof SqlLiteral)) {
+      if ((call.operandCount() > 1) && (call.operand(1) instanceof SqlIdentifier)) {
         unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
