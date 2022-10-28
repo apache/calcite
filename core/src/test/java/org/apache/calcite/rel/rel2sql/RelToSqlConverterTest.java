@@ -10597,4 +10597,34 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROUND(123.41445, 2)";
     sql(query).withSpark().ok(expected);
   }
+
+  @Test public void testRoundFunctionWithColumn() {
+    final String query = "SELECT round(\"gross_weight\", \"product_id\") AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT UDF_ROUND(gross_weight, product_id) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testRoundFunctionWithColumnAndLiteral() {
+    final String query = "SELECT round(\"gross_weight\", 2) AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT ROUND(gross_weight, 2) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testRoundFunctionWithOnlyColumn() {
+    final String query = "SELECT round(\"gross_weight\") AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT ROUND(gross_weight) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
 }
