@@ -54,6 +54,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -462,7 +463,7 @@ class RelWriterTest {
           .nullableRecord(false)
           .build();
       final JsonBuilder jsonBuilder = new JsonBuilder();
-      final RelJson json = new RelJson(jsonBuilder);
+      final RelJson json = RelJson.create().withJsonBuilder(jsonBuilder);
       final Object o = json.toJson(type);
       assertThat(o, notNullValue());
       final String s = jsonBuilder.toJsonString(o);
@@ -918,6 +919,31 @@ class RelWriterTest {
             + "No operator for 'MAXS' with kind: 'MAX', syntax: 'FUNCTION' during JSON deserialization");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5349">[CALCITE-5349]
+   * RelJson deserialization should support SqlLibraryOperators</a>. Before the
+   * fix, non-standard operators such as BigQuery's
+   * {@link SqlLibraryOperators#CURRENT_DATETIME} would throw during
+   * deserialization. */
+  @Test void testDeserializeNonStandardOperator() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(builder.field("JOB"),
+            builder.call(SqlLibraryOperators.CURRENT_DATETIME))
+        .build();
+    final RelJsonWriter jsonWriter =
+        new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = ""
+        + "LogicalProject(JOB=[$2], $f1=[CURRENT_DATETIME()])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(result, isLinux(expected));
+  }
+
   @Test void testAggregateWithoutAlias() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
@@ -1167,7 +1193,8 @@ class RelWriterTest {
       SqlExplainFormat format) {
     return Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       final RelJsonReader reader =
-          new RelJsonReader(cluster, schema, rootSchema);
+          new RelJsonReader(cluster, schema, rootSchema,
+              RelJson::withLibraryOperatorTable);
       RelNode node;
       try {
         node = reader.read(relJson);

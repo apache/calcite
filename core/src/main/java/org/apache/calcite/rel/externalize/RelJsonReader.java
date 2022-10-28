@@ -53,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -68,15 +69,21 @@ public class RelJsonReader {
 
   private final RelOptCluster cluster;
   private final RelOptSchema relOptSchema;
-  private final RelJson relJson = new RelJson(null);
+  private final RelJson relJson;
   private final Map<String, RelNode> relMap = new LinkedHashMap<>();
   private @Nullable RelNode lastRel;
 
   public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
       Schema schema) {
+    this(cluster, relOptSchema, schema, UnaryOperator.identity());
+  }
+
+  public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
+      Schema schema, UnaryOperator<RelJson> relJsonTransform) {
     this.cluster = cluster;
     this.relOptSchema = relOptSchema;
     Util.discard(schema);
+    relJson = relJsonTransform.apply(RelJson.create());
   }
 
   public RelNode read(String s) throws IOException {
@@ -99,7 +106,7 @@ public class RelJsonReader {
     Map<String, Object> o = mapper
         .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
         .readValue(s, TYPE_REF);
-    return new RelJson(null).toType(typeFactory, o);
+    return RelJson.create().toType(typeFactory, o);
   }
 
   private void readRels(List<Map<String, Object>> jsonRels) {
