@@ -95,6 +95,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#BIG_QUERY},
+   * {@link SqlConformanceEnum#SPARK},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
@@ -108,6 +109,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#BIG_QUERY},
+   * {@link SqlConformanceEnum#SPARK},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#PRESTO};
@@ -139,6 +141,7 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
    * {@link SqlConformanceEnum#ORACLE_12},
+   * {@link SqlConformanceEnum#SPARK},
    * {@link SqlConformanceEnum#PRAGMATIC_99},
    * {@link SqlConformanceEnum#PRAGMATIC_2003},
    * {@link SqlConformanceEnum#PRESTO},
@@ -162,6 +165,7 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#SQL_SERVER_2008},
    * {@link SqlConformanceEnum#STRICT_92};
    * {@link SqlConformanceEnum#BIG_QUERY};
+   * {@link SqlConformanceEnum#SPARK},
    * {@link SqlConformanceEnum#HIVE};
    * false otherwise.
    */
