@@ -54,8 +54,10 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
@@ -101,6 +103,9 @@ public class RelJson {
           "org.apache.calcite.rel.logical.",
           "org.apache.calcite.adapter.jdbc.",
           "org.apache.calcite.adapter.jdbc.JdbcRules$");
+
+  private static final SqlOperatorTable OPERATOR_TABLE =
+      SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(SqlLibrary.values());
 
   /** Private constructor. */
   private RelJson(@Nullable JsonBuilder jsonBuilder,
@@ -775,15 +780,11 @@ public class RelJson {
     String kind = get(map, "kind");
     String syntax = get(map, "syntax");
     SqlKind sqlKind = SqlKind.valueOf(kind);
-    SqlSyntax  sqlSyntax = SqlSyntax.valueOf(syntax);
+    SqlSyntax sqlSyntax = SqlSyntax.valueOf(syntax);
     List<SqlOperator> operators = new ArrayList<>();
-    SqlStdOperatorTable.instance().lookupOperatorOverloads(
-        new SqlIdentifier(name, new SqlParserPos(0, 0)),
-        null,
-        sqlSyntax,
-        operators,
-        SqlNameMatchers.liberal());
-    for (SqlOperator operator: operators) {
+    OPERATOR_TABLE.lookupOperatorOverloads(new SqlIdentifier(name, new SqlParserPos(0, 0)), null,
+        sqlSyntax, operators, SqlNameMatchers.liberal());
+    for (SqlOperator operator : operators) {
       if (operator.kind == sqlKind) {
         return operator;
       }
