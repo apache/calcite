@@ -971,8 +971,9 @@ where exists (select * from emp
   </TestCase>
   <TestCase name="testCorrelationInProjectionWithCorrelatedProjection">
     <Resource name="sql">
-      <![CDATA[select cardinality(arr) from(select array(select e.deptno) arr
-from (select deptno, ename from emp) e)]]>
+      <![CDATA[select cardinality(arr) from (
+  select array(select e.deptno) arr from (
+    select deptno, ename from emp) e)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -8051,18 +8052,66 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColum
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testUserDefinedOrderByOver">
+  <TestCase name="testUserDefinedOrderByOverFirst">
     <Resource name="sql">
       <![CDATA[select deptno,
-  rank() over(partition by empno order by deptno)
+  rank() over (partition by empno order by comm desc)
 from emp
-order by row_number() over(partition by empno order by deptno)]]>
+order by row_number() over (partition by empno order by comm)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
   LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
-    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7)])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6 NULLS FIRST)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUserDefinedOrderByOverHigh">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  rank() over (partition by empno order by comm desc)
+from emp
+order by row_number() over (partition by empno order by comm)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUserDefinedOrderByOverLast">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  rank() over (partition by empno order by comm desc)
+from emp
+order by row_number() over (partition by empno order by comm)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC NULLS LAST)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUserDefinedOrderByOverLow">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  rank() over (partition by empno order by comm desc)
+from emp
+order by row_number() over (partition by empno order by comm)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC NULLS LAST)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6 NULLS FIRST)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

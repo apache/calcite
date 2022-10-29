@@ -3415,9 +3415,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testCorrelationInProjectionWithCorrelatedProjection() {
-    final String sql = "select cardinality(arr) from"
-        + "(select array(select e.deptno) arr\n"
-        + "from (select deptno, ename from emp) e)";
+    final String sql = "select cardinality(arr) from (\n"
+        + "  select array(select e.deptno) arr from (\n"
+        + "    select deptno, ename from emp) e)";
     sql(sql).withExpand(false).withDecorrelate(false).ok();
   }
 
@@ -4034,15 +4034,31 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
    * Validator should allow alternative nullCollations for ORDER BY in
    * OVER</a>. */
-  @Test void testUserDefinedOrderByOver() {
+  @Test void testUserDefinedOrderByOverLow() {
+    checkUserDefinedOrderByOver(NullCollation.LOW);
+  }
+
+  @Test void testUserDefinedOrderByOverHigh() {
+    checkUserDefinedOrderByOver(NullCollation.HIGH);
+  }
+
+  @Test void testUserDefinedOrderByOverFirst() {
+    checkUserDefinedOrderByOver(NullCollation.FIRST);
+  }
+
+  @Test void testUserDefinedOrderByOverLast() {
+    checkUserDefinedOrderByOver(NullCollation.LAST);
+  }
+
+  void checkUserDefinedOrderByOver(NullCollation nullCollation) {
     String sql = "select deptno,\n"
-        + "  rank() over(partition by empno order by deptno)\n"
+        + "  rank() over (partition by empno order by comm desc)\n"
         + "from emp\n"
-        + "order by row_number() over(partition by empno order by deptno)";
+        + "order by row_number() over (partition by empno order by comm)";
     Properties properties = new Properties();
     properties.setProperty(
         CalciteConnectionProperty.DEFAULT_NULL_COLLATION.camelName(),
-        NullCollation.LOW.name());
+        nullCollation.name());
     CalciteConnectionConfigImpl connectionConfig =
         new CalciteConnectionConfigImpl(properties);
     sql(sql)
