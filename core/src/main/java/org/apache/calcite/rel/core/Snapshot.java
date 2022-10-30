@@ -18,6 +18,7 @@ package org.apache.calcite.rel.core;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
@@ -35,6 +36,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that returns the contents of a relation expression as
@@ -55,6 +58,17 @@ public abstract class Snapshot extends SingleRel implements Hintable {
   protected final ImmutableList<RelHint> hints;
 
   //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a Snapshot by parsing serialized output.
+   */
+  public Snapshot(RelInput input) {
+    this(input.getCluster(),
+        input.getTraitSet(),
+        ImmutableList.of(),
+        input.getInput(),
+        requireNonNull(input.getExpression("period"), "period"));
+  }
 
   /**
    * Creates a Snapshot.
