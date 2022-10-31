@@ -289,6 +289,7 @@ public class SqlDialect {
     case "PHOENIX":
       return DatabaseProduct.PHOENIX;
     case "PRESTO":
+    case "AWS.ATHENA":
       return DatabaseProduct.PRESTO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
