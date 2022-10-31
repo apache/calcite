@@ -65,6 +65,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
+import org.apache.calcite.util.Pair;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11091,6 +11093,91 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * FROM TABLE(ROW_FUNC()) AS T(a, b)")
         .withOperatorTable(operatorTable)
         .type("RecordType(BIGINT NOT NULL A, BIGINT B) NOT NULL");
+  }
+
+  @Test void testQualifyPositive() {
+    final String qualifyWithoutAlias = "SELECT\n"
+        + "empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1";
+    final String qualifyWithAlias = "SELECT empno, ename, deptno,\n"
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num\n"
+        + "FROM emp\n"
+        + "QUALIFY row_num = 1";
+    final String qualifyWithWindowClause = "SELECT empno, ename, SUM(deptno) OVER myWindow as sumDeptNo\n"
+        + "FROM emp\n"
+        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
+        + "QUALIFY sumDeptNo = 1";
+    final String qualifyWithEverything = "SELECT DISTINCT empno, ename, deptno,\n"
+        + "    RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) as rank_val\n"
+        + "FROM emp\n"
+        + "WHERE sal > 1000\n"
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)\n"
+        + "ORDER BY deptno\n"
+        + "LIMIT 5";
+    final String qualifyReferencingCommonColumnInJoin = "SELECT * \n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by emp.deptno) = 1";
+
+    // You are allowed to qualify on a non windowed aggregate function,
+    // since it's a filter that happens after the WINDOW stage.
+    // You essentially just get a regular filter
+    final String qualifyOnNonWindowedAggregateFunctions = "SELECT * \n"
+        + "FROM emp\n"
+        + "QUALIFY SUM(deptno) = 5";
+
+    List<String> queries = ImmutableList.of(
+        qualifyWithoutAlias,
+        qualifyWithAlias,
+        qualifyWithWindowClause,
+        qualifyWithEverything,
+        qualifyReferencingCommonColumnInJoin,
+        qualifyOnNonWindowedAggregateFunctions);
+
+    for (String query : queries) {
+      sql(query)
+          .withConformance(SqlConformanceEnum.LENIENT)
+          .ok();
+    }
+  }
+
+  @Test void testQualifyNegative() {
+    // The qualify expression must be a boolean, since we use it as a filter.
+    final Pair<String, String> qualifyWithNonBooleanExpression = Pair.of(
+        "SELECT\n"
+          + "empno, ename\n"
+          + "FROM emp\n"
+          + "QUALIFY ^1 + 1^",
+        "QUALIFY clause must be a condition");
+
+    // We don't allow for using ordinal column references in QUALIFY.
+    final Pair<String, String> qualifyWithOrdinal = Pair.of(
+        "SELECT\n"
+            + "empno, ename, ROW_NUMBER() over (partition by ename order by deptno) = 1\n"
+            + "FROM emp\n"
+            + "QUALIFY ^3^",
+        "QUALIFY clause must be a condition");
+
+    // 'deptno' is a common column in both the emp and dept table.
+    // We need to use emp.deptno or dept.deptno to make it unambiguous
+    final Pair<String, String> qualifyReferencingAmbiguousCommonColumnInJoin = Pair.of(
+        "SELECT * \n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by ^deptno^) = 1",
+        "Column 'DEPTNO' is ambiguous");
+
+    ImmutableList<Pair<String, String>> tests = ImmutableList.of(
+        qualifyWithNonBooleanExpression,
+        qualifyWithOrdinal,
+        qualifyReferencingAmbiguousCommonColumnInJoin);
+
+    for (Pair<String, String> test : tests) {
+      sql(test.left)
+          .withConformance(SqlConformanceEnum.LENIENT)
+          .fails(test.right);
+    }
   }
 
   /** Validator that rewrites columnar sql identifiers 'UNEXPANDED'.'Something'
