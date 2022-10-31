@@ -11119,13 +11119,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "FROM emp\n"
         + "NATURAL JOIN dept\n"
         + "QUALIFY ROW_NUMBER() over (partition by ename order by emp.deptno) = 1";
-
-    // You are allowed to qualify on a non windowed aggregate function,
-    // since it's a filter that happens after the WINDOW stage.
-    // You essentially just get a regular filter
-    final String qualifyOnNonWindowedAggregateFunctions = "SELECT * \n"
+    final String qualifyOnMultipleWindowFunctions = "SELECT"
+        + "   AVG(deptno) OVER (PARTITION BY ename) avgDeptNo,"
+        + "   RANK() OVER (PARTITION BY deptno ORDER BY ename) as myRank\n"
         + "FROM emp\n"
-        + "QUALIFY SUM(deptno) = 5";
+        + "QUALIFY avgDeptNo = 1 AND myRank = 1";
 
     List<String> queries = ImmutableList.of(
         qualifyWithoutAlias,
@@ -11133,7 +11131,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         qualifyWithWindowClause,
         qualifyWithEverything,
         qualifyReferencingCommonColumnInJoin,
-        qualifyOnNonWindowedAggregateFunctions);
+        qualifyOnMultipleWindowFunctions);
 
     for (String query : queries) {
       sql(query)
@@ -11168,10 +11166,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "QUALIFY ROW_NUMBER() over (partition by ename order by ^deptno^) = 1",
         "Column 'DEPTNO' is ambiguous");
 
+    // Qualify must contain a window function.
+    // This matches the behavior where HAVING needs to have an aggregate or reference a group column.
+    final Pair<String, String> qualifyOnNonWindowFunction = Pair.of(
+        "SELECT * \n"
+            + "FROM emp\n"
+            + "QUALIFY ^SUM(deptno) = 1^",
+        "QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' must contain a window function\\.");
+    final Pair<String, String> qualifyOnAliasedNonWindowFunction = Pair.of(
+        "SELECT ^SUM(deptno) as sumDeptNo \n"
+            + "FROM emp\n"
+            + "QUALIFY sumDeptNo = 1^",
+        "QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' must contain a window function\\.");
+
+    // This query fails, since it's a mix of regular aggregates and window functions.
+    // This query needs to fail, since we assume that qualify filters on the result of
+    // a window function in SqlToRelConveter and that the input Rel is a LogicalProject and not a
+    // LogicalAggregate.
+    final Pair<String, String> mixedNonAggregateAndWindowAggregate = Pair.of(
+        "SELECT "
+            + "   SUM(deptno) as sumDeptNo, "
+            + "   RANK() OVER (PARTITION BY ^ename^ ORDER BY deptno) myRank\n"
+            + "FROM emp\n",
+        "Expression 'ENAME' is not being grouped");
+
     ImmutableList<Pair<String, String>> tests = ImmutableList.of(
         qualifyWithNonBooleanExpression,
         qualifyWithOrdinal,
-        qualifyReferencingAmbiguousCommonColumnInJoin);
+        qualifyReferencingAmbiguousCommonColumnInJoin,
+        qualifyOnNonWindowFunction,
+        qualifyOnAliasedNonWindowFunction,
+        mixedNonAggregateAndWindowAggregate);
 
     for (Pair<String, String> test : tests) {
       sql(test.left)
