@@ -39,6 +39,7 @@ import com.google.common.io.PatternFilenameFilter;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -63,6 +64,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Test that runs every Quidem file as a test.
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class QuidemTest {
 
   private static final Pattern PATTERN = Pattern.compile("\\.iq$");
@@ -112,7 +114,7 @@ public abstract class QuidemTest {
   }
 
   @SuppressWarnings("BetaApi")
-  protected static Collection<Object[]> data(String first) {
+  protected static Collection<String> data(String first) {
     // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/agg.iq"
     final URL inUrl = QuidemTest.class.getResource("/" + n2u(first));
     final File firstFile = Sources.of(inUrl).file();
@@ -123,7 +125,7 @@ public abstract class QuidemTest {
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
       paths.add(f.getAbsolutePath().substring(commonPrefixLength));
     }
-    return Util.transform(paths, path -> new Object[] {path});
+    return paths;
   }
 
   protected void checkRun(String path) throws Exception {
@@ -202,7 +204,7 @@ public abstract class QuidemTest {
   }
 
   @ParameterizedTest
-  @MethodSource("data")
+  @MethodSource("getPath")
   public void test(String path) throws Exception {
     final Method method = findMethod(path);
     if (method != null) {
@@ -222,6 +224,9 @@ public abstract class QuidemTest {
       checkRun(path);
     }
   }
+
+  /** Factory method for {@link QuidemTest#test(String)} parameters. */
+  protected abstract Collection<String> getPath();
 
   /** Quidem connection factory for Calcite's built-in test schemas. */
   protected static class QuidemConnectionFactory
