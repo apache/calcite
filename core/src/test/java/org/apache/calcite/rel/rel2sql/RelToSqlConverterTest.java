@@ -90,6 +90,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
@@ -8800,6 +8801,8 @@ class RelToSqlConverterTest {
     final String expectedBq = "SELECT ROUND(123.41445, product_id) AS a\nFROM foodmart.product";
     final String expected = "SELECT ROUND(123.41445, product_id) a\n"
             + "FROM foodmart.product";
+    final String expectedSparkSql = "SELECT UDF_ROUND(123.41445, product_id) a\n"
+            + "FROM foodmart.product";
     final String expectedSnowFlake = "SELECT TO_DECIMAL(ROUND(123.41445, "
             + "CASE WHEN \"product_id\" > 38 THEN 38 WHEN \"product_id\" < -12 "
             + "THEN -12 ELSE \"product_id\" END) ,38, 4) AS \"a\"\n"
@@ -8812,7 +8815,7 @@ class RelToSqlConverterTest {
             .withHive()
             .ok(expected)
             .withSpark()
-            .ok(expected)
+            .ok(expectedSparkSql)
             .withSnowflake()
             .ok(expectedSnowFlake)
             .withMssql()
@@ -8824,9 +8827,13 @@ class RelToSqlConverterTest {
             + "FROM \"foodmart\".\"product\"";
     final String expectedMssql = "SELECT ROUND(123.41445, 0) AS [a]\n"
             + "FROM [foodmart].[product]";
+    final String expectedSparkSql = "SELECT ROUND(123.41445) a\n"
+            + "FROM foodmart.product";
     sql(query)
             .withMssql()
-            .ok(expectedMssql);
+            .ok(expectedMssql)
+            .withSpark()
+            .ok(expectedSparkSql);
   }
 
   @Test public void testTruncateFunctionWithColumnPlaceHandling() {
@@ -10075,8 +10082,8 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c', CURRENT_DATETIME()) AS FD2\n"
         + "FROM scott.EMP";
-    final String expSprk = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'EE MMM dd HH:mm:ss yyyy zz')"
-        + " FD2\nFROM scott.EMP";
+    final String expSprk = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'EE MMM dd HH:mm:ss yyyy zz') "
+        + "FD2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expSprk));
@@ -10582,5 +10589,59 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForToChar() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharWithDate = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
+        builder.literal("MM-DD-YYYY HH24:MI:SS"));
+    final RexNode toCharWithNumber = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.literal(1000), builder.literal("9999"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharWithDate, "FD"), toCharWithNumber)
+        .build();
+    final String expectedSparkQuery = "SELECT "
+        + "DATE_FORMAT(DATE '1970-01-01', 'MM-dd-yyyy HH:mm:ss') FD, TO_CHAR(1000, '9999') $f1"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test void testForSparkRound() {
+    final String query = "select round(123.41445, 2)";
+    final String expected = "SELECT ROUND(123.41445, 2)";
+    sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testRoundFunctionWithColumn() {
+    final String query = "SELECT round(\"gross_weight\", \"product_id\") AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT UDF_ROUND(gross_weight, product_id) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testRoundFunctionWithColumnAndLiteral() {
+    final String query = "SELECT round(\"gross_weight\", 2) AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT ROUND(gross_weight, 2) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testRoundFunctionWithOnlyColumn() {
+    final String query = "SELECT round(\"gross_weight\") AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT ROUND(gross_weight) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
   }
 }

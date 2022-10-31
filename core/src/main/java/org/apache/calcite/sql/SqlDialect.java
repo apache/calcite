@@ -1405,6 +1405,10 @@ public class SqlDialect {
     return call.getOperator();
   }
 
+  public SqlOperator getOperatorForOtherFunc(RexCall call) {
+    return call.getOperator();
+  }
+
   /**
    * A few utility functions copied from org.apache.calcite.util.Util. We have
    * copied them because we wish to keep SqlDialect's dependencies to a
