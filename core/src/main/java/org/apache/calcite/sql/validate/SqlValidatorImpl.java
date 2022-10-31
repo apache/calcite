@@ -4180,6 +4180,62 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!SqlTypeUtil.inBooleanFamily(type)) {
       throw newValidationError(qualifyNode, RESOURCE.condMustBeBoolean("QUALIFY"));
     }
+
+    if (!qualifyNode.accept(WindowFunctionDetector.INSTANCE)) {
+      throw newValidationError(qualifyNode, RESOURCE.qualifyExpressionMustContainWindowFunction(qualifyNode.toString()));
+    }
+  }
+
+  private static final class WindowFunctionDetector implements SqlVisitor<Boolean> {
+    public static final WindowFunctionDetector INSTANCE = new WindowFunctionDetector();
+    private WindowFunctionDetector() {}
+
+    @Override
+    public Boolean visit(SqlLiteral literal) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(SqlCall call) {
+      if (call.getKind() == SqlKind.OVER) {
+        return true;
+      }
+
+      return call
+          .getOperandList()
+          .stream()
+          .filter(operand -> operand != null)
+          .anyMatch(operand -> operand.accept(this));
+    }
+
+    @Override
+    public Boolean visit(SqlNodeList nodeList) {
+      return nodeList
+          .getList()
+          .stream()
+          .filter(node -> node != null)
+          .anyMatch(node -> node.accept(this));
+    }
+
+    @Override
+    public Boolean visit(SqlIdentifier id) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(SqlDataTypeSpec type) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(SqlDynamicParam param) {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(SqlIntervalQualifier intervalQualifier) {
+      return false;
+    }
   }
 
   @Override public void validateWith(SqlWith with, SqlValidatorScope scope) {
