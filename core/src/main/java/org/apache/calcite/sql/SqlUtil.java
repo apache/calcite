@@ -422,8 +422,26 @@ public abstract class SqlUtil {
     writer.setNeedWhitespace(needsSpace);
     writer.sep(operator.getName());
     writer.setNeedWhitespace(needsSpace);
+    processNode(call.operand(1));
     call.operand(1).unparse(writer, operator.getRightPrec(), rightPrec);
     writer.endList(frame);
+  }
+
+  private static void processNode(SqlNode binaryNode) {
+    if (binaryNode instanceof SqlNodeList) {
+      SqlNodeList operandList = (SqlNodeList) binaryNode;
+      processNodeList(operandList);
+    }
+  }
+
+  public static void processNodeList(SqlNodeList operandList) {
+    SqlNode node;
+    for (SqlNode operand : operandList) {
+      if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
+        node = replaceSingleBackslashes(operand);
+        operandList.set(operandList.indexOf(operand), node);
+      }
+    }
   }
 
   /**
@@ -612,6 +630,11 @@ public abstract class SqlUtil {
     return Iterators.filter(routines,
         operator -> Objects.requireNonNull(operator)
             .getOperandCountRange().isValidCount(argTypes.size()));
+  }
+
+  public static SqlNode replaceSingleBackslashes(SqlNode operand) {
+    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\\", "\\\\");
+    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
   }
 
   /**

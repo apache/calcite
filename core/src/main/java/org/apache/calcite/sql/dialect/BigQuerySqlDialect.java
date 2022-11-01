@@ -1073,6 +1073,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       final SqlWriter.Frame generate_uuid = writer.startFunCall("GENERATE_UUID");
       writer.endFunCall(generate_uuid);
       break;
+    case "TRANSLATE":
+      unParseTranslate(writer, call, leftPrec, rightPrec);
+      break;
+    case "INSTR":
+      unParseInStr(writer, call, leftPrec, rightPrec);
+      break;
     case "TIMESTAMP_SECONDS":
       castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
       break;
@@ -1105,6 +1111,35 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame substringFrame = writer.startFunCall("INSTR");
+    for (SqlNode operand : call.getOperandList()) {
+      if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
+        operand = replaceSingleBackslashes(operand);
+      }
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(substringFrame);
+  }
+
+  private void unParseTranslate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame substringFrame = writer.startFunCall("TRANSLATE");
+    for (SqlNode operand : call.getOperandList()) {
+      if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
+        operand = replaceSingleBackslashes(operand);
+      }
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(substringFrame);
+  }
+
+  private SqlNode replaceSingleBackslashes(SqlNode operand) {
+    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\\", "\\\\");
+    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
   }
 
   private void unparseBoolean(SqlWriter writer, SqlCall call) {
