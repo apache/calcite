@@ -254,11 +254,15 @@ class RelToSqlConverterTest {
         + "ORDER BY A IS NULL, A";
     final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
         + "ORDER BY A IS NULL, A";
+    final String sparkExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
+        + "ORDER BY A NULLS LAST";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected)
         .withHive()
-        .ok(hiveExpected);
+        .ok(hiveExpected)
+        .withSpark()
+        .ok(sparkExpected);
   }
 
   @Test public void testSimpleSelectWithOrderByAliasDesc() {
@@ -10640,6 +10644,17 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSparkSql = "SELECT ROUND(gross_weight) a\n"
         + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testSortByOrdinalForSpark() {
+    final String query = "SELECT \"product_id\" from \"product\"\n"
+        + "order by \"product_id\"";
+    final String expectedSparkSql = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id NULLS LAST";
     sql(query)
         .withSpark()
         .ok(expectedSparkSql);
