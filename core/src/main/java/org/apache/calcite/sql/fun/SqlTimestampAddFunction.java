@@ -103,8 +103,8 @@ public class SqlTimestampAddFunction extends SqlFunction {
   }
 
   /** Creates a SqlTimestampAddFunction. */
-  SqlTimestampAddFunction() {
-    super("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD, RETURN_TYPE_INFERENCE, null,
+  SqlTimestampAddFunction(String name) {
+    super(name, SqlKind.TIMESTAMP_ADD, RETURN_TYPE_INFERENCE, null,
         OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER,
             SqlTypeFamily.DATETIME),
         SqlFunctionCategory.TIMEDATE);
