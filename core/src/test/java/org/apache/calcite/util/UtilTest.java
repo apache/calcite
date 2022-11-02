@@ -2738,6 +2738,49 @@ class UtilTest {
     assertThat(map.containsKey("zyMurgy", false), is(true));
   }
 
+  /** Test {@link MonotonicSupplier}. */
+  @Test void testMonotonicSupplier() {
+    final MonotonicSupplier<String> monotonicSupplier =
+        new MonotonicSupplier<>();
+
+    // Cannot 'get' before 'accept'
+    try {
+      final String s = monotonicSupplier.get();
+      fail("expected error, got " + s);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("accept has not been called"));
+    }
+
+    // Does not accept null
+    try {
+      //noinspection ConstantConditions
+      monotonicSupplier.accept(null);
+      fail("expected error");
+    } catch (NullPointerException e) {
+      assertThat(e.getMessage(), is("element must not be null"));
+    }
+
+    monotonicSupplier.accept("hello");
+
+    // After 'accept' we can call 'get' multiple times
+    final String s = monotonicSupplier.get();
+    assertThat(s, is("hello"));
+
+    final String s2 = monotonicSupplier.get();
+    assertThat(s2, is("hello"));
+
+    // Does not 'accept' twice
+    try {
+      monotonicSupplier.accept("goodbye");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("accept has been called already"));
+    }
+
+    final String s3 = monotonicSupplier.get();
+    assertThat(s3, is("hello"));
+  }
+
   @Test void testNlsStringClone() {
     final NlsString s = new NlsString("foo", "LATIN1", SqlCollation.IMPLICIT);
     assertThat(s.toString(), is("_LATIN1'foo'"));
@@ -2976,6 +3019,7 @@ class UtilTest {
       }
     }
   }
+
   private static <E> Matcher<Iterable<E>> isIterable(final Iterable<E> iterable) {
     final List<E> list = toList(iterable);
     return new TypeSafeMatcher<Iterable<E>>() {
