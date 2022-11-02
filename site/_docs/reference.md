@@ -2389,18 +2389,20 @@ Not implemented:
 
 #### Geometry measurement functions (2D)
 
-Not implemented:
+The following functions measure geometries.
 
-* ST_Area(geom) Returns the area of *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_ClosestCoordinate(geom, point) Returns the coordinate(s) of *geom* closest to *point*
-* ST_ClosestPoint(geom1, geom2) Returns the point of *geom1* closest to *geom2*
-* ST_FurthestCoordinate(geom, point) Returns the coordinate(s) of *geom* that are furthest from *point*
-* ST_Length(lineString) Returns the length of *lineString*
-* ST_LocateAlong(geom, segmentLengthFraction, offsetDistance) Returns a MULTIPOINT containing points along the line segments of *geom* at *segmentLengthFraction* and *offsetDistance*
-* ST_LongestLine(geom1, geom2) Returns the 2-dimensional longest line-string between the points of *geom1* and *geom2*
-* ST_MaxDistance(geom1, geom2) Computes the maximum distance between *geom1* and *geom2*
-* ST_Perimeter(polygon) Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON)
-* ST_ProjectPoint(point, lineString) Projects *point* onto a *lineString* (which may be a MULTILINESTRING)
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Area(geom) | Returns the area of *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_ClosestCoordinate(point, geom) | Returns the coordinate(s) of *geom* closest to *point*
+| h | ST_ClosestPoint(geom1, geom2) | Returns the point of *geom1* closest to *geom2*
+| h | ST_FurthestCoordinate(geom, point) | Returns the coordinate(s) of *geom* that are furthest from *point*
+| h | ST_Length(geom) | Returns the length of *geom*
+| h | ST_LocateAlong(geom, segmentLengthFraction, offsetDistance) | Returns a MULTIPOINT containing points along the line segments of *geom* at *segmentLengthFraction* and *offsetDistance*
+| h | ST_LongestLine(geom1, geom2) | Returns the 2-dimensional longest line-string between the points of *geom1* and *geom2*
+| h | ST_MaxDistance(geom1, geom2) | Computes the maximum distance between *geom1* and *geom2*
+| h | ST_Perimeter(polygon) | Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON)
+| h | ST_ProjectPoint(point, lineString) | Projects *point* onto a *lineString* (which may be a MULTILINESTRING)
 
 #### Geometry measurement functions (3D)
 
