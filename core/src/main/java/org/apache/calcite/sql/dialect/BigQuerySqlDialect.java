@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCastFunction;
@@ -1117,7 +1118,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame substringFrame = writer.startFunCall("INSTR");
     for (SqlNode operand : call.getOperandList()) {
       if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
-        operand = replaceSingleBackslashes(operand);
+        operand = SqlUtil.replaceSingleBackslashes(operand);
       }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
@@ -1129,17 +1130,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame substringFrame = writer.startFunCall("TRANSLATE");
     for (SqlNode operand : call.getOperandList()) {
       if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
-        operand = replaceSingleBackslashes(operand);
+        operand = SqlUtil.replaceSingleBackslashes(operand);
       }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(substringFrame);
-  }
-
-  private SqlNode replaceSingleBackslashes(SqlNode operand) {
-    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\\", "\\\\");
-    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
   }
 
   private void unparseBoolean(SqlWriter writer, SqlCall call) {
