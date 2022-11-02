@@ -10650,11 +10650,11 @@ class RelToSqlConverterTest {
   }
 
   @Test public void testSortByOrdinalForSpark() {
-    final String query = "SELECT \"product_id\" from \"product\"\n"
-        + "order by \"product_id\"";
-    final String expectedSparkSql = "SELECT product_id\n"
+    final String query = "SELECT \"product_id\",\"gross_weight\" from \"product\"\n"
+        + "order by 2";
+    final String expectedSparkSql = "SELECT product_id, gross_weight\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY product_id NULLS LAST";
+        + "ORDER BY gross_weight NULLS LAST";
     sql(query)
         .withSpark()
         .ok(expectedSparkSql);
