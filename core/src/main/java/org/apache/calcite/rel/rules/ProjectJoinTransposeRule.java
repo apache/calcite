@@ -160,7 +160,7 @@ public class ProjectJoinTransposeRule
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableProjectJoinTransposeRule.Config.builder()
         .withPreserveExprCondition(expr -> {
-          // Non push down over's expression by default
+          // Do not push down over's expression by default
           if (expr instanceof RexOver) {
             return false;
           }
