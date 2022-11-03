@@ -87,7 +87,11 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with Snowflake. */
-  SNOWFLAKE;
+  SNOWFLAKE,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Spark. */
+  SPARK;
 
   @Override public boolean isLiberal() {
     switch (this) {
@@ -117,6 +121,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case LENIENT:
     case BIG_QUERY:
     case MYSQL_5:
+    case SPARK:
       return true;
     default:
       return false;
@@ -131,6 +136,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case MYSQL_5:
     case PRESTO:
     case SNOWFLAKE:
+    case SPARK:
       return true;
     default:
       return false;
@@ -163,6 +169,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case PRAGMATIC_2003:
     case SQL_SERVER_2008:
     case PRESTO:
+    case SPARK:
       return true;
     default:
       return false;
@@ -182,6 +189,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case HIVE:
     case BIG_QUERY:
     case SNOWFLAKE:
+    case SPARK:
       return true;
     default:
       return false;
