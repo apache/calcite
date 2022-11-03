@@ -34,6 +34,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeAssignmentRule;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.RexImplicationCheckerFixtures;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
@@ -65,6 +66,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM;
+import static org.apache.calcite.sql.type.SqlTypeName.DATE;
 import static org.apache.calcite.test.Matchers.isRangeSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -3403,5 +3406,31 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(add(b, half));
 
     checkSimplify(add(zero, sub(nullInt, nullInt)), "null:INTEGER");
+  }
+
+  /**
+   * Unit test for <a href="https://issues.apache.org/jira/browse/CALCITE-5336">[CALCITE-5336]
+   * Support inferring constants from predicates with IS NOT DISTINCT FROM operator</a>.
+   */
+  @Test void testPredicateConstants() {
+    RexImplicationCheckerFixtures.Fixture f = new RexImplicationCheckerFixtures.Fixture();
+
+    RexBuilder rexB = f.rexBuilder;
+
+    RelDataType dateColumnType = f.typeFactory.createTypeWithNullability(
+        f.typeFactory.createSqlType(DATE), true);
+
+    RexNode dateLiteral = rexB.makeLiteral(new DateString(2020, 12, 11),
+        dateColumnType, false);
+    RexNode dateColumn = rexB.makeInputRef(dateColumnType, 0);
+
+    ImmutableMap<RexNode, RexNode> constantMap = RexUtil.predicateConstants(RexNode.class,
+        rexB, Arrays.asList(
+            rexB.makeCall(
+            IS_NOT_DISTINCT_FROM, dateColumn, dateLiteral)));
+
+    assertFalse(constantMap.isEmpty());
+    assertThat(dateLiteral,
+        equalTo(constantMap.get(dateColumn)));
   }
 }

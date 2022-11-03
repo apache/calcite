@@ -6925,6 +6925,22 @@ LogicalProject(EXPR$0=[ROW_NUMBER() OVER (ORDER BY $0)], COL1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectReduceExpressionsWithIsNotDistinctFrom">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(HIREDATE=[$4])
+  LogicalFilter(condition=[IS NOT DISTINCT FROM($4, 2020-12-11)])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(HIREDATE=[CAST(2020-12-11):DATE])
+  LogicalFilter(condition=[IS NOT DISTINCT FROM($4, 2020-12-11)])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectSetOpTranspose">
     <Resource name="sql">
       <![CDATA[select job, sum(sal + 100) over (partition by deptno) from
