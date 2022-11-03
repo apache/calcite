@@ -121,6 +121,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -4332,6 +4333,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests propagation of a filter derived from an "IS NOT DISTINCT FROM"
+   * predicate.
+   *
+   * <p>By the time the rule sees the predicate, it has been converted to
+   * "deptno = 10 OR (deptno IS NULL AND 10 IS NULL)", so
+   * {@link #testPullConstantIntoProjectWithIsNotDistinctFromDate()} is a purer
+   * test of the functionality. */
   @Test void testPullConstantIntoProjectWithIsNotDistinctFrom() {
     final String sql = "select deptno, deptno + 1, empno + deptno\n"
         + "from sales.emp\n"
@@ -4349,6 +4357,37 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(getTransitiveProgram())
         .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
             CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5336">[CALCITE-5336]
+   * Infer constants from predicates with IS NOT DISTINCT FROM operator</a>.
+   *
+   * <p>Reduce expression rules should identify constants with
+   * {@code IS NOT DISTINCT FROM} operator as they do for {@code =}. */
+  @Test void testPullConstantIntoProjectWithIsNotDistinctFromDate() {
+    // Build a tree equivalent to the SQL
+    //   SELECT hiredate
+    //   FROM emp
+    //   WHERE hiredate IS NOT DISTINCT FROM DATE '2020-12-11'
+    //
+    // We build a tree because if we used the SQL parser, it would expand
+    //   x IS NOT DISTINCT FROM y
+    // to
+    //   x = y OR (x IS NULL AND y IS NULL)
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("EMP")
+            .filter(
+                b.getRexBuilder()
+                    .makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                        b.field(4),
+                        b.literal(new DateString(2020, 12, 11))))
+            .project(b.field(4))
+            .build();
+
+    relFn(relFn)
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
         .check();
   }
 
@@ -7448,4 +7487,5 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
         .check();
   }
+
 }

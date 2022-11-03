@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.prepare;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
@@ -72,6 +73,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -442,6 +444,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     final VolcanoPlanner planner =
         new VolcanoPlanner(costFactory, externalContext);
+    planner.setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);

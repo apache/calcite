@@ -7262,6 +7262,22 @@ LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPullConstantIntoProjectWithIsNotDistinctFromDate">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(HIREDATE=[$4])
+  LogicalFilter(condition=[IS NOT DISTINCT FROM($4, 2020-12-11)])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(HIREDATE=[CAST(2020-12-11):DATE])
+  LogicalFilter(condition=[IS NOT DISTINCT FROM($4, 2020-12-11)])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPullConstantIntoProjectWithIsNotDistinctFromForNull">
     <Resource name="sql">
       <![CDATA[select mgr, deptno
