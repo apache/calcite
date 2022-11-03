@@ -163,19 +163,20 @@ public class ProjectJoinTransposeRule
           // Do not push down over's expression by default
           if (expr instanceof RexOver) {
             return false;
-          }
-          final RelDataType relType = expr.getType();
-          if (SqlKind.CAST == expr.getKind()) {
-            final RexCall castCall = (RexCall) expr;
-            final RelDataType operand0Type = castCall.getOperands().get(0).getType();
-            if (relType.getSqlTypeName() == operand0Type.getSqlTypeName()
-                && operand0Type.isNullable() && !relType.isNullable()) {
-              // Do not push down not nullable cast's expression with the same type by default
-              // eg: CAST($1):VARCHAR(10) NOT NULL, and type of $1 is nullable VARCHAR(10)
-              return false;
+          } else {
+            final RelDataType relType = expr.getType();
+            if (SqlKind.CAST == expr.getKind()) {
+              final RexCall castCall = (RexCall) expr;
+              final RelDataType operand0Type = castCall.getOperands().get(0).getType();
+              if (relType.getSqlTypeName() == operand0Type.getSqlTypeName()
+                  && operand0Type.isNullable() && !relType.isNullable()) {
+                // Do not push down not nullable cast's expression with the same type by default
+                // eg: CAST($1):VARCHAR(10) NOT NULL, and type of $1 is nullable VARCHAR(10)
+                return false;
+              }
             }
+            return true;
           }
-          return true;
         })
         .build()
         .withOperandFor(LogicalProject.class, LogicalJoin.class);
