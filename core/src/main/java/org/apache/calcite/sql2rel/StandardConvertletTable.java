@@ -1835,8 +1835,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RexNode op1 = cx.convertExpression(call.operand(1));
       final RexNode op2 = cx.convertExpression(call.operand(2));
       if (unit == TimeUnit.EPOCH && qualifier.timeFrameName != null) {
-        // Custom time frames have a different path. They are kept as names, and
-        // then handled by Java functions.
+        // Custom time frames have a different path. They are kept as names,
+        // and then handled by Java functions such as
+        // SqlFunctions.customTimestampAdd.
         final RexLiteral timeFrameName =
             rexBuilder.makeLiteral(qualifier.timeFrameName);
         // If the TIMESTAMPADD call has type TIMESTAMP and op2 has type DATE

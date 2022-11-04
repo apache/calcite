@@ -50,7 +50,11 @@ import static java.lang.Math.floorDiv;
 import static java.lang.Math.floorMod;
 import static java.util.Objects.requireNonNull;
 
-/** Set of {@link TimeFrame} definitions. */
+/** Set of {@link TimeFrame} definitions.
+ *
+ * <p>Every SQL statement has a time frame set, and is accessed via
+ * {@link RelDataTypeSystem#deriveTimeFrameSet(TimeFrameSet)}. If you want to
+ * use a custom set of time frames, you should override that method. */
 public class TimeFrameSet {
   private final ImmutableMap<String, TimeFrameImpl> map;
   private final ImmutableMultimap<TimeFrameImpl, TimeFrameImpl> rollupMap;
@@ -436,8 +440,37 @@ public class TimeFrameSet {
     /** Defines a rollup from one frame to another.
      *
      * <p>An explicit rollup is not necessary for frames where one is a multiple
-     * of another (such as MILLISECOND to HOUR). Only use this method for frames
-     * that are not multiples (such as DAY to MONTH). */
+     * of another (such as {@code MILLISECOND} to {@code HOUR}). Only use this
+     * method for frames that are not multiples (such as {@code DAY} to
+     * {@code MONTH}).
+     *
+     * <p>How do we automatically roll up from say, "minute15" to "hour7"?
+     * Because we know the following:
+     * <ul>
+     *   <li>"minute15" and "hour7" are based on the same core frame (seconds);
+     *   <li>"minute15" is 15 * 60 seconds, "hour7" is 7 * 60 * 60 seconds,
+     *     and the one divides the other;
+     *   <li>They have the same offset, 1970-01-01 00:00:00. (Different offsets
+     *     would be OK too, as they are a whole multiple apart.)
+     * </ul>
+     *
+     * <p>A month is not a fixed multiple of days, but a rollup is still
+     * possible, because the start of a month is always aligned with the start
+     * of a day. This means that you can compute a month total by adding up the
+     * day totals for all days in that month. This is useful if you have an
+     * aggregate table on DAY and you want to answer a query on {@code MONTH}.
+     *
+     * <p>There is no rollup from {@code WEEK} to {@code YEAR}, because of a
+     * lack of alignment: a year does not start on the first day of a week, and
+     * so you cannot compute the total for, say, the year 2022 by adding the
+     * totals for all weeks that fall in 2022.
+     *
+     * <p>Incidentally, {@code ISOWEEK} and {@code ISOYEAR} are designed so that
+     * {@code ISOWEEK} can roll up to {@code ISOYEAR}. Every {@code ISOYEAR} and
+     * {@code ISOWEEK} start on a Monday, so they are aligned. An
+     * {@code ISOYEAR} consists of either 52 or 53 {@code ISOWEEK} instances,
+     * but the variable multiple is not a problem; the alignment ensures that
+     * rollup is valid. */
     public Builder addRollup(String fromName, String toName) {
       final TimeFrameImpl fromFrame = get(fromName);
       final TimeFrameImpl toFrame = get(toName);
@@ -445,7 +478,7 @@ public class TimeFrameSet {
       return this;
     }
 
-    /** Adds all time frames in {@code timeFrameSet} to this Builder. */
+    /** Adds all time frames in {@code timeFrameSet} to this {@code Builder}. */
     public Builder addAll(TimeFrameSet timeFrameSet) {
       timeFrameSet.map.values().forEach(frame -> frame.replicate(this));
       return this;
@@ -465,7 +498,7 @@ public class TimeFrameSet {
     /** Defines an alias for an existing frame.
      *
      * <p>For example, {@code add("Y", "YEAR")} adds "Y" as an alias for the
-     * built-in frame "YEAR".
+     * built-in frame {@code YEAR}.
      *
      * @param name The alias
      * @param originalName Name of the existing frame
