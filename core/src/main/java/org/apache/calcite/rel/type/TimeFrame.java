@@ -33,9 +33,11 @@ public interface TimeFrame {
 
   /** Name of this time frame.
    *
-   * <p>A time unit based on a built-in Avatica
+   * <p>A time frame based on a built-in Avatica
    * {@link org.apache.calcite.avatica.util.TimeUnit} will have the same
-   * name. */
+   * name.
+   *
+   * @see TimeFrameSet#get(TimeUnit) */
   String name();
 
   /** If this time frame has units in common with another time frame, returns
