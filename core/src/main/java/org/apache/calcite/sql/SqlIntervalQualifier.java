@@ -32,12 +32,13 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents an INTERVAL qualifier.
@@ -95,10 +96,21 @@ public class SqlIntervalQualifier extends SqlNode {
   //~ Instance fields --------------------------------------------------------
 
   private final int startPrecision;
+  public final @Nullable String timeFrameName;
   public final TimeUnitRange timeUnitRange;
   private final int fractionalSecondPrecision;
 
   //~ Constructors -----------------------------------------------------------
+
+  private SqlIntervalQualifier(SqlParserPos pos, @Nullable String timeFrameName,
+      TimeUnitRange timeUnitRange, int startPrecision,
+      int fractionalSecondPrecision) {
+    super(pos);
+    this.timeFrameName = timeFrameName;
+    this.timeUnitRange = requireNonNull(timeUnitRange, "timeUnitRange");
+    this.startPrecision = startPrecision;
+    this.fractionalSecondPrecision = fractionalSecondPrecision;
+  }
 
   public SqlIntervalQualifier(
       TimeUnit startUnit,
@@ -106,14 +118,10 @@ public class SqlIntervalQualifier extends SqlNode {
       @Nullable TimeUnit endUnit,
       int fractionalSecondPrecision,
       SqlParserPos pos) {
-    super(pos);
-    if (endUnit == startUnit) {
-      endUnit = null;
-    }
-    this.timeUnitRange =
-        TimeUnitRange.of(Objects.requireNonNull(startUnit, "startUnit"), endUnit);
-    this.startPrecision = startPrecision;
-    this.fractionalSecondPrecision = fractionalSecondPrecision;
+    this(pos, null,
+        TimeUnitRange.of(requireNonNull(startUnit, "startUnit"),
+            endUnit == startUnit ? null : endUnit),
+        startPrecision, fractionalSecondPrecision);
   }
 
   public SqlIntervalQualifier(
@@ -126,6 +134,15 @@ public class SqlIntervalQualifier extends SqlNode {
         endUnit,
         RelDataType.PRECISION_NOT_SPECIFIED,
         pos);
+  }
+
+  /** Creates a qualifier based on a time frame name. */
+  public SqlIntervalQualifier(String timeFrameName,
+      SqlParserPos pos) {
+    this(pos, requireNonNull(timeFrameName, "timeFrameName"),
+        // EPOCH is a placeholder because code expects a non-null TimeUnitRange.
+        TimeUnitRange.EPOCH, RelDataType.PRECISION_NOT_SPECIFIED,
+        RelDataType.PRECISION_NOT_SPECIFIED);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -1186,5 +1203,21 @@ public class SqlIntervalQualifier extends SqlNode {
     return SqlUtil.newContextException(pos,
         RESOURCE.intervalFieldExceedsPrecision(
             value, type.name() + "(" + precision + ")"));
+  }
+
+  /** Converts a {@link SqlIntervalQualifier} to a
+   * {@link org.apache.calcite.sql.SqlIdentifier} if it is a time frame
+   * reference.
+   *
+   * <p>Helps with unparsing of EXTRACT, FLOOR, CEIL functions. */
+  public static SqlNode asIdentifier(SqlNode node) {
+    if (node instanceof SqlIntervalQualifier) {
+      SqlIntervalQualifier intervalQualifier = (SqlIntervalQualifier) node;
+      if (intervalQualifier.timeFrameName != null) {
+        return new SqlIdentifier(intervalQualifier.timeFrameName,
+            node.getParserPosition());
+      }
+    }
+    return node;
   }
 }

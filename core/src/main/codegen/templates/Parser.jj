@@ -161,7 +161,6 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing unquotedCasing;
     private Casing quotedCasing;
     private int identifierMaxLength;
-    private ImmutableMap<String, TimeUnit> timeUnitCodes;
     private SqlConformance conformance;
 
     /**
@@ -221,10 +220,6 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     public void setIdentifierMaxLength(int identifierMaxLength) {
         this.identifierMaxLength = identifierMaxLength;
-    }
-
-    public void setTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
-        this.timeUnitCodes = ImmutableMap.copyOf(timeUnitCodes);
     }
 
     public void setConformance(SqlConformance conformance) {
@@ -4949,113 +4944,56 @@ SqlIntervalQualifier IntervalQualifierStart() :
 
 /**
  * Parses time unit for CEIL and FLOOR functions.
+ *
+ * <p>Includes NANOSECOND, MILLISECOND, which were previously only allowed in
+ * the EXTRACT function.
+ *
+ * <p>Does not include SQL_TSI_DAY, SQL_TSI_FRAC_SECOND etc. These will be
+ * parsed as identifiers and can be resolved in the validator if they are
+ * registered as abbreviations in your time frame set.
  */
 TimeUnit TimeUnit() :
 {
-    final TimeUnit unit;
 }
 {
-    LOOKAHEAD(1)
-    (
-        <MILLISECOND> { return TimeUnit.MILLISECOND; }
-    |   <SECOND> { return TimeUnit.SECOND; }
-    |   <MINUTE> { return TimeUnit.MINUTE; }
-    |   <HOUR> { return TimeUnit.HOUR; }
-    |   <DAY> { return TimeUnit.DAY; }
-    |   <DOW> { return TimeUnit.DOW; }
-    |   <DOY> { return TimeUnit.DOY; }
-    |   <ISODOW> { return TimeUnit.ISODOW; }
-    |   <ISOYEAR> { return TimeUnit.ISOYEAR; }
-    |   <WEEK> { return TimeUnit.WEEK; }
-    |   <MONTH> { return TimeUnit.MONTH; }
-    |   <QUARTER> { return TimeUnit.QUARTER; }
-    |   <YEAR> { return TimeUnit.YEAR; }
-    |   <EPOCH> { return TimeUnit.EPOCH; }
-    |   <DECADE> { return TimeUnit.DECADE; }
-    |   <CENTURY> { return TimeUnit.CENTURY; }
-    |   <MILLENNIUM> { return TimeUnit.MILLENNIUM; }
-    )
-|
-    unit = TimeUnitIdentifier() { return unit; }
-}
-
-/**
- * Parses time unit for the EXTRACT function.
- * As for FLOOR and CEIL, but also includes NANOSECOND and MICROSECOND.
- */
-TimeUnit TimeUnitForExtract() :
-{
-    final TimeUnit unit;
-}
-{
-    LOOKAHEAD(1)
-    (
-        <NANOSECOND> { return TimeUnit.NANOSECOND; }
-    |   <MICROSECOND> { return TimeUnit.MICROSECOND; }
-    )
-|
-    unit = TimeUnit() { return unit; }
-}
-
-/**
- * Parses time unit for the TIME_TRUNC function.
- * This is a subset of time units appropriate for TIME data type.
- */
-TimeUnit TimeUnitForTimeTrunc() :
-{}
-{
-    <MILLISECOND> { return TimeUnit.MILLISECOND; }
+    <NANOSECOND> { return TimeUnit.NANOSECOND; }
+|   <MICROSECOND> { return TimeUnit.MICROSECOND; }
+|   <MILLISECOND> { return TimeUnit.MILLISECOND; }
 |   <SECOND> { return TimeUnit.SECOND; }
 |   <MINUTE> { return TimeUnit.MINUTE; }
 |   <HOUR> { return TimeUnit.HOUR; }
+|   <DAY> { return TimeUnit.DAY; }
+|   <DOW> { return TimeUnit.DOW; }
+|   <DOY> { return TimeUnit.DOY; }
+|   <ISODOW> { return TimeUnit.ISODOW; }
+|   <ISOYEAR> { return TimeUnit.ISOYEAR; }
+|   <WEEK> { return TimeUnit.WEEK; }
+|   <MONTH> { return TimeUnit.MONTH; }
+|   <QUARTER> { return TimeUnit.QUARTER; }
+|   <YEAR> { return TimeUnit.YEAR; }
+|   <EPOCH> { return TimeUnit.EPOCH; }
+|   <DECADE> { return TimeUnit.DECADE; }
+|   <CENTURY> { return TimeUnit.CENTURY; }
+|   <MILLENNIUM> { return TimeUnit.MILLENNIUM; }
 }
 
-/**
- * Parses a simple identifier as a TimeUnit.
- */
-TimeUnit TimeUnitIdentifier() :
-{
-    final List<String> names = new ArrayList<String>();
-    final List<SqlParserPos> positions = new ArrayList<SqlParserPos>();
+/** Parses a built-in time unit (e.g. "YEAR")
+ * or user-defined time frame (e.g. "MINUTE15")
+ * and in each case returns a {@link SqlIntervalQualifier}. */
+SqlIntervalQualifier TimeUnitOrName() : {
+    final TimeUnit unit;
+    final SqlIdentifier unitName;
 }
 {
-    AddIdentifierSegment(names, positions) {
-        TimeUnit unit = timeUnitCodes.get(names.get(0));
-        if (unit != null) {
-          return unit;
-        }
-        throw SqlUtil.newContextException(positions.get(0),
-            RESOURCE.invalidDatetimeFormat(SqlIdentifier.getString(names)));
+    LOOKAHEAD(1)
+    unit = TimeUnit() {
+        return new SqlIntervalQualifier(unit, null, getPos());
+    }
+|   unitName = SimpleIdentifier() {
+        return new SqlIntervalQualifier(unitName.getSimple(),
+            unitName.getParserPosition());
     }
 }
-
-TimeUnit TimestampInterval() :
-{}
-{
-    <FRAC_SECOND> { return TimeUnit.MICROSECOND; }
-|   <MICROSECOND> { return TimeUnit.MICROSECOND; }
-|   <NANOSECOND> { return TimeUnit.NANOSECOND; }
-|   <SQL_TSI_FRAC_SECOND> { return TimeUnit.NANOSECOND; }
-|   <SQL_TSI_MICROSECOND> { return TimeUnit.MICROSECOND; }
-|   <SECOND> { return TimeUnit.SECOND; }
-|   <SQL_TSI_SECOND> { return TimeUnit.SECOND; }
-|   <MINUTE> { return TimeUnit.MINUTE; }
-|   <SQL_TSI_MINUTE> { return TimeUnit.MINUTE; }
-|   <HOUR> { return TimeUnit.HOUR; }
-|   <SQL_TSI_HOUR> { return TimeUnit.HOUR; }
-|   <DAY> { return TimeUnit.DAY; }
-|   <SQL_TSI_DAY> { return TimeUnit.DAY; }
-|   <WEEK> { return TimeUnit.WEEK; }
-|   <SQL_TSI_WEEK> { return TimeUnit.WEEK; }
-|   <MONTH> { return TimeUnit.MONTH; }
-|   <SQL_TSI_MONTH> { return TimeUnit.MONTH; }
-|   <QUARTER> { return TimeUnit.QUARTER; }
-|   <SQL_TSI_QUARTER> { return TimeUnit.QUARTER; }
-|   <YEAR> { return TimeUnit.YEAR; }
-|   <SQL_TSI_YEAR> { return TimeUnit.YEAR; }
-}
-
-
 
 /**
  * Parses a dynamic parameter marker.
@@ -5885,7 +5823,7 @@ SqlNode BuiltinFunctionCall() :
     SqlNode e;
     final Span s;
     SqlDataTypeSpec dt;
-    final TimeUnit unit;
+    final SqlIntervalQualifier unit;
     final SqlNode node;
 }
 {
@@ -5904,8 +5842,8 @@ SqlNode BuiltinFunctionCall() :
         }
     |
         <EXTRACT> { s = span(); }
-        <LPAREN> unit = TimeUnitForExtract() {
-            args.add(new SqlIntervalQualifier(unit, null, getPos()));
+        <LPAREN> unit = TimeUnitOrName() {
+            args.add(unit);
         }
         <FROM>
         AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
@@ -6556,14 +6494,12 @@ SqlCall TimestampAddFunctionCall() :
 {
     final List<SqlNode> args = new ArrayList<SqlNode>();
     final Span s;
-    final TimeUnit interval;
+    final SqlIntervalQualifier unit;
 }
 {
     <TIMESTAMPADD> { s = span(); }
     <LPAREN>
-    interval = TimestampInterval() {
-        args.add(SqlLiteral.createSymbol(interval, getPos()));
-    }
+    unit = TimeUnitOrName() { args.add(unit); }
     <COMMA>
     AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
     <COMMA>
@@ -6581,14 +6517,12 @@ SqlCall TimestampDiffFunctionCall() :
 {
     final List<SqlNode> args = new ArrayList<SqlNode>();
     final Span s;
-    final TimeUnit interval;
+    final SqlIntervalQualifier unit;
 }
 {
     <TIMESTAMPDIFF> { s = span(); }
     <LPAREN>
-    interval = TimestampInterval() {
-        args.add(SqlLiteral.createSymbol(interval, getPos()));
-    }
+    unit = TimeUnitOrName() { args.add(unit); }
     <COMMA>
     AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
     <COMMA>
@@ -6606,16 +6540,14 @@ SqlCall TimestampTruncFunctionCall() :
 {
     final List<SqlNode> args = new ArrayList<SqlNode>();
     final Span s;
-    final TimeUnit unit;
+    final SqlIntervalQualifier unit;
 }
 {
     <TIMESTAMP_TRUNC> { s = span(); }
     <LPAREN>
     AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
     <COMMA>
-    unit = TimeUnit() {
-        args.add(new SqlIntervalQualifier(unit, null, getPos()));
-    }
+    unit = TimeUnitOrName() { args.add(unit); }
     <RPAREN> {
         return SqlLibraryOperators.TIMESTAMP_TRUNC.createCall(s.end(this), args);
     }
@@ -6628,16 +6560,14 @@ SqlCall TimeTruncFunctionCall() :
 {
     final List<SqlNode> args = new ArrayList<SqlNode>();
     final Span s;
-    final TimeUnit unit;
+    final SqlIntervalQualifier unit;
 }
 {
     <TIME_TRUNC> { s = span(); }
     <LPAREN>
     AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
     <COMMA>
-    unit = TimeUnitForTimeTrunc() {
-        args.add(new SqlIntervalQualifier(unit, null, getPos()));
-    }
+    unit = TimeUnitOrName() { args.add(unit); }
     <RPAREN> {
         return SqlLibraryOperators.TIME_TRUNC.createCall(s.end(this), args);
     }
@@ -6942,16 +6872,15 @@ SqlNode StandardFloorCeilOptions(Span s, boolean floorFlag) :
 {
     SqlNode e;
     final List<SqlNode> args = new ArrayList<SqlNode>();
-    TimeUnit unit;
+    final SqlIntervalQualifier unit;
     SqlCall function;
     final Span s1;
 }
 {
     <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
     (
-        <TO>
-        unit = TimeUnit() {
-            args.add(new SqlIntervalQualifier(unit, null, getPos()));
+        <TO> unit = TimeUnitOrName() {
+            args.add(unit);
         }
     )?
     <RPAREN> {

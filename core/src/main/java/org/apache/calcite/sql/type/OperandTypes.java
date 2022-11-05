@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -29,6 +30,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -90,6 +92,16 @@ public abstract class OperandTypes {
    */
   public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families) {
     return family(families, i -> false);
+  }
+
+  /**
+   * Creates a checker that passes if the operand is an interval appropriate for
+   * a given date/time type. For example, the time frame HOUR is appropriate for
+   * type TIMESTAMP or DATE but not TIME.
+   */
+  public static SqlSingleOperandTypeChecker interval(
+      Iterable<TimeUnitRange> ranges) {
+    return new IntervalOperandTypeChecker(ImmutableSet.copyOf(ranges));
   }
 
   /**
@@ -345,6 +357,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker DATE =
       family(SqlTypeFamily.DATE);
+
+  public static final SqlSingleOperandTypeChecker TIME =
+      family(SqlTypeFamily.TIME);
 
   public static final SqlSingleOperandTypeChecker TIMESTAMP =
       family(SqlTypeFamily.TIMESTAMP);

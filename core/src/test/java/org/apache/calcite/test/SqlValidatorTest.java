@@ -20,9 +20,11 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -60,6 +62,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
 import org.junit.jupiter.api.Disabled;
@@ -77,6 +80,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.isCharset;
@@ -4079,9 +4083,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER");
 
     expr("timestampadd(^incorrect^, 1, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
     expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
   }
 
   @Test void testTimestampAddNullInterval() {
@@ -4295,6 +4299,107 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("DOUBLE NOT NULL");
     expr("ceil(interval '2' second)")
         .columnType("INTERVAL SECOND NOT NULL");
+  }
+
+  /** Tests that EXTRACT, FLOOR, CEIL functions accept abbreviations for
+   * time units (such as "Y" for "YEAR").
+   *
+   * <p>This used to be accomplished via the now deprecated
+   * {@code timeUnitCodes} method in {@link SqlParser.Config}, and is now
+   * accomplished via
+   * {@link RelDataTypeSystem#deriveTimeFrameSet(TimeFrameSet)}. */
+  @Test void testTimeUnitCodes() {
+    final Map<String, TimeUnit> simpleCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("M", TimeUnit.MONTH)
+            .put("D", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .build();
+
+    // Time unit abbreviations for Microsoft SQL Server
+    final Map<String, TimeUnit> mssqlCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("YY", TimeUnit.YEAR)
+            .put("YYYY", TimeUnit.YEAR)
+            .put("Q", TimeUnit.QUARTER)
+            .put("QQ", TimeUnit.QUARTER)
+            .put("M", TimeUnit.MONTH)
+            .put("MM", TimeUnit.MONTH)
+            .put("W", TimeUnit.WEEK)
+            .put("WK", TimeUnit.WEEK)
+            .put("WW", TimeUnit.WEEK)
+            .put("DY", TimeUnit.DOY)
+            .put("DW", TimeUnit.DOW)
+            .put("D", TimeUnit.DAY)
+            .put("DD", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("HH", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("MI", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .put("SS", TimeUnit.SECOND)
+            .put("MS", TimeUnit.MILLISECOND)
+            .build();
+
+    checkTimeUnitCodes(ImmutableMap.of());
+    checkTimeUnitCodes(simpleCodes);
+    checkTimeUnitCodes(mssqlCodes);
+  }
+
+  /** Checks parsing of built-in functions that accept time unit
+   * abbreviations.
+   *
+   * <p>For example, {@code EXTRACT(Y FROM orderDate)} is using
+   * "Y" as an abbreviation for "YEAR".
+   *
+   * <p>Override if your parser supports more such functions. */
+  protected void checkTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
+    SqlValidatorFixture f = fixture()
+        .withFactory(tf ->
+            tf.withTypeSystem(typeSystem ->
+                new DelegatingTypeSystem(typeSystem) {
+                  @Override public TimeFrameSet deriveTimeFrameSet(
+                      TimeFrameSet frameSet) {
+                    TimeFrameSet.Builder b = TimeFrameSet.builder();
+                    b.addAll(frameSet);
+                    timeUnitCodes.forEach((name, unit) ->
+                        b.addAlias(name, unit.name()));
+                    return b.build();
+                  }
+                }));
+    final String ts = "TIMESTAMP '2020-08-27 18:16:43'";
+    BiConsumer<String, TimeUnit> validConsumer = (abbrev, timeUnit) -> {
+      f.withSql("select extract(" + abbrev + " from " + ts + ")").ok();
+      f.withSql("select floor(" + ts + " to " + abbrev + ")").ok();
+      f.withSql("select ceil(" + ts + " to " + abbrev + ")").ok();
+    };
+    BiConsumer<String, TimeUnit> invalidConsumer = (abbrev, timeUnit) -> {
+      final String upAbbrev = abbrev.toUpperCase(Locale.ROOT);
+      String message = "'" + upAbbrev + "' is not a valid time frame";
+      f.withSql("select extract(^" + abbrev + "^ from " + ts + ")")
+          .fails(message);
+      f.withSql("SELECT FLOOR(" + ts + " to ^" + abbrev + "^)")
+          .fails(message);
+      f.withSql("SELECT CEIL(" + ts + " to ^" + abbrev + "^)")
+          .fails(message);
+    };
+
+    // Check that each valid code passes each query that it should.
+    timeUnitCodes.forEach(validConsumer);
+
+    // If "M" is a valid code then "m" should be also.
+    timeUnitCodes.forEach((abbrev, timeUnit) ->
+        validConsumer.accept(abbrev.toLowerCase(Locale.ROOT), timeUnit));
+
+    // Check that invalid codes generate the right error messages.
+    final Map<String, TimeUnit> invalidCodes =
+        ImmutableMap.of("A", TimeUnit.YEAR,
+            "a", TimeUnit.YEAR);
+    invalidCodes.forEach(invalidConsumer);
   }
 
   public void checkWinFuncExpWithWinClause(

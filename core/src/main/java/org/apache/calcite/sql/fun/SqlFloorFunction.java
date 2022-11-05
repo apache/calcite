@@ -19,6 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -29,6 +30,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.base.Preconditions;
 
@@ -63,11 +66,31 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     if (call.operandCount() == 2) {
       call.operand(0).unparse(writer, 0, 100);
       writer.sep("TO");
-      call.operand(1).unparse(writer, 100, 0);
+      SqlIntervalQualifier.asIdentifier(call.operand(1))
+          .unparse(writer, 100, 0);
     } else {
       call.operand(0).unparse(writer, 0, 0);
     }
     writer.endFunCall(frame);
+  }
+
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
+
+    if (call.operandCount() > 1) {
+      // This is either a time unit or a time frame:
+      //
+      //  * In "FLOOR(x TO YEAR)" operand 1 is a SqlIntervalQualifier with
+      //    startUnit = YEAR and timeFrameName = null.
+      //
+      //  * In "FLOOR(x TO MINUTE15)" operand 1 is a SqlIntervalQualifier with
+      //    startUnit = EPOCH and timeFrameName = 'MINUTE15'.
+      //
+      // If the latter, check that timeFrameName is valid.
+      validator.validateTimeFrame(
+          (SqlIntervalQualifier) call.getOperandList().get(1));
+    }
   }
 
   /**

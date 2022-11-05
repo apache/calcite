@@ -123,6 +123,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
@@ -315,6 +316,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM0;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SYSTEM_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TIMESTAMP_ADD;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TIMESTAMP_DIFF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRUNCATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TUMBLE;
@@ -483,21 +486,29 @@ public class RexImpTable {
       map.put(FLOOR,
           new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
               BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
-              BuiltInMethod.UNIX_DATE_FLOOR.method));
+            BuiltInMethod.UNIX_DATE_FLOOR.method,
+            BuiltInMethod.CUSTOM_TIMESTAMP_FLOOR.method,
+            BuiltInMethod.CUSTOM_DATE_FLOOR.method));
       map.put(CEIL,
           new FloorImplementor(BuiltInMethod.CEIL.method.getName(),
               BuiltInMethod.UNIX_TIMESTAMP_CEIL.method,
-              BuiltInMethod.UNIX_DATE_CEIL.method));
+            BuiltInMethod.UNIX_DATE_CEIL.method,
+            BuiltInMethod.CUSTOM_TIMESTAMP_CEIL.method,
+            BuiltInMethod.CUSTOM_DATE_CEIL.method));
+      map.put(TIMESTAMP_ADD,
+          new TimestampAddImplementor("timestampAdd",
+              BuiltInMethod.CUSTOM_TIMESTAMP_ADD.method,
+              BuiltInMethod.CUSTOM_DATE_ADD.method));
+      map.put(DATEADD, map.get(TIMESTAMP_ADD));
+      map.put(TIMESTAMP_DIFF,
+          new TimestampDiffImplementor("timestampDiff",
+              BuiltInMethod.CUSTOM_TIMESTAMP_DIFF.method,
+              BuiltInMethod.CUSTOM_DATE_DIFF.method));
 
-      // TIMESTAMP_TRUNC and TIME_TRUNC methods are syntactic sugar for standard datetime FLOOR
-      map.put(TIMESTAMP_TRUNC,
-          new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
-              BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
-              BuiltInMethod.UNIX_DATE_FLOOR.method));
-      map.put(TIME_TRUNC,
-          new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
-              BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
-              BuiltInMethod.UNIX_DATE_FLOOR.method));
+      // TIMESTAMP_TRUNC and TIME_TRUNC methods are syntactic sugar for standard
+      // datetime FLOOR.
+      map.put(TIMESTAMP_TRUNC, map.get(FLOOR));
+      map.put(TIME_TRUNC, map.get(FLOOR));
 
 
       defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
@@ -2055,12 +2066,17 @@ public class RexImpTable {
   private static class FloorImplementor extends MethodNameImplementor {
     final Method timestampMethod;
     final Method dateMethod;
+    final Method customTimestampMethod;
+    final Method customDateMethod;
 
     FloorImplementor(String methodName, Method timestampMethod,
-        Method dateMethod) {
+        Method dateMethod, Method customTimestampMethod,
+        Method customDateMethod) {
       super(methodName, NullPolicy.STRICT, false);
       this.timestampMethod = timestampMethod;
       this.dateMethod = dateMethod;
+      this.customTimestampMethod = customTimestampMethod;
+      this.customDateMethod = customDateMethod;
     }
 
     @Override String getVariableName() {
@@ -2085,26 +2101,32 @@ public class RexImpTable {
         final Type type;
         final Method floorMethod;
         final boolean preFloor;
-        Expression operand = argValueList.get(0);
+        final Expression operand1 = argValueList.get(1);
+        final boolean custom = operand1.getType() == String.class;
+        Expression operand0 = argValueList.get(0);
         switch (call.getType().getSqlTypeName()) {
         case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-          operand = Expressions.call(
+          operand0 = Expressions.call(
               BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
-              operand,
+              operand0,
               Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
           // fall through
         case TIMESTAMP:
           type = long.class;
-          floorMethod = timestampMethod;
+          floorMethod = custom ? customTimestampMethod : timestampMethod;
           preFloor = true;
           break;
         default:
           type = int.class;
-          floorMethod = dateMethod;
+          floorMethod = custom ? customDateMethod : dateMethod;
           preFloor = false;
         }
+        if (custom) {
+          return Expressions.call(floorMethod, translator.getRoot(),
+              operand1, operand0);
+        }
         final TimeUnitRange timeUnitRange =
-            (TimeUnitRange) requireNonNull(translator.getLiteralValue(argValueList.get(1)),
+            (TimeUnitRange) requireNonNull(translator.getLiteralValue(operand1),
             "timeUnitRange");
         switch (timeUnitRange) {
         case YEAR:
@@ -2112,13 +2134,12 @@ public class RexImpTable {
         case MONTH:
         case WEEK:
         case DAY:
-          final Expression operand1 =
-              preFloor ? call(operand, type, TimeUnit.DAY) : operand;
+          final Expression dayOperand0 =
+              preFloor ? call(operand0, type, TimeUnit.DAY) : operand0;
           return Expressions.call(floorMethod,
-              translator.getLiteral(argValueList.get(1)), operand1);
-        case NANOSECOND:
+              translator.getLiteral(operand1), dayOperand0);
         default:
-          return call(operand, type, timeUnitRange.startUnit);
+          return call(operand0, type, timeUnitRange.startUnit);
         }
 
       default:
@@ -2132,6 +2153,72 @@ public class RexImpTable {
           EnumUtils.convert(operand, type),
           EnumUtils.convert(
               Expressions.constant(timeUnit.multiplier), type));
+    }
+  }
+
+  /** Implementor for the {@code TIMESTAMPADD} function. */
+  private static class TimestampAddImplementor extends MethodNameImplementor {
+    final Method customTimestampMethod;
+    final Method customDateMethod;
+
+    TimestampAddImplementor(String methodName, Method customTimestampMethod,
+        Method customDateMethod) {
+      super(methodName, NullPolicy.STRICT, false);
+      this.customTimestampMethod = customTimestampMethod;
+      this.customDateMethod = customDateMethod;
+    }
+
+    @Override String getVariableName() {
+      return "timestampAdd";
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      final Expression operand0 = argValueList.get(0);
+      final Expression operand1 = argValueList.get(1);
+      final Expression operand2 = argValueList.get(2);
+      switch (call.getType().getSqlTypeName()) {
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP:
+        return Expressions.call(customTimestampMethod, translator.getRoot(),
+            operand0, operand1, operand2);
+      default:
+        return Expressions.call(customDateMethod, translator.getRoot(),
+            operand0, operand1, operand2);
+      }
+    }
+  }
+
+  /** Implementor for the {@code TIMESTAMPDIFF} function. */
+  private static class TimestampDiffImplementor extends MethodNameImplementor {
+    final Method customTimestampMethod;
+    final Method customDateMethod;
+
+    TimestampDiffImplementor(String methodName, Method customTimestampMethod,
+        Method customDateMethod) {
+      super(methodName, NullPolicy.STRICT, false);
+      this.customTimestampMethod = customTimestampMethod;
+      this.customDateMethod = customDateMethod;
+    }
+
+    @Override String getVariableName() {
+      return "timestampDiff";
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      return Expressions.call(getMethod(call), translator.getRoot(),
+          argValueList.get(0), argValueList.get(1), argValueList.get(2));
+    }
+
+    private Method getMethod(RexCall call) {
+      switch (call.operands.get(1).getType().getSqlTypeName()) {
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP:
+        return customTimestampMethod;
+      default:
+        return customDateMethod;
+      }
     }
   }
 

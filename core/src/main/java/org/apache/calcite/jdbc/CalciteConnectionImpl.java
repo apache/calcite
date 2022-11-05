@@ -48,6 +48,8 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -419,6 +421,9 @@ abstract class CalciteConnectionImpl
       Hook.CURRENT_TIME.run(timeHolder);
       final long time = timeHolder.get();
       final TimeZone timeZone = connection.getTimeZone();
+      final TimeFrameSet timeFrameSet =
+          connection.typeFactory.getTypeSystem()
+              .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
       final String user = "sa";
@@ -437,6 +442,7 @@ abstract class CalciteConnectionImpl
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
           .put(Variable.TIME_ZONE.camelName, timeZone)
+          .put(Variable.TIME_FRAME_SET.camelName, timeFrameSet)
           .put(Variable.USER.camelName, user)
           .put(Variable.SYSTEM_USER.camelName, systemUser)
           .put(Variable.LOCALE.camelName, locale)

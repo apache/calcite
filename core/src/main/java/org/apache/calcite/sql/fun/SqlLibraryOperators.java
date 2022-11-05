@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -41,10 +42,13 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
@@ -635,6 +639,26 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  private static final Set<TimeUnitRange> TIME_UNITS =
+      ImmutableSet.of(TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
+
+  private static final Set<TimeUnitRange> MONTH_UNITS =
+      ImmutableSet.of(TimeUnitRange.MILLENNIUM,
+          TimeUnitRange.CENTURY,
+          TimeUnitRange.DECADE,
+          TimeUnitRange.YEAR,
+          TimeUnitRange.MONTH);
+
+  private static final Set<TimeUnitRange> DATE_UNITS =
+      ImmutableSet.of(TimeUnitRange.WEEK,
+          TimeUnitRange.DAY);
+
+  private static final Set<TimeUnitRange> TIMESTAMP_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(MONTH_UNITS).addAll(DATE_UNITS).addAll(TIME_UNITS).build();
+
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
    * always rounded to the beginning of time_part. */
@@ -644,7 +668,8 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIME_NULLABLE,
           null,
-          OperandTypes.TIME_INTERVAL,
+          OperandTypes.sequence("'TIME_TRUNC(<TIME>, <DATETIME_INTERVAL>)'",
+              OperandTypes.TIME, OperandTypes.interval(TIME_UNITS)),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])"
@@ -657,7 +682,9 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_NULLABLE,
           null,
-          OperandTypes.TIMESTAMP_INTERVAL,
+          OperandTypes.sequence(
+              "'TIMESTAMP_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
+              OperandTypes.TIMESTAMP, OperandTypes.interval(TIMESTAMP_UNITS)),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
