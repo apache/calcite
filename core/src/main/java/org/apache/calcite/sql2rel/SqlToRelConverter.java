@@ -2442,10 +2442,27 @@ public class SqlToRelConverter {
     });
     RelNode child =
         (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster);
+
+    RelNode newChild;
+    final CorrelationUse p = getCorrelationUse(bb, child);
+    if (p != null && child instanceof Project) {
+      // correlation variables have been normalized in p.r, we should use expressions
+      // in p.r instead of the original exprs
+      Project project = (Project) p.r;
+      newChild = relBuilder.push(child.getInput(0))
+          .projectNamed(project.getProjects(),
+              project.getRowType().getFieldNames(),
+              true,
+              ImmutableSet.of(p.id))
+          .build();
+    } else {
+      newChild = child;
+    }
+
     RelNode uncollect;
     if (validator().config().conformance().allowAliasUnnestItems()) {
       uncollect = relBuilder
-          .push(child)
+          .push(newChild)
           .project(exprs)
           .uncollect(requireNonNull(fieldNames, "fieldNames"), operator.withOrdinality)
           .build();
@@ -2453,7 +2470,7 @@ public class SqlToRelConverter {
       // REVIEW danny 2020-04-26: should we unify the normal field aliases and
       // the item aliases?
       uncollect = relBuilder
-          .push(child)
+          .push(newChild)
           .project(exprs)
           .uncollect(Collections.emptyList(), operator.withOrdinality)
           .let(r -> fieldNames == null ? r : r.rename(fieldNames))

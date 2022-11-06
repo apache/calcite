@@ -513,11 +513,6 @@ public class JdbcRules {
       return false;
     }
 
-    @Override public boolean matches(RelOptRuleCall call) {
-      Project project = call.rel(0);
-      return project.getVariablesSet().isEmpty();
-    }
-
     @Override public @Nullable RelNode convert(RelNode rel) {
       final Project project = (Project) rel;
 
@@ -528,7 +523,8 @@ public class JdbcRules {
               project.getInput(),
               project.getInput().getTraitSet().replace(out)),
           project.getProjects(),
-          project.getRowType());
+          project.getRowType(),
+          project.getVariablesSet());
     }
   }
 
@@ -542,9 +538,19 @@ public class JdbcRules {
         RelTraitSet traitSet,
         RelNode input,
         List<? extends RexNode> projects,
-        RelDataType rowType) {
-      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
+        RelDataType rowType,
+        Set<CorrelationId> variablesSet) {
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, variablesSet);
       assert getConvention() instanceof JdbcConvention;
+    }
+
+    public JdbcProject(
+        RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelNode input,
+        List<? extends RexNode> projects,
+        RelDataType rowType) {
+      this(cluster, traitSet, input, projects, rowType, ImmutableSet.of());
     }
 
     @Deprecated // to be removed before 2.0
@@ -556,7 +562,7 @@ public class JdbcRules {
 
     @Override public JdbcProject copy(RelTraitSet traitSet, RelNode input,
         List<RexNode> projects, RelDataType rowType) {
-      return new JdbcProject(getCluster(), traitSet, input, projects, rowType);
+      return new JdbcProject(getCluster(), traitSet, input, projects, rowType, variablesSet);
     }
 
     @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
