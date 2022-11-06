@@ -1822,16 +1822,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
   /** Convertlet that handles the {@code TIMESTAMPADD} function. */
   private static class TimestampAddConvertlet implements SqlRexConvertlet {
-    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+
+    private RexNode convertCall(RexBuilder rexBuilder, TimeUnit unit, RexNode op1, RexNode op2) {
       // TIMESTAMPADD(unit, count, timestamp)
       //  => timestamp + count * INTERVAL '1' UNIT
-      final RexBuilder rexBuilder = cx.getRexBuilder();
-      final SqlLiteral unitLiteral = call.operand(0);
-      final TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
       RexNode interval2Add;
       SqlIntervalQualifier qualifier =
-          new SqlIntervalQualifier(unit, null, unitLiteral.getParserPosition());
-      RexNode op1 = cx.convertExpression(call.operand(1));
+          new SqlIntervalQualifier(unit, null, SqlParserPos.ZERO);
       switch (unit) {
       case MICROSECOND:
       case NANOSECOND:
@@ -1848,18 +1845,33 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       }
 
       return rexBuilder.makeCall(SqlStdOperatorTable.DATETIME_PLUS,
-          cx.convertExpression(call.operand(2)), interval2Add);
+          op2, interval2Add);
+    }
+
+    @Override public RexNode convertCall(RexCall call, RexBuilder rexBuilder) {
+      final TimeUnit unit =
+          requireNonNull(((RexLiteral) call.getOperands().get(0)).getValueAs(TimeUnit.class));
+      final RexNode op1 = call.getOperands().get(1);
+      final RexNode op2 = call.getOperands().get(2);
+      return convertCall(rexBuilder, unit, op1, op2);
+    }
+
+    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      final SqlLiteral unitLiteral = call.operand(0);
+      final TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
+      final RexNode op2 = cx.convertExpression(call.operand(2));
+      final RexNode op1 = cx.convertExpression(call.operand(1));
+      return convertCall(cx.getRexBuilder(), unit, op1, op2);
     }
   }
 
   /** Convertlet that handles the {@code TIMESTAMPDIFF} function. */
   private static class TimestampDiffConvertlet implements SqlRexConvertlet {
-    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+
+    private RexNode convertCall(RexBuilder rexBuilder, RelDataTypeFactory relDataTypeFactory,
+        TimeUnit unit, RexNode op1, RexNode op2) {
       // TIMESTAMPDIFF(unit, t1, t2)
       //    => (t2 - t1) UNIT
-      final RexBuilder rexBuilder = cx.getRexBuilder();
-      final SqlLiteral unitLiteral = call.operand(0);
-      TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
       BigDecimal multiplier = BigDecimal.ONE;
       BigDecimal divider = BigDecimal.ONE;
       SqlTypeName sqlTypeName = unit == TimeUnit.NANOSECOND
@@ -1883,21 +1895,35 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       }
       final SqlIntervalQualifier qualifier =
           new SqlIntervalQualifier(unit, null, SqlParserPos.ZERO);
-      final RexNode op2 = cx.convertExpression(call.operand(2));
-      final RexNode op1 = cx.convertExpression(call.operand(1));
       final RelDataType intervalType =
-          cx.getTypeFactory().createTypeWithNullability(
-              cx.getTypeFactory().createSqlIntervalType(qualifier),
+          relDataTypeFactory.createTypeWithNullability(
+              relDataTypeFactory.createSqlIntervalType(qualifier),
               op1.getType().isNullable() || op2.getType().isNullable());
       final RexCall rexCall = (RexCall) rexBuilder.makeCall(
           intervalType, SqlStdOperatorTable.MINUS_DATE,
           ImmutableList.of(op2, op1));
       final RelDataType intType =
-          cx.getTypeFactory().createTypeWithNullability(
-              cx.getTypeFactory().createSqlType(sqlTypeName),
+          relDataTypeFactory.createTypeWithNullability(
+              relDataTypeFactory.createSqlType(sqlTypeName),
               SqlTypeUtil.containsNullable(rexCall.getType()));
       RexNode e = rexBuilder.makeCast(intType, rexCall);
       return rexBuilder.multiplyDivide(e, multiplier, divider);
+    }
+
+    @Override public RexNode convertCall(RexCall call, RexBuilder rexBuilder) {
+      final TimeUnit unit =
+          requireNonNull(((RexLiteral) call.getOperands().get(0)).getValueAs(TimeUnit.class));
+      final RexNode op1 = call.getOperands().get(1);
+      final RexNode op2 = call.getOperands().get(2);
+      return convertCall(rexBuilder, rexBuilder.getTypeFactory(), unit, op1, op2);
+    }
+
+    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      final SqlLiteral unitLiteral = call.operand(0);
+      final TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
+      final RexNode op2 = cx.convertExpression(call.operand(2));
+      final RexNode op1 = cx.convertExpression(call.operand(1));
+      return convertCall(cx.getRexBuilder(), cx.getTypeFactory(), unit, op1, op2);
     }
   }
 }

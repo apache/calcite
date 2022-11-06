@@ -28,6 +28,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
@@ -36,12 +38,15 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql2rel.SqlRexConvertlet;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
@@ -68,6 +73,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -263,7 +269,15 @@ public class RexBuilder {
       SqlOperator op,
       List<? extends RexNode> exprs) {
     final RelDataType type = deriveReturnType(op, exprs);
-    return new RexCall(type, op, exprs);
+    final RexCall rexcall = new RexCall(type, op, exprs);
+    final SqlCall sqlCall = new SqlBasicCall(op, Collections.emptyList(), SqlParserPos.ZERO);
+    final SqlRexConvertlet convertlet = StandardConvertletTable.INSTANCE.get(sqlCall);
+    if (convertlet != null) {
+      final RexNode convertedRexCall = convertlet.convertCall(rexcall, this);
+      return convertedRexCall != null ? convertedRexCall : rexcall;
+    } else {
+      return rexcall;
+    }
   }
 
   /**

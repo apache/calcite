@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
@@ -4842,4 +4843,51 @@ public class RelBuilderTest {
       };
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5010">[CALCITE-5010]
+   * Modify RexBuilder to use convertlets to transform the RexCall when possible</a>. */
+  @Test void testTimestampAddDiff() throws Exception {
+    // Equivalent SQL:
+    //   SELECT TIMESTAMPDIFF(SECOND, HIREDATE, TIMESTAMP'1970-01-01') FROM EMP
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(
+                builder.getRexBuilder().makeCall(
+                    SqlStdOperatorTable.TIMESTAMP_DIFF,
+                    builder.getRexBuilder().makeFlag(TimeUnit.SECOND),
+                    builder.getRexBuilder()
+                        .makeTimestampLiteral(TimestampString.fromMillisSinceEpoch(0), 0),
+                    builder.field("HIREDATE")
+                )
+            )
+            .build();
+
+    String expected = "LogicalProject($f0=[CAST(/INT(Reinterpret(-($4, 1970-01-01 00:00:00)), "
+        + "1000)):INTEGER])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+
+    // Equivalent SQL:
+    //   SELECT TIMESTAMPADD(SECOND, 1, HIREDATE) FROM EMP
+    final RelDataType type = builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    root =
+        builder.scan("EMP")
+            .project(
+                builder.getRexBuilder().makeCall(
+                    SqlStdOperatorTable.TIMESTAMP_ADD,
+                    builder.getRexBuilder().makeFlag(TimeUnit.SECOND),
+                    builder.getRexBuilder().makeLiteral(1, type),
+                    builder.field("HIREDATE")
+                )
+            )
+            .build();
+
+    expected = "LogicalProject($f0=[+($4, *(1000:INTERVAL SECOND, 1))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+
 }
