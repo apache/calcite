@@ -11225,11 +11225,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       return super.expandSelectExpr(rewrittenNode, scope, select);
     }
 
-    @Override public SqlNode expandGroupByOrHavingExpr(SqlNode expr,
-        SqlValidatorScope scope, SqlSelect select, boolean havingExpression) {
+    @Override public SqlNode extendedExpand(SqlNode expr,
+        SqlValidatorScope scope, SqlSelect select, ExpansionClause clause) {
       SqlNode rewrittenNode = rewriteNode(expr);
-      return super.expandGroupByOrHavingExpr(rewrittenNode, scope, select,
-          havingExpression);
+      return super.extendedExpand(rewrittenNode, scope, select,
+          clause);
     }
 
     private SqlNode rewriteNode(SqlNode sqlNode) {
