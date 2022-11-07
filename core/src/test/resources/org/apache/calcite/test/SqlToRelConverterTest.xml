@@ -5745,6 +5745,30 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], DEPTNO0=[$3], NAME=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testQualifyInCorrelatedSubquery">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM emp WHERE EXISTS( SELECT name FROM dept  QUALIFY RANK() OVER (PARTITION BY name ORDER BY dept.deptno DESC) = emp.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$11])
+      LogicalJoin(condition=[=($9, $10)], joinType=[left])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($7):BIGINT NOT NULL])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject(DEPTNO0=[$2], $f0=[true])
+            LogicalFilter(condition=[$1])
+              LogicalProject(NAME=[$1], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $0 DESC), $2)], DEPTNO0=[$2])
+                LogicalJoin(condition=[true], joinType=[inner])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                  LogicalAggregate(group=[{0}])
+                    LogicalProject(DEPTNO0=[CAST($7):BIGINT NOT NULL])
+                      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testQualifyInDDL">
     <Resource name="sql">
       <![CDATA[INSERT INTO dept(deptno, name) SELECT DISTINCT empno, ename FROM emp WHERE deptno > 5 QUALIFY RANK() OVER (PARTITION BY ename ORDER BY slacker DESC) = 1 ]]>
