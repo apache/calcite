@@ -4166,7 +4166,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     SqlValidatorScope qualifyScope = getSelectScope(select);
 
-    qualifyNode = expandGroupByOrHavingExpr(qualifyNode, qualifyScope, select, true);
+    qualifyNode = extendedExpand(qualifyNode, qualifyScope, select, ExpansionClause.QUALIFY);
     select.setQualify(qualifyNode);
 
     inferUnknownTypes(
@@ -4430,7 +4430,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
     for (SqlNode groupItem : groupList) {
-      SqlNode expandedItem = expandGroupByOrHavingExpr(groupItem, groupScope, select, false);
+      SqlNode expandedItem = extendedExpand(groupItem, groupScope, select, ExpansionClause.GROUPBY);
       expandedList.add(expandedItem);
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
@@ -4560,7 +4560,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
     if (config.conformance().isHavingAlias()) {
-      SqlNode newExpr = expandGroupByOrHavingExpr(having, havingScope, select, true);
+      SqlNode newExpr = extendedExpand(having, havingScope, select, ExpansionClause.HAVING);
       if (having != newExpr) {
         having = newExpr;
         select.setHaving(newExpr);
@@ -6208,10 +6208,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
-  public SqlNode expandGroupByOrHavingExpr(SqlNode expr,
-      SqlValidatorScope scope, SqlSelect select, boolean havingExpression) {
-    final Expander expander = new ExtendedExpander(this, scope, select, expr,
-        havingExpression);
+  public SqlNode extendedExpand(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select, ExpansionClause clause) {
+    final Expander expander = new ExtendedExpander(
+        this,
+        scope,
+        select,
+        expr,
+        clause);
     SqlNode newExpr = expander.go(expr);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -6807,63 +6811,86 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   static class ExtendedExpander extends Expander {
     final SqlSelect select;
     final SqlNode root;
-    final boolean havingExpr;
+    final ExpansionClause clause;
 
-    ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
-        SqlSelect select, SqlNode root, boolean havingExpr) {
+    ExtendedExpander(
+        SqlValidatorImpl validator,
+        SqlValidatorScope scope,
+        SqlSelect select,
+        SqlNode root,
+        ExpansionClause clause) {
       super(validator, scope);
       this.select = select;
       this.root = root;
-      this.havingExpr = havingExpr;
+      this.clause = clause;
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
-      if (id.isSimple()
-          && (havingExpr
-              ? validator.config().conformance().isHavingAlias()
-              : validator.config().conformance().isGroupByAlias())) {
-        String name = id.getSimple();
-        SqlNode expr = null;
-        final SqlNameMatcher nameMatcher =
-            validator.catalogReader.nameMatcher();
-        int n = 0;
-        for (SqlNode s : SqlNonNullableAccessors.getSelectList(select)) {
-          final String alias = SqlValidatorUtil.getAlias(s, -1);
-          if (alias != null && nameMatcher.matches(alias, name)) {
-            expr = s;
-            n++;
-          }
-        }
-        if (n == 0) {
-          return super.visit(id);
-        } else if (n > 1) {
-          // More than one column has this alias.
-          throw validator.newValidationError(id,
-              RESOURCE.columnAmbiguous(name));
-        }
-        if (havingExpr && validator.isAggregate(root)) {
-          return super.visit(id);
-        }
-        expr = stripAs(expr);
-        if (expr instanceof SqlIdentifier) {
-          SqlIdentifier sid = (SqlIdentifier) expr;
-          final SqlIdentifier fqId = getScope().fullyQualify(sid).identifier;
-          expr = expandDynamicStar(sid, fqId);
-        }
-        return expr;
+      if (!id.isSimple()) {
+        return super.visit(id);
       }
-      if (id.isSimple()) {
+
+      boolean replaceAliases;
+      switch (clause) {
+      case GROUPBY:
+        replaceAliases = validator.config().conformance().isGroupByAlias();
+        break;
+
+      case HAVING:
+        replaceAliases = validator.config().conformance().isHavingAlias();
+        break;
+
+      case QUALIFY:
+        replaceAliases = true;
+        break;
+
+      default:
+        throw new RuntimeException("Unknown clause kind: " + clause);
+      }
+
+      if (!replaceAliases) {
         final SelectScope scope = validator.getRawSelectScope(select);
         SqlNode node = expandCommonColumn(select, id, scope, validator);
         if (node != id) {
           return node;
         }
+
+        return super.visit(id);
       }
-      return super.visit(id);
+
+      String name = id.getSimple();
+      SqlNode expr = null;
+      final SqlNameMatcher nameMatcher =
+          validator.catalogReader.nameMatcher();
+      int n = 0;
+      for (SqlNode s : SqlNonNullableAccessors.getSelectList(select)) {
+        final String alias = SqlValidatorUtil.getAlias(s, -1);
+        if (alias != null && nameMatcher.matches(alias, name)) {
+          expr = s;
+          n++;
+        }
+      }
+      if (n == 0) {
+        return super.visit(id);
+      } else if (n > 1) {
+        // More than one column has this alias.
+        throw validator.newValidationError(id,
+            RESOURCE.columnAmbiguous(name));
+      }
+      if ((clause == ExpansionClause.HAVING) && validator.isAggregate(root)) {
+        return super.visit(id);
+      }
+      expr = stripAs(expr);
+      if (expr instanceof SqlIdentifier) {
+        SqlIdentifier sid = (SqlIdentifier) expr;
+        final SqlIdentifier fqId = getScope().fullyQualify(sid).identifier;
+        expr = expandDynamicStar(sid, fqId);
+      }
+      return expr;
     }
 
     @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      if (havingExpr || !validator.config().conformance().isGroupByOrdinal()) {
+      if ((clause == ExpansionClause.HAVING) || !validator.config().conformance().isGroupByOrdinal()) {
         return super.visit(literal);
       }
       boolean isOrdinalLiteral = literal == root;
@@ -7373,5 +7400,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SELECT,
     ORDER,
     CURSOR
+  }
+
+  public enum ExpansionClause {
+    GROUPBY,
+    HAVING,
+    QUALIFY,
   }
 }
