@@ -4302,8 +4302,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Tests that EXTRACT, FLOOR, CEIL functions accept abbreviations for
-   * time units (such as "Y" for "YEAR") when configured via
-   * {@link SqlParser.Config#timeUnitCodes()}. */
+   * time units (such as "Y" for "YEAR").
+   *
+   * <p>This used to be accomplished via the now deprecated
+   * {@code timeUnitCodes} method in {@link SqlParser.Config}, and is now
+   * accomplished via
+   * {@link RelDataTypeSystem#deriveTimeFrameSet(TimeFrameSet)}. */
   @Test void testTimeUnitCodes() {
     final Map<String, TimeUnit> simpleCodes =
         ImmutableMap.<String, TimeUnit>builder()
@@ -4341,7 +4345,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             .put("MS", TimeUnit.MILLISECOND)
             .build();
 
-    checkTimeUnitCodes(SqlParser.Config.DEFAULT.timeUnitCodes());
+    checkTimeUnitCodes(ImmutableMap.of());
     checkTimeUnitCodes(simpleCodes);
     checkTimeUnitCodes(mssqlCodes);
   }

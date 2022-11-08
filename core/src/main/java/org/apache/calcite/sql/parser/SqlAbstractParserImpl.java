@@ -548,8 +548,9 @@ public abstract class SqlAbstractParserImpl {
   /**
    * Sets the map from identifier to time unit.
    */
-  // TODO @Deprecated // to be removed before 2.0
-  public abstract void setTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes);
+  @Deprecated // to be removed before 2.0
+  public void setTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
+  }
 
   /**
    * Sets the SQL language conformance level.

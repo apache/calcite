@@ -120,9 +120,13 @@ public class TimeFrames {
 
   /** Given a date, returns the date of the first day of its ISO Year.
    * Usually occurs in the same calendar year, but may be as early as Dec 29
-   * of the previous calendar year. */
-  // TODO: move it into DateTimeUtils.julianExtract,
-  // so that it can be called from DateTimeUtils.unixDateExtract
+   * of the previous calendar year.
+   *
+   * <p>After
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5369">[CALCITE-5369]
+   * In Avatica DateTimeUtils, add support for FLOOR and CEIL to ISOYEAR</a> is
+   * fixed, we can use {@link DateTimeUtils#unixDateFloor} instead of this
+   * method. */
   static int floorCeilIsoYear(int date, boolean ceil) {
     final int year =
         (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);

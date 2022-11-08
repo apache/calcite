@@ -161,7 +161,6 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing unquotedCasing;
     private Casing quotedCasing;
     private int identifierMaxLength;
-    private ImmutableMap<String, TimeUnit> timeUnitCodes;
     private SqlConformance conformance;
 
     /**
@@ -221,10 +220,6 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     public void setIdentifierMaxLength(int identifierMaxLength) {
         this.identifierMaxLength = identifierMaxLength;
-    }
-
-    public void setTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
-        this.timeUnitCodes = ImmutableMap.copyOf(timeUnitCodes);
     }
 
     public void setConformance(SqlConformance conformance) {
