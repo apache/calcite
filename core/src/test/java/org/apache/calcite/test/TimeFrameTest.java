@@ -57,6 +57,8 @@ import static org.hamcrest.core.Is.is;
 
 import static java.util.Objects.requireNonNull;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 /** Unit test for {@link org.apache.calcite.rel.type.TimeFrame}. */
 public class TimeFrameTest {
   /** Unit test for {@link org.apache.calcite.rel.type.TimeFrames#CORE}. */
@@ -120,6 +122,100 @@ public class TimeFrameTest {
     assertThat(sqlTsiQuarter, notNullValue());
     assertThat(sqlTsiQuarter.name(), is("QUARTER"));
     assertThat(timeFrameSet.getUnit(sqlTsiQuarter), is(QUARTER));
+  }
+
+  @Test void testConflict() {
+    TimeFrameSet.Builder b = TimeFrameSet.builder();
+    b.addCore("SECOND");
+    b.addMultiple("MINUTE", 60, "SECOND");
+    b.addMultiple("HOUR", 60, "MINUTE");
+    b.addMultiple("DAY", 24, "SECOND");
+    b.addDivision("MILLISECOND", 1_000, "SECOND");
+
+    // It's important that TimeFrame.Builder throws when you attempt to add
+    // a frame with the same name. It prevents DAGs and cycles.
+    try {
+      b.addDivision("MILLISECOND", 10_000, "MINUTE");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("duplicate frame: MILLISECOND"));
+    }
+
+    try {
+      b.addCore("SECOND");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("duplicate frame: SECOND"));
+    }
+
+    try {
+      b.addQuotient("SECOND", "MINUTE", "HOUR");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("duplicate frame: SECOND"));
+    }
+
+    try {
+      b.addQuotient("MINUTE_OF_WEEK", "MINUTE", "WEEK");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("unknown frame: WEEK"));
+    }
+
+    try {
+      b.addQuotient("DAY_OF_WEEK", "DAY", "YEAR");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("unknown frame: YEAR"));
+    }
+
+    try {
+      b.addAlias("SECOND", "DAY");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("duplicate frame: SECOND"));
+    }
+
+    try {
+      b.addAlias("FOO", "BAZ");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("unknown frame: BAZ"));
+    }
+
+    // Can't define NANOSECOND in terms of a frame that has not been defined
+    // yet.
+    try {
+      b.addDivision("NANOSECOND", 1_000, "MICROSECOND");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("unknown frame: MICROSECOND"));
+    }
+
+    // We can define NANOSECOND and MICROSECOND as long as we define each frame
+    // in terms of previous frames.
+    b.addDivision("NANOSECOND", 1_000_000, "MILLISECOND");
+    b.addMultiple("MICROSECOND", 1_000, "NANOSECOND");
+
+    // Can't define a frame in terms of itself.
+    // (I guess you should use a core frame.)
+    try {
+      b.addDivision("PICOSECOND", 1, "PICOSECOND");
+      fail("expected error");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("unknown frame: PICOSECOND"));
+    }
+
+    final TimeFrameSet timeFrameSet = b.build();
+
+    final TimeFrame second = timeFrameSet.get("SECOND");
+    final TimeFrame hour = timeFrameSet.get("HOUR");
+    assertThat(hour.per(second), is(BigFraction.ONE.divide(3_600)));
+    final TimeFrame millisecond = timeFrameSet.get("MILLISECOND");
+    assertThat(hour.per(millisecond), is(BigFraction.ONE.divide(3_600_000)));
+    final TimeFrame nanosecond = timeFrameSet.get("NANOSECOND");
+    assertThat(nanosecond.per(second),
+        is(BigFraction.ONE.multiply(1_000_000_000)));
   }
 
   @Test void testEvalFloor() {

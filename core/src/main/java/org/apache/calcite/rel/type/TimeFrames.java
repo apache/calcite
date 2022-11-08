@@ -34,8 +34,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.math.BigInteger;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.EPOCH_JULIAN;
@@ -235,16 +237,49 @@ public class TimeFrames {
           : BigInteger.valueOf(number.longValue());
     }
 
-    @Override public BuilderImpl addCore(String name) {
-      map.put(name, new CoreFrame(frameSetSupplier, name));
+    /** Returns the time frame with the given name,
+     * or throws {@link IllegalArgumentException}. */
+    TimeFrameImpl getFrame(String name) {
+      final TimeFrameImpl timeFrame = map.get(name);
+      if (timeFrame == null) {
+        throw new IllegalArgumentException("unknown frame: " + name);
+      }
+      return timeFrame;
+    }
+
+    /** Adds a frame.
+     *
+     * <p>If a frame with this name already exists, throws
+     * {@link IllegalArgumentException} and leaves the builder in the same
+     * state.
+     *
+     * <p>It is very important that we don't allow replacement of frames.
+     * If replacement were allowed, people would be able to create a DAG
+     * (e.g. two routes from DAY to MONTH with different multipliers)
+     * or a cycle (e.g. one SECOND equals 1,000 MILLISECOND
+     * and one MILLISECOND equals 20 SECOND). Those scenarios give rise to
+     * inconsistent multipliers. */
+    private BuilderImpl addFrame(String name, TimeFrameImpl frame) {
+      final TimeFrameImpl previousFrame =
+          map.put(name, requireNonNull(frame, "frame"));
+      if (previousFrame != null) {
+        // There was already a frame with that name. Replace the old frame
+        // (so that that builder is still valid usable) and throw.
+        map.put(name, previousFrame);
+        throw new IllegalArgumentException("duplicate frame: " + name);
+      }
       return this;
+    }
+
+    @Override public BuilderImpl addCore(String name) {
+      return addFrame(name, new CoreFrame(frameSetSupplier, name));
     }
 
     /** Defines a time unit that consists of {@code count} instances of
      * {@code baseUnit}. */
     BuilderImpl addSub(String name, boolean divide, Number count,
         String baseName, TimestampString epoch) {
-      final TimeFrameImpl baseFrame = get(baseName);
+      final TimeFrameImpl baseFrame = getFrame(baseName);
       final BigInteger factor = toBigInteger(count);
 
       final CoreFrame coreFrame = baseFrame.core();
@@ -252,28 +287,16 @@ public class TimeFrames {
           ? baseFrame.coreMultiplier().divide(factor)
           : baseFrame.coreMultiplier().multiply(factor);
 
-      map.put(name,
+      return addFrame(name,
           new SubFrame(name, baseFrame, divide, factor, coreFrame, coreFactor,
               epoch));
-      return this;
     }
 
     @Override public BuilderImpl addQuotient(String name,
         String minorName, String majorName) {
-      final TimeFrameImpl minorFrame = get(minorName);
-      final TimeFrameImpl majorFrame = get(majorName);
-      map.put(name, new QuotientFrame(name, minorFrame, majorFrame));
-      return this;
-    }
-
-    /** Returns the time frame with the given name,
-     * or throws {@link IllegalArgumentException}. */
-    TimeFrameImpl get(String name) {
-      final TimeFrameImpl timeFrame = map.get(name);
-      if (timeFrame == null) {
-        throw new IllegalArgumentException("unknown frame: " + name);
-      }
-      return timeFrame;
+      final TimeFrameImpl minorFrame = getFrame(minorName);
+      final TimeFrameImpl majorFrame = getFrame(majorName);
+      return addFrame(name, new QuotientFrame(name, minorFrame, majorFrame));
     }
 
     @Override public BuilderImpl addMultiple(String name, Number count,
@@ -287,8 +310,8 @@ public class TimeFrames {
     }
 
     @Override public BuilderImpl addRollup(String fromName, String toName) {
-      final TimeFrameImpl fromFrame = get(fromName);
-      final TimeFrameImpl toFrame = get(toName);
+      final TimeFrameImpl fromFrame = getFrame(fromName);
+      final TimeFrameImpl toFrame = getFrame(toName);
       rollupList.put(fromFrame, toFrame);
       return this;
     }
@@ -309,11 +332,8 @@ public class TimeFrames {
     }
 
     @Override public BuilderImpl addAlias(String name, String originalName) {
-      final TimeFrameImpl frame =
-          requireNonNull(map.get(originalName),
-              () -> "unknown frame " + originalName);
-      map.put(name, new AliasFrame(name, frame));
-      return this;
+      final TimeFrameImpl frame = getFrame(originalName);
+      return addFrame(name, new AliasFrame(name, frame));
     }
 
     // Extra methods for Avatica's built-in time frames.
@@ -365,22 +385,43 @@ public class TimeFrames {
     }
 
     @Override public @Nullable BigFraction per(TimeFrame timeFrame) {
+      // Note: The following algorithm is not very efficient. It becomes less
+      // efficient as the number of time frames increases. A more efficient
+      // algorithm would be for TimeFrameSet.Builder.build() to call this method
+      // for each pair of time frames and cache the results in a list:
+      //
+      //   (coreFrame,
+      //   [(subFrame0, multiplier0),
+      //    ...
+      //    (subFrameN, multiplierN)])
+
       final Map<TimeFrame, BigFraction> map = new HashMap<>();
       final Map<TimeFrame, BigFraction> map2 = new HashMap<>();
       expand(map, BigFraction.ONE);
       ((TimeFrameImpl) timeFrame).expand(map2, BigFraction.ONE);
+      final Set<BigFraction> fractions = new HashSet<>();
       for (Map.Entry<TimeFrame, BigFraction> entry : map.entrySet()) {
-        // We assume that if there are multiple units in common, the multipliers
-        // are the same for all.
-        //
-        // If they are not, it will be because the user defined the units
-        // inconsistently. TODO: check for that in the builder.
         final BigFraction value2 = map2.get(entry.getKey());
         if (value2 != null) {
-          return value2.divide(entry.getValue());
+          fractions.add(value2.divide(entry.getValue()));
         }
       }
-      return null;
+
+      switch (fractions.size()) {
+      case 0:
+        // There is no path from this TimeFrame to that.
+        return null;
+      case 1:
+        return Iterables.getOnlyElement(fractions);
+      default:
+        // If there are multiple units in common, the multipliers must be the
+        // same for all. If they are not, the must have somehow created a
+        // TimeFrameSet that has multiple paths between units (i.e. a DAG),
+        // or has a cycle. TimeFrameSet.Builder is supposed to prevent all of
+        // these, and so we throw an AssertionError.
+        throw new AssertionError("inconsistent multipliers for " + this
+            + ".per(" + timeFrame + "): " + fractions);
+      }
     }
 
     protected void expand(Map<TimeFrame, BigFraction> map, BigFraction f) {
