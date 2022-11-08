@@ -685,6 +685,63 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference NULLABLE_MOD =
       DECIMAL_MOD_NULLABLE.orElse(ARG1_NULLABLE);
 
+  public static final SqlReturnTypeInference DECIMAL_TRUNCATE = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type1 = opBinding.getOperandType(0);
+    Integer scale2 = 0;
+    try {
+      scale2 = opBinding.getOperandLiteralValue(1, Integer.class);
+    } catch (Exception e) {
+      //ignore
+    }
+    return typeFactory.getTypeSystem().deriveDecimalTruncateType(typeFactory, type1, scale2);
+  };
+
+  /**
+   * Type-inference strategy whereby the result type of a call is the decimal
+   * truncate of two exact numeric operands where at least one of the operands is a
+   * decimal.
+   */
+  public static final SqlReturnTypeInference DECIMAL_TRUNCATE_NULLABLE =
+      cascade(DECIMAL_TRUNCATE, SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is
+   * {@link #DECIMAL_TRUNCATE_NULLABLE} with a fallback to {@link #ARG0_NULLABLE}
+   * These rules are used for truncate.
+   */
+  public static final SqlReturnTypeInference NULLABLE_TRUNCATE =
+      chain(DECIMAL_TRUNCATE_NULLABLE, ARG0_NULLABLE);
+
+
+  public static final SqlReturnTypeInference DECIMAL_ROUND = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type1 = opBinding.getOperandType(0);
+    Integer scale2 = 0;
+    try {
+      scale2 = opBinding.getOperandLiteralValue(1, Integer.class);
+    } catch (Exception e) {
+      //ignore
+    }
+    return typeFactory.getTypeSystem().deriveDecimalRoundType(typeFactory, type1, scale2);
+  };
+
+  /**
+   * Type-inference strategy whereby the result type of a call is the decimal
+   * round of two exact numeric operands where at least one of the operands is a
+   * decimal.
+   */
+  public static final SqlReturnTypeInference DECIMAL_ROUND_NULLABLE =
+      cascade(DECIMAL_ROUND, SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is
+   * {@link #DECIMAL_ROUND_NULLABLE} with a fallback to {@link #ARG0_NULLABLE}
+   * These rules are used for round.
+   */
+  public static final SqlReturnTypeInference NULLABLE_ROUND =
+      chain(DECIMAL_ROUND_NULLABLE, ARG0_NULLABLE);
+
   /**
    * Type-inference strategy for concatenating two string arguments. The result
    * type of a call is:
