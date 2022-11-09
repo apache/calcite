@@ -443,7 +443,7 @@ public abstract class SqlUtil {
     for (SqlNode operand : operandList) {
       if (operand instanceof SqlCharStringLiteral) {
         node = operand.toString().contains("\\") ? replaceSingleBackslashes(operand) : operand;
-        node = operand.toString().contains("\n") ? replaceNewLineChar(node) : node;
+        node = node.toString().contains("\n") ? replaceNewLineChar(node) : node;
         operandList.set(operandList.indexOf(operand), node);
       }
     }

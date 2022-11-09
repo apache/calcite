@@ -1115,7 +1115,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame substringFrame = writer.startFunCall("INSTR");
+    final SqlWriter.Frame instrFrame = writer.startFunCall("INSTR");
     for (SqlNode operand : call.getOperandList()) {
       if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
         operand = SqlUtil.replaceSingleBackslashes(operand);
@@ -1123,11 +1123,11 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }
-    writer.endFunCall(substringFrame);
+    writer.endFunCall(instrFrame);
   }
 
   private void unParseTranslate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame substringFrame = writer.startFunCall("TRANSLATE");
+    final SqlWriter.Frame translateFuncFrame = writer.startFunCall("TRANSLATE");
     for (SqlNode operand : call.getOperandList()) {
       if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
         operand = SqlUtil.replaceSingleBackslashes(operand);
@@ -1135,7 +1135,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }
-    writer.endFunCall(substringFrame);
+    writer.endFunCall(translateFuncFrame);
   }
 
   private void unparseBoolean(SqlWriter writer, SqlCall call) {
