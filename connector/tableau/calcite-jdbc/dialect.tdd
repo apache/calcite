@@ -1543,14 +1543,14 @@
       <argument type='datetime' />
     </date-function>
     <date-function name='DATEDIFF' return-type='int'>
-      <formula part='year'>TIMESTAMP(DATETIME_DIFF(DATETIME(%2), DATETIME(%3), YEAR))</formula>
-      <formula part='quarter'>TIMESTAMP(DATETIME_DIFF(DATETIME(%2), DATETIME(%3), QUARTER))</formula>
-      <formula part='month'>TIMESTAMP(DATETIME_DIFF(DATETIME(%2), DATETIME(%3), MONTH))</formula>
-      <formula part='dayofyear'>TIMESTAMP(DATETIME_DIFF(DATETIME(%2), DATETIME(%3), DAY))</formula>
+      <formula part='year'>DATETIME_DIFF(DATETIME(%2), DATETIME(%3), YEAR)</formula>
+      <formula part='quarter'>DATETIME_DIFF(DATETIME(%2), DATETIME(%3), QUARTER)</formula>
+      <formula part='month'>DATETIME_DIFF(DATETIME(%2), DATETIME(%3), MONTH)</formula>
+      <formula part='dayofyear'>DATETIME_DIFF(DATETIME(%2), DATETIME(%3), DAY)</formula>
       <formula part='day'>TIMESTAMP_DIFF((%2), (%3), DAY)</formula>
       <!-- TODO: Expected semantics unclear. This is based off the example dialect. -->
-      <formula part='weekday'>TIMESTAMP(DATETIME_DIFF(DATETIME(%2), DATETIME(%3), DAY))</formula>
-      <formula part='week'>TIMESTAMP(DATETIME_DIFF(DATETIME(%2), DATETIME(%3), WEEK))</formula>
+      <formula part='weekday'>DATETIME_DIFF(DATETIME(%2), DATETIME(%3), DAY)</formula>
+      <formula part='week'>DATETIME_DIFF(DATETIME(%2), DATETIME(%3), WEEK)</formula>
       <formula part='hour'>TIMESTAMP_DIFF((%2), (%3), HOUR)</formula>
       <formula part='minute'>TIMESTAMP_DIFF((%2), (%3), MINUTE)</formula>
       <formula part='second'>TIMESTAMP_DIFF((%2), (%3), SECOND)</formula>
