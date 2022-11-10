@@ -25,24 +25,31 @@
     <vendor name="Apache Software Foundation"/>
     <driver name="Calcite JDBC Driver"/>
     <customizations>
+      <!-- Tableau was breaking on connection when this was not supressed: -->
       <customization name="CAP_SUPPRESS_TEMP_TABLE_CHECKS" value="yes"/>
-      <customization name="CAP_SELECT_INTO" value="no"/>
-      <customization name="CAP_SELECT_TOP_INTO" value="no"/>
+      <!-- Different from BigQuery: -->
+      <!--customization name="CAP_FAST_METADATA" value="no"/-->
+      <customization name="CAP_QUERY_JOIN_ACROSS_SCHEMAS" value="no"/>
+      <customization name="CAP_QUERY_HAVING_REQUIRES_GROUP_BY" value="yes"/>
+      <!-- Same as BigQuery: -->
       <customization name="CAP_CREATE_TEMP_TABLES" value="no"/>
-      <customization name="CAP_TEMP_TABLES_NOT_SESSION_SCOPED" value="no"/>
-      <customization name="CAP_QUERY_BOOLEXPR_TO_INTEXPR" value="no"/>
+      <customization name="CAP_QUERY_GROUP_BY_ALIAS" value="no"/>
       <customization name="CAP_QUERY_GROUP_BY_BOOL" value="yes"/>
       <customization name="CAP_QUERY_GROUP_BY_DEGREE" value="yes"/>
+      <customization name="CAP_QUERY_INCLUDE_GROUP_BY_COLUMNS_IN_SELECT" value="yes"/>
+      <customization name="CAP_QUERY_INOUT_JOINS" value="no"/>
+      <customization name="CAP_QUERY_JOIN_MISMATCHED_VARCHAR_WIDTHS" value="no"/>
+      <customization name="CAP_QUERY_SCALAR_SELECTS_ALL_IN_GROUP_BYS" value="yes"/>
       <customization name="CAP_QUERY_SORT_BY" value="yes"/>
       <customization name="CAP_QUERY_SUBQUERIES" value="yes"/>
       <customization name="CAP_QUERY_TOP_N" value="yes"/>
-      <customization name="CAP_QUERY_TOP_SAMPLE" value="yes"/>
-      <customization name="CAP_QUERY_TOP_SAMPLE_PERCENT" value="yes"/>
-      <customization name="CAP_QUERY_WHERE_FALSE_METADATA" value="yes"/>
-      <customization name="CAP_QUERY_SUBQUERIES_WITH_TOP" value="yes"/>
-      <customization name="CAP_SUPPORTS_SPLIT_FROM_LEFT" value="yes"/>
-      <customization name="CAP_SUPPORTS_SPLIT_FROM_RIGHT" value="yes"/>
+      <customization name="CAP_QUERY_TOP_PERCENT" value="no"/>
+      <customization name="CAP_QUERY_TOP_SAMPLE" value="no"/>
+      <customization name="CAP_QUERY_TOP_SAMPLE_PERCENT" value="no"/>
+      <customization name="CAP_SELECT_INTO" value="no"/>
+      <customization name="CAP_SELECT_TOP_INTO" value="no"/>
       <customization name="CAP_SUPPORTS_UNION" value="yes"/>
+      <!-- Semantics still unclear: -->
       <customization name="CAP_QUERY_ALLOW_PARTIAL_AGGREGATION" value="no"/>
       <customization name="CAP_QUERY_TIME_REQUIRES_CAST" value="yes"/>
     </customizations>
