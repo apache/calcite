@@ -51,6 +51,11 @@
   pronouns: he/him
   org: ByteDance
   role: Committer
+- name: Bertil Chapuis
+  apacheId: bchapuis
+  githubId: bchapuis
+  org: HEIG-VD
+  role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
   githubId: chris-baynes
