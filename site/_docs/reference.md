@@ -2584,7 +2584,7 @@ semantics.
 | o p | CHR(integer)                                 | Returns the character whose UTF-8 code is *integer*
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
-| m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
+| b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
