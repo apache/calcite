@@ -539,7 +539,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, BIG_QUERY})
   public static final SqlFunction CONCAT_FUNCTION =
       new SqlFunction("CONCAT",
           SqlKind.OTHER_FUNCTION,

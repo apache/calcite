@@ -1834,6 +1834,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     checkConcatFunc(f.withLibrary(SqlLibrary.MYSQL));
     checkConcatFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkConcatFunc(f.withLibrary(SqlLibrary.BIG_QUERY));
     checkConcat2Func(f.withLibrary(SqlLibrary.ORACLE));
   }
 
