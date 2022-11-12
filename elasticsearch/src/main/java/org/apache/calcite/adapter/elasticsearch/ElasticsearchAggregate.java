@@ -141,7 +141,7 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
       }
 
       final ObjectNode aggregation = mapper.createObjectNode();
-      final ObjectNode field = aggregation.with(toElasticAggregate(aggCall));
+      final ObjectNode field = aggregation.withObject("/" + toElasticAggregate(aggCall));
 
       final String name = names.isEmpty() ? ElasticsearchConstants.ID : names.get(0);
       field.put("field", implementor.expressionItemMap.getOrDefault(name, name));
