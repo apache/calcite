@@ -2599,6 +2599,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5377">[CALCITE-5377]
+   * RelFieldTrimmer support Sort with dynamic param</a>. */
+  @Test void testDynamicParameterSortWithTrim() {
+    final String sql = "select ename from "
+        + "(select * from emp order by sal limit ? offset ?) a";
+    sql(sql).withTrim(true).ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3183">[CALCITE-3183]
    * Trimming method for Filter rel uses wrong traitSet</a>. */
   @SuppressWarnings("rawtypes")
