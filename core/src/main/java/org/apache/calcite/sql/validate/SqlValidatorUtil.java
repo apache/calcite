@@ -1298,6 +1298,8 @@ public class SqlValidatorUtil {
    * <p>For a measure, {@code selectItem} will have the form
    * {@code AS(MEASURE(exp), alias)} and this method returns {@code exp}. */
   public static @Nullable SqlNode getMeasure(SqlNode selectItem) {
+    // The implementation of this method will be extended when we add the
+    // 'AS MEASURE' construct in [CALCITE-4496].
     return null;
   }
 
