@@ -1619,6 +1619,19 @@ LogicalProject(EXPR$0=[CAST(?0):CHAR(1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDynamicParameterSortWithTrim">
+    <Resource name="sql">
+      <![CDATA[select ename from (select * from emp order by sal limit ? offset ?) a]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[?1], fetch=[?0])
+    LogicalProject(ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDynamicSchemaUnnest">
     <Resource name="sql">
       <![CDATA[select t1.c_nationkey, t3.fake_col3
