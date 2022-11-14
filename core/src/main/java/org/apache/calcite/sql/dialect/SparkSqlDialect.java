@@ -668,6 +668,9 @@ public class SparkSqlDialect extends SqlDialect {
     case "DATE_DIFF":
       unparseDateDiff(writer, call, leftPrec, rightPrec);
       break;
+    case "DATE_MOD":
+      unparseDateModule(writer, call, leftPrec, rightPrec);
+      break;
     case "ERROR":
       SqlCall errorCall = RAISE_ERROR.createCall(SqlParserPos.ZERO, (SqlNode) call.operand(0));
       super.unparseCall(writer, errorCall, leftPrec, rightPrec);

@@ -115,6 +115,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
@@ -10658,5 +10659,20 @@ class RelToSqlConverterTest {
     sql(query)
         .withSpark()
         .ok(expectedSparkSql);
+  }
+
+  @Test public void testModOperationOnDateField() {
+    final RelBuilder builder = relBuilder();
+    final RexNode modRex = builder.call(
+        DATE_MOD, builder.call(CURRENT_DATE),
+        builder.literal(2));
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(modRex, "current_date"))
+        .build();
+    final String expectedSql = "SELECT"
+        + "MOD((YEAR(CURRENT_DATE) - 1900) * 10000 + MONTH(CURRENT_DATE)  * 100 + "
+        + "DAY(CURRENT_DATE) , 2) current_date\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }
 }
