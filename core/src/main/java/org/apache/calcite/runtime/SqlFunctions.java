@@ -60,6 +60,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +69,6 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -1939,41 +1940,58 @@ public class SqlFunctions {
         : (Short) cannotConvert(o, short.class);
   }
 
-  /** Converts the Java type used for UDF parameters of SQL DATE type
-   * ({@link java.sql.Date}) to internal representation (int).
+  /**
+   * Converts a SQL DATE value from the Java type ({@link java.sql.Date}) to the internal
+   * representation type (number of days since January 1st, 1970 as {@code int}).
    *
-   * <p>Converse of {@link #internalToDate(int)}. */
-  public static int toInt(java.util.Date v) {
-    return toInt(v, LOCAL_TZ);
+   * <p>Since a time zone is not available, the date is converted to represent the same date as a
+   * unix date in UTC as the {@link java.sql.Date} value in the local time zone.</p>
+   *
+   * <p>The {@link java.sql.Date} class uses the standard Gregorian calendar which switches from
+   * the Julian calendar to the Gregorian calendar in October 1582. For compatibility with
+   * ISO-8601, the internal representation is converted to use the proleptic Gregorian calendar.</p>
+   *
+   * <p>If the date contains a partial day, it will be rounded to a full day depending on the
+   * milliseconds value. If the milliseconds value is positive, it will be rounded down to the
+   * closest full day. If the milliseconds value is negative, it will be rounded up to the closest
+   * full day.</p>
+   *
+   * @see #toIntOptional(Date)
+   * @see #internalToDate(int) converse method
+   */
+  public static int toInt(java.sql.Date v) {
+    return DateTimeUtils.sqlDateToUnixDate(v, LOCAL_TZ);
   }
 
-  public static int toInt(java.util.Date v, TimeZone timeZone) {
-    return (int) (toLong(v, timeZone)  / DateTimeUtils.MILLIS_PER_DAY);
-  }
-
-  public static @PolyNull Integer toIntOptional(java.util.@PolyNull Date v) {
+  /**
+   * Converts a nullable SQL DATE value from the Java type ({@link java.sql.Date}) to the internal
+   * representation type (number of days since January 1st, 1970 as {@link Integer}).
+   *
+   * @see #toInt(Date)
+   * @see #internalToDate(Integer) converse method
+   */
+  public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Date v) {
     return v == null ? castNonNull(null) : toInt(v);
   }
 
-  public static @PolyNull Integer toIntOptional(java.util.@PolyNull Date v,
-      TimeZone timeZone) {
-    return v == null
-        ? castNonNull(null)
-        : toInt(v, timeZone);
-  }
-
-  public static long toLong(Date v) {
-    return toLong(v, LOCAL_TZ);
-  }
-
-  /** Converts the Java type used for UDF parameters of SQL TIME type
-   * ({@link java.sql.Time}) to internal representation (int).
+  /**
+   * Converts a SQL TIME value from the Java type ({@link java.sql.Time}) to the internal
+   * representation type (number of milliseconds as {@code int}).
    *
-   * <p>Converse of {@link #internalToTime(int)}. */
+   * @see #toIntOptional(Time)
+   * @see #internalToTime(int) converse method
+   */
   public static int toInt(java.sql.Time v) {
-    return (int) (toLong(v) % DateTimeUtils.MILLIS_PER_DAY);
+    return DateTimeUtils.sqlTimeToUnixTime(v, LOCAL_TZ);
   }
 
+  /**
+   * Converts a nullable SQL TIME value from the Java type ({@link java.sql.Time}) to the internal
+   * representation type (number of milliseconds as {@link Integer}).
+   *
+   * @see #toInt(Time)
+   * @see #internalToTime(Integer) converse method
+   */
   public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Time v) {
     return v == null ? castNonNull(null) : toInt(v);
   }
@@ -1990,7 +2008,8 @@ public class SqlFunctions {
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
-        : o instanceof java.util.Date ? toInt((java.util.Date) o)
+        : o instanceof java.sql.Date ? toInt((java.sql.Date) o)
+        : o instanceof java.sql.Time ? toInt((java.sql.Time) o)
         : (Integer) cannotConvert(o, int.class);
   }
 
@@ -1998,32 +2017,87 @@ public class SqlFunctions {
     return o == null ? castNonNull(null) : toInt(o);
   }
 
-  /** Converts the Java type used for UDF parameters of SQL TIMESTAMP type
-   * ({@link java.sql.Timestamp}) to internal representation (long).
+  /**
+   * Converts a SQL TIMESTAMP value from the Java type ({@link java.util.Date}) to the internal
+   * representation type (number of milliseconds since January 1st, 1970 UTC as {@code long}).
    *
-   * <p>Converse of {@link #internalToTimestamp(long)}. */
+   * <p>Since a time zone is not available, the timestamp is converted to represent the same date
+   * and time as a unix timestamp in UTC as the {@link java.util.Date} value in the local time
+   * zone.</p>
+   *
+   * <p>The {@link java.util.Date} class uses the standard Gregorian calendar which switches from
+   * the Julian calendar to the Gregorian calendar in October 1582. For compatibility with
+   * ISO-8601, the internal representation is converted to use the proleptic Gregorian calendar.
+   * </p>
+   */
+  public static long toLong(java.util.Date v) {
+    return DateTimeUtils.utilDateToUnixTimestamp(v, LOCAL_TZ);
+  }
+
+  /**
+   * Converts a SQL TIMESTAMP value from the Java type ({@link Timestamp}) to the internal
+   * representation type (number of milliseconds since January 1st, 1970 UTC as {@code long}).
+   *
+   * <p>Since a time zone is not available, the timestamp is converted to represent the same date
+   * and time as a unix timestamp in UTC as the {@link Timestamp} value in the local time zone.</p>
+   *
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp)
+   * @see #toLongOptional(Timestamp, TimeZone)
+   * @see #internalToTimestamp(Long) converse method
+   */
   public static long toLong(Timestamp v) {
     return toLong(v, LOCAL_TZ);
   }
 
-  // mainly intended for java.sql.Timestamp but works for other dates also
-  @SuppressWarnings("JavaUtilDate")
-  public static long toLong(java.util.Date v, TimeZone timeZone) {
-    final long time = v.getTime();
-    return time + timeZone.getOffset(time);
+  /**
+   * Converts a SQL TIMESTAMP value from the Java type ({@link Timestamp}) to the internal
+   * representation type (number of milliseconds since January 1st, 1970 UTC as {@code long}).
+   *
+   * <p>For backwards compatibility, time zone offsets are calculated in relation to the local time
+   * zone instead of UTC. Providing the default time zone or {@code null} will return the timestamp
+   * unmodified.</p>
+   *
+   * <p>The {@link Timestamp} class uses the standard Gregorian calendar which switches from the
+   * Julian calendar to the Gregorian calendar in October 1582. For compatibility with ISO-8601,
+   * the internal representation is converted to use the proleptic Gregorian calendar.</p>
+   *
+   * @see #toLong(Timestamp)
+   * @see #toLongOptional(Timestamp)
+   * @see #toLongOptional(Timestamp, TimeZone)
+   */
+  public static long toLong(Timestamp v, TimeZone timeZone) {
+    return DateTimeUtils.sqlTimestampToUnixTimestamp(v, timeZone);
   }
 
-  // mainly intended for java.sql.Timestamp but works for other dates also
-  public static @PolyNull Long toLongOptional(java.util.@PolyNull Date v) {
+  /**
+   * Converts a nullable SQL TIMESTAMP value from the Java type ({@link Timestamp}) to the internal
+   * representation type (number of milliseconds since January 1st, 1970 UTC as {@link Long}).
+   *
+   * @see #toLong(Timestamp)
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp, TimeZone)
+   * @see #internalToTimestamp(Long) converse method
+   */
+  public static @PolyNull Long toLongOptional(@PolyNull Timestamp v) {
     return v == null ? castNonNull(null) : toLong(v, LOCAL_TZ);
   }
 
+  /**
+   * Converts a nullable SQL TIMESTAMP value from the Java type ({@link Timestamp}) to the internal
+   * representation type (number of milliseconds since January 1st, 1970 UTC as {@link Long}).
+   *
+   * @see #toLong(Timestamp)
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp)
+   */
   public static @PolyNull Long toLongOptional(@PolyNull Timestamp v, TimeZone timeZone) {
     if (v == null) {
       return castNonNull(null);
     }
     return toLong(v, timeZone);
   }
+
 
   public static long toLong(String s) {
     if (s.startsWith("199") && s.contains(":")) {
@@ -2040,6 +2114,9 @@ public class SqlFunctions {
     return o instanceof Long ? (Long) o
         : o instanceof Number ? toLong((Number) o)
         : o instanceof String ? toLong((String) o)
+        : o instanceof java.sql.Date ? toInt((java.sql.Date) o)
+        : o instanceof java.sql.Time ? toInt((java.sql.Time) o)
+        : o instanceof java.sql.Timestamp ? toLong((java.sql.Timestamp) o)
         : o instanceof java.util.Date ? toLong((java.util.Date) o)
         : (Long) cannotConvert(o, long.class);
   }
@@ -2096,24 +2173,59 @@ public class SqlFunctions {
         : toBigDecimal(o.toString());
   }
 
-  /** Converts the internal representation of a SQL DATE (int) to the Java
-   * type used for UDF parameters ({@link java.sql.Date}). */
+  /**
+   * Converts a SQL DATE value from the internal representation type (number of days since January
+   * 1st, 1970) to the Java type ({@link java.sql.Date}).
+   *
+   * <p>Since a time zone is not available, the date is converted to represent the same date as a
+   * {@link java.sql.Date} in the local time zone as the unix date in UTC.</p>
+   *
+   * <p>The unix date should be the number of days since January 1st, 1970 UTC using the proleptic
+   * Gregorian calendar as defined by ISO-8601. The returned {@link java.sql.Date} object will use
+   * the standard Gregorian calendar which switches from the Julian calendar to the Gregorian
+   * calendar in October 1582.</p>
+   *
+   * @see #internalToDate(Integer)
+   * @see #toIntOptional(Date)
+   * @see #toInt(Date) converse method
+   */
   public static java.sql.Date internalToDate(int v) {
-    final long t = v * DateTimeUtils.MILLIS_PER_DAY;
-    return new java.sql.Date(t - LOCAL_TZ.getOffset(t));
+    final LocalDate date = LocalDate.ofEpochDay(v);
+    return java.sql.Date.valueOf(date);
   }
 
-  /** As {@link #internalToDate(int)} but allows nulls. */
+  /**
+   * Converts a nullable SQL DATE value from the internal representation type (number of days since
+   * January 1st, 1970) to the Java type ({@link java.sql.Date}).
+   *
+   * @see #internalToDate(int)
+   * @see #toIntOptional(Date)
+   * @see #toIntOptional(Date) converse method
+   */
   public static java.sql.@PolyNull Date internalToDate(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToDate(v.intValue());
   }
 
-  /** Converts the internal representation of a SQL TIME (int) to the Java
-   * type used for UDF parameters ({@link java.sql.Time}). */
+  /**
+   * Converts a SQL TIME value from the internal representation type (number of milliseconds) to
+   * the Java type ({@link java.sql.Time}).
+   *
+   * @see #internalToTime(Integer)
+   * @see #toIntOptional(Time)
+   * @see #toInt(Time) converse method
+   */
   public static java.sql.Time internalToTime(int v) {
     return new java.sql.Time(v - LOCAL_TZ.getOffset(v));
   }
 
+  /**
+   * Converts a nullable SQL TIME value from the internal representation type (number of
+   * milliseconds) to the Java type ({@link java.sql.Time}).
+   *
+   * @see #internalToTime(Integer)
+   * @see #toInt(Time)
+   * @see #toIntOptional(Time) converse method
+   */
   public static java.sql.@PolyNull Time internalToTime(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
   }
@@ -2169,12 +2281,42 @@ public class SqlFunctions {
         .toString();
   }
 
-  /** Converts the internal representation of a SQL TIMESTAMP (long) to the Java
-   * type used for UDF parameters ({@link java.sql.Timestamp}). */
+  /**
+   * Converts a SQL TIMESTAMP value from the internal representation type (number of milliseconds
+   * since January 1st, 1970 UTC) to the Java Type ({@link Timestamp}).
+   *
+   * <p>Since a time zone is not available, the timestamp is converted to represent the same
+   * timestamp as a {@link Timestamp} in the local time zone as the unix timestamp in UTC.</p>
+   *
+   * <p>The unix timestamp should be the number of milliseconds since January 1st, 1970 UTC using
+   * the proleptic Gregorian calendar as defined by ISO-8601. The returned {@link Timestamp} object
+   * will use the standard Gregorian calendar which switches from the Julian calendar to the
+   * Gregorian calendar in October 1582.</p>
+   *
+   * @see #internalToTimestamp(Long)
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp)
+   * @see #toLongOptional(Timestamp, TimeZone)
+   * @see #toLong(Timestamp) converse method
+   */
   public static java.sql.Timestamp internalToTimestamp(long v) {
-    return new java.sql.Timestamp(v - LOCAL_TZ.getOffset(v));
+    final LocalDateTime dateTime = LocalDateTime.ofEpochSecond(
+        v / DateTimeUtils.MILLIS_PER_SECOND,
+        (int) (v % DateTimeUtils.MILLIS_PER_SECOND * 1000000),
+        ZoneOffset.UTC);
+    return java.sql.Timestamp.valueOf(dateTime);
   }
 
+  /**
+   * Converts a nullable SQL TIMESTAMP value from the internal representation type (number of
+   * milliseconds since January 1st, 1970 UTC) to the Java Type ({@link Timestamp}).
+   *
+   * @see #internalToTimestamp(long)
+   * @see #toLong(Timestamp)
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp) converse method
+   */
   public static java.sql.@PolyNull Timestamp internalToTimestamp(@PolyNull Long v) {
     return v == null ? castNonNull(null) : internalToTimestamp(v.longValue());
   }

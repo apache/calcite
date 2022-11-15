@@ -293,6 +293,7 @@ public abstract class QuidemTest {
             .connect();
       case "catchall":
         return CalciteAssert.that()
+            .with(CalciteConnectionProperty.TIME_ZONE, "UTC")
             .withSchema("s",
                 new ReflectiveSchema(
                     new CatchallSchema()))

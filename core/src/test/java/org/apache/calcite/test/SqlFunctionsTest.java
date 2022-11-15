@@ -25,11 +25,19 @@ import org.apache.calcite.runtime.Utilities;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
+import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
+import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
+import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
@@ -37,6 +45,9 @@ import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
+import static org.apache.calcite.runtime.SqlFunctions.internalToDate;
+import static org.apache.calcite.runtime.SqlFunctions.internalToTime;
+import static org.apache.calcite.runtime.SqlFunctions.internalToTimestamp;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
@@ -47,6 +58,8 @@ import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toInt;
+import static org.apache.calcite.runtime.SqlFunctions.toLong;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.apache.calcite.test.Matchers.within;
@@ -973,5 +986,238 @@ class SqlFunctionsTest {
     } catch (NullPointerException e) {
       // ok
     }
+  }
+
+  /**
+   * Test that a date in the local time zone converts to a unix timestamp in UTC.
+   */
+  @Test void testToIntWithSqlDate() {
+    assertThat(toInt(new java.sql.Date(0L)), is(0));  // rounded to closest day
+    assertThat(sqlDate("1970-01-01"), is(0));
+    assertThat(sqlDate("1500-04-30"), is(dateStringToUnixDate("1500-04-30")));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by {@code java.sql} and the
+   * proleptic Gregorian calendar used by unix timestamps.
+   */
+  @Test void testToIntWithSqlDateInGregorianShift() {
+    assertThat(sqlDate("1582-10-04"), is(dateStringToUnixDate("1582-10-04")));
+    assertThat(sqlDate("1582-10-05"), is(dateStringToUnixDate("1582-10-15")));
+    assertThat(sqlDate("1582-10-15"), is(dateStringToUnixDate("1582-10-15")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent 0001-01-01 depending on the default time zone. If the
+   * date would fall outside of Anno Domini (AD) when converted to the default time zone, that date
+   * should not be tested.
+   *
+   * <p>Not every time zone has a January 1st 12:00am, so this test skips those dates.
+   */
+  @Test void testToIntWithSqlDateInAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01", i);
+      final java.sql.Date date = java.sql.Date.valueOf(str);
+      final Timestamp timestamp = new Timestamp(date.getTime());
+      if (timestamp.toString().endsWith("00:00:00.0")) {
+        // Test equality if the time is valid in Java
+        assertThat("Converts '" + str + "' from SQL to unix date",
+            toInt(date),
+            is(dateStringToUnixDate(str)));
+      } else {
+        // Test result matches legacy behavior if the time cannot be represented in Java
+        // This probably results in a different date but is pretty rare
+        final long expected =
+            (date.getTime() + DateTimeUtils.DEFAULT_ZONE.getOffset(date.getTime()))
+                / DateTimeUtils.MILLIS_PER_DAY;
+        assertThat("Converts '" + str + "' from SQL to unix date using legacy behavior",
+            toInt(date),
+            is((int) expected));
+      }
+    }
+  }
+
+  /**
+   * Test that a time in the local time zone converts to a unix time in UTC.
+   */
+  @Test void testToIntWithSqlTime() {
+    assertThat(sqlTime("00:00:00"), is(timeStringToUnixDate("00:00:00")));
+    assertThat(sqlTime("23:59:59"), is(timeStringToUnixDate("23:59:59")));
+  }
+
+  /**
+   * Test that a timestamp in the local time zone converts to a unix timestamp in UTC.
+   */
+  @Test void testToLongWithSqlTimestamp() {
+    assertThat(sqlTimestamp("1970-01-01 00:00:00"), is(0L));
+    assertThat(sqlTimestamp("2014-09-30 15:28:27.356"),
+        is(timestampStringToUnixDate("2014-09-30 15:28:27.356")));
+    assertThat(sqlTimestamp("1500-04-30 12:00:00.123"),
+        is(timestampStringToUnixDate("1500-04-30 12:00:00.123")));
+  }
+
+  /**
+   * Test using a custom {@link TimeZone} to calculate the unix timestamp. Timestamps created by a
+   * {@link Calendar} should be converted to a unix timestamp in the given time zone. Timestamps
+   * created by a {@link Timestamp} method should be converted relative to the local time and not
+   * UTC.
+   */
+  @Test void testToLongWithSqlTimestampAndCustomTimeZone() {
+    final Timestamp epoch = java.sql.Timestamp.valueOf("1970-01-01 00:00:00");
+
+    final Calendar utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+    utcCal.set(1970, Calendar.JANUARY, 1, 0, 0, 0);
+    utcCal.set(Calendar.MILLISECOND, 0);
+    assertThat(toLong(new Timestamp(utcCal.getTimeInMillis()), utcCal.getTimeZone()),
+        is(0L));
+
+    final TimeZone est = TimeZone.getTimeZone("GMT-5:00");
+    assertThat(toLong(epoch, est),
+        is(epoch.getTime() + est.getOffset(epoch.getTime())));
+
+    final TimeZone ist = TimeZone.getTimeZone("GMT+5:00");
+    assertThat(toLong(epoch, ist),
+        is(epoch.getTime() + ist.getOffset(epoch.getTime())));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by {@code java.sql} and the
+   * proleptic Gregorian calendar used by unix timestamps.
+   */
+  @Test void testToLongWithSqlTimestampInGregorianShift() {
+    assertThat(sqlTimestamp("1582-10-04 00:00:00"),
+        is(timestampStringToUnixDate("1582-10-04 00:00:00")));
+    assertThat(sqlTimestamp("1582-10-05 00:00:00"),
+        is(timestampStringToUnixDate("1582-10-15 00:00:00")));
+    assertThat(sqlTimestamp("1582-10-15 00:00:00"),
+        is(timestampStringToUnixDate("1582-10-15 00:00:00")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent 0001-01-01 depending on the default time zone. If the
+   * date would fall outside of Anno Domini (AD) when converted to the default time zone, that date
+   * should not be tested.
+   *
+   * <p>Not every time zone has a January 1st 12:00am, so this test skips those dates.
+   */
+  @Test void testToLongWithSqlTimestampInAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01 00:00:00", i);
+      final Timestamp timestamp = Timestamp.valueOf(str);
+      if (timestamp.toString().endsWith("00:00:00.0")) {
+        // Test equality if the time is valid in Java
+        assertThat("Converts '" + str + "' from SQL to unix timestamp",
+            toLong(timestamp),
+            is(timestampStringToUnixDate(str)));
+      } else {
+        // Test result matches legacy behavior if the time cannot be represented in Java
+        // This probably results in a different date but is pretty rare
+        final long expected = timestamp.getTime()
+            + DateTimeUtils.DEFAULT_ZONE.getOffset(timestamp.getTime());
+        assertThat("Converts '" + str + "' from SQL to unix timestamp using legacy behavior",
+            toLong(timestamp),
+            is(expected));
+      }
+    }
+  }
+
+  /**
+   * Test that a unix timestamp converts to a date in the local time zone.
+   */
+  @Test void testInternalToDate() {
+    assertThat(internalToDate(0), is(java.sql.Date.valueOf("1970-01-01")));
+    assertThat(internalToDate(dateStringToUnixDate("1500-04-30")),
+        is(java.sql.Date.valueOf("1500-04-30")));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by {@code java.sql} and the
+   * proleptic Gregorian calendar used by unix timestamps.
+   */
+  @Test void testInternalToDateWithGregorianShift() {
+    // Gregorian shift
+    assertThat(internalToDate(dateStringToUnixDate("1582-10-04")),
+        is(java.sql.Date.valueOf("1582-10-04")));
+    assertThat(internalToDate(dateStringToUnixDate("1582-10-05")),
+        is(java.sql.Date.valueOf("1582-10-15")));
+    assertThat(internalToDate(dateStringToUnixDate("1582-10-15")),
+        is(java.sql.Date.valueOf("1582-10-15")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent all dates depending on the default time zone, but both
+   * the expected and actual assertion values handles that in the same way.
+   */
+  @Test void testInternalToDateWithAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01", i);
+      assertThat(internalToDate(dateStringToUnixDate(str)),
+          is(java.sql.Date.valueOf(str)));
+    }
+  }
+
+  /**
+   * Test that a unix time converts to a SQL time in the local time zone.
+   */
+  @Test void testInternalToTime() {
+    assertThat(internalToTime(0), is(Time.valueOf("00:00:00")));
+    assertThat(internalToTime(86399000), is(Time.valueOf("23:59:59")));
+  }
+
+  /**
+   * Test that a unix timestamp converts to a SQL timestamp in the local time zone.
+   */
+  @Test void testInternalToTimestamp() {
+    assertThat(internalToTimestamp(0),
+        is(Timestamp.valueOf("1970-01-01 00:00:00.0")));
+    assertThat(internalToTimestamp(timestampStringToUnixDate("2014-09-30 15:28:27.356")),
+        is(Timestamp.valueOf("2014-09-30 15:28:27.356")));
+    assertThat(internalToTimestamp(timestampStringToUnixDate("1500-04-30 12:00:00")),
+        is(Timestamp.valueOf("1500-04-30 12:00:00.0")));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by {@code java.sql} and the
+   * proleptic Gregorian calendar used by unix timestamps.
+   */
+  @Test void testInternalToTimestampWithGregorianShift() {
+    assertThat(internalToTimestamp(timestampStringToUnixDate("1582-10-04 00:00:00")),
+        is(Timestamp.valueOf("1582-10-04 00:00:00.0")));
+    assertThat(internalToTimestamp(timestampStringToUnixDate("1582-10-05 00:00:00")),
+        is(Timestamp.valueOf("1582-10-15 00:00:00.0")));
+    assertThat(internalToTimestamp(timestampStringToUnixDate("1582-10-15 00:00:00")),
+        is(Timestamp.valueOf("1582-10-15 00:00:00.0")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent all dates depending on the default time zone, but both
+   * the expected and actual assertion values handles that in the same way.
+   */
+  @Test void testInternalToTimestampWithAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01 00:00:00", i);
+      assertThat(internalToTimestamp(timestampStringToUnixDate(str)),
+          is(Timestamp.valueOf(str)));
+    }
+  }
+
+  private int sqlDate(String str) {
+    return toInt(java.sql.Date.valueOf(str));
+  }
+
+  private int sqlTime(String str) {
+    return toInt(java.sql.Time.valueOf(str));
+  }
+
+  private long sqlTimestamp(String str) {
+    return toLong(java.sql.Timestamp.valueOf(str));
   }
 }
