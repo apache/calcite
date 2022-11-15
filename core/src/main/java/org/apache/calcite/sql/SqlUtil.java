@@ -614,7 +614,6 @@ public abstract class SqlUtil {
             .getOperandCountRange().isValidCount(argTypes.size()));
   }
 
-
   /**
    * Filters an iterator of routines, keeping only those that have the required
    * argument types and names.

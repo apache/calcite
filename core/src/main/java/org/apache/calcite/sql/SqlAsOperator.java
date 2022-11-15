@@ -100,7 +100,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
   }
 
   private SqlNode handleBackSlashes(SqlNode operand) {
-    if (operand.toString().length() < 3 || (!operand.toString().substring(1, 3).equals("\\\\"))) {
+    if (operand.toString().length() < 3 || !operand.toString().substring(1, 3).equals("\\\\")) {
       return operand;
     }
     String modifiedString = operand.toString().replaceAll("\\\\", "\\\\\\\\");
