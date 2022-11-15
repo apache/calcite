@@ -10659,4 +10659,46 @@ class RelToSqlConverterTest {
         .withSpark()
         .ok(expectedSparkSql);
   }
+
+  @Test public void newLineInLiteral() {
+    final String query = "SELECT 'netezza\n to bq'";
+    final String expectedBQSql = "SELECT 'netezza to bq'";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
+  @Test public void newLineInWhereClauseLiteral() {
+    final String query = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"first_name\" ='Maya\n Gutierrez'";
+    final String expectedBQSql = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE first_name = 'Maya Gutierrez'";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
+  @Test public void literalWithBackslashesInSelectWithAlias() {
+    final String query = "SELECT 'No IBL' AS \"FIRST_NM\","
+        + " 'US\\' AS \"AB\", 'Y' AS \"IBL_FG\", 'IBL' AS "
+        + "\"PRSN_ORG_ROLE_CD\"";
+    final String expectedBQSql = "SELECT 'No IBL' AS FIRST_NM,"
+        + " 'US\\\\' AS AB, 'Y' AS IBL_FG,"
+        + " 'IBL' AS PRSN_ORG_ROLE_CD";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
+  @Test public void literalWithBackslashesInSelectList() {
+    final String query = "SELECT \"first_name\", '', '', '', '', '', '\\'\n"
+        + "  FROM \"foodmart\".\"employee\"";
+    final String expectedBQSql = "SELECT first_name, '', '', '', '', '', '\\\\'\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
 }
