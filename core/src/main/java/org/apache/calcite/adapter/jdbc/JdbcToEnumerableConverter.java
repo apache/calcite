@@ -308,8 +308,12 @@ public class JdbcToEnumerableConverter
     switch (sqlTypeName) {
     case DATE:
       return (nullable
-          ? BuiltInMethod.DATE_TO_INT_OPTIONAL
-          : BuiltInMethod.DATE_TO_INT).method;
+          ? (offset
+          ? BuiltInMethod.DATE_TO_INT_OPTIONAL_OFFSET
+          : BuiltInMethod.DATE_TO_INT_OPTIONAL)
+          : (offset
+              ? BuiltInMethod.DATE_TO_INT_OFFSET
+              : BuiltInMethod.DATE_TO_INT)).method;
     case TIME:
       return (nullable
           ? BuiltInMethod.TIME_TO_INT_OPTIONAL
