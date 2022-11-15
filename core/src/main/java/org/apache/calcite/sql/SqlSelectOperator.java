@@ -166,7 +166,6 @@ public class SqlSelectOperator extends SqlOperator {
         select.selectList != null
             ? select.selectList
             : SqlNodeList.of(SqlIdentifier.star(SqlParserPos.ZERO));
-    SqlUtil.processNodeList(selectClause);
     writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
         selectClause);
 

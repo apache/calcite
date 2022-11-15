@@ -44,9 +44,9 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCastFunction;
@@ -67,6 +67,7 @@ import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
 import com.google.common.collect.ImmutableList;
@@ -653,9 +654,54 @@ public class BigQuerySqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case SELECT:
+      SqlSelect select = (SqlSelect) call;
+      SqlNodeList selectClause = select.getSelectList();
+      if (selectClause != null) {
+        processNodeList(selectClause);
+      }
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      break;
+    case NOT_IN:
+    case EQUALS:
+      processNode(call.operand(1), call);
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      break;
+    case AS:
+      SqlNode var = call.operand(0);
+      if (call.operand(0) instanceof SqlCharStringLiteral
+          && (var.toString().contains("\\")
+          && !var.toString().substring(1, 3).startsWith("\\\\"))) {
+        unparseAsOp(writer, call, leftPrec, rightPrec);
+      } else {
+        call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseAsOp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    assert call.operandCount() >= 2;
+    final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
+    SqlNode literalValue = replaceSingleBackslashes(call.operand(0));
+    literalValue.unparse(writer, leftPrec, rightPrec);
+    final boolean needsSpace = true;
+    writer.setNeedWhitespace(needsSpace);
+    writer.sep("AS");
+    writer.setNeedWhitespace(needsSpace);
+    call.operand(1).unparse(writer, SqlStdOperatorTable.AS.getRightPrec(), rightPrec);
+    if (call.operandCount() > 2) {
+      final SqlWriter.Frame frame1 =
+          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
+      for (SqlNode operand : Util.skip(call.getOperandList(), 2)) {
+        writer.sep(",", false);
+        operand.unparse(writer, 0, 0);
+      }
+      writer.endList(frame1);
+    }
+    writer.endList(frame);
   }
 
   private void unparseCastAsInteger(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1118,7 +1164,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame instrFrame = writer.startFunCall("INSTR");
     for (SqlNode operand : call.getOperandList()) {
       if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
-        operand = SqlUtil.replaceSingleBackslashes(operand);
+        operand = replaceSingleBackslashes(operand);
       }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
@@ -1129,8 +1175,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unParseTranslate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame translateFuncFrame = writer.startFunCall("TRANSLATE");
     for (SqlNode operand : call.getOperandList()) {
-      if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
-        operand = SqlUtil.replaceSingleBackslashes(operand);
+      if (operand instanceof SqlCharStringLiteral) {
+        operand = operand.toString().contains("\\") ? replaceSingleBackslashes(operand) : operand;
+        operand = operand.toString().contains("\n") ? replaceNewLineChar(operand) : operand;
       }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
@@ -1746,6 +1793,38 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static String removeSingleQuotes(SqlNode sqlNode) {
     return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
         "");
+  }
+
+  public static void processNode(SqlNode binaryNode, SqlCall call) {
+    if (binaryNode instanceof SqlNodeList) {
+      SqlNodeList operandList = (SqlNodeList) binaryNode;
+      processNodeList(operandList);
+    }
+    if (binaryNode instanceof SqlCharStringLiteral && binaryNode.toString().contains("\n")) {
+      binaryNode = replaceNewLineChar(binaryNode);
+      call.setOperand(1, binaryNode);
+    }
+  }
+
+  public static void processNodeList(SqlNodeList operandList) {
+    SqlNode node;
+    for (SqlNode operand : operandList) {
+      if (operand instanceof SqlCharStringLiteral) {
+        node = operand.toString().contains("\\") ? replaceSingleBackslashes(operand) : operand;
+        node = node.toString().contains("\n") ? replaceNewLineChar(node) : node;
+        operandList.set(operandList.indexOf(operand), node);
+      }
+    }
+  }
+
+  public static SqlNode replaceSingleBackslashes(SqlNode operand) {
+    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\\", "\\\\");
+    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
+  }
+
+  public static SqlNode replaceNewLineChar(SqlNode operand) {
+    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\n", "");
+    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
   }
 
   /**

@@ -422,41 +422,8 @@ public abstract class SqlUtil {
     writer.setNeedWhitespace(needsSpace);
     writer.sep(operator.getName());
     writer.setNeedWhitespace(needsSpace);
-    processNode(call.operand(1), call);
     call.operand(1).unparse(writer, operator.getRightPrec(), rightPrec);
     writer.endList(frame);
-  }
-
-  private static void processNode(SqlNode binaryNode, SqlCall call) {
-    if (binaryNode instanceof SqlNodeList) {
-      SqlNodeList operandList = (SqlNodeList) binaryNode;
-      processNodeList(operandList);
-    }
-    if (binaryNode instanceof SqlCharStringLiteral && binaryNode.toString().contains("\n")) {
-      binaryNode = replaceNewLineChar(binaryNode);
-      call.setOperand(1, binaryNode);
-    }
-  }
-
-  public static void processNodeList(SqlNodeList operandList) {
-    SqlNode node;
-    for (SqlNode operand : operandList) {
-      if (operand instanceof SqlCharStringLiteral) {
-        node = operand.toString().contains("\\") ? replaceSingleBackslashes(operand) : operand;
-        node = node.toString().contains("\n") ? replaceNewLineChar(node) : node;
-        operandList.set(operandList.indexOf(operand), node);
-      }
-    }
-  }
-
-  public static SqlNode replaceSingleBackslashes(SqlNode operand) {
-    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\\", "\\\\");
-    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
-  }
-
-  public static SqlNode replaceNewLineChar(SqlNode operand) {
-    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\n", "");
-    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
   }
 
   /**
