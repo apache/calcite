@@ -60,6 +60,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2007,10 +2009,35 @@ public class SqlFunctions {
   }
 
   // mainly intended for java.sql.Timestamp but works for other dates also
-  @SuppressWarnings("JavaUtilDate")
   public static long toLong(java.util.Date v, TimeZone timeZone) {
-    final long time = v.getTime();
-    return time + timeZone.getOffset(time);
+    final long date = v.getTime();
+    final boolean isLocal = timeZone == LOCAL_TZ;
+
+    final long unixDays;
+    final long unixTime;
+    if (v instanceof java.sql.Date) {
+      unixDays = ((java.sql.Date) v).toLocalDate().toEpochDay();
+      unixTime = isLocal ? 0 : -LOCAL_TZ.getOffset(date);
+    } else if (v instanceof Timestamp) {
+      final LocalDateTime dateTime = ((Timestamp) v).toLocalDateTime();
+      unixDays = 0;
+      unixTime = dateTime.toEpochSecond(ZoneOffset.UTC)
+          * DateTimeUtils.MILLIS_PER_SECOND
+          + date % DateTimeUtils.MILLIS_PER_SECOND
+          + (isLocal ? 0 : -LOCAL_TZ.getOffset(date));
+    } else {
+      unixDays = 0;
+      unixTime = date + (isLocal ? timeZone.getOffset(date) : 0);
+    }
+
+    final int offset;
+    if (!isLocal) {
+      offset = timeZone.getOffset(date);
+    } else {
+      offset = 0;
+    }
+
+    return unixDays * DateTimeUtils.MILLIS_PER_DAY + unixTime + offset;
   }
 
   // mainly intended for java.sql.Timestamp but works for other dates also
@@ -2099,8 +2126,8 @@ public class SqlFunctions {
   /** Converts the internal representation of a SQL DATE (int) to the Java
    * type used for UDF parameters ({@link java.sql.Date}). */
   public static java.sql.Date internalToDate(int v) {
-    final long t = v * DateTimeUtils.MILLIS_PER_DAY;
-    return new java.sql.Date(t - LOCAL_TZ.getOffset(t));
+    final LocalDate date = LocalDate.ofEpochDay(v);
+    return java.sql.Date.valueOf(date);
   }
 
   /** As {@link #internalToDate(int)} but allows nulls. */
@@ -2172,7 +2199,11 @@ public class SqlFunctions {
   /** Converts the internal representation of a SQL TIMESTAMP (long) to the Java
    * type used for UDF parameters ({@link java.sql.Timestamp}). */
   public static java.sql.Timestamp internalToTimestamp(long v) {
-    return new java.sql.Timestamp(v - LOCAL_TZ.getOffset(v));
+    final LocalDateTime dateTime = LocalDateTime.ofEpochSecond(
+        v / DateTimeUtils.MILLIS_PER_SECOND,
+        (int) (v % DateTimeUtils.MILLIS_PER_SECOND * 1000000),
+        ZoneOffset.UTC);
+    return java.sql.Timestamp.valueOf(dateTime);
   }
 
   public static java.sql.@PolyNull Timestamp internalToTimestamp(@PolyNull Long v) {

@@ -51,8 +51,8 @@ public class CatchallSchema {
       new EveryType(
           false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
           false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
-          new java.sql.Date(0), new Time(0), new Timestamp(0),
-          new Date(0), "1", BigDecimal.ZERO),
+          java.sql.Date.valueOf("1970-01-01"), Time.valueOf("00:00:00"),
+          Timestamp.valueOf("1970-01-01 00:00:00"), new Date(0), "1", BigDecimal.ZERO),
       new EveryType(
           true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
           Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,

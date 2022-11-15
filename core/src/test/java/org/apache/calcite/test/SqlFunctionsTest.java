@@ -25,10 +25,13 @@ import org.apache.calcite.runtime.Utilities;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
@@ -55,6 +58,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -973,5 +977,127 @@ class SqlFunctionsTest {
     } catch (NullPointerException e) {
       // ok
     }
+  }
+
+  @Test void testSqlDateToUnixDate() {
+    assertThat(sqlDate("1970-01-01"), is(0));
+    assertThat(sqlDate("1500-04-30"), is(unixDate("1500-04-30")));
+
+    // Gregorian shift
+    assertThat(sqlDate("1582-10-04"), is(unixDate("1582-10-04")));
+    assertThat(sqlDate("1582-10-05"), is(unixDate("1582-10-15")));
+    assertThat(sqlDate("1582-10-15"), is(unixDate("1582-10-15")));
+
+    // Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL
+    for (int i = 1; i <= 9999; ++i) {
+      final String str = String.format(Locale.US, "%04d-01-01", i);
+      assertThat(sqlDate(str), is(unixDate(str)));
+    }
+  }
+
+  @Test void testSqlTimeToUnixTime() {
+    assertThat(sqlTime("00:00:00"), is(unixTime("00:00:00")));
+    assertThat(sqlTime("23:59:59"), is(unixTime("23:59:59")));
+  }
+
+  @Test void testSqlTimestampToUnixTimestamp() {
+    assertThat(sqlTimestamp("1970-01-01 00:00:00"), is(0L));
+    assertThat(sqlTimestamp("2014-09-30 15:28:27.356"),
+        is(unixTimestamp("2014-09-30 15:28:27.356")));
+    assertThat(sqlTimestamp("1500-04-30 12:00:00"), is(unixTimestamp("1500-04-30 12:00:00")));
+
+    // With connection time zone
+    final Timestamp epoch = java.sql.Timestamp.valueOf("1970-01-01 00:00:00");
+
+    final TimeZone est = TimeZone.getTimeZone("GMT-5:00");
+    assertThat(SqlFunctions.toLong(epoch, est),
+        is(epoch.getTime() + est.getOffset(epoch.getTime())));
+
+    final TimeZone ist = TimeZone.getTimeZone("GMT+5:00");
+    assertThat(SqlFunctions.toLong(epoch, ist),
+        is(epoch.getTime() + ist.getOffset(epoch.getTime())));
+
+    // Gregorian shift
+    assertThat(sqlTimestamp("1582-10-04 00:00:00"), is(unixTimestamp("1582-10-04 00:00:00")));
+    assertThat(sqlTimestamp("1582-10-05 00:00:00"), is(unixTimestamp("1582-10-15 00:00:00")));
+    assertThat(sqlTimestamp("1582-10-15 00:00:00"), is(unixTimestamp("1582-10-15 00:00:00")));
+
+    // Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL
+    for (int i = 1; i <= 9999; ++i) {
+      final String str = String.format(Locale.US, "%04d-01-01 00:00:00", i);
+      assertThat(sqlTimestamp(str), is(unixTimestamp(str)));
+    }
+  }
+
+  @Test void testUnixDateToSqlDate() {
+    assertThat(SqlFunctions.internalToDate(0), hasToString("1970-01-01"));
+    assertThat(SqlFunctions.internalToDate(unixDate("1500-04-30")),
+        hasToString("1500-04-30"));
+
+    // Gregorian shift
+    assertThat(SqlFunctions.internalToDate(unixDate("1582-10-04")),
+        hasToString("1582-10-04"));
+    assertThat(SqlFunctions.internalToDate(unixDate("1582-10-05")),
+        hasToString("1582-10-15"));
+    assertThat(SqlFunctions.internalToDate(unixDate("1582-10-15")),
+        hasToString("1582-10-15"));
+
+    // Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL
+    for (int i = 1; i <= 9999; ++i) {
+      final String str = String.format(Locale.US, "%04d-01-01", i);
+      assertThat(SqlFunctions.internalToDate(unixDate(str)),
+          hasToString(str));
+    }
+  }
+
+  @Test void testUnixTimeToSqlTime() {
+    assertThat(SqlFunctions.internalToTime(0), hasToString("00:00:00"));
+    assertThat(SqlFunctions.internalToTime(86399000), hasToString("23:59:59"));
+  }
+
+  @Test void testUnixTimestampToSqlTimestamp() {
+    assertThat(SqlFunctions.internalToTimestamp(0), hasToString("1970-01-01 00:00:00.0"));
+    assertThat(SqlFunctions.internalToTimestamp(unixTimestamp("2014-09-30 15:28:27.356")),
+        hasToString("2014-09-30 15:28:27.356"));
+    assertThat(SqlFunctions.internalToTimestamp(unixTimestamp("1500-04-30 12:00:00")),
+        hasToString("1500-04-30 12:00:00.0"));
+
+    // Gregorian shift
+    assertThat(SqlFunctions.internalToTimestamp(unixTimestamp("1582-10-04 00:00:00")),
+        hasToString("1582-10-04 00:00:00.0"));
+    assertThat(SqlFunctions.internalToTimestamp(unixTimestamp("1582-10-05 00:00:00")),
+        hasToString("1582-10-15 00:00:00.0"));
+    assertThat(SqlFunctions.internalToTimestamp(unixTimestamp("1582-10-15 00:00:00")),
+        hasToString("1582-10-15 00:00:00.0"));
+
+    // Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL
+    for (int i = 1; i <= 9999; ++i) {
+      final String str = String.format(Locale.US, "%04d-01-01 00:00:00", i);
+      assertThat(SqlFunctions.internalToTimestamp(unixTimestamp(str)), hasToString(str + ".0"));
+    }
+  }
+
+  private int sqlDate(String str) {
+    return SqlFunctions.toInt(java.sql.Date.valueOf(str));
+  }
+
+  private int sqlTime(String str) {
+    return SqlFunctions.toInt(java.sql.Time.valueOf(str));
+  }
+
+  private long sqlTimestamp(String str) {
+    return SqlFunctions.toLong(java.sql.Timestamp.valueOf(str));
+  }
+
+  private int unixDate(String str) {
+    return DateTimeUtils.dateStringToUnixDate(str);
+  }
+
+  private int unixTime(String str) {
+    return DateTimeUtils.timeStringToUnixDate(str);
+  }
+
+  private long unixTimestamp(String str) {
+    return DateTimeUtils.timestampStringToUnixDate(str);
   }
 }
