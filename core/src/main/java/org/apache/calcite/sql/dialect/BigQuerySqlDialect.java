@@ -1024,7 +1024,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseCall(writer, parseTimestampCall, leftPrec, rightPrec);
       break;
     case "DATE_MOD":
-      unparseDateModule(writer, call, leftPrec, rightPrec);
+      unparseDateMod(writer, call, leftPrec, rightPrec);
       break;
     case "TIMESTAMPINTMUL":
       unparseTimestampIntMul(writer, call, leftPrec, rightPrec);
