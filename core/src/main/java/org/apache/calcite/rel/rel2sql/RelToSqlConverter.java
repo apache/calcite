@@ -427,20 +427,18 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /**
-   * Check if the project can be converted to * in case of SqlUnpivot
-   * @param projectRel
-   * @param result
-   * @return
+   * Check if the project can be converted to * in case of SqlUnpivot.
    */
   private boolean isStarInUnPivot(Project projectRel, Result result) {
     boolean isStar = false;
-    if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom() instanceof SqlUnpivot) {
+    if (result.node instanceof SqlSelect
+        && ((SqlSelect) result.node).getFrom() instanceof SqlUnpivot) {
       List<RexNode> projectionExpressions = projectRel.getProjects();
       RelDataType inputRowType = projectRel.getInput().getRowType();
       RelDataType projectRowType = projectRel.getRowType();
 
       if (inputRowType.getFieldNames().size() == projectRowType.getFieldNames().size()) {
-        SqlUnpivot sqlUnpivot = ((SqlUnpivot) ((SqlSelect) result.node).getFrom());
+        SqlUnpivot sqlUnpivot = (SqlUnpivot) ((SqlSelect) result.node).getFrom();
         List<String> measureColumnNames =
             sqlUnpivot.measureList.stream()
                 .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
@@ -468,11 +466,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /**
-   * Create {@link SqlUnpivot} type of SqlNode
-   * @param projectRel
-   * @param builder
-   * @param unpivotRelToSqlUtil
-   * @return {@link SqlUnpivot}
+   * Create {@link SqlUnpivot} type of SqlNode.
    */
   private SqlUnpivot createUnpivotSqlNodeWithIncludeNull(Project projectRel,
       SqlImplementor.Builder builder, UnpivotRelToSqlUtil unpivotRelToSqlUtil) {
@@ -486,20 +480,19 @@ public class RelToSqlConverter extends SqlImplementor
       measureColumnSqlIdentifiers.add(new SqlIdentifier(axisColumn, POS));
     }
     SqlNodeList measureList = new SqlNodeList(measureColumnSqlIdentifiers, POS);
-    SqlNodeList aliasOfInSqlNodeList = unpivotRelToSqlUtil.getLogicalValuesList(valuesRel, builder);
-    SqlNodeList inSqlNodeList = new SqlNodeList(unpivotRelToSqlUtil.caseAliasVsThenList.values(), POS);
-    SqlNodeList aliasedInSqlNodeList = getInListForSqlUnpivot(measureList, aliasOfInSqlNodeList, inSqlNodeList);
+    SqlNodeList aliasOfInList = unpivotRelToSqlUtil.getLogicalValuesList(valuesRel, builder);
+    SqlNodeList inSqlNodeList = new SqlNodeList(unpivotRelToSqlUtil.caseAliasVsThenList.values(),
+        POS);
+    SqlNodeList aliasedInSqlNodeList = getInListForSqlUnpivot(measureList, aliasOfInList,
+        inSqlNodeList);
     return new SqlUnpivot(POS, query, true, measureList, axisList, aliasedInSqlNodeList);
   }
 
   /**
-   * Create inList for {@link SqlUnpivot}
-   * @param measureList
-   * @param aliasOfInSqlNodeList
-   * @param inSqlNodeList
-   * @return SqlNodeList
+   * Create inList for {@link SqlUnpivot}.
    */
-  private SqlNodeList getInListForSqlUnpivot(SqlNodeList measureList, SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
+  private SqlNodeList getInListForSqlUnpivot(
+      SqlNodeList measureList, SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
     if (measureList.size() > 1) {
       return createAliasedColumnListTypeOfInListForSqlUnpivot(aliasOfInSqlNodeList, inSqlNodeList);
     } else {
@@ -508,44 +501,47 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /**
-   * If there are multiple measure columns,
-   * then inList will have multiple column's data with single alias corresponding to each measure column
+   * If there are multiple measure columns.
+   * then inList will have multiple column's data with single alias
+   * corresponding to each measure column
    * ex-measureList(monthly_sales, monthly_expense)
    * then inList corresponding to monthly_sales will be (jan_sales,jan_expense) as jan and so on
-   * @param aliasOfInSqlNodeList
-   * @param inSqlNodeList
-   * @return SqlNodeList
    */
-  private SqlNodeList createAliasedColumnListTypeOfInListForSqlUnpivot(SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
+  private SqlNodeList createAliasedColumnListTypeOfInListForSqlUnpivot(
+      SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
     SqlNodeList aliasedInSqlNodeList = new SqlNodeList(POS);
 
     for (int i = 0; i < aliasOfInSqlNodeList.size(); i++) {
       List<SqlIdentifier> sqlIdentifierList = new ArrayList<>();
       for (int j = 0; j < inSqlNodeList.size(); j++) {
-        SqlNodeList sqlNodeList = ((SqlNodeList) inSqlNodeList.get(j));
-        sqlIdentifierList.add(new SqlIdentifier(((SqlIdentifier) sqlNodeList.get(i)).names.get(1), POS));
+        SqlNodeList sqlNodeList = (SqlNodeList) inSqlNodeList.get(j);
+        sqlIdentifierList.add(
+            new SqlIdentifier(((SqlIdentifier) sqlNodeList.get(i)).names.get(1), POS));
       }
-      aliasedInSqlNodeList.add(SqlStdOperatorTable.AS.createCall(POS,
-          SqlLibraryOperators.PARENTHESIS.createCall(POS, sqlIdentifierList), aliasOfInSqlNodeList.get(i)));
+      aliasedInSqlNodeList.add(
+          SqlStdOperatorTable.AS.createCall(POS,
+          SqlLibraryOperators.PARENTHESIS.createCall
+              (POS, sqlIdentifierList), aliasOfInSqlNodeList.get(i)));
     }
     return aliasedInSqlNodeList;
   }
 
   /**
-   * If there is a single measure column ,then inList is a simple list with alias
+   * If there is a single measure column ,then inList is a simple list with alias.
    * ex- measureList(monthly_sales)
    * then inList is jan_sales as jan and so on
-   * @param aliasOfInSqlNodeList
-   * @param inSqlNodeList
-   * @return SqlNodeList
    */
-  private SqlNodeList createAliasedInListForSqlUnpivot(SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
+  private SqlNodeList createAliasedInListForSqlUnpivot(
+      SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
     SqlNodeList aliasedInSqlNodeList = new SqlNodeList(POS);
 
     for (int i = 0; i < aliasOfInSqlNodeList.size(); i++) {
-      SqlNodeList identifierList = ((SqlNodeList)inSqlNodeList.get(0));
-      SqlIdentifier columnName = new SqlIdentifier(((SqlIdentifier) identifierList.get(i)).names.get(1), POS);
-      aliasedInSqlNodeList.add(SqlStdOperatorTable.AS.createCall(POS, columnName, aliasOfInSqlNodeList.get(i)));
+      SqlNodeList identifierList = (SqlNodeList) inSqlNodeList.get(0);
+      SqlIdentifier columnName = new SqlIdentifier(
+          ((SqlIdentifier) identifierList.get(i)).names.get(1), POS);
+      aliasedInSqlNodeList.add(
+          SqlStdOperatorTable.AS.createCall(POS, columnName,
+          aliasOfInSqlNodeList.get(i)));
     }
     return aliasedInSqlNodeList;
   }

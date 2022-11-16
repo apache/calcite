@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.test;
 
 /**
@@ -38,24 +37,24 @@ public class SalesSchema {
   public static class Sales {
     public final int id;
     public final int year;
-    public final int jan_sales;
-    public final int feb_sales;
-    public final int mar_sales;
-    public final int jan_expense;
-    public final int feb_expense;
-    public final int mar_expense;
+    public final int jansales;
+    public final int febsales;
+    public final int marsales;
+    public final int janexpense;
+    public final int febexpense;
+    public final int marexpense;
 
     public Sales(
-        int id, int year, int jan_sales, int feb_sales, int mar_sales,
-        int jan_expense, int feb_expense, int mar_expense) {
+        int id, int year, int jansales, int febsales, int marsales,
+        int janexpense, int febexpense, int marexpense) {
       this.id = id;
       this.year = year;
-      this.jan_sales = jan_sales;
-      this.feb_sales = feb_sales;
-      this.mar_sales = mar_sales;
-      this.jan_expense = jan_expense;
-      this.feb_expense = feb_expense;
-      this.mar_expense = mar_expense;
+      this.jansales = jansales;
+      this.febsales = febsales;
+      this.marsales = marsales;
+      this.janexpense = janexpense;
+      this.febexpense = febexpense;
+      this.marexpense = marexpense;
     }
   }
 }
