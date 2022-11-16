@@ -265,11 +265,15 @@ class RelToSqlConverterTest {
         + "ORDER BY A IS NULL, A";
     final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
         + "ORDER BY A IS NULL, A";
+    final String sparkExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
+        + "ORDER BY A NULLS LAST";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected)
         .withHive()
-        .ok(hiveExpected);
+        .ok(hiveExpected)
+        .withSpark()
+        .ok(sparkExpected);
   }
 
   @Test public void testSimpleSelectWithOrderByAliasDesc() {
@@ -568,11 +572,14 @@ class RelToSqlConverterTest {
     final String bigQueryExpected = "SELECT '1' AS a, SKU + 1 AS B, '1' AS d\n"
         + "FROM foodmart.product\n"
         + "GROUP BY 1, B";
+    final String expectedSpark = "SELECT '1' a, SKU + 1 B, '1' d\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1, B";
     sql(query)
         .withHive()
         .ok(expectedSql)
         .withSpark()
-        .ok(expectedSql)
+        .ok(expectedSpark)
         .withBigQuery()
         .ok(bigQueryExpected);
   }
@@ -1219,7 +1226,12 @@ class RelToSqlConverterTest {
         + "GROUP BY CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT rnk\n"
+        + "FROM (SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
+        + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
+        + "ELSE NULL END rnk\n"
+        + "FROM foodmart.employee) t\n"
+        + "GROUP BY rnk";
     final String expectedBigQuery = "SELECT rnk\n"
         + "FROM (SELECT CASE WHEN CAST(salary AS NUMERIC) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
@@ -1262,7 +1274,11 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee\n"
         + "GROUP BY CASE WHEN (ROW_NUMBER() "
         + "OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END";
-    final String expectedSpark = expectedHive;
+    final String expectedSpark = "SELECT rnk\n"
+        + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE "
+        + "200 END rnk\n"
+        + "FROM foodmart.employee) t\n"
+        + "GROUP BY rnk";
     final String expectedBigQuery = "SELECT rnk\n"
         + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER "
         + "(PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END AS rnk\n"
@@ -7155,11 +7171,16 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "GROUP BY [product_id], MAX([product_id]) OVER (PARTITION BY [product_id] "
         + "ORDER BY [product_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
+    final String expectedSpark = "SELECT product_id, ABC\n"
+        + "FROM (SELECT product_id, MAX(product_id) OVER (PARTITION BY product_id RANGE BETWEEN "
+        + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ABC\n"
+        + "FROM foodmart.product) t\n"
+        + "GROUP BY product_id, ABC";
     sql(query)
       .withHive()
       .ok(expected)
       .withSpark()
-      .ok(expected)
+      .ok(expectedSpark)
       .withBigQuery()
       .ok(expectedBQ)
       .withSnowflake()
@@ -8931,9 +8952,13 @@ class RelToSqlConverterTest {
             + "FROM \"foodmart\".\"product\"";
     final String expectedMssql = "SELECT ROUND(123.41445, 0) AS [a]\n"
             + "FROM [foodmart].[product]";
+    final String expectedSparkSql = "SELECT ROUND(123.41445) a\n"
+            + "FROM foodmart.product";
     sql(query)
             .withMssql()
-            .ok(expectedMssql);
+            .ok(expectedMssql)
+            .withSpark()
+            .ok(expectedSparkSql);
   }
 
   @Test public void testTruncateFunctionWithColumnPlaceHandling() {
@@ -10713,5 +10738,88 @@ class RelToSqlConverterTest {
     final String query = "select round(123.41445, 2)";
     final String expected = "SELECT ROUND(123.41445, 2)";
     sql(query).withSpark().ok(expected);
+  }
+
+  @Test public void testRoundFunctionWithColumn() {
+    final String query = "SELECT round(\"gross_weight\", \"product_id\") AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT UDF_ROUND(gross_weight, product_id) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testRoundFunctionWithColumnAndLiteral() {
+    final String query = "SELECT round(\"gross_weight\", 2) AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT ROUND(gross_weight, 2) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testRoundFunctionWithOnlyColumn() {
+    final String query = "SELECT round(\"gross_weight\") AS \"a\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSparkSql = "SELECT ROUND(gross_weight) a\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void testSortByOrdinalForSpark() {
+    final String query = "SELECT \"product_id\",\"gross_weight\" from \"product\"\n"
+        + "order by 2";
+    final String expectedSparkSql = "SELECT product_id, gross_weight\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY gross_weight NULLS LAST";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
+  @Test public void newLineInLiteral() {
+    final String query = "SELECT 'netezza\n to bq'";
+    final String expectedBQSql = "SELECT 'netezza to bq'";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
+  @Test public void newLineInWhereClauseLiteral() {
+    final String query = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"first_name\" ='Maya\n Gutierrez'";
+    final String expectedBQSql = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE first_name = 'Maya Gutierrez'";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
+  @Test public void literalWithBackslashesInSelectWithAlias() {
+    final String query = "SELECT 'No IBL' AS \"FIRST_NM\","
+        + " 'US\\' AS \"AB\", 'Y' AS \"IBL_FG\", 'IBL' AS "
+        + "\"PRSN_ORG_ROLE_CD\"";
+    final String expectedBQSql = "SELECT 'No IBL' AS FIRST_NM,"
+        + " 'US\\\\' AS AB, 'Y' AS IBL_FG,"
+        + " 'IBL' AS PRSN_ORG_ROLE_CD";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
+  }
+
+  @Test public void literalWithBackslashesInSelectList() {
+    final String query = "SELECT \"first_name\", '', '', '', '', '', '\\'\n"
+        + "  FROM \"foodmart\".\"employee\"";
+    final String expectedBQSql = "SELECT first_name, '', '', '', '', '', '\\\\'\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQSql);
   }
 }
