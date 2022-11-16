@@ -48,6 +48,7 @@ import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.ReflectiveFunctionBase;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
@@ -982,6 +983,9 @@ public class CalciteAssert {
     case FOODMART_TEST:
       return rootSchema.add(schema.schemaName,
           new ReflectiveSchema(new FoodmartTestSchema()));
+    case SALESSCHEMA:
+      return rootSchema.add(schema.schemaName,
+          new ReflectiveSchema(new SalesSchema()));
     default:
       throw new AssertionError("unknown schema " + schema);
     }
@@ -2065,7 +2069,8 @@ public class CalciteAssert {
     ORINOCO("ORINOCO"),
     AUX("AUX"),
     BOOKSTORE("bookstore"),
-    FOODMART_TEST("foodmart");
+    FOODMART_TEST("foodmart"),
+    SALESSCHEMA("SALESSCHEMA");
 
     /** The name of the schema that is usually created from this specification.
      * (Names are not unique, and you can use another name if you wish.) */

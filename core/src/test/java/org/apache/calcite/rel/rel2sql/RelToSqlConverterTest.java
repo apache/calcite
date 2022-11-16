@@ -152,6 +152,16 @@ class RelToSqlConverterTest {
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
+  public static Frameworks.ConfigBuilder salesConfig() {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SALESSCHEMA))
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.ofRules(Programs.RULE_SET));
+  }
+
   /** Initiates a test case with a given {@link RelNode} supplier. */
   private Sql relFn(Function<RelBuilder, RelNode> relFn) {
     return sql("?").relFn(relFn);
@@ -1332,31 +1342,101 @@ class RelToSqlConverterTest {
         .build();
     final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
     final String expectedSql = "SELECT *\n"
-        + "FROM scott.EMP UNPIVOT INCLUDE NULLS (REMUNERATION_TYPE FOR REMUNERATION IN (EMP.COMM "
-        + "AS 'commission', EMP.SAL AS 'salary'))";
+        + "FROM (SELECT *\n"
+        + "FROM scott.EMP) UNPIVOT INCLUDE NULLS (REMUNERATION FOR REMUNERATION_TYPE IN (COMM AS "
+        + "'commission', SAL AS 'salary'))";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
 
-
-  @Test public void testUnpivotWithIncludeNullsAsFalse() {
-    final RelBuilder builder = relBuilder();
-    RelNode root = builder.scan("EMP")
-        .unpivot(false, ImmutableList.of("REMUNERATION"),
-            ImmutableList.of("REMUNERATION_TYPE"),
+  @Test public void testUnpivotWithIncludeNullsAsTrueOnSalesTable() {
+    final RelBuilder builder =  RelBuilder.create(salesConfig().build());
+    RelNode root = builder
+        .scan("sales")
+        .unpivot(true, ImmutableList.of("monthly_sales"),//value_column(measureList)
+            ImmutableList.of("month"),//unpivot_column(axisList)
             Pair.zip(
-                Arrays.asList(ImmutableList.of(builder.literal("commission")),
-                    ImmutableList.of(builder.literal("salary"))),
-                Arrays.asList(ImmutableList.of(builder.field("COMM")),
-                    ImmutableList.of(builder.field("SAL")))))
+                Arrays.asList(ImmutableList.of(builder.literal("jan")),//column_alias
+                    ImmutableList.of(builder.literal("feb")),
+                    ImmutableList.of(builder.literal("march"))),
+                Arrays.asList(ImmutableList.of(builder.field("jan_sales")),//column_list
+                    ImmutableList.of(builder.field("feb_sales")),
+                    ImmutableList.of(builder.field("mar_sales")))))
         .build();
     final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
-    final String expectedSql = "SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, DEPTNO, "
-        + "REMUNERATION_TYPE, CAST(REMUNERATION AS NUMERIC) AS REMUNERATION\n"
-        + "FROM scott.EMP UNPIVOT EXCLUDE NULLS (REMUNERATION_TYPE FOR REMUNERATION IN (EMP.COMM "
-        + "AS 'commission', EMP.SAL AS 'salary'))";
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM SALESSCHEMA.sales) UNPIVOT INCLUDE NULLS (monthly_sales FOR month IN (jan_sales "
+        + "AS 'jan', feb_sales AS 'feb', mar_sales AS 'march'))";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
 
+  @Test public void testUnpivotWithIncludeNullsAsFalseOnSalesTable() {
+    final RelBuilder builder =  RelBuilder.create(salesConfig().build());
+    RelNode root = builder
+        .scan("sales")
+        .unpivot(false, ImmutableList.of("monthly_sales"),//value_column(measureList)
+            ImmutableList.of("month"),//unpivot_column(axisList)
+            Pair.zip(
+                Arrays.asList(ImmutableList.of(builder.literal("jan")),//column_alias
+                    ImmutableList.of(builder.literal("feb")),
+                    ImmutableList.of(builder.literal("march"))),
+                Arrays.asList(ImmutableList.of(builder.field("jan_sales")),//column_list
+                    ImmutableList.of(builder.field("feb_sales")),
+                    ImmutableList.of(builder.field("mar_sales")))))
+        .build();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM SALESSCHEMA.sales) UNPIVOT EXCLUDE NULLS (monthly_sales FOR month IN (jan_sales "
+        + "AS 'jan', feb_sales AS 'feb', mar_sales AS 'march'))";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+  @Test public void testUnpivotWithIncludeNullsAsTrueWithMeasureColumnList() {
+    final RelBuilder builder =  RelBuilder.create(salesConfig().build());
+    RelNode root = builder
+        .scan("sales")
+        .unpivot(true, ImmutableList.of("monthly_sales", "monthly_expense"),//value_column(measureList)
+            ImmutableList.of("month"),//unpivot_column(axisList)
+            Pair.zip(
+                Arrays.asList(ImmutableList.of(builder.literal("jan")),//column_alias
+                    ImmutableList.of(builder.literal("feb")),
+                    ImmutableList.of(builder.literal("march"))),
+                Arrays.asList(ImmutableList.of(builder.field("jan_sales"), builder.field("jan_expense")),//column_list
+                    ImmutableList.of(builder.field("feb_sales"), builder.field("feb_expense")),
+                    ImmutableList.of(builder.field("mar_sales"), builder.field("mar_expense")))))
+        .build();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM SALESSCHEMA.sales) UNPIVOT INCLUDE NULLS ((monthly_sales, monthly_expense) FOR "
+        + "month IN ((jan_sales, jan_expense) AS 'jan', (feb_sales, feb_expense) AS 'feb', "
+        + "(mar_sales, mar_expense) AS 'march'))";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+  @Test public void testUnpivotWithIncludeNullsAsFalseWithMeasureColumnList() {
+    final RelBuilder builder =  RelBuilder.create(salesConfig().build());
+    RelNode root = builder
+        .scan("sales")
+        .unpivot(false, ImmutableList.of("monthly_sales", "monthly_expense"),//value_column(measureList)
+            ImmutableList.of("month"),//unpivot_column(axisList)
+            Pair.zip(
+                Arrays.asList(ImmutableList.of(builder.literal("jan")),//column_alias
+                    ImmutableList.of(builder.literal("feb")),
+                    ImmutableList.of(builder.literal("march"))),
+                Arrays.asList(ImmutableList.of(builder.field("jan_sales"), builder.field("jan_expense")),//column_list
+                    ImmutableList.of(builder.field("feb_sales"), builder.field("feb_expense")),
+                    ImmutableList.of(builder.field("mar_sales"), builder.field("mar_expense")))))
+        .build();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM SALESSCHEMA.sales) UNPIVOT EXCLUDE NULLS ((monthly_sales, monthly_expense) FOR "
+        + "month IN ((jan_sales, jan_expense) AS 'jan', (feb_sales, feb_expense) AS 'feb', "
+        + "(mar_sales, mar_expense) AS 'march'))";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3207">[CALCITE-3207]

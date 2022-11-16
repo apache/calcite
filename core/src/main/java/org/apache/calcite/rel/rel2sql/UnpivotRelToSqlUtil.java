@@ -39,109 +39,176 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
-/** Class to identify Rel structure which is of Unpivot type*/
+/**
+ * Class to identify Rel structure which is of Unpivot type.
+ */
 public class UnpivotRelToSqlUtil {
+  Map<String, SqlNodeList> aliasVsThenList = new HashMap<>();
 
-  /**<p> SQL </p>
+  /**<p> SQL. </p>
    * <blockquote><pre>{@code
    *  SELECT *
    *        FROM emp
-   *        UNPIVOT EXCLUDE NULLS (remuneration
-   *          FOR remuneration_type IN (comm AS 'commission',
-   *                                    sal AS 'salary'))
+   *        UNPIVOT EXCLUDE NULLS (monthly_sales
+   *          FOR month IN (jan_sales AS 'jan',
+   *                                    feb_sales AS 'feb',
+   *                                        mar_sales AS 'mar'))
    *  }</pre></blockquote>
    *
    * <p> Rel creation</p>
    *
    * <blockquote><pre>{@code
-   * builder.scan("EMP")
-   *         .unpivot(false, ImmutableList.of("REMUNERATION"),
-   *             ImmutableList.of("REMUNERATION_TYPE"),
+   *builder
+   *         .scan("sales")
+   *         .unpivot(false, ImmutableList.of("monthly_sales"),//value_column(measureList)
+   *             ImmutableList.of("month"),//unpivot_column(axisList)
    *             Pair.zip(
-   *                 Arrays.asList(ImmutableList.of(builder.literal("commission")),
-   *                     ImmutableList.of(builder.literal("salary"))),
-   *                 Arrays.asList(ImmutableList.of(builder.field("COMM")),
-   *                     ImmutableList.of(builder.field("SAL")))))
-   *         .build()
+   *                 Arrays.asList(ImmutableList.of(builder.literal("jan")),//column_alias
+   *                     ImmutableList.of(builder.literal("feb")),
+   *                     ImmutableList.of(builder.literal("march"))),
+   *                 Arrays.asList(ImmutableList.of(builder.field("jan_sales")),//column_list
+   *                     ImmutableList.of(builder.field("feb_sales")),
+   *                     ImmutableList.of(builder.field("mar_sales")))))
+   *         .build();
    * }</pre></blockquote>
    *
    * <p> Rel with includeNulls = false after expansion
    *     <blockquote><pre>{@code
-   * LogicalProject.NONE.[](input=LogicalFilter#4,inputs=0..6,
-   * exprs=[CAST($7):DECIMAL(7, 2) NOT NULL])
-   *   LogicalFilter(condition=[IS NOT NULL($7)])
-   *     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], DEPTNO=[$7],
-   *     REMUNERATION_TYPE=[$8], REMUNERATION=[CASE(=($8, 'commission'), $6,
-   *     =($8, 'salary'), $5, null:NULL)])
+   *LogicalProject(id=[$0], year=[$1], month=[$2], monthly_sales=[CAST($3):JavaType(int) NOT NULL])
+   *   LogicalFilter(condition=[IS NOT NULL($3)])
+   *     LogicalProject(id=[$0], year=[$1], month=[$5],
+   *     monthly_sales=[CASE(=($5, 'jan'), $2, =($5, 'feb'), $3, =($5, 'march'), $4, null:NULL)])
    *       LogicalJoin(condition=[true], joinType=[inner])
-   *         LogicalTableScan(table=[[scott, EMP]])
-   *         LogicalValues(tuples=[[{ 'commission' }, { 'salary' }]])
+   *         LogicalTableScan(table=[[SALESSCHEMA, sales]])
+   *         LogicalValues(tuples=[[{ 'jan' }, { 'feb' }, { 'march' }]])
    *     }</pre></blockquote>
    *
-   */
+   **/
 
   protected boolean isRelEquivalentToUnpivotExpansionWithExcludeNulls(SqlNode filterNode,
       SqlNode sqlNode) {
     if (sqlNode instanceof SqlSelect && ((SqlSelect) sqlNode).getFrom() instanceof SqlUnpivot) {
-      return isNotNullFilterOnAxisColumn(filterNode, (SqlUnpivot) ((SqlSelect) sqlNode).getFrom());
+      return isFilterNodeEquivalentToUnpivotExpansion(filterNode, ((SqlUnpivot) ((SqlSelect) sqlNode).getFrom()).measureList);
     } else {
       return false;
     }
   }
 
-  private boolean isNotNullFilterOnAxisColumn(SqlNode filterNode, SqlUnpivot sqlUnpivot) {
-    return filterNode.getKind() == SqlKind.IS_NOT_NULL
-        && Objects.equals(((SqlIdentifier) sqlUnpivot.axisList.get(0)).names.get(0),
-        ((SqlIdentifier) ((SqlNode[]) ((SqlBasicCall) filterNode).operands)[0]).names.get(0));
+  /**
+   * Check if filter node is equivalent to unpivot expansion's when include null is false
+   * @param filterNode
+   * @param measureColumnList
+   * @return boolean
+   */
+  private boolean isFilterNodeEquivalentToUnpivotExpansion(SqlNode filterNode, SqlNodeList measureColumnList) {
+    SqlNode[] filterOperands = ((SqlBasicCall)filterNode).operands;
+
+    if(measureColumnList.size() > 1) {
+      return isNotNullPresentOnAllMeasureColumns(filterNode, measureColumnList, filterOperands);
+    } else {
+      return isNotNullPresentOnSingleMeasureColumn(filterNode, measureColumnList, filterOperands);
+    }
   }
 
-  /**<p> SQL </p>
-   * <blockquote><pre>{@code
-   *  SELECT *
-   *        FROM emp
-   *        UNPIVOT INCLUDE NULLS (remuneration
-   *          FOR remuneration_type IN (comm AS 'commission',
-   *                                    sal AS 'salary'))
-   *  }</pre></blockquote>
-   *
-   * <p> Rel creation</p>
-   *
-   * <blockquote><pre>{@code
-   * builder.scan("EMP")
-   *         .unpivot(true, ImmutableList.of("REMUNERATION"),
-   *             ImmutableList.of("REMUNERATION_TYPE"),
-   *             Pair.zip(
-   *                 Arrays.asList(ImmutableList.of(builder.literal("commission")),
-   *                     ImmutableList.of(builder.literal("salary"))),
-   *                 Arrays.asList(ImmutableList.of(builder.field("COMM")),
-   *                     ImmutableList.of(builder.field("SAL")))))
-   *         .build()
-   * }</pre></blockquote>
-   *
-   * <p> Rel with includeNulls = true after expansion
-   * <blockquote><pre>{@code
-   * LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], DEPTNO=[$7],
-   * REMUNERATION_TYPE=[$8], REMUNERATION=[CASE(=($8, 'commission'), $6, =($8, 'salary'), $5,
-   * null:NULL)])
-   *   LogicalJoin(condition=[true], joinType=[inner])
-   *     LogicalTableScan(table=[[scott, EMP]])
-   *     LogicalValues(tuples=[[{ 'commission' }, { 'salary' }]])
-   * }</pre></blockquote>
-   *
+  /**
+   * Check if filter node is equivalent to unpivot expansion when there are multiple measure columns
+   * -if there are multiple measure columns, on unpivot expansion each of the
+   * measure columns have NOT NULL filter on them separated by OR
+   * ex- measureList(monthly_sales,monthly_expense)
+   * then on expansion it becomes monthly_sales IS NOT NULL OR monthly_expense IS NOT NULL
+   * @param filterNode
+   * @param measureColumnList
+   * @param filterOperands
+   * @return boolean
    */
+  private boolean isNotNullPresentOnAllMeasureColumns(SqlNode filterNode, SqlNodeList measureColumnList, SqlNode[] filterOperands) {
+    List<String> measureColumnNames =
+        measureColumnList.stream()
+            .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
+            .collect(Collectors.toList());
+    List<String> filterColumnNames =
+        IntStream.range(0, ((SqlBasicCall) filterNode).operands.length)
+            .filter(i -> ((filterOperands)[i]).getKind() == SqlKind.IS_NOT_NULL)
+            .mapToObj(i -> ((SqlIdentifier) (((SqlBasicCall) (filterOperands)[i]).operands)[0]).names.get(0))
+            .collect(Collectors.toList());
+    return filterNode.getKind() == SqlKind.OR
+        && filterColumnNames.containsAll(measureColumnNames);
+  }
+
+  /**
+   * Check if filter node is equivalent to unpivot expansion when there is single measure column
+   * -if there is single measure column, on unpivot expansion
+   * measure column has NOT NULL filter on it
+   * ex- measureList(monthly_sales)
+   * then on expansion it becomes monthly_sales IS NOT NULL
+   * @param filterNode
+   * @param measureColumnList
+   * @param filterOperands
+   * @return boolean
+   */
+  private boolean isNotNullPresentOnSingleMeasureColumn(SqlNode filterNode, SqlNodeList measureColumnList, SqlNode[] filterOperands) {
+    return filterNode.getKind() == SqlKind.IS_NOT_NULL
+        && Objects.equals(((SqlIdentifier) measureColumnList.get(0)).names.get(0),
+        ((SqlIdentifier) (filterOperands)[0]).names.get(0));
+  }
+
+    /**<p> SQL. </p>
+     * <blockquote><pre>{@code
+     *  SELECT *
+     *        FROM sales
+     *        UNPIVOT INCLUDE NULLS (monthly_sales
+     *          FOR month IN (jan_sales AS 'jan',
+     *                                    feb_sales AS 'feb',
+     *                                        mar_sales AS 'mar'))
+     *  }</pre></blockquote>
+     *
+     * <p> Rel creation</p>
+     *
+     * <blockquote><pre>{@code
+     * builder
+     *         .scan("sales")
+     *             .unpivot(true, ImmutableList.of("monthly_sales"),//value_column(measureList)
+     *             ImmutableList.of("month"),//unpivot_column(axisList)
+     *                 Pair.zip(
+     *                     Arrays.asList(ImmutableList.of(builder.literal("jan")),//column_alias
+     *              ImmutableList.of(builder.literal("feb")),
+     *              ImmutableList.of(builder.literal("march"))),
+     *                     Arrays.asList(ImmutableList.of(builder.field("jan_sales")),//column_list
+     *              ImmutableList.of(builder.field("feb_sales")),
+     *              ImmutableList.of(builder.field("mar_sales")))))
+     *      .build();
+     * }</pre></blockquote>
+     *
+     * <p> Rel with includeNulls = true after expansion
+     * <blockquote><pre>{@code
+     * LogicalProject(id=[$0], year=[$1], month=[$5],
+     * monthly_sales=[CASE(=($5, 'jan'), $2, =($5, 'feb'), $3, =($5, 'march'), $4, null:NULL)])
+     *   LogicalJoin(condition=[true], joinType=[inner])
+     *     LogicalTableScan(table=[[SALESSCHEMA, sales]])
+     *     LogicalValues(tuples=[[{ 'jan' }, { 'feb' }, { 'march' }]])
+     * }</pre></blockquote>
+     *
+     **/
   protected boolean isRelEquivalentToUnpivotExpansionWithIncludeNulls(Project projectRel,
       SqlImplementor.Builder builder) {
-    // if project has atleast one case op
-    // if projects input is join
-    // if join with joinType = inner & condition = true
-    // & joins right input is values
-    // & every value of the value list is used as the 2nd operands of when clause of projection
+    // If Project has at least one case op
+    // If project's input is Join
+    // If join with joinType = inner & condition = true
+    // & join's right input is LogicalValues
+    // If at least one case is equivalent to unpivot expansion
     return isCaseOperatorPresentInProjectRel(projectRel)
         && isJoinTheInputOfProject(projectRel)
         && isJoinTypeInnerWithTrueCondition((LogicalJoin) projectRel.getInput(0))
@@ -149,44 +216,91 @@ public class UnpivotRelToSqlUtil {
         && isAtleastOneCaseOperatorEquivalentToUnpivotType(projectRel, builder);
   }
 
+  /**
+   * Check each case operator if it is equivalent to unpivot expansion of case,
+   * and if it matches, then populate a map with case alias as key and value as
+   * the list of then operands
+   * If measure column is a list ,then in that case there are multiple case operators
+   * //TODO
+   * @param projectRel
+   * @param builder
+   * @return boolean
+   */
   private boolean isAtleastOneCaseOperatorEquivalentToUnpivotType(Project projectRel,
       SqlImplementor.Builder builder) {
-    boolean caseMatched = false;
-    LogicalValues valuesRel = getValuesRel(projectRel);
-    String valuesAlias = getValueAlias(valuesRel);
-    SqlNodeList valuesList = getValuesList(valuesRel, builder);
-    List<RexCall> caseRexCallList = getCaseOperandFromProjection(projectRel);
-    for (RexCall caseRex : caseRexCallList) {
-      caseMatched = checkCasePatternOfUnpivot(caseRex, projectRel, valuesAlias, valuesList);
+
+    Map<RexCall, String> caseRexCallVsAliasMap = getCaseRexCallFromProjectionWithAlias(projectRel);
+
+    for (RexCall caseRex : caseRexCallVsAliasMap.keySet()) {
+      boolean caseMatched = isCasePatternOfUnpivotType(caseRex, projectRel, builder);
       if (caseMatched) {
-        break;
-      }
+          SqlNodeList thenClauseSqlNodeList = new SqlNodeList(POS);
+          SqlCase sqlCase = (SqlCase) builder.context.toSql(null, caseRex);
+          List<SqlNode> thenList = sqlCase.getThenOperands().getList();
+          thenClauseSqlNodeList.addAll(thenList);
+          aliasVsThenList.put(caseRexCallVsAliasMap.get(caseRex), thenClauseSqlNodeList);
+        }
     }
-    return caseMatched;
+    return aliasVsThenList.size() > 0;
   }
 
-  private boolean checkCasePatternOfUnpivot(RexCall caseRex, Project projectRel,
-      String valuesAlias, SqlNodeList valuesList) {
-    //case when valuesAlias=value[0] then col1 when valuesAlias=value[1]
+  /**
+   * Check if case rex pattern equivalent to unpivot expansion
+   * @param caseRex
+   * @param projectRel
+   * @param builder
+   * @return boolean
+   */
+  private boolean isCasePatternOfUnpivotType(RexCall caseRex, Project projectRel, SqlImplementor.Builder builder) {
+    //case when LogicalValuesRelAlias=logicalValuesRel[0] then col1 when LogicalValuesRelAlias=logicalValuesRel[1]
     // then col2 ... & so on on else null
+    LogicalValues logicalValuesRel = getLogicalValuesRel(projectRel);
+    String logicalValuesAlias = getLogicalValueAlias(logicalValuesRel);
+    SqlNodeList logicalValuesList = getLogicalValuesList(logicalValuesRel, builder);
+    if(isElseClausePresentInCaseRex(caseRex) && isLogicalValuesSizeEqualsWhenClauseSize(logicalValuesList, caseRex)) {
+     return isCaseAndLogicalValuesPatternMatching(caseRex, projectRel, logicalValuesAlias, logicalValuesList);
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   ex- case when month='jan' then jan_sales
+   when month='feb' then feb_sales
+   when month='mar'  then march_sales
+   else null
+   AS monthly_sales
+
+   LogicalValues('jan','feb','mar') AS month
+   */
+  boolean isCaseAndLogicalValuesPatternMatching(RexCall caseRex, Project projectRel, String logicalValuesAlias, SqlNodeList logicalValuesList) {
     boolean casePatternMatched = false;
-    int elseClauseIndex =  caseRex.getOperands().size() - 1;
+    int elseClauseIndex = caseRex.getOperands().size() - 1;
     for (int i = 0, j = 0; i < elseClauseIndex; i += 2, j++) {
-      List<RexNode> operands = ((RexCall) (caseRex.operands.get(i))).getOperands();
-      int indexOfFirstOperandOfWhen = ((RexInputRef) (operands.get(0))).getIndex();
-      String nameOfFirstOperandOfWhen = projectRel.getInput(0).getRowType().getFieldNames()
-          .get(indexOfFirstOperandOfWhen);
-      casePatternMatched = Objects.equals(nameOfFirstOperandOfWhen, valuesAlias)
-          && Objects.equals(operands.get(1).toString(), valuesList.get(j).toString());
-      if (casePatternMatched == false) {
+      List<RexNode> whenClause = ((RexCall) (caseRex.operands.get(i))).getOperands();
+      int indexOfLeftOperandOfWhen = ((RexInputRef) (whenClause.get(0))).getIndex();
+      String nameOfLeftOperandOfWhen = projectRel.getInput(0).getRowType().getFieldNames()
+          .get(indexOfLeftOperandOfWhen);
+      casePatternMatched = Objects.equals(nameOfLeftOperandOfWhen, logicalValuesAlias)
+          && Objects.equals(whenClause.get(1).toString(), logicalValuesList.get(j).toString())
+          && caseRex.getOperands().get(elseClauseIndex).getType().getSqlTypeName() == SqlTypeName.NULL;
+      if (!casePatternMatched) {
         break;
       }
     }
-    return casePatternMatched && caseRex.getOperands().get(elseClauseIndex)
-        .getType().getSqlTypeName() == SqlTypeName.NULL;
+    return casePatternMatched;
   }
 
-  protected String getValueAlias(Values valuesRel) {
+  boolean isElseClausePresentInCaseRex(RexCall caseRex) {
+    return caseRex.operands.size() % 2 != 0;
+  }
+
+  boolean isLogicalValuesSizeEqualsWhenClauseSize(SqlNodeList logicalValuesList, RexCall caseRexCall) {
+    int whenClauseCount = (caseRexCall.operands.size() - 1) / 2 ;
+    return logicalValuesList.size() == whenClauseCount;
+  }
+
+  protected String getLogicalValueAlias(Values valuesRel) {
     return valuesRel.getRowType().getFieldNames().get(0);
   }
 
@@ -208,47 +322,28 @@ public class UnpivotRelToSqlUtil {
     return joinRel.getRight() instanceof Values;
   }
 
-  protected LogicalValues getValuesRel(Project projectRel) {
+  protected LogicalValues getLogicalValuesRel(Project projectRel) {
     Join joinRel = (LogicalJoin) projectRel.getInput(0);
     return (LogicalValues) joinRel.getRight();
   }
 
-  protected String getAliasOfCase(Project projectRel) {
-    String aliasOfCase = "";
-    for (int i = 0; i <  projectRel.getProjects().size(); i++) {
+  /**
+   * Fetch all the case operands from projection with case aliases
+   * @param projectRel
+   * @return Map<RexCall, String>
+   */
+  private Map<RexCall, String> getCaseRexCallFromProjectionWithAlias(Project projectRel) {
+    Map<RexCall, String> caseRexCallVsAlias = new HashMap<>();
+    for (int i = 0; i < projectRel.getProjects().size(); i++) {
       if (projectRel.getProjects().get(i) instanceof RexCall
           && ((RexCall) projectRel.getProjects().get(i)).op instanceof SqlCaseOperator) {
-        aliasOfCase = projectRel.getRowType().getFieldNames().get(i);
+        caseRexCallVsAlias.put((RexCall) projectRel.getProjects().get(i), projectRel.getRowType().getFieldNames().get(i));
       }
     }
-    return aliasOfCase;
+    return caseRexCallVsAlias;
   }
 
-
-  private List<RexCall> getCaseOperandFromProjection(Project projectRel) {
-    List<RexCall> caseRexCalls = new ArrayList<>();
-    for (RexNode projection : projectRel.getProjects()) {
-      if (projection instanceof RexCall && ((RexCall) projection).op instanceof SqlCaseOperator) {
-        caseRexCalls.add((RexCall) projection);
-      }
-    }
-    return caseRexCalls;
-  }
-
-  protected SqlNodeList getThenClauseSqlNodeList(Project projectRel,
-      SqlImplementor.Builder builder) {
-    SqlNodeList thenClauseSqlNodeList = new SqlNodeList(POS);
-    for (RexNode projection : projectRel.getProjects()) {
-      if (projection instanceof RexCall && ((RexCall) projection).op instanceof SqlCaseOperator) {
-        SqlCase sqlCase = (SqlCase) builder.context.toSql(null, projection);
-        List<SqlNode> thenList = sqlCase.getThenOperands().getList();
-        thenClauseSqlNodeList.addAll(thenList);
-      }
-    }
-    return thenClauseSqlNodeList;
-  }
-
-  protected SqlNodeList getValuesList(LogicalValues logicalValuesRel,
+  protected SqlNodeList getLogicalValuesList(LogicalValues logicalValuesRel,
       SqlImplementor.Builder builder) {
     SqlNodeList valueSqlNodeList = new SqlNodeList(POS);
     for (ImmutableList<RexLiteral> value : logicalValuesRel.tuples.asList()) {
