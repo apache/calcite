@@ -2598,7 +2598,14 @@ semantics.
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(integer, integer, integer)                | Returns a date object given year, month, and day
 | b | DATE(timestamp)                                | Extracts the UTC date from a timestamp
+| b | DATE(timestamp, string)                        | Extracts the date from a timestamp, in a given time zone
 | b | TIMESTAMP(string)                              | Equivalent to `CAST(string AS TIMESTAMP)`
+| b | TIMESTAMP(string, string)                      | Equivalent to `CAST(string AS TIMESTAMP)`, converted to a given time zone
+| b | TIMESTAMP(date)                                | Convert a UTC date to a timestamp (at midnight)
+| b | TIMESTAMP(date, string)                        | Convert a date to a timestamp (at midnight), in a given time zone
+| b | TIME(integer, integer, integer)                | Returns a time object given hour, minute, and second
+| b | TIME(timestamp)                                | Extracts the UTC time from a timestamp
+| b | TIME(timestamp, string)                        | Extracts the time from a timestamp, in a given time zone
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
