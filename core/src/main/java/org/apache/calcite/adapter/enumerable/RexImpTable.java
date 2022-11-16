@@ -166,6 +166,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
@@ -550,6 +552,10 @@ public class RexImpTable {
       defineMethod(DATE_FROM_UNIX_DATE, "dateFromUnixDate", NullPolicy.STRICT);
       defineMethod(UNIX_DATE, "unixDate", NullPolicy.STRICT);
 
+      defineMethod(DATE, "date", NullPolicy.STRICT);
+      defineMethod(TIMESTAMP, "timestamp", NullPolicy.STRICT);
+      defineMethod(TIME, "time", NullPolicy.STRICT);
+
       map.put(IS_NULL, new IsNullImplementor());
       map.put(IS_NOT_NULL, new IsNotNullImplementor());
       map.put(IS_TRUE, new IsTrueImplementor());
@@ -624,7 +630,6 @@ public class RexImpTable {
 
       map.put(COALESCE, new CoalesceImplementor());
       map.put(CAST, new CastImplementor());
-      map.put(DATE, new CastImplementor());
 
       map.put(REINTERPRET, new ReinterpretImplementor());
 

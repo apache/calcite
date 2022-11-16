@@ -59,10 +59,18 @@ import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -152,6 +160,40 @@ public class SqlFunctions {
    * character (0x20). */
   private static final ByteString SINGLE_SPACE_BYTE_STRING =
       ByteString.of("20", 16);
+
+  // Date formatter for BigQuery's timestamp literals:
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical#timestamp_literals
+  private static final DateTimeFormatter BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER =
+      new DateTimeFormatterBuilder()
+          // Unlike ISO 8601, BQ only supports years between 1 - 9999,
+          // but can support single-digit month and day parts.
+          .appendValue(ChronoField.YEAR, 4)
+          .appendLiteral('-')
+          .appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral('-')
+          .appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NOT_NEGATIVE)
+          // Everything after the date is optional. Optional sections can be nested.
+          .optionalStart()
+          // BQ accepts either a literal 'T' or a space to separate the date from the time,
+          // so make the 'T' optional but pad with 1 space if it's omitted.
+          .padNext(1, ' ')
+          .optionalStart()
+          .appendLiteral('T')
+          .optionalEnd()
+          // Unlike ISO 8601, BQ can support single-digit hour, minute, and second parts.
+          .appendValue(ChronoField.HOUR_OF_DAY, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral(':')
+          .appendValue(ChronoField.MINUTE_OF_HOUR, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral(':')
+          .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
+          // ISO 8601 supports up to nanosecond precision, but BQ only up to microsecond.
+          .optionalStart()
+          .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
+          .optionalEnd()
+          .optionalStart()
+          .parseLenient()
+          .appendOffsetId()
+          .toFormatter(Locale.ROOT);
 
   private SqlFunctions() {
   }
@@ -2648,6 +2690,111 @@ public class SqlFunctions {
   public static int unixDate(int v) {
     // translation is trivial, because Calcite represents dates as Unix integers
     return v;
+  }
+
+  /** For {@link SqlLibraryOperators#DATE} of the form {@code DATE(<year>, <month>, <day>)}. */
+  public static int date(int year, int month, int day) {
+    // Calcite represents dates as Unix integers (days since epoch).
+    return (int) LocalDate.of(year, month, day).toEpochDay();
+  }
+
+  /** For {@link SqlLibraryOperators#DATE} of the form {@code DATE(<timestamp>)}. */
+  public static int date(long timestampMillis) {
+    // Calcite represents dates as Unix integers (days since epoch).
+    // Unix time ignores leap seconds; every day has the exact same number of milliseconds.
+    return (int) (timestampMillis / DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  /** For {@link SqlLibraryOperators#DATE} of the form {@code DATE(<timestamp>, <timezone>)}. */
+  public static int date(long timestampMillis, String timezone) {
+    // Calcite represents dates as Unix integers (days since epoch).
+    return (int)
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(timestampMillis), ZoneId.of(timezone))
+            .toLocalDate()
+            .toEpochDay();
+  }
+
+  /** For {@link SqlLibraryOperators#TIMESTAMP} of the form {@code TIMESTAMP(<string>)}. */
+  public static long timestamp(String expression) {
+    // Calcite represents timestamps as Unix integers (milliseconds since epoch).
+    return parseBigQueryTimestampLiteral(expression).toInstant().toEpochMilli();
+  }
+
+  /**
+   * For {@link SqlLibraryOperators#TIMESTAMP}
+   * of the form {@code TIMESTAMP(<string>, <timezone>)}.
+   */
+  public static long timestamp(String expression, String timezone) {
+    // Calcite represents timestamps as Unix integers (milliseconds since epoch).
+    return parseBigQueryTimestampLiteral(expression)
+        .atZoneSimilarLocal(ZoneId.of(timezone))
+        .toInstant()
+        .toEpochMilli();
+  }
+
+  private static OffsetDateTime parseBigQueryTimestampLiteral(String expression) {
+    // First try to parse with an offset, otherwise parse as a local and assume UTC ("no offset").
+    try {
+      return OffsetDateTime
+          .parse(expression, BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER);
+    } catch (DateTimeParseException e) {
+      try {
+        return LocalDateTime
+            .parse(expression, BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER)
+            .atOffset(ZoneOffset.UTC);
+      } catch (DateTimeParseException e2) {
+        throw new IllegalArgumentException(
+            String.format(Locale.ROOT, "Could not parse BigQuery string literal: %s", expression),
+            e2);
+      }
+    }
+  }
+
+  /** For {@link SqlLibraryOperators#TIMESTAMP} of the form {@code TIMESTAMP(<date>)}. */
+  public static long timestamp(int days) {
+    // Calcite represents timestamps as Unix integers (milliseconds since epoch).
+    // Unix time ignores leap seconds; every day has the exact same number of milliseconds.
+    return ((long) days) * DateTimeUtils.MILLIS_PER_DAY;
+  }
+
+  /**
+   * For {@link SqlLibraryOperators#TIMESTAMP}
+   * of the form {@code TIMESTAMP(<date>, <timezone>)}.
+   */
+  public static long timestamp(int days, String timezone) {
+    // Calcite represents timestamps as Unix integers (milliseconds since epoch).
+    final LocalDateTime localDateTime =
+        LocalDateTime.of(LocalDate.ofEpochDay(days), LocalTime.MIDNIGHT);
+    return OffsetDateTime.of(
+            localDateTime,
+            ZoneId.of(timezone).getRules().getOffset(localDateTime))
+        .toInstant()
+        .toEpochMilli();
+  }
+
+  /** For {@link SqlLibraryOperators#TIME} of the form {@code TIME(<hour>, <minute>, <second>)}. */
+  public static int time(int hour, int minute, int second) {
+    // Calcite represents time as Unix integers (milliseconds since midnight).
+    return (int)
+        (LocalTime.of(hour, minute, second).toSecondOfDay() * DateTimeUtils.MILLIS_PER_SECOND);
+  }
+
+  /** For {@link SqlLibraryOperators#TIME} of the form {@code TIME(<timestamp>)}. */
+  public static int time(long timestampMillis) {
+    // Calcite represents time as Unix integers (milliseconds since midnight).
+    // Unix time ignores leap seconds; every day has the exact same number of milliseconds.
+    return (int) (timestampMillis % DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  /** For {@link SqlLibraryOperators#TIME} of the form {@code TIME(<timestamp>, <timezone>)}. */
+  public static int time(long timestampMillis, String timezone) {
+    // Calcite represents time as Unix integers (milliseconds since midnight).
+    // Unix time ignores leap seconds; every day has the exact same number of milliseconds.
+    return (int) (
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(timestampMillis), ZoneId.of(timezone))
+            .toLocalTime()
+            .toNanoOfDay()
+            / (1000L * 1000L)); // milli > micro > nano
   }
 
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v) {
