@@ -56,7 +56,7 @@ import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
  * Class to identify Rel structure which is of Unpivot type.
  */
 public class UnpivotRelToSqlUtil {
-  Map<String, SqlNodeList> aliasVsThenList = new HashMap<>();
+  Map<String, SqlNodeList> caseAliasVsThenList = new HashMap<>();
 
   /**<p> SQL. </p>
    * <blockquote><pre>{@code
@@ -238,10 +238,10 @@ public class UnpivotRelToSqlUtil {
           SqlCase sqlCase = (SqlCase) builder.context.toSql(null, caseRex);
           List<SqlNode> thenList = sqlCase.getThenOperands().getList();
           thenClauseSqlNodeList.addAll(thenList);
-          aliasVsThenList.put(caseRexCallVsAliasMap.get(caseRex), thenClauseSqlNodeList);
+          caseAliasVsThenList.put(caseRexCallVsAliasMap.get(caseRex), thenClauseSqlNodeList);
         }
     }
-    return aliasVsThenList.size() > 0;
+    return caseAliasVsThenList.size() > 0;
   }
 
   /**

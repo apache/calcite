@@ -433,15 +433,19 @@ public class RelToSqlConverter extends SqlImplementor
    */
   private boolean isStarInUnPivot(Project projectRel, Result result) {
     if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom() instanceof SqlUnpivot) {
-      List<RexNode> exps = projectRel.getProjects();
+      List<RexNode> projectionExpressions = projectRel.getProjects();
       RelDataType inputRowType = projectRel.getInput().getRowType();
       RelDataType projectRowType = projectRel.getRowType();
-      assert exps.size() == projectRowType.getFieldCount();
+      assert projectionExpressions.size() == projectRowType.getFieldCount();
       int i = 0;
       SqlUnpivot sqlUnpivot = ((SqlUnpivot) ((SqlSelect) result.node).getFrom());
-      for (RexNode ref : exps) {
+      List<String> measureColumnNames =
+          sqlUnpivot.measureList.stream()
+              .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
+              .collect(Collectors.toList());
+      for (RexNode ref : projectionExpressions) {
         if (ref instanceof RexCall && ((RexCall) ref).op.kind == SqlKind.CAST &&
-            isCastOnMeasureColumnOfSqlUnpivot(ref, sqlUnpivot.measureList.get(0), projectRowType)) {
+            isCastOnMeasureColumnOfSqlUnpivot(ref, measureColumnNames, projectRowType)) {
           return true;
         }
       }
@@ -452,10 +456,10 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  private boolean isCastOnMeasureColumnOfSqlUnpivot(RexNode ref, SqlNode axisColumn, RelDataType projectRowType) {
+  private boolean isCastOnMeasureColumnOfSqlUnpivot(RexNode ref, List<String> measureColumnNames, RelDataType projectRowType) {
       if(((RexCall) ref).operands.get(0) instanceof RexInputRef) {
         int index = ((RexInputRef) ((RexCall) ref).operands.get(0)).getIndex();
-        return projectRowType.getFieldNames().get(index).equals(axisColumn.toString());
+        return measureColumnNames.contains(projectRowType.getFieldNames().get(index));
       }
       return false;
   }
@@ -475,12 +479,12 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNodeList axisList = new SqlNodeList(ImmutableList.of
         (new SqlIdentifier(unpivotRelToSqlUtil.getLogicalValueAlias(valuesRel), POS)), POS);
     List<SqlIdentifier> measureColumnSqlIdentifiers = new ArrayList<>();
-    for (String axisColumn : new ArrayList<>(unpivotRelToSqlUtil.aliasVsThenList.keySet())) {
+    for (String axisColumn : new ArrayList<>(unpivotRelToSqlUtil.caseAliasVsThenList.keySet())) {
       measureColumnSqlIdentifiers.add(new SqlIdentifier(axisColumn, POS));
     }
     SqlNodeList measureList = new SqlNodeList(measureColumnSqlIdentifiers, POS);
     SqlNodeList aliasOfInSqlNodeList = unpivotRelToSqlUtil.getLogicalValuesList(valuesRel, builder);
-    SqlNodeList inSqlNodeList = new SqlNodeList(unpivotRelToSqlUtil.aliasVsThenList.values(), POS);
+    SqlNodeList inSqlNodeList = new SqlNodeList(unpivotRelToSqlUtil.caseAliasVsThenList.values(), POS);
     SqlNodeList aliasedInSqlNodeList = getInListForSqlUnpivot(measureList, aliasOfInSqlNodeList, inSqlNodeList);
     return new SqlUnpivot(POS, query, true, measureList, axisList, aliasedInSqlNodeList);
   }
