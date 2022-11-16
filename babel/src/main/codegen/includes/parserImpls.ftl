@@ -24,7 +24,7 @@ JoinType LeftSemiJoin() :
 
 SqlNode DateFunctionCall() :
 {
-    final SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
+    final SqlFunctionCategory funcType = SqlFunctionCategory.TIMEDATE;
     final SqlIdentifier qualifiedName;
     final Span s;
     final SqlLiteral quantifier;
@@ -32,6 +32,46 @@ SqlNode DateFunctionCall() :
 }
 {
     <DATE> {
+        s = span();
+        qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
+    }
+    args = FunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+        quantifier = (SqlLiteral) args.get(0);
+        args.remove(0);
+        return createCall(qualifiedName, s.end(this), funcType, quantifier, args);
+    }
+}
+
+SqlNode TimestampFunctionCall() :
+{
+    final SqlFunctionCategory funcType = SqlFunctionCategory.TIMEDATE;
+    final SqlIdentifier qualifiedName;
+    final Span s;
+    final SqlLiteral quantifier;
+    final List<? extends SqlNode> args;
+}
+{
+    <TIMESTAMP> {
+        s = span();
+        qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
+    }
+    args = FunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+        quantifier = (SqlLiteral) args.get(0);
+        args.remove(0);
+        return createCall(qualifiedName, s.end(this), funcType, quantifier, args);
+    }
+}
+
+SqlNode TimeFunctionCall() :
+{
+    final SqlFunctionCategory funcType = SqlFunctionCategory.TIMEDATE;
+    final SqlIdentifier qualifiedName;
+    final Span s;
+    final SqlLiteral quantifier;
+    final List<? extends SqlNode> args;
+}
+{
+    <TIME> {
         s = span();
         qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
     }
