@@ -1051,29 +1051,27 @@ select unix_date(timestamp '2008-12-25') as d;
 
 !ok
 
-# DATE
-# 'date(x) is shorthand for 'cast(x as date)'
-select date('1970-01-01') as d;
+# DATE(year, month, day)
+select date(2022, 11, 15) as d;
 +------------+
 | d          |
 +------------+
-| 1970-01-01 |
+| 2022-11-15 |
 +------------+
 (1 row)
 
 !ok
 
-!if (false) {
-select date(cast(null as varchar(10))) as d;
-+---+
-| D |
-+---+
-|   |
-+---+
+# DATE(timestamp)
+select date(timestamp("2008-12-25 15:30:00+00")) as d;
++------------+
+| d          |
++------------+
+| 2008-12-25 |
++------------+
 (1 row)
 
 !ok
-!}
 
 #####################################################################
 # DATE_ADD

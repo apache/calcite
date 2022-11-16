@@ -60,7 +60,12 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -148,6 +153,40 @@ public class SqlFunctions {
       ThreadLocal.withInitial(HashMap::new);
 
   private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
+
+  // Date formatter for BigQuery's timestamp literals:
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical#timestamp_literals
+  private static final DateTimeFormatter BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER =
+      new DateTimeFormatterBuilder()
+          // Unlike ISO 8601, BQ only supports years between 1 - 9999,
+          // but can support single-digit month and day parts.
+          .appendValue(ChronoField.YEAR, 4)
+          .appendLiteral('-')
+          .appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral('-')
+          .appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NOT_NEGATIVE)
+          // Everything after the date is optional. Optional sections can be nested.
+          .optionalStart()
+          // BQ accepts either a literal 'T' or a space to separate the date from the time,
+          // so make the 'T' optional but pad with 1 space if it's omitted.
+          .padNext(1, ' ')
+          .optionalStart()
+          .appendLiteral('T')
+          .optionalEnd()
+          // Unlike ISO 8601, BQ can support single-digit hour, minute, and second parts.
+          .appendValue(ChronoField.HOUR_OF_DAY, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral(':')
+          .appendValue(ChronoField.MINUTE_OF_HOUR, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral(':')
+          .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
+          // ISO 8601 supports up to nanosecond precision, but BQ only up to microsecond.
+          .optionalStart()
+          .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
+          .optionalEnd()
+          .optionalStart()
+          .parseLenient()
+          .appendOffsetId()
+          .toFormatter(Locale.ROOT);
 
   private SqlFunctions() {
   }
@@ -2256,6 +2295,26 @@ public class SqlFunctions {
   public static int unixDate(int v) {
     // translation is trivial, because Calcite represents dates as Unix integers
     return v;
+  }
+
+  /** For {@link SqlLibraryOperators#DATE} of the form {@code DATE(<year>, <month>, <day>)}. */
+  public static int date(int year, int month, int day) {
+    // Calcite represents dates as Unix integers (days since epoch).
+    return (int) ChronoUnit.DAYS.between(LocalDate.EPOCH, LocalDate.of(year, month, day));
+  }
+
+  /** For {@link SqlLibraryOperators#DATE} of the form {@code DATE(<timestamp>)}. */
+  public static int date(long millis) {
+    // Calcite represents dates as Unix integers (days).
+    return (int) (millis / DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  /** For {@link SqlLibraryOperators#TIMESTAMP} of the form {@code TIMESTAMP(<string>)}. */
+  public static long timestamp(String expression) {
+    // Calcite represents timestamps as Unix integers (milliseconds since epoch).
+    return OffsetDateTime.parse(expression, BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER)
+        .toInstant()
+        .toEpochMilli();
   }
 
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v) {

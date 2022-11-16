@@ -2596,7 +2596,9 @@ semantics.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
-| b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
+| b | DATE(integer, integer, integer)                | Returns a date object given year, month, and day
+| b | DATE(timestamp)                                | Extracts the UTC date from a timestamp
+| b | TIMESTAMP(string)                              | Equivalent to `CAST(string AS TIMESTAMP)`
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`

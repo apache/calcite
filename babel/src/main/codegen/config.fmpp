@@ -533,6 +533,7 @@ data: {
     # Example: "DateFunctionCall()".
     builtinFunctionCallMethods: [
        "DateFunctionCall()"
+       "TimestampFunctionCall()"
        "DateaddFunctionCall()"
     ]
 
