@@ -80,6 +80,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -432,36 +433,38 @@ public class RelToSqlConverter extends SqlImplementor
    * @return
    */
   private boolean isStarInUnPivot(Project projectRel, Result result) {
+    boolean isStar = false;
     if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom() instanceof SqlUnpivot) {
       List<RexNode> projectionExpressions = projectRel.getProjects();
       RelDataType inputRowType = projectRel.getInput().getRowType();
       RelDataType projectRowType = projectRel.getRowType();
-      assert projectionExpressions.size() == projectRowType.getFieldCount();
-      int i = 0;
-      SqlUnpivot sqlUnpivot = ((SqlUnpivot) ((SqlSelect) result.node).getFrom());
-      List<String> measureColumnNames =
-          sqlUnpivot.measureList.stream()
-              .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
-              .collect(Collectors.toList());
-      for (RexNode ref : projectionExpressions) {
-        if (ref instanceof RexCall && ((RexCall) ref).op.kind == SqlKind.CAST &&
-            isCastOnMeasureColumnOfSqlUnpivot(ref, measureColumnNames, projectRowType)) {
-          return true;
+
+      if (inputRowType.getFieldNames().size() == projectRowType.getFieldNames().size()) {
+        SqlUnpivot sqlUnpivot = ((SqlUnpivot) ((SqlSelect) result.node).getFrom());
+        List<String> measureColumnNames =
+            sqlUnpivot.measureList.stream()
+                .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
+                .collect(Collectors.toList());
+        List<String> castColumns = new ArrayList<>();
+        for (RexNode rex : projectionExpressions) {
+          if (rex instanceof RexCall && ((RexCall) rex).op.kind == SqlKind.CAST) {
+            castColumns.add(getColumnNameFromCast(rex, inputRowType));
+          }
         }
+        isStar = castColumns.containsAll(measureColumnNames);
       }
-      return i == inputRowType.getFieldCount()
-          && inputRowType.getFieldNames().equals(projectRowType.getFieldNames());
-    } else {
-      return false;
+      return isStar;
     }
+    return false;
   }
 
-  private boolean isCastOnMeasureColumnOfSqlUnpivot(RexNode ref, List<String> measureColumnNames, RelDataType projectRowType) {
-      if(((RexCall) ref).operands.get(0) instanceof RexInputRef) {
-        int index = ((RexInputRef) ((RexCall) ref).operands.get(0)).getIndex();
-        return measureColumnNames.contains(projectRowType.getFieldNames().get(index));
-      }
-      return false;
+  private String getColumnNameFromCast(RexNode rex, RelDataType inputRowType) {
+    String columnName = "";
+    if (((RexCall) rex).operands.get(0) instanceof RexInputRef) {
+      int index = ((RexInputRef) ((RexCall) rex).operands.get(0)).getIndex();
+      columnName = inputRowType.getFieldNames().get(index);
+    }
+    return columnName;
   }
 
   /**
@@ -523,7 +526,7 @@ public class RelToSqlConverter extends SqlImplementor
         sqlIdentifierList.add(new SqlIdentifier(((SqlIdentifier) sqlNodeList.get(i)).names.get(1), POS));
       }
       aliasedInSqlNodeList.add(SqlStdOperatorTable.AS.createCall(POS,
-          SqlStdOperatorTable.COLUMN_LIST.createCall(POS, sqlIdentifierList), aliasOfInSqlNodeList.get(i)));
+          SqlLibraryOperators.PARENTHESIS.createCall(POS, sqlIdentifierList), aliasOfInSqlNodeList.get(i)));
     }
     return aliasedInSqlNodeList;
   }

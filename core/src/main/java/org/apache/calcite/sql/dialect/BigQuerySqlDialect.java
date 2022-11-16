@@ -681,14 +681,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         call.getOperator().unparse(writer, call, leftPrec, rightPrec);
       }
       break;
-    case COLUMN_LIST:
-      final SqlWriter.Frame parenthesisFrame = writer.startList("(", ")");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endList(parenthesisFrame);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
