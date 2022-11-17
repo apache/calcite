@@ -206,6 +206,7 @@ select:
       [ GROUP BY [ ALL | DISTINCT ] { groupItem [, groupItem ]* } ]
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
+      [ QUALIFY booleanExpression ]
 
 selectWithoutFrom:
       SELECT [ ALL | DISTINCT ]
@@ -830,6 +831,7 @@ PRIOR,
 PRIVILEGES,
 **PROCEDURE**,
 PUBLIC,
+QUALIFY,
 QUARTER,
 **RANGE**,
 **RANK**,
