@@ -1157,7 +1157,7 @@ public abstract class SqlTypeUtil {
     // REVIEW angel 11-Jan-2006:
     // Use neg numbers to indicate unspecified precision/scale
 
-    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(typeNameSpec, null, null, true, SqlParserPos.ZERO);
   }
 
   /**

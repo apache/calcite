@@ -29,6 +29,10 @@ class UdtTest {
         + "     {\n"
         + "       name: 'foo',\n"
         + "       type: 'BIGINT'\n"
+        + "     },\n"
+        + "     {\n"
+        + "       name: 'TIMESTAMP',\n"
+        + "       type: 'TIMESTAMP_WITH_LOCAL_TIME_ZONE'\n"
         + "     }"
         + "   ],\n"
         + "   schemas: [\n"
@@ -70,6 +74,13 @@ class UdtTest {
         + "from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")";
     withUdt().query(sql).returns("LD=1\n");
   }
+
+  @Test void testAliasOnBasicType() {
+    final String sql = "select CAST(\"date\" AS TIMESTAMP) as ts "
+        + "from (VALUES ROW(DATE '2020-12-25', 'SameName')) AS \"t\" (\"date\", \"desc\")";
+    withUdt().query(sql).typeIs("[TS TIMESTAMP_WITH_LOCAL_TIME_ZONE NOT NULL]");
+  }
+
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3045">[CALCITE-3045]

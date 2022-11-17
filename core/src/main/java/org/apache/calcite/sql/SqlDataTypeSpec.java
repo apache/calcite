@@ -74,6 +74,16 @@ public class SqlDataTypeSpec extends SqlNode {
    */
   private final @Nullable Boolean nullable;
 
+  /**
+   * If true, the type will *not* be subject to mapping through the catalog type map.
+   * This is the case for types inserted during expansion, such as types for {@code CAST} calls
+   * inserted for type coercion.
+   *
+   * <p>If false, then the catalog type map should be consulted during validation.
+   * This is the case for types included in the query as originally parsed.
+   */
+  private final boolean finalized;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -85,7 +95,7 @@ public class SqlDataTypeSpec extends SqlNode {
   public SqlDataTypeSpec(
       final SqlTypeNameSpec typeNameSpec,
       SqlParserPos pos) {
-    this(typeNameSpec, null, null, pos);
+    this(typeNameSpec, null, null, false, pos);
   }
 
   /**
@@ -99,7 +109,7 @@ public class SqlDataTypeSpec extends SqlNode {
       final SqlTypeNameSpec typeNameSpec,
       @Nullable TimeZone timeZone,
       SqlParserPos pos) {
-    this(typeNameSpec, timeZone, null, pos);
+    this(typeNameSpec, timeZone, null, false, pos);
   }
 
   /**
@@ -116,16 +126,37 @@ public class SqlDataTypeSpec extends SqlNode {
       @Nullable TimeZone timeZone,
       @Nullable Boolean nullable,
       SqlParserPos pos) {
+    this(typeNameSpec, timeZone, nullable, false, pos);
+  }
+
+  /**
+   * Creates a type specification representing a type, with time zone,
+   * nullability and base type name specified, as well as a flag to control whether the type should
+   * be mapped via the catalog type map.
+   *
+   * @param typeNameSpec The type name can be basic sql type, row type,
+   *                     collections type and user defined type
+   * @param timeZone     Specified time zone
+   * @param nullable     The nullability
+   * @param finalized    If true, do not map the type via the catalog type map.
+   */
+  public SqlDataTypeSpec(
+      SqlTypeNameSpec typeNameSpec,
+      @Nullable TimeZone timeZone,
+      @Nullable Boolean nullable,
+      boolean finalized,
+      SqlParserPos pos) {
     super(pos);
     this.typeNameSpec = typeNameSpec;
     this.timeZone = timeZone;
     this.nullable = nullable;
+    this.finalized = finalized;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlNode clone(SqlParserPos pos) {
-    return new SqlDataTypeSpec(typeNameSpec, timeZone, pos);
+    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, finalized, pos);
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
@@ -170,7 +201,7 @@ public class SqlDataTypeSpec extends SqlNode {
         && newPos.equals(this.pos)) {
       return this;
     }
-    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, newPos);
+    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, finalized, newPos);
   }
 
   /**
@@ -229,8 +260,16 @@ public class SqlDataTypeSpec extends SqlNode {
    *                 does not explicitly state
    */
   public RelDataType deriveType(SqlValidator validator, boolean nullable) {
-    RelDataType type;
-    type = typeNameSpec.deriveType(validator);
+    RelDataType type = null;
+
+    if (!finalized) {
+      // check if the type name is being used as an alias before calling `deriveType`
+      type = validator.getCatalogReader().getNamedType(typeNameSpec.getTypeName());
+    }
+
+    if (type == null) {
+      type = typeNameSpec.deriveType(validator);
+    }
 
     // Fix-up the nullability, default is false.
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();

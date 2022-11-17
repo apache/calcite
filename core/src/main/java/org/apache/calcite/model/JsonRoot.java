@@ -74,9 +74,7 @@ public class JsonRoot {
    */
   public final List<JsonSchema> schemas = new ArrayList<>();
 
-  /** List of types in the root schema.
-   *
-   * <p>Such types global, that is, shared by all schemas in the model.
+  /** Types in the root schema. Shared by all schemas in the model.
    *
    * <p>The list may be empty.
    */
