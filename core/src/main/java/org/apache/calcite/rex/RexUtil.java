@@ -1748,7 +1748,7 @@ public class RexUtil {
    *
    * <blockquote>(a AND b) OR (c AND d)</blockquote>
    *
-   * <p>The following expression is not in CNF:
+   * <p>The following expression is not in DNF:
    *
    * <blockquote>(a OR b) AND c</blockquote>
    *
@@ -1756,18 +1756,35 @@ public class RexUtil {
    *
    * <blockquote>(a AND c) OR (b AND c)</blockquote>
    *
-   * <p>The following expression is not in CNF:
+   * <p>The following expression is not in DNF:
    *
-   * <blockquote>NOT (a OR NOT b)</blockquote>
+   * <blockquote>NOT (a AND NOT b)</blockquote>
    *
    * <p>but can be converted to DNF by applying de Morgan's theorem:
    *
-   * <blockquote>NOT a AND b</blockquote>
+   * <blockquote>NOT a OR b</blockquote>
    *
    * <p>Expressions not involving AND, OR or NOT at the top level are in DNF.
    */
   public static RexNode toDnf(RexBuilder rexBuilder, RexNode rex) {
-    return new DnfHelper(rexBuilder).toDnf(rex);
+    return new DnfHelper(rexBuilder, -1).toDnf(rex);
+  }
+
+  /**
+   * Similar to {@link #toDnf(RexBuilder, RexNode)}; however, it lets you
+   * specify a threshold in the number of nodes that can be created out of
+   * the conversion.
+   *
+   * <p>If the number of resulting nodes exceeds that threshold,
+   * stops conversion and returns the original expression.
+   *
+   * <p>If the threshold is negative it is ignored.
+   *
+   * <p>Leaf nodes in the expression do not count towards the threshold.
+   */
+  public static RexNode toDnf(RexBuilder rexBuilder, int maxNodeCount,
+      RexNode rex) {
+    return new DnfHelper(rexBuilder, maxNodeCount).toDnf(rex);
   }
 
   /**
@@ -2700,21 +2717,35 @@ public class RexUtil {
   /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */
   private static class DnfHelper {
     final RexBuilder rexBuilder;
+    int currentCount;
+    final int maxNodeCount; // negative means no limit
 
-    private DnfHelper(RexBuilder rexBuilder) {
+    private DnfHelper(RexBuilder rexBuilder, int maxNodeCount) {
       this.rexBuilder = rexBuilder;
+      this.maxNodeCount = maxNodeCount;
     }
 
     public RexNode toDnf(RexNode rex) {
+      try {
+        this.currentCount = 0;
+        return toDnf2(rex);
+      } catch (DnfHelper.OverflowError e) {
+        Util.swallow(e, null);
+        return rex;
+      }
+    }
+
+    public RexNode toDnf2(RexNode rex) {
       final List<RexNode> operands;
       switch (rex.getKind()) {
       case AND:
+        incrementAndCheck();
         operands = flattenAnd(((RexCall) rex).getOperands());
         final RexNode head = operands.get(0);
-        final RexNode headDnf = toDnf(head);
+        final RexNode headDnf = toDnf2(head);
         final List<RexNode> headDnfs = RelOptUtil.disjunctions(headDnf);
         final RexNode tail = and(Util.skip(operands));
-        final RexNode tailDnf = toDnf(tail);
+        final RexNode tailDnf = toDnf2(tail);
         final List<RexNode> tailDnfs = RelOptUtil.disjunctions(tailDnf);
         final List<RexNode> list = new ArrayList<>();
         for (RexNode h : headDnfs) {
@@ -2724,42 +2755,43 @@ public class RexUtil {
         }
         return or(list);
       case OR:
+        incrementAndCheck();
         operands = flattenOr(((RexCall) rex).getOperands());
-        return or(toDnfs(operands));
+        final List<RexNode> dnfOperands = new ArrayList<>();
+        for (RexNode node : operands) {
+          RexNode dnf = toDnf2(node);
+          switch (dnf.getKind()) {
+          case OR:
+            incrementAndCheck();
+            dnfOperands.addAll(((RexCall) dnf).getOperands());
+            break;
+          default:
+            incrementAndCheck();
+            dnfOperands.add(dnf);
+          }
+        }
+        return or(dnfOperands);
       case NOT:
         final RexNode arg = ((RexCall) rex).getOperands().get(0);
         switch (arg.getKind()) {
         case NOT:
-          return toDnf(((RexCall) arg).getOperands().get(0));
+          return toDnf2(((RexCall) arg).getOperands().get(0));
         case OR:
           operands = ((RexCall) arg).getOperands();
-          return toDnf(
+          return toDnf2(
               and(Util.transform(flattenOr(operands), RexUtil::addNot)));
         case AND:
           operands = ((RexCall) arg).getOperands();
-          return toDnf(
+          return toDnf2(
               or(Util.transform(flattenAnd(operands), RexUtil::addNot)));
         default:
+          incrementAndCheck();
           return rex;
         }
       default:
+        incrementAndCheck();
         return rex;
       }
-    }
-
-    private List<RexNode> toDnfs(List<RexNode> nodes) {
-      final List<RexNode> list = new ArrayList<>();
-      for (RexNode node : nodes) {
-        RexNode dnf = toDnf(node);
-        switch (dnf.getKind()) {
-        case OR:
-          list.addAll(((RexCall) dnf).getOperands());
-          break;
-        default:
-          list.add(dnf);
-        }
-      }
-      return list;
     }
 
     private RexNode and(Iterable<? extends RexNode> nodes) {
@@ -2768,6 +2800,21 @@ public class RexUtil {
 
     private RexNode or(Iterable<? extends RexNode> nodes) {
       return composeDisjunction(rexBuilder, nodes);
+    }
+
+    private void incrementAndCheck() {
+      if (maxNodeCount >= 0 && ++currentCount > maxNodeCount) {
+        throw DnfHelper.OverflowError.INSTANCE;
+      }
+    }
+
+    /** Exception to catch when we pass the limit. */
+    @SuppressWarnings("serial")
+    private static class OverflowError extends ControlFlowException {
+      @SuppressWarnings("ThrowableInstanceNeverThrown")
+      protected static final DnfHelper.OverflowError INSTANCE = new DnfHelper.OverflowError();
+
+      private OverflowError() {}
     }
   }
 

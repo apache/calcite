@@ -55,6 +55,11 @@ class RexProgramTestBase extends RexProgramBuilderBase {
         equalTo(expected));
   }
 
+  protected void checkThresholdDnf(RexNode node, int threshold, String expected) {
+    assertThat("RexUtil.toDnf(rexBuilder, threshold=" + threshold + " , " + node + ")",
+        RexUtil.toDnf(rexBuilder, threshold, node).toString(),
+        equalTo(expected));
+  }
   protected void checkPullFactorsUnchanged(RexNode node) {
     checkPullFactors(node, node.toString());
   }
