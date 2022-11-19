@@ -2258,6 +2258,17 @@ public class RelMetadataTest {
         String.valueOf(r), is(expected));
   }
 
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5392">[CALCITE-5392]
+   * Support Snapshot in RelMdExpressionLineage</a>. */
+  @Test void testExpressionLineageSnapshot() {
+    String expected = "[[CATALOG, SALES, PRODUCTS_TEMPORAL].#0.$0]";
+    String comment = "'productid' is column 0 in 'catalog.sales.products_temporal'";
+    assertExpressionLineage("select productid from products_temporal\n"
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'", 0, expected, comment);
+  }
+
   @Test void testExpressionLineageStar() {
     // All columns in output
     final RelNode tableRel = sql("select * from emp").toRel();
