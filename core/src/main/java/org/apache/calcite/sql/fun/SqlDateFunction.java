@@ -32,12 +32,16 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import java.util.Locale;
 
 /**
- * The Google BigQuery {@code DATE} function returns a date object and can be invoked in 3 ways:
- *     DATE(year, month, day)
- *     DATE(timestamp_expression[, time_zone])
- *     DATE(datetime_expression)
+ * <p>The Google BigQuery {@code DATE} function returns a date object
+ * and can be invoked in one of three ways:</p>
  *
- * https://cloud.google.com/bigquery/docs/reference/standard-sql/date_functions#date
+ * <ul>
+ *   <li>DATE(year, month, day)</li>
+ *   <li>DATE(timestamp_expression[, time_zone])</li>
+ *   <li>DATE(datetime_expression)</li>
+ * </ul>
+ *
+ * @see <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/date_functions#date">Documentation</a>
  */
 public class SqlDateFunction extends SqlFunction {
 

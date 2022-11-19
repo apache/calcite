@@ -24,7 +24,7 @@ JoinType LeftSemiJoin() :
 
 SqlNode DateFunctionCall() :
 {
-    final SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
+    final SqlFunctionCategory funcType = SqlFunctionCategory.TIMEDATE;
     final SqlIdentifier qualifiedName;
     final Span s;
     final SqlLiteral quantifier;
@@ -44,7 +44,7 @@ SqlNode DateFunctionCall() :
 
 SqlNode TimestampFunctionCall() :
 {
-    final SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
+    final SqlFunctionCategory funcType = SqlFunctionCategory.TIMEDATE;
     final SqlIdentifier qualifiedName;
     final Span s;
     final SqlLiteral quantifier;
@@ -64,7 +64,7 @@ SqlNode TimestampFunctionCall() :
 
 SqlNode TimeFunctionCall() :
 {
-    final SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_FUNCTION;
+    final SqlFunctionCategory funcType = SqlFunctionCategory.TIMEDATE;
     final SqlIdentifier qualifiedName;
     final Span s;
     final SqlLiteral quantifier;

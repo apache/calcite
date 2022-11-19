@@ -32,12 +32,16 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import java.util.Locale;
 
 /**
- * The Google BigQuery {@code TIME} function returns a time object and can be invoked in 3 ways:
- *     TIME(hour, minute, second)
- *     TIME(timestamp, [time_zone])
- *     TIME(datetime)
+ * <p>The Google BigQuery {@code TIME} function returns a time object
+ * and can be invoked in one of three ways:</p>
  *
- * https://cloud.google.com/bigquery/docs/reference/standard-sql/time_functions#time
+ * <ul>
+ *   <li>TIME(hour, minute, second)</li>
+ *   <li>TIME(timestamp, [time_zone])</li>
+ *   <li>TIME(datetime)</li>
+ * </ul>
+ *
+ * @see <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/time_functions#time">Documentation</a>
  */
 public class SqlTimeFunction extends SqlFunction {
 

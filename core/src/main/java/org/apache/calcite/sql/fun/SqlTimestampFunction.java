@@ -32,13 +32,16 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import java.util.Locale;
 
 /**
- * The Google BigQuery {@code TIMESTAMP} function returns a timestamp object
- * and can be invoked in 3 ways:
- *     TIMESTAMP(string_expression[, time_zone])
- *     TIMESTAMP(date_expression[, time_zone])
- *     TIMESTAMP(datetime_expression[, time_zone])
+ * <p>The Google BigQuery {@code TIMESTAMP} function returns a timestamp object
+ * and can be invoked in one of three ways:</p>
  *
- * https://cloud.google.com/bigquery/docs/reference/standard-sql/timestamp_functions#timestamp
+ * <ul>
+ *   <li>TIMESTAMP(string_expression[, time_zone])</li>
+ *   <li>TIMESTAMP(date_expression[, time_zone])</li>
+ *   <li>TIMESTAMP(datetime_expression[, time_zone])</li>
+ * </ul>
+ *
+ * @see <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/timestamp_functions#timestamp">Documentation</a>
  */
 public class SqlTimestampFunction extends SqlFunction {
 

@@ -1051,7 +1051,21 @@ select unix_date(timestamp '2008-12-25') as d;
 
 !ok
 
-# DATE(year, month, day)
+#####################################################################
+# DATE
+#
+# 1. DATE(year, month, day)
+# 2. DATE(timestamp_expression[, time_zone])
+# 3. DATE(datetime_expression)
+#
+# 1. Constructs a DATE from INT64 values representing the year, month, and day.
+# 1. Extracts the DATE from a TIMESTAMP expression. It supports an optional
+#    parameter to specify a time zone. If no time zone is specified, the default
+#    time zone, UTC, is used.
+# 1. Extracts the DATE from a DATETIME expression.
+#
+# Return Data Type: DATE
+
 select date(2022, 11, 15) as d;
 +------------+
 | d          |
@@ -1062,10 +1076,30 @@ select date(2022, 11, 15) as d;
 
 !ok
 
-# TIMESTAMP(string)
+#####################################################################
+# TIMESTAMP
+#
+# TIMESTAMP(string_expression[, time_zone])
+# TIMESTAMP(date_expression[, time_zone])
+# TIMESTAMP(datetime_expression[, time_zone])
+#
+# - string_expression[, time_zone]:
+#   Converts a STRING expression to a TIMESTAMP data type. string_expression
+#   must include a timestamp literal. If string_expression includes a time_zone
+#   in the timestamp literal, do not include an explicit time_zone argument.
+# - date_expression[, time_zone]: Converts a DATE object to a TIMESTAMP data
+#   type.
+# - datetime_expression[, time_zone]: Converts a DATETIME object to a TIMESTAMP
+#   data type.
+#
+# This function supports an optional parameter to specify a time zone. If no
+# time zone is specified, the default time zone, UTC, is used.
+#
+# Return Data Type: TIMESTAMP
+
 # All these timestamps should be equal.
 # This tests the BQ timestamp literal string formatter
-# (option 'T', optional leading zeros, optional offset with proper conversion).
+# (optional 'T', optional leading zeros, optional offset with conversion).
 select timestamp("2008-01-01 01:03:05+00") as t_space,
        timestamp("2008-01-01T01:03:05+00") as t_iso,
        timestamp("2008-01-01 01:03:05") as t_no_offset,
@@ -1079,7 +1113,22 @@ select timestamp("2008-01-01 01:03:05+00") as t_space,
 
 !ok
 
-# TIME(hour, minute, second)
+#####################################################################
+# TIME
+#
+# 1. TIME(hour, minute, second)
+# 2. TIME(timestamp[, time_zone])
+# 3. TIME(datetime)
+#
+# 1. Constructs a TIME object using INT64 values representing the hour, minute,
+#    and second.
+# 2. Constructs a TIME object using a TIMESTAMP object. It supports an optional
+#    parameter to specify a time zone. If no time zone is specified, the default
+#    time zone, UTC, is used.
+# 3. Constructs a TIME object using a DATETIME object.
+#
+# Return Data Type: TIMESTAMP
+
 select time(12, 30, 59) as t;
 +----------+
 | t        |
@@ -1090,8 +1139,8 @@ select time(12, 30, 59) as t;
 
 !ok
 
-# DATE(timestamp)
-# Test timezone conversion. Denver observes DST whereas Phoenix does not.
+# Test timezone conversion when converting TIMESTAMP to DATE.
+# Denver observes DST whereas Phoenix does not.
 # Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
 select date(timestamp("2008-06-21 06:30:00")) as sum_utc,
        date(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
@@ -1108,8 +1157,8 @@ select date(timestamp("2008-06-21 06:30:00")) as sum_utc,
 
 !ok
 
-# TIME(timestamp)
-# Test timezone conversion. Denver observes DST whereas Phoenix does not.
+# Test timezone conversion when converting TIMESTAMP to TIME.
+# Denver observes DST whereas Phoenix does not.
 # Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
 select time(timestamp("2008-06-21 06:30:00")) as sum_utc,
        time(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
@@ -1126,8 +1175,8 @@ select time(timestamp("2008-06-21 06:30:00")) as sum_utc,
 
 !ok
 
-# TIMESTAMP(date)
-# Test timezone conversion. Denver observes DST whereas Phoenix does not.
+# Test timezone conversion when converting DATE to TIMESTAMP.
+# Denver observes DST whereas Phoenix does not.
 # Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
 select timestamp(date(2008, 6, 21)) as sum_utc,
        timestamp(date(2008, 6, 21), "America/Denver") as sum_dst,
