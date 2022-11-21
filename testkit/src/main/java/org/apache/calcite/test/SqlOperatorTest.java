@@ -3501,22 +3501,28 @@ public class SqlOperatorTest {
   }
 
   @Test void testTranslate3Func() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.TRANSLATE3)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("translate('aabbcc', 'ab', '+-')",
-        "++--cc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate('aabbcc', 'ab', 'ba')",
-        "bbaacc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate('aabbcc', 'ab', '')",
-        "cc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate('aabbcc', '', '+-')",
-        "aabbcc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
-        "++--cc", "VARCHAR(10) NOT NULL");
-    f.checkNull("translate(cast(null as varchar(7)), 'ab', '+-')");
-    f.checkNull("translate('aabbcc', cast(null as varchar(2)), '+-')");
-    f.checkNull("translate('aabbcc', 'ab', cast(null as varchar(2)))");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.TRANSLATE3);
+    f.checkFails("^translate('aabbcc', 'ab', '+-')^",
+        "No match found for function signature "
+            + "TRANSLATE3\\(<CHARACTER>, <CHARACTER>, <CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("translate('aabbcc', 'ab', '+-')",
+              "++--cc", "VARCHAR(6) NOT NULL");
+          t.checkString("translate('aabbcc', 'ab', 'ba')",
+              "bbaacc", "VARCHAR(6) NOT NULL");
+          t.checkString("translate('aabbcc', 'ab', '')",
+              "cc", "VARCHAR(6) NOT NULL");
+          t.checkString("translate('aabbcc', '', '+-')",
+              "aabbcc", "VARCHAR(6) NOT NULL");
+          t.checkString("translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
+              "++--cc", "VARCHAR(10) NOT NULL");
+          t.checkNull("translate(cast(null as varchar(7)), 'ab', '+-')");
+          t.checkNull("translate('aabbcc', cast(null as varchar(2)), '+-')");
+          t.checkNull("translate('aabbcc', 'ab', cast(null as varchar(2)))");
+        });
   }
 
   @Test void testOverlayFunc() {
@@ -3695,74 +3701,94 @@ public class SqlOperatorTest {
   }
 
   @Test void testFromBase64() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.FROM_BASE64)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("from_base64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3RyaW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3\nRyaW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkString("from_base64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkNull("from_base64('-1')");
-    f.checkNull("from_base64('-100')");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.FROM_BASE64);
+    f.checkFails("^from_base64('2fjoeiwjfoj==')^",
+        "No match found for function signature FROM_BASE64\\(<CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("from_base64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
+              "546869732069732061207465737420537472696e672e",
+              "VARBINARY NOT NULL");
+          t.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3RyaW5nLg==')",
+              "546869732069732061207465737420537472696e672e",
+              "VARBINARY NOT NULL");
+          t.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3\nRyaW5nLg==')",
+              "546869732069732061207465737420537472696e672e",
+              "VARBINARY NOT NULL");
+          t.checkString("from_base64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
+              "546869732069732061207465737420537472696e672e",
+              "VARBINARY NOT NULL");
+          t.checkNull("from_base64('-1')");
+          t.checkNull("from_base64('-100')");
+        });
   }
 
   @Test void testMd5() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.MD5)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("md5(x'')",
-        "d41d8cd98f00b204e9800998ecf8427e",
-        "VARCHAR NOT NULL");
-    f.checkString("md5('')",
-        "d41d8cd98f00b204e9800998ecf8427e",
-        "VARCHAR NOT NULL");
-    f.checkString("md5('ABC')",
-        "902fbdd2b1df0c4f70b4a5d23525e932",
-        "VARCHAR NOT NULL");
-    f.checkString("md5(x'414243')",
-        "902fbdd2b1df0c4f70b4a5d23525e932",
-        "VARCHAR NOT NULL");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.MD5);
+    f.checkFails("^md5(x'')^",
+        "No match found for function signature MD5\\(<BINARY>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("md5(x'')",
+              "d41d8cd98f00b204e9800998ecf8427e",
+              "VARCHAR NOT NULL");
+          t.checkString("md5('')",
+              "d41d8cd98f00b204e9800998ecf8427e",
+              "VARCHAR NOT NULL");
+          t.checkString("md5('ABC')",
+              "902fbdd2b1df0c4f70b4a5d23525e932",
+              "VARCHAR NOT NULL");
+          t.checkString("md5(x'414243')",
+              "902fbdd2b1df0c4f70b4a5d23525e932",
+              "VARCHAR NOT NULL");
+        });
   }
 
   @Test void testSha1() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.SHA1)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("sha1(x'')",
-        "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-        "VARCHAR NOT NULL");
-    f.checkString("sha1('')",
-        "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-        "VARCHAR NOT NULL");
-    f.checkString("sha1('ABC')",
-        "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
-        "VARCHAR NOT NULL");
-    f.checkString("sha1(x'414243')",
-        "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
-        "VARCHAR NOT NULL");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.SHA1);
+    f.checkFails("^sha1(x'')^",
+        "No match found for function signature SHA1\\(<BINARY>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("sha1(x'')",
+              "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+              "VARCHAR NOT NULL");
+          t.checkString("sha1('')",
+              "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+              "VARCHAR NOT NULL");
+          t.checkString("sha1('ABC')",
+              "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
+              "VARCHAR NOT NULL");
+          t.checkString("sha1(x'414243')",
+              "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
+              "VARCHAR NOT NULL");
+        });
   }
 
   @Test void testRepeatFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.REPEAT)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("REPEAT('a', -100)", "", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('a', -1)", "", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('a', 0)", "", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('a', 2)", "aa", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('abc', 3)", "abcabcabc", "VARCHAR(3) NOT NULL");
-    f.checkNull("REPEAT(cast(null as varchar(1)), -1)");
-    f.checkNull("REPEAT(cast(null as varchar(1)), 2)");
-    f.checkNull("REPEAT('abc', cast(null as integer))");
-    f.checkNull("REPEAT(cast(null as varchar(1)), cast(null as integer))");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REPEAT);
+    f.checkFails("^repeat('a', -100)^",
+        "No match found for function signature REPEAT\\(<CHARACTER>, <NUMERIC>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("REPEAT('a', -100)", "", "VARCHAR(1) NOT NULL");
+          t.checkString("REPEAT('a', -1)", "", "VARCHAR(1) NOT NULL");
+          t.checkString("REPEAT('a', 0)", "", "VARCHAR(1) NOT NULL");
+          t.checkString("REPEAT('a', 2)", "aa", "VARCHAR(1) NOT NULL");
+          t.checkString("REPEAT('abc', 3)", "abcabcabc", "VARCHAR(3) NOT NULL");
+          t.checkNull("REPEAT(cast(null as varchar(1)), -1)");
+          t.checkNull("REPEAT(cast(null as varchar(1)), 2)");
+          t.checkNull("REPEAT('abc', cast(null as integer))");
+          t.checkNull("REPEAT(cast(null as varchar(1)), cast(null as integer))");
+        });
   }
 
   @Test void testSpaceFunc() {
@@ -3789,19 +3815,24 @@ public class SqlOperatorTest {
   }
 
   @Test void testSoundexFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.SOUNDEX)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('miler')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('myller')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('muller')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('m')", "M000", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('mu')", "M000", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('mile')", "M400", "VARCHAR(4) NOT NULL");
-    f.checkNull("SOUNDEX(cast(null as varchar(1)))");
-    f.checkFails("SOUNDEX(_UTF8'\u5B57\u5B57')", "The character is not mapped.*", true);
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.SOUNDEX);
+    f.checkFails("^soundex('tech on the net')^",
+        "No match found for function signature SOUNDEX\\(<CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL, SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
+          t.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
+          t.checkString("SOUNDEX('miler')", "M460", "VARCHAR(4) NOT NULL");
+          t.checkString("SOUNDEX('myller')", "M460", "VARCHAR(4) NOT NULL");
+          t.checkString("SOUNDEX('muller')", "M460", "VARCHAR(4) NOT NULL");
+          t.checkString("SOUNDEX('m')", "M000", "VARCHAR(4) NOT NULL");
+          t.checkString("SOUNDEX('mu')", "M000", "VARCHAR(4) NOT NULL");
+          t.checkString("SOUNDEX('mile')", "M400", "VARCHAR(4) NOT NULL");
+          t.checkNull("SOUNDEX(cast(null as varchar(1)))");
+          t.checkFails("SOUNDEX(_UTF8'\u5B57\u5B57')", "The character is not mapped.*", true);
+        });
   }
 
   @Test void testDifferenceFunc() {
@@ -3821,18 +3852,23 @@ public class SqlOperatorTest {
   }
 
   @Test void testReverseFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.REVERSE)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("reverse('')", "", "VARCHAR(0) NOT NULL");
-    f.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
-    f.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
-    f.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
-    f.checkString("reverse('Hello World')", "dlroW olleH",
-        "VARCHAR(11) NOT NULL");
-    f.checkString("reverse(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
-        "VARCHAR(2) NOT NULL");
-    f.checkNull("reverse(cast(null as varchar(1)))");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REVERSE);
+    f.checkFails("^reverse('abc')^",
+        "No match found for function signature REVERSE\\(<CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("reverse('')", "", "VARCHAR(0) NOT NULL");
+          t.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
+          t.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
+          t.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
+          t.checkString("reverse('Hello World')", "dlroW olleH",
+              "VARCHAR(11) NOT NULL");
+          t.checkString("reverse(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
+              "VARCHAR(2) NOT NULL");
+          t.checkNull("reverse(cast(null as varchar(1)))");
+        });
   }
 
   @Test void testIfFunc() {
@@ -3868,8 +3904,11 @@ public class SqlOperatorTest {
   }
 
   @Test void testLeftFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL)
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.LEFT);
+    f.checkFails("^left('abcd', 3)^",
+        "No match found for function signature LEFT\\(<CHARACTER>, <NUMERIC>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL, SqlLibrary.BIG_QUERY)
         .map(f::withLibrary)
         .forEach(t -> {
           t.setFor(SqlLibraryOperators.LEFT);
@@ -3892,8 +3931,11 @@ public class SqlOperatorTest {
   }
 
   @Test void testRightFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL)
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.RIGHT);
+    f.checkFails("^right('abcd', 3)^",
+        "No match found for function signature RIGHT\\(<CHARACTER>, <NUMERIC>\\)",
+        false);
+    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL, SqlLibrary.BIG_QUERY)
         .map(f::withLibrary)
         .forEach(t -> {
           t.setFor(SqlLibraryOperators.RIGHT);
@@ -5150,22 +5192,24 @@ public class SqlOperatorTest {
   }
 
   @Test void testCoshFunc() {
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
-    f.checkType("cosh(1)", "DOUBLE NOT NULL");
-    f.checkType("cosh(cast(1 as float))", "DOUBLE NOT NULL");
-    f.checkType("cosh(case when false then 1 else null end)", "DOUBLE");
-    f0.enableTypeCoercion(false)
-        .checkFails("^cosh('abc')^",
-            "No match found for function signature COSH\\(<CHARACTER>\\)",
-            false);
-    f.checkType("cosh('abc')", "DOUBLE NOT NULL");
-    f.checkScalarApprox("cosh(1)", "DOUBLE NOT NULL",
-        isWithin(1.5430d, 0.0001d));
-    f.checkScalarApprox("cosh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
-        isWithin(1.5430d, 0.0001d));
-    f.checkNull("cosh(cast(null as integer))");
-    f.checkNull("cosh(cast(null as double))");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.COSH);
+    f.checkFails("^cosh(1)^",
+        "No match found for function signature COSH\\(<NUMERIC>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkType("cosh(1)", "DOUBLE NOT NULL");
+          t.checkType("cosh(cast(1 as float))", "DOUBLE NOT NULL");
+          t.checkType("cosh(case when false then 1 else null end)", "DOUBLE");
+          t.checkType("cosh('abc')", "DOUBLE NOT NULL");
+          t.checkScalarApprox("cosh(1)", "DOUBLE NOT NULL",
+              isWithin(1.5430d, 0.0001d));
+          t.checkScalarApprox("cosh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+              isWithin(1.5430d, 0.0001d));
+          t.checkNull("cosh(cast(null as integer))");
+          t.checkNull("cosh(cast(null as double))");
+        });
   }
 
   @Test void testCotFunc() {
@@ -5319,22 +5363,24 @@ public class SqlOperatorTest {
   }
 
   @Test void testSinhFunc() {
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
-    f.checkType("sinh(1)", "DOUBLE NOT NULL");
-    f.checkType("sinh(cast(1 as float))", "DOUBLE NOT NULL");
-    f.checkType("sinh(case when false then 1 else null end)", "DOUBLE");
-    f0.enableTypeCoercion(false)
-        .checkFails("^sinh('abc')^",
-            "No match found for function signature SINH\\(<CHARACTER>\\)",
-            false);
-    f.checkType("sinh('abc')", "DOUBLE NOT NULL");
-    f.checkScalarApprox("sinh(1)", "DOUBLE NOT NULL",
-        isWithin(1.1752d, 0.0001d));
-    f.checkScalarApprox("sinh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
-        isWithin(1.1752d, 0.0001d));
-    f.checkNull("sinh(cast(null as integer))");
-    f.checkNull("sinh(cast(null as double))");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.SINH);
+    f.checkFails("^sinh(1)^",
+        "No match found for function signature SINH\\(<NUMERIC>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkType("sinh(1)", "DOUBLE NOT NULL");
+          t.checkType("sinh(cast(1 as float))", "DOUBLE NOT NULL");
+          t.checkType("sinh(case when false then 1 else null end)", "DOUBLE");
+          t.checkType("sinh('abc')", "DOUBLE NOT NULL");
+          t.checkScalarApprox("sinh(1)", "DOUBLE NOT NULL",
+              isWithin(1.1752d, 0.0001d));
+          t.checkScalarApprox("sinh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+              isWithin(1.1752d, 0.0001d));
+          t.checkNull("sinh(cast(null as integer))");
+          t.checkNull("sinh(cast(null as double))");
+        });
   }
 
   @Test void testTanFunc() {
@@ -5359,22 +5405,24 @@ public class SqlOperatorTest {
   }
 
   @Test void testTanhFunc() {
-    SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
-    f.checkType("tanh(1)", "DOUBLE NOT NULL");
-    f.checkType("tanh(cast(1 as float))", "DOUBLE NOT NULL");
-    f.checkType("tanh(case when false then 1 else null end)", "DOUBLE");
-    f0.enableTypeCoercion(false)
-        .checkFails("^tanh('abc')^",
-            "No match found for function signature TANH\\(<CHARACTER>\\)",
-            false);
-    f.checkType("tanh('abc')", "DOUBLE NOT NULL");
-    f.checkScalarApprox("tanh(1)", "DOUBLE NOT NULL",
-        isWithin(0.7615d, 0.0001d));
-    f.checkScalarApprox("tanh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
-        isWithin(0.7615d, 0.0001d));
-    f.checkNull("tanh(cast(null as integer))");
-    f.checkNull("tanh(cast(null as double))");
+    SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.TANH);
+    f.checkFails("^tanh(1)^",
+        "No match found for function signature TANH\\(<NUMERIC>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkType("tanh(1)", "DOUBLE NOT NULL");
+          t.checkType("tanh(cast(1 as float))", "DOUBLE NOT NULL");
+          t.checkType("tanh(case when false then 1 else null end)", "DOUBLE");
+          t.checkType("tanh('abc')", "DOUBLE NOT NULL");
+          t.checkScalarApprox("tanh(1)", "DOUBLE NOT NULL",
+              isWithin(0.7615d, 0.0001d));
+          t.checkScalarApprox("tanh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+              isWithin(0.7615d, 0.0001d));
+          t.checkNull("tanh(cast(null as integer))");
+          t.checkNull("tanh(cast(null as double))");
+        });
   }
 
   @Test void testTruncateFunc() {
@@ -6126,50 +6174,70 @@ public class SqlOperatorTest {
   }
 
   @Test void testRtrimFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.RTRIM, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
-    f.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.RTRIM, VmName.EXPAND);
+    f.checkFails("^rtrim(' aaa')^",
+        "No match found for function signature RTRIM\\(<CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
+          t.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
+        });
   }
 
   @Test void testLtrimFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.LTRIM, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
-    f.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.LTRIM, VmName.EXPAND);
+    f.checkFails("^ltrim('  aa')^",
+        "No match found for function signature LTRIM\\(<CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
+          t.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
+        });
   }
 
   @Test void testGreatestFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.GREATEST, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("greatest('on', 'earth')", "on   ", "CHAR(5) NOT NULL");
-    f.checkString("greatest('show', 'on', 'earth')", "show ",
-        "CHAR(5) NOT NULL");
-    f.checkScalar("greatest(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
-        "INTEGER");
-    f.checkScalar("greatest(false, true)", true, "BOOLEAN NOT NULL");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.GREATEST, VmName.EXPAND);
+    f.checkFails("^greatest('on', 'earth')^",
+        "No match found for function signature GREATEST\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("greatest('on', 'earth')", "on   ", "CHAR(5) NOT NULL");
+          t.checkString("greatest('show', 'on', 'earth')", "show ",
+              "CHAR(5) NOT NULL");
+          t.checkScalar("greatest(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
+              "INTEGER");
+          t.checkScalar("greatest(false, true)", true, "BOOLEAN NOT NULL");
+        });
 
-    final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
+    final SqlOperatorFixture f12 = f.withLibrary(SqlLibrary.ORACLE).forOracle(SqlConformanceEnum.ORACLE_12);
     f12.checkString("greatest('on', 'earth')", "on", "VARCHAR(5) NOT NULL");
     f12.checkString("greatest('show', 'on', 'earth')", "show",
         "VARCHAR(5) NOT NULL");
   }
 
   @Test void testLeastFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.LEAST, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("least('on', 'earth')", "earth", "CHAR(5) NOT NULL");
-    f.checkString("least('show', 'on', 'earth')", "earth",
-        "CHAR(5) NOT NULL");
-    f.checkScalar("least(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
-        "INTEGER");
-    f.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.LEAST, VmName.EXPAND);
+    f.checkFails("^least('on', 'earth')^",
+        "No match found for function signature LEAST\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    Stream.of(SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY)
+        .map(f::withLibrary)
+        .forEach(t -> {
+          t.checkString("least('on', 'earth')", "earth", "CHAR(5) NOT NULL");
+          t.checkString("least('show', 'on', 'earth')", "earth",
+              "CHAR(5) NOT NULL");
+          t.checkScalar("least(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
+              "INTEGER");
+          t.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
+        });
 
-    final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
+    final SqlOperatorFixture f12 = f.withLibrary(SqlLibrary.ORACLE).forOracle(SqlConformanceEnum.ORACLE_12);
     f12.checkString("least('on', 'earth')", "earth", "VARCHAR(5) NOT NULL");
     f12.checkString("least('show', 'on', 'earth')", "earth",
         "VARCHAR(5) NOT NULL");
