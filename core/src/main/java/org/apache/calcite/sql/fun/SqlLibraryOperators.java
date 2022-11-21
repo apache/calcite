@@ -189,7 +189,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.SAME_SAME);
 
   /** The "LTRIM(string)" function. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LTRIM =
       SqlBasicFunction.create(SqlKind.LTRIM,
           ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
@@ -198,7 +198,7 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.STRING);
 
   /** The "RTRIM(string)" function. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction RTRIM =
       SqlBasicFunction.create(SqlKind.RTRIM,
           ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
@@ -246,14 +246,14 @@ public abstract class SqlLibraryOperators {
       SUBSTR.withKind(SqlKind.SUBSTR_POSTGRESQL);
 
   /** The "GREATEST(value, value)" function. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction GREATEST =
       SqlBasicFunction.create(SqlKind.GREATEST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
   /** The "LEAST(value, value)" function. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LEAST =
       SqlBasicFunction.create(SqlKind.LEAST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
@@ -268,7 +268,7 @@ public abstract class SqlLibraryOperators {
    * <p>It is not defined in the SQL standard, but occurs in Oracle and
    * PostgreSQL.
    */
-  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL})
   public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
 
   @LibraryOperator(libraries = {MYSQL})
@@ -462,20 +462,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction LEFT =
       SqlBasicFunction.create("LEFT",
           ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.CBSTRING_INTEGER, SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction REPEAT =
       SqlBasicFunction.create("REPEAT",
           ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.STRING_INTEGER,
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction RIGHT =
       SqlBasicFunction.create("RIGHT", ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.CBSTRING_INTEGER, SqlFunctionCategory.STRING);
@@ -494,7 +494,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL, ORACLE})
   public static final SqlFunction SOUNDEX =
       SqlBasicFunction.create("SOUNDEX",
           ReturnTypes.VARCHAR_4_NULLABLE,
@@ -574,14 +574,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.LEAST_RESTRICTIVE,
           OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
 
-  @LibraryOperator(libraries = {MYSQL})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction REVERSE =
       SqlBasicFunction.create(SqlKind.REVERSE,
           ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.CHARACTER)
           .withFunctionType(SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {MYSQL})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction FROM_BASE64 =
       SqlBasicFunction.create("FROM_BASE64",
           ReturnTypes.explicit(SqlTypeName.VARBINARY)
@@ -723,28 +723,28 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction TANH =
       SqlBasicFunction.create("TANH",
           ReturnTypes.DOUBLE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction COSH =
       SqlBasicFunction.create("COSH",
           ReturnTypes.DOUBLE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction SINH =
       SqlBasicFunction.create("SINH",
           ReturnTypes.DOUBLE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
@@ -752,7 +752,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction SHA1 =
       SqlBasicFunction.create("SHA1",
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
