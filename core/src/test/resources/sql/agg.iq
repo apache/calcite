@@ -3467,4 +3467,24 @@ order by ename, deptno;
 
 !ok
 
+# Test case for [CALCITE-5388] tempList expression inside EnumerableWindow.getPartitionIterator should be unoptimized
+with
+    CTE1(rownr1, val1) as ( select ROW_NUMBER() OVER(ORDER BY id ASC), id from (values (1), (2)) as Vals1(id) ),
+    CTE2(rownr2, val2) as ( select ROW_NUMBER() OVER(ORDER BY id ASC), id from (values (1), (2)) as Vals2(id) )
+select
+    CTE1.rownr1, CTE1.val1, CTE2.rownr2, CTE2.val2
+from
+    CTE1,CTE2
+where
+    CTE1.val1 = CTE2.val2;
+
++--------+------+--------+------+
+| ROWNR1 | VAL1 | ROWNR2 | VAL2 |
++--------+------+--------+------+
+|      1 |    1 |      1 |    1 |
+|      2 |    2 |      2 |    2 |
++--------+------+--------+------+
+(2 rows)
+
+!ok
 # End agg.iq

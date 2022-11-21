@@ -681,7 +681,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
                   source_,
                   BuiltInMethod.INTO.method,
                   Expressions.new_(ArrayList.class)),
-              List.class));
+              List.class), false);
       return Pair.of(tempList_,
           builder.append(
             "iterator",
