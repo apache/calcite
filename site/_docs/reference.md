@@ -2587,6 +2587,7 @@ semantics.
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
+| b | STARTS_WITH(value1, value2)                    | Takes two STRING or BYTES values. Returns TRUE if the second value is a prefix of the first
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | o p | CHR(integer)                                 | Returns the character whose UTF-8 code is *integer*
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
