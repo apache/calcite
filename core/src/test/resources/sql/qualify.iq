@@ -92,6 +92,7 @@ FROM "scott".emp
 WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)
 QUALIFY sumDeptNo = 1;
 
+
 no rows selected
 
 !ok
