@@ -397,6 +397,8 @@ public enum BuiltInMethod {
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),
+  STARTS_WITH(SqlFunctions.class, "startsWith", String.class, String.class),
+  ENDS_WITH(SqlFunctions.class, "endsWith", String.class, String.class),
   OCTET_LENGTH(SqlFunctions.class, "octetLength", ByteString.class),
   CHAR_LENGTH(SqlFunctions.class, "charLength", String.class),
   STRING_CONCAT(SqlFunctions.class, "concat", String.class, String.class),

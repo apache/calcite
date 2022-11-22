@@ -212,6 +212,18 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
+  /** The "ENDS_WITH(value1, value2)" function (BigQuery). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ENDS_WITH =
+      SqlBasicFunction.create("ENDS_WITH", ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_SAME_SAME, SqlFunctionCategory.STRING);
+
+  /** The "STARTS_WITH(value1, value2)" function (BigQuery). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction STARTS_WITH =
+      SqlBasicFunction.create("STARTS_WITH", ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_SAME_SAME, SqlFunctionCategory.STRING);
+
   /** BigQuery's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction SUBSTR_BIG_QUERY =

@@ -2537,4 +2537,63 @@ SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008") AS parsed;
 !ok
 !}
 
+#####################################################################
+# STRING and BYTES functions ########################################
+
+#####################################################################
+# ENDS_WITH(value1, value2)
+#
+# Takes two STRING or BYTES values. Returns TRUE if the second
+# value is a suffix of the first.
+#
+# This function supports specifying collation.
+WITH items AS (
+  SELECT '1234' as item UNION ALL
+  SELECT '123' UNION ALL
+  SELECT '' UNION ALL
+  SELECT NULL
+)
+SELECT
+  item, ENDS_WITH(item, '34') as example
+FROM items;
++------+---------+
+| item | example |
++------+---------+
+|      | false   |
+| 123  | false   |
+| 1234 | true    |
+|      |         |
++------+---------+
+(4 rows)
+
+!ok
+
+#####################################################################
+# STARTS_WITH(value1, value2)
+#
+# Takes two STRING or BYTES values. Returns TRUE if the second
+# value is a prefix of the first.
+#
+# This function supports specifying collation.
+WITH items AS (
+  SELECT 'foo' as item UNION ALL
+  SELECT 'bar' UNION ALL
+  SELECT 'baz' UNION ALL
+  SELECT NULL
+)
+SELECT
+  item, STARTS_WITH(item, 'b') as example
+FROM items;
++------+---------+
+| item | example |
++------+---------+
+| bar  | true    |
+| baz  | true    |
+| foo  | false   |
+|      |         |
++------+---------+
+(4 rows)
+
+!ok
+
 # End big-query.iq

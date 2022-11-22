@@ -2617,6 +2617,7 @@ semantics.
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
+| b | ENDS_WITH(string1, string2)                    | Returns whether *string2* is a suffix of *string1*
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
@@ -2650,8 +2651,9 @@ semantics.
 | b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
 | b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b | STARTS_WITH(string1, string2)                  | Returns whether *string2* is a prefix of *string1*
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
+| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
 | b | TIMESTAMP_ADD(timestamp, interval int64 date_part) | Adds int64_expression units of date_part to the timestamp, independent of any time zone.
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
