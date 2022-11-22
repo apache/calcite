@@ -534,6 +534,7 @@ data: {
     builtinFunctionCallMethods: [
        "DateFunctionCall()"
        "DateaddFunctionCall()"
+       "StartsWithFunctionCall()"
     ]
 
     # List of methods for parsing extensions to "CREATE [OR REPLACE]" calls.

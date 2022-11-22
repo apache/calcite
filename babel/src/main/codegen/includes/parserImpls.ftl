@@ -70,6 +70,27 @@ SqlNode DateaddFunctionCall() :
     }
 }
 
+SqlNode StartsWithFunctionCall() :
+{
+    final SqlFunctionCategory funcType = SqlFunctionCategory.STRING;
+    final SqlIdentifier qualifiedName;
+    final Span s;
+    final SqlLiteral quantifier;
+    final List<? extends SqlNode> args;
+}
+{
+    <STARTS_WITH> {
+      s = span();
+      qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
+    }
+    args = FunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+        quantifier = (SqlLiteral) args.get(0);
+        args.remove(0);
+        return createCall(qualifiedName, s.end(this), funcType, quantifier, args);
+    }
+}
+
+
 boolean IfNotExistsOpt() :
 {
 }
@@ -178,6 +199,7 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
 |   < DATEPART: "DATEPART" >
 |   < NEGATE: "!" >
 |   < TILDE: "~" >
+|   < STARTS_WITH: "STARTS_WITH" >
 }
 
 /** Parses the infix "::" cast operator used in PostgreSQL. */

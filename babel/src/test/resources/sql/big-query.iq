@@ -2519,4 +2519,31 @@ SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008") AS parsed;
 !ok
 !}
 
+#####################################################################
+#
+# STARTS_WITH(value1, value2)
+#
+# Takes two STRING or BYTES values. Returns TRUE if the second value is a prefix of the first.
+#
+# This function supports specifying collation.
+WITH items AS
+  (SELECT 'foo' as item
+  UNION ALL
+  SELECT 'bar' as item
+  UNION ALL
+  SELECT 'baz' as item)
+SELECT
+  STARTS_WITH(item, 'b') as example
+FROM items;
++---------+
+| example |
++---------+
+| false   |
+| true    |
+| true    |
++---------+
+(3 rows)
+
+!ok
+
 # End big-query.iq

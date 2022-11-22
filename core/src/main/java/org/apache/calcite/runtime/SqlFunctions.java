@@ -270,6 +270,11 @@ public class SqlFunctions {
     return flags;
   }
 
+  /** For {@link SqlLibraryOperators#STARTS_WITH} of the form {@code STARTS_WITH()}. */
+  public static boolean startsWith(String s0, String s1) {
+    return s0.startsWith(s1);
+  }
+
   /** SQL SUBSTRING(string FROM ...) function. */
   public static String substring(String c, int s) {
     final int s0 = s - 1;
