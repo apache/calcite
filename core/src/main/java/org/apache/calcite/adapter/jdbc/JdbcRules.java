@@ -807,6 +807,18 @@ public class JdbcRules {
       if (cost == null) {
         return null;
       }
+      Double rowCount = cost.getRows();
+      if (rowCount == null) {
+        return null;
+      }
+      if (!rowCount.equals(0D)) {
+        final int offset = this.offset instanceof RexLiteral ? RexLiteral.intValue(this.offset) : 0;
+        rowCount = Math.max(rowCount - offset, 0D);
+
+        final double limit =
+            this.fetch instanceof RexLiteral ? RexLiteral.intValue(this.fetch) : rowCount;
+        cost = cost.multiplyBy(limit < rowCount ? limit : rowCount / cost.getRows());
+      }
       return cost.multiplyBy(0.9);
     }
 
