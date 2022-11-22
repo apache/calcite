@@ -4226,13 +4226,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     public static final WindowFunctionDetector INSTANCE = new WindowFunctionDetector();
     private WindowFunctionDetector() {}
 
-    @Override
-    public Boolean visit(SqlLiteral literal) {
+    @Override public Boolean visit(SqlLiteral literal) {
       return false;
     }
 
-    @Override
-    public Boolean visit(SqlCall call) {
+    @Override public Boolean visit(SqlCall call) {
       if (call.getKind() == SqlKind.OVER) {
         return true;
       }
@@ -4244,8 +4242,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           .anyMatch(operand -> operand.accept(this));
     }
 
-    @Override
-    public Boolean visit(SqlNodeList nodeList) {
+    @Override public Boolean visit(SqlNodeList nodeList) {
       return nodeList
           .getList()
           .stream()
@@ -4253,23 +4250,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           .anyMatch(node -> node.accept(this));
     }
 
-    @Override
-    public Boolean visit(SqlIdentifier id) {
+    @Override public Boolean visit(SqlIdentifier id) {
       return false;
     }
 
-    @Override
-    public Boolean visit(SqlDataTypeSpec type) {
+    @Override public Boolean visit(SqlDataTypeSpec type) {
       return false;
     }
 
-    @Override
-    public Boolean visit(SqlDynamicParam param) {
+    @Override public Boolean visit(SqlDynamicParam param) {
       return false;
     }
 
-    @Override
-    public Boolean visit(SqlIntervalQualifier intervalQualifier) {
+    @Override public Boolean visit(SqlIntervalQualifier intervalQualifier) {
       return false;
     }
   }
