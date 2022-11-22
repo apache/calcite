@@ -4811,7 +4811,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testQualifyInCorrelatedSubquery() {
-    // The QUALIFY clause is inside of a WHERE EXISTS and references columns from the enclosing query.
+    // The QUALIFY clause is inside a WHERE EXISTS and references columns from
+    // the enclosing query.
     sql("SELECT * "
         + "FROM emp "
         + "WHERE EXISTS("

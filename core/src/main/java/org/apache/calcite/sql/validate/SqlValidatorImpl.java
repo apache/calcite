@@ -4182,10 +4182,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     if (!qualifyNode.accept(WindowFunctionDetector.INSTANCE)) {
-      throw newValidationError(qualifyNode, RESOURCE.qualifyExpressionMustContainWindowFunction(qualifyNode.toString()));
+      throw newValidationError(qualifyNode,
+          RESOURCE.qualifyExpressionMustContainWindowFunction(qualifyNode.toString()));
     }
   }
 
+  /** Detects OVER. */
   private static final class WindowFunctionDetector implements SqlVisitor<Boolean> {
     public static final WindowFunctionDetector INSTANCE = new WindowFunctionDetector();
     private WindowFunctionDetector() {}
@@ -4423,7 +4425,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
     for (SqlNode groupItem : groupList) {
-      SqlNode expandedItem = extendedExpand(groupItem, groupScope, select, ExpansionClause.GROUPBY);
+      SqlNode expandedItem =
+          extendedExpand(groupItem, groupScope, select, ExpansionClause.GROUP_BY);
       expandedList.add(expandedItem);
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
@@ -6201,14 +6204,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
+  /** Expands an expression in a GROUP BY, HAVING or QUALIFY clause. */
   public SqlNode extendedExpand(SqlNode expr,
       SqlValidatorScope scope, SqlSelect select, ExpansionClause clause) {
-    final Expander expander = new ExtendedExpander(
-        this,
-        scope,
-        select,
-        expr,
-        clause);
+    final Expander expander =
+        new ExtendedExpander(this, scope, select, expr, clause);
     SqlNode newExpr = expander.go(expr);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -6806,12 +6806,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlNode root;
     final ExpansionClause clause;
 
-    ExtendedExpander(
-        SqlValidatorImpl validator,
-        SqlValidatorScope scope,
-        SqlSelect select,
-        SqlNode root,
-        ExpansionClause clause) {
+    ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
+        SqlSelect select, SqlNode root, ExpansionClause clause) {
       super(validator, scope);
       this.select = select;
       this.root = root;
@@ -6825,7 +6821,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       boolean replaceAliases;
       switch (clause) {
-      case GROUPBY:
+      case GROUP_BY:
         replaceAliases = validator.config().conformance().isGroupByAlias();
         break;
 
@@ -6838,7 +6834,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         break;
 
       default:
-        throw new RuntimeException("Unknown clause kind: " + clause);
+        throw Util.unexpected(clause);
       }
 
       if (!replaceAliases) {
@@ -6870,7 +6866,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw validator.newValidationError(id,
             RESOURCE.columnAmbiguous(name));
       }
-      if ((clause == ExpansionClause.HAVING) && validator.isAggregate(root)) {
+      if (clause == ExpansionClause.HAVING && validator.isAggregate(root)) {
         return super.visit(id);
       }
       expr = stripAs(expr);
@@ -6883,7 +6879,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      if ((clause == ExpansionClause.HAVING) || !validator.config().conformance().isGroupByOrdinal()) {
+      if (clause == ExpansionClause.HAVING
+          || !validator.config().conformance().isGroupByOrdinal()) {
         return super.visit(literal);
       }
       boolean isOrdinalLiteral = literal == root;
@@ -7395,8 +7392,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     CURSOR
   }
 
+  /** Which clause is being expanded. */
   public enum ExpansionClause {
-    GROUPBY,
+    GROUP_BY,
     HAVING,
     QUALIFY,
   }

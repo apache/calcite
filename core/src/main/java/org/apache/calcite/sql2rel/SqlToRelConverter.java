@@ -4707,7 +4707,7 @@ public class SqlToRelConverter {
 
   /**
    * Tries to implement CSE by seeing if a rex node is already defined in
-   * the project Rel and returning a refIndex instead of the raw node
+   * the project Rel and returning a refIndex instead of the raw node.
    */
   private static final class ProjectCSERexVisitor extends RexShuttle {
     private final RexBuilder rexBuilder;

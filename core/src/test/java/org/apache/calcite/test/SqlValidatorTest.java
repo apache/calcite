@@ -6475,7 +6475,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "QUALIFY row_num = 1";
     f.withSql(qualifyWithAlias).ok();
 
-    final String qualifyWithWindowClause = "SELECT empno, ename, SUM(deptno) OVER myWindow as sumDeptNo\n"
+    final String qualifyWithWindowClause = "SELECT empno, ename,\n"
+        + " SUM(deptno) OVER myWindow as sumDeptNo\n"
         + "FROM emp\n"
         + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
         + "QUALIFY sumDeptNo = 1";
