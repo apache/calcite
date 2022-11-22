@@ -179,7 +179,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
                 .addAll(columnList)
                 .build());
     return new SqlSelect(p, null, selectList, from, null, null, null, null,
-        null, null, null, null);
+        null, null, null, null, null);
   }
 
   /** Populates the table called {@code name} by executing {@code query}. */
