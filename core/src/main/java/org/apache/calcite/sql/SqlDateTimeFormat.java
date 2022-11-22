@@ -81,7 +81,8 @@ public enum SqlDateTimeFormat {
   QUARTER("QUARTER"),
   WEEK_OF_YEAR("WW"),
   WEEK_OF_MONTH("W"),
-  TIMEOFDAY("TIMEOFDAY");
+  TIMEOFDAY("TIMEOFDAY"),
+  YYYYDDMM("YYYYDDMM");
 
   public final String value;
 
