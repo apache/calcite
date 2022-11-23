@@ -730,6 +730,29 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ANY_STRING_STRING =
       family(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
+  /**
+   * Operand type-checking strategy used by {@code ARG_MIN(value, comp)} and
+   * similar functions, where the first operand can have any type and the second
+   * must be comparable.
+   */
+  public static final SqlOperandTypeChecker ANY_COMPARABLE =
+      new SqlOperandTypeChecker() {
+        @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          getOperandCountRange().isValidCount(callBinding.getOperandCount());
+          RelDataType type = callBinding.getOperandType(1);
+          return type.getComparability() == RelDataTypeComparability.ALL;
+        }
+
+        @Override public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.of(2);
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<ANY>, <COMPARABLE_TYPE>)";
+        }
+  };
+
   public static final SqlSingleOperandTypeChecker CURSOR =
       family(SqlTypeFamily.CURSOR);
 

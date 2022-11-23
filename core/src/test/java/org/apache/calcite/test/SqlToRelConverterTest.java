@@ -4277,6 +4277,32 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testArgMinFunction() {
+    final String sql = "select arg_min(ename, deptno)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
+  @Test void testArgMinFunctionWithWinAgg() {
+    final String sql = "select job,\n"
+        + "  arg_min(ename, deptno) over (partition by job order by sal)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
+  @Test void testArgMaxFunction() {
+    final String sql = "select arg_max(ename, deptno)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
+  @Test void testArgMaxFunctionWithWinAgg() {
+    final String sql = "select job,\n"
+        + "  arg_max(ename, deptno) over (partition by job order by sal)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
   @Test void testModeFunction() {
     final String sql = "select mode(deptno)\n"
         + "from emp";

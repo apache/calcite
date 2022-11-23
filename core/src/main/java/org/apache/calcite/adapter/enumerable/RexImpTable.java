@@ -148,7 +148,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
@@ -181,6 +183,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARG_MAX;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARG_MIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASCII;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
@@ -734,6 +738,10 @@ public class RexImpTable {
           constructorSupplier(MinMaxImplementor.class);
       aggMap.put(MIN, minMax);
       aggMap.put(MAX, minMax);
+      aggMap.put(ARG_MIN, constructorSupplier(ArgMinMaxImplementor.class));
+      aggMap.put(ARG_MAX, constructorSupplier(ArgMinMaxImplementor.class));
+      aggMap.put(MIN_BY, constructorSupplier(ArgMinMaxImplementor.class));
+      aggMap.put(MAX_BY, constructorSupplier(ArgMinMaxImplementor.class));
       aggMap.put(ANY_VALUE, minMax);
       aggMap.put(SOME, minMax);
       aggMap.put(EVERY, minMax);
@@ -1201,6 +1209,67 @@ public class RexImpTable {
           acc,
           Expressions.unbox(arg));
       accAdvance(add, acc, next);
+    }
+  }
+
+  /** Implementor for the {@code ARG_MIN} and {@code ARG_MAX} aggregate
+   * functions. */
+  static class ArgMinMaxImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      // acc[0] = null;
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.constant(null))));
+
+      final Type compType = info.parameterTypes().get(1);
+      final Primitive p = Primitive.of(compType);
+      final boolean isMin = info.aggregation().kind == SqlKind.ARG_MIN;
+      final Object inf = p == null ? null : (isMin ? p.max : p.min);
+      //acc[1] = isMin ? {max value} : {min value};
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(1),
+                  Expressions.constant(inf, compType))));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      Expression accComp = add.accumulator().get(1);
+      Expression argValue = add.arguments().get(0);
+      Expression argComp = add.arguments().get(1);
+      final Type compType = info.parameterTypes().get(1);
+      final Primitive p = Primitive.of(compType);
+      final boolean isMin = info.aggregation().kind == SqlKind.ARG_MIN;
+
+      final Method method =
+          (isMin
+              ? (p == null ? BuiltInMethod.LT_NULLABLE : BuiltInMethod.LT)
+              : (p == null ? BuiltInMethod.GT_NULLABLE : BuiltInMethod.GT))
+              .method;
+      Expression compareExpression =
+          Expressions.call(method.getDeclaringClass(),
+              method.getName(),
+              argComp,
+              accComp);
+
+      final BlockBuilder thenBlock =
+          new BlockBuilder(true, add.currentBlock());
+      thenBlock.add(
+          Expressions.statement(
+              Expressions.assign(add.accumulator().get(0), argValue)));
+      thenBlock.add(
+          Expressions.statement(
+              Expressions.assign(add.accumulator().get(1), argComp)));
+
+      add.currentBlock()
+          .add(Expressions.ifThen(compareExpression, thenBlock.toBlock()));
+    }
+
+    @Override public List<Type> getNotNullState(AggContext info) {
+      return ImmutableList.of(Object.class, // the result value
+          info.parameterTypes().get(1)); // the compare value
     }
   }
 

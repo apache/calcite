@@ -894,7 +894,7 @@ public class SqlFunctions {
 
   /** SQL <code>&lt;</code> operator applied to boolean values. */
   public static boolean lt(boolean b0, boolean b1) {
-    return compare(b0, b1) < 0;
+    return Boolean.compare(b0, b1) < 0;
   }
 
   /** SQL <code>&lt;</code> operator applied to String values. */
@@ -917,6 +917,40 @@ public class SqlFunctions {
     return b0.compareTo(b1) < 0;
   }
 
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN}. */
+  public static <T extends Comparable<T>> boolean ltNullable(T b0, T b1) {
+    return b1 == null || b0 != null && b0.compareTo(b1) < 0;
+  }
+
+  public static boolean lt(byte b0, byte b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(char b0, char b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(short b0, short b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(int b0, int b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(long b0, long b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(float b0, float b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(double b0, double b1) {
+    return b0 < b1;
+  }
+
   /** SQL <code>&lt;</code> operator applied to Object values. */
   public static boolean ltAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
@@ -934,7 +968,7 @@ public class SqlFunctions {
 
   /** SQL <code>&le;</code> operator applied to boolean values. */
   public static boolean le(boolean b0, boolean b1) {
-    return compare(b0, b1) <= 0;
+    return Boolean.compare(b0, b1) <= 0;
   }
 
   /** SQL <code>&le;</code> operator applied to String values. */
@@ -975,7 +1009,7 @@ public class SqlFunctions {
 
   /** SQL <code>&gt;</code> operator applied to boolean values. */
   public static boolean gt(boolean b0, boolean b1) {
-    return compare(b0, b1) > 0;
+    return Boolean.compare(b0, b1) > 0;
   }
 
   /** SQL <code>&gt;</code> operator applied to String values. */
@@ -998,6 +1032,40 @@ public class SqlFunctions {
     return b0.compareTo(b1) > 0;
   }
 
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX}. */
+  public static <T extends Comparable<T>> boolean gtNullable(T b0, T b1) {
+    return b1 == null || b0 != null && b0.compareTo(b1) > 0;
+  }
+
+  public static boolean gt(byte b0, byte b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(char b0, char b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(short b0, short b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(int b0, int b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(long b0, long b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(float b0, float b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(double b0, double b1) {
+    return b0 > b1;
+  }
+
   /** SQL <code>&gt;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean gtAny(Object b0, Object b1) {
@@ -1016,7 +1084,7 @@ public class SqlFunctions {
 
   /** SQL <code>&ge;</code> operator applied to boolean values. */
   public static boolean ge(boolean b0, boolean b1) {
-    return compare(b0, b1) >= 0;
+    return Boolean.compare(b0, b1) >= 0;
   }
 
   /** SQL <code>&ge;</code> operator applied to String values. */
@@ -1969,11 +2037,6 @@ public class SqlFunctions {
   /** GREATEST operator. */
   public static <T extends Comparable<T>> T greatest(T b0, T b1) {
     return b0 == null || b1 != null && b0.compareTo(b1) < 0 ? b1 : b0;
-  }
-
-  /** Boolean comparison. */
-  public static int compare(boolean x, boolean y) {
-    return x == y ? 0 : x ? 1 : -1;
   }
 
   /** CAST(FLOAT AS VARCHAR). */

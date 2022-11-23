@@ -741,4 +741,28 @@ from emp;
 (9 rows)
 
 !ok
+
+# [CALCITE-5283] Add ARG_MIN, ARG_MAX aggregate function
+
+# ARG_MIN, ARG_MAX function without ORDER BY.
+select gender,
+  arg_min(ename, deptno) over (partition by gender order by ename) as mi,
+  arg_max(ename, deptno) over (partition by gender order by ename) as ma
+from emp;
++--------+-------+-------+
+| GENDER | MI    | MA    |
++--------+-------+-------+
+| F      | Alice | Alice |
+| F      | Alice | Eve   |
+| F      | Alice | Grace |
+| F      | Jane  | Grace |
+| F      | Jane  | Grace |
+| F      | Jane  | Grace |
+| M      | Adam  | Adam  |
+| M      | Bob   | Adam  |
+| M      | Bob   | Adam  |
++--------+-------+-------+
+(9 rows)
+
+!ok
 # End winagg.iq
