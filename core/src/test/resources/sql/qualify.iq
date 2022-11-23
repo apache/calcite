@@ -87,17 +87,12 @@ EMPNO ENAME  DEPTNO ROW_NUM
 !ok
 
 # Test QUALIFY with WINDOW clause
-# (The following line can be removed when [QUIDEM-57] is fixed.)
-!set outputformat mysql
 SELECT empno, ename, deptno, SUM(deptno) OVER myWindow as sumDeptNo
 FROM "scott".emp
 WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)
 QUALIFY sumDeptNo = 1;
-+-------+-------+--------+-----------+
-| EMPNO | ENAME | DEPTNO | SUMDEPTNO |
-+-------+-------+--------+-----------+
-+-------+-------+--------+-----------+
-(0 rows)
+
+no rows selected
 
 !ok
 
