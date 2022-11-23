@@ -888,6 +888,12 @@ public enum SqlKind {
   /** The {@code MODE} aggregate function. */
   MODE,
 
+  /** The {@code ARG_MAX} aggregate function. */
+  ARG_MAX,
+
+  /** The {@code ARG_MIN} aggregate function. */
+  ARG_MIN,
+
   /** The {@code PERCENTILE_CONT} aggregate function. */
   PERCENTILE_CONT,
 

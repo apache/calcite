@@ -3520,4 +3520,76 @@ where
 (2 rows)
 
 !ok
+
+# [CALCITE-5283] Add ARG_MIN, ARG_MAX aggregate function
+
+# ARG_MIN, ARG_MAX without GROUP BY
+select arg_min(ename, deptno) as mi, arg_max(ename, deptno) as ma
+from emp;
++-------+-------+
+| MI    | MA    |
++-------+-------+
+| Jane  | Grace |
++-------+-------+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX with DISTINCT
+select arg_min(distinct ename, deptno) as mi, arg_max(distinct ename, deptno) as ma
+from emp;
++-------+-------+
+| MI    | MA    |
++-------+-------+
+| Jane  | Grace |
++-------+-------+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX function with WHERE.
+select arg_min(ename, deptno) as mi, arg_max(ename, deptno) as ma
+from emp
+where deptno <= 20;
++-------+-------+
+| MI    | MA    |
++-------+-------+
+| Jane  | Eric  |
++-------+-------+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX function with WHERE that removes all rows.
+# Result is NULL even though ARG_MIN, ARG_MAX is applied to a not-NULL column.
+select arg_min(ename, deptno) as mi, arg_max(ename, deptno) as ma
+from emp
+where deptno > 60;
++----+----+
+| MI | MA |
++----+----+
+|    |    |
++----+----+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX function with GROUP BY. note that key is NULL but result is not NULL.
+select deptno, arg_min(ename, ename) as mi, arg_max(ename, ename) as ma
+from emp
+group by deptno;
++--------+-------+-------+
+| DEPTNO | MI    | MA    |
++--------+-------+-------+
+|     10 | Bob   | Jane  |
+|     20 | Eric  | Eric  |
+|     30 | Alice | Susan |
+|     50 | Adam  | Eve   |
+|     60 | Grace | Grace |
+|        | Wilma | Wilma |
++--------+-------+-------+
+(6 rows)
+
+!ok
+
 # End agg.iq

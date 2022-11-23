@@ -1974,6 +1974,17 @@ public class SqlFunctions {
     return b0 == null || b1 != null && b0.compareTo(b1) < 0 ? b1 : b0;
   }
 
+  /** less than */
+  public static <T extends Comparable<T>> boolean lessThan(T b0, T b1) {
+    return b1 == null || b0 != null && b0.compareTo(b1) < 0;
+  }
+
+  /** grater than */
+  public static <T extends Comparable<T>> boolean greaterThan(T b0, T b1) {
+    return b1 == null || b0 != null && b0.compareTo(b1) > 0;
+  }
+
+
   /** Boolean comparison. */
   public static int compare(boolean x, boolean y) {
     return x == y ? 0 : x ? 1 : -1;

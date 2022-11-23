@@ -366,6 +366,58 @@ LogicalAggregate(group=[{}], ANYEMPNO=[ANY_VALUE($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArgMaxFunction">
+    <Resource name="sql">
+      <![CDATA[select arg_max(ename, deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[ARG_MAX($0, $1)])
+  LogicalProject(ENAME=[$1], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArgMaxFunctionWithWinAgg">
+    <Resource name="sql">
+      <![CDATA[select job,
+  arg_max(ename, deptno) over (partition by job order by sal)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(JOB=[$2], EXPR$1=[ARG_MAX($1, $7) OVER (PARTITION BY $2 ORDER BY $5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArgMinFunction">
+    <Resource name="sql">
+      <![CDATA[select arg_min(ename, deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[ARG_MIN($0, $1)])
+  LogicalProject(ENAME=[$1], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArgMinFunctionWithWinAgg">
+    <Resource name="sql">
+      <![CDATA[select job,
+  arg_min(ename, deptno) over (partition by job order by sal)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(JOB=[$2], EXPR$1=[ARG_MIN($1, $7) OVER (PARTITION BY $2 ORDER BY $5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArrayElementDoublyNestedPrimitive">
     <Resource name="sql">
       <![CDATA[select dn.employees[0]['detail']['skills'][0]['type']

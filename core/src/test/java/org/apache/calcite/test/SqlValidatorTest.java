@@ -8739,6 +8739,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT MAX(5) FROM emp").ok();
   }
 
+  @Test void testArgMinMaxFunctions() {
+    sql("SELECT ARG_MIN(1, true) from emp").ok();
+    sql("SELECT ARG_MAX(2, false) from emp").ok();
+
+    sql("SELECT ARG_MIN(sal, deptno) FROM emp").ok();
+    sql("SELECT ARG_MAX(deptno, sal) FROM emp").ok();
+    sql("SELECT ARG_MIN('a', 5.5) FROM emp").ok();
+    sql("SELECT ARG_MAX('b', 5) FROM emp").ok();
+  }
+
   @Test void testModeFunction() {
     sql("select MODE(sal) from emp").ok();
     sql("select MODE(sal) over (order by empno) from emp").ok();

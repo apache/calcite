@@ -455,6 +455,8 @@ public enum BuiltInMethod {
   NOT(SqlFunctions.class, "not", Boolean.class),
   LESSER(SqlFunctions.class, "lesser", Comparable.class, Comparable.class),
   GREATER(SqlFunctions.class, "greater", Comparable.class, Comparable.class),
+  LESS_THAN(SqlFunctions.class, "lessThan", Comparable.class, Comparable.class),
+  GREATER_THAN(SqlFunctions.class, "greaterThan", Comparable.class, Comparable.class),
   BIT_AND(SqlFunctions.class, "bitAnd", long.class, long.class),
   BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),
   BIT_XOR(SqlFunctions.class, "bitXor", long.class, long.class),
