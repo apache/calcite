@@ -198,8 +198,8 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
 |   < DATEDIFF: "DATEDIFF" >
 |   < DATEPART: "DATEPART" >
 |   < NEGATE: "!" >
-|   < TILDE: "~" >
 |   < STARTS_WITH: "STARTS_WITH" >
+|   < TILDE: "~" >
 }
 
 /** Parses the infix "::" cast operator used in PostgreSQL. */
