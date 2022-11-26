@@ -141,7 +141,12 @@ class EmbeddedElasticsearchPolicy {
       String suffix = key.substring(index + 1, key.length());
       applyMapping(parent.with(prefix).with("properties"), suffix, type);
     } else {
-      parent.with(key).put("type", type);
+      if ("text".equalsIgnoreCase(type)) {
+        // aggregations and sorting are disabled by default for text type if fielddata is not set
+        parent.with(key).put("type", type).put("fielddata", "true");
+      } else {
+        parent.with(key).put("type", type);
+      }
     }
   }
 
