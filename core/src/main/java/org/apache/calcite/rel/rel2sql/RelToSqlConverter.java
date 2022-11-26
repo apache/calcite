@@ -189,12 +189,17 @@ public class RelToSqlConverter extends SqlImplementor
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
+      SqlNodeList source = requireNonNull(replaceSource, "replaceSource");
+      SqlNode firstItem = source.get(0);
+      if (firstItem instanceof SqlIdentifier && ((SqlIdentifier) firstItem).isStar()) {
+        return id;
+      }
       if (tableAlias.equals(id.names.get(0))) {
         int index = requireNonNull(
             tableType.getField(id.names.get(1), false, false),
             () -> "field " + id.names.get(1) + " is not found in " + tableType)
             .getIndex();
-        SqlNode selectItem = requireNonNull(replaceSource, "replaceSource").get(index);
+        SqlNode selectItem = source.get(index);
         if (selectItem.getKind() == SqlKind.AS) {
           selectItem = ((SqlCall) selectItem).operand(0);
         }
