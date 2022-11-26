@@ -102,13 +102,15 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
    *
    * @param ops List of operations represented as Json strings.
    * @param fields List of fields to project; or null to return map
-   * @param sort list of fields to sort and their direction (asc/desc)
+   * @param sort List of fields to sort and their direction (asc/desc)
+   * @param nullsSort List of fields to sort null value and their direction (asc/desc)
    * @param aggregations aggregation functions
    * @return Enumerator of results
    */
   private Enumerable<Object> find(List<String> ops,
       List<Map.Entry<String, Class>> fields,
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
+      List<Map.Entry<String, RelFieldCollation.NullDirection>> nullsSort,
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
       Map<String, String> mappings,
@@ -116,7 +118,8 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     if (!aggregations.isEmpty() || !groupBy.isEmpty()) {
       // process aggregations separately
-      return aggregate(ops, fields, sort, groupBy, aggregations, mappings, offset, fetch);
+      return aggregate(ops, fields, sort, nullsSort, groupBy, aggregations,
+          mappings, offset, fetch);
     }
 
     final ObjectNode query = mapper.createObjectNode();
@@ -127,10 +130,15 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     if (!sort.isEmpty()) {
       ArrayNode sortNode = query.withArray("sort");
-      sort.forEach(e ->
-          sortNode.add(
-              mapper.createObjectNode().put(e.getKey(),
-                  e.getValue().isDescending() ? "desc" : "asc")));
+      for (int i = 0; i < sort.size(); i++) {
+        Map.Entry<String, RelFieldCollation.Direction> sortField = sort.get(i);
+        ObjectNode fieldSortProp = mapper.createObjectNode();
+        String nullsDirection = nullsSort.get(i).getValue() == RelFieldCollation.NullDirection.FIRST
+            ? "_first" : "_last";
+        fieldSortProp.put("missing", nullsDirection)
+            .put("order", sortField.getValue().isDescending() ? "desc" : "asc");
+        sortNode.add(mapper.createObjectNode().set(sortField.getKey(), fieldSortProp));
+      }
     }
 
     if (offset != null) {
@@ -159,6 +167,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
   private Enumerable<Object> aggregate(List<String> ops,
       List<Map.Entry<String, Class>> fields,
       List<Map.Entry<String, RelFieldCollation.Direction>> sort,
+      List<Map.Entry<String, RelFieldCollation.NullDirection>> nullsSort,
       List<String> groupBy,
       List<Map.Entry<String, String>> aggregations,
       Map<String, String> mapping,
@@ -214,7 +223,8 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       final ObjectNode terms = section.with("terms");
       terms.put("field", name);
 
-      transport.mapping.missingValueFor(name).ifPresent(m -> {
+      // if one column is grouped but without being sorted, MIN/MAX value for missing are both OK
+      transport.mapping.missingValueFor(name, true).ifPresent(m -> {
         // expose missing terms. each type has a different missing value
         terms.set("missing", m);
       });
@@ -223,10 +233,28 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
         terms.put("size", fetch);
       }
 
-      sort.stream().filter(e -> e.getKey().equals(name)).findAny()
-          .ifPresent(s ->
-              terms.with("order")
-                  .put("_key", s.getValue().isDescending() ? "desc" : "asc"));
+      for (int i = 0; i < sort.size(); i++) {
+        Map.Entry<String, RelFieldCollation.Direction> sortField = sort.get(i);
+        if (sortField.getKey().equals(name)) {
+          // According to sort and nulls sort direction, choosing MAX/MIN value for missing
+          boolean isMin = true;
+          if (sortField.getValue().isDescending()
+              && nullsSort.get(i).getValue() == RelFieldCollation.NullDirection.FIRST) {
+            // order by col desc nulls first, missing value should be MAX
+            isMin = false;
+          }
+          if (!sortField.getValue().isDescending()
+              && nullsSort.get(i).getValue() == RelFieldCollation.NullDirection.LAST) {
+            // order by col asc nulls last, missing value should be MAX
+            isMin = false;
+          }
+          transport.mapping.missingValueFor(name, isMin).ifPresent(m -> {
+            terms.set("missing", m);
+          });
+          terms.with("order")
+              .put("_key", sortField.getValue().isDescending() ? "desc" : "asc");
+        }
+      }
 
       parent = section.with(AGGREGATIONS);
     }
@@ -358,12 +386,14 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     public Enumerable<Object> find(List<String> ops,
          List<Map.Entry<String, Class>> fields,
          List<Map.Entry<String, RelFieldCollation.Direction>> sort,
+         List<Map.Entry<String, RelFieldCollation.NullDirection>> nullsSort,
          List<String> groupBy,
          List<Map.Entry<String, String>> aggregations,
          Map<String, String> mappings,
          Long offset, Long fetch) {
       try {
-        return getTable().find(ops, fields, sort, groupBy, aggregations, mappings, offset, fetch);
+        return getTable().find(ops, fields, sort, nullsSort, groupBy, aggregations, mappings,
+            offset, fetch);
       } catch (IOException e) {
         throw new UncheckedIOException("Failed to query " + getTable().indexName, e);
       }

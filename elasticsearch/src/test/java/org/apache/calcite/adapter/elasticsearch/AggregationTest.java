@@ -400,6 +400,5 @@ class AggregationTest {
             "aggregations:{'v1.max.field': 'val1'",
             "'v2.min.field': 'val2'}"))
         .returnsUnordered("v1=7; v2=5");
-
   }
 }

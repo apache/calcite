@@ -71,21 +71,24 @@ class ElasticsearchMapping {
 
   /**
    * Used as special aggregation key for missing values (documents that are
-   * missing a field).
+   * missing a field). MAX and MIN value are chosen to determine nulls sort direction.
    *
    * <p>Buckets with that value are then converted to {@code null}s in flat
    * tabular format.
    *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-sum-aggregation.html">Missing Value</a>
    */
-  Optional<JsonNode> missingValueFor(String fieldName) {
+  Optional<JsonNode> missingValueFor(String fieldName, boolean isMin) {
     if (!mapping().containsKey(fieldName)) {
       final String message = String.format(Locale.ROOT,
           "Field %s not defined for %s", fieldName, index);
       throw new IllegalArgumentException(message);
     }
 
-    return mapping().get(fieldName).missingValue();
+    if (isMin) {
+      return mapping().get(fieldName).minMissingValue();
+    }
+    return mapping().get(fieldName).maxMissingValue();
   }
 
   String index() {
@@ -102,19 +105,28 @@ class ElasticsearchMapping {
     private static final JsonNodeFactory FACTORY = JsonNodeFactory.instance;
 
     // pre-cache missing values
-    private static final Set<JsonNode> MISSING_VALUES =
+    private static final Set<JsonNode> MIN_MISSING_VALUES =
         Stream.of("string", // for ES2
             "text", "keyword",
             "date", "long", "integer", "double", "float")
-            .map(Datatype::missingValueForType)
+            .map(Datatype::minMissingValueForType)
+            .collect(Collectors.toSet());
+
+    private static final Set<JsonNode> MAX_MISSING_VALUES =
+        Stream.of("string", // for ES2
+                "text", "keyword",
+                "date", "long", "integer", "double", "float")
+            .map(Datatype::maxMissingValueForType)
             .collect(Collectors.toSet());
 
     private final String name;
-    private final JsonNode missingValue;
+    private final JsonNode minMissingValue;
+    private final JsonNode maxMissingValue;
 
     private Datatype(final String name) {
       this.name = Objects.requireNonNull(name, "name");
-      this.missingValue = missingValueForType(name);
+      this.minMissingValue = minMissingValueForType(name);
+      this.maxMissingValue = maxMissingValueForType(name);
     }
 
     /**
@@ -133,12 +145,12 @@ class ElasticsearchMapping {
      *
      * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-terms-aggregation.html#_missing_value_13">Missing Value</a>
      */
-    private static @Nullable JsonNode missingValueForType(String name) {
+    private static @Nullable JsonNode minMissingValueForType(String name) {
       switch (name) {
       case "string": // for ES2
       case "text":
       case "keyword":
-        return FACTORY.textNode("__MISSING__");
+        return FACTORY.textNode("");
       case "long":
         return FACTORY.numberNode(Long.MIN_VALUE);
       case "integer":
@@ -150,7 +162,37 @@ class ElasticsearchMapping {
       case "float":
         return FACTORY.numberNode(Float.MIN_VALUE);
       case "date":
-        // sentinel for missing dates: 9999-12-31
+        // sentinel for missing dates: 1-1-1
+        final long millisEpoch = LocalDate.of(1, 1, 1)
+            .atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+        // by default elastic returns dates as longs
+        return FACTORY.numberNode(millisEpoch);
+      default:
+        break;
+      }
+
+      // this is unknown type
+      return null;
+    }
+
+    private static @Nullable JsonNode maxMissingValueForType(String name) {
+      switch (name) {
+      case "string": // for ES2
+      case "text":
+      case "keyword":
+        return FACTORY.textNode("~~~~~~~~");
+      case "long":
+        return FACTORY.numberNode(Long.MAX_VALUE);
+      case "integer":
+        return FACTORY.numberNode(Integer.MAX_VALUE);
+      case "short":
+        return FACTORY.numberNode(Short.MAX_VALUE);
+      case "double":
+        return FACTORY.numberNode(Double.MAX_VALUE);
+      case "float":
+        return FACTORY.numberNode(Float.MAX_VALUE);
+      case "date":
+        // sentinel for missing dates: 9999-12-30
         final long millisEpoch = LocalDate.of(9999, 12, 31)
             .atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
         // by default elastic returns dates as longs
@@ -170,12 +212,16 @@ class ElasticsearchMapping {
       return this.name;
     }
 
-    Optional<JsonNode> missingValue() {
-      return Optional.ofNullable(missingValue);
+    Optional<JsonNode> minMissingValue() {
+      return Optional.ofNullable(minMissingValue);
+    }
+
+    Optional<JsonNode> maxMissingValue() {
+      return Optional.ofNullable(maxMissingValue);
     }
 
     static boolean isMissingValue(JsonNode node) {
-      return MISSING_VALUES.contains(node);
+      return MIN_MISSING_VALUES.contains(node) || MAX_MISSING_VALUES.contains(node);
     }
   }
 

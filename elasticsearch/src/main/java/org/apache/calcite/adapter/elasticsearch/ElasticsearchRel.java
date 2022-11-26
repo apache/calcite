@@ -55,6 +55,12 @@ public interface ElasticsearchRel extends RelNode {
     final List<Map.Entry<String, RelFieldCollation.Direction>> sort = new ArrayList<>();
 
     /**
+     * Sorting missing values.
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/sort-search-results.html#_missing_values">Missing Values</a>
+     */
+    final List<Map.Entry<String, RelFieldCollation.NullDirection>> nullsSort = new ArrayList<>();
+
+    /**
      * Elastic aggregation ({@code MIN / MAX / COUNT} etc.) statements (functions).
      * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations.html">aggregations</a>
      */
@@ -102,6 +108,11 @@ public interface ElasticsearchRel extends RelNode {
     void addSort(String field, RelFieldCollation.Direction direction) {
       Objects.requireNonNull(field, "field");
       sort.add(new Pair<>(field, direction));
+    }
+
+    void addNullsSort(String field, RelFieldCollation.NullDirection nullDirection) {
+      Objects.requireNonNull(field, "field");
+      nullsSort.add(new Pair<>(field, nullDirection));
     }
 
     void addAggregation(String field, String expression) {
