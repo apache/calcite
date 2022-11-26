@@ -293,7 +293,7 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlNode resultNode =
         leftResult.neededAlias == null ? sqlSelect
             : as(sqlSelect, leftResult.neededAlias);
-    return result(resultNode, leftResult, rightResult);
+    return result(resultNode,  ImmutableList.of(Clause.FROM), e, null);
   }
 
   /** Returns whether this join should be unparsed as a {@link JoinType#COMMA}.
