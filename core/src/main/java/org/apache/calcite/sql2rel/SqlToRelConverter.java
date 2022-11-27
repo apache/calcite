@@ -2428,6 +2428,36 @@ public class SqlToRelConverter {
     }
   }
 
+
+  /**
+   * Recursively add CorrelationId to Project$variablesSet.
+   * @param root RelNode
+   * @param correlationUse CorrelationUse
+   * @param relBuilder RelBuilder
+   * @return Equivalent RelNode that only be added CorrelationId to Project$variablesSet
+   */
+  private RelNode addCorrelation(RelNode root,
+      CorrelationUse correlationUse,
+      RelBuilder relBuilder) {
+    if (root instanceof Project) {
+      // correlation variables have been normalized in p.r, we should use expressions
+      // in p.r instead of the original exprs
+      Project project = (Project) root;
+      return relBuilder.push(root.getInput(0))
+          .projectNamed(project.getProjects(),
+              project.getRowType().getFieldNames(),
+              true,
+              ImmutableSet.of(correlationUse.id))
+          .build();
+    } else {
+      // Recursively process child nodes
+      List<RelNode> childList = root.getInputs().stream()
+          .map(r -> addCorrelation(r, correlationUse, relBuilder))
+          .collect(Collectors.toList());
+      return root.copy(root.getTraitSet(), childList);
+    }
+  }
+
   private void convertUnnest(Blackboard bb, SqlCall call, @Nullable List<String> fieldNames) {
     final List<SqlNode> nodes = call.getOperandList();
     final SqlUnnestOperator operator = (SqlUnnestOperator) call.getOperator();
@@ -2444,17 +2474,9 @@ public class SqlToRelConverter {
         (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster);
 
     RelNode newChild;
-    final CorrelationUse p = getCorrelationUse(bb, child);
-    if (p != null && child instanceof Project) {
-      // correlation variables have been normalized in p.r, we should use expressions
-      // in p.r instead of the original exprs
-      Project project = (Project) p.r;
-      newChild = relBuilder.push(child.getInput(0))
-          .projectNamed(project.getProjects(),
-              project.getRowType().getFieldNames(),
-              true,
-              ImmutableSet.of(p.id))
-          .build();
+    final CorrelationUse correlationUse = getCorrelationUse(bb, child);
+    if (correlationUse != null && !(child instanceof Collect)) {
+      newChild = addCorrelation(child, correlationUse, relBuilder);
     } else {
       newChild = child;
     }

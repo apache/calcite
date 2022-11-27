@@ -121,8 +121,8 @@ class JdbcAdapterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5354">[CALCITE-5354]
    * JDBC with UNNEST not working</a>. */
   @Test void testUnnest() {
-    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
-        .query("SELECT * FROM \"store\" A\n"
+    CalciteAssert.AssertThat assertThat = CalciteAssert.model(FoodmartSchema.FOODMART_MODEL);
+    assertThat.query("SELECT * FROM \"store\" A\n"
             + "NATURAL JOIN UNNEST(SELECT ARRAY[A.\"store_id\"])\n")
         .runs()
         .explainContains("PLAN=EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
@@ -132,6 +132,21 @@ class JdbcAdapterTest {
             + "    JdbcToEnumerableConverter\n"
             + "      JdbcProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY($cor0.store_id)])\n"
             + "        JdbcValues(tuples=[[{ 0 }]])\n")
+        .returnsCount(25);
+
+    assertThat
+        .query("SELECT * FROM \"store\" A\n"
+            + "NATURAL JOIN UNNEST(SELECT ARRAY[A.\"store_id\"] LIMIT 2)\n")
+        .runs()
+        .explainContains("PLAN=EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
+            + "  JdbcToEnumerableConverter\n"
+            + "    JdbcTableScan(table=[[foodmart, store]])\n"
+            + "  EnumerableUncollect\n"
+            + "    JdbcToEnumerableConverter\n"
+            + "      JdbcSort(fetch=[2])\n"
+            + "        JdbcProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY($cor0.store_id)])\n"
+            + "          JdbcValues(tuples=[[{ 0 }]])\n"
+            + "\n")
         .returnsCount(25);
   }
 
