@@ -982,7 +982,6 @@ class RelToSqlConverterTest {
 
   @Test void testSemiJoinFilter() {
     final RelBuilder builder = relBuilder();
-
     final RelNode root = builder
         .scan("DEPT")
         .scan("EMP")
