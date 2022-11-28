@@ -22,6 +22,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -39,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +60,7 @@ public class UnpivotRelToSqlUtil {
    * <p> SQL. </p>
    * <blockquote><pre>{@code
    *  SELECT *
-   *        FROM emp
+   *        FROM sales
    *        UNPIVOT EXCLUDE NULLS (monthly_sales
    *          FOR month IN (jan_sales AS 'jan',
    *                                    feb_sales AS 'feb',
@@ -188,7 +190,7 @@ public class UnpivotRelToSqlUtil {
    *      .build();
    * }</pre></blockquote>
    *
-   * <p> Rel with includeNulls = true after expansion
+   * <p> Rel with includeNulls = true after expansion </p>
    * <blockquote><pre>{@code
    * LogicalProject(id=[$0], year=[$1], month=[$5],
    * monthly_sales=[CASE(=($5, 'jan'), $2, =($5, 'feb'), $3, =($5, 'march'), $4, null:NULL)])
@@ -206,7 +208,7 @@ public class UnpivotRelToSqlUtil {
     // & join's right input is LogicalValues
     // If at least one case is equivalent to unpivot expansion
     return isCaseOperatorPresentInProjectRel(projectRel)
-        && isJoinTheInputOfProject(projectRel)
+        && isLogicalJoinInputOfProjectRel(projectRel)
         && isJoinTypeInnerWithTrueCondition((LogicalJoin) projectRel.getInput(0))
         && isRightChildOfJoinIsLogicalValues((LogicalJoin) projectRel.getInput(0))
         && isAtleastOneCaseOperatorEquivalentToUnpivotType(projectRel, builder);
@@ -264,7 +266,7 @@ public class UnpivotRelToSqlUtil {
    * when month='mar'  then march_sales
    * else null
    * AS monthly_sales
-   * <p>
+   *
    * LogicalValues('jan','feb','mar') AS month
    */
   boolean isCaseAndLogicalValuesPatternMatching(
@@ -308,7 +310,7 @@ public class UnpivotRelToSqlUtil {
             .op instanceof SqlCaseOperator);
   }
 
-  private boolean isJoinTheInputOfProject(Project projectRel) {
+  private boolean isLogicalJoinInputOfProjectRel(Project projectRel) {
     return projectRel.getInput(0) instanceof Join;
   }
 
@@ -331,9 +333,10 @@ public class UnpivotRelToSqlUtil {
   private Map<RexCall, String> getCaseRexCallFromProjectionWithAlias(Project projectRel) {
     Map<RexCall, String> caseRexCallVsAlias = new HashMap<>();
     for (int i = 0; i < projectRel.getProjects().size(); i++) {
-      if (projectRel.getProjects().get(i) instanceof RexCall
-          && ((RexCall) projectRel.getProjects().get(i)).op instanceof SqlCaseOperator) {
-        caseRexCallVsAlias.put((RexCall) projectRel.getProjects().get(i),
+      RexNode projectRex = projectRel.getProjects().get(i);
+      if (projectRex instanceof RexCall
+          && ((RexCall) projectRex).op instanceof SqlCaseOperator) {
+        caseRexCallVsAlias.put((RexCall) projectRex,
             projectRel.getRowType().getFieldNames().get(i));
       }
     }
@@ -350,4 +353,45 @@ public class UnpivotRelToSqlUtil {
     }
     return valueSqlNodeList;
   }
+
+  /**
+   * Check if the project can be converted to * in case of SqlUnpivot.
+   */
+   protected boolean isStarInUnPivot(Project projectRel, SqlImplementor.Result result) {
+    boolean isStar = false;
+    if (result.node instanceof SqlSelect
+        && ((SqlSelect) result.node).getFrom() instanceof SqlUnpivot) {
+      List<RexNode> projectionExpressions = projectRel.getProjects();
+      RelDataType inputRowType = projectRel.getInput().getRowType();
+      RelDataType projectRowType = projectRel.getRowType();
+
+      if (inputRowType.getFieldNames().size() == projectRowType.getFieldNames().size()) {
+        SqlUnpivot sqlUnpivot = (SqlUnpivot) ((SqlSelect) result.node).getFrom();
+        List<String> measureColumnNames =
+            sqlUnpivot.measureList.stream()
+                .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
+                .collect(Collectors.toList());
+        List<String> castColumns = new ArrayList<>();
+        for (RexNode rex : projectionExpressions) {
+          if (rex instanceof RexCall && ((RexCall) rex).op.kind == SqlKind.CAST) {
+            castColumns.add(getColumnNameFromCast(rex, inputRowType));
+          }
+        }
+        isStar = castColumns.containsAll(measureColumnNames);
+      }
+      return isStar;
+    }
+    return false;
+  }
+
+
+  private String getColumnNameFromCast(RexNode rex, RelDataType inputRowType) {
+    String columnName = "";
+    if (((RexCall) rex).operands.get(0) instanceof RexInputRef) {
+      int index = ((RexInputRef) ((RexCall) rex).operands.get(0)).getIndex();
+      columnName = inputRowType.getFieldNames().get(index);
+    }
+    return columnName;
+  }
+
 }

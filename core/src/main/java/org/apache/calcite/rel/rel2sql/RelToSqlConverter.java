@@ -343,10 +343,10 @@ public class RelToSqlConverter extends SqlImplementor
     RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
     if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)) {
-        // ignoreClauses will always be true because in case of false, new select wrap gets applied
-        // with this current Qualify filter e. So, the input query won't remain as it is.
+      // ignoreClauses will always be true because in case of false, new select wrap gets applied
+      // with this current Qualify filter e. So, the input query won't remain as it is.
       final Result x = visitInput(e, 0, isAnon(), true,
-            ImmutableSet.of(Clause.QUALIFY));
+          ImmutableSet.of(Clause.QUALIFY));
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       builder.setQualify(builder.context.toSql(null, e.getCondition()));
@@ -355,7 +355,7 @@ public class RelToSqlConverter extends SqlImplementor
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
       final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
-            ImmutableSet.of(Clause.HAVING));
+          ImmutableSet.of(Clause.HAVING));
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       builder.setHaving(builder.context.toSql(null, e.getCondition()));
@@ -403,7 +403,7 @@ public class RelToSqlConverter extends SqlImplementor
     } else {
       parseCorrelTable(e, x);
       if ((!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
-          || style.isExpandProjection()) && !isStarInUnPivot(e, x)) {
+          || style.isExpandProjection()) && !unpivotRelToSqlUtil.isStarInUnPivot(e, x)) {
         final List<SqlNode> selectList = new ArrayList<>();
         for (RexNode ref : e.getProjects()) {
           SqlNode sqlExpr = builder.context.toSql(null, ref);
@@ -424,45 +424,6 @@ public class RelToSqlConverter extends SqlImplementor
       }
       return builder.result();
     }
-  }
-
-  /**
-   * Check if the project can be converted to * in case of SqlUnpivot.
-   */
-  private boolean isStarInUnPivot(Project projectRel, Result result) {
-    boolean isStar = false;
-    if (result.node instanceof SqlSelect
-        && ((SqlSelect) result.node).getFrom() instanceof SqlUnpivot) {
-      List<RexNode> projectionExpressions = projectRel.getProjects();
-      RelDataType inputRowType = projectRel.getInput().getRowType();
-      RelDataType projectRowType = projectRel.getRowType();
-
-      if (inputRowType.getFieldNames().size() == projectRowType.getFieldNames().size()) {
-        SqlUnpivot sqlUnpivot = (SqlUnpivot) ((SqlSelect) result.node).getFrom();
-        List<String> measureColumnNames =
-            sqlUnpivot.measureList.stream()
-                .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
-                .collect(Collectors.toList());
-        List<String> castColumns = new ArrayList<>();
-        for (RexNode rex : projectionExpressions) {
-          if (rex instanceof RexCall && ((RexCall) rex).op.kind == SqlKind.CAST) {
-            castColumns.add(getColumnNameFromCast(rex, inputRowType));
-          }
-        }
-        isStar = castColumns.containsAll(measureColumnNames);
-      }
-      return isStar;
-    }
-    return false;
-  }
-
-  private String getColumnNameFromCast(RexNode rex, RelDataType inputRowType) {
-    String columnName = "";
-    if (((RexCall) rex).operands.get(0) instanceof RexInputRef) {
-      int index = ((RexInputRef) ((RexCall) rex).operands.get(0)).getIndex();
-      columnName = inputRowType.getFieldNames().get(index);
-    }
-    return columnName;
   }
 
   /**
