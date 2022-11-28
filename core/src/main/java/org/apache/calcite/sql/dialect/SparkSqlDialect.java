@@ -704,13 +704,11 @@ public class SparkSqlDialect extends SqlDialect {
       writer.endFunCall(piFrame);
       break;
     case "TRUNC":
-      String truncFrame = getTruncFunctionName(call);
-      switch (truncFrame) {
-      case "DATE_TRUNC":
-        SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFrame, false);
-        break;
-      default:
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+      String truncFunctionName = getTruncFunctionName(call);
+      if (truncFunctionName.equalsIgnoreCase("DATE_TRUNC")) {
+        SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFunctionName, false);
+      } else {
+        unparseTruncFunction(writer, call, leftPrec, rightPrec);
       }
       break;
     case "TO_HEX":
@@ -730,6 +728,28 @@ public class SparkSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseTruncFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operand(1).toString().equalsIgnoreCase("'DAY'")) {
+      unparseTruncWithDayArg(writer, call, leftPrec, rightPrec);
+    } else {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseTruncWithDayArg(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    SqlWriter.Frame castFrame = writer.startFunCall("CAST");
+    SqlWriter.Frame dateTruncFrame = writer.startFunCall("DATE_TRUNC");
+    for (int i = call.getOperandList().size() - 1; i >= 0; i--) {
+      writer.sep(",");
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(dateTruncFrame);
+    writer.sep("AS", true);
+    writer.literal("DATE");
+    writer.endFunCall(castFrame);
   }
 
   protected void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -851,5 +871,19 @@ public class SparkSqlDialect extends SqlDialect {
       op.unparse(writer, leftPrec, rightPrec);
     });
     writer.endFunCall(frame);
+  }
+
+  private String getTruncFunctionName(SqlCall call) {
+    String dateFormatOperand = call.operand(1).toString();
+    switch (dateFormatOperand) {
+    case "'HOUR'":
+    case "'MINUTE'":
+    case "'SECOND'":
+    case "'MILLISECOND'":
+    case "'MICROSECOND'":
+      return "DATE_TRUNC";
+    default:
+      return "TRUNC";
+    }
   }
 }

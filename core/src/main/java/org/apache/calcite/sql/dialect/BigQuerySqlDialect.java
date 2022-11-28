@@ -1103,7 +1103,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseHashrowFunction(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
-      final SqlWriter.Frame trunc = writer.startFunCall(getTruncFunctionName(call));
+      final SqlWriter.Frame trunc = writer.startFunCall(getTruncFrame(call));
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));
@@ -1850,5 +1850,29 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlCall farmFingerprintCall = FARM_FINGERPRINT.createCall(SqlParserPos.ZERO,
         farmFingerprintOperandCall);
     super.unparseCall(writer, farmFingerprintCall, leftPrec, rightPrec);
+  }
+
+  protected String getTruncFrame(SqlCall call) {
+    String dateFormatOperand = call.operand(1).toString();
+    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
+    if (isDateTimeOperand) {
+      return "DATETIME_TRUNC";
+    }
+    switch (dateFormatOperand) {
+    case "'HOUR'":
+    case "'MINUTE'":
+    case "'SECOND'":
+    case "'MILLISECOND'":
+    case "'MICROSECOND'":
+      return "TIME_TRUNC";
+    case "'DAY'":
+    case "'WEEK'":
+    case "'YEAR'":
+    case "'MONTH'":
+    case "'QUARTER'":
+      return "DATE_TRUNC";
+    default:
+      return "TRUNC";
+    }
   }
 }

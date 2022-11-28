@@ -1910,27 +1910,4 @@ public class SqlDialect {
     }
   }
 
-  protected String getTruncFunctionName(SqlCall call) {
-    String dateFormatOperand = call.operand(1).toString();
-    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
-    if (isDateTimeOperand) {
-      return "DATETIME_TRUNC";
-    }
-    switch (dateFormatOperand) {
-    case "'HOUR'":
-    case "'MINUTE'":
-    case "'SECOND'":
-    case "'MILLISECOND'":
-    case "'MICROSECOND'":
-      return "TIME_TRUNC";
-    case "'DAY'":
-    case "'WEEK'":
-    case "'YEAR'":
-    case "'MONTH'":
-    case "'QUARTER'":
-      return "DATE_TRUNC";
-    default:
-      return "TRUNC";
-    }
-  }
 }
