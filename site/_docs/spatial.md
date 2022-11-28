@@ -148,6 +148,15 @@ These rewrites are worth performing because they are much quicker to apply,
 and often allow range scans on the Hilbert index.
 But for safety, Calcite applies the original predicate, to remove false positives.
 
+## Limitations
+
+Some spatial functions rely on Proj4J to transform the projection of spatial objects.
+Proj4J is released under the Apache License 2.0, however, it also uses the EPSG dataset,
+which has restricting [terms of use](https://epsg.org/terms-of-use.html).
+As a result, Proj4J is not suitable for inclusion in Apache Calcite
+and these functions will throw `ClassNotFoundException`s.
+Users can still use these functions by including Proj4J in their classpath.
+
 ## Acknowledgements
 
 Calcite's OpenGIS implementation uses the
