@@ -4073,8 +4073,17 @@ public class SqlParserTest {
   }
 
   @Test void testValues() {
+    final String expected = "VALUES (ROW(1, 'two'))";
+    final String pattern =
+        "VALUE is not allowed under the current SQL conformance level";
     sql("values(1,'two')")
-        .ok("VALUES (ROW(1, 'two'))");
+        .ok(expected);
+    sql("value(1,'two')")
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(expected)
+        .node(not(isDdl()));
+    sql("^value^(1,'two')")
+        .fails(pattern);
   }
 
   @Test void testValuesExplicitRow() {
@@ -4589,9 +4598,17 @@ public class SqlParserTest {
   @Test void testInsertValues() {
     final String expected = "INSERT INTO `EMPS`\n"
         + "VALUES (ROW(1, 'Fredkin'))";
+    final String pattern =
+        "VALUE is not allowed under the current SQL conformance level";
     sql("insert into emps values (1,'Fredkin')")
         .ok(expected)
         .node(not(isDdl()));
+    sql("insert into emps value (1, 'Fredkin')")
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(expected)
+        .node(not(isDdl()));
+    sql("insert into emps ^value^ (1, 'Fredkin')")
+        .fails(pattern);
   }
 
   @Test void testInsertValuesDefault() {

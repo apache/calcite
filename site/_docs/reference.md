@@ -311,7 +311,7 @@ unpivotValue:
   |   '(' column [, column ]* ')' [ AS '(' literal [, literal ]* ')' ]
 
 values:
-      VALUES expression [, expression ]*
+      { VALUES | VALUE } expression [, expression ]*
 
 groupItem:
       expression
@@ -399,6 +399,10 @@ but is only allowed in certain
 
 "OFFSET start" may occur before "LIMIT count" in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isOffsetLimitAllowed--).
+
+VALUE is equivalent to VALUES,
+but is not standard SQL and is only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isValueAllowed--).
 
 ## Keywords
 

@@ -2444,7 +2444,17 @@ SqlNode TableConstructor() :
     final Span s;
 }
 {
-    <VALUES> { s = span(); }
+    (
+        <VALUES> { s = span(); }
+    |
+        <VALUE>
+        {
+            s = span();
+            if (!this.conformance.isValueAllowed()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.valueNotAllowed());
+            }
+        }
+    )
     AddRowConstructor(list)
     (
         LOOKAHEAD(2)
@@ -3492,9 +3502,9 @@ SqlNode LeafQueryOrExpr(ExprContext exprContext) :
     SqlNode e;
 }
 {
-    e = Expression(exprContext) { return e; }
-|
     e = LeafQuery(exprContext) { return e; }
+|
+    e = Expression(exprContext) { return e; }
 }
 
 /** As {@link #Expression} but appends to a list. */

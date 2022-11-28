@@ -404,6 +404,17 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isValueAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public SqlLibrary semantics() {
     switch (this) {
     case BIG_QUERY:

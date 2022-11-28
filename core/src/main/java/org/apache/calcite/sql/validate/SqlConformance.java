@@ -525,6 +525,18 @@ public interface SqlConformance {
   boolean allowQualifyingCommonColumn();
 
   /**
+   * Whether {@code VALUE} is allowed as an alternative to {@code VALUES} in
+   * the parser.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * false otherwise.
+   */
+  boolean isValueAllowed();
+
+  /**
    * Controls the behavior of operators that are part of Standard SQL but
    * nevertheless have different behavior in different databases.
    *
