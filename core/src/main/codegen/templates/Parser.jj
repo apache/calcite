@@ -2444,7 +2444,7 @@ SqlNode TableConstructor() :
     final Span s;
 }
 {
-    <VALUES> { s = span(); }
+    ( <VALUES> | <VALUE> ) { s = span(); }
     AddRowConstructor(list)
     (
         LOOKAHEAD(2)

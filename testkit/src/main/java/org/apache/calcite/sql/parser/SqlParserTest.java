@@ -4586,6 +4586,14 @@ public class SqlParserTest {
         .ok(expected);
   }
 
+  @Test void testInsertValue() {
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "VALUES (ROW(1, 'Fredkin'))";
+    sql("insert into emps value (1, 'Fredkin')")
+        .ok(expected)
+        .node(not(isDdl()));
+  }
+
   @Test void testInsertValues() {
     final String expected = "INSERT INTO `EMPS`\n"
         + "VALUES (ROW(1, 'Fredkin'))";
