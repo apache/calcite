@@ -5242,6 +5242,14 @@ public class SqlOperatorTest {
     f.checkNull("radians(cast(null as double))");
   }
 
+  @Test void testPowFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.POW)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalarApprox("pow(2,3)", "DOUBLE NOT NULL", isExactly("8.0"));
+    f.checkNull("pow(2, cast(null as integer))");
+    f.checkNull("pow(cast(null as integer), 2)");
+  }
 
   @Test void testRoundFunc() {
     final SqlOperatorFixture f = fixture();
@@ -5375,6 +5383,41 @@ public class SqlOperatorTest {
         isWithin(0.7615d, 0.0001d));
     f.checkNull("tanh(cast(null as integer))");
     f.checkNull("tanh(cast(null as double))");
+  }
+
+  @Test void testTruncFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.TRUNC)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkType("trunc(42, -1)", "INTEGER NOT NULL");
+    f.checkType("trunc(cast(42 as float), 1)", "FLOAT NOT NULL");
+    f.checkType("trunc(case when false then 42 else null end, -1)",
+        "INTEGER");
+    f.enableTypeCoercion(false)
+        .checkFails("^trunc('abc', 'def')^",
+            "Cannot apply 'TRUNC' to arguments of type "
+                + "'TRUNC\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
+                + "form\\(s\\): 'TRUNC\\(<NUMERIC>, <INTEGER>\\)'",
+            false);
+    f.checkType("trunc('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
+    f.checkScalar("trunc(42, -1)", 40, "INTEGER NOT NULL");
+    f.checkScalar("trunc(cast(42.345 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(4234, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("trunc(cast(-42.345 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(-4234, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkNull("trunc(cast(null as integer), 1)");
+    f.checkNull("trunc(cast(null as double), 1)");
+    f.checkNull("trunc(43.21, cast(null as integer))");
+
+    f.checkScalar("trunc(42)", 42, "INTEGER NOT NULL");
+    f.checkScalar("trunc(42.324)",
+        BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
+    f.checkScalar("trunc(cast(42.324 as float))", 42F,
+        "FLOAT NOT NULL");
+    f.checkScalar("trunc(cast(42.345 as decimal(2, 3)))",
+        BigDecimal.valueOf(42, 0), "DECIMAL(2, 3) NOT NULL");
+    f.checkNull("trunc(cast(null as integer))");
+    f.checkNull("trunc(cast(null as double))");
   }
 
   @Test void testTruncateFunc() {
