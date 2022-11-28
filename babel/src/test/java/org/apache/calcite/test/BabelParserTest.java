@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserFixture;
@@ -331,6 +332,85 @@ class BabelParserTest extends SqlParserTest {
         .ok("SELECT (ARRAY['a', 'b'])");
     f.sql("select array \"{\\\"a\\\", \\\"b\\\"}\"")
         .ok("SELECT (ARRAY['a', 'b'])");
+  }
+
+  @Test void testPostgresqlShow() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("SHOW autovacuum")
+        .ok("SHOW \"autovacuum\"");
+    f.sql("SHOW TRANSACTION ISOLATION LEVEL")
+        .ok("SHOW \"transaction_isolation\"");
+  }
+
+  @Test void testPostgresqlSetOption() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("SET SESSION autovacuum = true")
+        .ok("ALTER SESSION SET \"autovacuum\" = TRUE");
+    f.sql("SET SESSION autovacuum = DEFAULT")
+        .ok("ALTER SESSION SET \"autovacuum\" = DEFAULT");
+    f.sql("SET LOCAL autovacuum TO 'DEFAULT'")
+        .ok("ALTER LOCAL SET \"autovacuum\" = 'DEFAULT'");
+
+    f.sql("SET SESSION TIME ZONE DEFAULT")
+        .ok("ALTER SESSION SET \"timezone\" = DEFAULT");
+    f.sql("SET SESSION TIME ZONE LOCAL")
+        .ok("ALTER SESSION SET \"timezone\" = 'LOCAL'");
+    f.sql("SET TIME ZONE 'PST8PDT'")
+        .ok("SET \"timezone\" = 'PST8PDT'");
+    f.sql("SET TIME ZONE INTERVAL '-08:00' HOUR TO MINUTE")
+        .ok("SET \"timezone\" = INTERVAL '-08:00' HOUR TO MINUTE");
+
+    f.sql("SET search_path = public,public,\"$user\"")
+        .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
+    f.sql("SET SCHEMA public,public,\"$user\"")
+        .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
+    f.sql("SET NAMES iso_8859_15_to_utf8")
+        .ok("SET \"client_encoding\" = \"iso_8859_15_to_utf8\"");
+  }
+
+  @Test void testPostgresqlBegin() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("BEGIN").same();
+    f.sql("BEGIN READ ONLY").same();
+    f.sql("BEGIN TRANSACTION READ WRITE")
+        .ok("BEGIN READ WRITE");
+    f.sql("BEGIN WORK ISOLATION LEVEL SERIALIZABLE")
+        .ok("BEGIN ISOLATION LEVEL SERIALIZABLE");
+    f.sql("BEGIN ISOLATION LEVEL SERIALIZABLE, READ ONLY, DEFERRABLE").same();
+    f.sql("BEGIN ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE").same();
+  }
+
+  @Test void testPostgresqlCommit() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("COMMIT").same();
+    f.sql("COMMIT WORK")
+        .ok("COMMIT");
+    f.sql("COMMIT TRANSACTION")
+        .ok("COMMIT");
+    f.sql("COMMIT AND NO CHAIN")
+        .ok("COMMIT");
+    f.sql("COMMIT AND CHAIN").same();
+  }
+
+  @Test void testPostgresqlRollback() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("ROLLBACK").same();
+    f.sql("ROLLBACK WORK")
+        .ok("ROLLBACK");
+    f.sql("ROLLBACK TRANSACTION")
+        .ok("ROLLBACK");
+    f.sql("ROLLBACK AND NO CHAIN")
+        .ok("ROLLBACK");
+    f.sql("ROLLBACK AND CHAIN").same();
+  }
+
+  @Test void testPostgresqlDiscard() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("DISCARD ALL").same();
+    f.sql("DISCARD PLANS").same();
+    f.sql("DISCARD SEQUENCES").same();
+    f.sql("DISCARD TEMPORARY").same();
+    f.sql("DISCARD TEMP").same();
   }
 
   /** Similar to {@link #testHoist()} but using custom parser. */
