@@ -877,6 +877,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction POW =
+      SqlStdOperatorTable.POWER.withName("POW");
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TRUNC =
+      SqlStdOperatorTable.TRUNCATE.withName("TRUNC");
+
   /** Infix "::" cast operator used by PostgreSQL, for example
    * {@code '100'::INTEGER}. */
   @LibraryOperator(libraries = { POSTGRESQL })
