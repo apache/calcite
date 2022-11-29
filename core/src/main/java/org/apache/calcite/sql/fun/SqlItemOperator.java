@@ -50,10 +50,9 @@ import static java.util.Objects.requireNonNull;
 class SqlItemOperator extends SqlSpecialOperator {
 
   private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
-      OperandTypes.or(
-          OperandTypes.family(SqlTypeFamily.ARRAY),
-          OperandTypes.family(SqlTypeFamily.MAP),
-          OperandTypes.family(SqlTypeFamily.ANY));
+      OperandTypes.family(SqlTypeFamily.ARRAY)
+          .or(OperandTypes.family(SqlTypeFamily.MAP))
+          .or(OperandTypes.family(SqlTypeFamily.ANY));
 
   SqlItemOperator() {
     super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
@@ -115,9 +114,8 @@ class SqlItemOperator extends SqlSpecialOperator {
     case ROW:
     case ANY:
     case DYNAMIC_STAR:
-      return OperandTypes.or(
-          OperandTypes.family(SqlTypeFamily.INTEGER),
-          OperandTypes.family(SqlTypeFamily.CHARACTER));
+      return OperandTypes.family(SqlTypeFamily.INTEGER)
+          .or(OperandTypes.family(SqlTypeFamily.CHARACTER));
     default:
       throw callBinding.newValidationSignatureError();
     }

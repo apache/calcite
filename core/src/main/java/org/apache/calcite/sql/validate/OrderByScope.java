@@ -101,7 +101,7 @@ public class OrderByScope extends DelegatingScope {
   private int aliasCount(SqlNameMatcher nameMatcher, String name) {
     int n = 0;
     for (SqlNode s : getSelectList(select)) {
-      final String alias = SqlValidatorUtil.getAlias(s, -1);
+      final @Nullable String alias = SqlValidatorUtil.alias(s);
       if (alias != null && nameMatcher.matches(alias, name)) {
         n++;
       }

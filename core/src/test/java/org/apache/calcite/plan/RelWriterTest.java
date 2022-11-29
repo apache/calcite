@@ -68,6 +68,7 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimestampString;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -864,6 +865,30 @@ class RelWriterTest {
           + "}\n";
       break;
     }
+    assertThat(s, isLinux(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4804">[CALCITE-4804]
+   * Support Snapshot operator serialization and deserizalization</a>. */
+  @Test void testSnapshot() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2011-07-20 12:34:56'
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+    RelNode root =
+        builder.scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampLiteral(
+                    new TimestampString("2011-07-20 12:34:56"), 0))
+            .build();
+
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    root.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String s = deserializeAndDumpToTextFormat(getSchema(root), relJson);
+    String expected = "LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
+        + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     assertThat(s, isLinux(expected));
   }
 

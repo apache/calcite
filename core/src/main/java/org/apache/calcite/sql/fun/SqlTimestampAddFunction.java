@@ -19,15 +19,21 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.util.Util.first;
 
 /**
  * The <code>TIMESTAMPADD</code> function, which adds an interval to a
@@ -61,23 +67,23 @@ public class SqlTimestampAddFunction extends SqlFunction {
   private static final int MICROSECOND_PRECISION = 6;
 
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
-      opBinding -> {
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        return deduceType(typeFactory,
-            getOperandLiteralValueOrThrow(opBinding, 0, TimeUnit.class),
-            opBinding.getOperandType(1), opBinding.getOperandType(2));
-      };
+      opBinding ->
+          deduceType(opBinding.getTypeFactory(),
+              opBinding.getOperandLiteralValue(0, TimeUnit.class),
+              opBinding.getOperandType(1), opBinding.getOperandType(2));
 
   public static RelDataType deduceType(RelDataTypeFactory typeFactory,
-      TimeUnit timeUnit, RelDataType operandType1, RelDataType operandType2) {
+      @Nullable TimeUnit timeUnit, RelDataType operandType1,
+      RelDataType operandType2) {
     final RelDataType type;
-    switch (timeUnit) {
+    TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
+    switch (timeUnit2) {
     case HOUR:
     case MINUTE:
     case SECOND:
     case MILLISECOND:
     case MICROSECOND:
-      switch (timeUnit) {
+      switch (timeUnit2) {
       case MILLISECOND:
         type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
             MILLISECOND_PRECISION);
@@ -95,6 +101,7 @@ public class SqlTimestampAddFunction extends SqlFunction {
       }
       break;
     default:
+    case EPOCH:
       type = operandType2;
     }
     return typeFactory.createTypeWithNullability(type,
@@ -102,9 +109,26 @@ public class SqlTimestampAddFunction extends SqlFunction {
             || operandType2.isNullable());
   }
 
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
+
+    // This is either a time unit or a time frame:
+    //
+    //  * In "TIMESTAMPADD(YEAR, 2, x)" operand 0 is a SqlIntervalQualifier
+    //    with startUnit = YEAR and timeFrameName = null.
+    //
+    //  * In "TIMESTAMPADD(MINUTE15, 2, x) operand 0 is a SqlIntervalQualifier
+    //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'.
+    //
+    // If the latter, check that timeFrameName is valid.
+    validator.validateTimeFrame(
+        (SqlIntervalQualifier) call.getOperandList().get(0));
+  }
+
   /** Creates a SqlTimestampAddFunction. */
-  SqlTimestampAddFunction() {
-    super("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD, RETURN_TYPE_INFERENCE, null,
+  SqlTimestampAddFunction(String name) {
+    super(name, SqlKind.TIMESTAMP_ADD, RETURN_TYPE_INFERENCE, null,
         OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER,
             SqlTypeFamily.DATETIME),
         SqlFunctionCategory.TIMEDATE);

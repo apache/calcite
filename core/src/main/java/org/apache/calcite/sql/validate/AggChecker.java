@@ -27,6 +27,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Litmus;
 
+import com.google.common.collect.Iterables;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -45,9 +47,10 @@ class AggChecker extends SqlBasicVisitor<Void> {
 
   private final Deque<SqlValidatorScope> scopes = new ArrayDeque<>();
   private final List<SqlNode> extraExprs;
+  private final List<SqlNode> measureExprs;
   private final List<SqlNode> groupExprs;
-  private boolean distinct;
-  private SqlValidatorImpl validator;
+  private final boolean distinct;
+  private final SqlValidatorImpl validator;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -56,6 +59,9 @@ class AggChecker extends SqlBasicVisitor<Void> {
    *
    * @param validator  Validator
    * @param scope      Scope
+   * @param extraExprs Expressions in GROUP BY (or SELECT DISTINCT) clause,
+   *                   that are therefore available
+   * @param measureExprs Expressions that are the names of measures
    * @param groupExprs Expressions in GROUP BY (or SELECT DISTINCT) clause,
    *                   that are therefore available
    * @param distinct   Whether aggregation checking is because of a SELECT
@@ -65,10 +71,12 @@ class AggChecker extends SqlBasicVisitor<Void> {
       SqlValidatorImpl validator,
       AggregatingScope scope,
       List<SqlNode> extraExprs,
+      List<SqlNode> measureExprs,
       List<SqlNode> groupExprs,
       boolean distinct) {
     this.validator = validator;
     this.extraExprs = extraExprs;
+    this.measureExprs = measureExprs;
     this.groupExprs = groupExprs;
     this.distinct = distinct;
     this.scopes.push(scope);
@@ -76,15 +84,18 @@ class AggChecker extends SqlBasicVisitor<Void> {
 
   //~ Methods ----------------------------------------------------------------
 
-  boolean isGroupExpr(SqlNode expr) {
-    for (SqlNode groupExpr : groupExprs) {
-      if (groupExpr.equalsDeep(expr, Litmus.IGNORE)) {
+  boolean isGroupExpr(SqlNode e) {
+    for (SqlNode expr : Iterables.concat(extraExprs, measureExprs, groupExprs)) {
+      if (expr.equalsDeep(e, Litmus.IGNORE)) {
         return true;
       }
     }
+    return false;
+  }
 
-    for (SqlNode extraExpr : extraExprs) {
-      if (extraExpr.equalsDeep(expr, Litmus.IGNORE)) {
+  boolean isMeasureExp(SqlNode e) {
+    for (SqlNode expr : measureExprs) {
+      if (expr.equalsDeep(e, Litmus.IGNORE)) {
         return true;
       }
     }
@@ -92,8 +103,19 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   @Override public Void visit(SqlIdentifier id) {
-    if (isGroupExpr(id) || id.isStar()) {
+    if (id.isStar()) {
       // Star may validly occur in "SELECT COUNT(*) OVER w"
+      return null;
+    }
+
+    if (!validator.config().nakedMeasures()
+        && isMeasureExp(id)) {
+      SqlNode originalExpr = validator.getOriginal(id);
+      throw validator.newValidationError(originalExpr,
+          RESOURCE.measureIllegal());
+    }
+
+    if (isGroupExpr(id)) {
       return null;
     }
 

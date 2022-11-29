@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 import java.util.RandomAccess;
+import java.util.function.Consumer;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -127,6 +128,11 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
 
   @Override public int size() {
     return list.size();
+  }
+
+  @Override public void forEach(Consumer<? super SqlNode> action) {
+    //noinspection RedundantCast
+    ((List<SqlNode>) list).forEach(action);
   }
 
   @SuppressWarnings("return.type.incompatible")
@@ -271,24 +277,8 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
       return litmus.fail("{} != {}", this, node);
     }
     SqlNodeList that = (SqlNodeList) node;
-    if (this.size() != that.size()) {
-      return litmus.fail("{} != {}", this, node);
-    }
-    for (int i = 0; i < list.size(); i++) {
-      SqlNode thisChild = list.get(i);
-      final SqlNode thatChild = that.list.get(i);
-      if (thisChild == null) {
-        if (thatChild == null) {
-          continue;
-        } else {
-          return litmus.fail(null);
-        }
-      }
-      if (!thisChild.equalsDeep(thatChild, litmus)) {
-        return litmus.fail(null);
-      }
-    }
-    return litmus.succeed();
+    return SqlNode.equalDeep(list, that.list,
+        litmus.withMessageArgs("{} != {}", this, node));
   }
 
   public static boolean isEmptyList(final SqlNode node) {

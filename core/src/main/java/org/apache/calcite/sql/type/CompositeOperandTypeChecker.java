@@ -34,6 +34,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -92,27 +93,36 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   protected final ImmutableList<@UnknownKeyFor ? extends SqlOperandTypeChecker> allowedRules;
   protected final Composition composition;
   private final @Nullable String allowedSignatures;
+  private final @Nullable BiFunction<SqlOperator, String, String> signatureGenerator;
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Package private. Use {@link OperandTypes#and},
-   * {@link OperandTypes#or}.
-   */
-  CompositeOperandTypeChecker(
-      Composition composition,
+  /** Creates a CompositeOperandTypeChecker. Outside this package, use
+   * {@link SqlOperandTypeChecker#and(SqlOperandTypeChecker)},
+   * {@link OperandTypes#and}, {@link OperandTypes#or} and similar. */
+  protected CompositeOperandTypeChecker(Composition composition,
       ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
       @Nullable String allowedSignatures,
+      @Nullable BiFunction<SqlOperator, String, String> signatureGenerator,
       @Nullable SqlOperandCountRange range) {
     this.allowedRules = requireNonNull(allowedRules, "allowedRules");
     this.composition = requireNonNull(composition, "composition");
     this.allowedSignatures = allowedSignatures;
+    this.signatureGenerator = signatureGenerator;
     this.range = range;
     assert (range != null) == (composition == Composition.REPEAT);
     assert allowedRules.size() + (range == null ? 0 : 1) > 1;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public CompositeOperandTypeChecker withGenerator(
+      BiFunction<SqlOperator, String, String> signatureGenerator) {
+    return this.signatureGenerator == signatureGenerator
+        ? this
+        : new CompositeOperandTypeChecker(composition, allowedRules,
+            allowedSignatures, signatureGenerator, range);
+  }
 
   @Override public boolean isOptional(int i) {
     for (SqlOperandTypeChecker allowedRule : allowedRules) {
@@ -127,13 +137,12 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return allowedRules;
   }
 
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
-  }
-
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     if (allowedSignatures != null) {
       return allowedSignatures;
+    }
+    if (signatureGenerator != null) {
+      return signatureGenerator.apply(op, opName);
     }
     if (composition == Composition.SEQUENCE) {
       throw new AssertionError(
@@ -251,16 +260,19 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       final TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
       typeCoercion.binaryArithmeticCoercion(callBinding);
     }
-    if (check(callBinding)) {
+    if (check(callBinding, false)) {
       return true;
     }
     if (!throwOnFailure) {
       return false;
     }
-    if (composition == Composition.OR) {
-      for (SqlOperandTypeChecker allowedRule : allowedRules) {
-        allowedRule.checkOperandTypes(callBinding, true);
-      }
+    // Check again, to cause error to be thrown.
+    switch (composition) {
+    default:
+      break;
+    case OR:
+    case SEQUENCE:
+      check(callBinding, true);
     }
 
     // If no exception thrown, just throw a generic validation
@@ -268,7 +280,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     throw callBinding.newValidationSignatureError();
   }
 
-  private boolean check(SqlCallBinding callBinding) {
+  private boolean check(SqlCallBinding callBinding, boolean throwOnFailure) {
     switch (composition) {
     case REPEAT:
       if (!requireNonNull(range, "range").isValidCount(callBinding.getOperandCount())) {
@@ -280,7 +292,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
               callBinding,
               callBinding.getCall().operand(operand),
               0,
-              false)) {
+              throwOnFailure)) {
             if (callBinding.isTypeCoercionEnabled()) {
               return coerceOperands(callBinding, true);
             }
@@ -300,8 +312,8 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
         if (!((SqlSingleOperandTypeChecker) rule).checkSingleOperandType(
             callBinding,
             callBinding.getCall().operand(ord.i),
-            0,
-            false)) {
+            rule.getClass() == FamilyOperandTypeChecker.class ? 0 : ord.i,
+            throwOnFailure)) {
           if (callBinding.isTypeCoercionEnabled()) {
             return coerceOperands(callBinding, false);
           }
@@ -314,7 +326,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       for (Ord<SqlOperandTypeChecker> ord
           : Ord.<SqlOperandTypeChecker>zip(allowedRules)) {
         SqlOperandTypeChecker rule = ord.e;
-        if (!rule.checkOperandTypes(callBinding, false)) {
+        if (!rule.checkOperandTypes(callBinding, throwOnFailure)) {
           // Avoid trying other rules in AND if the first one fails.
           return false;
         }
@@ -330,7 +342,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       for (Ord<SqlOperandTypeChecker> ord
           : Ord.<SqlOperandTypeChecker>zip(allowedRules)) {
         SqlOperandTypeChecker rule = ord.e;
-        if (rule.checkOperandTypes(callBinding, false)) {
+        if (rule.checkOperandTypes(callBinding, throwOnFailure)) {
           return true;
         }
       }

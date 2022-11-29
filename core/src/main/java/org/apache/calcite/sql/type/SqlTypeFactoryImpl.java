@@ -119,6 +119,11 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @Override public RelDataType createMeasureType(RelDataType valueType) {
+    MeasureSqlType newType = MeasureSqlType.create(valueType);
+    return canonize(newType);
+  }
+
   @Override public RelDataType createSqlIntervalType(
       SqlIntervalQualifier intervalQualifier) {
     RelDataType newType =

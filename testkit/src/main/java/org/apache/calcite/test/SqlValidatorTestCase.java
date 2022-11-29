@@ -49,7 +49,10 @@ public class SqlValidatorTestCase {
     return FIXTURE;
   }
 
-  /** Creates a test context with a SQL query. */
+  /**
+   * Creates a test context with a SQL query.
+   * Default catalog: {@link org.apache.calcite.test.catalog.MockCatalogReaderSimple#init()}.
+   */
   public final SqlValidatorFixture sql(String sql) {
     return fixture().withSql(sql);
   }

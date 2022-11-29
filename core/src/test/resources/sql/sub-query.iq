@@ -3569,4 +3569,18 @@ SELECT ARRAY(SELECT s.x) FROM (SELECT 1 as x) s;
 
 !ok
 
+# Test case for [CALCITE-5310] JSON_OBJECT in scalar sub-query throws AssertionError
+SELECT (SELECT json_object('1': (a.attidentity = 'a'), '2': v) FROM UNNEST(ARRAY[1]) as v) as options
+FROM UNNEST(ARRAY['a', 'b']) AS a(attidentity);
+
++-------------------+
+| OPTIONS           |
++-------------------+
+| {"1":false,"2":1} |
+| {"1":true,"2":1}  |
++-------------------+
+(2 rows)
+
+!ok
+
 # End sub-query.iq

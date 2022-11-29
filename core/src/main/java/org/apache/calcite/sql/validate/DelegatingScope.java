@@ -30,19 +30,24 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -65,6 +70,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   protected final SqlValidatorScope parent;
   protected final SqlValidatorImpl validator;
 
+  /** Computes and stores information that cannot be computed on construction,
+   * but only after sub-queries have been validated. */
+  @SuppressWarnings({"methodref.receiver.bound.invalid", "FunctionalExpressionCanBeFolded"})
+  public final Supplier<AggregatingSelectScope.Resolved> resolved =
+      Suppliers.memoize(this::resolve)::get;
+
+  /** Use while resolving. */
+  SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -74,9 +88,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   DelegatingScope(SqlValidatorScope parent) {
     super();
-    assert parent != null;
+    this.parent = requireNonNull(parent, "parent");
     this.validator = (SqlValidatorImpl) parent.getValidator();
-    this.parent = parent;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -397,8 +410,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       // change "e.empno" to "E.empno".
       if (fromNs.getEnclosingNode() != null
           && !(this instanceof MatchRecognizeScope)) {
-        String alias =
-            SqlValidatorUtil.getAlias(fromNs.getEnclosingNode(), -1);
+        @Nullable String alias =
+            SqlValidatorUtil.alias(fromNs.getEnclosingNode());
         if (alias != null
             && i > 0
             && !alias.equals(identifier.names.get(i - 1))) {
@@ -585,6 +598,53 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       }
     }
     return false;
+  }
+
+  private AggregatingSelectScope.Resolved resolve() {
+    Preconditions.checkArgument(groupAnalyzer == null,
+        "resolve already in progress");
+    SqlValidatorUtil.GroupAnalyzer groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
+    this.groupAnalyzer = groupAnalyzer;
+    try {
+      analyze(groupAnalyzer);
+      return groupAnalyzer.finish();
+    } finally {
+      this.groupAnalyzer = null;
+    }
+  }
+
+  /** Analyzes expressions in this scope and populates a
+   * {@code GroupAnalyzer}. */
+  protected void analyze(SqlValidatorUtil.GroupAnalyzer analyzer) {
+    final SelectScope selectScope = SqlValidatorUtil.getEnclosingSelectScope(this);
+    if (selectScope != null) {
+      // Find all expressions in this scope that reference measures
+      for (ScopeChild child : selectScope.children) {
+        final RelDataType rowType = child.namespace.getRowType();
+        if (child.namespace instanceof SelectNamespace) {
+          final SqlSelect select = ((SelectNamespace) child.namespace).getNode();
+          Pair.forEach(select.getSelectList(),
+              rowType.getFieldList(),
+              (selectItem, field) -> {
+                if (SqlValidatorUtil.isMeasure(selectItem)) {
+                  analyzer.measureExprs.add(
+                      new SqlIdentifier(
+                          Arrays.asList(child.name, field.getName()),
+                          SqlParserPos.ZERO));
+                }
+              });
+        } else {
+          rowType.getFieldList().forEach(field -> {
+            if (field.getType().getSqlTypeName() == SqlTypeName.MEASURE) {
+              analyzer.measureExprs.add(
+                  new SqlIdentifier(
+                      Arrays.asList(child.name, field.getName()),
+                      SqlParserPos.ZERO));
+            }
+          });
+        }
+      }
+    }
   }
 
   /**

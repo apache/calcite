@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -28,10 +30,10 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -40,15 +42,18 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.CALCITE;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
+import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
@@ -66,6 +71,17 @@ public abstract class SqlLibraryOperators {
   private SqlLibraryOperators() {
   }
 
+  /** The "AGGREGATE(m)" aggregate function;
+   * aggregates a measure column according to the measure's rollup strategy.
+   * This is a Calcite-specific extension.
+   *
+   * <p>This operator is for SQL (and AST); for internal use (RexNode and
+   * Aggregate) use {@code AGG_M2M}. */
+  @LibraryOperator(libraries = {CALCITE})
+  public static final SqlFunction AGGREGATE =
+      SqlBasicAggFunction.create("AGGREGATE", SqlKind.AGGREGATE_FN,
+          ReturnTypes.ARG0, OperandTypes.MEASURE);
+
   /** The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function;
    * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}.
    * This function is only on Redshift, but we list it in PostgreSQL
@@ -78,6 +94,44 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATEADD(timeUnit, numeric, datetime)" function
+   * (Microsoft SQL Server, Redshift, Snowflake). */
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  public static final SqlFunction DATEADD =
+      new SqlTimestampAddFunction("DATEADD");
+
+  /** The "DATEDIFF(timeUnit, datetime, datetime2)" function
+   * (Microsoft SQL Server, Redshift, Snowflake).
+   *
+   * <p>MySQL has "DATEDIFF(date, date2)" and "TIMEDIFF(time, time2)" functions
+   * but Calcite does not implement these because they have no "timeUnit"
+   * argument. */
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  public static final SqlFunction DATEDIFF =
+      new SqlTimestampDiffFunction("DATEDIFF");
+
+  /** The "DATE_PART(timeUnit, datetime)" function
+   * (Databricks, Postgres, Redshift, Snowflake). */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction DATE_PART =
+      new SqlExtractFunction("DATE_PART") {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
+        }
+      };
+
+  /** The "DATEPART(timeUnit, datetime)" function
+   * (Microsoft SQL Server). */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction DATEPART =
+      new SqlExtractFunction("DATEPART") {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
+        }
+      };
 
   /** Return type inference for {@code DECODE}. */
   private static final SqlReturnTypeInference DECODE_RETURN_TYPE =
@@ -108,16 +162,11 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction IF =
       new SqlFunction("IF", SqlKind.IF, SqlLibraryOperators::inferIfReturnType,
           null,
-          OperandTypes.and(
-              OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
-                  SqlTypeFamily.ANY),
-              // Arguments 1 and 2 must have same type
-              new SameOperandTypeChecker(3) {
-                @Override protected List<Integer>
-                getOperandList(int operandCount) {
-                  return ImmutableList.of(1, 2);
-                }
-              }),
+          OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
+              SqlTypeFamily.ANY)
+              .and(
+                  // Arguments 1 and 2 must have same type
+                  OperandTypes.same(3, 1, 2)),
           SqlFunctionCategory.SYSTEM) {
         @Override public boolean validRexOperands(int count, Litmus litmus) {
           // IF is translated to RexNode by expanding to CASE.
@@ -353,7 +402,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction STRING_AGG =
       SqlBasicAggFunction
           .create(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE,
-              OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING))
+              OperandTypes.STRING.or(OperandTypes.STRING_STRING))
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
@@ -369,7 +418,7 @@ public abstract class SqlLibraryOperators {
           .create(SqlKind.GROUP_CONCAT,
               ReturnTypes.andThen(ReturnTypes::stripOrderBy,
                   ReturnTypes.ARG0_NULLABLE),
-              OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING))
+              OperandTypes.STRING.or(OperandTypes.STRING_STRING))
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withAllowsNullTreatment(false)
           .withAllowsSeparator(true)
@@ -387,7 +436,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_DATETIME =
       new SqlFunction("CURRENT_DATETIME", SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE), null,
-          OperandTypes.or(OperandTypes.NILADIC, OperandTypes.STRING),
+          OperandTypes.NILADIC.or(OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
@@ -502,7 +551,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, BIG_QUERY})
   public static final SqlFunction CONCAT_FUNCTION =
       new SqlFunction("CONCAT",
           SqlKind.OTHER_FUNCTION,
@@ -577,7 +626,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TO_BASE64", SqlKind.OTHER_FUNCTION,
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          null, OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
@@ -602,6 +651,26 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  private static final Set<TimeUnitRange> TIME_UNITS =
+      ImmutableSet.of(TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
+
+  private static final Set<TimeUnitRange> MONTH_UNITS =
+      ImmutableSet.of(TimeUnitRange.MILLENNIUM,
+          TimeUnitRange.CENTURY,
+          TimeUnitRange.DECADE,
+          TimeUnitRange.YEAR,
+          TimeUnitRange.MONTH);
+
+  private static final Set<TimeUnitRange> DATE_UNITS =
+      ImmutableSet.of(TimeUnitRange.WEEK,
+          TimeUnitRange.DAY);
+
+  private static final Set<TimeUnitRange> TIMESTAMP_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(MONTH_UNITS).addAll(DATE_UNITS).addAll(TIME_UNITS).build();
+
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
    * always rounded to the beginning of time_part. */
@@ -611,7 +680,8 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIME_NULLABLE,
           null,
-          OperandTypes.TIME_INTERVAL,
+          OperandTypes.sequence("'TIME_TRUNC(<TIME>, <DATETIME_INTERVAL>)'",
+              OperandTypes.TIME, OperandTypes.interval(TIME_UNITS)),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])"
@@ -624,7 +694,9 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_NULLABLE,
           null,
-          OperandTypes.TIMESTAMP_INTERVAL,
+          OperandTypes.sequence(
+              "'TIMESTAMP_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
+              OperandTypes.TIMESTAMP, OperandTypes.interval(TIMESTAMP_UNITS)),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
@@ -729,7 +801,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("MD5", SqlKind.OTHER_FUNCTION,
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          null, OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
@@ -737,7 +809,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("SHA1", SqlKind.OTHER_FUNCTION,
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
+          null, OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** Infix "::" cast operator used by PostgreSQL, for example

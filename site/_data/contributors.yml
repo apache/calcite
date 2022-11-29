@@ -51,6 +51,11 @@
   pronouns: he/him
   org: ByteDance
   role: Committer
+- name: Bertil Chapuis
+  apacheId: bchapuis
+  githubId: bchapuis
+  org: HEIG-VD
+  role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
   githubId: chris-baynes
@@ -71,6 +76,11 @@
   githubId: danny0405
   org: Alibaba
   role: PMC
+- name: Dmitry Sysolyatin
+  apacheId: dmsysolyatin
+  githubId: dssysolyatin
+  org: Intertrust Technologies
+  role: Committer
 - name: Edmon Begoli
   apacheId: ebegoli
   githubId: ebegoli

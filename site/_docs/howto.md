@@ -32,7 +32,7 @@ adapters.
 ## Building from a source distribution
 
 Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 or 18)
-and Gradle (version 7.3) on your path.
+and Gradle (version 7.4.2) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
@@ -76,18 +76,42 @@ then you can call `./gradlew generateSources` tasks manually.
 [Running tests](#running-tests) describes how to run more or fewer
 tests.
 
-## Gradle vs Gradle wrapper
+## Gradle vs the Gradle Wrapper
 
-Calcite uses Gradle wrapper to make a consistent build environment.
+Calcite uses the Gradle Wrapper to make a consistent build environment.
 In the typical case you don't need to install Gradle manually, and
-`./gradlew` would download the proper version for you and verify the expected checksum.
+`./gradlew` downloads the proper version for you and verify the expected checksum.
 
-You can install Gradle manually, however please note that there might
-be impedance mismatch between different versions.
+If you like, you can install Gradle manually, but be aware that is might
+cause a version mismatch.
 
 For more information about Gradle, check the following links:
 [Gradle five things](https://docs.gradle.org/current/userguide/what_is_gradle.html#five_things);
 [Gradle multi-project builds](https://docs.gradle.org/current/userguide/intro_multi_project_builds.html).
+
+## Upgrade Gradle and the Gradle Wrapper
+
+Gradle's [documentation](https://docs.gradle.org/current/userguide/upgrading_version_7.html)
+provides detailed information about how to upgrade Gradle. Here is a list of steps:
+
+1. Run `./gradlew help --warning-mode=all` to find out whether you are
+   using any deprecated features.
+2. Fix the deprecations and repeat the previous step to confirm they are
+   fixed. This is a step where Gradle doc could be very helpful since it
+   contains info about deprecations and how to cope with them.
+3. Run `./gradlew wrapper --gradle-version <new_gradle_version>` to upgrade
+   Gradle. If necessary it will also upgrade the Gradle Wrapper.
+   This step also updates `gradle/wrapper/gradle-wrapper.properties`,
+   including the checksum.
+4. Step 3 will have removed the header from
+   `gradle/wrapper/gradle-wrapper.properties`,
+   so now run `./gradlew autostyleApply` to add it back.
+5. Check the updated Gradle version and checksum in
+   `gradle/wrapper/gradle-wrapper.properties` against the official
+   [Gradle release checksums](https://gradle.org/release-checksums/).
+6. Try to build the project and run tests; debug any errors using the
+   [Troubleshooting Guide](https://docs.gradle.org/current/userguide/troubleshooting.html#troubleshooting).
+7. Update the Gradle version in this howto.
 
 ## Running tests
 
@@ -689,6 +713,9 @@ Note: release artifacts (dist.apache.org and repository.apache.org) are managed 
 
 Before you start:
 
+* Consult the [release dashboard](https://issues.apache.org/jira/secure/Dashboard.jspa?selectPageId=12333950) to get a
+ quick overview about the state of the release and take appropriate actions in order to resolve pending tickets or
+ move them to another release/backlog.
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
   is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
@@ -957,7 +984,9 @@ with a change comment
 (fill in release number and date appropriately).
 Uncheck "Send mail for this update". Under the [releases tab](https://issues.apache.org/jira/projects/CALCITE?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased)
 of the Calcite project mark the release X.Y.Z as released. If it does not already exist create also
-a new version (e.g., X.Y+1.Z) for the next release.
+a new version (e.g., X.Y+1.Z) for the next release. In order to make the [release dashboard](https://issues.apache.org/jira/secure/Dashboard.jspa?selectPageId=12333950)
+reflect state of the next release, change the fixVersion in the [JIRA filter powering the dashboard](https://issues.apache.org/jira/issues/?filter=12346388)
+and save the changes.
 
 After 24 hours, announce the release by sending an email to
 [announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/) using an `@apache.org`
@@ -977,3 +1006,81 @@ that `main` code freeze is over and commits can resume.
 
 See instructions in
 [site/README.md]({{ site.sourceRoot }}/site/README.md).
+
+# Advanced topics for PMC members
+
+## Processing JIRA account requests
+Here are some email templates that can be used when processing requests for JIRA accounts.
+
+### Account added to contributor list
+{% highlight text %}
+Hello [INSERT NAME HERE],
+
+Thanks for your interest in becoming a Calcite contributor! I have added your username ([INSERT USERNAME HERE])
+to the contributors group in JIRA. Happy contributing!
+
+If you have not subscribed to our development list (dev@calcite.apache.org) yet, I encourage you to do so by
+emailing dev-subscribe@calcite.apache.org. Further information about our mailing lists is available here:
+https://calcite.apache.org/community/#mailing-lists
+
+Best regards,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+### Account not found
+{% highlight text %}
+Hello [INSERT NAME HERE],
+
+Thanks for your interest in becoming a Calcite contributor! I am sorry to inform you that I was unable to
+find your account ([INSERT USERNAME HERE]) in JIRA and was not able to add you to the contributors group.
+Please let me know the correct username by return email and I will process your request again.
+
+If you do not have an ASF JIRA account, please follow the instructions here to request one:
+https://calcite.apache.org/develop/#i-do-not-have-an-asf-jira-account-want-to-request-an-account-and-be-added-as-a-contributor
+
+Best regards,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+### JIRA account created and added to contributors list
+{% highlight text %}
+Hello [INSERT NAME HERE],
+
+Thanks for your interest in becoming a Calcite contributor! I have requested for your JIRA account
+with the username ([INSERT USERNAME HERE]) to be created. You will receive an email shortly with further
+instructions on how to set your password. I have also added your account to the contributors list in JIRA.
+Happy contributing!
+
+If you have not subscribed to our development list (dev@calcite.apache.org) yet, I encourage you to do so by
+emailing dev-subscribe@calcite.apache.org. Further information about our mailing lists is available here:
+https://calcite.apache.org/community/#mailing-lists
+
+Best regards,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+### JIRA username unavailable
+{% highlight text %}
+Hello [INSERT NAME HERE],
+
+Thanks for your interest in becoming a Calcite contributor! Unfortunately, the username you requested
+([INSERT USERNAME HERE]) is not available. Please note that usernames can only contain lowercase
+letters and numbers. Please select a different username and let me know by return email to try again.
+
+Best regards,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+### Request not sent from same email address for JIRA account
+{% highlight text %}
+Hello [INSERT NAME HERE],
+
+Thanks for your interest in becoming a Calcite contributor! Unfortunately, I am unable to process your
+request as the request was not sent from the email address to be linked to your JIRA account.
+
+Please send your request again using the same email address as the one requested for your account ([INSERT EMAIL ADDRESS HERE]),
+so that I can process your request.
+
+Best regards,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}

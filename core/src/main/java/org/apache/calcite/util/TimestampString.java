@@ -40,6 +40,10 @@ public class TimestampString implements Comparable<TimestampString> {
           + " "
           + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
 
+  /** The Unix epoch. */
+  public static final TimestampString EPOCH =
+      new TimestampString(1970, 1, 1, 0, 0, 0);
+
   final String v;
 
   /** Creates a TimeString. */

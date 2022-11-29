@@ -20,6 +20,8 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.TimeFrame;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
@@ -782,6 +784,21 @@ public interface SqlValidator {
   @API(status = API.Status.INTERNAL, since = "1.23")
   SqlValidator transform(UnaryOperator<SqlValidator.Config> transform);
 
+  /** Returns the set of allowed time frames. */
+  TimeFrameSet getTimeFrameSet();
+
+  /** Validates a time frame.
+   *
+   * <p>A time frame is either a built-in time frame based on a time unit such
+   * as {@link org.apache.calcite.avatica.util.TimeUnitRange#HOUR},
+   * or is a custom time frame represented by a name in
+   * {@link SqlIntervalQualifier#timeFrameName}. A custom time frame is
+   * validated against {@link #getTimeFrameSet()}.
+   *
+   * <p>Returns a time frame, or throws.
+   */
+  TimeFrame validateTimeFrame(SqlIntervalQualifier intervalQualifier);
+
   //~ Inner Class ------------------------------------------------------------
 
   /**
@@ -871,6 +888,16 @@ public interface SqlValidator {
      * @param lenient Whether to be lenient when encountering an unknown function
      */
     Config withLenientOperatorLookup(boolean lenient);
+
+    /** Returns whether the validator allows measures to be used without the
+     * AGGREGATE function. Default is true. */
+    @Value.Default default boolean nakedMeasures() {
+      return true;
+    }
+
+    /** Sets whether the validator allows measures to be used without the
+     * AGGREGATE function. */
+    Config withNakedMeasures(boolean nakedMeasures);
 
     /** Returns whether the validator supports implicit type coercion. */
     @Value.Default default boolean typeCoercionEnabled() {

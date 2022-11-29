@@ -210,6 +210,20 @@ public class RexUtil {
   }
 
   /**
+   * Returns whether a node represents a {@link SqlTypeName#SYMBOL} literal.
+   */
+  public static boolean isSymbolLiteral(RexNode expr) {
+    switch (expr.getKind()) {
+    case LITERAL:
+      return ((RexLiteral) expr).getTypeName() == SqlTypeName.SYMBOL;
+    case CAST:
+      return isSymbolLiteral(((RexCall) expr).operands.get(0));
+    default:
+      return false;
+    }
+  }
+
+  /**
    * Returns whether a node represents a literal.
    *
    * <p>Examples:
@@ -386,24 +400,27 @@ public class RexUtil {
   private static <C extends RexNode> void gatherConstraints(Class<C> clazz,
       RexNode predicate, Map<RexNode, C> map, Set<RexNode> excludeSet,
       RexBuilder rexBuilder) {
-    if (predicate.getKind() != SqlKind.EQUALS
-            && predicate.getKind() != SqlKind.IS_NULL) {
-      decompose(excludeSet, predicate);
-      return;
-    }
-    final List<RexNode> operands = ((RexCall) predicate).getOperands();
     final RexNode left;
     final RexNode right;
-    if (predicate.getKind() == SqlKind.EQUALS) {
-      left = operands.get(0);
-      right = operands.get(1);
-    } else { // is null
-      left = operands.get(0);
+    switch (predicate.getKind()) {
+    case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
+      left = ((RexCall) predicate).getOperands().get(0);
+      right = ((RexCall) predicate).getOperands().get(1);
+      break;
+
+    case IS_NULL:
+      left = ((RexCall) predicate).getOperands().get(0);
       if (!left.getType().isNullable()) {
         // There's no sense in inferring $0=null when $0 is not nullable
         return;
       }
       right = rexBuilder.makeNullLiteral(left.getType());
+      break;
+
+    default:
+      decompose(excludeSet, predicate);
+      return;
     }
     // Note that literals are immutable too, and they can only be compared
     // through values.

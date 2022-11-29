@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
@@ -35,7 +34,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -179,8 +177,8 @@ class BabelParserTest extends SqlParserTest {
     final String sql = "SELECT DATEADD(day, 1, t),\n"
         + " DATEDIFF(week, 2, t),\n"
         + " DATE_PART(year, t) FROM mytable";
-    final String expected = "SELECT `DATEADD`(DAY, 1, `T`),"
-        + " `DATEDIFF`(WEEK, 2, `T`), `DATE_PART`(YEAR, `T`)\n"
+    final String expected = "SELECT DATEADD(DAY, 1, `T`),"
+        + " DATEDIFF(WEEK, 2, `T`), DATE_PART(YEAR, `T`)\n"
         + "FROM `MYTABLE`";
 
     sql(sql).ok(expected);
@@ -188,30 +186,28 @@ class BabelParserTest extends SqlParserTest {
 
   /** Overrides, adding tests for DATEADD, DATEDIFF, DATE_PART functions
    * in addition to EXTRACT. */
-  @Override protected void checkTimeUnitCodes(
-      Map<String, TimeUnit> timeUnitCodes) {
-    super.checkTimeUnitCodes(timeUnitCodes);
+  @Test protected void testTimeUnitCodes() {
+    super.testTimeUnitCodes();
 
-    SqlParserFixture f = fixture()
-        .withConfig(config -> config.withTimeUnitCodes(timeUnitCodes));
-
-    timeUnitCodes.forEach((abbrev, timeUnit) -> {
-      String sql = "SELECT "
-          + "DATEADD(" + abbrev + ", 1, '2022-06-03 15:30:00.000'),"
-          + "DATEDIFF(" + abbrev + ", '2021-06-03 12:00:00.000', '2022-06-03 15:30:00.000'),"
-          + "DATE_PART(" + abbrev + ", '2022-06-03 15:30:00.000')";
-      String expected = "SELECT "
-          + "`DATEADD`(" + timeUnit + ", 1, '2022-06-03 15:30:00.000'), "
-          + "`DATEDIFF`(" + timeUnit + ", '2021-06-03 12:00:00.000', '2022-06-03 15:30:00.000'), "
-          + "`DATE_PART`(" + timeUnit + ", '2022-06-03 15:30:00.000')";
-      f.sql(sql).ok(expected);
-    });
-    f.sql("SELECT DATEADD(^A^, 1, NOW())")
-        .fails("'A' is not a valid datetime format");
-    if (timeUnitCodes.containsKey("S")) {
-      f.sql("SELECT DATEADD(S^.^A, 1, NOW())")
-          .fails("(?s).*Encountered \".\" at .*");
-    }
+    // As for FLOOR in the base class, so for DATEADD, DATEDIFF, DATE_PART.
+    // Extensions such as 'y' remain as identifiers; they are resolved in the
+    // validator.
+    final String ts = "'2022-06-03 12:00:00.000'";
+    final String ts2 = "'2022-06-03 15:30:00.000'";
+    expr("DATEADD(year, 1, " + ts + ")")
+        .ok("DATEADD(YEAR, 1, " + ts + ")");
+    expr("DATEADD(y, 1, " + ts + ")")
+        .ok("DATEADD(`Y`, 1, " + ts + ")");
+    expr("DATEDIFF(year, 1, " + ts + ", " + ts2 + ")")
+        .ok("DATEDIFF(YEAR, 1, '2022-06-03 12:00:00.000', "
+            + "'2022-06-03 15:30:00.000')");
+    expr("DATEDIFF(y, 1, " + ts + ", " + ts2 + ")")
+        .ok("DATEDIFF(`Y`, 1, '2022-06-03 12:00:00.000', "
+            + "'2022-06-03 15:30:00.000')");
+    expr("DATE_PART(year, " + ts + ")")
+        .ok("DATE_PART(YEAR, '2022-06-03 12:00:00.000')");
+    expr("DATE_PART(y, " + ts + ")")
+        .ok("DATE_PART(`Y`, '2022-06-03 12:00:00.000')");
   }
 
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a

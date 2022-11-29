@@ -20,8 +20,11 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.Strong;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
@@ -64,6 +67,7 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -82,6 +86,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
@@ -173,6 +178,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * null arguments or null results.</li>
  * </ul>
  */
+@SuppressWarnings("MethodCanBeStatic")
 public class SqlOperatorTest {
   //~ Static fields/initializers ---------------------------------------------
 
@@ -204,6 +210,27 @@ public class SqlOperatorTest {
   public static final Pattern DATE_PATTERN =
       Pattern.compile(
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
+
+  public static final List<String> MICROSECOND_VARIANTS =
+      Arrays.asList("FRAC_SECOND", "MICROSECOND", "SQL_TSI_MICROSECOND");
+  public static final List<String> NANOSECOND_VARIANTS =
+      Arrays.asList("NANOSECOND", "SQL_TSI_FRAC_SECOND");
+  public static final List<String> SECOND_VARIANTS =
+      Arrays.asList("SECOND", "SQL_TSI_SECOND");
+  public static final List<String> MINUTE_VARIANTS =
+      Arrays.asList("MINUTE", "SQL_TSI_MINUTE");
+  public static final List<String> HOUR_VARIANTS =
+      Arrays.asList("HOUR", "SQL_TSI_HOUR");
+  public static final List<String> DAY_VARIANTS =
+      Arrays.asList("DAY", "SQL_TSI_DAY");
+  public static final List<String> WEEK_VARIANTS =
+      Arrays.asList("WEEK", "SQL_TSI_WEEK");
+  public static final List<String> MONTH_VARIANTS =
+      Arrays.asList("MONTH", "SQL_TSI_MONTH");
+  public static final List<String> QUARTER_VARIANTS =
+      Arrays.asList("QUARTER", "SQL_TSI_QUARTER");
+  public static final List<String> YEAR_VARIANTS =
+      Arrays.asList("YEAR", "SQL_TSI_YEAR");
 
   /** Minimum and maximum values for each exact and approximate numeric
    * type. */
@@ -1807,6 +1834,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     checkConcatFunc(f.withLibrary(SqlLibrary.MYSQL));
     checkConcatFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkConcatFunc(f.withLibrary(SqlLibrary.BIG_QUERY));
     checkConcat2Func(f.withLibrary(SqlLibrary.ORACLE));
   }
 
@@ -3098,7 +3126,7 @@ public class SqlOperatorTest {
     checkRlikeFails(f.withLibrary(SqlLibrary.ORACLE));
   }
 
-  void checkRlike(SqlOperatorFixture f) {
+  static void checkRlike(SqlOperatorFixture f) {
     f.checkBoolean("'Merrisa@gmail.com' rlike '.+@*\\.com'", true);
     f.checkBoolean("'Merrisa@gmail.com' rlike '.com$'", true);
     f.checkBoolean("'acbd' rlike '^ac+'", true);
@@ -3115,7 +3143,7 @@ public class SqlOperatorTest {
     f.checkBoolean("'Merrisa@gmail.com' not rlike 'Merrisa_'", true);
   }
 
-  void checkRlikeFails(SqlOperatorFixture f) {
+  static void checkRlikeFails(SqlOperatorFixture f) {
     final String noRlike = "(?s).*No match found for function signature RLIKE";
     f.checkFails("^'Merrisa@gmail.com' rlike '.+@*\\.com'^", noRlike, false);
     f.checkFails("^'acb' rlike 'acb|efg'^", noRlike, false);
@@ -3814,7 +3842,7 @@ public class SqlOperatorTest {
     checkIf(f.withLibrary(SqlLibrary.SPARK));
   }
 
-  private void checkIf(SqlOperatorFixture f) {
+  private static void checkIf(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.IF);
     f.checkString("if(1 = 2, 1, 2)", "2", "INTEGER NOT NULL");
     f.checkString("if('abc'='xyz', 'abc', 'xyz')", "xyz",
@@ -5783,7 +5811,7 @@ public class SqlOperatorTest {
     checkSubstringFunction(f.withConformance(SqlConformanceEnum.BIG_QUERY));
   }
 
-  void checkSubstringFunction(SqlOperatorFixture f) {
+  private static void checkSubstringFunction(SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.SUBSTRING);
     f.checkString("substring('abc' from 1 for 2)",
         "ab", "VARCHAR(3) NOT NULL");
@@ -6178,7 +6206,7 @@ public class SqlOperatorTest {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
   }
 
-  void checkDecodeFunc(SqlOperatorFixture f) {
+  private static void checkDecodeFunc(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.DECODE, VmName.EXPAND);
     f.checkScalar("decode(0, 0, 'a', 1, 'b', 2, 'c')", "a", "CHAR(1)");
     f.checkScalar("decode(1, 0, 'a', 1, 'b', 2, 'c')", "b", "CHAR(1)");
@@ -6418,7 +6446,7 @@ public class SqlOperatorTest {
     checkStringAggFuncFails(f.withLibrary(SqlLibrary.MYSQL));
   }
 
-  private void checkStringAggFunc(SqlOperatorFixture f) {
+  private static void checkStringAggFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
     f.checkAgg("string_agg(x)", values, isSingle("x,yz"));
     f.checkAgg("string_agg(x,':')", values, isSingle("x:yz"));
@@ -6432,7 +6460,7 @@ public class SqlOperatorTest {
         false);
   }
 
-  private void checkStringAggFuncFails(SqlOperatorFixture f) {
+  private static void checkStringAggFuncFails(SqlOperatorFixture f) {
     final String[] values = {"'x'", "'y'"};
     f.checkAggFails("^string_agg(x)^", values,
         "No match found for function signature STRING_AGG\\(<CHARACTER>\\)",
@@ -6454,7 +6482,7 @@ public class SqlOperatorTest {
     checkGroupConcatFuncFails(f.withLibrary(SqlLibrary.POSTGRESQL));
   }
 
-  private void checkGroupConcatFunc(SqlOperatorFixture f) {
+  private static void checkGroupConcatFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
     f.checkAgg("group_concat(x)", values, isSingle("x,yz"));
     f.checkAgg("group_concat(x,':')", values, isSingle("x:yz"));
@@ -6471,7 +6499,7 @@ public class SqlOperatorTest {
         false);
   }
 
-  private void checkGroupConcatFuncFails(SqlOperatorFixture t) {
+  private static void checkGroupConcatFuncFails(SqlOperatorFixture t) {
     final String[] values = {"'x'", "'y'"};
     t.checkAggFails("^group_concat(x)^", values,
         "No match found for function signature GROUP_CONCAT\\(<CHARACTER>\\)",
@@ -6493,7 +6521,7 @@ public class SqlOperatorTest {
     checkArrayAggFuncFails(f.withLibrary(SqlLibrary.MYSQL));
   }
 
-  private void checkArrayAggFunc(SqlOperatorFixture f) {
+  private static void checkArrayAggFunc(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
     final String[] values = {"'x'", "null", "'yz'"};
     f.checkAgg("array_agg(x)", values, isSingle("[x, yz]"));
@@ -6508,7 +6536,7 @@ public class SqlOperatorTest {
         isSingle("[yz, x]"));
   }
 
-  private void checkArrayAggFuncFails(SqlOperatorFixture t) {
+  private static void checkArrayAggFuncFails(SqlOperatorFixture t) {
     t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
     final String[] values = {"'x'", "'y'"};
     final String expectedError = "No match found for function signature "
@@ -6528,7 +6556,7 @@ public class SqlOperatorTest {
     checkArrayConcatAggFuncFails(f.withLibrary(SqlLibrary.MYSQL));
   }
 
-  void checkArrayConcatAggFunc(SqlOperatorFixture t) {
+  private static void checkArrayConcatAggFunc(SqlOperatorFixture t) {
     t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
     t.checkFails("array_concat_agg(^*^)",
         "(?s)Encountered \"\\*\" at .*", false);
@@ -6552,7 +6580,7 @@ public class SqlOperatorTest {
     t.checkAgg("array_concat_agg(x)", values2, isSingle("[0, 1, 1, 2]"));
   }
 
-  void checkArrayConcatAggFuncFails(SqlOperatorFixture t) {
+  private static void checkArrayConcatAggFuncFails(SqlOperatorFixture t) {
     t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
     final String[] values = {"'x'", "'y'"};
     final String expectedError = "No match found for function signature "
@@ -6905,6 +6933,8 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
 
+    f.checkFails("extract(^a^ from date '2008-2-23')",
+        "'A' is not a valid time frame", false);
     f.checkScalar("extract(epoch from date '2008-2-23')",
         "1203724800", // number of seconds elapsed since timestamp
         // '1970-01-01 00:00:00' for given date
@@ -6983,6 +7013,8 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
 
+    f.checkFails("extract(^a^ from timestamp '2008-2-23 12:34:56')",
+        "'A' is not a valid time frame", false);
     f.checkScalar("extract(epoch from timestamp '2008-2-23 12:34:56')",
         "1203770096", // number of seconds elapsed since timestamp
         // '1970-01-01 00:00:00' for given date
@@ -7039,9 +7071,12 @@ public class SqlOperatorTest {
         "2", "BIGINT NOT NULL");
   }
 
-  @Test void testExtractFunc() {
+  @Test void testExtractInterval() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+
+    f.checkFails("extract(^a^ from interval '2 3:4:5.678' day to second)",
+        "'A' is not a valid time frame", false);
     f.checkScalar("extract(day from interval '2 3:4:5.678' day to second)",
         "2", "BIGINT NOT NULL");
     f.checkScalar("extract(day from interval '23456 3:4:5.678' day(5) to second)",
@@ -7300,10 +7335,6 @@ public class SqlOperatorTest {
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
     f.checkFails("^floor('abcde' to minute)^",
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
-    f.checkFails("floor(timestamp '2015-02-19 12:34:56.78' to ^microsecond^)",
-        "'MICROSECOND' is not a valid datetime format", false);
-    f.checkFails("floor(timestamp '2015-02-19 12:34:56.78' to ^nanosecond^)",
-        "'NANOSECOND' is not a valid datetime format", false);
     f.checkScalar("floor(time '12:34:56' to minute)",
         "12:34:00", "TIME(0) NOT NULL");
     f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to second)",
@@ -7341,10 +7372,6 @@ public class SqlOperatorTest {
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
     f.checkFails("^ceil('abcde' to minute)^",
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
-    f.checkFails("ceil(timestamp '2015-02-19 12:34:56.78' to ^microsecond^)",
-        "'MICROSECOND' is not a valid datetime format", false);
-    f.checkFails("ceil(timestamp '2015-02-19 12:34:56.78' to ^nanosecond^)",
-        "'NANOSECOND' is not a valid datetime format", false);
     f.checkScalar("ceil(time '12:34:56' to minute)",
         "12:35:00", "TIME(0) NOT NULL");
     f.checkScalar("ceil(time '12:59:56' to minute)",
@@ -7372,6 +7399,76 @@ public class SqlOperatorTest {
     f.checkScalar("ceiling(date '2015-02-19' to month)",
         "2015-03-01", "DATE NOT NULL");
     f.checkNull("ceiling(cast(null as timestamp) to month)");
+  }
+
+  /** Tests {@code FLOOR}, {@code CEIL}, {@code TIMESTAMPADD},
+   * {@code TIMESTAMPDIFF} functions with custom time frames. */
+  @Test void testCustomTimeFrame() {
+    final SqlOperatorFixture f = fixture()
+        .withFactory(tf ->
+            tf.withTypeSystem(typeSystem ->
+                new DelegatingTypeSystem(typeSystem) {
+                  @Override public TimeFrameSet deriveTimeFrameSet(
+                      TimeFrameSet frameSet) {
+                    return TimeFrameSet.builder()
+                        .addAll(frameSet)
+                        .addDivision("minute15", 4, "HOUR")
+                        .addMultiple("month4", 4, "MONTH")
+                        .build();
+                  }
+                }));
+    f.checkScalar("floor(timestamp '2020-06-27 12:34:56' to \"minute15\")",
+        "2020-06-27 12:30:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("floor(timestamp '2020-06-27 12:34:56' to \"month4\")",
+        "2020-05-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("floor(date '2020-06-27' to \"month4\")",
+        "2020-05-01", "DATE NOT NULL");
+
+    f.checkScalar("ceil(timestamp '2020-06-27 12:34:56' to \"minute15\")",
+        "2020-06-27 12:45:00", "TIMESTAMP(0) NOT NULL");
+    f.checkFails("ceil(timestamp '2020-06-27 12:34:56' to ^\"minute25\"^)",
+        "'minute25' is not a valid time frame", false);
+
+    f.checkScalar(
+        "timestampadd(\"minute15\", 7, timestamp '2016-02-24 12:42:25')",
+        "2016-02-24 14:27:25", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar(
+        "timestampadd(\"month4\", 7, timestamp '2016-02-24 12:42:25')",
+        "2018-06-24 12:42:25", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestampadd(\"month4\", 7, date '2016-02-24')",
+        "2018-06-24", "DATE NOT NULL");
+
+    f.checkScalar("timestampdiff(\"minute15\", "
+            + "timestamp '2016-02-24 12:42:25', "
+            + "timestamp '2016-02-24 15:42:25')",
+        "12", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", "
+            + "timestamp '2016-02-24 12:42:25', "
+            + "timestamp '2016-02-24 15:42:25')",
+        "0", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", "
+            + "timestamp '2016-02-24 12:42:25', "
+            + "timestamp '2018-02-24 15:42:25')",
+        "6", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", "
+            + "timestamp '2016-02-24 12:42:25', "
+            + "timestamp '2018-02-23 15:42:25')",
+        "5", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
+            + "date '2020-03-24')",
+        "12", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
+            + "date '2016-06-23')",
+        "0", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
+            + "date '2016-06-24')",
+        "1", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
+            + "date '2015-10-24')",
+        "-1", "INTEGER NOT NULL");
+    f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
+            + "date '2016-02-23')",
+        "0", "INTEGER NOT NULL");
   }
 
   @Test void testFloorFuncInterval() {
@@ -7410,99 +7507,139 @@ public class SqlOperatorTest {
   @Test void testTimestampAdd() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TIMESTAMP_ADD, VmName.EXPAND);
-    f.checkScalar(
-        "timestampadd(MICROSECOND, 2000000, timestamp '2016-02-24 12:42:25')",
-        "2016-02-24 12:42:27",
-        "TIMESTAMP(3) NOT NULL");
-    f.checkScalar(
-        "timestampadd(SQL_TSI_SECOND, 2, timestamp '2016-02-24 12:42:25')",
-        "2016-02-24 12:42:27",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkScalar(
-        "timestampadd(NANOSECOND, 3000000000, timestamp '2016-02-24 12:42:25')",
-        "2016-02-24 12:42:28",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkScalar(
-        "timestampadd(SQL_TSI_FRAC_SECOND, 2000000000, timestamp '2016-02-24 12:42:25')",
-        "2016-02-24 12:42:27",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkScalar(
-        "timestampadd(MINUTE, 2, timestamp '2016-02-24 12:42:25')",
-        "2016-02-24 12:44:25",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("timestampadd(HOUR, -2000, timestamp '2016-02-24 12:42:25')",
-        "2015-12-03 04:42:25",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkNull("timestampadd(HOUR, CAST(NULL AS INTEGER),"
-        + " timestamp '2016-02-24 12:42:25')");
-    f.checkNull("timestampadd(HOUR, -200, CAST(NULL AS TIMESTAMP))");
-    f.checkScalar("timestampadd(MONTH, 3, timestamp '2016-02-24 12:42:25')",
-        "2016-05-24 12:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("timestampadd(MONTH, 3, cast(null as timestamp))",
-        isNullValue(), "TIMESTAMP(0)");
+    MICROSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 2000000, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:42:27",
+            "TIMESTAMP(3) NOT NULL"));
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 2, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:42:27",
+            "TIMESTAMP(0) NOT NULL"));
+    NANOSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 3000000000, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:42:28",
+            "TIMESTAMP(0) NOT NULL"));
+    NANOSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 2000000000, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:42:27",
+            "TIMESTAMP(0) NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 2, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:44:25",
+            "TIMESTAMP(0) NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", -2000, timestamp '2016-02-24 12:42:25')",
+            "2015-12-03 04:42:25",
+            "TIMESTAMP(0) NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkNull("timestampadd(" + s + ", CAST(NULL AS INTEGER),"
+            + " timestamp '2016-02-24 12:42:25')"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkNull("timestampadd(" + s + ", -200, CAST(NULL AS TIMESTAMP))"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 3, timestamp '2016-02-24 12:42:25')",
+            "2016-05-24 12:42:25", "TIMESTAMP(0) NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 3, cast(null as timestamp))",
+            isNullValue(), "TIMESTAMP(0)"));
 
     // TIMESTAMPADD with DATE; returns a TIMESTAMP value for sub-day intervals.
-    f.checkScalar("timestampadd(MONTH, 1, date '2016-06-15')",
-        "2016-07-15", "DATE NOT NULL");
-    f.checkScalar("timestampadd(DAY, 1, date '2016-06-15')",
-        "2016-06-16", "DATE NOT NULL");
-    f.checkScalar("timestampadd(HOUR, -1, date '2016-06-15')",
-        "2016-06-14 23:00:00", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("timestampadd(MINUTE, 1, date '2016-06-15')",
-        "2016-06-15 00:01:00", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("timestampadd(SQL_TSI_SECOND, -1, date '2016-06-15')",
-        "2016-06-14 23:59:59", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("timestampadd(SECOND, 1, date '2016-06-15')",
-        "2016-06-15 00:00:01", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("timestampadd(SECOND, 1, cast(null as date))",
-        isNullValue(), "TIMESTAMP(0)");
-    f.checkScalar("timestampadd(DAY, 1, cast(null as date))",
-        isNullValue(), "DATE");
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, date '2016-06-15')",
+            "2016-07-15", "DATE NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, date '2016-06-15')",
+            "2016-06-16", "DATE NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, date '2016-06-15')",
+            "2016-06-14 23:00:00", "TIMESTAMP(0) NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, date '2016-06-15')",
+            "2016-06-15 00:01:00", "TIMESTAMP(0) NOT NULL"));
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, date '2016-06-15')",
+            "2016-06-14 23:59:59", "TIMESTAMP(0) NOT NULL"));
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, date '2016-06-15')",
+            "2016-06-15 00:00:01", "TIMESTAMP(0) NOT NULL"));
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, cast(null as date))",
+            isNullValue(), "TIMESTAMP(0)"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, cast(null as date))",
+            isNullValue(), "DATE"));
 
     // Round to the last day of previous month
-    f.checkScalar("timestampadd(MONTH, 1, date '2016-05-31')",
-        "2016-06-30", "DATE NOT NULL");
-    f.checkScalar("timestampadd(MONTH, 5, date '2016-01-31')",
-        "2016-06-30", "DATE NOT NULL");
-    f.checkScalar("timestampadd(MONTH, -1, date '2016-03-31')",
-        "2016-02-29", "DATE NOT NULL");
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, date '2016-05-31')",
+            "2016-06-30", "DATE NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 5, date '2016-01-31')",
+            "2016-06-30", "DATE NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, date '2016-03-31')",
+            "2016-02-29", "DATE NOT NULL"));
 
     // TIMESTAMPADD with time; returns a time value.The interval is positive.
-    f.checkScalar("timestampadd(SECOND, 1, time '23:59:59')",
-        "00:00:00", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(MINUTE, 1, time '00:00:00')",
-        "00:01:00", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(MINUTE, 1, time '23:59:59')",
-        "00:00:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(HOUR, 1, time '23:59:59')",
-        "00:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(DAY, 15, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(WEEK, 3, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(MONTH, 6, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(QUARTER, 1, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(YEAR, 10, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, time '23:59:59')",
+            "00:00:00", "TIME(0) NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, time '00:00:00')",
+            "00:01:00", "TIME(0) NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, time '23:59:59')",
+            "00:00:59", "TIME(0) NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, time '23:59:59')",
+            "00:59:59", "TIME(0) NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 15, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 3, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 6, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    YEAR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", 10, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
     // TIMESTAMPADD with time; returns a time value .The interval is negative.
-    f.checkScalar("timestampadd(SECOND, -1, time '00:00:00')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(MINUTE, -1, time '00:00:00')",
-        "23:59:00", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(HOUR, -1, time '00:00:00')",
-        "23:00:00", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(DAY, -1, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(WEEK, -1, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(MONTH, -1, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(QUARTER, -1, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
-    f.checkScalar("timestampadd(YEAR, -1, time '23:59:59')",
-        "23:59:59", "TIME(0) NOT NULL");
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '00:00:00')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '00:00:00')",
+            "23:59:00", "TIME(0) NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '00:00:00')",
+            "23:00:00", "TIME(0) NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
+    YEAR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s + ", -1, time '23:59:59')",
+            "23:59:59", "TIME(0) NOT NULL"));
   }
 
   @Test void testTimestampAddFractionalSeconds() {
@@ -7526,80 +7663,119 @@ public class SqlOperatorTest {
   @Test void testTimestampDiff() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF, VmName.EXPAND);
-    f.checkScalar("timestampdiff(HOUR, "
-        + "timestamp '2016-02-24 12:42:25', "
-        + "timestamp '2016-02-24 15:42:25')",
-        "3", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(MICROSECOND, "
-        + "timestamp '2016-02-24 12:42:25', "
-        + "timestamp '2016-02-24 12:42:20')",
-        "-5000000", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(SQL_TSI_FRAC_SECOND, "
-        + "timestamp '2016-02-24 12:42:25', "
-        + "timestamp '2016-02-24 12:42:20')",
-        "-5000000000", "BIGINT NOT NULL");
-    f.checkScalar("timestampdiff(NANOSECOND, "
-        + "timestamp '2016-02-24 12:42:25', "
-        + "timestamp '2016-02-24 12:42:20')",
-        "-5000000000", "BIGINT NOT NULL");
-    f.checkScalar("timestampdiff(YEAR, "
-        + "timestamp '2014-02-24 12:42:25', "
-        + "timestamp '2016-02-24 12:42:25')",
-        "2", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(WEEK, "
-        + "timestamp '2014-02-24 12:42:25', "
-        + "timestamp '2016-02-24 12:42:25')",
-        "104", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(WEEK, "
-        + "timestamp '2014-02-19 12:42:25', "
-        + "timestamp '2016-02-24 12:42:25')",
-        "105", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(MONTH, "
-        + "timestamp '2014-02-24 12:42:25', "
-        + "timestamp '2016-02-24 12:42:25')",
-        "24", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(MONTH, "
-        + "timestamp '2019-09-01 00:00:00', "
-        + "timestamp '2020-03-01 00:00:00')",
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2016-02-24 12:42:25', "
+                + "timestamp '2016-02-24 15:42:25')",
+            "3", "INTEGER NOT NULL"));
+    MICROSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2016-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:20')",
+            "-5000000", "INTEGER NOT NULL"));
+    NANOSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2016-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:20')",
+            "-5000000000", "BIGINT NOT NULL"));
+    YEAR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25')",
+            "2", "INTEGER NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25')",
+            "104", "INTEGER NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2014-02-19 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25')",
+            "105", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25')",
+            "24", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2019-09-01 00:00:00', "
+                + "timestamp '2020-03-01 00:00:00')",
+            "6", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2019-09-01 00:00:00', "
+                + "timestamp '2016-08-01 00:00:00')",
+            "-37", "INTEGER NOT NULL"));
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25')",
+            "8", "INTEGER NOT NULL"));
+    // Until 1.33, CENTURY was an invalid time frame for TIMESTAMPDIFF
+    f.checkScalar("timestampdiff(CENTURY, "
+            + "timestamp '2014-02-24 12:42:25', "
+            + "timestamp '2614-02-24 12:42:25')",
         "6", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(MONTH, "
-        + "timestamp '2019-09-01 00:00:00', "
-        + "timestamp '2016-08-01 00:00:00')",
-        "-37", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(QUARTER, "
-        + "timestamp '2014-02-24 12:42:25', "
-        + "timestamp '2016-02-24 12:42:25')",
-        "8", "INTEGER NOT NULL");
-    f.checkFails("timestampdiff(^CENTURY^, "
-        + "timestamp '2014-02-24 12:42:25', "
-        + "timestamp '2614-02-24 12:42:25')",
-        "(?s)Encountered \"CENTURY\" at .*", false);
-    f.checkScalar("timestampdiff(QUARTER, "
-        + "timestamp '2014-02-24 12:42:25', "
-        + "cast(null as timestamp))",
-        isNullValue(), "INTEGER");
-    f.checkScalar("timestampdiff(QUARTER, "
-        + "cast(null as timestamp), "
-        + "timestamp '2014-02-24 12:42:25')",
-        isNullValue(), "INTEGER");
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "timestamp '2014-02-24 12:42:25', "
+                + "cast(null as timestamp))",
+            isNullValue(), "INTEGER"));
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "cast(null as timestamp), "
+                + "timestamp '2014-02-24 12:42:25')",
+            isNullValue(), "INTEGER"));
 
     // timestampdiff with date
-    f.checkScalar("timestampdiff(MONTH, date '2016-03-15', date '2016-06-14')",
-        "2", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(MONTH, date '2019-09-01', date '2020-03-01')",
-        "6", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(MONTH, date '2019-09-01', date '2016-08-01')",
-        "-37", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(DAY, date '2016-06-15', date '2016-06-14')",
-        "-1", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(HOUR, date '2016-06-15', date '2016-06-14')",
-        "-24", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(MINUTE, date '2016-06-15',  date '2016-06-15')",
-        "0", "INTEGER NOT NULL");
-    f.checkScalar("timestampdiff(SECOND, cast(null as date), date '2016-06-15')",
-        isNullValue(), "INTEGER");
-    f.checkScalar("timestampdiff(DAY, date '2016-06-15', cast(null as date))",
-        isNullValue(), "INTEGER");
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-03-15', date '2016-06-14')",
+            "2", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2019-09-01', date '2020-03-01')",
+            "6", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2019-09-01', date '2016-08-01')",
+            "-37", "INTEGER NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-06-15', date '2016-06-14')",
+            "-1", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-06-15', date '2016-06-14')",
+            "-24", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-06-15',  date '2016-06-15')",
+            "0", "INTEGER NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-06-15', date '2016-06-14')",
+            "-1440", "INTEGER NOT NULL"));
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "cast(null as date), date '2016-06-15')",
+            isNullValue(), "INTEGER"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-06-15', cast(null as date))",
+            isNullValue(), "INTEGER"));
+  }
+
+  /** The {@code DATEDIFF} function is implemented in the Babel parser but not
+   * the Core parser, and therefore gives validation errors. */
+  @Test void testDateDiff() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.DATEDIFF);
+    f.checkFails("datediff(^\"MONTH\"^, '2019-09-14',  '2019-09-15')",
+        "(?s)Column 'MONTH' not found in any table",
+        false);
   }
 
   @Test void testTimeTrunc() {
@@ -7614,13 +7790,7 @@ public class SqlOperatorTest {
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.TIME_TRUNC);
     f.checkFails("time_trunc(time '12:34:56', ^year^)",
-        "Encountered \"year\" at line 1, column 37\\.\n"
-            + "Was expecting one of:\n"
-            + "    \"HOUR\" \\.\\.\\.\n"
-            + "    \"MILLISECOND\" \\.\\.\\.\n"
-            + "    \"MINUTE\" \\.\\.\\.\n"
-            + "    \"SECOND\" \\.\\.\\.\n"
-            + "    ", false);
+        "'YEAR' is not a valid time frame", false);
     f.checkFails("^time_trunc(123.45, minute)^",
         "Cannot apply 'TIME_TRUNC' to arguments of type "
             + "'TIME_TRUNC\\(<DECIMAL\\(5, 2\\)>, <INTERVAL MINUTE>\\)'\\. "
@@ -7650,10 +7820,18 @@ public class SqlOperatorTest {
             + "'TIMESTAMP_TRUNC\\(<INTEGER>, <INTERVAL HOUR>\\)'\\. "
             + "Supported form\\(s\\): 'TIMESTAMP_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
         false);
+    f.checkFails("^timestamp_trunc(100, foo)^",
+        "Cannot apply 'TIMESTAMP_TRUNC' to arguments of type "
+            + "'TIMESTAMP_TRUNC\\(<INTEGER>, <INTERVAL `FOO`>\\)'\\. "
+            + "Supported form\\(s\\): 'TIMESTAMP_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
+        false);
+
     f.checkFails("timestamp_trunc(timestamp '2015-02-19 12:34:56.78', ^microsecond^)",
-        "'MICROSECOND' is not a valid datetime format", false);
+        "'MICROSECOND' is not a valid time frame", false);
     f.checkFails("timestamp_trunc(timestamp '2015-02-19 12:34:56.78', ^nanosecond^)",
-        "'NANOSECOND' is not a valid datetime format", false);
+        "'NANOSECOND' is not a valid time frame", false);
+    f.checkFails("timestamp_trunc(timestamp '2015-02-19 12:34:56.78', ^millisecond^)",
+        "'MILLISECOND' is not a valid time frame", false);
     f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56.78', second)",
         "2015-02-19 12:34:56", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', minute)",
@@ -8298,7 +8476,7 @@ public class SqlOperatorTest {
     checkBoolAndFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
   }
 
-  void checkBoolAndFunc(SqlOperatorFixture f) {
+  private static void checkBoolAndFunc(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.BOOL_AND, VM_EXPAND);
 
     f.checkFails("bool_and(^*^)", "Unknown identifier '\\*'", false);
@@ -8334,7 +8512,7 @@ public class SqlOperatorTest {
     checkBoolOrFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
   }
 
-  void checkBoolOrFunc(SqlOperatorFixture f) {
+  private static void checkBoolOrFunc(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.BOOL_OR, VM_EXPAND);
 
     f.checkFails("bool_or(^*^)", "Unknown identifier '\\*'", false);
@@ -8370,7 +8548,7 @@ public class SqlOperatorTest {
     checkLogicalAndFunc(f.withLibrary(SqlLibrary.BIG_QUERY));
   }
 
-  void checkLogicalAndFunc(SqlOperatorFixture f) {
+  private static void checkLogicalAndFunc(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.LOGICAL_AND, VM_EXPAND);
 
     f.checkFails("logical_and(^*^)", "Unknown identifier '\\*'", false);
@@ -8406,7 +8584,7 @@ public class SqlOperatorTest {
     checkLogicalOrFunc(f.withLibrary(SqlLibrary.BIG_QUERY));
   }
 
-  void checkLogicalOrFunc(SqlOperatorFixture f) {
+  private static void checkLogicalOrFunc(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.LOGICAL_OR, VM_EXPAND);
 
     f.checkFails("logical_or(^*^)", "Unknown identifier '\\*'", false);
@@ -8864,9 +9042,15 @@ public class SqlOperatorTest {
         SqlTester.ParameterChecker parameterChecker,
         SqlTester.ResultChecker resultChecker) {
       super.check(factory, query, typeChecker, parameterChecker, resultChecker);
+      final RelDataTypeSystem typeSystem =
+          factory.typeSystemTransform.apply(RelDataTypeSystem.DEFAULT);
       final ConnectionFactory connectionFactory =
-          factory.connectionFactory;
-      try (Connection connection = connectionFactory.createConnection();
+          factory.connectionFactory
+              .with(CalciteConnectionProperty.TYPE_SYSTEM,
+                  CustomTimeFrameTypeSystem.class.getName());
+      try (TryThreadLocal.Memo ignore =
+               CustomTimeFrameTypeSystem.DELEGATE.push(typeSystem);
+           Connection connection = connectionFactory.createConnection();
            Statement statement = connection.createStatement()) {
         final ResultSet resultSet =
             statement.executeQuery(query);
@@ -8968,6 +9152,30 @@ public class SqlOperatorTest {
           .replace("$1", values[1])
           .replace("$2", values[2])
           .replace("$3", values[3]);
+    }
+  }
+
+  /** Type system whose constructor reads from a thread-local. You must invoke
+   * the constructor in the same thread, but once constructed you can use from
+   * other threads.
+   *
+   * <p>It's a bit strange, but the best we can do to pass objects via Avatica's
+   * plugin system until
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5295">[CALCITE-5295]
+   * Read the values of plugins (such as connect string properties) from
+   * ThreadLocal fields</a> is fixed.
+   */
+  public static class CustomTimeFrameTypeSystem extends DelegatingTypeSystem {
+    /** Assign to this thread-local before you instantiate a FooTypeSystem
+     * (in the same thread) and your FooTypeSystem will behave in the same
+     * way. */
+    public static final TryThreadLocal<RelDataTypeSystem> DELEGATE =
+        TryThreadLocal.of(DEFAULT);
+
+    /** Creates a CustomTimeFrameTypeSystem, taking a snapshot of
+     * {@link #DELEGATE}. */
+    public CustomTimeFrameTypeSystem() {
+      super(DELEGATE.get());
     }
   }
 }

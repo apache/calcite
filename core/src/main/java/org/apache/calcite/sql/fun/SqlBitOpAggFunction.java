@@ -46,7 +46,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
         kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
-        OperandTypes.or(OperandTypes.INTEGER, OperandTypes.BINARY),
+        OperandTypes.INTEGER.or(OperandTypes.BINARY),
         SqlFunctionCategory.NUMERIC,
         false,
         false,

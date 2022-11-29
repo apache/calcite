@@ -329,6 +329,9 @@ public interface CalciteResource {
   @BaseMessage("OVER clause is necessary for window functions")
   ExInst<SqlValidatorException> absentOverClause();
 
+  @BaseMessage("Argument to function ''{0}'' must be a measure")
+  ExInst<SqlValidatorException> argumentMustBeMeasure(String functionName);
+
   @BaseMessage("Window ''{0}'' not found")
   ExInst<SqlValidatorException> windowNotFound(String a0);
 
@@ -358,6 +361,12 @@ public interface CalciteResource {
 
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
+
+  @BaseMessage("Measure expressions can only occur within AGGREGATE function")
+  ExInst<SqlValidatorException> measureIllegal();
+
+  @BaseMessage("Measure expressions can only occur within a GROUP BY query")
+  ExInst<SqlValidatorException> measureMustBeInAggregateQuery();
 
   @BaseMessage("FILTER must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInFilterIllegal();
@@ -587,8 +596,8 @@ public interface CalciteResource {
   @BaseMessage("Cannot call table function here: ''{0}''")
   ExInst<CalciteException> cannotCallTableFunctionHere(String a0);
 
-  @BaseMessage("''{0}'' is not a valid datetime format")
-  ExInst<CalciteException> invalidDatetimeFormat(String a0);
+  @BaseMessage("''{0}'' is not a valid time frame")
+  ExInst<SqlValidatorException> invalidTimeFrame(String a0);
 
   @BaseMessage("Cannot INSERT into generated column ''{0}''")
   ExInst<SqlValidatorException> insertIntoAlwaysGenerated(String a0);

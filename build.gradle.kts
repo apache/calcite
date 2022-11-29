@@ -25,6 +25,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import java.net.URI
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -60,6 +61,15 @@ plugins {
 repositories {
     // At least for RAT
     mavenCentral()
+}
+
+tasks.wrapper {
+    distributionType = Wrapper.DistributionType.BIN
+    doLast {
+        val sha256Uri = URI("$distributionUrl.sha256")
+        val sha256Sum = String(sha256Uri.toURL().readBytes())
+        propertiesFile.appendText("distributionSha256Sum=${sha256Sum}\n")
+    }
 }
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: false)
@@ -432,7 +442,7 @@ allprojects {
                 noTimestamp.value = true
                 showFromProtected()
                 // javadoc: error - The code being documented uses modules but the packages
-                // defined in https://docs.oracle.com/javase/9/docs/api/ are in the unnamed module
+                // defined in https://docs.oracle.com/en/java/javase/17/docs/api/ are in the unnamed module
                 source = "1.8"
                 docEncoding = "UTF-8"
                 charSet = "UTF-8"
@@ -444,7 +454,7 @@ allprojects {
                     "Copyright &copy; 2012-$lastEditYear Apache Software Foundation. All Rights Reserved."
                 if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
                     addBooleanOption("html5", true)
-                    links("https://docs.oracle.com/javase/9/docs/api/")
+                    links("https://docs.oracle.com/en/java/javase/17/docs/api/")
                 } else {
                     links("https://docs.oracle.com/javase/8/docs/api/")
                 }

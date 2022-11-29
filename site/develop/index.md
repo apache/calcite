@@ -65,6 +65,57 @@ The HOWTO describes how to
 [run more or fewer tests]({{ site.baseurl }}/docs/howto.html#running-tests) and
 [run integration tests]({{ site.baseurl }}/docs/howto.html#running-integration-tests).
 
+## JIRA accounts
+Calcite uses [JIRA](https://issues.apache.org/jira/browse/CALCITE) for issues/case management.
+You must have a JIRA account in order to log cases and issues.
+
+### I already have an ASF JIRA account and want to be added as a contributor
+If you already have an ASF JIRA account, you do not need to sign up for a
+new account. Please email [jira-requests@calcite.apache.org](mailto:jira-requests@calcite.apache.org)
+using the following template, so that we can add your account to the
+contributors list in JIRA:
+
+[**[Open the template in your email client]**](mailto:jira-requests@calcite.apache.org?subject=Add%20me%20as%20a%20contributor%20to%20JIRA&body=Hello,%0A%0APlease%20add%20me%20as%20a%20contributor%20to%20JIRA.%0AMy%20JIRA%20username%20is:%20[INSERT%20YOUR%20JIRA%20USERNAME%20HERE]%0A%0AThanks,%0A[INSERT%20YOUR%20NAME%20HERE])
+{% highlight text %}
+Subject: Add me as a contributor to JIRA
+
+Hello,
+
+Please add me as a contributor to JIRA.
+My JIRA username is: [INSERT YOUR JIRA USERNAME HERE]
+
+Thanks,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+
+### I do not have an ASF JIRA account, want to request an account and be added as a contributor
+In order to request an ASF JIRA account, you will need to email
+[jira-requests@calcite.apache.org](mailto:jira-requests@calcite.apache.org)
+using the following template:
+
+[**[Open the template in your email client]**](mailto:jira-requests@calcite.apache.org?subject=Request%20for%20JIRA%20Account&body=Hello,%0A%0AI%20would%20like%20to%20request%20a%20JIRA%20account.%0AMy%20proposed%20JIRA%20username:%20[INSERT%20YOUR%20DESIRED%20JIRA%20USERNAME%20HERE%20(LOWERCASE%20LETTERS%20AND%20NUMBERS%20ONLY)]%0AMy%20full%20name:%20[INSERT%20YOUR%20FULL%20NAME%20HERE]%0AMy%20email%20address:%20[INSERT%20YOUR%20EMAIL%20ADDRESS%20HERE]%0A%0AThanks,%0A[INSERT%20YOUR%20NAME%20HERE])
+{% highlight text %}
+Subject: Request for JIRA Account
+
+Hello,
+
+I would like to request a JIRA account.
+My proposed JIRA username: [INSERT YOUR DESIRED JIRA USERNAME HERE (LOWERCASE LETTERS AND NUMBERS ONLY)]
+My full name: [INSERT YOUR FULL NAME HERE]
+My email address: [INSERT YOUR EMAIL ADDRESS HERE]
+
+Thanks,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+**IMPORTANT**: The email address the request is sent from MUST be the same
+as the email address in the body of the request, otherwise, we will not be
+able to process your request.
+
+Once the ASF has processed our submission on your behalf, you will receive
+an email to set your password.
+
 ## Contributing
 
 We welcome contributions.
@@ -88,7 +139,7 @@ summary line. If you remove information while clarifying, put it in
 the description of the case.
 
 Design discussions may happen in various places (email threads,
-github reviews) but the JIRA case is the canonical place for those
+Github reviews) but the JIRA case is the canonical place for those
 discussions. Link to them or summarize them in the case.
 
 When implementing a case, especially a new feature, make sure
@@ -112,8 +163,8 @@ feel free to tag the respective contributor(s) in the discussion.
 
 If you are going to take on the issue right away assign it to yourself.
 To assign issues to yourself you have to be registered in JIRA as a contributor.
-In order to do that, send an email to the developers list
-and provide your JIRA username.
+In order to do that, please follow the instructions outlined in the
+[JIRA Accounts](#jira-accounts) section.
 
 If you are committed to fixing the issue before the upcoming release set
 the fix version accordingly (e.g., 1.20.0), otherwise leave it as blank.
@@ -307,12 +358,10 @@ so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullab
                 String value = holder.get();
             }
 
-## Continuous Integration Testing
+## Continuous integration testing
 
-Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amain)
-and [Travis](https://app.travis-ci.com/github/apache/calcite) for continuous integration testing.
-In the past, there were also Jenkins jobs on the [ASF-hosted](https://builds.apache.org/)
-infrastructure, but they are not maintained anymore.
+Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amain) for continuous
+integration testing.
 
 ## Getting started
 

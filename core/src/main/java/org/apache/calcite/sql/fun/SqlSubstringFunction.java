@@ -28,11 +28,10 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -47,6 +46,12 @@ import java.util.Objects;
  * Definition of the "SUBSTRING" builtin SQL function.
  */
 public class SqlSubstringFunction extends SqlFunction {
+  /** Type checker for 3 argument calls. Put the STRING_NUMERIC_NUMERIC checker
+   * first because almost every other type can be coerced to STRING. */
+  private static final SqlSingleOperandTypeChecker CHECKER3 =
+      OperandTypes.STRING_NUMERIC_NUMERIC
+          .or(OperandTypes.STRING_STRING_STRING);
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -96,27 +101,20 @@ public class SqlSubstringFunction extends SqlFunction {
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    List<SqlNode> operands = callBinding.operands();
-    int n = operands.size();
-    assert (3 == n) || (2 == n);
-    if (2 == n) {
-      return OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC)
+    switch (callBinding.operands().size()) {
+    default:
+      throw new AssertionError();
+    case 2:
+      return OperandTypes.STRING_NUMERIC
           .checkOperandTypes(callBinding, throwOnFailure);
-    } else {
-      final FamilyOperandTypeChecker checker1 = OperandTypes.STRING_STRING_STRING;
-      final FamilyOperandTypeChecker checker2 = OperandTypes.family(
-          SqlTypeFamily.STRING,
-          SqlTypeFamily.NUMERIC,
-          SqlTypeFamily.NUMERIC);
-      // Put the STRING_NUMERIC_NUMERIC checker first because almost every other type
-      // can be coerced to STRING.
-      if (!OperandTypes.or(checker2, checker1)
+    case 3:
+      if (!CHECKER3
           .checkOperandTypes(callBinding, throwOnFailure)) {
         return false;
       }
       // Reset the operands because they may be coerced during
       // implicit type coercion.
-      operands = callBinding.getCall().getOperandList();
+      final List<SqlNode> operands = callBinding.getCall().getOperandList();
       final RelDataType t1 = callBinding.getOperandType(1);
       final RelDataType t2 = callBinding.getOperandType(2);
       if (SqlTypeUtil.inCharFamily(t1)) {
@@ -131,8 +129,8 @@ public class SqlSubstringFunction extends SqlFunction {
         }
         return false;
       }
+      return true;
     }
-    return true;
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {

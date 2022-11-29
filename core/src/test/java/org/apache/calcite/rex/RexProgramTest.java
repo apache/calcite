@@ -2779,6 +2779,30 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(getString(map7), is("{1=CAST(?0.a):BIGINT NOT NULL, ?0.a=1}"));
   }
 
+  /** Unit test for {@link RexUtil#predicateConstants(Class, RexBuilder, List)}
+   * applied to a predicate with {@code IS NOT DISTINCT FROM}. */
+  @Test void testConstantMapIsNotDistinctFrom() {
+    final RelDataType dateColumnType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.DATE), true);
+
+    final RexNode dateLiteral =
+        rexBuilder.makeLiteral(new DateString(2020, 12, 11), dateColumnType,
+            false);
+    final RexNode dateColumn = rexBuilder.makeInputRef(dateColumnType, 0);
+
+    final RexNode call =
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            dateColumn, dateLiteral);
+    final Map<RexNode, RexNode> map =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(call));
+
+    assertThat(map.isEmpty(), is(false));
+    assertThat(dateLiteral, is(map.get(dateColumn)));
+    assertThat(getString(map), is("{$0=2020-12-11}"));
+  }
+
   @Test void notDistinct() {
     checkSimplify(
         isFalse(isNotDistinctFrom(vBool(0), vBool(1))),
@@ -2850,7 +2874,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Converts a map to a string, sorting on the string representation of its
    * keys. */
-  private static String getString(ImmutableMap<RexNode, RexNode> map) {
+  private static String getString(Map<RexNode, RexNode> map) {
     final TreeMap<String, RexNode> map2 = new TreeMap<>();
     for (Map.Entry<RexNode, RexNode> entry : map.entrySet()) {
       map2.put(entry.getKey().toString(), entry.getValue());
@@ -3404,4 +3428,5 @@ class RexProgramTest extends RexProgramTestBase {
 
     checkSimplify(add(zero, sub(nullInt, nullInt)), "null:INTEGER");
   }
+
 }

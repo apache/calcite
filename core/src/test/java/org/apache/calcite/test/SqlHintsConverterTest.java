@@ -75,6 +75,8 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -100,6 +102,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
+ * See {@link RelOptRulesTest} for an explanation of how to add tests.
  */
 class SqlHintsConverterTest {
 
@@ -117,11 +120,22 @@ class SqlHintsConverterTest {
           .withConfig(c ->
               c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE));
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   protected Fixture fixture() {
     return FIXTURE;
   }
 
   protected RelOptFixture ruleFixture() {
+    diffRepos = RULE_FIXTURE.diffRepos();
     return RULE_FIXTURE;
   }
 
@@ -585,6 +599,24 @@ class SqlHintsConverterTest {
         .check();
   }
 
+  @Test void testHintExcludeRules() {
+    final String sql = "select empno from (select * from "
+            + "(select /*+ preserved_project */ empno, ename, deptno from emp)"
+            + " where deptno = 20)";
+
+    final RelNode rel = ruleFixture().sql(sql).toRel();
+    HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(rel);
+    RelNode newRel = planner.findBestExp();
+    Assertions.assertTrue(rel.deepEquals(newRel),
+        "Expected:\n"
+        + RelOptUtil.toString(rel) + "Computed:\n"
+        + RelOptUtil.toString(newRel));
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   private static boolean equalsStringList(List<String> l, List<String> r) {
@@ -995,6 +1027,9 @@ class SqlHintsConverterTest {
             HintStrategy.builder(
                 HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
+              .hintStrategy(
+                  "preserved_project", HintStrategy.builder(
+               HintPredicates.PROJECT).excludedRules(CoreRules.FILTER_PROJECT_TRANSPOSE).build())
         .build();
     }
 

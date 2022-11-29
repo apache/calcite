@@ -150,6 +150,11 @@ public interface SqlWriter {
     WITH,
 
     /**
+     * The body query of WITH.
+     */
+    WITH_BODY,
+
+    /**
      * OFFSET clause.
      *
      * <p>Example:</p>

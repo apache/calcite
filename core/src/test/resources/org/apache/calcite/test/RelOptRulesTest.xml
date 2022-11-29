@@ -3061,6 +3061,50 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEmptyTable">
+    <Resource name="sql">
+      <![CDATA[select * from EMPTY_PRODUCTS
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEmptyTableTransformsComplexQueryToSingleTableScan">
+    <Resource name="sql">
+      <![CDATA[select products.PRODUCTID, products.NAME from products left join
+(select * from products as e
+ inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID
+ where e.SUPPLIERID > 10) dt
+ on products.PRODUCTID = dt.PRODUCTID]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
+      LogicalFilter(condition=[>($2, 10)])
+        LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEnumerableCalcRule">
     <Resource name="sql">
       <![CDATA[select FNAME, LNAME
@@ -3926,7 +3970,7 @@ emp LHS
 left join dept RHS on LHS.EMPNO = RHS.DEPTNO
 where
 RHS.DEPTNO is not null
-AND LHS.EMPNO is not null]]>
+AND RHS.NAME is not null]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4545,8 +4589,7 @@ LogicalJoin(condition=[true], joinType=[inner])
     <Resource name="sql">
       <![CDATA[select *
 from emp e1, emp e2, dept d2
-where e1.deptno = d2.deptno and e2.deptno = d2.deptno
-]]>
+where e1.deptno = d2.deptno and e2.deptno = d2.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4574,8 +4617,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="sql">
       <![CDATA[select *
 from emp e, dept d
-where e.deptno = d.deptno and e.empno = d.deptno
-]]>
+where e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4600,8 +4642,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="sql">
       <![CDATA[select *
 from emp e full join dept d
-on e.deptno = d.deptno and e.empno = d.deptno
-]]>
+on e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4645,8 +4686,7 @@ LogicalProject(DEPTNO=[$0])
     <Resource name="sql">
       <![CDATA[select *
 from emp e left join dept d
-on e.deptno = d.deptno and e.empno = d.deptno
-]]>
+on e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4661,8 +4701,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="sql">
       <![CDATA[select *
 from emp e right join dept d
-on e.deptno = d.deptno and e.empno = d.deptno
-]]>
+on e.deptno = d.deptno and e.empno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -4736,8 +4775,7 @@ LogicalProject(DEPTNO=[$7])
   <TestCase name="testJoinDeriveIsNotNullFilterRule12">
     <Resource name="sql">
       <![CDATA[select t1.deptno from empnullables t1 inner join
-empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr
-]]>
+empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -7221,6 +7259,22 @@ LogicalProject(DEPTNO=[$7], EXPR$1=[+($7, 1)], EXPR$2=[+($0, $7)])
 LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
   LogicalFilter(condition=[OR(AND(IS NULL($7), IS NULL(10)), IS TRUE(=($7, 10)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullConstantIntoProjectWithIsNotDistinctFromDate">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(HIREDATE=[$4])
+  LogicalFilter(condition=[IS NOT DISTINCT FROM($4, 2020-12-11)])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(HIREDATE=[CAST(2020-12-11):DATE])
+  LogicalFilter(condition=[IS NOT DISTINCT FROM($4, 2020-12-11)])
+    LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -9806,6 +9860,38 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPushProjectPastOutJoinWithCastNonNullExpr">
+    <Resource name="sql">
+      <![CDATA[select e.empno + 1 as c1, coalesce(d.name, b.job, '') as c2
+from emp e
+left join bonus b on e.ename = b.ename
+left join dept d on e.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(C1=[+($0, 1)], C2=[CASE(IS NOT NULL($14), CAST($14):VARCHAR(10) NOT NULL, IS NOT NULL($10), CAST($10):VARCHAR(10) NOT NULL, '':VARCHAR(10))])
+  LogicalJoin(condition=[=($7, $13)], joinType=[left])
+    LogicalJoin(condition=[=($1, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(C1=[$2], C2=[CASE(IS NOT NULL($5), CAST($5):VARCHAR(10) NOT NULL, $3, CAST($1):VARCHAR(10) NOT NULL, '':VARCHAR(10))])
+  LogicalJoin(condition=[=($0, $4)], joinType=[left])
+    LogicalProject(DEPTNO=[$1], JOB0=[$4], C1=[$2], EXPR$1=[IS NOT NULL($4)])
+      LogicalJoin(condition=[=($0, $3)], joinType=[left])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7], C1=[+($0, 1)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(ENAME=[$0], JOB=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPushProjectPastRightJoin">
     <Resource name="sql">
       <![CDATA[select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
@@ -12276,6 +12362,33 @@ LogicalJoin(condition=[=($7, $9)], joinType=[semi])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSemiJoinRuleWithJoinOnUniqueInputWithAlias">
+    <Resource name="sql">
+      <![CDATA[select emp.deptno as department_id, emp.sal as salary
+from emp
+where exists(select * from dept where emp.deptno = dept.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPARTMENT_ID=[$1], SALARY=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPARTMENT_ID=[$1], SALARY=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[semi])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>

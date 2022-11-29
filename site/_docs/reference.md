@@ -49,6 +49,12 @@ here to appease testAllFunctionsAreDocumented:
 | SUCCEEDS       | Documented as a period operator
 | TABLE          | Documented as part of FROM syntax
 | VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
+
+Dialect-specific:
+
+| C | Function       | Reason not documented
+|:--|:-------------- |:---------------------
+
 {% endcomment %}
 -->
 
@@ -2564,8 +2570,10 @@ connect string parameter.
 
 The 'C' (compatibility) column contains value:
 * 'b' for Google BigQuery ('fun=bigquery' in the connect string),
+* 'c' for Apache Calcite ('fun=calcite' in the connect string),
 * 'h' for Apache Hive ('fun=hive' in the connect string),
 * 'm' for MySQL ('fun=mysql' in the connect string),
+* 'q' for Microsoft SQL Server ('fun=mssql' in the connect string),
 * 'o' for Oracle ('fun=oracle' in the connect string),
 * 'p' for PostgreSQL ('fun=postgresql' in the connect string),
 * 's' for Apache Spark ('fun=spark' in the connect string).
@@ -2584,13 +2592,17 @@ semantics.
 | o p | CHR(integer)                                 | Returns the character whose UTF-8 code is *integer*
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
-| m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
+| b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
+| p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
+| p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
+| q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
+| p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
@@ -2645,6 +2657,11 @@ semantics.
 
 Note:
 
+* Calcite has no Redshift library, so the Postgres library
+  is used instead. The functions `DATEADD`, `DATEDIFF` are
+  implemented in Redshift and not Postgres but nevertheless
+  appear in Calcite's Postgres library
+* Functions `DATEADD`, `DATEDIFF`, `DATE_PART` require the Babel parser
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
 * `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
@@ -2670,6 +2687,7 @@ Dialect-specific aggregate functions.
 
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
+| c | AGGREGATE(m)                                   | Computes measure *m* in the context of the current GROUP BY key
 | b p | ARRAY_AGG( [ ALL &#124; DISTINCT ] value [ RESPECT NULLS &#124; IGNORE NULLS ] [ ORDER BY orderItem [, orderItem ]* ] ) | Gathers values into arrays
 | b p | ARRAY_CONCAT_AGG( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] ) | Concatenates arrays into arrays
 | p | BOOL_AND(condition)                            | Synonym for `EVERY`

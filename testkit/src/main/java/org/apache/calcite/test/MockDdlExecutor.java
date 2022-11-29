@@ -30,21 +30,29 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.server.DdlExecutor;
 import org.apache.calcite.server.DdlExecutorImpl;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.ddl.SqlColumnDeclaration;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -52,9 +60,12 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.sql.PreparedStatement;
@@ -62,13 +73,55 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /** Executes the few DDL commands. */
 public class MockDdlExecutor extends DdlExecutorImpl {
+  
+  /** Returns the schema in which to create an object. */
+  static Pair<CalciteSchema, String> schema(CalcitePrepare.Context context,
+      boolean mutable, SqlIdentifier id) {
+    final String name;
+    final List<String> path;
+    if (id.isSimple()) {
+      path = context.getDefaultSchemaPath();
+      name = id.getSimple();
+    } else {
+      path = Util.skipLast(id.names);
+      name = Util.last(id.names);
+    }
+    CalciteSchema schema = mutable ? context.getMutableRootSchema()
+        : context.getRootSchema();
+    for (String p : path) {
+      schema = requireNonNull(schema.getSubSchema(p, true));
+    }
+    return Pair.of(schema, name);
+  }
+
+  /** Wraps a query to rename its columns. Used by CREATE VIEW and CREATE
+   * MATERIALIZED VIEW. */
+  static SqlNode renameColumns(@Nullable SqlNodeList columnList,
+      SqlNode query) {
+    if (columnList == null) {
+      return query;
+    }
+    final SqlParserPos p = query.getParserPosition();
+    final SqlNodeList selectList = SqlNodeList.SINGLETON_STAR;
+    final SqlCall from =
+        SqlStdOperatorTable.AS.createCall(p,
+            ImmutableList.<SqlNode>builder()
+                .add(query)
+                .add(new SqlIdentifier("_", p))
+                .addAll(columnList)
+                .build());
+    return new SqlSelect(p, null, selectList, from, null, null, null, null,
+        null, null, null, null);
+  }
+
   /** Executes a {@code CREATE TABLE} command. Called via reflection. */
   public void execute(SqlCreateTable create, CalcitePrepare.Context context) {
     final CalciteSchema schema =
@@ -117,19 +170,29 @@ public class MockDdlExecutor extends DdlExecutorImpl {
     }
   }
 
-  /** Calls an action for each (name, type) pair from {@code SqlCreateTable::columnList}, in which
-   * they alternate. */
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  protected void forEachNameType(SqlCreateTable createTable,
-      BiConsumer<SqlIdentifier, SqlDataTypeSpec> consumer) {
-    createTable.columnList.forEach(sqlNode -> {
-      if (sqlNode instanceof SqlColumnDeclaration) {
-        final SqlColumnDeclaration d = (SqlColumnDeclaration) sqlNode;
-        consumer.accept(d.name, d.dataType);
-      } else {
-        throw new AssertionError(sqlNode.getClass());
+  /** Executes a {@code CREATE VIEW} command. */
+  public void execute(SqlCreateView create,
+      CalcitePrepare.Context context) {
+    final Pair<CalciteSchema, String> pair =
+        schema(context, true, create.name);
+    final SchemaPlus schemaPlus = pair.left.plus();
+    for (Function function : schemaPlus.getFunctions(pair.right)) {
+      if (function.getParameters().isEmpty()) {
+        if (!create.getReplace()) {
+          throw SqlUtil.newContextException(create.name.getParserPosition(),
+              RESOURCE.viewExists(pair.right));
+        }
+        pair.left.removeFunction(pair.right);
       }
-    });
+    }
+    final SqlNode q = renameColumns(create.columnList, create.query);
+    final String sql = q.toSqlString(CalciteSqlDialect.DEFAULT).getSql();
+    final ViewTableMacro viewTableMacro =
+        ViewTable.viewMacro(schemaPlus, sql, pair.left.path(null),
+            context.getObjectPath(), false);
+    final TranslatableTable x = viewTableMacro.apply(ImmutableList.of());
+    Util.discard(x);
+    schemaPlus.add(pair.right, viewTableMacro);
   }
 
   /** Populates the table called {@code name} by executing {@code query}. */
@@ -140,7 +203,7 @@ public class MockDdlExecutor extends DdlExecutorImpl {
     // again.)
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(
-            Objects.requireNonNull(
+            requireNonNull(
                 Schemas.subSchema(context.getRootSchema(),
                     context.getDefaultSchemaPath())).plus())
         .build();
@@ -172,6 +235,21 @@ public class MockDdlExecutor extends DdlExecutorImpl {
     }
   }
 
+  /** Calls an action for each (name, type) pair from {@code SqlCreateTable::columnList}, in which
+   * they alternate. */
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  protected void forEachNameType(SqlCreateTable createTable,
+      BiConsumer<SqlIdentifier, SqlDataTypeSpec> consumer) {
+    createTable.columnList.forEach(sqlNode -> {
+      if (sqlNode instanceof SqlColumnDeclaration) {
+        final SqlColumnDeclaration d = (SqlColumnDeclaration) sqlNode;
+        consumer.accept(d.name, d.dataType);
+      } else {
+        throw new AssertionError(sqlNode.getClass());
+      }
+    });
+  }
+
   /** Table backed by a Java list. */
   private static class MutableArrayTable
       extends AbstractModifiableTable {
@@ -183,34 +261,33 @@ public class MockDdlExecutor extends DdlExecutorImpl {
       this.protoRowType = protoRowType;
     }
 
-    @Override public Collection getModifiableCollection() {
+    public Collection getModifiableCollection() {
       return list;
     }
 
-    @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
         SchemaPlus schema, String tableName) {
       return new AbstractTableQueryable<T>(queryProvider, schema, this,
           tableName) {
-        @Override public Enumerator<T> enumerator() {
+        public Enumerator<T> enumerator() {
           //noinspection unchecked
           return (Enumerator<T>) Linq4j.enumerator(list);
         }
       };
     }
 
-    @Override public Type getElementType() {
+    public Type getElementType() {
       return Object[].class;
     }
 
-    @Override public Expression getExpression(SchemaPlus schema, String tableName,
+    public Expression getExpression(SchemaPlus schema, String tableName,
         Class clazz) {
       return Schemas.tableExpression(schema, getElementType(),
           tableName, clazz);
     }
 
-    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return protoRowType.apply(typeFactory);
     }
   }
-
 }

@@ -89,6 +89,11 @@ TableScan:[[INDEX inheritPath:[] options:[EMPNO]], [INDEX inheritPath:[0, 1, 0, 
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testHintExcludeRules">
+    <Resource name="sql">
+      <![CDATA[select empno from (select * from (select /*+ preserved_project */ empno, ename, deptno from emp) where deptno = 20)]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testHintsInSubQueryWithDecorrelation">
     <Resource name="sql">
       <![CDATA[select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */

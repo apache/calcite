@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -52,6 +54,7 @@ public class SqlParser {
   /** Default value of {@link Config#timeUnitCodes()}.
    * The map is empty, which means that there are no abbreviations other than
    * the time unit names ("YEAR", "SECOND", etc.) */
+  @Deprecated // to be removed before 2.0
   public static final ImmutableMap<String, TimeUnit> DEFAULT_IDENTIFIER_TIMEUNIT_MAP =
       ImmutableMap.of();
 
@@ -324,7 +327,14 @@ public class SqlParser {
      *
      * <p>For example, if the map contains the entry
      * ("Y", {@link TimeUnit#YEAR}) then you can write
-     * "{@code EXTRACT(S FROM orderDate)}". */
+     * "{@code EXTRACT(S FROM orderDate)}".
+     *
+     * @deprecated This property is deprecated, and has no effect. All
+     * non-standard time units are now parsed as identifiers, and resolved in
+     * the validator. You can define custom time frames using
+     * {@link RelDataTypeSystem#deriveTimeFrameSet(TimeFrameSet)}. To alias a
+     * time frame, use {@link TimeFrameSet.Builder#addAlias(String, String)}. */
+    @Deprecated // to be removed before 2.0
     @Value.Default default Map<String, TimeUnit> timeUnitCodes() {
       return DEFAULT_IDENTIFIER_TIMEUNIT_MAP;
     }

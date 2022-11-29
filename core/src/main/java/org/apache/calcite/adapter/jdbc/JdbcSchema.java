@@ -49,6 +49,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -74,6 +76,8 @@ import static java.util.Objects.requireNonNull;
  * as much as possible of the query logic to SQL.</p>
  */
 public class JdbcSchema implements Schema {
+  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcSchema.class);
+
   final DataSource dataSource;
   final @Nullable String catalog;
   final @Nullable String schema;
@@ -290,7 +294,7 @@ public class JdbcSchema implements Schema {
         final TableType tableType =
             Util.enumVal(TableType.OTHER, tableTypeName2);
         if (tableType == TableType.OTHER  && tableTypeName2 != null) {
-          System.out.println("Unknown table type: " + tableTypeName2);
+          LOGGER.info("Unknown table type: {}", tableTypeName2);
         }
         final JdbcTable table =
             new JdbcTable(this, tableDef.tableCat, tableDef.tableSchem,

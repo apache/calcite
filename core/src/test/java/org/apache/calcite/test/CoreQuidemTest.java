@@ -43,7 +43,7 @@ class CoreQuidemTest extends QuidemTest {
   }
 
   /** For {@link QuidemTest#test(String)} parameters. */
-  public static Collection<Object[]> data() {
+  @Override public Collection<String> getPath() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
     final String first = "sql/agg.iq";
@@ -60,9 +60,15 @@ class CoreQuidemTest extends QuidemTest {
                   ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
               .with(CalciteAssert.SchemaSpec.BLANK)
               .connect();
+        case "scott":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
         default:
+          return super.connect(name, reference);
         }
-        return super.connect(name, reference);
       }
     };
   }
