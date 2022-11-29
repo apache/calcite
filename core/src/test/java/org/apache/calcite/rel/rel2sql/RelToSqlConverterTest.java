@@ -9489,16 +9489,16 @@ class RelToSqlConverterTest {
   @Test public void testdatetrunc() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("DAY"));
+        builder.literal("2008-09-12"), builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'DAY') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'DAY') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', DAY) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', DAY) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT CAST(DATE_TRUNC('DAY', '2008-19-12') AS DATE) FD\n"
+    final String expectedSparkQuery = "SELECT CAST(DATE_TRUNC('DAY', '2008-09-12') AS DATE) FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9508,16 +9508,16 @@ class RelToSqlConverterTest {
   @Test public void testdatetruncWithYear() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("YEAR"));
+        builder.literal("2008-09-12"), builder.literal("YEAR"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'YEAR') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'YEAR') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', YEAR) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', YEAR) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT TRUNC('2008-19-12', 'YEAR') FD\n"
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'YEAR') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9528,16 +9528,16 @@ class RelToSqlConverterTest {
   @Test public void testdatetruncWithQuarter() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("QUARTER"));
+        builder.literal("2008-09-12"), builder.literal("QUARTER"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'QUARTER') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'QUARTER') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', QUARTER) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', QUARTER) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT TRUNC('2008-19-12', 'QUARTER') FD\n"
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'QUARTER') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9548,16 +9548,16 @@ class RelToSqlConverterTest {
   @Test public void testdatetruncWithMonth() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("MONTH"));
+        builder.literal("2008-09-12"), builder.literal("MONTH"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'MONTH') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'MONTH') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', MONTH) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', MONTH) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT TRUNC('2008-19-12', 'MONTH') FD\n"
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'MONTH') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9568,16 +9568,16 @@ class RelToSqlConverterTest {
   @Test public void testdatetruncWithWeek() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("WEEK"));
+        builder.literal("2008-09-12"), builder.literal("WEEK"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'WEEK') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'WEEK') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', WEEK) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', WEEK) AS FD\n"
         + "FROM scott.EMP";
-    final String expectedSparkQuery = "SELECT TRUNC('2008-19-12', 'WEEK') FD\n"
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'WEEK') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
