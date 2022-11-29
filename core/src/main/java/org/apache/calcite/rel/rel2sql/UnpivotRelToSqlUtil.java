@@ -269,7 +269,7 @@ public class UnpivotRelToSqlUtil {
    *
    * LogicalValues('jan','feb','mar') AS month
    */
-  boolean isCaseAndLogicalValuesPatternMatching(
+  private boolean isCaseAndLogicalValuesPatternMatching(
       RexCall caseRex, Project projectRel, String logicalValuesAlias,
       SqlNodeList logicalValuesList) {
     boolean casePatternMatched = false;
@@ -290,11 +290,11 @@ public class UnpivotRelToSqlUtil {
     return casePatternMatched;
   }
 
-  boolean isElseClausePresentInCaseRex(RexCall caseRex) {
+  private boolean isElseClausePresentInCaseRex(RexCall caseRex) {
     return caseRex.operands.size() % 2 != 0;
   }
 
-  boolean isLogicalValuesSizeEqualsWhenClauseSize(
+  private boolean isLogicalValuesSizeEqualsWhenClauseSize(
       SqlNodeList logicalValuesList, RexCall caseRexCall) {
     int whenClauseCount = (caseRexCall.operands.size() - 1) / 2;
     return logicalValuesList.size() == whenClauseCount;
