@@ -260,32 +260,32 @@ public class MockDdlExecutor extends DdlExecutorImpl {
       this.protoRowType = protoRowType;
     }
 
-    public Collection getModifiableCollection() {
+    @Override public Collection getModifiableCollection() {
       return list;
     }
 
-    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+    @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
         SchemaPlus schema, String tableName) {
       return new AbstractTableQueryable<T>(queryProvider, schema, this,
           tableName) {
-        public Enumerator<T> enumerator() {
+        @Override public Enumerator<T> enumerator() {
           //noinspection unchecked
           return (Enumerator<T>) Linq4j.enumerator(list);
         }
       };
     }
 
-    public Type getElementType() {
+    @Override public Type getElementType() {
       return Object[].class;
     }
 
-    public Expression getExpression(SchemaPlus schema, String tableName,
+    @Override public Expression getExpression(SchemaPlus schema, String tableName,
         Class clazz) {
       return Schemas.tableExpression(schema, getElementType(),
           tableName, clazz);
     }
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return protoRowType.apply(typeFactory);
     }
   }
