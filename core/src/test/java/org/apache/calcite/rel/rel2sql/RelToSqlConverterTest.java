@@ -10705,7 +10705,7 @@ class RelToSqlConverterTest {
   @Test public void testToDateFunctionWithFormatYYYYDDMM() {
     final RelBuilder builder = relBuilder();
     final RexNode toDateRexNode = builder.call(SqlLibraryOperators.TO_DATE,
-        builder.literal("20090320"), builder.literal("YYYYDDMM"));
+        builder.literal("20092003"), builder.literal("YYYYDDMM"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toDateRexNode, "date_value"))
