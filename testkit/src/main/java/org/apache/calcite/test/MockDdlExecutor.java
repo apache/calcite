@@ -37,7 +37,6 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
-import org.apache.calcite.server.DdlExecutor;
 import org.apache.calcite.server.DdlExecutorImpl;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -81,7 +80,7 @@ import static java.util.Objects.requireNonNull;
 
 /** Executes the few DDL commands. */
 public class MockDdlExecutor extends DdlExecutorImpl {
-  
+
   /** Returns the schema in which to create an object. */
   static Pair<CalciteSchema, String> schema(CalcitePrepare.Context context,
       boolean mutable, SqlIdentifier id) {
