@@ -103,15 +103,17 @@ provides detailed information about how to upgrade Gradle. Here is a list of ste
    Gradle. If necessary it will also upgrade the Gradle Wrapper.
    This step also updates `gradle/wrapper/gradle-wrapper.properties`,
    including the checksum.
-4. Step 3 will have removed the header from
+4. Check and update Kotlin version in `gradle.properties` if required.
+   Check should be done against [Kotlin compatibility matrix](https://docs.gradle.org/current/userguide/compatibility.html#kotlin).
+5. Step 3 will have removed the header from
    `gradle/wrapper/gradle-wrapper.properties`,
    so now run `./gradlew autostyleApply` to add it back.
-5. Check the updated Gradle version and checksum in
+6. Check the updated Gradle version and checksum in
    `gradle/wrapper/gradle-wrapper.properties` against the official
    [Gradle release checksums](https://gradle.org/release-checksums/).
-6. Try to build the project and run tests; debug any errors using the
+7. Try to build the project and run tests; debug any errors using the
    [Troubleshooting Guide](https://docs.gradle.org/current/userguide/troubleshooting.html#troubleshooting).
-7. Update the Gradle version in this howto.
+8. Update the Gradle version in this howto.
 
 ## Running tests
 
