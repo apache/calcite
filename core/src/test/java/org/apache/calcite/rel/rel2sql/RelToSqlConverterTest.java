@@ -10711,7 +10711,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(toDateRexNode, "date_value"))
         .build();
     final String expectedSpark =
-        "SELECT TO_DATE('20090320', 'yyyyddMM') date_value\n"
+        "SELECT TO_DATE('20092003', 'yyyyddMM') date_value\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
