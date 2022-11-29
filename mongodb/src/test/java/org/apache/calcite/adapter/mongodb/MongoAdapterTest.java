@@ -709,6 +709,29 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5405">[CALCITE-5405]
+   * Error casting MongoDB dates to TIMESTAMP</a>. */
+  @Test void testDateConversion() {
+    assertModel("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'test',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       type: 'custom',\n"
+        + "       name: 'test',\n"
+        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
+        + "       operand: {\n"
+        + "         host: 'localhost',\n"
+        + "         database: 'test'\n"
+        + "       }\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .query("select cast(_MAP['date'] as TIMESTAMP) from \"datatypes\"")
+        .returnsUnordered("EXPR$0=2012-09-05 00:00:00");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-665">[CALCITE-665]
    * ClassCastException in MongoDB adapter</a>. */
   @Test void testCountViaInt() {
