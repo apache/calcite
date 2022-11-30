@@ -97,8 +97,8 @@ import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
+import static org.apache.calcite.linq4j.tree.Expressions.list;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.test.ResultCheckers.isExactly;
@@ -3868,91 +3868,89 @@ public class SqlOperatorTest {
   }
 
   @Test void testLeftFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL)
-        .map(f::withLibrary)
-        .forEach(t -> {
-          t.setFor(SqlLibraryOperators.LEFT);
-          t.checkString("left('abcd', 3)", "abc", "VARCHAR(4) NOT NULL");
-          t.checkString("left('abcd', 0)", "", "VARCHAR(4) NOT NULL");
-          t.checkString("left('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
-          t.checkString("left('abcd', -2)", "", "VARCHAR(4) NOT NULL");
-          t.checkNull("left(cast(null as varchar(1)), -2)");
-          t.checkNull("left('abcd', cast(null as Integer))");
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.LEFT);
+      f.checkString("left('abcd', 3)", "abc", "VARCHAR(4) NOT NULL");
+      f.checkString("left('abcd', 0)", "", "VARCHAR(4) NOT NULL");
+      f.checkString("left('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
+      f.checkString("left('abcd', -2)", "", "VARCHAR(4) NOT NULL");
+      f.checkNull("left(cast(null as varchar(1)), -2)");
+      f.checkNull("left('abcd', cast(null as Integer))");
 
-          // test for ByteString
-          t.checkString("left(x'ABCdef', 1)", "ab", "VARBINARY(3) NOT NULL");
-          t.checkString("left(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
-          t.checkString("left(x'ABCdef', 4)", "abcdef",
-              "VARBINARY(3) NOT NULL");
-          t.checkString("left(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
-          t.checkNull("left(cast(null as binary(1)), -2)");
-          t.checkNull("left(x'ABCdef', cast(null as Integer))");
-        });
+      // test for ByteString
+      f.checkString("left(x'ABCdef', 1)", "ab", "VARBINARY(3) NOT NULL");
+      f.checkString("left(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
+      f.checkString("left(x'ABCdef', 4)", "abcdef",
+          "VARBINARY(3) NOT NULL");
+      f.checkString("left(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
+      f.checkNull("left(cast(null as binary(1)), -2)");
+      f.checkNull("left(x'ABCdef', cast(null as Integer))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL), consumer);
   }
 
   @Test void testRightFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL)
-        .map(f::withLibrary)
-        .forEach(t -> {
-          t.setFor(SqlLibraryOperators.RIGHT);
-          t.checkString("right('abcd', 3)", "bcd", "VARCHAR(4) NOT NULL");
-          t.checkString("right('abcd', 0)", "", "VARCHAR(4) NOT NULL");
-          t.checkString("right('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
-          t.checkString("right('abcd', -2)", "", "VARCHAR(4) NOT NULL");
-          t.checkNull("right(cast(null as varchar(1)), -2)");
-          t.checkNull("right('abcd', cast(null as Integer))");
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.RIGHT);
+      f.checkString("right('abcd', 3)", "bcd", "VARCHAR(4) NOT NULL");
+      f.checkString("right('abcd', 0)", "", "VARCHAR(4) NOT NULL");
+      f.checkString("right('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
+      f.checkString("right('abcd', -2)", "", "VARCHAR(4) NOT NULL");
+      f.checkNull("right(cast(null as varchar(1)), -2)");
+      f.checkNull("right('abcd', cast(null as Integer))");
 
-          // test for ByteString
-          t.checkString("right(x'ABCdef', 1)", "ef", "VARBINARY(3) NOT NULL");
-          t.checkString("right(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
-          t.checkString("right(x'ABCdef', 4)", "abcdef",
-              "VARBINARY(3) NOT NULL");
-          t.checkString("right(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
-          t.checkNull("right(cast(null as binary(1)), -2)");
-          t.checkNull("right(x'ABCdef', cast(null as Integer))");
-        });
+      // test for ByteString
+      f.checkString("right(x'ABCdef', 1)", "ef", "VARBINARY(3) NOT NULL");
+      f.checkString("right(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
+      f.checkString("right(x'ABCdef', 4)", "abcdef",
+          "VARBINARY(3) NOT NULL");
+      f.checkString("right(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
+      f.checkNull("right(cast(null as binary(1)), -2)");
+      f.checkNull("right(x'ABCdef', cast(null as Integer))");
+    };
+
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL), consumer);
   }
 
   @Test void testRegexpReplaceFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.ORACLE)
-        .map(f::withLibrary)
-        .forEach(t -> {
-          t.setFor(SqlLibraryOperators.REGEXP_REPLACE);
-          t.checkString("regexp_replace('a b c', 'b', 'X')", "a X c",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X')", "X X X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('100-200', '(\\d+)', 'num')", "num-num",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('100-200', '(-)', '###')", "100###200",
-              "VARCHAR NOT NULL");
-          t.checkNull("regexp_replace(cast(null as varchar), '(-)', '###')");
-          t.checkNull("regexp_replace('100-200', cast(null as varchar), '###')");
-          t.checkNull("regexp_replace('100-200', '(-)', cast(null as varchar))");
-          t.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 2)", "aX X X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 1, 3)", "abc def X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')", "abc def GHI",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t', '+')", "abc+\ndef+\nghi",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def+ghi",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\n+\t\n+",
-              "VARCHAR NOT NULL");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X')");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
-        });
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.REGEXP_REPLACE);
+      f.checkString("regexp_replace('a b c', 'b', 'X')", "a X c",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X')", "X X X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('100-200', '(\\d+)', 'num')", "num-num",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('100-200', '(-)', '###')", "100###200",
+          "VARCHAR NOT NULL");
+      f.checkNull("regexp_replace(cast(null as varchar), '(-)', '###')");
+      f.checkNull("regexp_replace('100-200', cast(null as varchar), '###')");
+      f.checkNull("regexp_replace('100-200', '(-)', cast(null as varchar))");
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 2)", "aX X X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 1, 3)", "abc def X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')", "abc def GHI",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t', '+')", "abc+\ndef+\nghi",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def+ghi",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\n+\t\n+",
+          "VARCHAR NOT NULL");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testJsonExists() {
