@@ -53,7 +53,7 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     |   { query = null; }
     )
     {
-        return new SqlCreateTable(s.end(this), id, columnList, query);
+        return new ExtensionSqlCreateTable(s.end(this), id, columnList, query);
     }
 }
 

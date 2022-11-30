@@ -39,6 +39,7 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
@@ -52,6 +53,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -367,6 +369,23 @@ public final class SqlParserUtil {
               + intervalQualifier.toString(), pos.toString()));
     }
     return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
+  }
+
+  /**
+   * Parses string to array literal
+   * using {@link org.apache.calcite.sql.parser.impl.SqlParserImpl} parser.
+   * String format description can be found at the
+   * <a href="https://www.postgresql.org/docs/current/arrays.html#ARRAYS-INPUT">link</a>
+   *
+   * @param s a string to parse
+   * @return a array value
+   *
+   * @throws SqlParseException if there is a parse error
+   */
+  public static SqlNode parseArrayLiteral(String s) throws SqlParseException {
+    SqlAbstractParserImpl parser = SqlParserImpl.FACTORY.getParser(
+        new StringReader(s));
+    return parser.parseArray();
   }
 
   /**

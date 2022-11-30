@@ -558,6 +558,11 @@ public abstract class SqlAbstractParserImpl {
   public abstract void setConformance(SqlConformance conformance);
 
   /**
+   * Parses string to array literal.
+   */
+  public abstract SqlNode parseArray() throws SqlParseException;
+
+  /**
    * Sets the SQL text that is being parsed.
    */
   public void setOriginalSql(String originalSql) {

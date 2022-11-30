@@ -304,6 +304,34 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testArrayLiteralFromString() {
+    sql("select array '{1,2,3}'")
+        .ok("SELECT (ARRAY[1, 2, 3])");
+    sql("select array '{{1,2,5}, {3,4,7}}'")
+        .ok("SELECT (ARRAY[(ARRAY[1, 2, 5]), (ARRAY[3, 4, 7])])");
+    sql("select array '{}'")
+        .ok("SELECT (ARRAY[])");
+    sql("select array '{\"1\", \"2\", \"3\"}'")
+        .ok("SELECT (ARRAY['1', '2', '3'])");
+    sql("select array '{null, 1, null, 2}'")
+        .ok("SELECT (ARRAY[NULL, 1, NULL, 2])");
+
+    sql("select array ^'null, 1, null, 2'^")
+        .fails("Illegal array expression 'null, 1, null, 2'");
+  }
+
+  @Test void testArrayLiteralBigQuery() {
+    final SqlParserFixture f = fixture().withDialect(BIG_QUERY);
+    f.sql("select array '{1, 2}'")
+        .ok("SELECT (ARRAY[1, 2])");
+    f.sql("select array \"{1, 2}\"")
+        .ok("SELECT (ARRAY[1, 2])");
+    f.sql("select array '{\"a\", \"b\"}'")
+        .ok("SELECT (ARRAY['a', 'b'])");
+    f.sql("select array \"{\\\"a\\\", \\\"b\\\"}\"")
+        .ok("SELECT (ARRAY['a', 'b'])");
+  }
+
   /** Similar to {@link #testHoist()} but using custom parser. */
   @Test void testHoistMySql() {
     // SQL contains back-ticks, which require MySQL's quoting,

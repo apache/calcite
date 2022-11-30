@@ -16,44 +16,28 @@
  */
 package org.apache.calcite.sql.parser.parserextensiontesting;
 
-import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 
 /**
  * Simple test example of a CREATE TABLE statement.
  */
-public class SqlCreateTable extends SqlCreate {
-  public final SqlIdentifier name;
-  public final @Nullable SqlNodeList columnList;
-  public final @Nullable SqlNode query;
-
-  private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
-
+public class ExtensionSqlCreateTable extends SqlCreateTable {
   /** Creates a SqlCreateTable. */
-  public SqlCreateTable(SqlParserPos pos, SqlIdentifier name,
-      @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
-    super(OPERATOR, pos, false, false);
-    this.name = Objects.requireNonNull(name, "name");
-    this.columnList = columnList; // may be null
-    this.query = query; // for "CREATE TABLE ... AS query"; may be null
+  public ExtensionSqlCreateTable(SqlParserPos pos, SqlIdentifier name,
+      SqlNodeList columnList, SqlNode query) {
+    super(pos, false, false, name, columnList, query);
   }
 
   @Override public List<SqlNode> getOperandList() {

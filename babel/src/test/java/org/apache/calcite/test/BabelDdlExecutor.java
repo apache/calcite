@@ -17,37 +17,27 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.server.DdlExecutor;
-import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
-import org.apache.calcite.sql.parser.parserextensiontesting.ExtensionSqlCreateTable;
-import org.apache.calcite.sql.parser.parserextensiontesting.ExtensionSqlParserImpl;
+import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 
 import java.io.Reader;
-import java.util.function.BiConsumer;
 
 /** Executes the few DDL commands supported by
- * {@link ExtensionSqlParserImpl}. */
-public class ExtensionDdlExecutor extends MockDdlExecutor {
-  static final ExtensionDdlExecutor INSTANCE = new ExtensionDdlExecutor();
+ * {@link SqlBabelParserImpl}. */
+public class BabelDdlExecutor extends MockDdlExecutor {
+  static final BabelDdlExecutor INSTANCE = new BabelDdlExecutor();
 
   /** Parser factory. */
   @SuppressWarnings("unused") // used via reflection
   public static final SqlParserImplFactory PARSER_FACTORY =
       new SqlParserImplFactory() {
         @Override public SqlAbstractParserImpl getParser(Reader stream) {
-          return ExtensionSqlParserImpl.FACTORY.getParser(stream);
+          return SqlBabelParserImpl.FACTORY.getParser(stream);
         }
 
         @Override public DdlExecutor getDdlExecutor() {
-          return ExtensionDdlExecutor.INSTANCE;
+          return BabelDdlExecutor.INSTANCE;
         }
       };
-
-  @Override protected void forEachNameType(SqlCreateTable createTable, BiConsumer<SqlIdentifier,
-      SqlDataTypeSpec> consumer) {
-    ((ExtensionSqlCreateTable) createTable).forEachNameType(consumer);
-  }
 }
