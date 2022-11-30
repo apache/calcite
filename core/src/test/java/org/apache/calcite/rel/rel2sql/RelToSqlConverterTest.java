@@ -10701,4 +10701,19 @@ class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBQSql);
   }
+
+  @Test public void testToDateFunctionWithFormatYYYYDDMM() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toDateRexNode = builder.call(SqlLibraryOperators.TO_DATE,
+        builder.literal("20092003"), builder.literal("YYYYDDMM"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toDateRexNode, "date_value"))
+        .build();
+    final String expectedSpark =
+        "SELECT TO_DATE('20092003', 'yyyyddMM') date_value\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
 }
