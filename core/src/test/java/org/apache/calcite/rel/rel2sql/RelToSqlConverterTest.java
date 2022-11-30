@@ -10726,7 +10726,7 @@ class RelToSqlConverterTest {
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(modRex, "current_date"))
         .build();
-    final String expectedSql = "SELECT"
+    final String expectedSql = "SELECT "
         + "MOD((YEAR(CURRENT_DATE) - 1900) * 10000 + MONTH(CURRENT_DATE)  * 100 + "
         + "DAY(CURRENT_DATE) , 2) current_date\n"
         + "FROM scott.EMP";
