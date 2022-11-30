@@ -221,16 +221,9 @@ public class UnpivotRelToSqlUtil {
   private boolean isAtleastOneCaseOperatorEquivalentToUnpivotType(
       Project projectRel,
       SqlImplementor.Builder builder) {
-    boolean caseMatched = false;
-    Map<RexCall, String> caseRexCallVsAliasMap = getCaseRexCallFromProjectionWithAlias(projectRel);
+    Map<String, SqlNodeList> caseAliasVsThenList = getCaseAliasVsThenList(projectRel, builder);
+    return caseAliasVsThenList.size() > 0;
 
-    for (RexCall caseRex : caseRexCallVsAliasMap.keySet()) {
-      caseMatched = isCasePatternOfUnpivotType(caseRex, projectRel, builder);
-      if (caseMatched) {
-        break;
-      }
-    }
-    return caseMatched;
   }
 
   /**
