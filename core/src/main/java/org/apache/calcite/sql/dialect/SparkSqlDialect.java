@@ -82,6 +82,8 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_4;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
@@ -97,6 +99,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
@@ -177,6 +180,9 @@ public class SparkSqlDialect extends SqlDialect {
         put(ANTE_MERIDIAN_INDICATOR, "a");
         put(POST_MERIDIAN_INDICATOR1, "a");
         put(ANTE_MERIDIAN_INDICATOR1, "a");
+        put(MILLISECONDS_5, "SSSSS");
+        put(MILLISECONDS_4, "SSSS");
+        put(YYYYDDMM, "yyyyddMM");
       }};
 
   /**
@@ -729,7 +735,14 @@ public class SparkSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       return;
-
+    case "TO_DATE":
+      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("TO_DATE");
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      writer.literal(creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()).toString());
+      writer.endFunCall(dateDiffFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
