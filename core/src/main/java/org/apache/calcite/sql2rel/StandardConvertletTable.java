@@ -603,10 +603,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return cx.convertExpression(left);
     }
     if (null != dataType.getCollectionsTypeName()) {
-      final RelDataType argComponentType =
-          requireNonNull(
-              arg.getType().getComponentType(),
-              () -> "componentType of " + arg);
+      RelDataType argComponentType = arg.getType().getComponentType();
+
+      // arg.getType() may be ANY
+      if (argComponentType == null) {
+        argComponentType = dataType.getComponentTypeSpec().deriveType(cx.getValidator());
+      }
+
+      requireNonNull(argComponentType, () -> "componentType of " + arg);
 
       RelDataType typeFinal = type;
       final RelDataType componentType = requireNonNull(
