@@ -199,7 +199,8 @@ public class SparkDateTimestampInterval {
     String timeUnitTypeName = ((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
         .replaceAll("INTERVAL_", "");
     String timeUnitValue = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-    writer.print(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName);
+    writer.print(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName
+        + (timeUnitTypeName.equalsIgnoreCase("DAY") ? " " : ""));
   }
 
   private void handleOperandArg0(SqlWriter writer, SqlCall call,
