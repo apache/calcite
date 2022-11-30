@@ -424,12 +424,26 @@ public abstract class SqlLibraryOperators {
           .withAllowsSeparator(true)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
-  /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
+  /**
+   * BigQuery's {@code DATE} function can take various operands.
+   * See {@link SqlDateFunction}.
+   */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction DATE =
-      new SqlFunction("DATE", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE, null, OperandTypes.STRING,
-          SqlFunctionCategory.TIMEDATE);
+  public static final SqlFunction DATE = new SqlDateFunction();
+
+  /**
+   * BigQuery's {@code TIMESTAMP} function can take various operands.
+   * See {@link SqlTimestampFunction}.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP = new SqlTimestampFunction();
+
+  /**
+   * BigQuery's {@code TIME} function can take various operands.
+   * See {@link SqlTimeFunction}.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME = new SqlTimeFunction();
 
   /** The "CURRENT_DATETIME([timezone])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
