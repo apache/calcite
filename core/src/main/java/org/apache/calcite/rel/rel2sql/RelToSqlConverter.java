@@ -437,12 +437,14 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNodeList axisList = new SqlNodeList(ImmutableList.of
         (new SqlIdentifier(unpivotRelToSqlUtil.getLogicalValueAlias(valuesRel), POS)), POS);
     List<SqlIdentifier> measureColumnSqlIdentifiers = new ArrayList<>();
-    for (String axisColumn : new ArrayList<>(unpivotRelToSqlUtil.caseAliasVsThenList.keySet())) {
+    Map<String, SqlNodeList> caseAliasVsThenList = unpivotRelToSqlUtil.
+        getCaseAliasVsThenList(projectRel, builder);
+    for (String axisColumn : new ArrayList<>(caseAliasVsThenList.keySet())) {
       measureColumnSqlIdentifiers.add(new SqlIdentifier(axisColumn, POS));
     }
     SqlNodeList measureList = new SqlNodeList(measureColumnSqlIdentifiers, POS);
     SqlNodeList aliasOfInList = unpivotRelToSqlUtil.getLogicalValuesList(valuesRel, builder);
-    SqlNodeList inSqlNodeList = new SqlNodeList(unpivotRelToSqlUtil.caseAliasVsThenList.values(),
+    SqlNodeList inSqlNodeList = new SqlNodeList(caseAliasVsThenList.values(),
         POS);
     SqlNodeList aliasedInSqlNodeList = getInListForSqlUnpivot(measureList, aliasOfInList,
         inSqlNodeList);

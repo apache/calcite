@@ -54,7 +54,6 @@ import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
  * Class to identify Rel structure which is of Unpivot type.
  */
 public class UnpivotRelToSqlUtil {
-  Map<String, SqlNodeList> caseAliasVsThenList = new HashMap<>();
 
   /**
    * <p> SQL. </p>
@@ -216,14 +215,33 @@ public class UnpivotRelToSqlUtil {
 
   /**
    * Check each case operator if it is equivalent to unpivot expansion of case,
-   * and if it matches, then populate a map with case alias as key and value as
-   * the list of then operands
+   * and if it matches return true
    * If measure column is a list ,then in that case there are multiple case operators.
    */
   private boolean isAtleastOneCaseOperatorEquivalentToUnpivotType(
       Project projectRel,
       SqlImplementor.Builder builder) {
+    boolean caseMatched = false;
+    Map<RexCall, String> caseRexCallVsAliasMap = getCaseRexCallFromProjectionWithAlias(projectRel);
 
+    for (RexCall caseRex : caseRexCallVsAliasMap.keySet()) {
+      caseMatched = isCasePatternOfUnpivotType(caseRex, projectRel, builder);
+      if (caseMatched) {
+        break;
+      }
+    }
+    return caseMatched;
+  }
+
+  /**
+   * Check each case operator if it is equivalent to unpivot expansion of case.
+   * And if it matches ,then populate a map with case alias as key and value as
+   * the list of then operands
+   */
+  protected Map<String, SqlNodeList> getCaseAliasVsThenList(
+      Project projectRel,
+      SqlImplementor.Builder builder) {
+    Map<String, SqlNodeList> caseAliasVsThenList = new HashMap<>();
     Map<RexCall, String> caseRexCallVsAliasMap = getCaseRexCallFromProjectionWithAlias(projectRel);
 
     for (RexCall caseRex : caseRexCallVsAliasMap.keySet()) {
@@ -236,7 +254,7 @@ public class UnpivotRelToSqlUtil {
         caseAliasVsThenList.put(caseRexCallVsAliasMap.get(caseRex), thenClauseSqlNodeList);
       }
     }
-    return caseAliasVsThenList.size() > 0;
+    return caseAliasVsThenList;
   }
 
   /**
@@ -357,7 +375,7 @@ public class UnpivotRelToSqlUtil {
   /**
    * Check if the project can be converted to * in case of SqlUnpivot.
    */
-   protected boolean isStarInUnPivot(Project projectRel, SqlImplementor.Result result) {
+  protected boolean isStarInUnPivot(Project projectRel, SqlImplementor.Result result) {
     boolean isStar = false;
     if (result.node instanceof SqlSelect
         && ((SqlSelect) result.node).getFrom() instanceof SqlUnpivot) {
