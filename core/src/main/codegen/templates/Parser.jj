@@ -8200,6 +8200,7 @@ String NonReservedKeyWord() :
     |   NonReservedKeyWord2of3()
     |   <WIDTH_BUCKET>
     |   <CONTAINS>
+    |   <DAY>
     )
     {
         return unquotedIdentifier();
