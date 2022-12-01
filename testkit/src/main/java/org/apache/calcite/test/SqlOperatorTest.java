@@ -5802,6 +5802,20 @@ public class SqlOperatorTest {
     f.checkNull("last_day(cast(null as timestamp))");
   }
 
+  @Test void testStartsWithFunction() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.STARTS_WITH);
+    f.checkBoolean("starts_with('12345', '123')", true);
+    f.checkBoolean("starts_with('12345', '1243')", false);
+    f.checkBoolean("starts_with(x'11', x'11')", true);
+    f.checkBoolean("starts_with(x'112211', x'33')", false);
+    f.checkFails(
+        "^starts_with('aabbcc', x'aa')^",
+        "Cannot apply 'STARTS_WITH' to arguments of type 'STARTS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported form\\(s\\): 'STARTS_WITH\\(<STRING>, <STRING>\\)'",
+        false
+    );
+  }
+
   /** Tests the {@code SUBSTRING} operator. Many test cases that used to be
    * have been moved to {@link SubFunChecker#assertSubFunReturns}, and are
    * called for both {@code SUBSTRING} and {@code SUBSTR}. */

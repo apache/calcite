@@ -274,6 +274,10 @@ public class SqlFunctions {
   public static boolean startsWith(String s0, String s1) {
     return s0.startsWith(s1);
   }
+  /** For {@link SqlLibraryOperators#STARTS_WITH} of the form {@code STARTS_WITH()}. */
+  public static boolean startsWith(ByteString s0, ByteString s1) {
+    return s0.length() >= s1.length() && s0.substring(0, s1.length()).equals(s1);
+  }
 
   /** SQL SUBSTRING(string FROM ...) function. */
   public static String substring(String c, int s) {
