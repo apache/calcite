@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUtil;
@@ -75,6 +76,23 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
+  @Override public boolean supportsAggregateFunction(SqlKind kind) {
+    switch (kind) {
+    case AVG:
+    case COUNT:
+    case CUBE:
+    case SUM:
+    case SUM0:
+    case MIN:
+    case MAX:
+    case ROLLUP:
+      return true;
+    default:
+      break;
+    }
     return false;
   }
 
