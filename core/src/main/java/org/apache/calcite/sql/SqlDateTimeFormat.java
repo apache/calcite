@@ -72,7 +72,7 @@ public enum SqlDateTimeFormat {
   ANTE_MERIDIAN_INDICATOR("AM"),
   ANTE_MERIDIAN_INDICATOR1("A.M."),
   MILLISECONDS_5("sssss"),
-  MILISECONDS_4("ssss"),
+  MILLISECONDS_4("ssss"),
   SEC_FROM_MIDNIGHT("SEC_FROM_MIDNIGHT"),
   E4("E4"),
   E3("E3"),
@@ -81,7 +81,8 @@ public enum SqlDateTimeFormat {
   QUARTER("QUARTER"),
   WEEK_OF_YEAR("WW"),
   WEEK_OF_MONTH("W"),
-  TIMEOFDAY("TIMEOFDAY");
+  TIMEOFDAY("TIMEOFDAY"),
+  YYYYDDMM("YYYYDDMM");
 
   public final String value;
 
