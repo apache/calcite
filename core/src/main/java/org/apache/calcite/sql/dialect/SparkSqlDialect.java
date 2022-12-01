@@ -711,10 +711,12 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case "TRUNC":
       String truncFunctionName = getTruncFunctionName(call);
-      if (truncFunctionName.equalsIgnoreCase("DATE_TRUNC")) {
-        SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFunctionName, false);
-      } else {
-        unparseTruncFunction(writer, call, leftPrec, rightPrec);
+      switch (truncFunctionName) {
+      case "DATE_TRUNC":
+        unparseDateTrunc(writer, call, leftPrec, rightPrec, truncFunctionName);
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
     case "TO_HEX":
@@ -743,15 +745,16 @@ public class SparkSqlDialect extends SqlDialect {
     }
   }
 
-  private void unparseTruncFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseDateTrunc(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      String truncFunctionName) {
     if (call.operand(1).toString().equalsIgnoreCase("'DAY'")) {
-      unparseTruncWithDayArg(writer, call, leftPrec, rightPrec);
+      unparseDateTruncWithDayFormat(writer, call, leftPrec, rightPrec);
     } else {
-      super.unparseCall(writer, call, leftPrec, rightPrec);
+      SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFunctionName, false);
     }
   }
 
-  private void unparseTruncWithDayArg(SqlWriter writer, SqlCall call, int leftPrec,
+  private void unparseDateTruncWithDayFormat(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     SqlWriter.Frame castFrame = writer.startFunCall("CAST");
     SqlWriter.Frame dateTruncFrame = writer.startFunCall("DATE_TRUNC");
@@ -889,6 +892,7 @@ public class SparkSqlDialect extends SqlDialect {
   private String getTruncFunctionName(SqlCall call) {
     String dateFormatOperand = call.operand(1).toString();
     switch (dateFormatOperand) {
+    case "'DAY'":
     case "'HOUR'":
     case "'MINUTE'":
     case "'SECOND'":
