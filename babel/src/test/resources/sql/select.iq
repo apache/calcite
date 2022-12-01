@@ -60,4 +60,17 @@ select(...)
 !explain-validated-on mysql8+ oracle
 !}
 
+# [CALCITE-5410] Assertion error on PERCENT_REMAINDER operator with DECIMAL type
+
+select 1.0 % 2;
+
++--------+
+| EXPR$0 |
++--------+
+|    1.0 |
++--------+
+(1 row)
+
+!ok
+
 # End select.iq
