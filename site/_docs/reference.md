@@ -38,6 +38,7 @@ here to appease testAllFunctionsAreDocumented:
 | JSON_OBJECTAGG_NULL_ON_NULL() | Covered by JSON_OBJECTAGG
 | JSON_VALUE_ANY() | Covered by JSON_VALUE
 | LAST()         | TODO: document with MATCH_RECOGNIZE
+| MATCH_NUMBER() | Documented with MATCH_RECOGNIZE
 | NEW            | TODO: document
 | NEXT()         | Documented with MATCH_RECOGNIZE
 | OVERLAPS       | Documented as a period operator

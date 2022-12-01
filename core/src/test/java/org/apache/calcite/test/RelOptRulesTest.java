@@ -99,12 +99,11 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -3281,12 +3280,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * functions</a>. */
   @Test void testReduceConstantsNonDeterministicFunction() {
     final SqlOperator nonDeterministicOp =
-        new SqlSpecialOperator("NDC", SqlKind.OTHER_FUNCTION, 0, false,
-            ReturnTypes.INTEGER, null, null) {
-          @Override public boolean isDeterministic() {
-            return false;
-          }
-        };
+        SqlBasicFunction.create("NDC", ReturnTypes.INTEGER,
+            OperandTypes.VARIADIC).withDeterministic(false);
 
     // Build a tree equivalent to the SQL
     //  SELECT sal, n
@@ -6867,16 +6862,10 @@ class RelOptRulesTest extends RelOptTestBase {
    * collation</a>. */
   @Test void testMonotonicityUDF() {
     final SqlFunction monotonicityFun =
-        new SqlFunction("MONOFUN", SqlKind.OTHER_FUNCTION, ReturnTypes.BIGINT, null,
-            OperandTypes.NILADIC, SqlFunctionCategory.USER_DEFINED_FUNCTION) {
-          @Override public boolean isDeterministic() {
-            return false;
-          }
-
-          @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-            return SqlMonotonicity.INCREASING;
-          }
-        };
+        SqlBasicFunction.create("MONOFUN", ReturnTypes.BIGINT,
+            OperandTypes.NILADIC, SqlFunctionCategory.USER_DEFINED_FUNCTION)
+            .withDeterministic(false)
+            .withMonotonicityInference(call -> SqlMonotonicity.INCREASING);
 
     // Build a tree equivalent to the SQL
     // SELECT sal, MONOFUN() AS n FROM emp

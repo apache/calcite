@@ -24,10 +24,12 @@ import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
@@ -2263,31 +2265,13 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   private SqlOperator getDeterministicOperator() {
-    return new SqlSpecialOperator(
-            "DC",
-            SqlKind.OTHER_FUNCTION,
-            0,
-            false,
-            ReturnTypes.BOOLEAN_FORCE_NULLABLE,
-            null, null) {
-      @Override public boolean isDeterministic() {
-        return true;
-      }
-    };
+    return SqlBasicFunction.create("DC", ReturnTypes.BOOLEAN_FORCE_NULLABLE,
+        OperandTypes.VARIADIC).withDeterministic(true);
   }
 
   private SqlOperator getNoDeterministicOperator() {
-    return new SqlSpecialOperator(
-            "NDC",
-            SqlKind.OTHER_FUNCTION,
-            0,
-            false,
-            ReturnTypes.BOOLEAN_FORCE_NULLABLE,
-            null, null) {
-      @Override public boolean isDeterministic() {
-        return false;
-      }
-    };
+    return SqlBasicFunction.create("NDC", ReturnTypes.BOOLEAN_FORCE_NULLABLE,
+        OperandTypes.VARIADIC).withDeterministic(false);
   }
 
   /** Unit test for
@@ -2675,17 +2659,9 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   @Test void testIsDeterministic() {
-    SqlOperator ndc = new SqlSpecialOperator(
-            "NDC",
-            SqlKind.OTHER_FUNCTION,
-            0,
-            false,
-            ReturnTypes.BOOLEAN,
-            null, null) {
-      @Override public boolean isDeterministic() {
-        return false;
-      }
-    };
+    SqlOperator ndc =
+        SqlBasicFunction.create("NDC", ReturnTypes.BOOLEAN,
+            OperandTypes.VARIADIC).withDeterministic(false);
     RexNode n = rexBuilder.makeCall(ndc);
     assertFalse(RexUtil.isDeterministic(n));
     assertEquals(0,
@@ -3314,17 +3290,9 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   @Test void testSimplifyNonDeterministicFunction() {
-    final SqlOperator ndc = new SqlSpecialOperator(
-        "NDC",
-        SqlKind.OTHER_FUNCTION,
-        0,
-        false,
-        ReturnTypes.BOOLEAN,
-        null, null) {
-      @Override public boolean isDeterministic() {
-        return false;
-      }
-    };
+    final SqlOperator ndc =
+        SqlBasicFunction.create("NDC", ReturnTypes.BOOLEAN,
+            OperandTypes.VARIADIC).withDeterministic(false);
     final RexNode call1 = rexBuilder.makeCall(ndc);
     final RexNode call2 = rexBuilder.makeCall(ndc);
     final RexNode expr = eq(call1, call2);

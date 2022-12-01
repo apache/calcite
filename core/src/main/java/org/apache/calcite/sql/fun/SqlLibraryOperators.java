@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
@@ -88,11 +89,8 @@ public abstract class SqlLibraryOperators {
    * because Redshift does not have its own library. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction CONVERT_TIMEZONE =
-      new SqlFunction("CONVERT_TIMEZONE",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
-          null,
-          OperandTypes.CHARACTER_CHARACTER_DATETIME,
+      SqlBasicFunction.create("CONVERT_TIMEZONE",
+          ReturnTypes.DATE_NULLABLE, OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "DATEADD(timeUnit, numeric, datetime)" function
@@ -154,8 +152,8 @@ public abstract class SqlLibraryOperators {
   /** The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction DECODE =
-      new SqlFunction("DECODE", SqlKind.DECODE, DECODE_RETURN_TYPE, null,
-          OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
+      SqlBasicFunction.create(SqlKind.DECODE, DECODE_RETURN_TYPE,
+          OperandTypes.VARIADIC);
 
   /** The "IF(condition, thenValue, elseValue)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
@@ -185,42 +183,44 @@ public abstract class SqlLibraryOperators {
   /** The "NVL(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction NVL =
-      new SqlFunction("NVL", SqlKind.NVL,
+      SqlBasicFunction.create(SqlKind.NVL,
           ReturnTypes.LEAST_RESTRICTIVE
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
-          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+          OperandTypes.SAME_SAME);
 
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction LTRIM =
-      new SqlFunction("LTRIM", SqlKind.LTRIM,
+      SqlBasicFunction.create(SqlKind.LTRIM,
           ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
-              .andThen(SqlTypeTransforms.TO_VARYING), null,
-          OperandTypes.STRING, SqlFunctionCategory.STRING);
+              .andThen(SqlTypeTransforms.TO_VARYING),
+          OperandTypes.STRING)
+          .withFunctionType(SqlFunctionCategory.STRING);
 
   /** The "RTRIM(string)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction RTRIM =
-      new SqlFunction("RTRIM", SqlKind.RTRIM,
+      SqlBasicFunction.create(SqlKind.RTRIM,
           ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
-              .andThen(SqlTypeTransforms.TO_VARYING), null,
-          OperandTypes.STRING, SqlFunctionCategory.STRING);
+              .andThen(SqlTypeTransforms.TO_VARYING),
+          OperandTypes.STRING)
+          .withFunctionType(SqlFunctionCategory.STRING);
+
+  /** Generic "SUBSTR(string, position [, substringLength ])" function. */
+  private static final SqlBasicFunction SUBSTR =
+      SqlBasicFunction.create("SUBSTR", ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
 
   /** BigQuery's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction SUBSTR_BIG_QUERY =
-      new SqlFunction("SUBSTR", SqlKind.SUBSTR_BIG_QUERY,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
-          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
-          SqlFunctionCategory.STRING);
+      SUBSTR.withKind(SqlKind.SUBSTR_BIG_QUERY);
 
   /** MySQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction SUBSTR_MYSQL =
-      new SqlFunction("SUBSTR", SqlKind.SUBSTR_MYSQL,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
-          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
-          SqlFunctionCategory.STRING);
+      SUBSTR.withKind(SqlKind.SUBSTR_MYSQL);
 
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
@@ -238,32 +238,26 @@ public abstract class SqlLibraryOperators {
    */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction SUBSTR_ORACLE =
-      new SqlFunction("SUBSTR", SqlKind.SUBSTR_ORACLE,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
-          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
-          SqlFunctionCategory.STRING);
+      SUBSTR.withKind(SqlKind.SUBSTR_ORACLE);
 
   /** PostgreSQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction SUBSTR_POSTGRESQL =
-      new SqlFunction("SUBSTR", SqlKind.SUBSTR_POSTGRESQL,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
-          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
-          SqlFunctionCategory.STRING);
+      SUBSTR.withKind(SqlKind.SUBSTR_POSTGRESQL);
 
   /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction GREATEST =
-      new SqlFunction("GREATEST", SqlKind.GREATEST,
+      SqlBasicFunction.create(SqlKind.GREATEST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
+          OperandTypes.SAME_VARIADIC);
 
   /** The "LEAST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction LEAST =
-      new SqlFunction("LEAST", SqlKind.LEAST,
+      SqlBasicFunction.create(SqlKind.LEAST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
+          OperandTypes.SAME_VARIADIC);
 
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
@@ -303,37 +297,35 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
-      new SqlFunction("COMPRESS", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("COMPRESS",
           ReturnTypes.explicit(SqlTypeName.VARBINARY)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.STRING, SqlFunctionCategory.STRING);
-
+          OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction EXTRACT_VALUE =
-      new SqlFunction("EXTRACTVALUE", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("EXTRACTVALUE",
           ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-          null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+          OperandTypes.STRING_STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction XML_TRANSFORM =
-      new SqlFunction("XMLTRANSFORM", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("XMLTRANSFORM",
           ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-          null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+          OperandTypes.STRING_STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXTRACT_XML =
-      new SqlFunction("EXTRACT", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("EXTRACT",
           ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-          null, OperandTypes.STRING_STRING_OPTIONAL_STRING,
-          SqlFunctionCategory.SYSTEM);
+          OperandTypes.STRING_STRING_OPTIONAL_STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXISTS_NODE =
-      new SqlFunction("EXISTSNODE", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("EXISTSNODE",
           ReturnTypes.INTEGER_NULLABLE
-              .andThen(SqlTypeTransforms.FORCE_NULLABLE), null,
-          OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
+              .andThen(SqlTypeTransforms.FORCE_NULLABLE),
+          OperandTypes.STRING_STRING_OPTIONAL_STRING);
 
   /** The "BOOL_AND(condition)" aggregate function, PostgreSQL and Redshift's
    * equivalent to {@link SqlStdOperatorTable#EVERY}. */
@@ -427,15 +419,14 @@ public abstract class SqlLibraryOperators {
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE =
-      new SqlFunction("DATE", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE, null, OperandTypes.STRING,
-          SqlFunctionCategory.TIMEDATE);
+      SqlBasicFunction.create("DATE", ReturnTypes.DATE_NULLABLE,
+          OperandTypes.STRING, SqlFunctionCategory.TIMEDATE);
 
   /** The "CURRENT_DATETIME([timezone])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CURRENT_DATETIME =
-      new SqlFunction("CURRENT_DATETIME", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE), null,
+      SqlBasicFunction.create("CURRENT_DATETIME",
+          ReturnTypes.TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.NILADIC.or(OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE);
 
@@ -443,89 +434,77 @@ public abstract class SqlLibraryOperators {
    * a given number of seconds after 1970-01-01. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_FROM_UNIX_DATE =
-      new SqlFunction("DATE_FROM_UNIX_DATE", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE, null, OperandTypes.INTEGER,
+      SqlBasicFunction.create("DATE_FROM_UNIX_DATE",
+          ReturnTypes.DATE_NULLABLE, OperandTypes.INTEGER,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "UNIX_DATE(date)" function; returns the number of days since
    * 1970-01-01. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction UNIX_DATE =
-      new SqlFunction("UNIX_DATE", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE, null, OperandTypes.DATE,
+      SqlBasicFunction.create("UNIX_DATE",
+          ReturnTypes.INTEGER_NULLABLE, OperandTypes.DATE,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction MONTHNAME =
-      new SqlFunction("MONTHNAME", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
+      SqlBasicFunction.create("MONTHNAME",
+          ReturnTypes.VARCHAR_2000, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction DAYNAME =
-      new SqlFunction("DAYNAME", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000, null, OperandTypes.DATETIME,
+      SqlBasicFunction.create("DAYNAME",
+          ReturnTypes.VARCHAR_2000, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction LEFT =
-      new SqlFunction("LEFT", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+      SqlBasicFunction.create("LEFT",
+          ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.CBSTRING_INTEGER, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction REPEAT =
-      new SqlFunction(
-          "REPEAT",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("REPEAT",
           ReturnTypes.ARG0_NULLABLE_VARYING,
-          null,
           OperandTypes.STRING_INTEGER,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction RIGHT =
-      new SqlFunction("RIGHT", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+      SqlBasicFunction.create("RIGHT", ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.CBSTRING_INTEGER, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction SPACE =
-      new SqlFunction("SPACE",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("SPACE",
           ReturnTypes.VARCHAR_2000_NULLABLE,
-          null,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction STRCMP =
-      new SqlFunction("STRCMP",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("STRCMP",
           ReturnTypes.INTEGER_NULLABLE,
-          null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
   public static final SqlFunction SOUNDEX =
-      new SqlFunction("SOUNDEX",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("SOUNDEX",
           ReturnTypes.VARCHAR_4_NULLABLE,
-          null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction DIFFERENCE =
-      new SqlFunction("DIFFERENCE",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("DIFFERENCE",
           ReturnTypes.INTEGER_NULLABLE,
-          null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
@@ -553,13 +532,12 @@ public abstract class SqlLibraryOperators {
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL, BIG_QUERY})
   public static final SqlFunction CONCAT_FUNCTION =
-      new SqlFunction("CONCAT",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          InferTypes.RETURN_TYPE,
           OperandTypes.repeat(SqlOperandCountRanges.from(2),
               OperandTypes.STRING),
-          SqlFunctionCategory.STRING);
+          SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE);
 
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".
@@ -568,75 +546,62 @@ public abstract class SqlLibraryOperators {
    * {@link #CONCAT_FUNCTION}. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction CONCAT2 =
-      new SqlFunction("CONCAT",
-          SqlKind.CONCAT2,
+      SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          InferTypes.RETURN_TYPE,
           OperandTypes.STRING_SAME_SAME,
-          SqlFunctionCategory.STRING);
+          SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE)
+          .withKind(SqlKind.CONCAT2);
 
   /** The "ARRAY_LENGTH(array)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_LENGTH =
-      new SqlFunction("ARRAY_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ARRAY_LENGTH",
           ReturnTypes.INTEGER_NULLABLE,
-          null,
-          OperandTypes.ARRAY,
-          SqlFunctionCategory.SYSTEM);
+          OperandTypes.ARRAY);
 
   /** The "ARRAY_REVERSE(array)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_REVERSE =
-      new SqlFunction("ARRAY_REVERSE",
-          SqlKind.ARRAY_REVERSE,
+      SqlBasicFunction.create(SqlKind.ARRAY_REVERSE,
           ReturnTypes.ARG0_NULLABLE,
-          null,
-          OperandTypes.ARRAY,
-          SqlFunctionCategory.SYSTEM);
+          OperandTypes.ARRAY);
 
   /** The "ARRAY_CONCAT(array [, array]*)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_CONCAT =
-      new SqlFunction("ARRAY_CONCAT",
-          SqlKind.ARRAY_CONCAT,
+      SqlBasicFunction.create(SqlKind.ARRAY_CONCAT,
           ReturnTypes.LEAST_RESTRICTIVE,
-          null,
-          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC,
-          SqlFunctionCategory.SYSTEM);
+          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction REVERSE =
-      new SqlFunction("REVERSE",
-          SqlKind.REVERSE,
+      SqlBasicFunction.create(SqlKind.REVERSE,
           ReturnTypes.ARG0_NULLABLE_VARYING,
-          null,
-          OperandTypes.CHARACTER,
-          SqlFunctionCategory.STRING);
+          OperandTypes.CHARACTER)
+          .withFunctionType(SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction FROM_BASE64 =
-      new SqlFunction("FROM_BASE64", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("FROM_BASE64",
           ReturnTypes.explicit(SqlTypeName.VARBINARY)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.STRING, SqlFunctionCategory.STRING);
+          OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction TO_BASE64 =
-      new SqlFunction("TO_BASE64", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("TO_BASE64",
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
   public static final SqlFunction TO_DATE =
-      new SqlFunction("TO_DATE",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("TO_DATE",
           ReturnTypes.DATE_NULLABLE,
-          null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
@@ -644,10 +609,8 @@ public abstract class SqlLibraryOperators {
    * to a TIMESTAMP using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
   public static final SqlFunction TO_TIMESTAMP =
-      new SqlFunction("TO_TIMESTAMP",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("TO_TIMESTAMP",
           ReturnTypes.DATE_NULLABLE,
-          null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
@@ -676,10 +639,8 @@ public abstract class SqlLibraryOperators {
    * always rounded to the beginning of time_part. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIME_TRUNC =
-      new SqlFunction("TIME_TRUNC",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("TIME_TRUNC",
           ReturnTypes.TIME_NULLABLE,
-          null,
           OperandTypes.sequence("'TIME_TRUNC(<TIME>, <DATETIME_INTERVAL>)'",
               OperandTypes.TIME, OperandTypes.interval(TIME_UNITS)),
           SqlFunctionCategory.TIMEDATE);
@@ -690,10 +651,8 @@ public abstract class SqlLibraryOperators {
    * date_time_part. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_TRUNC =
-      new SqlFunction("TIMESTAMP_TRUNC",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("TIMESTAMP_TRUNC",
           ReturnTypes.TIMESTAMP_NULLABLE,
-          null,
           OperandTypes.sequence(
               "'TIMESTAMP_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
               OperandTypes.TIMESTAMP, OperandTypes.interval(TIMESTAMP_UNITS)),
@@ -703,58 +662,55 @@ public abstract class SqlLibraryOperators {
    * a given number of seconds after 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_SECONDS =
-      new SqlFunction("TIMESTAMP_SECONDS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+      SqlBasicFunction.create("TIMESTAMP_SECONDS",
+          ReturnTypes.TIMESTAMP_NULLABLE, OperandTypes.INTEGER,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
    * a given number of milliseconds after 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_MILLIS =
-      new SqlFunction("TIMESTAMP_MILLIS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+      SqlBasicFunction.create("TIMESTAMP_MILLIS",
+          ReturnTypes.TIMESTAMP_NULLABLE, OperandTypes.INTEGER,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_MICROS(bigint)" function; returns a TIMESTAMP value
    * a given number of micro-seconds after 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_MICROS =
-      new SqlFunction("TIMESTAMP_MICROS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+      SqlBasicFunction.create("TIMESTAMP_MICROS",
+          ReturnTypes.TIMESTAMP_NULLABLE, OperandTypes.INTEGER,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "UNIX_SECONDS(bigint)" function; returns the number of seconds
    * since 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction UNIX_SECONDS =
-      new SqlFunction("UNIX_SECONDS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
-          SqlFunctionCategory.TIMEDATE);
+      SqlBasicFunction.create("UNIX_SECONDS", ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.TIMESTAMP, SqlFunctionCategory.TIMEDATE);
 
   /** The "UNIX_MILLIS(bigint)" function; returns the number of milliseconds
    * since 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction UNIX_MILLIS =
-      new SqlFunction("UNIX_MILLIS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
+      SqlBasicFunction.create("UNIX_MILLIS",
+          ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "UNIX_MICROS(bigint)" function; returns the number of microseconds
    * since 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction UNIX_MICROS =
-      new SqlFunction("UNIX_MICROS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
+      SqlBasicFunction.create("UNIX_MICROS",
+          ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "CHAR(n)" function; returns the character whose ASCII code is
    * {@code n} % 256, or null if {@code n} &lt; 0. */
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction CHAR =
-      new SqlFunction("CHAR",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("CHAR",
           ReturnTypes.CHAR_FORCE_NULLABLE,
-          null,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
@@ -762,37 +718,29 @@ public abstract class SqlLibraryOperators {
    * {@code n}. */
   @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction CHR =
-      new SqlFunction("CHR",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("CHR",
           ReturnTypes.CHAR,
-          null,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction TANH =
-      new SqlFunction("TANH",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("TANH",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction COSH =
-      new SqlFunction("COSH",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("COSH",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction SINH =
-      new SqlFunction("SINH",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("SINH",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
@@ -816,18 +764,18 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =
-      new SqlFunction("MD5", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("MD5",
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction SHA1 =
-      new SqlFunction("SHA1", SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("SHA1",
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
-          null, OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** Infix "::" cast operator used by PostgreSQL, for example

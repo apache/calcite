@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -67,10 +68,8 @@ public class RelMdUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final SqlFunction ARTIFICIAL_SELECTIVITY_FUNC =
-      new SqlFunction("ARTIFICIAL_SELECTIVITY",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ARTIFICIAL_SELECTIVITY",
           ReturnTypes.BOOLEAN, // returns boolean since we'll AND it
-          null,
           OperandTypes.NUMERIC, // takes a numeric param
           SqlFunctionCategory.SYSTEM);
 
