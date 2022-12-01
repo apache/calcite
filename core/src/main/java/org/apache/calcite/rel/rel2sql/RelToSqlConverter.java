@@ -80,7 +80,6 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -446,67 +445,10 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNodeList aliasOfInList = unpivotRelToSqlUtil.getLogicalValuesList(valuesRel, builder);
     SqlNodeList inSqlNodeList = new SqlNodeList(caseAliasVsThenList.values(),
         POS);
-    SqlNodeList aliasedInSqlNodeList = getInListForSqlUnpivot(measureList, aliasOfInList,
+    SqlNodeList aliasedInSqlNodeList = unpivotRelToSqlUtil.
+        getInListForSqlUnpivot(measureList, aliasOfInList,
         inSqlNodeList);
     return new SqlUnpivot(POS, query, true, measureList, axisList, aliasedInSqlNodeList);
-  }
-
-  /**
-   * Create inList for {@link SqlUnpivot}.
-   */
-  private SqlNodeList getInListForSqlUnpivot(
-      SqlNodeList measureList, SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
-    if (measureList.size() > 1) {
-      return createAliasedColumnListTypeOfInListForSqlUnpivot(aliasOfInSqlNodeList, inSqlNodeList);
-    } else {
-      return createAliasedInListForSqlUnpivot(aliasOfInSqlNodeList, inSqlNodeList);
-    }
-  }
-
-  /**
-   * If there are multiple measure columns.
-   * then inList will have multiple column's data with single alias
-   * corresponding to each measure column
-   * ex-measureList(monthly_sales, monthly_expense)
-   * then inList corresponding to monthly_sales will be (jan_sales,jan_expense) as jan and so on
-   */
-  private SqlNodeList createAliasedColumnListTypeOfInListForSqlUnpivot(
-      SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
-    SqlNodeList aliasedInSqlNodeList = new SqlNodeList(POS);
-
-    for (int i = 0; i < aliasOfInSqlNodeList.size(); i++) {
-      List<SqlIdentifier> sqlIdentifierList = new ArrayList<>();
-      for (int j = 0; j < inSqlNodeList.size(); j++) {
-        SqlNodeList sqlNodeList = (SqlNodeList) inSqlNodeList.get(j);
-        sqlIdentifierList.add(
-            new SqlIdentifier(((SqlIdentifier) sqlNodeList.get(i)).names.get(1), POS));
-      }
-      aliasedInSqlNodeList.add(
-          SqlStdOperatorTable.AS.createCall(POS,
-          SqlLibraryOperators.PARENTHESIS.createCall
-              (POS, sqlIdentifierList), aliasOfInSqlNodeList.get(i)));
-    }
-    return aliasedInSqlNodeList;
-  }
-
-  /**
-   * If there is a single measure column ,then inList is a simple list with alias.
-   * ex- measureList(monthly_sales)
-   * then inList is jan_sales as jan and so on
-   */
-  private SqlNodeList createAliasedInListForSqlUnpivot(
-      SqlNodeList aliasOfInSqlNodeList, SqlNodeList inSqlNodeList) {
-    SqlNodeList aliasedInSqlNodeList = new SqlNodeList(POS);
-
-    for (int i = 0; i < aliasOfInSqlNodeList.size(); i++) {
-      SqlNodeList identifierList = (SqlNodeList) inSqlNodeList.get(0);
-      SqlIdentifier columnName = new SqlIdentifier(
-          ((SqlIdentifier) identifierList.get(i)).names.get(1), POS);
-      aliasedInSqlNodeList.add(
-          SqlStdOperatorTable.AS.createCall(POS, columnName,
-          aliasOfInSqlNodeList.get(i)));
-    }
-    return aliasedInSqlNodeList;
   }
 
     /** Wraps a NULL literal in a CAST operator to a target type.
