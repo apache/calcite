@@ -501,6 +501,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     expr("mod(5.1, 3)").ok();
     expr("mod(2,5.1)").ok();
+    expr("5.1 % 3")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .columnType("DECIMAL(2, 1) NOT NULL");
+    expr("2 % 5.1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .columnType("DECIMAL(2, 1) NOT NULL");
     expr("exp(3.67)").ok();
   }
 

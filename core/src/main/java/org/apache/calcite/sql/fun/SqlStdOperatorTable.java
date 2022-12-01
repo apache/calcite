@@ -301,7 +301,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.MOD,
           60,
           true,
-          ReturnTypes.ARG1_NULLABLE,
+          ReturnTypes.NULLABLE_MOD,
           null,
           OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC);
 
