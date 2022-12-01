@@ -44,6 +44,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -236,7 +237,7 @@ public class UnpivotRelToSqlUtil {
   protected Map<String, SqlNodeList> getCaseAliasVsThenList(
       Project projectRel,
       SqlImplementor.Builder builder) {
-    Map<String, SqlNodeList> caseAliasVsThenList = new HashMap<>();
+    Map<String, SqlNodeList> caseAliasVsThenList = new LinkedHashMap<>();
     Map<RexCall, String> caseRexCallVsAliasMap = getCaseRexCallFromProjectionWithAlias(projectRel);
 
     for (RexCall caseRex : caseRexCallVsAliasMap.keySet()) {
