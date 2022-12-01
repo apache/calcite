@@ -79,6 +79,23 @@ public class SparkSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsAggregateFunction(SqlKind kind) {
+    switch (kind) {
+    case AVG:
+    case COUNT:
+    case CUBE:
+    case SUM:
+    case SUM0:
+    case MIN:
+    case MAX:
+    case ROLLUP:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+
   @Override public boolean supportsApproxCountDistinct() {
     return true;
   }
