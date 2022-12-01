@@ -9333,7 +9333,7 @@ public class SqlParserTest {
         + "  ) mr";
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
-        + "MEASURES (MATCH_NUMBER ()) AS `MATCH_NUM`, "
+        + "MEASURES (MATCH_NUMBER()) AS `MATCH_NUM`, "
         + "(CLASSIFIER()) AS `VAR_MATCH`, "
         + "`STRT`.`TS` AS `START_TS`, "
         + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "

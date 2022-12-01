@@ -92,11 +92,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
@@ -3221,17 +3222,9 @@ public class RelMetadataTest {
         is(mq.getPopulationSize(rel, bitSetOf(0))));
   }
 
-  private static final SqlOperator NONDETERMINISTIC_OP = new SqlSpecialOperator(
-          "NDC",
-          SqlKind.OTHER_FUNCTION,
-          0,
-          false,
-          ReturnTypes.BOOLEAN,
-          null, null) {
-    @Override public boolean isDeterministic() {
-      return false;
-    }
-  };
+  private static final SqlOperator NONDETERMINISTIC_OP =
+      SqlBasicFunction.create("NDC", ReturnTypes.BOOLEAN, OperandTypes.VARIADIC)
+          .withDeterministic(false);
 
   /** Tests calling {@link RelMetadataQuery#getTableOrigin} for
    * an aggregate with no columns. Previously threw. */

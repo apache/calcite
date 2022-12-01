@@ -4730,7 +4730,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") "
         + "MATCH_RECOGNIZE(\n"
         + "MEASURES "
-        + "FINAL MATCH_NUMBER () AS \"MATCH_NUM\", "
+        + "FINAL MATCH_NUMBER() AS \"MATCH_NUM\", "
         + "FINAL CLASSIFIER() AS \"VAR_MATCH\", "
         + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
