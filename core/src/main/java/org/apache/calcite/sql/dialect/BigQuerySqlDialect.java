@@ -399,14 +399,18 @@ public class BigQuerySqlDialect extends SqlDialect {
       switch (call.type.getSqlTypeName()) {
       case DATE:
         switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        case INTERVAL_HOUR_SECOND:
+        case INTERVAL_HOUR_MINUTE:
+        case INTERVAL_DAY_HOUR:
+          if (call.op.kind == SqlKind.MINUS) {
+            return MINUS;
+          }
+          return PLUS;
         case INTERVAL_DAY:
         case INTERVAL_MONTH:
         case INTERVAL_YEAR:
-        case INTERVAL_HOUR_SECOND:
-        case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:
         case INTERVAL_MINUTE_SECOND:
-        case INTERVAL_HOUR_MINUTE:
         case INTERVAL_DAY_SECOND:
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.DATE_SUB;
@@ -839,6 +843,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call.operand(1), leftPrec, rightPrec);
+      break;
+    case PLUS:
       break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
