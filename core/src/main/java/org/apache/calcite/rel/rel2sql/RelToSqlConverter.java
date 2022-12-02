@@ -45,8 +45,10 @@ import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -73,6 +75,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
@@ -360,46 +363,101 @@ public class RelToSqlConverter extends SqlImplementor
       final Result x = visitInput(e, 0, Clause.WHERE);
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
-      builder.setWhere(builder.context.toSql(null, e.getCondition()));
-      return builder.result();
+      SqlNode filterNode = builder.context.toSql(null, e.getCondition());
+      UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
+      if (dialect.supportsUnpivot()
+          && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithExcludeNulls
+                (filterNode, x.node)) {
+        SqlNode sqlUnpivot = createUnpivotSqlNodeWithExcludeNulls((SqlSelect) x.node);
+        SqlNode select = new SqlSelect(
+              SqlParserPos.ZERO, null, null, sqlUnpivot,
+              null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+        return result(select, ImmutableList.of(Clause.SELECT), e, null);
+      } else {
+        builder.setWhere(filterNode);
+        return builder.result();
+      }
     }
+  }
+
+  SqlNode createUnpivotSqlNodeWithExcludeNulls(SqlSelect sqlNode) {
+    SqlUnpivot sqlUnpivot = (SqlUnpivot) sqlNode.getFrom();
+    assert sqlUnpivot != null;
+    return new SqlUnpivot(POS, sqlUnpivot.query, false, sqlUnpivot.measureList,
+        sqlUnpivot.axisList, sqlUnpivot.inList);
   }
 
   /** Visits a Project; called by {@link #dispatch} via reflection. */
   public Result visit(Project e) {
+    UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
     final Result x = visitInput(e, 0, Clause.SELECT);
-    parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
-        || style.isExpandProjection()) {
-      final List<SqlNode> selectList = new ArrayList<>();
-      for (RexNode ref : e.getProjects()) {
-        SqlNode sqlExpr = builder.context.toSql(null, ref);
-        RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
+    if (dialect.supportsUnpivot()
+        && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithIncludeNulls(e, builder)) {
+      SqlUnpivot sqlUnpivot = createUnpivotSqlNodeWithIncludeNulls(e, builder, unpivotRelToSqlUtil);
+      SqlNode select = new SqlSelect(
+          SqlParserPos.ZERO, null, builder.select.getSelectList(), sqlUnpivot,
+          null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+      return result(select, ImmutableList.of(Clause.SELECT), e, null);
+    } else {
+      parseCorrelTable(e, x);
+      if ((!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
+          || style.isExpandProjection()) && !unpivotRelToSqlUtil.isStarInUnPivot(e, x)) {
+        final List<SqlNode> selectList = new ArrayList<>();
+        for (RexNode ref : e.getProjects()) {
+          SqlNode sqlExpr = builder.context.toSql(null, ref);
+          RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
 
-        if (SqlKind.SINGLE_VALUE == sqlExpr.getKind()) {
-          sqlExpr = dialect.rewriteSingleValueExpr(sqlExpr);
+          if (SqlKind.SINGLE_VALUE == sqlExpr.getKind()) {
+            sqlExpr = dialect.rewriteSingleValueExpr(sqlExpr);
+          }
+
+          if (SqlUtil.isNullLiteral(sqlExpr, false)
+              && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
+            sqlExpr = castNullType(sqlExpr, targetField.getType());
+          }
+          addSelect(selectList, sqlExpr, e.getRowType());
         }
 
-        if (SqlUtil.isNullLiteral(sqlExpr, false)
-            && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
-          sqlExpr = castNullType(sqlExpr, targetField.getType());
-        }
-        addSelect(selectList, sqlExpr, e.getRowType());
+        builder.setSelect(new SqlNodeList(selectList, POS));
       }
-
-      builder.setSelect(new SqlNodeList(selectList, POS));
+      return builder.result();
     }
-    return builder.result();
   }
 
-  /** Wraps a NULL literal in a CAST operator to a target type.
-   *
-   * @param nullLiteral NULL literal
-   * @param type Target type
-   *
-   * @return null literal wrapped in CAST call
+  /**
+   * Create {@link SqlUnpivot} type of SqlNode.
    */
+  private SqlUnpivot createUnpivotSqlNodeWithIncludeNulls(Project projectRel,
+      SqlImplementor.Builder builder, UnpivotRelToSqlUtil unpivotRelToSqlUtil) {
+    RelNode leftRelOfJoin = ((LogicalJoin) projectRel.getInput(0)).getLeft();
+    SqlNode query = dispatch(leftRelOfJoin).asStatement();
+    LogicalValues valuesRel = unpivotRelToSqlUtil.getLogicalValuesRel(projectRel);
+    SqlNodeList axisList = new SqlNodeList(ImmutableList.of
+        (new SqlIdentifier(unpivotRelToSqlUtil.getLogicalValueAlias(valuesRel), POS)), POS);
+    List<SqlIdentifier> measureColumnSqlIdentifiers = new ArrayList<>();
+    Map<String, SqlNodeList> caseAliasVsThenList = unpivotRelToSqlUtil.
+        getCaseAliasVsThenList(projectRel, builder);
+    for (String axisColumn : new ArrayList<>(caseAliasVsThenList.keySet())) {
+      measureColumnSqlIdentifiers.add(new SqlIdentifier(axisColumn, POS));
+    }
+    SqlNodeList measureList = new SqlNodeList(measureColumnSqlIdentifiers, POS);
+    SqlNodeList aliasOfInList = unpivotRelToSqlUtil.getLogicalValuesList(valuesRel, builder);
+    SqlNodeList inSqlNodeList = new SqlNodeList(caseAliasVsThenList.values(),
+        POS);
+    SqlNodeList aliasedInSqlNodeList = unpivotRelToSqlUtil.
+        getInListForSqlUnpivot(measureList, aliasOfInList,
+        inSqlNodeList);
+    return new SqlUnpivot(POS, query, true, measureList, axisList, aliasedInSqlNodeList);
+  }
+
+    /** Wraps a NULL literal in a CAST operator to a target type.
+     *
+     * @param nullLiteral NULL literal
+     * @param type Target type
+     *
+     * @return null literal wrapped in CAST call
+     */
   private SqlNode castNullType(SqlNode nullLiteral, RelDataType type) {
     final SqlNode typeNode = dialect.getCastSpec(type);
     if (typeNode == null) {
