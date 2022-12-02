@@ -2546,4 +2546,32 @@ FROM items;
 
 !ok
 
+
+#####################################################################
+#
+# ENDS_WITH(value1, value2)
+#
+# Takes two STRING or BYTES values. Returns TRUE if the second value is a suffix of the first.
+#
+# This function supports specifying collation.
+WITH items AS
+  (SELECT '1234' as item
+  UNION ALL
+  SELECT '123' as item
+  UNION ALL
+  SELECT '' as item)
+SELECT
+  ENDS_WITH(item, '34') as example
+FROM items;
++---------+
+| example |
++---------+
+| true    |
+| false   |
+| false   |
++---------+
+(3 rows)
+
+!ok
+
 # End big-query.iq

@@ -278,6 +278,14 @@ public class SqlFunctions {
   public static boolean startsWith(ByteString s0, ByteString s1) {
     return s0.length() >= s1.length() && s0.substring(0, s1.length()).equals(s1);
   }
+  /** For {@link SqlLibraryOperators#ENDS_WITH} of the form {@code ENDS_WITH()}. */
+  public static boolean endsWith(String s0, String s1) {
+    return s0.endsWith(s1);
+  }
+  /** For {@link SqlLibraryOperators#ENDS_WITH} of the form {@code ENDS_WITH()}. */
+  public static boolean endsWith(ByteString s0, ByteString s1) {
+    return s0.length() >= s1.length() && s0.substring(s0.length() - s1.length()).equals(s1);
+  }
 
   /** SQL SUBSTRING(string FROM ...) function. */
   public static String substring(String c, int s) {

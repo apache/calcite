@@ -5867,6 +5867,26 @@ public class SqlOperatorTest {
     f.checkBoolean("starts_with('', '')", true);
   }
 
+  @Test void testEndsWithFunction() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.ENDS_WITH);
+    f.checkBoolean("ends_with('12345', '345')", true);
+    f.checkBoolean("ends_with('12345', '123')", false);
+    f.checkBoolean("ends_with(x'11', x'11')", true);
+    f.checkBoolean("ends_with(x'112211', x'33')", false);
+    f.checkFails(
+        "^ends_with('aabbcc', x'aa')^",
+        "Cannot apply 'ENDS_WITH' to arguments of type 'ENDS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported form\\(s\\): 'ENDS_WITH\\(<STRING>, <STRING>\\)'",
+        false
+    );
+    f.checkBoolean("ends_with(null, null)", false);
+    f.checkBoolean("ends_with('12345', null)", false);
+    f.checkBoolean("ends_with(null, '123')", false);
+    f.checkBoolean("ends_with('', '123')", false);
+    f.checkBoolean("ends_with('123', '')", true);
+    f.checkBoolean("ends_with('', '')", true);
+  }
+
   /** Tests the {@code SUBSTRING} operator. Many test cases that used to be
    * have been moved to {@link SubFunChecker#assertSubFunReturns}, and are
    * called for both {@code SUBSTRING} and {@code SUBSTR}. */

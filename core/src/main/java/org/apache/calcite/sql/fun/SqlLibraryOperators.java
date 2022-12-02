@@ -220,6 +220,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_SAME_SAME,
           SqlFunctionCategory.STRING);
 
+  /** BigQuery's "ENDS_WITH(value1, value2)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ENDS_WITH =
+      new SqlFunction("ENDS_WITH", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN, null,
+          OperandTypes.STRING_SAME_SAME,
+          SqlFunctionCategory.STRING);
+
   /** BigQuery's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction SUBSTR_BIG_QUERY =
