@@ -155,7 +155,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
       @Nullable Project topProject,
       RelNode node,
       BiMap<RelTableRef, RelTableRef> viewToQueryTableMapping,
-      EquivalenceClasses viewEC, EquivalenceClasses queryEC, boolean pushQueryFilter) {
+      EquivalenceClasses viewEC, EquivalenceClasses queryEC, boolean viewRewritten) {
     // Our target node is the node below the root, which should have the maximum
     // number of available expressions in the tree in order to maximize our
     // number of rewritings.
@@ -183,7 +183,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
       RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, viewToQueryTableMapping.inverse(), queryEC, false,
-          compensationColumnsEquiPred);
+          compensationColumnsEquiPred, false);
       if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
@@ -194,7 +194,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     if (!otherCompensationPred.isAlwaysTrue()) {
       RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, viewToQueryTableMapping.inverse(), viewEC, true,
-          otherCompensationPred);
+          otherCompensationPred, false);
       if (newOtherCompensationPred == null) {
         // Skip it
         return null;
@@ -281,7 +281,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
         ? extractReferences(rexBuilder, viewNode)
         : topViewProject.getProjects();
     List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, input, viewNode, viewExprs,
-        queryToViewTableMapping.inverse(), queryEC, true, exprsLineage);
+        queryToViewTableMapping.inverse(), queryEC, true, exprsLineage, false);
     if (rewrittenExprs == null) {
       return null;
     }

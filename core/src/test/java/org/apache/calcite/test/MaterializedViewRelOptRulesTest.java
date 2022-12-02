@@ -341,12 +341,12 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
-  @Test void testAggregateMaterializationAggregateFuncsRange1() {
+  @Test void testAlignedRangePredicateUsesOnlyAggregateView() {
     // if range predicate aligns on the rollup column boundary verify that only view is used
     sql("select \"eventid\", floor(\"ts\" to minute), count(*) "
             + "from \"events\""
             + " group by \"eventid\", floor(\"ts\" to minute)",
-        "select \"eventid\", floor(\"ts\" to minute), count(*) \n"
+        "select \"eventid\", floor(\"ts\" to minute), count(*) "
             + "from \"events\""
             + " where \"ts\" >= TIMESTAMP'2018-01-01 00:02:00' "
             + "AND \"ts\" < TIMESTAMP'2018-01-01 00:05:00'"
@@ -364,13 +364,13 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
-  @Test void testAggregateMaterializationAggregateFuncsRange2() {
+  @Test void testNonAlignedRangePredicateUsesBothAggregateViewAndTable() {
     // if range predicate doesn't align on the rollup column boundary verify that a union on both
     // the table and view is used
     sql("select \"eventid\", floor(\"ts\" to minute), count(*) "
             + "from \"events\""
             + " group by \"eventid\", floor(\"ts\" to minute)",
-        "select \"eventid\", floor(\"ts\" to minute), count(*) \n"
+        "select \"eventid\", floor(\"ts\" to minute), count(*) "
             + "from \"events\""
             + " where \"ts\" > TIMESTAMP'2018-01-01 00:02:30.123' "
             + "AND \"ts\" <= TIMESTAMP'2018-01-01 00:05:30.456'"
@@ -397,25 +397,25 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
-  @Test void testAggregateMaterializationAggregateFuncsRange31() {
-    // test using multiple views
-    String mv0 = "select \"eventid\", floor(\"ts\" to hour), "
+  @Test void testMultipleAggregateViews() {
+    // define two views one that rolls up to the hour and another that rolls up to the minute
+    String mv_hour = "select \"eventid\", floor(\"ts\" to hour), "
         + "count(*)\n"
         + "from \"events\""
         + " group by \"eventid\", floor(\"ts\" to hour)";
-    String mv1 = "select \"eventid\", floor(\"ts\" to minute), "
+    String mv_minute = "select \"eventid\", floor(\"ts\" to minute), "
         + "count(*)\n"
         + "from \"events\""
         + " group by \"eventid\", floor(\"ts\" to minute)";
+    List<Pair<String, String>> mvs = Lists.newArrayList(
+        Pair.of(mv_hour, "mv_hour"), Pair.of(mv_minute, "mv_minute"));
 
-    String query = "select floor(\"ts\" to hour), count(*)\n"
+    // for a query with a time range that begins and ends on the second boundary the minute view is
+    // chosen as this minimizes the time range that the table is queried for
+    fixture("select floor(\"ts\" to hour), count(*)\n"
         + "from \"events\" where \"ts\" >= TIMESTAMP'2018-01-01 00:30:30' "
         + "AND \"ts\" < TIMESTAMP'2018-01-01 02:30:30'"
-        + "group by floor(\"ts\" to hour)";
-
-    List<Pair<String, String>> mvs = Lists.newArrayList(
-        Pair.of(mv0, "mv0"), Pair.of(mv1, "mv1"));
-    fixture(query)
+        + "group by floor(\"ts\" to hour)")
         .withMaterializations(mvs)
         .checkingThatResultContains("EnumerableAggregate(group=[{0}], EXPR$1=[$SUM0($1)])\n"
             + "  EnumerableUnion(all=[true])\n"
@@ -428,7 +428,26 @@ class MaterializedViewRelOptRulesTest {
             + "      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[FLAG(HOUR)], expr#4=[FLOOR($t1, "
             + "$t3)], expr#5=[Sarg[[2018-01-01 00:31:00..2018-01-01 02:30:00)]], expr#6=[SEARCH"
             + "($t1, $t5)], EXPR$2=[$t2], $f3=[$t4], $condition=[$t6])\n"
-            + "        EnumerableTableScan(table=[[hr, mv1]])")
+            + "        EnumerableTableScan(table=[[hr, mv_minute]])")
+        .withMetadataProvider(
+            ChainedRelMetadataProvider.of(
+                ImmutableList.of(TestMetadataHandlers.TestRelMdRowCount.SOURCE,
+                    TestMetadataHandlers.TestRelMdSelectivity.SOURCE,
+                    DefaultRelMetadataProvider.INSTANCE))
+        )
+        .ok();
+
+    // for a query with a time range that begins and ends on the hour boundary the hour view is
+    // chosen because it has less rows than the minute materialized view
+    fixture("select floor(\"ts\" to hour), count(*)\n"
+        + "from \"events\" where \"ts\" >= TIMESTAMP'2018-01-01 00:00:00' "
+        + "AND \"ts\" < TIMESTAMP'2018-01-01 02:00:00'"
+        + "group by floor(\"ts\" to hour)")
+        .withMaterializations(mvs)
+        .checkingThatResultContains("EnumerableAggregate(group=[{1}], EXPR$1=[$SUM0($2)])\n"
+            + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[Sarg[[2018-01-01 00:00:00..2018-01-01"
+            + " 02:00:00)]], expr#4=[SEARCH($t1, $t3)], proj#0..2=[{exprs}], $condition=[$t4])\n"
+            + "    EnumerableTableScan(table=[[hr, mv_hour]])")
         .withMetadataProvider(
             ChainedRelMetadataProvider.of(
                 ImmutableList.of(TestMetadataHandlers.TestRelMdRowCount.SOURCE,
@@ -438,6 +457,110 @@ class MaterializedViewRelOptRulesTest {
         .ok();
   }
 
+  @Test void testAggregateViewWithPredicate() {
+    // if the view already contains a predicate validate that an implicit predicate is not added
+    sql("select \"eventid\", floor(\"ts\" to minute), count(*) "
+            + "from \"events\""
+            + " where \"ts\" >= TIMESTAMP'2018-01-01 00:01:00' "
+            + "AND \"ts\" < TIMESTAMP'2018-01-01 00:02:00'"
+            + " group by \"eventid\", floor(\"ts\" to minute)",
+        "select \"eventid\", floor(\"ts\" to minute), count(*) \n"
+            + "from \"events\""
+            + " where \"ts\" >= TIMESTAMP'2018-01-01 00:02:00' "
+            + "AND \"ts\" < TIMESTAMP'2018-01-01 00:05:00'"
+            + "group by \"eventid\", floor(\"ts\" to minute)")
+        .checkingThatResultContains("EnumerableAggregate(group=[{0, 1}], EXPR$2=[COUNT()])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[FLAG(MINUTE)], expr#3=[FLOOR($t1, "
+            + "$t2)], expr#4=[Sarg[[2018-01-01 00:02:00..2018-01-01 00:05:00)]], expr#5=[SEARCH"
+            + "($t1, $t4)], eventid=[$t0], $f1=[$t3], $condition=[$t5])\n"
+            + "    EnumerableTableScan(table=[[hr, events]])")
+        .withMetadataProvider(
+            ChainedRelMetadataProvider.of(
+                ImmutableList.of(TestMetadataHandlers.TestRelMdRowCount.SOURCE,
+                    TestMetadataHandlers.TestRelMdSelectivity.SOURCE,
+                    DefaultRelMetadataProvider.INSTANCE))
+        )
+        .ok();
+  }
+
+  @Test void testJoinViewWithoutPredicate() {
+    // validate that a predicate is not added to the view since it contains a join and
+    // that the query does not use the view
+    sql("SELECT e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR) AS by_year, "
+            + "COUNT(*) AS \"num_emps\" "
+            + "FROM \"emps\" as e "
+            + "JOIN \"depts2\" as d ON e.\"deptno\"=d.\"deptno\" "
+            + "GROUP BY e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR)",
+        "SELECT e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR) AS by_year, "
+            + "COUNT(*) AS \"num_emps\" "
+            + "FROM \"emps\" as e "
+            + "JOIN \"depts2\" as d ON e.\"deptno\"=d.\"deptno\" "
+            + "WHERE \"inceptionDate\" >= TIMESTAMP'2020-01-01' "
+            + "AND \"inceptionDate\" < TIMESTAMP'2022-01-01'"
+            + "GROUP BY e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR)")
+        .checkingThatResultContains("EnumerableAggregate(group=[{0, 1}], num_emps=[COUNT()])\n"
+            + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[FLAG(YEAR)], expr#4=[FLOOR($t0, $t3)"
+            + "], deptno=[$t2], $f1=[$t4])\n"
+            + "    EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[Sarg[[2020-01-01 00:00:00."
+            + ".2022-01-01 00:00:00)]], expr#6=[SEARCH($t0, $t5)], proj#0..1=[{exprs}], "
+            + "$condition=[$t6])\n"
+            + "        EnumerableTableScan(table=[[hr, depts2]])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n")
+        .ok();
+  }
+
+  @Test void testJoinViewWithPredicateSameAsQueryPredicate() {
+    // validate that if a view with a join has a predicate that matches the query predicate it will
+    // be used
+    sql("SELECT e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR) AS by_year, "
+            + "COUNT(*) AS \"num_emps\" "
+            + "FROM \"emps\" as e "
+            + "JOIN \"depts2\" as d ON e.\"deptno\"=d.\"deptno\" "
+            + "WHERE \"inceptionDate\" >= TIMESTAMP'2020-01-01' "
+            + "AND \"inceptionDate\" < TIMESTAMP'2022-01-01'"
+            + "GROUP BY e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR)",
+        "SELECT e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR) AS by_year, "
+            + "COUNT(*) AS \"num_emps\" "
+            + "FROM \"emps\" as e "
+            + "JOIN \"depts2\" as d ON e.\"deptno\"=d.\"deptno\" "
+            + "WHERE \"inceptionDate\" >= TIMESTAMP'2020-01-01' "
+            + "AND \"inceptionDate\" < TIMESTAMP'2022-01-01'"
+            + "GROUP BY e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR)")
+        .checkingThatResultContains("EnumerableTableScan(table=[[hr, MV0]])\n")
+        .ok();
+  }
+
+  @Test void testJoinViewWithPredicateDifferentThanQueryPredicate() {
+    // validate that if a view with a join has a predicate that does not matches the query predicate
+    // it will not be used
+    sql("SELECT e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR) AS by_year, "
+            + "COUNT(*) AS \"num_emps\" "
+            + "FROM \"emps\" as e "
+            + "JOIN \"depts2\" as d ON e.\"deptno\"=d.\"deptno\" "
+            + "WHERE \"inceptionDate\" >= TIMESTAMP'2020-01-01' "
+            + "AND \"inceptionDate\" < TIMESTAMP'2021-01-01'"
+            + "GROUP BY e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR)",
+        "SELECT e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR) AS by_year, "
+            + "COUNT(*) AS \"num_emps\" "
+            + "FROM \"emps\" as e "
+            + "JOIN \"depts2\" as d ON e.\"deptno\"=d.\"deptno\" "
+            + "WHERE \"inceptionDate\" >= TIMESTAMP'2019-01-01' "
+            + "AND \"inceptionDate\" < TIMESTAMP'2022-01-01'"
+            + "GROUP BY e.\"deptno\", FLOOR(\"inceptionDate\" TO YEAR)")
+        .checkingThatResultContains("EnumerableAggregate(group=[{0, 1}], num_emps=[COUNT()])\n"
+            + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[FLAG(YEAR)], expr#4=[FLOOR($t0, $t3)"
+            + "], deptno=[$t2], $f1=[$t4])\n"
+            + "    EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[Sarg[[2019-01-01 00:00:00."
+            + ".2022-01-01 00:00:00)]], expr#6=[SEARCH($t0, $t5)], proj#0..1=[{exprs}], "
+            + "$condition=[$t6])\n"
+            + "        EnumerableTableScan(table=[[hr, depts2]])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])")
+        .ok();
+  }
 
   @Test void testAggregateMaterializationAggregateFuncs18() {
     sql("select \"empid\", \"deptno\", count(*) + 1 as c, sum(\"empid\") as s\n"

@@ -353,8 +353,10 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     switch (kind) {
     case FLOOR:
       return SqlFunctions.floor(v, unit.startUnit.multiplier.longValue());
-    default:
+    case CEIL:
       return SqlFunctions.ceil(v, unit.startUnit.multiplier.longValue());
+    default:
+      throw new AssertionError();
     }
   }
 

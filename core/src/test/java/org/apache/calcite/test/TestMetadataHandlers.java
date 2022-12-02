@@ -55,10 +55,17 @@ public class TestMetadataHandlers {
             new TestRelMdRowCount(), BuiltInMetadata.RowCount.Handler.class);
 
     public Double getRowCount(TableScan rel, RelMetadataQuery mq) {
-      if (rel.getTable().getQualifiedName().toString().equalsIgnoreCase("[hr, events]")) {
-        return 100000d;
+      if (rel.getTable().getQualifiedName().toString().equalsIgnoreCase("[hr, mv_hour]")) {
+        // rollup to 24 buckets
+        return 24d;
+      } else if (rel.getTable().getQualifiedName().toString().equalsIgnoreCase("[hr, mv_minute]")) {
+        // rollup to 24*60 buckets
+        return 1440d;
+      } else if (rel.getTable().getQualifiedName().toString().equalsIgnoreCase("[hr, events]")) {
+        // table has one million rows
+        return 1000000d;
       } else {
-        return 100d;
+        return 1000d;
       }
     }
   }
@@ -98,7 +105,7 @@ public class TestMetadataHandlers {
           long lowerBound = ((TimestampString) r.lowerEndpoint()).getMillisSinceEpoch();
           long upperBound = ((TimestampString) r.upperEndpoint()).getMillisSinceEpoch();
           // only used for a range less than one day
-          selectivity += (upperBound - lowerBound) / (Double.valueOf(DateTimeUtils.MILLIS_PER_DAY));
+          selectivity += (upperBound - lowerBound) / ((double) DateTimeUtils.MILLIS_PER_DAY);
         }
         return selectivity;
       }
