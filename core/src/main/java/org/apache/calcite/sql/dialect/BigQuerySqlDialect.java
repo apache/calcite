@@ -376,6 +376,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print("OPTIONS(description=" + title + ")");
   }
 
+  @Override public boolean supportsUnpivot() {
+    return true;
+  }
+
   @Override public boolean castRequiredForStringOperand(RexCall node) {
     if (super.castRequiredForStringOperand(node)) {
       return true;
