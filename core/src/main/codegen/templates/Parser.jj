@@ -238,6 +238,17 @@ public class ${parser.class} extends SqlAbstractParserImpl
         return SqlStmtList();
     }
 
+    public SqlNode parseArray() throws SqlParseException {
+        switchTo(LexicalState.BQID);
+        try {
+          return ArrayLiteral();
+        } catch (ParseException ex) {
+          throw normalizeException(ex);
+        } catch (TokenMgrError ex) {
+          throw normalizeException(ex);
+        }
+    }
+
     private SqlNode extend(SqlNode table, SqlNodeList extendList) {
         return SqlStdOperatorTable.EXTEND.createCall(
             Span.of(table, extendList).pos(), table, extendList);
@@ -4637,6 +4648,7 @@ SqlNode ArrayConstructor() :
     SqlNodeList args;
     SqlNode e;
     final Span s;
+    final String p;
 }
 {
     <ARRAY> { s = span(); }
@@ -4663,7 +4675,40 @@ SqlNode ArrayConstructor() :
             return SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(
                 s.end(this), args.getList());
         }
+<#if (parser.includeParsingStringLiteralAsArrayLiteral!default.parser.includeParsingStringLiteralAsArrayLiteral) >
+    |
+        p = SimpleStringLiteral() {
+            try {
+                return SqlParserUtil.parseArrayLiteral(p);
+            } catch (SqlParseException ex) {
+                throw SqlUtil.newContextException(getPos(),
+                    RESOURCE.illegalArrayExpression(p));
+            }
+        }
+</#if>
     )
+}
+
+SqlCall ArrayLiteral() :
+{
+    final List<SqlNode> list;
+    SqlNode e;
+    final Span s;
+}
+{
+    <LBRACE> { s = span(); }
+    (
+        e = Literal() { list = startList(e); }
+        ( <COMMA> e = Literal() { list.add(e); } )*
+    |
+        e = ArrayLiteral() { list = startList(e); }
+        ( <COMMA> e = ArrayLiteral() { list.add(e); } )*
+    |
+        { list = Collections.emptyList(); }
+    )
+    <RBRACE> {
+       return SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR.createCall(s.end(this), list);
+    }
 }
 
 /** Parses a MAP constructor */

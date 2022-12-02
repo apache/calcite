@@ -16,13 +16,17 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -200,4 +204,53 @@ public class FireboltSqlDialect extends SqlDialect {
       }
     }
   }
+
+  /** Firebolt interval syntax: sign INTERVAL int64 time_unit. */
+  @Override public void unparseSqlIntervalLiteral(SqlWriter writer,
+      SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+    SqlIntervalLiteral.IntervalValue interval =
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
+    writer.keyword("INTERVAL");
+    writer.print("'");
+    try {
+      Long.parseLong(interval.getIntervalLiteral());
+    } catch (NumberFormatException e) {
+      throw new RuntimeException("Only INT64 is supported as the interval value for Firebolt.");
+    }
+    writer.literal(interval.getIntervalLiteral());
+    unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
+        RelDataTypeSystem.DEFAULT);
+    writer.print("'");
+  }
+
+  @Override public void unparseSqlIntervalQualifier(
+      SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+    final String start = validate(qualifier.timeUnitRange.startUnit).name();
+    if (qualifier.timeUnitRange.endUnit == null) {
+      writer.keyword(start);
+    } else {
+      throw new RuntimeException("Range time unit is not supported for Firebolt.");
+    }
+  }
+
+  private static TimeUnit validate(TimeUnit timeUnit) {
+    switch (timeUnit) {
+    case MICROSECOND:
+    case MILLISECOND:
+    case SECOND:
+    case MINUTE:
+    case HOUR:
+    case DAY:
+    case WEEK:
+    case MONTH:
+    case YEAR:
+    case DECADE:
+    case CENTURY:
+    case MILLENNIUM:
+      return timeUnit;
+    default:
+      throw new RuntimeException("Time unit " + timeUnit + " is not supported for Firebolt.");
+    }
+  }
+
 }

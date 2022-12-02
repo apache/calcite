@@ -48,7 +48,11 @@ dependencies {
 
     api("org.locationtech.jts:jts-core")
     api("org.locationtech.jts.io:jts-io-common")
-    api("org.locationtech.proj4j:proj4j")
+
+    // Due to restricting terms of use, we cannot include Proj4J as an API dependency.
+    compileOnly("org.locationtech.proj4j:proj4j")
+    testRuntimeOnly("org.locationtech.proj4j:proj4j")
+
     api("com.fasterxml.jackson.core:jackson-annotations")
     api("com.google.errorprone:error_prone_annotations")
     api("com.google.guava:guava")

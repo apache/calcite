@@ -72,6 +72,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
@@ -97,8 +98,8 @@ import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
+import static org.apache.calcite.linq4j.tree.Expressions.list;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.test.ResultCheckers.isExactly;
@@ -3501,22 +3502,31 @@ public class SqlOperatorTest {
   }
 
   @Test void testTranslate3Func() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.TRANSLATE3)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("translate('aabbcc', 'ab', '+-')",
-        "++--cc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate('aabbcc', 'ab', 'ba')",
-        "bbaacc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate('aabbcc', 'ab', '')",
-        "cc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate('aabbcc', '', '+-')",
-        "aabbcc", "VARCHAR(6) NOT NULL");
-    f.checkString("translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
-        "++--cc", "VARCHAR(10) NOT NULL");
-    f.checkNull("translate(cast(null as varchar(7)), 'ab', '+-')");
-    f.checkNull("translate('aabbcc', cast(null as varchar(2)), '+-')");
-    f.checkNull("translate('aabbcc', 'ab', cast(null as varchar(2)))");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TRANSLATE3);
+    f0.checkFails("^translate('aabbcc', 'ab', '+-')^",
+        "No match found for function signature "
+            + "TRANSLATE3\\(<CHARACTER>, <CHARACTER>, <CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("translate('aabbcc', 'ab', '+-')",
+          "++--cc", "VARCHAR(6) NOT NULL");
+      f.checkString("translate('aabbcc', 'ab', 'ba')",
+          "bbaacc", "VARCHAR(6) NOT NULL");
+      f.checkString("translate('aabbcc', 'ab', '')",
+          "cc", "VARCHAR(6) NOT NULL");
+      f.checkString("translate('aabbcc', '', '+-')",
+          "aabbcc", "VARCHAR(6) NOT NULL");
+      f.checkString("translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
+          "++--cc", "VARCHAR(10) NOT NULL");
+      f.checkNull("translate(cast(null as varchar(7)), 'ab', '+-')");
+      f.checkNull("translate('aabbcc', cast(null as varchar(2)), '+-')");
+      f.checkNull("translate('aabbcc', 'ab', cast(null as varchar(2)))");
+    };
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE,
+            SqlLibrary.POSTGRESQL);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testOverlayFunc() {
@@ -3695,74 +3705,97 @@ public class SqlOperatorTest {
   }
 
   @Test void testFromBase64() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.FROM_BASE64)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("from_base64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3RyaW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3\nRyaW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkString("from_base64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
-        "546869732069732061207465737420537472696e672e",
-        "VARBINARY NOT NULL");
-    f.checkNull("from_base64('-1')");
-    f.checkNull("from_base64('-100')");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.FROM_BASE64);
+    f0.checkFails("^from_base64('2fjoeiwjfoj==')^",
+        "No match found for function signature FROM_BASE64\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("from_base64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY NOT NULL");
+      f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3RyaW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY NOT NULL");
+      f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3\nRyaW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY NOT NULL");
+      f.checkString("from_base64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY NOT NULL");
+      f.checkNull("from_base64('-1')");
+      f.checkNull("from_base64('-100')");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
   }
 
   @Test void testMd5() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.MD5)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("md5(x'')",
-        "d41d8cd98f00b204e9800998ecf8427e",
-        "VARCHAR NOT NULL");
-    f.checkString("md5('')",
-        "d41d8cd98f00b204e9800998ecf8427e",
-        "VARCHAR NOT NULL");
-    f.checkString("md5('ABC')",
-        "902fbdd2b1df0c4f70b4a5d23525e932",
-        "VARCHAR NOT NULL");
-    f.checkString("md5(x'414243')",
-        "902fbdd2b1df0c4f70b4a5d23525e932",
-        "VARCHAR NOT NULL");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.MD5);
+    f0.checkFails("^md5(x'')^",
+        "No match found for function signature MD5\\(<BINARY>\\)",
+        false);
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
+            SqlLibrary.POSTGRESQL);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("md5(x'')",
+          "d41d8cd98f00b204e9800998ecf8427e",
+          "VARCHAR NOT NULL");
+      f.checkString("md5('')",
+          "d41d8cd98f00b204e9800998ecf8427e",
+          "VARCHAR NOT NULL");
+      f.checkString("md5('ABC')",
+          "902fbdd2b1df0c4f70b4a5d23525e932",
+          "VARCHAR NOT NULL");
+      f.checkString("md5(x'414243')",
+          "902fbdd2b1df0c4f70b4a5d23525e932",
+          "VARCHAR NOT NULL");
+    };
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testSha1() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.SHA1)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("sha1(x'')",
-        "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-        "VARCHAR NOT NULL");
-    f.checkString("sha1('')",
-        "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-        "VARCHAR NOT NULL");
-    f.checkString("sha1('ABC')",
-        "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
-        "VARCHAR NOT NULL");
-    f.checkString("sha1(x'414243')",
-        "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
-        "VARCHAR NOT NULL");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SHA1);
+    f0.checkFails("^sha1(x'')^",
+        "No match found for function signature SHA1\\(<BINARY>\\)",
+        false);
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
+            SqlLibrary.POSTGRESQL);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("sha1(x'')",
+          "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+          "VARCHAR NOT NULL");
+      f.checkString("sha1('')",
+          "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+          "VARCHAR NOT NULL");
+      f.checkString("sha1('ABC')",
+          "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
+          "VARCHAR NOT NULL");
+      f.checkString("sha1(x'414243')",
+          "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
+          "VARCHAR NOT NULL");
+    };
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testRepeatFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.REPEAT)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("REPEAT('a', -100)", "", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('a', -1)", "", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('a', 0)", "", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('a', 2)", "aa", "VARCHAR(1) NOT NULL");
-    f.checkString("REPEAT('abc', 3)", "abcabcabc", "VARCHAR(3) NOT NULL");
-    f.checkNull("REPEAT(cast(null as varchar(1)), -1)");
-    f.checkNull("REPEAT(cast(null as varchar(1)), 2)");
-    f.checkNull("REPEAT('abc', cast(null as integer))");
-    f.checkNull("REPEAT(cast(null as varchar(1)), cast(null as integer))");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.REPEAT);
+    f0.checkFails("^repeat('a', -100)^",
+        "No match found for function signature REPEAT\\(<CHARACTER>, <NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("REPEAT('a', -100)", "", "VARCHAR(1) NOT NULL");
+      f.checkString("REPEAT('a', -1)", "", "VARCHAR(1) NOT NULL");
+      f.checkString("REPEAT('a', 0)", "", "VARCHAR(1) NOT NULL");
+      f.checkString("REPEAT('a', 2)", "aa", "VARCHAR(1) NOT NULL");
+      f.checkString("REPEAT('abc', 3)", "abcabcabc", "VARCHAR(3) NOT NULL");
+      f.checkNull("REPEAT(cast(null as varchar(1)), -1)");
+      f.checkNull("REPEAT(cast(null as varchar(1)), 2)");
+      f.checkNull("REPEAT('abc', cast(null as integer))");
+      f.checkNull("REPEAT(cast(null as varchar(1)), cast(null as integer))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
   }
 
   @Test void testSpaceFunc() {
@@ -3789,19 +3822,26 @@ public class SqlOperatorTest {
   }
 
   @Test void testSoundexFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.SOUNDEX)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('miler')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('myller')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('muller')", "M460", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('m')", "M000", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('mu')", "M000", "VARCHAR(4) NOT NULL");
-    f.checkString("SOUNDEX('mile')", "M400", "VARCHAR(4) NOT NULL");
-    f.checkNull("SOUNDEX(cast(null as varchar(1)))");
-    f.checkFails("SOUNDEX(_UTF8'\u5B57\u5B57')", "The character is not mapped.*", true);
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SOUNDEX);
+    f0.checkFails("^soundex('tech on the net')^",
+        "No match found for function signature SOUNDEX\\(<CHARACTER>\\)",
+        false);
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
+            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
+      f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
+      f.checkString("SOUNDEX('miler')", "M460", "VARCHAR(4) NOT NULL");
+      f.checkString("SOUNDEX('myller')", "M460", "VARCHAR(4) NOT NULL");
+      f.checkString("SOUNDEX('muller')", "M460", "VARCHAR(4) NOT NULL");
+      f.checkString("SOUNDEX('m')", "M000", "VARCHAR(4) NOT NULL");
+      f.checkString("SOUNDEX('mu')", "M000", "VARCHAR(4) NOT NULL");
+      f.checkString("SOUNDEX('mile')", "M400", "VARCHAR(4) NOT NULL");
+      f.checkNull("SOUNDEX(cast(null as varchar(1)))");
+      f.checkFails("SOUNDEX(_UTF8'\u5B57\u5B57')", "The character is not mapped.*", true);
+    };
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testDifferenceFunc() {
@@ -3821,18 +3861,22 @@ public class SqlOperatorTest {
   }
 
   @Test void testReverseFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.REVERSE)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("reverse('')", "", "VARCHAR(0) NOT NULL");
-    f.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
-    f.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
-    f.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
-    f.checkString("reverse('Hello World')", "dlroW olleH",
-        "VARCHAR(11) NOT NULL");
-    f.checkString("reverse(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
-        "VARCHAR(2) NOT NULL");
-    f.checkNull("reverse(cast(null as varchar(1)))");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.REVERSE);
+    f0.checkFails("^reverse('abc')^",
+        "No match found for function signature REVERSE\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("reverse('')", "", "VARCHAR(0) NOT NULL");
+      f.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
+      f.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
+      f.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
+      f.checkString("reverse('Hello World')", "dlroW olleH",
+          "VARCHAR(11) NOT NULL");
+      f.checkString("reverse(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
+          "VARCHAR(2) NOT NULL");
+      f.checkNull("reverse(cast(null as varchar(1)))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
   }
 
   @Test void testIfFunc() {
@@ -3868,91 +3912,89 @@ public class SqlOperatorTest {
   }
 
   @Test void testLeftFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL)
-        .map(f::withLibrary)
-        .forEach(t -> {
-          t.setFor(SqlLibraryOperators.LEFT);
-          t.checkString("left('abcd', 3)", "abc", "VARCHAR(4) NOT NULL");
-          t.checkString("left('abcd', 0)", "", "VARCHAR(4) NOT NULL");
-          t.checkString("left('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
-          t.checkString("left('abcd', -2)", "", "VARCHAR(4) NOT NULL");
-          t.checkNull("left(cast(null as varchar(1)), -2)");
-          t.checkNull("left('abcd', cast(null as Integer))");
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.LEFT);
+      f.checkString("left('abcd', 3)", "abc", "VARCHAR(4) NOT NULL");
+      f.checkString("left('abcd', 0)", "", "VARCHAR(4) NOT NULL");
+      f.checkString("left('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
+      f.checkString("left('abcd', -2)", "", "VARCHAR(4) NOT NULL");
+      f.checkNull("left(cast(null as varchar(1)), -2)");
+      f.checkNull("left('abcd', cast(null as Integer))");
 
-          // test for ByteString
-          t.checkString("left(x'ABCdef', 1)", "ab", "VARBINARY(3) NOT NULL");
-          t.checkString("left(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
-          t.checkString("left(x'ABCdef', 4)", "abcdef",
-              "VARBINARY(3) NOT NULL");
-          t.checkString("left(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
-          t.checkNull("left(cast(null as binary(1)), -2)");
-          t.checkNull("left(x'ABCdef', cast(null as Integer))");
-        });
+      // test for ByteString
+      f.checkString("left(x'ABCdef', 1)", "ab", "VARBINARY(3) NOT NULL");
+      f.checkString("left(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
+      f.checkString("left(x'ABCdef', 4)", "abcdef",
+          "VARBINARY(3) NOT NULL");
+      f.checkString("left(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
+      f.checkNull("left(cast(null as binary(1)), -2)");
+      f.checkNull("left(x'ABCdef', cast(null as Integer))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL), consumer);
   }
 
   @Test void testRightFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL)
-        .map(f::withLibrary)
-        .forEach(t -> {
-          t.setFor(SqlLibraryOperators.RIGHT);
-          t.checkString("right('abcd', 3)", "bcd", "VARCHAR(4) NOT NULL");
-          t.checkString("right('abcd', 0)", "", "VARCHAR(4) NOT NULL");
-          t.checkString("right('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
-          t.checkString("right('abcd', -2)", "", "VARCHAR(4) NOT NULL");
-          t.checkNull("right(cast(null as varchar(1)), -2)");
-          t.checkNull("right('abcd', cast(null as Integer))");
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.RIGHT);
+      f.checkString("right('abcd', 3)", "bcd", "VARCHAR(4) NOT NULL");
+      f.checkString("right('abcd', 0)", "", "VARCHAR(4) NOT NULL");
+      f.checkString("right('abcd', 5)", "abcd", "VARCHAR(4) NOT NULL");
+      f.checkString("right('abcd', -2)", "", "VARCHAR(4) NOT NULL");
+      f.checkNull("right(cast(null as varchar(1)), -2)");
+      f.checkNull("right('abcd', cast(null as Integer))");
 
-          // test for ByteString
-          t.checkString("right(x'ABCdef', 1)", "ef", "VARBINARY(3) NOT NULL");
-          t.checkString("right(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
-          t.checkString("right(x'ABCdef', 4)", "abcdef",
-              "VARBINARY(3) NOT NULL");
-          t.checkString("right(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
-          t.checkNull("right(cast(null as binary(1)), -2)");
-          t.checkNull("right(x'ABCdef', cast(null as Integer))");
-        });
+      // test for ByteString
+      f.checkString("right(x'ABCdef', 1)", "ef", "VARBINARY(3) NOT NULL");
+      f.checkString("right(x'ABCdef', 0)", "", "VARBINARY(3) NOT NULL");
+      f.checkString("right(x'ABCdef', 4)", "abcdef",
+          "VARBINARY(3) NOT NULL");
+      f.checkString("right(x'ABCdef', -2)", "", "VARBINARY(3) NOT NULL");
+      f.checkNull("right(cast(null as binary(1)), -2)");
+      f.checkNull("right(x'ABCdef', cast(null as Integer))");
+    };
+
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL), consumer);
   }
 
   @Test void testRegexpReplaceFunc() {
-    final SqlOperatorFixture f = fixture();
-    Stream.of(SqlLibrary.MYSQL, SqlLibrary.ORACLE)
-        .map(f::withLibrary)
-        .forEach(t -> {
-          t.setFor(SqlLibraryOperators.REGEXP_REPLACE);
-          t.checkString("regexp_replace('a b c', 'b', 'X')", "a X c",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X')", "X X X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('100-200', '(\\d+)', 'num')", "num-num",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('100-200', '(-)', '###')", "100###200",
-              "VARCHAR NOT NULL");
-          t.checkNull("regexp_replace(cast(null as varchar), '(-)', '###')");
-          t.checkNull("regexp_replace('100-200', cast(null as varchar), '###')");
-          t.checkNull("regexp_replace('100-200', '(-)', cast(null as varchar))");
-          t.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 2)", "aX X X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 1, 3)", "abc def X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')", "abc def GHI",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t', '+')", "abc+\ndef+\nghi",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def+ghi",
-              "VARCHAR NOT NULL");
-          t.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\n+\t\n+",
-              "VARCHAR NOT NULL");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X')");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
-          t.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
-        });
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.REGEXP_REPLACE);
+      f.checkString("regexp_replace('a b c', 'b', 'X')", "a X c",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X')", "X X X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('100-200', '(\\d+)', 'num')", "num-num",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('100-200', '(-)', '###')", "100###200",
+          "VARCHAR NOT NULL");
+      f.checkNull("regexp_replace(cast(null as varchar), '(-)', '###')");
+      f.checkNull("regexp_replace('100-200', cast(null as varchar), '###')");
+      f.checkNull("regexp_replace('100-200', '(-)', cast(null as varchar))");
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 2)", "aX X X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 1, 3)", "abc def X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')", "abc def GHI",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t', '+')", "abc+\ndef+\nghi",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def+ghi",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\n+\t\n+",
+          "VARCHAR NOT NULL");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testJsonExists() {
@@ -5150,22 +5192,23 @@ public class SqlOperatorTest {
   }
 
   @Test void testCoshFunc() {
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
-    f.checkType("cosh(1)", "DOUBLE NOT NULL");
-    f.checkType("cosh(cast(1 as float))", "DOUBLE NOT NULL");
-    f.checkType("cosh(case when false then 1 else null end)", "DOUBLE");
-    f0.enableTypeCoercion(false)
-        .checkFails("^cosh('abc')^",
-            "No match found for function signature COSH\\(<CHARACTER>\\)",
-            false);
-    f.checkType("cosh('abc')", "DOUBLE NOT NULL");
-    f.checkScalarApprox("cosh(1)", "DOUBLE NOT NULL",
-        isWithin(1.5430d, 0.0001d));
-    f.checkScalarApprox("cosh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
-        isWithin(1.5430d, 0.0001d));
-    f.checkNull("cosh(cast(null as integer))");
-    f.checkNull("cosh(cast(null as double))");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.COSH);
+    f0.checkFails("^cosh(1)^",
+        "No match found for function signature COSH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("cosh(1)", "DOUBLE NOT NULL");
+      f.checkType("cosh(cast(1 as float))", "DOUBLE NOT NULL");
+      f.checkType("cosh(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("cosh('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("cosh(1)", "DOUBLE NOT NULL",
+          isWithin(1.5430d, 0.0001d));
+      f.checkScalarApprox("cosh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+          isWithin(1.5430d, 0.0001d));
+      f.checkNull("cosh(cast(null as integer))");
+      f.checkNull("cosh(cast(null as double))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testCotFunc() {
@@ -5319,22 +5362,23 @@ public class SqlOperatorTest {
   }
 
   @Test void testSinhFunc() {
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
-    f.checkType("sinh(1)", "DOUBLE NOT NULL");
-    f.checkType("sinh(cast(1 as float))", "DOUBLE NOT NULL");
-    f.checkType("sinh(case when false then 1 else null end)", "DOUBLE");
-    f0.enableTypeCoercion(false)
-        .checkFails("^sinh('abc')^",
-            "No match found for function signature SINH\\(<CHARACTER>\\)",
-            false);
-    f.checkType("sinh('abc')", "DOUBLE NOT NULL");
-    f.checkScalarApprox("sinh(1)", "DOUBLE NOT NULL",
-        isWithin(1.1752d, 0.0001d));
-    f.checkScalarApprox("sinh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
-        isWithin(1.1752d, 0.0001d));
-    f.checkNull("sinh(cast(null as integer))");
-    f.checkNull("sinh(cast(null as double))");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SINH);
+    f0.checkFails("^sinh(1)^",
+        "No match found for function signature SINH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("sinh(1)", "DOUBLE NOT NULL");
+      f.checkType("sinh(cast(1 as float))", "DOUBLE NOT NULL");
+      f.checkType("sinh(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("sinh('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("sinh(1)", "DOUBLE NOT NULL",
+          isWithin(1.1752d, 0.0001d));
+      f.checkScalarApprox("sinh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+          isWithin(1.1752d, 0.0001d));
+      f.checkNull("sinh(cast(null as integer))");
+      f.checkNull("sinh(cast(null as double))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testTanFunc() {
@@ -5359,22 +5403,23 @@ public class SqlOperatorTest {
   }
 
   @Test void testTanhFunc() {
-    SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
-    f.checkType("tanh(1)", "DOUBLE NOT NULL");
-    f.checkType("tanh(cast(1 as float))", "DOUBLE NOT NULL");
-    f.checkType("tanh(case when false then 1 else null end)", "DOUBLE");
-    f0.enableTypeCoercion(false)
-        .checkFails("^tanh('abc')^",
-            "No match found for function signature TANH\\(<CHARACTER>\\)",
-            false);
-    f.checkType("tanh('abc')", "DOUBLE NOT NULL");
-    f.checkScalarApprox("tanh(1)", "DOUBLE NOT NULL",
-        isWithin(0.7615d, 0.0001d));
-    f.checkScalarApprox("tanh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
-        isWithin(0.7615d, 0.0001d));
-    f.checkNull("tanh(cast(null as integer))");
-    f.checkNull("tanh(cast(null as double))");
+    SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TANH);
+    f0.checkFails("^tanh(1)^",
+        "No match found for function signature TANH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("tanh(1)", "DOUBLE NOT NULL");
+      f.checkType("tanh(cast(1 as float))", "DOUBLE NOT NULL");
+      f.checkType("tanh(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("tanh('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("tanh(1)", "DOUBLE NOT NULL",
+          isWithin(0.7615d, 0.0001d));
+      f.checkScalarApprox("tanh(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+          isWithin(0.7615d, 0.0001d));
+      f.checkNull("tanh(cast(null as integer))");
+      f.checkNull("tanh(cast(null as double))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testTruncateFunc() {
@@ -6146,53 +6191,73 @@ public class SqlOperatorTest {
   }
 
   @Test void testRtrimFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.RTRIM, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
-    f.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.RTRIM, VmName.EXPAND);
+    f0.checkFails("^rtrim(' aaa')^",
+        "No match found for function signature RTRIM\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
+      f.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testLtrimFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.LTRIM, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
-    f.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.LTRIM, VmName.EXPAND);
+    f0.checkFails("^ltrim('  aa')^",
+        "No match found for function signature LTRIM\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
+      f.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testGreatestFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.GREATEST, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("greatest('on', 'earth')", "on   ", "CHAR(5) NOT NULL");
-    f.checkString("greatest('show', 'on', 'earth')", "show ",
-        "CHAR(5) NOT NULL");
-    f.checkScalar("greatest(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
-        "INTEGER");
-    f.checkScalar("greatest(false, true)", true, "BOOLEAN NOT NULL");
+    final SqlOperatorFixture f0 =
+        fixture().setFor(SqlLibraryOperators.GREATEST, VmName.EXPAND);
+    f0.checkFails("^greatest('on', 'earth')^",
+        "No match found for function signature GREATEST\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("greatest('on', 'earth')", "on   ", "CHAR(5) NOT NULL");
+      f.checkString("greatest('show', 'on', 'earth')", "show ",
+          "CHAR(5) NOT NULL");
+      f.checkScalar("greatest(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
+          "INTEGER");
+      f.checkScalar("greatest(false, true)", true, "BOOLEAN NOT NULL");
 
-    final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
-    f12.checkString("greatest('on', 'earth')", "on", "VARCHAR(5) NOT NULL");
-    f12.checkString("greatest('show', 'on', 'earth')", "show",
-        "VARCHAR(5) NOT NULL");
+      final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
+      f12.checkString("greatest('on', 'earth')", "on", "VARCHAR(5) NOT NULL");
+      f12.checkString("greatest('show', 'on', 'earth')", "show",
+          "VARCHAR(5) NOT NULL");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testLeastFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.LEAST, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkString("least('on', 'earth')", "earth", "CHAR(5) NOT NULL");
-    f.checkString("least('show', 'on', 'earth')", "earth",
-        "CHAR(5) NOT NULL");
-    f.checkScalar("least(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
-        "INTEGER");
-    f.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.LEAST, VmName.EXPAND);
+    f0.checkFails("^least('on', 'earth')^",
+        "No match found for function signature LEAST\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("least('on', 'earth')", "earth", "CHAR(5) NOT NULL");
+      f.checkString("least('show', 'on', 'earth')", "earth",
+          "CHAR(5) NOT NULL");
+      f.checkScalar("least(12, CAST(NULL AS INTEGER), 3)", isNullValue(),
+          "INTEGER");
+      f.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
 
-    final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
-    f12.checkString("least('on', 'earth')", "earth", "VARCHAR(5) NOT NULL");
-    f12.checkString("least('show', 'on', 'earth')", "earth",
-        "VARCHAR(5) NOT NULL");
+      final SqlOperatorFixture f12 = f0.forOracle(SqlConformanceEnum.ORACLE_12);
+      f12.checkString("least('on', 'earth')", "earth", "VARCHAR(5) NOT NULL");
+      f12.checkString("least('show', 'on', 'earth')", "earth",
+          "VARCHAR(5) NOT NULL");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testNvlFunc() {
@@ -7914,7 +7979,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.PERCENTILE_DISC, VM_FENNEL, VM_JAVA);
     f.checkType("percentile_disc(0.25) within group (order by 1)",
-        "DOUBLE NOT NULL");
+        "INTEGER NOT NULL");
     f.checkFails("percentile_disc(0.25) within group (^order by 'a'^)",
         "Invalid type 'CHAR' in ORDER BY clause of 'PERCENTILE_DISC' function. "
             + "Only NUMERIC types are supported", false);

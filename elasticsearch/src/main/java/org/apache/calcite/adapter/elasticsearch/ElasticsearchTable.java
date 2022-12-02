@@ -205,13 +205,13 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     orderedGroupBy.addAll(groupBy);
 
     // construct nested aggregations node(s)
-    ObjectNode parent = query.with(AGGREGATIONS);
+    ObjectNode parent = query.withObject("/" + AGGREGATIONS);
     for (String name: orderedGroupBy) {
       final String aggName = "g_" + name;
       fieldMap.put(aggName, name);
 
-      final ObjectNode section = parent.with(aggName);
-      final ObjectNode terms = section.with("terms");
+      final ObjectNode section = parent.withObject("/" + aggName);
+      final ObjectNode terms = section.withObject("/terms");
       terms.put("field", name);
 
       transport.mapping.missingValueFor(name).ifPresent(m -> {
@@ -225,10 +225,10 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
       sort.stream().filter(e -> e.getKey().equals(name)).findAny()
           .ifPresent(s ->
-              terms.with("order")
+              terms.withObject("/order")
                   .put("_key", s.getValue().isDescending() ? "desc" : "asc"));
 
-      parent = section.with(AGGREGATIONS);
+      parent = section.withObject("/" + AGGREGATIONS);
     }
 
     // simple version for queries like "select count(*), max(col1) from table" (no GROUP BY cols)

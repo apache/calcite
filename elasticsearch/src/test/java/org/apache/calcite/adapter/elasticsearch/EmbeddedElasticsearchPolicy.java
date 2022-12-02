@@ -114,7 +114,8 @@ class EmbeddedElasticsearchPolicy {
 
     ObjectNode mappings = mapper().createObjectNode();
 
-    ObjectNode properties = mappings.with("mappings").with("properties");
+    ObjectNode properties = mappings.withObject("/mappings")
+        .withObject("/properties");
     for (Map.Entry<String, String> entry: mapping.entrySet()) {
       applyMapping(properties, entry.getKey(), entry.getValue());
     }
@@ -139,9 +140,9 @@ class EmbeddedElasticsearchPolicy {
     if (index > -1) {
       String prefix  = key.substring(0, index);
       String suffix = key.substring(index + 1, key.length());
-      applyMapping(parent.with(prefix).with("properties"), suffix, type);
+      applyMapping(parent.withObject("/" + prefix).withObject("/properties"), suffix, type);
     } else {
-      parent.with(key).put("type", type);
+      parent.withObject("/" + key).put("type", type);
     }
   }
 

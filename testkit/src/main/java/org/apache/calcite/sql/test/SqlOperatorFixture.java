@@ -38,6 +38,7 @@ import org.apache.calcite.util.Bug;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
@@ -559,6 +560,18 @@ public interface SqlOperatorFixture extends AutoCloseable {
         .withConnectionFactory(cf ->
             cf.with(ConnectionFactories.add(CalciteAssert.SchemaSpec.HR))
                 .with(CalciteConnectionProperty.FUN, library.fun));
+  }
+
+  /** Applies this fixture to some code for each of the given libraries. */
+  default void forEachLibrary(Iterable<? extends SqlLibrary> libraries,
+      Consumer<SqlOperatorFixture> consumer) {
+    libraries.forEach(library -> {
+      try {
+        consumer.accept(this.withLibrary(library));
+      } catch (Exception e) {
+        throw new RuntimeException("for library " + library, e);
+      }
+    });
   }
 
   default SqlOperatorFixture forOracle(SqlConformance conformance) {

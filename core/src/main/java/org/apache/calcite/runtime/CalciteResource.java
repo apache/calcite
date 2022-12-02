@@ -94,6 +94,9 @@ public interface CalciteResource {
   @BaseMessage("Illegal binary string {0}")
   ExInst<CalciteException> illegalBinaryString(String a0);
 
+  @BaseMessage("Illegal array expression ''{0}''")
+  ExInst<CalciteException> illegalArrayExpression(String a0);
+
   @BaseMessage("''FROM'' without operands preceding it is illegal")
   ExInst<CalciteException> illegalFromEmpty();
 
