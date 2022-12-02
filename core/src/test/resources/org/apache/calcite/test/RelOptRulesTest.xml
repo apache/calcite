@@ -6133,6 +6133,363 @@ LogicalProject(EXPR$0=[CAST(/($2, $3)):INTEGER NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNestedCorrelatedQueriesUsingBothContextWith2InnerQueries">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno
+FROM emp e
+WHERE EXISTS (
+  SELECT *
+  FROM dept d
+  WHERE d.deptno = e.deptno
+    AND exists(
+      SELECT *
+      FROM emp_address ea
+      WHERE ea.empno = e.empno)
+    AND exists(
+      SELECT *
+      FROM emp e2
+      WHERE e2.deptno = d.deptno))
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($0, $cor0.DEPTNO), EXISTS({
+LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+}), EXISTS({
+LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor2]])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i=[true])
+        LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+          LogicalCorrelate(correlation=[$cor2], joinType=[inner], requiredColumns=[{0}])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(i=[true])
+                  LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+            LogicalAggregate(group=[{0}])
+              LogicalProject(i=[true])
+                LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($0, $9), =($7, $10))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$1], $f2=[true])
+      LogicalAggregate(group=[{0, 1}])
+        LogicalProject(EMPNO=[$2], DEPTNO=[$0])
+          LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+              LogicalProject(EMPNO=[$0], $f1=[true])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+            LogicalProject(DEPTNO=[$0], $f1=[true])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(DEPTNO=[$7])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedCorrelatedQueriesUsingBothContextWith2InnerQueriesInJoinClause">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno
+FROM emp e
+LEFT JOIN bonus b ON b.ename = e.ename
+  OR EXISTS (
+    SELECT *
+    FROM dept d
+    WHERE d.deptno = e.deptno
+      AND exists(
+      SELECT *
+      FROM emp_address ea
+      WHERE ea.empno = e.empno)
+    AND exists(
+      SELECT *
+      FROM emp e2
+      WHERE e2.deptno = d.deptno))
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[OR(=($9, $1), EXISTS({
+LogicalFilter(condition=[AND(=($0, $cor0.DEPTNO), EXISTS({
+LogicalFilter(condition=[=($0, $cor1.EMPNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+}), EXISTS({
+LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor2]])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[OR(=($9, $1), IS NOT NULL($4))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+            LogicalCorrelate(correlation=[$cor2], joinType=[inner], requiredColumns=[{0}])
+              LogicalJoin(condition=[true], joinType=[inner])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                LogicalAggregate(group=[{0}])
+                  LogicalProject(i=[true])
+                    LogicalFilter(condition=[=($0, $cor1.EMPNO)])
+                      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(i=[true])
+                  LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($9, $1), EXISTS({
+LogicalFilter(condition=[AND(=($0, $cor0.DEPTNO), EXISTS({
+LogicalFilter(condition=[=($0, $cor1.EMPNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+}), EXISTS({
+LogicalFilter(condition=[AND(=($7, $cor2.DEPTNO), =($cor3.ENAME0, $1))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor2]])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedCorrelatedQueriesUsingBothContextWith2InnerQueriesInSelectClause">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno
+FROM emp e
+WHERE (true, true) IN (
+  SELECT
+    EXISTS(
+      SELECT *
+      FROM emp e2
+      WHERE e2.deptno = d.deptno),
+    EXISTS(
+      SELECT *
+      FROM emp_address ea
+      WHERE ea.empno = e.empno)
+  FROM dept d
+  WHERE d.deptno = e.deptno)
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[IN(true, true, {
+LogicalProject(variablesSet=[[$cor1]], EXPR$0=[EXISTS({
+LogicalFilter(condition=[=($7, $cor1.DEPTNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], EXPR$1=[EXISTS({
+LogicalFilter(condition=[=($0, $cor2.EMPNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+})])
+  LogicalFilter(condition=[=($0, $cor2.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor2]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalCorrelate(correlation=[$cor2], joinType=[inner], requiredColumns=[{0, 7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(cs=[true])
+        LogicalProject(EXPR$0=[IS NOT NULL($2)], EXPR$1=[IS NOT NULL($3)])
+          LogicalFilter(condition=[AND(IS NOT NULL($2), IS NOT NULL($3))])
+            LogicalJoin(condition=[true], joinType=[left])
+              LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])
+                LogicalFilter(condition=[=($0, $cor2.DEPTNO)])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                LogicalAggregate(group=[{0}])
+                  LogicalProject(i=[true])
+                    LogicalFilter(condition=[=($7, $cor1.DEPTNO)])
+                      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(i=[true])
+                  LogicalFilter(condition=[=($0, $cor2.EMPNO)])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($0, $9), =($7, $10))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$4], DEPTNO5=[$0], $f2=[true])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
+          LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalProject(DEPTNO=[$0], $f1=[true])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(DEPTNO=[$7])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], $f1=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedCorrelatedQueriesUsingOuterContext">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno
+FROM emp e
+WHERE EXISTS (
+  SELECT *
+  FROM dept d
+  WHERE EXISTS(
+    SELECT *
+    FROM emp_address ea
+    WHERE ea.empno = e.empno      AND d.deptno = e.deptno))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($0, $cor0.EMPNO), =($cor1.DEPTNO, $cor0.DEPTNO))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+})], variablesSet=[[$cor1]])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i=[true])
+        LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalAggregate(group=[{0}])
+            LogicalProject(i=[true])
+              LogicalFilter(condition=[AND(=($0, $cor0.EMPNO), =($cor1.DEPTNO, $cor0.DEPTNO))])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($0, $9), =($7, $10))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$2], $f3=[$3], $f2=[true])
+      LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(EMPNO=[$0], $f3=[$3], $f4=[$4], $f5=[true])
+          LogicalFilter(condition=[=($4, $3)])
+            LogicalProject(EMPNO=[$0], HOME_ADDRESS=[$1], MAILING_ADDRESS=[$2], $f3=[$cor1.DEPTNO], $f4=[$cor0.DEPTNO])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedCorrelatedQueriesUsingOuterContextWith2InnerQueries">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno
+FROM emp e
+WHERE EXISTS (
+  SELECT *
+  FROM dept d
+  WHERE d.deptno = e.deptno
+    AND exists(
+      SELECT *
+      FROM emp_address ea
+      WHERE ea.empno = e.empno)
+    AND exists(
+      SELECT *
+      FROM bonus b
+      WHERE b.ename = e.ename
+))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($0, $cor0.DEPTNO), EXISTS({
+LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+}), EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ENAME)])
+  LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+}))])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1, 7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i=[true])
+        LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+          LogicalJoin(condition=[true], joinType=[inner])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(i=[true])
+                  LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+            LogicalAggregate(group=[{0}])
+              LogicalProject(i=[true])
+                LogicalFilter(condition=[=($0, $cor0.ENAME)])
+                  LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($0, $9), =($1, $10), =($7, $11))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$2], ENAME=[$4], DEPTNO=[$0], $f3=[true])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalProject(EMPNO=[$0], $f1=[true])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+        LogicalProject(ENAME=[$0], $f1=[true])
+          LogicalAggregate(group=[{0}])
+            LogicalProject(ENAME=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNoOversimplificationBelowIsNull">
     <Resource name="sql">
       <![CDATA[select *
@@ -13386,6 +13743,26 @@ LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
 EnumerableProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')])
   EnumerableFilter(condition=[>(ITEM($0, 'N_NATIONKEY'), 1)])
     EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSum">
+    <Resource name="sql">
+      <![CDATA[
+SELECT SUM(
+  (select char_length(deptno) from dept where dept.deptno = emp.empno)) as s
+FROM emp
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], S=[SUM($0)])
+  LogicalProject($f0=[$SCALAR_QUERY({
+LogicalProject(EXPR$0=[CHAR_LENGTH(CAST($0):VARCHAR NOT NULL)])
+  LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

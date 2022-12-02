@@ -167,7 +167,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * <p>Procedure for adding a new test case:
  *
  * <ol>
- * <li>Add a new public test method for your rule, following the existing
+ * <li>Add a new test method for your rule, following the existing
  * examples. You'll have to come up with an SQL statement to which your rule
  * will apply in a meaningful way. See {@link SqlToRelTestBase} class comments
  * for details on the schema.
@@ -4455,6 +4455,154 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.FILTER_REDUCE_EXPRESSIONS,
             CoreRules.JOIN_REDUCE_EXPRESSIONS)
         .checkUnchanged();
+  }
+
+  /**
+   * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5413">[CALCITE-5413]</a>, if the
+   * correlated variable from the inner subquery is correctly bound to the outer scope and can
+   * be decorrelated.
+   */
+  @Disabled("[CALCITE-5413]")
+  @Test void testNestedCorrelatedQueriesUsingOuterContext() {
+    final String sql = ""
+        + "SELECT deptno\n"
+        + "FROM emp e\n"
+        + "WHERE EXISTS (\n"
+        + "  SELECT *\n"
+        + "  FROM dept d\n"
+        + "  WHERE EXISTS(\n"
+        + "    SELECT *\n"
+        + "    FROM emp_address ea\n"
+        + "    WHERE ea.empno = e.empno"
+        + "      AND d.deptno = e.deptno))\n";
+    sql(sql)
+        .withExpand(false)
+        .withProgram(HepProgram.builder()
+            .addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+            .addRuleInstance(CoreRules.PROJECT_MERGE)
+            .addRuleInstance(CoreRules.FILTER_MERGE)
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_FILTER_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
+            .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+            .build())
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  @Test void testNestedCorrelatedQueriesUsingBothContextWith2InnerQueries() {
+    final String sql = ""
+        + "SELECT deptno\n"
+        + "FROM emp e\n"
+        + "WHERE EXISTS (\n"
+        + "  SELECT *\n"
+        + "  FROM dept d\n"
+        + "  WHERE d.deptno = e.deptno\n"
+        + "    AND exists(\n"
+        + "      SELECT *\n"
+        + "      FROM emp_address ea\n"
+        + "      WHERE ea.empno = e.empno)\n"
+        + "    AND exists(\n"
+        + "      SELECT *\n"
+        + "      FROM emp e2\n"
+        + "      WHERE e2.deptno = d.deptno))\n";
+    sql(sql)
+        .withExpand(false)
+        .withProgram(HepProgram.builder()
+            .addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+            .addRuleInstance(CoreRules.PROJECT_MERGE)
+            .addRuleInstance(CoreRules.FILTER_MERGE)
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_FILTER_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
+            .build())
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  @Disabled("[CALCITE-5420]")
+  @Test void testCorrelatedQueryInSelectWithAgg() {
+    String sql = "\n"
+        + "SELECT SUM(\n"
+        + "  (select char_length(deptno) from dept where dept.deptno = emp.empno)) as s\n"
+        + "FROM emp\n";
+    sql(sql)
+        .withExpand(false)
+        .withProgram(HepProgram.builder()
+            .addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+            .addRuleInstance(CoreRules.PROJECT_MERGE)
+            .addRuleInstance(CoreRules.FILTER_MERGE)
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_FILTER_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
+            .build())
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  @Disabled("[CALCITE-5420],[CALCITE-5418]")
+  @Test void testNestedCorrelatedQueriesUsingBothContextWith2InnerQueriesInSelectClause() {
+    final String sql = ""
+        + "SELECT e.deptno\n"
+        + "FROM emp e\n"
+        + "WHERE (true, true) IN (\n"
+        + "  SELECT\n"
+        + "    EXISTS(\n"
+        + "      SELECT *\n"
+        + "      FROM emp e2\n"
+        + "      WHERE e2.deptno = d.deptno),\n"
+        + "    EXISTS(\n"
+        + "      SELECT *\n"
+        + "      FROM emp_address ea\n"
+        + "      WHERE ea.empno = e.empno)\n"
+        + "  FROM dept d\n"
+        + "  WHERE d.deptno = e.deptno)\n";
+    sql(sql)
+        .withExpand(false)
+        .withProgram(HepProgram.builder()
+            .addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+            .addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+            .addRuleInstance(CoreRules.PROJECT_MERGE)
+            .addRuleInstance(CoreRules.FILTER_MERGE)
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_FILTER_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
+            .build())
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  @Disabled("[CALCITE-4792],[CALCITE-5418]")
+  @Test void testNestedCorrelatedQueriesUsingBothContextWith2InnerQueriesInJoinClause() {
+    final String sql = ""
+        + "SELECT deptno\n"
+        + "FROM emp e\n"
+        + "WHERE EXISTS (\n"
+        + "  SELECT *\n"
+        + "  FROM dept d\n"
+        + "  LEFT JOIN bonus b ON b.ename = e.ename\n"
+        + "    OR d.deptno = e.deptno\n"
+        + "    AND exists(\n"
+        + "      SELECT *\n"
+        + "      FROM emp_address ea\n"
+        + "      WHERE ea.empno = e.empno)\n"
+        + "    AND exists(\n"
+        + "      SELECT *\n"
+        + "      FROM emp e2\n"
+        + "      WHERE e2.deptno = d.deptno))\n";
+    sql(sql)
+        .withExpand(false)
+        .withProgram(HepProgram.builder()
+            .addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+            .addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+            .addRuleInstance(CoreRules.PROJECT_MERGE)
+            .addRuleInstance(CoreRules.FILTER_MERGE)
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_FILTER_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
+            .build())
+        .withLateDecorrelate(true)
+        .check();
   }
 
   /** Test case for
