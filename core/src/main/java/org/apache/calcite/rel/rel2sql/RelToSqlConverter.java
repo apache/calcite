@@ -368,7 +368,7 @@ public class RelToSqlConverter extends SqlImplementor
       if (dialect.supportsUnpivot()
           && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithExcludeNulls
                 (filterNode, x.node)) {
-        SqlNode sqlUnpivot = createUnpivotSqlNodeWithExcludeNull((SqlSelect) x.node);
+        SqlNode sqlUnpivot = createUnpivotSqlNodeWithExcludeNulls((SqlSelect) x.node);
         SqlNode select = new SqlSelect(
               SqlParserPos.ZERO, null, null, sqlUnpivot,
               null, null, null, null, null, null, null, SqlNodeList.EMPTY);
@@ -380,7 +380,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  SqlNode createUnpivotSqlNodeWithExcludeNull(SqlSelect sqlNode) {
+  SqlNode createUnpivotSqlNodeWithExcludeNulls(SqlSelect sqlNode) {
     SqlUnpivot sqlUnpivot = (SqlUnpivot) sqlNode.getFrom();
     assert sqlUnpivot != null;
     return new SqlUnpivot(POS, sqlUnpivot.query, false, sqlUnpivot.measureList,
@@ -394,7 +394,7 @@ public class RelToSqlConverter extends SqlImplementor
     final Builder builder = x.builder(e);
     if (dialect.supportsUnpivot()
         && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithIncludeNulls(e, builder)) {
-      SqlUnpivot sqlUnpivot = createUnpivotSqlNodeWithIncludeNull(e, builder, unpivotRelToSqlUtil);
+      SqlUnpivot sqlUnpivot = createUnpivotSqlNodeWithIncludeNulls(e, builder, unpivotRelToSqlUtil);
       SqlNode select = new SqlSelect(
           SqlParserPos.ZERO, null, builder.select.getSelectList(), sqlUnpivot,
           null, null, null, null, null, null, null, SqlNodeList.EMPTY);
@@ -428,7 +428,7 @@ public class RelToSqlConverter extends SqlImplementor
   /**
    * Create {@link SqlUnpivot} type of SqlNode.
    */
-  private SqlUnpivot createUnpivotSqlNodeWithIncludeNull(Project projectRel,
+  private SqlUnpivot createUnpivotSqlNodeWithIncludeNulls(Project projectRel,
       SqlImplementor.Builder builder, UnpivotRelToSqlUtil unpivotRelToSqlUtil) {
     RelNode leftRelOfJoin = ((LogicalJoin) projectRel.getInput(0)).getLeft();
     SqlNode query = dispatch(leftRelOfJoin).asStatement();

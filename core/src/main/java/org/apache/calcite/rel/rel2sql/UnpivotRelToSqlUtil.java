@@ -54,7 +54,7 @@ import java.util.stream.IntStream;
 import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
 /**
- * Class to identify Rel structure which is of Unpivot type.
+ * Class to identify Rel structure which is of UNPIVOT Type.
  */
 public class UnpivotRelToSqlUtil {
 
@@ -110,7 +110,7 @@ public class UnpivotRelToSqlUtil {
   }
 
   /**
-   * Check if filter node is equivalent to unpivot expansion's when include null is false.
+   * Check if filter node is equivalent to UNPIVOT's expansion when INCLUDE NULLS is false.
    */
   private boolean isFilterNodeEquivalentToUnpivotExpansion(
       SqlNode filterNode, SqlNodeList measureColumnList) {
@@ -124,7 +124,7 @@ public class UnpivotRelToSqlUtil {
   }
 
   /**
-   * Check if filter node is equivalent to unpivot expansion
+   * Check if filter node is equivalent to UNPIVOT's expansion
    * when there are multiple measure columns.
    * -if there are multiple measure columns, on unpivot expansion each of the
    * measure columns have NOT NULL filter on them separated by OR
@@ -151,7 +151,7 @@ public class UnpivotRelToSqlUtil {
   }
 
   /**
-   * Check if filter node is equivalent to unpivot expansion when there is single measure column.
+   * Check if filter node is equivalent to UNPIVOT's expansion when there is single measure column.
    * -if there is single measure column, on unpivot expansion
    * measure column has NOT NULL filter on it
    * ex- measureList(monthly_sales)
@@ -205,10 +205,10 @@ public class UnpivotRelToSqlUtil {
       Project projectRel,
       SqlImplementor.Builder builder) {
     // If Project has at least one case op
-    // If project's input is Join
-    // If join with joinType = inner & condition = true
-    // & join's right input is LogicalValues
-    // If at least one case is equivalent to unpivot expansion
+    // If Project's input is Join
+    // If Join with joinType = inner & condition = true
+    // & Join's right input is LogicalValues
+    // If at least one case is equivalent to UNPIVOT expansion
     return isCaseOperatorPresentInProjectRel(projectRel)
         && isLogicalJoinInputOfProjectRel(projectRel)
         && isJoinTypeInnerWithTrueCondition((LogicalJoin) projectRel.getInput(0))
@@ -217,7 +217,7 @@ public class UnpivotRelToSqlUtil {
   }
 
   /**
-   * Check each case operator if it is equivalent to unpivot expansion of case,
+   * Check each case operator if it is equivalent to UNPIVOT expansion of case,
    * and if it matches return true
    * If measure column is a list ,then in that case there are multiple case operators.
    */
@@ -230,7 +230,7 @@ public class UnpivotRelToSqlUtil {
   }
 
   /**
-   * Check each case operator if it is equivalent to unpivot expansion of case.
+   * Check each case operator if it is equivalent to UNPIVOT expansion of case.
    * And if it matches ,then populate a map with case alias as key and value as
    * the list of then operands
    */
@@ -254,7 +254,7 @@ public class UnpivotRelToSqlUtil {
   }
 
   /**
-   * Check if case rex pattern equivalent to unpivot expansion.
+   * Check if Case Rex pattern equivalent to UNPIVOT expansion.
    */
   private boolean isCasePatternOfUnpivotType(
       RexCall caseRex, Project projectRel, SqlImplementor.Builder builder) {
@@ -274,10 +274,10 @@ public class UnpivotRelToSqlUtil {
   }
 
   /**
-   * Check if case pattern & logical values pattern are equivalent to unpivot expansion.
+   * Check if case pattern & logical values pattern are equivalent to UNPIVOT expansion.
    * ex- case when month='jan' then jan_sales
    * when month='feb' then feb_sales
-   * when month='mar'  then march_sales
+   * when month='mar' then march_sales
    * else null
    * AS monthly_sales
    *
