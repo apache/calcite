@@ -5814,6 +5814,12 @@ public class SqlOperatorTest {
         "Cannot apply 'STARTS_WITH' to arguments of type 'STARTS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported form\\(s\\): 'STARTS_WITH\\(<STRING>, <STRING>\\)'",
         false
     );
+    f.checkBoolean("starts_with(null, null)", false);
+    f.checkBoolean("starts_with('12345', null)", false);
+    f.checkBoolean("starts_with(null, '123')", false);
+    f.checkBoolean("starts_with('', '123')", false);
+    f.checkBoolean("starts_with('123', '')", true);
+    f.checkBoolean("starts_with('', '')", true);
   }
 
   /** Tests the {@code SUBSTRING} operator. Many test cases that used to be
