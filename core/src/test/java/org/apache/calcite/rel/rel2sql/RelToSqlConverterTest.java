@@ -7736,8 +7736,15 @@ class RelToSqlConverterTest {
   }
   @Test void testSelectCountStar() {
     final String query = "select count(*) from \"product\"";
-    final String expected = "SELECT COUNT(*)\n"
-        + "FROM \"foodmart\".\"product\"";
+    final String expected = " ";
+    Sql sql = sql(query);
+    sql.ok(expected);
+  }
+//
+  @Test void testSInterval() {
+    final String query = "SELECT INTERVAL 1 DAY,'birth_date' + 2 from \"employee\"";
+    final String expected = "SELECT 1 * INTERVAL '1' DAY, CAST('birth_date' AS INTEGER) + 2\n" +
+        "FROM \"foodmart\".\"employee\"";
     Sql sql = sql(query);
     sql.ok(expected);
   }
