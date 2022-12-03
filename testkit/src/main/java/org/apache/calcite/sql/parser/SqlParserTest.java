@@ -4586,10 +4586,19 @@ public class SqlParserTest {
         .ok(expected);
   }
 
+  /** Tests VALUE, which is equivalent to VALUES but only supported in some
+   * conformance levels (e.g. MYSQL). */
   @Test void testInsertValue() {
+    final String pattern =
+        "VALUE is not allowed under the current SQL conformance level";
+    final String sql = "insert into emps ^value^ (1, 'Fredkin')";
+    sql(sql)
+        .fails(pattern);
+
     final String expected = "INSERT INTO `EMPS`\n"
         + "VALUES (ROW(1, 'Fredkin'))";
-    sql("insert into emps value (1, 'Fredkin')")
+    sql(sql)
+        .withConformance(SqlConformanceEnum.MYSQL_5)
         .ok(expected)
         .node(not(isDdl()));
   }
