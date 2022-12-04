@@ -74,6 +74,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
@@ -100,6 +101,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -150,6 +152,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql.SqlKind.TABLE_IDENTIFIER_WITH_ID;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
@@ -1243,6 +1246,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       // fall through
     case TABLE_REF:
+    case TABLE_REF_WITH_ID:
     case SNAPSHOT:
     case OVER:
     case COLLECTION_TABLE:
@@ -1731,8 +1735,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Note that we anonymize the source rather than the
     // target because downstream, the optimizer rules
     // don't want to see any projection on top of the target.
-    IdentifierNamespace ns =
-        new IdentifierNamespace(this, target, null,
+    TableIdentifierWithIDNamespace ns =
+        new TableIdentifierWithIDNamespace(this, target, null,
             castNonNull(null));
     RelDataType rowType = ns.getRowType();
     SqlNode source = updateCall.getTargetTable().clone(SqlParserPos.ZERO);
@@ -2006,6 +2010,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     return null;
+  }
+
+  @Override public void requireNonCall(SqlTableIdentifierWithID id) throws ValidationException {
+    ImmutableList<String> names = id.getNames();
+    if (names.size() == 1 && !id.isComponentQuoted(0)) {
+      final List<SqlOperator> list = new ArrayList<>();
+      SqlIdentifier regularId = id.convertToSQLIdentifier();
+      opTab.lookupOperatorOverloads(regularId, null, SqlSyntax.FUNCTION, list,
+          catalogReader.nameMatcher());
+      for (SqlOperator operator : list) {
+        if (operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
+          // Even though this looks like an identifier, it is a
+          // actually a call to a function. Here we raise an exception.
+          throw new ValidationException(
+              "Target Table for SQL Function must be a Table, but a function call was found");
+        }
+      }
+
+    }
   }
 
   @Override public RelDataType deriveType(
@@ -2448,6 +2471,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (alias == null) {
       switch (kind) {
       case IDENTIFIER:
+      case TABLE_IDENTIFIER_WITH_ID:
       case OVER:
         alias = deriveAlias(node, -1);
         if (alias == null) {
@@ -2500,11 +2524,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       parentScope = tableScope;
     }
-
     SqlCall call;
     SqlNode operand;
     SqlNode newOperand;
-
     switch (kind) {
     case AS:
       call = (SqlCall) node;
@@ -2533,7 +2555,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (newExpr != expr) {
         call.setOperand(0, newExpr);
       }
-
       // If alias has a column list, introduce a namespace to translate
       // column names. We skipped registering it just now.
       if (needAlias) {
@@ -2544,22 +2565,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             forceNullable);
       }
       return node;
-
     case MATCH_RECOGNIZE:
       registerMatchRecognize(parentScope, usingScope,
           (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
       return node;
-
     case PIVOT:
       registerPivot(parentScope, usingScope, (SqlPivot) node, enclosingNode,
           alias, forceNullable);
       return node;
-
     case UNPIVOT:
       registerUnpivot(parentScope, usingScope, (SqlUnpivot) node, enclosingNode,
           alias, forceNullable);
       return node;
-
     case TABLESAMPLE:
       call = (SqlCall) node;
       expr = call.operand(0);
@@ -2578,7 +2595,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         call.setOperand(0, newExpr);
       }
       return node;
-
     case JOIN:
       final SqlJoin join = (SqlJoin) node;
       final JoinScope joinScope =
@@ -2636,11 +2652,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return join;
 
     case IDENTIFIER:
-      final SqlIdentifier id = (SqlIdentifier) node;
-      final IdentifierNamespace newNs =
-          new IdentifierNamespace(
-              this, id, extendList, enclosingNode,
-              parentScope);
+    case TABLE_IDENTIFIER_WITH_ID:
+      final SqlValidatorNamespace newNs;
+      if (node.getKind() == TABLE_IDENTIFIER_WITH_ID) {
+        newNs = new TableIdentifierWithIDNamespace(
+            this, (SqlTableIdentifierWithID) node, extendList, enclosingNode, parentScope
+        );
+      } else {
+        newNs = new IdentifierNamespace(
+            this, (SqlIdentifier) node, extendList, enclosingNode, parentScope
+        );
+      }
       registerNamespace(register ? usingScope : null, alias, newNs,
           forceNullable);
       if (tableScope == null) {
@@ -2753,6 +2775,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return newNode;
 
     case TABLE_REF:
+    case TABLE_REF_WITH_ID:
       call = (SqlCall) node;
       registerFrom(parentScope,
           usingScope,
@@ -3094,7 +3117,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       if (insertSourceSelect != null) {
         // registering the source select is done to verify if the condition is boolean, which
-        // is only needed in MERGE with a NOT MATCHED clase.
+        // is only needed in MERGE with a NOT MATCHED clause.
         // the insertSourceSelect is only set if the inserted values are a VALUES expression, which
         // is the only supported expression for an INSERT sqlnode which originates form a MERGE
         // INTO clause.
@@ -3441,6 +3464,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   @Override public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
     final SqlQualified fqId = scope.fullyQualify(id);
+    if (this.config.columnReferenceExpansion()) {
+      // NOTE jvs 9-Apr-2007: this doesn't cover ORDER BY, which has its
+      // own ideas about qualification.
+      id.assignNamesFrom(fqId.identifier);
+    } else {
+      Util.discard(fqId);
+    }
+  }
+
+  /**
+   * Resolves a SqlTableIdentifierWithID to a fully-qualified name.
+   *
+   * @param id    SqlTableIdentifierWithID
+   * @param scope Naming scope
+   */
+  @Override public void validateTableIdentifierWithID(
+      SqlTableIdentifierWithID id, SqlValidatorScope scope) {
+    final SqlTableIdentifierWithIDQualified fqId = scope.fullyQualify(id);
     if (this.config.columnReferenceExpansion()) {
       // NOTE jvs 9-Apr-2007: this doesn't cover ORDER BY, which has its
       // own ideas about qualification.
@@ -5335,8 +5376,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // REVIEW ksecretan 15-July-2011: They didn't get a chance to
     // since validateSelect() would bail.
     // Let's use the update/insert targetRowType when available.
-    IdentifierNamespace targetNamespace =
-        (IdentifierNamespace) getNamespaceOrThrow(call.getTargetTable());
+    SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(call.getTargetTable());
     validateNamespace(targetNamespace, unknownType);
 
     SqlValidatorTable table = targetNamespace.getTable();
@@ -6492,12 +6532,223 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   //~ Inner Classes ----------------------------------------------------------
 
   /**
-   * Common base class for DML statement namespaces.
+   * Common base class for DML statement namespaces. To handle
+   * both TableIdentifiers and Regular Identifiers we perform all
+   * operations on a stored namespace object.
    */
-  public static class DmlNamespace extends IdentifierNamespace {
+  public static class DmlNamespace implements SqlValidatorNamespace {
+
+
+    private final SqlValidatorNamespace ns;
+
     protected DmlNamespace(SqlValidatorImpl validator, SqlNode id,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
-      super(validator, id, enclosingNode, parentScope);
+      switch (id.getKind()) {
+      case TABLE_IDENTIFIER_WITH_ID:
+      case TABLE_REF_WITH_ID:
+        ns = new TableIdentifierWithIDNamespace(validator, id, enclosingNode, parentScope);
+        break;
+      default:
+        ns = new IdentifierNamespace(validator, id, enclosingNode, parentScope);
+      }
+    }
+
+    public @Nullable SqlNodeList getExtendList() {
+      if (ns instanceof TableIdentifierWithIDNamespace) {
+        return ((TableIdentifierWithIDNamespace) ns).extendList;
+      } else {
+        return ((IdentifierNamespace) ns).extendList;
+      }
+    }
+
+    /**
+     * Returns the validator.
+     *
+     * @return validator
+     */
+    @Override public SqlValidator getValidator() {
+      return ns.getValidator();
+    }
+
+    /**
+     * Returns the underlying table, or null if there is none.
+     */
+    @Override public @Nullable SqlValidatorTable getTable() {
+      return ns.getTable();
+    }
+
+    /**
+     * Returns the row type of this namespace, which comprises a list of names
+     * and types of the output columns. If the scope's type has not yet been
+     * derived, derives it.
+     *
+     * @return Row type of this namespace, never null, always a struct
+     */
+    @Override public RelDataType getRowType() {
+      return ns.getRowType();
+    }
+
+    /**
+     * Returns the type of this namespace.
+     *
+     * @return Row type converted to struct
+     */
+    @Override public RelDataType getType() {
+      return ns.getType();
+    }
+
+    /**
+     * Sets the type of this namespace.
+     *
+     * <p>Allows the type for the namespace to be explicitly set, but usually is
+     * called during {@link #validate(RelDataType)}.</p>
+     *
+     * <p>Implicitly also sets the row type. If the type is not a struct, then
+     * the row type is the type wrapped as a struct with a single column,
+     * otherwise the type and row type are the same.</p>
+     *
+     * @param type Type to set.
+     */
+    @Override public void setType(RelDataType type) {
+      ns.setType(type);
+    }
+
+    /**
+     * Returns the row type of this namespace, sans any system columns.
+     *
+     * @return Row type sans system columns
+     */
+    @Override public RelDataType getRowTypeSansSystemColumns() {
+      return ns.getRowTypeSansSystemColumns();
+    }
+
+    /**
+     * Validates this namespace.
+     *
+     * <p>If the scope has already been validated, does nothing.</p>
+     *
+     * <p>Please call {@link SqlValidatorImpl#validateNamespace} rather than
+     * calling this method directly.</p>
+     *
+     * @param targetRowType Desired row type, must not be null, may be the data
+     *                      type 'unknown'.
+     */
+    @Override public void validate(RelDataType targetRowType) {
+      ns.validate(targetRowType);
+    }
+
+    /**
+     * Returns the parse tree node at the root of this namespace.
+     *
+     * @return parse tree node; null for {@link TableNamespace}
+     */
+    @Override public @Nullable SqlNode getNode() {
+      return ns.getNode();
+    }
+
+    /**
+     * Returns the parse tree node that at is at the root of this namespace and
+     * includes all decorations. If there are no decorations, returns the same
+     * as {@link #getNode()}.
+     */
+    @Override public @Nullable SqlNode getEnclosingNode() {
+      return ns.getEnclosingNode();
+    }
+
+    /**
+     * Looks up a child namespace of a given name.
+     *
+     * <p>For example, in the query <code>select e.name from emps as e</code>,
+     * <code>e</code> is an {@link IdentifierNamespace} which has a child <code>
+     * name</code> which is a {@link FieldNamespace}.
+     *
+     * @param name Name of namespace
+     * @return Namespace
+     */
+    @Override public @Nullable SqlValidatorNamespace lookupChild(String name) {
+      return ns.lookupChild(name);
+    }
+
+    /**
+     * Returns whether this namespace has a field of a given name.
+     *
+     * @param name Field name
+     * @return Whether field exists
+     */
+    @Override public boolean fieldExists(String name) {
+      return ns.fieldExists(name);
+    }
+
+    /**
+     * Returns a list of expressions which are monotonic in this namespace. For
+     * example, if the namespace represents a relation ordered by a column
+     * called "TIMESTAMP", then the list would contain a
+     * {@link SqlIdentifier} called "TIMESTAMP".
+     */
+    @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
+      return ns.getMonotonicExprs();
+    }
+
+    /**
+     * Returns whether and how a given column is sorted.
+     *
+     * @param columnName Name of column to check Monotonicity
+     */
+    @Override public SqlMonotonicity getMonotonicity(String columnName) {
+      return ns.getMonotonicity(columnName);
+    }
+
+    @Deprecated
+    @Override public void makeNullable() {
+      ns.makeNullable();
+    }
+
+    /**
+     * Returns this namespace, or a wrapped namespace, cast to a particular
+     * class.
+     *
+     * @param clazz Desired type
+     * @return This namespace cast to desired type
+     * @throws ClassCastException if no such interface is available
+     */
+    @Override public <T extends Object> T unwrap(Class<T> clazz) {
+      return clazz.cast(this);
+    }
+
+    /**
+     * Returns whether this namespace implements a given interface, or wraps a
+     * class which does.
+     *
+     * @param clazz Interface
+     * @return Whether namespace implements given interface
+     */
+    @Override public boolean isWrapperFor(Class<?> clazz) {
+      return clazz.isInstance(this);
+    }
+
+    /**
+     * If this namespace resolves to another namespace, returns that namespace,
+     * following links to the end of the chain.
+     *
+     * <p>A {@code WITH}) clause defines table names that resolve to queries
+     * (the body of the with-item). An {@link IdentifierNamespace} typically
+     * resolves to a {@link TableNamespace}.</p>
+     *
+     * <p>You must not call this method before {@link #validate(RelDataType)} has
+     * completed.</p>
+     */
+    @Override public SqlValidatorNamespace resolve() {
+      return ns.resolve();
+    }
+
+    /**
+     * Returns whether this namespace is capable of giving results of the desired
+     * modality. {@code true} means streaming, {@code false} means relational.
+     *
+     * @param modality Modality
+     */
+    @Override public boolean supportsModality(SqlModality modality) {
+      return ns.supportsModality(modality);
     }
   }
 
@@ -6596,6 +6847,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scope.addPatternVar(id.getSimple());
       return null;
     }
+
+    @Override public Void visit(SqlTableIdentifierWithID id) {
+      Preconditions.checkArgument(id.isSimple());
+      scope.addPatternVar(id.getSimple());
+      return null;
+    }
+
 
     @Override public Void visit(SqlDataTypeSpec type) {
       throw Util.needToImplement(type);
@@ -6730,6 +6988,82 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return type;
     }
 
+    @Override public RelDataType visit(SqlTableIdentifierWithID id) {
+      try {
+        requireNonCall(id);
+      } catch (ValidationException e) {
+        throw new RuntimeException(e);
+      }
+
+      RelDataType type = null;
+      if (!(scope instanceof EmptyScope)) {
+        id = scope.fullyQualify(id).identifier;
+      }
+
+      // Resolve the longest prefix of id that we can
+      int i;
+      for (i = id.names.size() - 1; i > 0; i--) {
+        // REVIEW jvs 9-June-2005: The name resolution rules used
+        // here are supposed to match SQL:2003 Part 2 Section 6.6
+        // (identifier chain), but we don't currently have enough
+        // information to get everything right.  In particular,
+        // routine parameters are currently looked up via resolve;
+        // we could do a better job if they were looked up via
+        // resolveColumn.
+
+        final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+        final SqlValidatorScope.ResolvedImpl resolved =
+            new SqlValidatorScope.ResolvedImpl();
+        scope.resolve(id.names.subList(0, i), nameMatcher, false, resolved);
+        if (resolved.count() == 1) {
+          // There's a namespace with the name we seek.
+          final SqlValidatorScope.Resolve resolve = resolved.only();
+          type = resolve.rowType();
+          for (SqlValidatorScope.Step p : Util.skip(resolve.path.steps())) {
+            type = type.getFieldList().get(p.i).getType();
+          }
+          break;
+        }
+      }
+
+      // Give precedence to namespace found, unless there
+      // are no more identifier components.
+      if (type == null || id.names.size() == 1) {
+        // See if there's a column with the name we seek in
+        // precisely one of the namespaces in this scope.
+        RelDataType colType = scope.resolveColumn(id.names.get(0), id);
+        if (colType != null) {
+          type = colType;
+        }
+        ++i;
+      }
+
+      if (type == null) {
+        final SqlTableIdentifierWithID last = id.getComponent(i - 1, i);
+        throw newValidationError(last,
+            RESOURCE.unknownIdentifier(last.toString()));
+      }
+
+      // Resolve rest of identifier
+      for (; i < id.names.size(); i++) {
+        String name = id.names.get(i);
+        final RelDataTypeField field;
+        final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+        field = nameMatcher.field(type, name);
+        if (field == null) {
+          throw newValidationError(id.getComponent(i),
+              RESOURCE.unknownField(name));
+        }
+        type = field.getType();
+      }
+      type =
+          SqlTypeUtil.addCharsetAndCollation(
+              type,
+              getTypeFactory());
+      // TODO(Nick): Update the type to include the ID column
+      return type;
+    }
+
     @Override public RelDataType visit(SqlDataTypeSpec dataType) {
       // Q. How can a data type have a type?
       // A. When it appears in an expression. (Say as the 2nd arg to the
@@ -6810,6 +7144,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode expandedExpr = expandDynamicStar(id, fqId);
       validator.setOriginal(expandedExpr, id);
       return expandedExpr;
+    }
+
+    @Override public @Nullable SqlNode visit(SqlTableIdentifierWithID id) {
+      try {
+        validator.requireNonCall(id);
+      } catch (ValidationException e) {
+        throw new RuntimeException(e);
+      }
+      final SqlTableIdentifierWithID fqId = getScope().fullyQualify(id).identifier;
+      validator.setOriginal(fqId, id);
+      return fqId;
     }
 
     @Override protected SqlNode visitScoped(SqlCall call) {

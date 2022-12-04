@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -47,6 +48,10 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
   }
 
   @Override public @Nullable SqlNode visit(SqlIdentifier id) {
+    return id;
+  }
+
+  @Override public @Nullable SqlNode visit(SqlTableIdentifierWithID id) {
     return id;
   }
 

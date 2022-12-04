@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 
 /**
  * Visitor class, follows the
@@ -75,6 +76,15 @@ public interface SqlVisitor<R> {
    * @see SqlIdentifier#accept(SqlVisitor)
    */
   R visit(SqlIdentifier id);
+
+
+  /**
+   * Visits a SqlTableIdentifierWithID.
+   *
+   * @param id identifier
+   * @see SqlTableIdentifierWithID#accept(SqlVisitor)
+   */
+  R visit(SqlTableIdentifierWithID id);
 
   /**
    * Visits a datatype specification.

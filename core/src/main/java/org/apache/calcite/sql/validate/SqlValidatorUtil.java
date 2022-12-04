@@ -51,10 +51,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -126,9 +128,11 @@ public class SqlValidatorUtil {
       if (resolvedNamespace.isWrapperFor(TableNamespace.class)) {
         final TableNamespace tableNamespace = resolvedNamespace.unwrap(TableNamespace.class);
         final SqlValidatorTable validatorTable = tableNamespace.getTable();
-        final List<RelDataTypeField> extendedFields = dmlNamespace.extendList == null
+        final @Nullable SqlNodeList extendedList = dmlNamespace.getExtendList();
+        final List<RelDataTypeField> extendedFields = extendedList == null
             ? ImmutableList.of()
-            : getExtendedColumns(namespace.getValidator(), validatorTable, dmlNamespace.extendList);
+            : getExtendedColumns(namespace.getValidator(),
+                validatorTable, extendedList);
         return getRelOptTable(
             tableNamespace, requireNonNull(catalogReader, "catalogReader"),
             datasetName, usedDataset, extendedFields);
@@ -1311,6 +1315,17 @@ public class SqlValidatorUtil {
       }
 
       return getScope().fullyQualify(id).identifier;
+    }
+
+    @Override public SqlNode visit(SqlTableIdentifierWithID id) {
+      SqlValidator validator = getScope().getValidator();
+      try {
+        validator.requireNonCall(id);
+      } catch (ValidationException e) {
+        throw new RuntimeException(e);
+      }
+      return getScope().fullyQualify(id).identifier;
+
     }
 
     @Override public SqlNode visit(SqlDataTypeSpec type) {

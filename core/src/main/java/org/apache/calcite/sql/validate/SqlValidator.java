@@ -40,6 +40,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
@@ -48,6 +49,7 @@ import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionFactory;
 import org.apache.calcite.sql.validate.implicit.TypeCoercions;
+import org.apache.calcite.tools.ValidationException;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -224,6 +226,14 @@ public interface SqlValidator {
   void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope);
 
   /**
+   * Resolves a SqlTableIdentifierWithID to a fully-qualified name.
+   *
+   * @param id    SqlTableIdentifierWithID
+   * @param scope Naming scope
+   */
+  void validateTableIdentifierWithID(SqlTableIdentifierWithID id, SqlValidatorScope scope);
+
+  /**
    * Validates a literal.
    *
    * @param literal Literal
@@ -353,6 +363,11 @@ public interface SqlValidator {
    * returns a call to that function, otherwise returns null.
    */
   @Nullable SqlCall makeNullaryCall(SqlIdentifier id);
+
+  /**
+   * Requires that a SQLTableIdentifierWithID does not contain a function.
+   */
+  void requireNonCall(SqlTableIdentifierWithID id) throws ValidationException;
 
   /**
    * Derives the type of a node in a given scope. If the type has already been

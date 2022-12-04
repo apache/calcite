@@ -94,7 +94,9 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlSnapshot;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.SqlTableRef;
+import org.apache.calcite.sql.SqlTableRefWithID;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlTypeNameSpec;
@@ -1051,13 +1053,13 @@ SqlNode SqlStmt() :
         stmt = SqlDrop()
     |
 </#if>
-        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        LOOKAHEAD(2) stmt = SqlInsert()
     |
         stmt = SqlExplain()
     |
         stmt = SqlDescribe()
     |
-        stmt = SqlInsert()
+        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     |
         stmt = SqlDelete()
     |
@@ -1273,6 +1275,40 @@ SqlNode TableRefWithHintsOpt() :
 }
 
 /**
+ * Parses a target table reference with optional hints.
+ * This is a copy of TableRefWithHintsOpt except we return a
+ * SqlTableIdentifierWithID instead of a SQLIdentifier or a
+ * SqlTableRefWithID instead of a SqlTableRef when there are hints.
+ * This is only used by merge into.
+ */
+SqlNode TargetTableRefWithHintsOpt() :
+{
+    SqlNode tableRef;
+    SqlNodeList hintList;
+    final List<SqlNode> hints = new ArrayList<SqlNode>();
+    final Span s;
+}
+{
+    { s = span(); }
+    tableRef = CompoundTargetTableIdentifier()
+    [
+        LOOKAHEAD(2)
+        <HINT_BEG>
+        CommaSeparatedSqlHints(hints)
+        <COMMENT_END>
+        {
+            hintList = new SqlNodeList(hints, s.addAll(hints).end(this));
+            tableRef = new SqlTableRefWithID(Span.of(tableRef, hintList).pos(),
+                    (SqlTableIdentifierWithID) tableRef, hintList);
+        }
+    ]
+    {
+        return tableRef;
+    }
+}
+
+
+/**
  * Parses a leaf SELECT expression without ORDER BY.
  */
 SqlSelect SqlSelect() :
@@ -1389,9 +1425,9 @@ SqlNode SqlQueryOrDml() :
 }
 {
     (
-        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        LOOKAHEAD(2) stmt = SqlInsert()
     |
-        stmt = SqlInsert()
+        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     |
         stmt = SqlDelete()
     |
@@ -1732,7 +1768,7 @@ SqlNode SqlMerge() :
 
 }
 {
-    (<MERGE_INTO> { s = span(); } | (<MERGE> { s = span(); } <INTO>)) table = TableRefWithHintsOpt()
+    (<MERGE_INTO> { s = span(); } | (<MERGE> { s = span(); } <INTO>)) table = TargetTableRefWithHintsOpt()
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
@@ -5399,6 +5435,31 @@ SqlIdentifier CompoundIdentifier() :
     }
 }
 
+
+/**
+ * Parses a compound target table identifier in the FROM clause.
+ * This is a copy of CompoundIdentifier except we return a
+ * SqlTableIdentifierWithID instead of a SQLIdentifier. This is
+ * only used by merge into.
+ */
+SqlTableIdentifierWithID CompoundTargetTableIdentifier() :
+{
+    final List<String> nameList = new ArrayList<String>();
+    final List<SqlParserPos> posList = new ArrayList<SqlParserPos>();
+}
+{
+    TableIdentifierSegment(nameList, posList)
+    (
+        LOOKAHEAD(2)
+        <DOT>
+        TableIdentifierSegment(nameList, posList)
+    )*
+    {
+        SqlParserPos pos = SqlParserPos.sum(posList);
+        return new SqlTableIdentifierWithID(nameList, null, pos, posList);
+    }
+}
+
 /**
  * Parses a compound identifier in the FROM clause.
  */
@@ -8200,6 +8261,7 @@ String NonReservedKeyWord() :
     |   NonReservedKeyWord2of3()
     |   <WIDTH_BUCKET>
     |   <CONTAINS>
+    |   <INSERT>
     |   <DAY>
     )
     {

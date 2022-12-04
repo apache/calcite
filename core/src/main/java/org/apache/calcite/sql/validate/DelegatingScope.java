@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
@@ -540,6 +541,23 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       return SqlQualified.create(this, i, fromNs, identifier);
     }
     }
+  }
+
+
+  /**
+   * Converts a table identifier with an ID column into a fully-qualified identifier.
+   * For example, the dept in "select empno from emp natural join dept" may become
+   * "myschema.dept".
+   *
+   * @param identifier SqlTableIdentifierWithID to qualify
+   * @return A qualified identifier, never null
+   */
+  @Override public SqlTableIdentifierWithIDQualified fullyQualify(
+      SqlTableIdentifierWithID identifier) {
+    // Delegated scope should always refer to columns based on the regular identifier code.
+    throw new UnsupportedOperationException(
+        "fullyQualify with a SqlTableIdentifierWithIDQualified shouldn't occur with a Delegated Scope"
+    );
   }
 
   @Override public void validateExpr(SqlNode expr) {

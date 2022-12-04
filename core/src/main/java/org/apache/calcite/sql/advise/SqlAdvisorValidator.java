@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.OverScope;
@@ -84,6 +85,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     }
   }
 
+
   private void registerId(SqlIdentifier id, SqlValidatorScope scope) {
     for (int i = 0; i < id.names.size(); i++) {
       final SqlParserPos subPos = id.getComponentParserPosition(i);
@@ -94,6 +96,26 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       idPositions.put(subPos.toString(), new IdInfo(scope, subId));
     }
   }
+
+  /**
+   * Resolves a SqlTableIdentifierWithID to a fully-qualified name.
+   *
+   * @param id    SqlTableIdentifierWithID
+   * @param scope Naming scope
+   */
+  @Override public void validateTableIdentifierWithID(
+      SqlTableIdentifierWithID id, SqlValidatorScope scope) {
+    // TODO: Fix registerId when we start actually using hints. This entire
+    // class is used for hints so we don't need full functionality.
+    registerId(id.convertToSQLIdentifier(), scope);
+    try {
+      super.validateTableIdentifierWithID(id, scope);
+    } catch (CalciteException e) {
+      Util.swallow(e, TRACER);
+    }
+
+  }
+
 
   @Override public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
     // Disable expansion. It doesn't help us come up with better hints.

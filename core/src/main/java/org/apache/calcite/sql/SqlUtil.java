@@ -417,6 +417,30 @@ public abstract class SqlUtil {
     writer.endList(frame);
   }
 
+  /**
+   * Unparse a SqlTableIdentifierWithID syntax.
+   *
+   * @param writer       Writer
+   * @param identifier   SqlTableIdentifierWithID
+   */
+  public static void unparseSqlTableIdentifierWithIDSyntax(
+      SqlWriter writer,
+      SqlTableIdentifierWithID identifier) {
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.IDENTIFIER);
+
+    for (int i = 0; i < identifier.names.size(); i++) {
+      writer.sep(".");
+      final String name = identifier.names.get(i);
+      final SqlParserPos pos = identifier.getComponentParserPosition(i);
+      writer.identifier(name, pos.isQuoted());
+    }
+    if (null != identifier.getCollation()) {
+      identifier.getCollation().unparse(writer);
+    }
+    writer.endList(frame);
+  }
+
   public static void unparseBinarySyntax(
       SqlOperator operator,
       SqlCall call,
@@ -1283,6 +1307,10 @@ public abstract class SqlUtil {
     }
 
     @Override public Void visit(SqlIdentifier id) {
+      return check(id);
+    }
+
+    @Override public Void visit(SqlTableIdentifierWithID id) {
       return check(id);
     }
 

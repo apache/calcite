@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -90,6 +91,41 @@ public class OrderByScope extends DelegatingScope {
       if (field != null && !field.isDynamicStar() && aliasCount == 1) {
         // if identifier is resolved to a dynamic star, use super.fullyQualify() for such case.
         return SqlQualified.create(this, 1, selectNs, identifier);
+      }
+    }
+    return super.fullyQualify(identifier);
+  }
+
+
+  /**
+   * Converts a table identifier with an ID column into a fully-qualified identifier.
+   * For example, the dept in "select empno from emp natural join dept" may become
+   * "myschema.dept".
+   *
+   * @param identifier SqlTableIdentifierWithID to qualify
+   * @return A qualified identifier, never null
+   */
+  @Override public SqlTableIdentifierWithIDQualified fullyQualify(
+      SqlTableIdentifierWithID identifier) {
+    // If it's a simple identifier, look for an alias.
+    if (identifier.isSimple()
+        && validator.config().conformance().isSortByAlias()) {
+      final String name = identifier.getNames().get(0);
+      final SqlValidatorNamespace selectNs =
+          validator.getNamespaceOrThrow(select);
+      final RelDataType rowType = selectNs.getRowType();
+
+      final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+      final RelDataTypeField field = nameMatcher.field(rowType, name);
+      final int aliasCount = aliasCount(nameMatcher, name);
+      if (aliasCount > 1) {
+        // More than one table has this alias.
+        throw validator.newValidationError(identifier,
+            RESOURCE.columnAmbiguous(name));
+      }
+      if (field != null && aliasCount == 1) {
+        // if identifier is resolved to a dynamic star, use super.fullyQualify() for such case.
+        return SqlTableIdentifierWithIDQualified.create(this, 1, selectNs, identifier);
       }
     }
     return super.fullyQualify(identifier);

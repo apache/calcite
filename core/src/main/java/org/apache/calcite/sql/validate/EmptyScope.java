@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -73,6 +74,20 @@ class EmptyScope implements SqlValidatorScope {
 
   @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     return SqlQualified.create(this, 1, null, identifier);
+  }
+
+  /**
+   * Converts a table identifier with an ID column into a fully-qualified identifier.
+   * For example, the dept in "select empno from emp natural join dept" may become
+   * "myschema.dept".
+   *
+   * @param identifier SqlTableIdentifierWithID to qualify.
+   * @return A qualified identifier, never null
+   */
+  @Override public SqlTableIdentifierWithIDQualified fullyQualify(
+      SqlTableIdentifierWithID identifier) {
+    return SqlTableIdentifierWithIDQualified.create(
+        this, 1, null, identifier);
   }
 
   @Override public SqlNode getNode() {

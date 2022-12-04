@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -53,6 +54,21 @@ public class ParameterScope extends EmptyScope {
 
   @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     return SqlQualified.create(this, 1, null, identifier);
+  }
+
+
+  /**
+   * Converts a table identifier with an ID column into a fully-qualified identifier.
+   * For example, the dept in "select empno from emp natural join dept" may become
+   * "myschema.dept".
+   *
+   * @param identifier SqlTableIdentifierWithID to qualify.
+   * @return A qualified identifier, never null
+   */
+  @Override public SqlTableIdentifierWithIDQualified fullyQualify(
+      SqlTableIdentifierWithID identifier) {
+    return SqlTableIdentifierWithIDQualified.create(
+        this, 1, null, identifier);
   }
 
   @Override public SqlValidatorScope getOperandScope(SqlCall call) {

@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNamedParam;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -58,6 +59,10 @@ public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
   }
 
   @Override public R visit(SqlIdentifier id) {
+    return null;
+  }
+
+  @Override public R visit(SqlTableIdentifierWithID id) {
     return null;
   }
 

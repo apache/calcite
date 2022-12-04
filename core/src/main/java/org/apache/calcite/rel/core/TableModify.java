@@ -68,9 +68,9 @@ public abstract class TableModify extends SingleRel {
 
     //We assign each enum an integer value. This is used when converting "MERGE INTO" into a
     // LogicalTableModify node, to enumerate which action should be taken for each row.
-    INSERT(0),
-    UPDATE(1),
-    DELETE(2),
+    DELETE(0),
+    INSERT(1),
+    UPDATE(2),
     MERGE(3);
 
     private final int value;

@@ -3434,7 +3434,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "when matched and target.sal < 10 then\n"
         + "  update set sal = target.sal + source.sal + 10\n"
         + "when matched and target.sal = 10 then\n"
-        + "  update set sal = -10\n"
+        + "  DELETE\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (ABS(source.empno), source.sal, source.ename)\n"
@@ -3453,7 +3453,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "when matched and target.sal < 10 then\n"
         + "  update set sal = target.sal + source.sal + 10\n"
         + "when matched and target.sal = 10 then\n"
-        + "  update set sal = -10\n"
+        + "  DELETE\n"
         + "when not matched and source.sal > 20 then\n"
         + "  insert (empno, sal, ename)\n"
         + "  values (ABS(source.empno), source.sal, source.ename)\n"
@@ -3467,7 +3467,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql1).ok();
     sql(sql2).ok();
   }
-
 
   @Test void testMergeConditionManyNested() {
     // Tests a basic merge query with multiple matched/not matched conditions,

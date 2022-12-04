@@ -57,6 +57,7 @@ import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlTableRef;
+import org.apache.calcite.sql.SqlTableRefWithID;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.test.SqlTestFactory;
@@ -337,8 +338,8 @@ class SqlHintsConverterTest {
     final String sql1 = HintTools.withHint(sql);
 
     final SqlMerge sqlMerge = (SqlMerge) sql(sql1).parseQuery();
-    assert sqlMerge.getTargetTable() instanceof SqlTableRef;
-    final SqlTableRef tableRef = (SqlTableRef) sqlMerge.getTargetTable();
+    assert sqlMerge.getTargetTable() instanceof SqlTableRefWithID;
+    final SqlTableRefWithID tableRef = (SqlTableRefWithID) sqlMerge.getTargetTable();
     List<RelHint> hints = SqlUtil.getRelHint(HintTools.HINT_STRATEGY_TABLE,
         (SqlNodeList) tableRef.getOperandList().get(1));
     assertHintsEquals(

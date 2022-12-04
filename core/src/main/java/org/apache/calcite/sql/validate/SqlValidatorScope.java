@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -122,6 +123,16 @@ public interface SqlValidatorScope {
    * @return A qualified identifier, never null
    */
   SqlQualified fullyQualify(SqlIdentifier identifier);
+
+  /**
+   * Converts a table identifier with an ID column into a fully-qualified identifier.
+   * For example, the dept in "select empno from emp natural join dept" may become
+   * "myschema.dept".
+   *
+   * @return A qualified identifier, never null
+   */
+  SqlTableIdentifierWithIDQualified fullyQualify(SqlTableIdentifierWithID identifier);
+
 
   /**
    * Registers a relation in this scope.

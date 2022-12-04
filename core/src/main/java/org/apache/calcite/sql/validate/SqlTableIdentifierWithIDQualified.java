@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -33,13 +33,13 @@ import java.util.List;
  *
  * <p>It is immutable.
  */
-public class SqlQualified {
+public class SqlTableIdentifierWithIDQualified {
   public final int prefixLength;
   public final @Nullable SqlValidatorNamespace namespace;
-  public final SqlIdentifier identifier;
+  public final SqlTableIdentifierWithID identifier;
 
-  private SqlQualified(@Nullable SqlValidatorScope scope, int prefixLength,
-      @Nullable SqlValidatorNamespace namespace, SqlIdentifier identifier) {
+  private SqlTableIdentifierWithIDQualified(@Nullable SqlValidatorScope scope, int prefixLength,
+      @Nullable SqlValidatorNamespace namespace, SqlTableIdentifierWithID identifier) {
     Util.discard(scope);
     this.prefixLength = prefixLength;
     this.namespace = namespace;
@@ -50,16 +50,21 @@ public class SqlQualified {
     return "{id: " + identifier + ", prefix: " + prefixLength + "}";
   }
 
-  public static SqlQualified create(@Nullable SqlValidatorScope scope, int prefixLength,
-      @Nullable SqlValidatorNamespace namespace, SqlIdentifier identifier) {
-    return new SqlQualified(scope, prefixLength, namespace, identifier);
+  public static SqlTableIdentifierWithIDQualified create(@Nullable SqlValidatorScope scope,
+      int prefixLength, @Nullable SqlValidatorNamespace namespace,
+      SqlTableIdentifierWithID identifier) {
+    return new SqlTableIdentifierWithIDQualified(scope, prefixLength, namespace, identifier);
   }
 
   public final List<String> prefix() {
-    return identifier.names.subList(0, prefixLength);
+    return identifier.getNames().subList(0, prefixLength);
   }
 
   public final List<String> suffix() {
-    return Util.skip(identifier.names, prefixLength);
+    return Util.skip(identifier.getNames(), prefixLength);
+  }
+
+  public SqlQualified convertToQualified() {
+    return SqlQualified.create(null, prefixLength, namespace, identifier.convertToSQLIdentifier());
   }
 }
