@@ -103,7 +103,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -868,19 +867,25 @@ public class RelToSqlConverter extends SqlImplementor
       if (hasTrickyRollup(e, aggregate)) {
         // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)", only
         // the non-standard "GROUP BY x, y WITH ROLLUP".
-        // It does not allow "WITH ROLLUP" in combination with "ORDER BY",
-        // but "GROUP BY x, y WITH ROLLUP" implicitly sorts by x, y,
-        // so skip the ORDER BY.
-        final Set<Integer> groupList = new LinkedHashSet<>();
-        for (RelFieldCollation fc : e.collation.getFieldCollations()) {
-          groupList.add(aggregate.getGroupSet().nth(fc.getFieldIndex()));
-        }
-        groupList.addAll(Aggregate.Group.getRollup(aggregate.getGroupSets()));
         final Builder builder =
-            visitAggregate(aggregate, ImmutableList.copyOf(groupList),
+            visitAggregate(aggregate,
+                Aggregate.Group.getRollup(aggregate.getGroupSets()),
                 Clause.GROUP_BY, Clause.OFFSET, Clause.FETCH);
-        offsetFetch(e, builder);
-        return builder.result();
+        Result result = builder.result();
+        if (e.getSortExps().isEmpty()) {
+          offsetFetch(e, builder);
+          return result;
+        }
+        // It does not allow "WITH ROLLUP" in combination with "ORDER BY",
+        // so generate the grouped result apply ORDER BY to it.
+        SqlSelect sqlSelect = result.subSelect();
+        SqlNodeList sortExps = exprList(builder.context, e.getSortExps());
+        sqlSelect.setOrderBy(sortExps);
+        SqlNode offset = e.offset == null ? null : builder.context.toSql(null, e.offset);
+        sqlSelect.setOffset(offset);
+        SqlNode fetch = e.fetch == null ? null : builder.context.toSql(null, e.fetch);
+        sqlSelect.setFetch(fetch);
+        return result(sqlSelect, ImmutableList.of(Clause.ORDER_BY), e, null);
       }
     }
     if (e.getInput() instanceof Project) {
