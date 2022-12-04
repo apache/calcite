@@ -696,9 +696,11 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
         + "ORDER BY \"brand_name\", \"product_class_id\"";
-    final String expectedMysql = "SELECT `product_class_id`, `brand_name`\n"
+    final String expectedMysql = "SELECT *\n"
+        + "FROM (SELECT `product_class_id`, `brand_name`\n"
         + "FROM `foodmart`.`product`\n"
-        + "GROUP BY `brand_name`, `product_class_id` WITH ROLLUP";
+        + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP) AS `t0`\n"
+        + "ORDER BY `brand_name`, `product_class_id`";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql);
