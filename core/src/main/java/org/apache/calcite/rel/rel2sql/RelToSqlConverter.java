@@ -867,12 +867,23 @@ public class RelToSqlConverter extends SqlImplementor
       if (hasTrickyRollup(e, aggregate)) {
         // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)", only
         // the non-standard "GROUP BY x, y WITH ROLLUP".
+        List<Integer> rollupList = Aggregate.Group.getRollup(aggregate.getGroupSets());
+        List<Integer> sortList = e.getCollation()
+            .getFieldCollations()
+            .stream()
+            .map(f -> aggregate.getGroupSet().nth(f.getFieldIndex()))
+            .collect(Collectors.toList());
+        // It does not allow "WITH ROLLUP" in combination with "ORDER BY",
+        // but "GROUP BY x, y WITH ROLLUP" implicitly sorts by x, y,
+        // so skip the ORDER BY.
+        boolean isImplicitlySort = rollupList.subList(0, sortList.size()).equals(sortList);
         final Builder builder =
             visitAggregate(aggregate,
-                Aggregate.Group.getRollup(aggregate.getGroupSets()),
+                rollupList,
                 Clause.GROUP_BY, Clause.OFFSET, Clause.FETCH);
         Result result = builder.result();
-        if (e.getSortExps().isEmpty()) {
+        if (sortList.isEmpty()
+            || isImplicitlySort) {
           offsetFetch(e, builder);
           return result;
         }
