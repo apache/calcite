@@ -587,7 +587,7 @@ public class SqlDialect {
         RelDataTypeSystem.DEFAULT);
   }
 
-  protected void unparseDateModule(SqlWriter writer, SqlCall call,
+  protected void unparseDateMod(SqlWriter writer, SqlCall call,
                                  int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall("MOD");
     writer.print("(");
