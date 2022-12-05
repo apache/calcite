@@ -43,7 +43,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -289,16 +288,19 @@ public class UnpivotRelToSqlUtil {
     boolean casePatternMatched = false;
     int elseClauseIndex = caseRex.getOperands().size() - 1;
     for (int i = 0, j = 0; i < elseClauseIndex; i += 2, j++) {
-      List<RexNode> whenClause = ((RexCall) (caseRex.operands.get(i))).getOperands();
-      int indexOfLeftOperandOfWhen = ((RexInputRef) (whenClause.get(0))).getIndex();
-      String nameOfLeftOperandOfWhen = projectRel.getInput(0).getRowType().getFieldNames()
-          .get(indexOfLeftOperandOfWhen);
-      casePatternMatched = Objects.equals(nameOfLeftOperandOfWhen, logicalValuesAlias)
-          && Objects.equals(whenClause.get(1).toString(), logicalValuesList.get(j).toString())
-          && caseRex.getOperands().get(elseClauseIndex).getType().getSqlTypeName()
-          == SqlTypeName.NULL;
-      if (!casePatternMatched) {
-        break;
+      List<RexNode> whenOperandList = ((RexCall) (caseRex.operands.get(i))).getOperands();
+      if (whenOperandList.size() == 2 && whenOperandList.get(0) instanceof RexInputRef) {
+        int indexOfLeftOperandOfWhen = ((RexInputRef) (whenOperandList.get(0))).getIndex();
+        String nameOfLeftOperandOfWhen = projectRel.getInput(0).getRowType().getFieldNames()
+            .get(indexOfLeftOperandOfWhen);
+        casePatternMatched = Objects.equals(nameOfLeftOperandOfWhen, logicalValuesAlias)
+            && Objects.equals(whenOperandList.get(1).toString(),
+            logicalValuesList.get(j).toString())
+            && caseRex.getOperands().get(elseClauseIndex).getType().getSqlTypeName()
+            == SqlTypeName.NULL;
+        if (!casePatternMatched) {
+          break;
+        }
       }
     }
     return casePatternMatched;
@@ -345,7 +347,7 @@ public class UnpivotRelToSqlUtil {
    * Fetch all the case operands from projection with case aliases.
    */
   private Map<RexCall, String> getCaseRexCallFromProjectionWithAlias(Project projectRel) {
-    Map<RexCall, String> caseRexCallVsAlias = new HashMap<>();
+    Map<RexCall, String> caseRexCallVsAlias = new LinkedHashMap<>();
     for (int i = 0; i < projectRel.getProjects().size(); i++) {
       RexNode projectRex = projectRel.getProjects().get(i);
       if (projectRex instanceof RexCall
