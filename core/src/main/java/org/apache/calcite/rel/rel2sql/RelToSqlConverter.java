@@ -873,8 +873,7 @@ public class RelToSqlConverter extends SqlImplementor
             .stream()
             .map(f -> aggregate.getGroupSet().nth(f.getFieldIndex()))
             .collect(Collectors.toList());
-        // It does not allow "WITH ROLLUP" in combination with "ORDER BY",
-        // but "GROUP BY x, y WITH ROLLUP" implicitly sorts by x, y,
+        // "GROUP BY x, y WITH ROLLUP" implicitly sorts by x, y,
         // so skip the ORDER BY.
         boolean isImplicitlySort = rollupList.subList(0, sortList.size()).equals(sortList);
         final Builder builder =
