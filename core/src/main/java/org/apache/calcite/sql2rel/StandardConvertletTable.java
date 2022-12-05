@@ -165,6 +165,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
 
+    registerOp(SqlLibraryOperators.TIMESTAMP_ADD2,
+        new TimestampAddConvertlet());
+
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
         StandardConvertletTable::convertDecode);
@@ -261,7 +264,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final SqlRexConvertlet floorCeilConvertlet = new FloorCeilConvertlet();
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
     registerOp(SqlStdOperatorTable.CEIL, floorCeilConvertlet);
-
     registerOp(SqlStdOperatorTable.TIMESTAMP_ADD, new TimestampAddConvertlet());
     registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF,
         new TimestampDiffConvertlet());
@@ -1822,18 +1824,34 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 
-  /** Convertlet that handles the {@code TIMESTAMPADD} function. */
+  /** Convertlet that handles the 3-argument {@code TIMESTAMPADD} function
+   * and the 2-argument BigQuery-style {@code TIMESTAMP_ADD} function. */
   private static class TimestampAddConvertlet implements SqlRexConvertlet {
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPADD(unit, count, timestamp)
       //  => timestamp + count * INTERVAL '1' UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
-      SqlIntervalQualifier qualifier = call.operand(0);
+      SqlIntervalQualifier qualifier;
+      final RexNode op1;
+      final RexNode op2;
+      switch (call.operandCount()) {
+      case 2:
+        // BigQuery-style 'TIMESTAMP_ADD(timestamp, interval)'
+        final SqlBasicCall operandCall = call.operand(1);
+        qualifier  = operandCall.operand(1);
+        op1 = cx.convertExpression(operandCall.operand(0));
+        op2 = cx.convertExpression(call.operand(0));
+        break;
+      default:
+        // JDBC-style 'TIMESTAMPADD(unit, count, timestamp)'
+        qualifier = call.operand(0);
+        op1 = cx.convertExpression(call.operand(1));
+        op2 = cx.convertExpression(call.operand(2));
+      }
+
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
       final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
       final RelDataType type = cx.getValidator().getValidatedNodeType(call);
-      final RexNode op1 = cx.convertExpression(call.operand(1));
-      final RexNode op2 = cx.convertExpression(call.operand(2));
       if (unit == TimeUnit.EPOCH && qualifier.timeFrameName != null) {
         // Custom time frames have a different path. They are kept as names,
         // and then handled by Java functions such as

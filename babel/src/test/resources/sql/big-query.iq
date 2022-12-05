@@ -1197,6 +1197,8 @@ SELECT
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
 !if (false) {
+# Enable when we have TIMESTAMP() function,
+# and when we allow "+00" timezone offset in timestamp values.
 SELECT
   TIMESTAMP("2008-12-25 15:30:00+00") AS original,
   TIMESTAMP_ADD(TIMESTAMP "2008-12-25 15:30:00+00", INTERVAL 10 MINUTE) AS later;
@@ -1205,8 +1207,24 @@ SELECT
 +-------------------------+-------------------------+
 | 2008-12-25 15:30:00 UTC | 2008-12-25 15:40:00 UTC |
 +-------------------------+-------------------------+
+(1 row)
+
 !ok
 !}
+
+# As previous, but uses TIMESTAMP literal rather than function,
+# and "+00" timezone offsets have been removed.
+SELECT
+  TIMESTAMP "2008-12-25 15:30:00" AS original,
+  TIMESTAMP_ADD(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 10 MINUTE) AS later;
++---------------------+---------------------+
+| original            | later               |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:40:00 |
++---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # DATE_SUB

@@ -7725,6 +7725,49 @@ public class SqlOperatorTest {
         "TIMESTAMP(3) NOT NULL");
   }
 
+  /** Tests {@code TIMESTAMP_ADD}, BigQuery's 2-argument variant of the
+   * 3-argument {@code TIMESTAMPADD} function. */
+  @Test void testTimestampAdd2() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIMESTAMP_ADD2);
+    f0.checkFails("^timestamp_add(timestamp '2008-12-25 15:30:00', "
+            + "interval 5 minute)^",
+        "No match found for function signature "
+            + "TIMESTAMP_ADD\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    if (Bug.CALCITE_5422_FIXED) {
+      f.checkScalar("timestamp_add(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000000 microsecond)",
+          "2008-12-26 19:16:40",
+          "TIMESTAMP(3) NOT NULL");
+      f.checkScalar("timestamp_add(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000 millisecond)",
+          "2008-12-26 19:16:40",
+          "TIMESTAMP(3) NOT NULL");
+    }
+
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 2 second)",
+        "2016-02-24 12:42:27",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 2 minute)",
+        "2016-02-24 12:44:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval -2000 hour)",
+        "2015-12-03 04:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 1 day)",
+        "2016-02-25 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 1 month)",
+        "2016-03-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 1 year)",
+        "2017-02-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkNull("timestamp_add(CAST(NULL AS TIMESTAMP), interval 5 minute)");
+  }
+
   @Test void testTimestampDiff() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF, VmName.EXPAND);
