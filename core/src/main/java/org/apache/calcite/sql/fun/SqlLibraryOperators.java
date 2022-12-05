@@ -1347,7 +1347,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATE,
           SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       new SqlFunction(
           "DATE_TRUNC",
