@@ -7913,7 +7913,50 @@ public class SqlOperatorTest {
         "2015-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
   }
 
-  @Test void testDenseRankFunc() {
+  @Test void testBigQueryTimestampAdd() {
+    final SqlOperatorFixture nonBigQuery = fixture()
+        .setFor(SqlLibraryOperators.TIMESTAMP_ADD_BIG_QUERY);
+    nonBigQuery.checkFails("^timestamp_add(timestamp '2008-12-25 15:30:00', "
+            + "interval 5 minute)^",
+        "No match found for function signature "
+            + "TIMESTAMP_ADD\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.TIMESTAMP_ADD_BIG_QUERY);
+    f.checkScalar("timestamp_add(timestamp '2008-12-25 15:30:00', "
+            + "interval 5000000000 nanosecond)",
+        "2008-12-25 15:30:05",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar(
+        "timestamp_add(timestamp '2008-12-25 15:30:00', interval 100000000000 microsecond)",
+        "2008-12-26 19:16:40",
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2008-12-25 15:30:00', interval 100000000 millisecond)",
+        "2008-12-26 19:16:40",
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 2 second)",
+        "2016-02-24 12:42:27",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 2 minute)",
+        "2016-02-24 12:44:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval -2000 hour)",
+        "2015-12-03 04:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 1 day)",
+        "2016-02-25 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 1 month)",
+        "2016-03-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 1 year)",
+        "2017-02-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkNull("timestamp_add(CAST(NULL AS TIMESTAMP), interval 5 minute)");
+  }
+
+    @Test void testDenseRankFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);
   }

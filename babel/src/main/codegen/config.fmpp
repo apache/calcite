@@ -465,6 +465,7 @@ data: {
 #     "TIME"
       "TIME_TRUNC"
 #     "TIMESTAMP"
+      "TIMESTAMP_ADD"
       "TIMESTAMP_TRUNC"
       "TIMEZONE_HOUR"
       "TIMEZONE_MINUTE"

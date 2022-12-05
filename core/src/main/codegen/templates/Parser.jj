@@ -4824,7 +4824,7 @@ SqlNode IntervalLiteralOrExpression() :
         |
             e = CompoundIdentifier()
         )
-        intervalQualifier = IntervalQualifierStart() {
+        intervalQualifier = TimeUnitOrName() {
             if (sign == -1) {
                 e = SqlStdOperatorTable.UNARY_MINUS.createCall(e.getParserPosition(), e);
             }

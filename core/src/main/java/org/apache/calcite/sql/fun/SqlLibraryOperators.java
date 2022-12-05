@@ -634,6 +634,13 @@ public abstract class SqlLibraryOperators {
       ImmutableSet.<TimeUnitRange>builder()
           .addAll(MONTH_UNITS).addAll(DATE_UNITS).addAll(TIME_UNITS).build();
 
+  /** The "TIMESTAMP_ADD(timestamp_expression, INTERVAL int64_expression date_part)"
+   * function (BigQuery); Adds int64_expression units of date_part to the timestamp,
+   * independent of any time zone.*/
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_ADD_BIG_QUERY =
+      new SqlTimestampAddBigQueryFunction("TIMESTAMP_ADD");
+
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
    * always rounded to the beginning of time_part. */
