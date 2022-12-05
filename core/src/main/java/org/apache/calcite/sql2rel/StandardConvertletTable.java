@@ -264,6 +264,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final SqlRexConvertlet floorCeilConvertlet = new FloorCeilConvertlet();
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
     registerOp(SqlStdOperatorTable.CEIL, floorCeilConvertlet);
+    registerOp(SqlStdOperatorTable.TIMESTAMP_ADD,
+        new TimestampAddConvertlet(SqlLibrary.STANDARD));
     registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF,
         new TimestampDiffConvertlet());
 
