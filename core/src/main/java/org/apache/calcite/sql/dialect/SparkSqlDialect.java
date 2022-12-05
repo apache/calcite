@@ -107,6 +107,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
@@ -756,16 +757,14 @@ public class SparkSqlDialect extends SqlDialect {
 
   private void unparseDateTruncWithDayFormat(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    SqlWriter.Frame castFrame = writer.startFunCall("CAST");
-    SqlWriter.Frame dateTruncFrame = writer.startFunCall("DATE_TRUNC");
-    for (int i = call.getOperandList().size() - 1; i >= 0; i--) {
-      writer.sep(",");
-      call.operand(i).unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(dateTruncFrame);
-    writer.sep("AS", true);
-    writer.literal("DATE");
-    writer.endFunCall(castFrame);
+    SqlCall dateTruncOperandCall = DATE_TRUNC.createCall(SqlParserPos.ZERO,
+        call.operand(1), call.operand(0));
+    SqlNode dateNode = getCastSpec(
+        new BasicSqlType(RelDataTypeSystem.DEFAULT,
+            SqlTypeName.DATE));
+    super.unparseCall(
+        writer, CAST.createCall(SqlParserPos.ZERO, dateTruncOperandCall,
+        dateNode), leftPrec, rightPrec);
   }
 
   protected void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

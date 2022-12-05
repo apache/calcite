@@ -1348,6 +1348,16 @@ public abstract class SqlLibraryOperators {
           SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATE_TRUNC =
+      new SqlFunction(
+          "DATE_TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING,
+              SqlTypeFamily.TIMESTAMP), SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction RAISE_ERROR =
       new SqlFunction("RAISE_ERROR",
           SqlKind.OTHER_FUNCTION,
