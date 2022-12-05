@@ -844,8 +844,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call.operand(1), leftPrec, rightPrec);
       break;
-    case PLUS:
-      break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
     }
