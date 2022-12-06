@@ -320,7 +320,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       writer.endFunCall(regexpInstr);
       break;
     case "DATE_MOD":
-      unparseDateModule(writer, call, leftPrec, rightPrec);
+      unparseDateMod(writer, call, leftPrec, rightPrec);
       break;
     case "RAND_INTEGER":
       unparseRandom(writer, call, leftPrec, rightPrec);
