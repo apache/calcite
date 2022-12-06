@@ -9603,85 +9603,100 @@ class RelToSqlConverterTest {
   @Test public void testdatetrunc() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("DAY"));
+        builder.literal("2008-09-12"), builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'DAY') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'DAY') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', DAY) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', DAY) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT CAST(DATE_TRUNC('DAY', '2008-09-12') AS DATE) FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
   @Test public void testdatetruncWithYear() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("YEAR"));
+        builder.literal("2008-09-12"), builder.literal("YEAR"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'YEAR') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'YEAR') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', YEAR) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', YEAR) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'YEAR') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testdatetruncWithQuarter() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("QUARTER"));
+        builder.literal("2008-09-12"), builder.literal("QUARTER"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'QUARTER') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'QUARTER') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', QUARTER) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', QUARTER) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'QUARTER') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testdatetruncWithMonth() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("MONTH"));
+        builder.literal("2008-09-12"), builder.literal("MONTH"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'MONTH') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'MONTH') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', MONTH) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', MONTH) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'MONTH') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testdatetruncWithWeek() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-19-12"), builder.literal("WEEK"));
+        builder.literal("2008-09-12"), builder.literal("WEEK"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
         .build();
-    final String expectedSql = "SELECT TRUNC('2008-19-12', 'WEEK') AS \"FD\"\n"
+    final String expectedSql = "SELECT TRUNC('2008-09-12', 'WEEK') AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-19-12', WEEK) AS FD\n"
+    final String expectedBiqQuery = "SELECT DATE_TRUNC('2008-09-12', WEEK) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC('2008-09-12', 'WEEK') FD\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithYear() {
@@ -9697,8 +9712,11 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " YEAR) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'YEAR') FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithMonth() {
@@ -9714,8 +9732,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " MONTH) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'MONTH') "
+        + "FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithQuarter() {
@@ -9731,8 +9753,12 @@ class RelToSqlConverterTest {
         + "\nFROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " QUARTER) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'QUARTER') "
+        + "FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithWeek() {
@@ -9748,8 +9774,11 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " WEEK) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT TRUNC(TIMESTAMP '2017-02-14 20:38:40', 'WEEK') FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithDay() {
@@ -9765,8 +9794,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " DAY) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT CAST(DATE_TRUNC('DAY', TIMESTAMP '2017-02-14 "
+        + "20:38:40') AS DATE) FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithHour() {
@@ -9799,8 +9832,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " MINUTE) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('MINUTE', TIMESTAMP '2017-02-14 "
+        + "20:38:40') FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithSecond() {
@@ -9816,8 +9853,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " SECOND) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('SECOND', TIMESTAMP '2017-02-14 "
+        + "20:38:40') FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithMilliSecond() {
@@ -9833,8 +9874,12 @@ class RelToSqlConverterTest {
         + " AS \"FD\"\nFROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " MILLISECOND) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('MILLISECOND', TIMESTAMP '2017-02-14 "
+        + "20:38:40') FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testDateTimeTruncWithMicroSecond() {
@@ -9850,8 +9895,12 @@ class RelToSqlConverterTest {
         + " AS \"FD\"\nFROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT DATETIME_TRUNC(CAST('2017-02-14 20:38:40' AS DATETIME),"
         + " MICROSECOND) AS FD\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('MICROSECOND', TIMESTAMP '2017-02-14 "
+        + "20:38:40') FD\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testTimeTruncWithHour() {
@@ -9866,9 +9915,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', HOUR) AS FD\n"
         + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('HOUR', '20:48:18') FD\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
   @Test public void testTimeTruncWithMinute() {
     final RelBuilder builder = relBuilder();
@@ -9882,9 +9934,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MINUTE) AS FD\n"
         + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('MINUTE', '20:48:18') FD\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testTimeTruncWithSecond() {
@@ -9899,9 +9954,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', SECOND) AS FD\n"
         + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('SECOND', '20:48:18') FD\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testTimeTruncWithMiliSecond() {
@@ -9916,9 +9974,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MILLISECOND) AS FD\n"
         + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('MILLISECOND', '20:48:18') FD\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testTimeTruncWithMicroSecond() {
@@ -9933,9 +9994,12 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT TIME_TRUNC('20:48:18', MICROSECOND) AS FD\n"
         + "FROM scott.EMP";
+    final String expectedSparkQuery = "SELECT DATE_TRUNC('MICROSECOND', '20:48:18') FD\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testhashrow() {
@@ -10669,8 +10733,8 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(trunc)
         .build();
-    final String expectedSparkSql = "SELECT DATE_TRUNC('DAY', TIMESTAMP '2017-02-14 20:38:40') "
-        + "$f0\nFROM scott.EMP";
+    final String expectedSparkSql = "SELECT CAST(DATE_TRUNC('DAY', TIMESTAMP '2017-02-14 "
+        + "20:38:40') AS DATE) $f0\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
