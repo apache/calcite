@@ -639,7 +639,9 @@ public abstract class SqlLibraryOperators {
    * independent of any time zone.*/
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_ADD_BIG_QUERY =
-      new SqlTimestampAddBigQueryFunction("TIMESTAMP_ADD");
+      SqlBasicFunction.create(SqlKind.TIMESTAMP_ADD, ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.TIMESTAMP_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is

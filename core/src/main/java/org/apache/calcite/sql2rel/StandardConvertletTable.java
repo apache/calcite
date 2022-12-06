@@ -166,7 +166,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
 
     registerOp(SqlLibraryOperators.TIMESTAMP_ADD_BIG_QUERY,
-        new TimestampAddConvertlet(SqlLibrary.BIG_QUERY));
+        new TimestampAddConvertlet());
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
@@ -264,8 +264,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final SqlRexConvertlet floorCeilConvertlet = new FloorCeilConvertlet();
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
     registerOp(SqlStdOperatorTable.CEIL, floorCeilConvertlet);
-    registerOp(SqlStdOperatorTable.TIMESTAMP_ADD,
-        new TimestampAddConvertlet(SqlLibrary.STANDARD));
+    registerOp(SqlStdOperatorTable.TIMESTAMP_ADD, new TimestampAddConvertlet());
     registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF,
         new TimestampDiffConvertlet());
 
@@ -1825,32 +1824,26 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 
-  /** Convertlet that handles the {@code TIMESTAMPADD} function. */
+  /** Convertlet that handles the 3-argument {@code TIMESTAMPADD} function
+   * and the 2-argument BigQuery-style {@code TIMESTAMP_ADD} function. */
   private static class TimestampAddConvertlet implements SqlRexConvertlet {
-    private final SqlLibrary library;
-
-    TimestampAddConvertlet(SqlLibrary library) {
-      this.library = library;
-      Preconditions.checkArgument(library == SqlLibrary.STANDARD
-          || library == SqlLibrary.BIG_QUERY);
-    }
-
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPADD(unit, count, timestamp)
       //  => timestamp + count * INTERVAL '1' UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
       SqlIntervalQualifier qualifier;
-      final SqlBasicCall operandCall;
       final RexNode op1;
       final RexNode op2;
-      switch(library) {
-      case BIG_QUERY:
-        operandCall = call.operand(1);
+      switch (call.operandCount()) {
+      case 2:
+        // BigQuery-style 'TIMESTAMP_ADD(timestamp, interval)'
+        final SqlBasicCall operandCall = call.operand(1);
         qualifier  = operandCall.operand(1);
         op1 = cx.convertExpression(operandCall.operand(0));
         op2 = cx.convertExpression(call.operand(0));
         break;
       default:
+        // JDBC-style 'TIMESTAMPADD(unit, count, timestamp)'
         qualifier = call.operand(0);
         op1 = cx.convertExpression(call.operand(1));
         op2 = cx.convertExpression(call.operand(2));
