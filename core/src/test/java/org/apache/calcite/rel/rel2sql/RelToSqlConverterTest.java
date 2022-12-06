@@ -113,8 +113,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.apache.calcite.avatica.util.TimeUnit.DAY;
+import static org.apache.calcite.avatica.util.TimeUnit.HOUR;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
+import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
@@ -7845,7 +7849,8 @@ class RelToSqlConverterTest {
   }
   @Test void testSelectCountStar() {
     final String query = "select count(*) from \"product\"";
-    final String expected = " ";
+    final String expected = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"";
     Sql sql = sql(query);
     sql.ok(expected);
   }
@@ -10823,5 +10828,90 @@ class RelToSqlConverterTest {
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testCurrentDatePlusIntervalDayHour() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(86400000),
+                new SqlIntervalQualifier(DAY, 6, DAY,
+                    -1, SqlParserPos.ZERO)),
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(3600000),
+                new SqlIntervalQualifier(HOUR, 1, HOUR,
+                    -1, SqlParserPos.ZERO))
+        ));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT CURRENT_DATE + (INTERVAL 1 DAY + INTERVAL 1 HOUR) AS FD"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testCurrentDatePlusIntervalHourMin() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(3600000),
+                new SqlIntervalQualifier(HOUR, 1, HOUR,
+                    -1, SqlParserPos.ZERO)),
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(60000),
+                new SqlIntervalQualifier(MINUTE, 1, MINUTE,
+                    -1, SqlParserPos.ZERO))
+        ));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT CURRENT_DATE + (INTERVAL 1 HOUR + INTERVAL 1 MINUTE) AS FD"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testCurrentDatePlusIntervalHourSec() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(3600000),
+                new SqlIntervalQualifier(HOUR, 1, HOUR,
+                    -1, SqlParserPos.ZERO)),
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
+                new SqlIntervalQualifier(SECOND, 1, SECOND,
+                    -1, SqlParserPos.ZERO))
+        ));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT CURRENT_DATE + (INTERVAL 1 HOUR + INTERVAL 1 SECOND) "
+        + "AS FD"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testCurrentDatePlusIntervalYearMonth() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(12),
+                new SqlIntervalQualifier(YEAR, 1, YEAR,
+                    -1, SqlParserPos.ZERO)),
+            builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1),
+                new SqlIntervalQualifier(MONTH, 1, MONTH,
+                    -1, SqlParserPos.ZERO))));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT CURRENT_DATE + (INTERVAL 1 YEAR + INTERVAL 1 MONTH) "
+        + "AS FD"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 }
