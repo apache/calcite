@@ -48,6 +48,9 @@ public interface CalciteResource {
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 
+  @BaseMessage("VALUE is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> valueNotAllowed();
+
   @BaseMessage("Illegal {0} literal ''{1}'': {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 
@@ -998,6 +1001,4 @@ public interface CalciteResource {
   @BaseMessage("A table function at most has one input table with row semantics. Table function ''{0}'' has multiple input tables with row semantics")
   ExInst<SqlValidatorException> multipleRowSemanticsTables(String funcName);
 
-  @BaseMessage("VALUE is not allowed under the current SQL conformance level")
-  ExInst<CalciteException> valueNotAllowed();
 }
