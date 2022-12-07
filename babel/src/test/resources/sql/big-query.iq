@@ -1196,7 +1196,6 @@ SELECT
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
 # Enable when we have TIMESTAMP() function,
 # and when we allow "+00" timezone offset in timestamp values.
 SELECT
@@ -1210,7 +1209,6 @@ SELECT
 (1 row)
 
 !ok
-!}
 
 # As previous, but uses TIMESTAMP literal rather than function,
 # and "+00" timezone offsets have been removed.

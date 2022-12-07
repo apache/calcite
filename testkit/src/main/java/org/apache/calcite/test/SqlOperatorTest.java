@@ -7923,7 +7923,8 @@ public class SqlOperatorTest {
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
     if (false) {
-      // TODO log bug
+      // https://issues.apache.org/jira/browse/CALCITE-5422 regarding ambiguity surrounding
+      // supported time units
       f.checkScalar("timestamp_add(timestamp '2008-12-25 15:30:00', "
               + "interval 5000000000 nanosecond)",
           "2008-12-25 15:30:05",
@@ -7932,10 +7933,11 @@ public class SqlOperatorTest {
           "timestamp_add(timestamp '2008-12-25 15:30:00', interval 100000000000 microsecond)",
           "2008-12-26 19:16:40",
           "TIMESTAMP(3) NOT NULL");
+      f.checkScalar("timestamp_add(timestamp '2008-12-25 15:30:00', interval 100000000 millisecond)",
+          "2008-12-26 19:16:40",
+          "TIMESTAMP(3) NOT NULL");
     }
-    f.checkScalar("timestamp_add(timestamp '2008-12-25 15:30:00', interval 100000000 millisecond)",
-        "2008-12-26 19:16:40",
-        "TIMESTAMP(3) NOT NULL");
+
     f.checkScalar("timestamp_add(timestamp '2016-02-24 12:42:25', interval 2 second)",
         "2016-02-24 12:42:27",
         "TIMESTAMP(0) NOT NULL");
