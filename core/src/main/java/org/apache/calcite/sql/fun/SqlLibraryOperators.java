@@ -746,21 +746,11 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction POW =
-      new SqlFunction("POW",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DOUBLE_NULLABLE,
-          null,
-          OperandTypes.NUMERIC_NUMERIC,
-          SqlFunctionCategory.NUMERIC);
+      SqlStdOperatorTable.POWER.withName("POW");
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TRUNC =
-      new SqlFunction("TRUNC",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE,
-          null,
-          OperandTypes.NUMERIC_OPTIONAL_INTEGER,
-          SqlFunctionCategory.NUMERIC);
+      SqlStdOperatorTable.TRUNCATE.withName("TRUNC");
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =

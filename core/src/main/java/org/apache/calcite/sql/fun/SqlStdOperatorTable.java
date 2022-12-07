@@ -1598,10 +1598,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * example {@code POWER(INTEGER, INTEGER)} can return a non-INTEGER if the
    * second operand is negative.
    */
-  public static final SqlFunction POWER =
+  public static final SqlBasicFunction POWER =
       SqlBasicFunction.create("POWER",
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NUMERIC_NUMERIC);
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 
   /** The {@code SQRT(numeric)} function. */
   public static final SqlFunction SQRT =
@@ -1742,7 +1743,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC);
 
   /** The {@code TRUNCATE(numeric [, numeric])} function. */
-  public static final SqlFunction TRUNCATE =
+  public static final SqlBasicFunction TRUNCATE =
       SqlBasicFunction.create("TRUNCATE",
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
