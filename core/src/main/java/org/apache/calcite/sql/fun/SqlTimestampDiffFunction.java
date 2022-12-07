@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -72,12 +73,21 @@ class SqlTimestampDiffFunction extends SqlFunction {
             || opBinding.getOperandType(2).isNullable());
   }
 
+  private static FamilyOperandTypeChecker inferOperandType(SqlOperatorBinding opBinding) {
+    if (opBinding.getOperandType(0).toString() == "TimeUnit") {
+      return OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
+          SqlTypeFamily.DATETIME);
+    } else {
+      return OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
+          SqlTypeFamily.ANY);
+    }
+  }
+
   /** Creates a SqlTimestampDiffFunction. */
   SqlTimestampDiffFunction(String name) {
     super(name, SqlKind.TIMESTAMP_DIFF,
         SqlTimestampDiffFunction::inferReturnType2, null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
-            SqlTypeFamily.DATETIME),
+        SqlTimestampDiffFunction::inferOperandType,
         SqlFunctionCategory.TIMEDATE);
   }
 

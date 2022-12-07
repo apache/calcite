@@ -7768,6 +7768,14 @@ public class SqlOperatorTest {
     f.checkNull("timestamp_add(CAST(NULL AS TIMESTAMP), interval 5 minute)");
   }
 
+  @Test void testBigQueryTimestampDiff() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF);
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-25 15:35:00', MINUTE)",
+        "5",
+        "INTEGER NOT NULL");
+  }
   @Test void testTimestampDiff() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF, VmName.EXPAND);

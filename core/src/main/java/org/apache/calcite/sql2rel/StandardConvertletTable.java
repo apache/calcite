@@ -167,6 +167,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     registerOp(SqlLibraryOperators.TIMESTAMP_ADD2,
         new TimestampAddConvertlet());
+    registerOp(SqlLibraryOperators.TIMESTAMP_DIFF,
+        new TimestampDiffConvertlet());
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
@@ -1898,13 +1900,22 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPDIFF(unit, t1, t2)
       //    => (t2 - t1) UNIT
+      SqlIntervalQualifier qualifier;
+      final RexNode op1;
+      final RexNode op2;
+      if (call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER) {
+        qualifier = call.operand(0);
+        op1 = cx.convertExpression(call.operand(1));
+        op2 = cx.convertExpression(call.operand(2));
+      } else {
+        qualifier = call.operand(2);
+        op1 = cx.convertExpression(call.operand(0));
+        op2 = cx.convertExpression(call.operand(1));
+      }
       final RexBuilder rexBuilder = cx.getRexBuilder();
-      SqlIntervalQualifier qualifier = call.operand(0);
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
       final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
 
-      final RexNode op1 = cx.convertExpression(call.operand(1));
-      final RexNode op2 = cx.convertExpression(call.operand(2));
       if (unit == TimeUnit.EPOCH && qualifier.timeFrameName != null) {
         // Custom time frames have a different path. They are kept as names, and
         // then handled by Java functions.
