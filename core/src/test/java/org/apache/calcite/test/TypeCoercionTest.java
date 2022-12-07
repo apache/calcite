@@ -221,7 +221,7 @@ class TypeCoercionTest {
     sql("select * from (values(1, '3')) union select * from (values('2', 4))")
         .type("RecordType(VARCHAR NOT NULL EXPR$0, VARCHAR NOT NULL EXPR$1) NOT NULL");
     sql("select 1 from (values(true)) union values (select '1' from (values (true)) as tt)")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR EXPR$0) NOT NULL");
     // union with func
     sql("select LOCALTIME from (values(true)) union values '1'")
         .type("RecordType(VARCHAR NOT NULL LOCALTIME) NOT NULL");
