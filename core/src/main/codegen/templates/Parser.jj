@@ -6040,6 +6040,8 @@ SqlNode BuiltinFunctionCall() :
     |
         node = TimestampDiffFunctionCall() { return node; }
     |
+        node = TimestampDiff3FunctionCall() { return node; }
+    |
         node = TimestampTruncFunctionCall() { return node; }
     |
         node = TimeTruncFunctionCall() { return node; }
@@ -6589,6 +6591,33 @@ SqlCall TimestampDiffFunctionCall() :
 }
 
 /**
+ * Parses a call to BigQuery's TIMESTAMP_DIFF.
+ *
+ * <p>The difference between TIMESTAMPDIFF and TIMESTAMP_DIFF is the ordering of
+ * the parameters and the arrangement of the subtraction.
+ * TIMESTAMPDIFF uses (unit, timestamp1, timestamp2) with (t2 - t1), while
+ * TIMESTAMP_DIFF uses (timestamp1, timestamp2, unit) with (t1 - t2).
+ */
+SqlCall TimestampDiff3FunctionCall() :
+{
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    final SqlIntervalQualifier unit;
+}
+{
+    <TIMESTAMP_DIFF> { s = span(); }
+    <LPAREN>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    unit = TimeUnitOrName() { args.add(unit); }
+    <RPAREN> {
+        return SqlLibraryOperators.TIMESTAMP_DIFF3.createCall(s.end(this), args);
+    }
+}
+
+/**
  * Parses a call to TIMESTAMP_TRUNC.
  */
 SqlCall TimestampTruncFunctionCall() :
@@ -7129,6 +7158,12 @@ SqlNode JdbcFunctionCall() :
     |
         LOOKAHEAD(1)
         call = TimeTruncFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
+        }
+    |
+        LOOKAHEAD(1)
+        call = TimestampDiff3FunctionCall() {
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
         }
@@ -7977,6 +8012,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TIMESTAMP: "TIMESTAMP" >
 |   < TIMESTAMPADD: "TIMESTAMPADD" >
 |   < TIMESTAMPDIFF: "TIMESTAMPDIFF" >
+|   < TIMESTAMP_DIFF: "TIMESTAMP_DIFF" >
 |   < TIMESTAMP_TRUNC: "TIMESTAMP_TRUNC" >
 |   < TIMEZONE_HOUR: "TIMEZONE_HOUR" >
 |   < TIMEZONE_MINUTE: "TIMEZONE_MINUTE" >

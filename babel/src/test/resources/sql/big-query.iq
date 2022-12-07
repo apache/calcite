@@ -1622,43 +1622,42 @@ SELECT
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
 SELECT
-  TIMESTAMP("2010-07-07 10:20:00+00") AS later_timestamp,
-  TIMESTAMP("2008-12-25 15:30:00+00") AS earlier_timestamp,
-  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00+00", TIMESTAMP "2008-12-25 15:30:00+00", HOUR) AS hours;
-+-------------------------+-------------------------+-------+
-| later_timestamp         | earlier_timestamp       | hours |
-+-------------------------+-------------------------+-------+
-| 2010-07-07 10:20:00 UTC | 2008-12-25 15:30:00 UTC | 13410 |
-+-------------------------+-------------------------+-------+
+  TIMESTAMP "2010-07-07 10:20:00" AS later_timestamp,
+  TIMESTAMP "2008-12-25 15:30:00" AS earlier_timestamp,
+  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00", TIMESTAMP "2008-12-25 15:30:00", HOUR) AS hours;
++---------------------+---------------------+-------+
+| later_timestamp     | earlier_timestamp   | hours |
++---------------------+---------------------+-------+
+| 2010-07-07 10:20:00 | 2008-12-25 15:30:00 | 13410 |
++---------------------+---------------------+-------+
+(1 row)
+
 !ok
-!}
 
 # In the following example, the first timestamp occurs
 # before the second timestamp, resulting in a negative output.
-!if (false) {
-SELECT TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY);
+SELECT TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY) AS negative_diff;
 +---------------+
 | negative_diff |
 +---------------+
-| -61           |
+|           -61 |
 +---------------+
+(1 row)
+
 !ok
-!}
 
 # In this example, the result is 0 because only the number
 # of whole specified HOUR intervals are included.
-!if (false) {
-SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR);
+SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR) AS negative_diff;
 +---------------+
 | negative_diff |
 +---------------+
-| 0             |
+|             0 |
 +---------------+
-!ok
-!}
+(1 row)
 
+!ok
 #####################################################################
 # DATE_TRUNC
 #

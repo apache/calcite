@@ -107,7 +107,8 @@ public abstract class SqlLibraryOperators {
    * argument. */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
   public static final SqlFunction DATEDIFF =
-      new SqlTimestampDiffFunction("DATEDIFF");
+      new SqlTimestampDiffFunction("DATEDIFF",
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE, SqlTypeFamily.DATE));
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
@@ -659,6 +660,16 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(SqlKind.TIMESTAMP_ADD, ReturnTypes.ARG0_NULLABLE,
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_DIFF(timestamp_expression, timestamp_expression, date_time_part)"
+   * function (BigQuery) returns the number of date_time_part between the two timestamp
+   * expressions.
+   *
+   * <p>TIMESTAMP_DIFF(t1, t2, unit) is equivalent to TIMESTAMPDIFF(</p>*/
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_DIFF3 =
+      new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
 
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
