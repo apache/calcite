@@ -59,7 +59,7 @@ import java.util.function.Supplier;
  * server first.
  */
 public class Frameworks {
-  
+
   /**
    * Caches an instance of the JDBC driver.
    */
