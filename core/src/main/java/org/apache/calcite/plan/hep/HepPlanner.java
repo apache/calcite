@@ -66,6 +66,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -221,6 +222,24 @@ public class HepPlanner extends AbstractRelOptPlanner {
         collectGarbage();
       }
     });
+  }
+
+  void newDeadMethod() {
+    Random r = new Random();
+    if (r.nextInt() > 100) {
+      executeProgram(null);
+    } else {
+      executeRuleInstance(null, null);
+    }
+  }
+
+  void anotherDeadMethod() {
+    Random r = new Random();
+    if (r.nextInt() > 100) {
+      executeProgram(null);
+    } else {
+      executeRuleInstance(null, null);
+    }
   }
 
   void executeMatchLimit(HepInstruction.MatchLimit instruction,
