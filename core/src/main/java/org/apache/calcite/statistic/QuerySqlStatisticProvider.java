@@ -87,7 +87,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         (cluster, relOptSchema, relBuilder) -> {
           // Generate:
           //   SELECT COUNT(*) FROM `EMP`
-          relBuilder.push(table.toRel(ViewExpanders.simpleContext(cluster)))
+          relBuilder.push(table.toRel(ViewExpanders.simpleContext(cluster), false))
               .aggregate(relBuilder.groupKey(), relBuilder.count());
 
           final String sql = toSql(relBuilder.build(), dialect);
@@ -123,13 +123,13 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
           //     SELECT deptno FROM `DEPT`)
           final RelOptTable.ToRelContext toRelContext =
               ViewExpanders.simpleContext(cluster);
-          relBuilder.push(fromTable.toRel(toRelContext))
+          relBuilder.push(fromTable.toRel(toRelContext, false))
               .filter(fromColumns.stream()
                   .map(column ->
                       relBuilder.isNotNull(relBuilder.field(column)))
                   .collect(Collectors.toList()))
               .project(relBuilder.fields(fromColumns))
-              .push(toTable.toRel(toRelContext))
+              .push(toTable.toRel(toRelContext, false))
               .project(relBuilder.fields(toColumns))
               .minus(false, 2)
               .aggregate(relBuilder.groupKey(), relBuilder.count());
@@ -167,7 +167,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
           //
           final RelOptTable.ToRelContext toRelContext =
               ViewExpanders.simpleContext(cluster);
-          relBuilder.push(table.toRel(toRelContext))
+          relBuilder.push(table.toRel(toRelContext, false))
               .aggregate(relBuilder.groupKey(relBuilder.fields(columns)),
                   relBuilder.count())
               .filter(

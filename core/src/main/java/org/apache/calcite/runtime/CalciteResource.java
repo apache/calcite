@@ -169,6 +169,9 @@ public interface CalciteResource {
   @BaseMessage("Unknown target column ''{0}''")
   ExInst<SqlValidatorException> unknownTargetColumn(String a0);
 
+  @BaseMessage("Invalid target column ''{0}''. Your target column must refer to an existing column of the target table.")
+  ExInst<SqlValidatorException> invalidTargetColumn(String a0);
+
   @BaseMessage("Target column ''{0}'' is assigned more than once")
   ExInst<SqlValidatorException> duplicateTargetColumn(String a0);
 

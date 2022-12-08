@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalTargetTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -252,13 +253,13 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return schema;
   }
 
-  @Override public RelNode toRel(ToRelContext context) {
+  @Override public RelNode toRel(ToRelContext context, boolean isTargetTable) {
     // Make sure rowType's list is immutable. If rowType is DynamicRecordType, creates a new
     // RelOptTable by replacing with immutable RelRecordType using the same field list.
     if (this.getRowType().isDynamicStruct()) {
       final RelDataType staticRowType = new RelRecordType(getRowType().getFieldList());
       final RelOptTable relOptTable = this.copy(staticRowType);
-      return relOptTable.toRel(context);
+      return relOptTable.toRel(context, isTargetTable);
     }
 
     // If there are any virtual columns, create a copy of this table without
@@ -282,13 +283,18 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
               return super.unwrap(clazz);
             }
           };
-      return relOptTable.toRel(context);
+      return relOptTable.toRel(context, isTargetTable);
     }
 
     if (table instanceof TranslatableTable) {
       return ((TranslatableTable) table).toRel(context, this);
+    } else if (isTargetTable) {
+      return LogicalTargetTableScan.create(context.getCluster(),
+          this, context.getTableHints());
+    } else {
+      return LogicalTableScan.create(context.getCluster(), this, context.getTableHints());
     }
-    return LogicalTableScan.create(context.getCluster(), this, context.getTableHints());
+
   }
 
   @Override public @Nullable List<RelCollation> getCollationList() {

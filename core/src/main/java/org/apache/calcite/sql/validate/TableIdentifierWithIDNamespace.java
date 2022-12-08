@@ -18,12 +18,16 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlTableIdentifierWithID;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -105,12 +109,23 @@ public class TableIdentifierWithIDNamespace extends AbstractNamespace {
 
   private SqlValidatorNamespace resolveImpl(SqlTableIdentifierWithID id) {
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+
+    //NOTE: BasicSqlType defaults to non null
+    BasicSqlType int_typ = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.BIGINT);
+    // NOTE: we don't use this index anywhere, so we just default it to a random value
+    int newIdx = 999;
+    RelDataTypeField rowIdFieldType = new RelDataTypeFieldImpl("_bodo_row_id",
+        newIdx, int_typ);
+    List<RelDataTypeField> extensionFields = new ArrayList<>();
+    extensionFields.add(rowIdFieldType);
+
     final SqlValidatorScope.ResolvedImpl resolved =
         new SqlValidatorScope.ResolvedImpl();
     final List<String> names = SqlIdentifier.toStar(id.names);
     try {
+
       parentScope.resolveTable(names, nameMatcher,
-          SqlValidatorScope.Path.EMPTY, resolved);
+          SqlValidatorScope.Path.EMPTY, resolved, extensionFields);
     } catch (CyclicDefinitionException e) {
       if (e.depth == 1) {
         throw validator.newValidationError(id,
@@ -143,7 +158,7 @@ public class TableIdentifierWithIDNamespace extends AbstractNamespace {
       final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
       resolved.clear();
       parentScope.resolveTable(names, liberalMatcher,
-          SqlValidatorScope.Path.EMPTY, resolved);
+          SqlValidatorScope.Path.EMPTY, resolved, extensionFields);
       if (resolved.count() == 1) {
         final SqlValidatorScope.Resolve resolve = resolved.only();
         if (resolve.remainingNames.isEmpty()
@@ -209,7 +224,6 @@ public class TableIdentifierWithIDNamespace extends AbstractNamespace {
       }
     }
 
-    // TODO(Nick): Update the type with the ID row.
     RelDataType rowType = resolvedNamespace.getRowType();
 
     if (extendList != null) {
@@ -277,5 +291,10 @@ public class TableIdentifierWithIDNamespace extends AbstractNamespace {
       return modality == SqlModality.RELATION;
     }
     return table.supportsModality(modality);
+  }
+
+  @Override public void setType(RelDataType type) {
+    this.type = type;
+    this.rowType = convertToStruct(type);
   }
 }

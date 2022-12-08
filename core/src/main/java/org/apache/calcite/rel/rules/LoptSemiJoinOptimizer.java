@@ -288,7 +288,7 @@ public class LoptSemiJoinOptimizer {
     final List<Integer> bestKeyOrder = new ArrayList<>();
     LcsTableScan tmpFactRel =
         (LcsTableScan) factTable.toRel(
-            ViewExpanders.simpleContext(factRel.getCluster()));
+            ViewExpanders.simpleContext(factRel.getCluster()), false);
 
     LcsIndexOptimizer indexOptimizer = new LcsIndexOptimizer(tmpFactRel);
     FemLocalIndex bestIndex =

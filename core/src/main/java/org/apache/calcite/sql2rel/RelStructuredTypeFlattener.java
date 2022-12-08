@@ -45,6 +45,7 @@ import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalTargetTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.stream.LogicalChi;
@@ -754,7 +755,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(TableScan rel) {
-    RelNode newRel = rel.getTable().toRel(toRelContext);
+    RelNode newRel = rel.getTable().toRel(toRelContext,
+        rel instanceof LogicalTargetTableScan);
+
     if (!SqlTypeUtil.isFlat(rel.getRowType())) {
       newRel = coverNewRelByFlatteningProjection(rel, newRel);
     } else {

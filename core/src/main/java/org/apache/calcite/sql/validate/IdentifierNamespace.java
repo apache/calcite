@@ -114,7 +114,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     final List<String> names = SqlIdentifier.toStar(id.names);
     try {
       parentScope.resolveTable(names, nameMatcher,
-          SqlValidatorScope.Path.EMPTY, resolved);
+          SqlValidatorScope.Path.EMPTY, resolved, new ArrayList<>());
     } catch (CyclicDefinitionException e) {
       if (e.depth == 1) {
         throw validator.newValidationError(id,
@@ -147,7 +147,7 @@ public class IdentifierNamespace extends AbstractNamespace {
       final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
       resolved.clear();
       parentScope.resolveTable(names, liberalMatcher,
-          SqlValidatorScope.Path.EMPTY, resolved);
+          SqlValidatorScope.Path.EMPTY, resolved, new ArrayList<>());
       if (resolved.count() == 1) {
         final SqlValidatorScope.Resolve resolve = resolved.only();
         if (resolve.remainingNames.isEmpty()

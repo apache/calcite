@@ -45,8 +45,8 @@ class TableNamespace extends AbstractNamespace {
   public final ImmutableList<RelDataTypeField> extendedFields;
 
   /** Creates a TableNamespace. */
-  private TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table,
-      List<RelDataTypeField> fields) {
+  TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table,
+       List<RelDataTypeField> fields) {
     super(validator, null);
     this.table = Objects.requireNonNull(table, "table");
     this.extendedFields = ImmutableList.copyOf(fields);

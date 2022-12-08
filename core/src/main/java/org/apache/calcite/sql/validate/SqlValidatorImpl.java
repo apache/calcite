@@ -1652,6 +1652,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           .getOperandList();
 
       for (int j = 0; j < curInsertValues.size(); j++) {
+        // TODO (Nick):
+        // If we are inside an insert then any column references must refer to the source table.
+        // Since we are producing a top-level select it is important to append this information.
         SqlNode insertVal = curInsertValues.get(j);
         topmostSelectList.add(insertVal);
       }
@@ -4371,7 +4374,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope.ResolvedImpl resolved =
         new SqlValidatorScope.ResolvedImpl();
     scope.resolveTable(id.names, catalogReader.nameMatcher(),
-        SqlValidatorScope.Path.EMPTY, resolved);
+        SqlValidatorScope.Path.EMPTY, resolved, new ArrayList<>());
     if (resolved.count() != 1) {
       throw newValidationError(id, RESOURCE.tableNameNotFound(id.toString()));
     }
@@ -4871,7 +4874,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected RelDataType createTargetRowType(
       SqlValidatorTable table,
       @Nullable SqlNodeList targetColumnList,
-      boolean append) {
+      boolean append,
+      SqlValidatorScope scope) {
     RelDataType baseRowType = table.getRowType();
     if (targetColumnList == null) {
       return baseRowType;
@@ -4915,6 +4919,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         ? getTable(targetNamespace)
         : relOptTable.unwrapOrThrow(SqlValidatorTable.class);
 
+    final SqlNode source = insert.getSource();
+    final SqlValidatorScope scope = scopes.get(source);
+
     // INSERT has an optional column name list.  If present then
     // reduce the rowtype to the columns specified.  If not present
     // then the entire target rowtype is used.
@@ -4922,14 +4929,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         createTargetRowType(
             table,
             insert.getTargetColumnList(),
-            false);
+            false,
+            scope);
 
-    final SqlNode source = insert.getSource();
     if (source instanceof SqlSelect) {
       final SqlSelect sqlSelect = (SqlSelect) source;
       validateSelect(sqlSelect, targetRowType);
     } else {
-      final SqlValidatorScope scope = scopes.get(source);
       validateQuery(source, scope, targetRowType);
     }
 
@@ -5340,17 +5346,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         ? getTable(targetNamespace)
         : relOptTable.unwrapOrThrow(SqlValidatorTable.class);
 
+    final SqlSelect select = SqlNonNullableAccessors.getSourceSelect(call);
+    SqlValidatorScope selectScope = scopes.get(select);
+
     final RelDataType targetRowType =
         createTargetRowType(
             table,
             call.getTargetColumnList(),
-            true);
-
-    final SqlSelect select = SqlNonNullableAccessors.getSourceSelect(call);
+            true,
+            selectScope);
     validateSelect(select, targetRowType);
 
     final RelDataType sourceRowType = getValidatedNodeType(select);
-    checkTypeAssignment(scopes.get(select),
+    checkTypeAssignment(selectScope,
         table,
         sourceRowType,
         targetRowType,
@@ -7060,7 +7068,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           SqlTypeUtil.addCharsetAndCollation(
               type,
               getTypeFactory());
-      // TODO(Nick): Update the type to include the ID column
       return type;
     }
 

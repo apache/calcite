@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWithItem;
@@ -57,7 +58,8 @@ class WithScope extends ListScope {
   }
 
   @Override public void resolveTable(List<String> names,
-      SqlNameMatcher nameMatcher, Path path, Resolved resolved) {
+      SqlNameMatcher nameMatcher, Path path, Resolved resolved,
+      List<RelDataTypeField> extensionFields) {
     if (names.size() == 1
         && names.equals(withItem.name.names)) {
       final SqlValidatorNamespace ns = validator.getNamespaceOrThrow(withItem);
@@ -66,6 +68,6 @@ class WithScope extends ListScope {
       resolved.found(ns, false, null, path2, null);
       return;
     }
-    super.resolveTable(names, nameMatcher, path, resolved);
+    super.resolveTable(names, nameMatcher, path, resolved, extensionFields);
   }
 }

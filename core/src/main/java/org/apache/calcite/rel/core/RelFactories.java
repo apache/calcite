@@ -480,7 +480,7 @@ public class RelFactories {
    */
   private static class TableScanFactoryImpl implements TableScanFactory {
     @Override public RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table) {
-      return table.toRel(toRelContext);
+      return table.toRel(toRelContext, false);
     }
   }
 

@@ -61,6 +61,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalTargetTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
@@ -70,6 +71,8 @@ import org.apache.calcite.rel.stream.LogicalDelta;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -141,6 +144,7 @@ import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -2741,7 +2745,7 @@ public class SqlToRelConverter {
     final List<RelHint> hints = hintStrategies.apply(
         SqlUtil.getRelHint(hintStrategies, tableHints),
         LogicalTableScan.create(cluster, table, ImmutableList.of()));
-    final RelNode tableRel = toRel(table, hints);
+    final RelNode tableRel = toRel(table, hints, false);
     bb.setRoot(tableRel, true);
 
     if (RelOptUtil.isPureOrder(castNonNull(bb.root))
@@ -2769,21 +2773,31 @@ public class SqlToRelConverter {
             datasetName, usedDataset);
     assert table != null : "getRelOptTable returned null for " + fromNamespace;
     if (extendedColumns != null && extendedColumns.size() > 0) {
-      // TODO(NICK): FIXME to update fields?
       final SqlValidatorTable validatorTable =
           table.unwrapOrThrow(SqlValidatorTable.class);
       final List<RelDataTypeField> extendedFields =
           SqlValidatorUtil.getExtendedColumns(validator, validatorTable,
               extendedColumns);
+
       table = table.extend(extendedFields);
     }
+
+    BasicSqlType int_typ = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.BIGINT);
+    //NOTE: we're defaulting this value to a random index, as we don't actually need
+    // a physical index for this 'extension field'
+    int newIdx = 999;
+    RelDataTypeField rowIdFieldType = new RelDataTypeFieldImpl("_bodo_row_id",
+        newIdx, int_typ);
+    List<RelDataTypeField> extensionFields = new ArrayList<>();
+    extensionFields.add(rowIdFieldType);
+    table = table.extend(extensionFields);
+
     // Review Danny 2020-01-13: hacky to construct a new table scan
     // in order to apply the hint strategies.
-    // TODO(NICK): FIXME to remove logical table scan.
     final List<RelHint> hints = hintStrategies.apply(
         SqlUtil.getRelHint(hintStrategies, tableHints),
-        LogicalTableScan.create(cluster, table, ImmutableList.of()));
-    final RelNode tableRel = toRel(table, hints);
+        LogicalTargetTableScan.create(cluster, table, ImmutableList.of()));
+    final RelNode tableRel = toRel(table, hints, true);
     bb.setRoot(tableRel, true);
 
     if (RelOptUtil.isPureOrder(castNonNull(bb.root))
@@ -2824,7 +2838,7 @@ public class SqlToRelConverter {
       final RelDataType rowType = table.getRowType(typeFactory);
       RelOptTable relOptTable = RelOptTableImpl.create(null, rowType, table,
           udf.getNameAsId().names);
-      RelNode converted = toRel(relOptTable, ImmutableList.of());
+      RelNode converted = toRel(relOptTable, ImmutableList.of(), false);
       bb.setRoot(converted, true);
       return;
     }
@@ -3927,8 +3941,8 @@ public class SqlToRelConverter {
     return ViewExpanders.toRelContext(viewExpander, cluster, hints);
   }
 
-  public RelNode toRel(final RelOptTable table, final List<RelHint> hints) {
-    final RelNode scan = table.toRel(createToRelContext(hints));
+  public RelNode toRel(final RelOptTable table, final List<RelHint> hints, boolean isTargetTable) {
+    final RelNode scan = table.toRel(createToRelContext(hints), isTargetTable);
 
     final InitializerExpressionFactory ief =
         table.maybeUnwrap(InitializerExpressionFactory.class)
@@ -4345,7 +4359,10 @@ public class SqlToRelConverter {
     // the column with index Y should evaluate to is caseValues[Y][X]
     List<List<RexNode>> caseValues = new ArrayList<>();
 
-    List<String> destTableFieldNames = destTable.getRowType().getFieldNames();
+    List<String> destTableFieldNames = new ArrayList<>();
+    destTableFieldNames.addAll(destTable.getRowType().getFieldNames());
+    //Add the Row ID column
+    destTableFieldNames.add("_bodo_row_id");
 
     for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
       caseValues.add(new ArrayList<>());
@@ -4464,7 +4481,9 @@ public class SqlToRelConverter {
     // column with index Y should evaluate to is caseValues[Y][X]
     List<List<RexNode>> caseValues = new ArrayList<>();
 
-    List<String> destTableFieldNames = destTable.getRowType().getFieldNames();
+    List<String> destTableFieldNames = new ArrayList<>();
+    destTableFieldNames.addAll(destTable.getRowType().getFieldNames());
+    destTableFieldNames.add("_bodo_row_id");
 
     for (int destColIdx = 0; destColIdx < destTableFieldNames.size(); destColIdx++) {
       caseValues.add(new ArrayList<>());
@@ -4473,7 +4492,7 @@ public class SqlToRelConverter {
     List<RexNode> mergeSourceRelProjects = mergeSourceRel.getProjects();
 
 
-    // Now, iterate through all the update/Delete clauses, and extract the needed
+    // Now, iterate through all the insert clauses, and extract the needed
     // conditions and values. In the loop, it is an invariant that totalOffset will point to
     // the start of current not matched clause at the start loop.
     for (int insertColNumber = 0; insertColNumber < insertCallList.size(); insertColNumber++) {
@@ -4496,7 +4515,11 @@ public class SqlToRelConverter {
           Integer curOffset = curInsertTargetColumnMap.get(curFieldName)
               + totalOffset;
           valToAdd = mergeSourceRelProjects.get(curOffset);
-
+        } else if (curFieldName.equals("_bodo_row_id")) {
+          // Don't have a BODO_ROW_ID for insert rows, so
+          // we just default to null
+          valToAdd = this.relBuilder.getRexBuilder()
+              .makeNullLiteral(typeFactory.createSqlType(SqlTypeName.BIGINT));
         } else {
           // Fill any non specified columns with NULL
           valToAdd = this.relBuilder.getRexBuilder().makeNullLiteral(
@@ -4541,6 +4564,7 @@ public class SqlToRelConverter {
      * Due to our changes, the values present in the source select should be as follows:
      * (All cols from source)
      * (All cols from dest)
+     * (Row ID col)
      * (bool flag for checking if the row is a "match" or a "not match")
      * ((Match Condition) (Update Values (If the match condition is Update)))*
      * ((Insert Condition) (Insert Values))*
@@ -4587,7 +4611,9 @@ public class SqlToRelConverter {
 
 
     int numSourceCols = origSourceRel.rel.getRowType().getFieldCount();
-    int numDestCols = targetTable.getRowType().getFieldCount();
+
+    //+1 to include the added row id column
+    int numDestColsIncludingRowIdCol = targetTable.getRowType().getFieldCount() + 1;
 
     // the rightmost integer is the offset for the start of the end of the matched clauses/ the
     // start of the not matched clauses
@@ -4596,13 +4622,14 @@ public class SqlToRelConverter {
     // the right inner list should have length equal to the number of conditions
     Pair<Pair<List<RexNode>, List<List<RexNode>>>, Integer> matchCaseNodesAndOffset =
         extractMatchExprs(
-        call.getMatchedCallList(), mergeSourceRel, numSourceCols, numDestCols, targetTable);
+        call.getMatchedCallList(), mergeSourceRel, numSourceCols, numDestColsIncludingRowIdCol,
+            targetTable);
 
     Pair<List<RexNode>, List<List<RexNode>>> matchCaseNodes = matchCaseNodesAndOffset.getKey();
     Integer matchedClausesEndOffset = matchCaseNodesAndOffset.getValue();
 
     //Check that our assumptions in the above comment hold true
-    assert (matchCaseNodes.getValue().size() == targetTable.getRowType().getFieldCount())
+    assert (matchCaseNodes.getValue().size() == targetTable.getRowType().getFieldCount() + 1)
         || matchCaseNodes.getValue().size() == 0;
 
     assert matchCaseNodes.getKey().size() == call.getMatchedCallList().size();
@@ -4616,7 +4643,7 @@ public class SqlToRelConverter {
     Integer notMatchedEndOffset = notMatchedCaseNodesAndOffset.getValue();
 
     // At this point, we should have traversed all the elements of the source select, so
-    // we expect the offset to point to the end of the table.
+    // we expect the offset to point to the end of the mergeSourceRel table
     assert notMatchedEndOffset == mergeSourceRel.getRowType().getFieldCount();
 
     // NOTE: this assertion will not be true if we do inserts into a modifiable view that has
@@ -4624,7 +4651,8 @@ public class SqlToRelConverter {
     // does not have. I don't know if this is an issue with the rowType, or something else.
     // Since we don't currently allow views in BodoSQL, I've made a note to return to this later:
     // https://bodo.atlassian.net/browse/BE-3494
-    assert (notMatchedCaseNodes.getValue().size() == targetTable.getRowType().getFieldCount())
+    // (+1 to account for ROW ID)
+    assert (notMatchedCaseNodes.getValue().size() == targetTable.getRowType().getFieldCount() + 1)
         || notMatchedCaseNodes.getValue().size() == 0;
 
     assert notMatchedCaseNodes.getKey().size() == call.getNotMatchedCallList().size();
@@ -4637,7 +4665,7 @@ public class SqlToRelConverter {
 
     // The "matched" flag should always be after the columns from the source and dest table
     RexNode matchedFlag = relBuilder.getRexBuilder().makeInputRef(join,
-        numDestCols + numSourceCols);
+        numDestColsIncludingRowIdCol + numSourceCols);
 
     // Note that we need to use IS_NULL/NOT_NULL instead of boolean logic assuming NULL is false.
     // Calcite will perform some plan optimizations that assume no nullability
@@ -4709,10 +4737,18 @@ public class SqlToRelConverter {
 
     // NOTE: there is a lot of repeated case logic. We should make sure that the
     // appropriate Rex Nodes are actually being cached/reused when possible
-    for (int colIdx = 0; colIdx < targetTable.getRowType().getFieldCount(); colIdx++) {
+    // +1 to allow us to handle ROW_ID column
+    for (int colIdx = 0; colIdx < targetTable.getRowType().getFieldCount() + 1; colIdx++) {
 
-      RexNode colNullLiteral = relBuilder.getRexBuilder()
-          .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
+      RexNode colNullLiteral;
+      if (colIdx < targetTable.getRowType().getFieldCount()) {
+        colNullLiteral = relBuilder.getRexBuilder()
+            .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
+      } else {
+        //ROW_ID case
+        colNullLiteral = relBuilder.getRexBuilder()
+            .makeNullLiteral(typeFactory.createSqlType(SqlTypeName.BIGINT));
+      }
 
       // Default the update and insert expressions to be NULL literals.
       // They will be initialized to the appropriate values if we have a matched/insert expression
@@ -4763,6 +4799,8 @@ public class SqlToRelConverter {
       finalProjects.add(curColExpr);
     }
 
+
+
     // Finally, append the row that checks what operation we're performing
     // This will be NULL if the row is a no op. This row will be used when constructing
     // the update/insert dataframes in our pandas codegen step.
@@ -4811,7 +4849,6 @@ public class SqlToRelConverter {
     } else {
       qualified = SqlTableIdentifierWithIDQualified.create(null, 1, null, identifier);
     }
-    // TODO(Nick) FIXME: Fix the output types?
     final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 =
         bb.lookupExp(qualified.convertToQualified());
     RexNode e = e0.left;

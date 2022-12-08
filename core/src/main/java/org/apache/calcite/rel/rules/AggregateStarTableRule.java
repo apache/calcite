@@ -128,7 +128,9 @@ public class AggregateStarTableRule
             aggregateTableRowType,
             tableEntry,
             rowCount);
-    relBuilder.push(aggregateRelOptTable.toRel(ViewExpanders.simpleContext(cluster)));
+    relBuilder.push(
+        aggregateRelOptTable.toRel(ViewExpanders.simpleContext(cluster),
+        false));
     if (tileKey == null) {
       if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Using materialization "

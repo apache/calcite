@@ -88,7 +88,8 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     RelOptTable table = requireNonNull(
         this.catalogReader.getTable(tableName),
         () -> "table " + tableName + " is not found");
-    materialization.tableRel = sqlToRelConverter2.toRel(table, ImmutableList.of());
+    materialization.tableRel = sqlToRelConverter2.toRel(table,
+        ImmutableList.of(), false);
   }
 
   /** Converts a relational expression to use a

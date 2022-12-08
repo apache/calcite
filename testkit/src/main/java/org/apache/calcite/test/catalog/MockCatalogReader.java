@@ -40,6 +40,7 @@ import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalTargetTableScan;
 import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -509,8 +510,14 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return catalogReader;
     }
 
-    @Override public RelNode toRel(ToRelContext context) {
-      return LogicalTableScan.create(context.getCluster(), this, context.getTableHints());
+    @Override public RelNode toRel(ToRelContext context, boolean isTargetTable) {
+      if (!isTargetTable) {
+        return LogicalTableScan.create(context.getCluster(),
+            this, context.getTableHints());
+      } else {
+        return LogicalTargetTableScan.create(context.getCluster(),
+            this, context.getTableHints());
+      }
     }
 
     @Override public List<RelCollation> getCollationList() {
@@ -765,7 +772,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return viewTable.getRowType(catalogReader.typeFactory);
     }
 
-    @Override public RelNode toRel(RelOptTable.ToRelContext context) {
+    @Override public RelNode toRel(RelOptTable.ToRelContext context, boolean isTargetTable) {
       return viewTable.toRel(context, this);
     }
 
@@ -882,9 +889,15 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       rowType = protoRowType.apply(typeFactory);
     }
 
-    @Override public RelNode toRel(ToRelContext context) {
-      RelNode rel = LogicalTableScan.create(context.getCluster(), fromTable,
-          context.getTableHints());
+    @Override public RelNode toRel(ToRelContext context, boolean isTargetTable) {
+      RelNode rel;
+      if (isTargetTable) {
+        rel = LogicalTargetTableScan.create(context.getCluster(), fromTable,
+            context.getTableHints());
+      } else {
+        rel = LogicalTableScan.create(context.getCluster(), fromTable,
+            context.getTableHints());
+      }
       final RexBuilder rexBuilder = context.getCluster().getRexBuilder();
       rel = LogicalFilter.create(
           rel, getConstraint(rexBuilder, rel.getRowType()));

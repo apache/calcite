@@ -3148,6 +3148,83 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
+  // TODO: FIXME
+//  @Test void testMergeUpdateAlias() {
+//    // Tests a basic merge query with where the update includes the
+//    // table alias in LHS
+//    final String sql1 = "merge into empnullables as target\n"
+//        + "using (select * from emp where deptno = 30) as source\n"
+//        + "on target.sal = source.sal\n"
+//        + "when matched then\n"
+//        + "  update set target.sal = target.sal + source.sal\n"
+//        + "when not matched then\n"
+//        + "  insert (empno, sal, ename)\n"
+//        + "  values (ABS(source.empno), source.sal, source.ename)";
+//    sql(sql1).ok();
+//  }
+
+// TODO: FIXME
+  //  @Test void testMergeUpdateInsertStar() {
+//    // Tests a basic merge query using insert * and update *
+//    final String sql1 =
+//        "with table1 as (sel, ename from empnullables),\n"
+//        + "merge into table1 as target\n"
+//        + "using (select sel, ename from emp where deptno = 30) as source\n"
+//        + "on target.sal = source.sal\n"
+//        + "when matched then\n"
+//        + "  update set *\n"
+//        + "when not matched then\n"
+//        + "  insert *";
+//    sql(sql1).ok();
+//  }
+
+// TODO: FIXME
+  //  @Test void testMergeInsertAmbiguousSal() {
+//    // Tests a basic merge query with where the insert
+//    // refers to a table in both the target and source.
+//    // This should not be ambiguous because the tables
+//    // aren't matched.
+//    final String sql1 = "merge into empnullables as target\n"
+//        + "using (select * from emp where deptno = 30) as source\n"
+//        + "on sal = source.sal\n"
+//        + "when matched then\n"
+//        + "  update set sal = target.sal + source.sal\n"
+//        + "when not matched then\n"
+//        + "  insert (empno, sal, ename)\n"
+//        + "  values (ABS(empno), sal, ename)";
+//    sql(sql1).ok();
+//  }
+
+
+  // TODO: FIXME
+//  @Test void testMergeUpdateSourceTableLHS() {
+//    // Tests a basic merge query error with where the update includes
+//    // the source table alias in the LHS
+//    final String sql1 = "merge into empnullables as target\n"
+//        + "using (select * from emp where deptno = 30) as source\n"
+//        + "on target.sal = source.sal\n"
+//        + "when matched then\n"
+//        + "  update set source.sal = target.sal + source.sal\n"
+//        + "when not matched then\n"
+//        + "  insert (empno, sal, ename)\n"
+//        + "  values (ABS(source.empno), source.sal, source.ename)";
+//    sql(sql1).throws_("Your target column must refer to an existing column of the target table");
+//  }
+
+  // TODO: FIXME
+//  @Test void testMergeUpdateMissingTableLHS() {
+//    // Tests a basic merge query error with where the update includes
+//    // a missing table alias in the LHS
+//    final String sql1 = "merge into empnullables as target\n"
+//        + "using (select * from emp where deptno = 30) as source\n"
+//        + "on target.sal = source.sal\n"
+//        + "when matched then\n"
+//        + "  update set other.sal = target.sal + source.sal\n"
+//        + "when not matched then\n"
+//        + "  insert (empno, sal, ename)\n"
+//        + "  values (ABS(source.empno), source.sal, source.ename)";
+//    sql(sql1).throws_("Your target column must refer to an existing column of the target table");
+//  }
 
   @Test void testMergeInsertOnly() {
     //Tests a basic merge query with only an insert condition

@@ -32,7 +32,7 @@ import org.immutables.value.Value;
  * of calling {@link RelOptTable#toRel}.
  *
  * @deprecated {@code org.apache.calcite.rel.core.RelFactories.TableScanFactoryImpl}
- * has called {@link RelOptTable#toRel(RelOptTable.ToRelContext)}.
+ * has called {@link RelOptTable#toRel(RelOptTable.ToRelContext, boolean)}.
  */
 @Deprecated // to be removed before 2.0
 @Value.Enclosing
@@ -62,7 +62,7 @@ public class TableScanRule extends RelRule<RelRule.Config>
     final LogicalTableScan oldRel = call.rel(0);
     RelNode newRel =
         oldRel.getTable().toRel(
-            ViewExpanders.simpleContext(oldRel.getCluster()));
+            ViewExpanders.simpleContext(oldRel.getCluster()), false);
     call.transformTo(newRel);
   }
 

@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
@@ -107,14 +108,14 @@ class EmptyScope implements SqlValidatorScope {
   }
 
   @Override public void resolveTable(List<String> names, SqlNameMatcher nameMatcher,
-      Path path, Resolved resolved) {
+      Path path, Resolved resolved, List<RelDataTypeField> extensionFields) {
     final List<Resolve> imperfectResolves = new ArrayList<>();
     final List<Resolve> resolves = ((ResolvedImpl) resolved).resolves;
 
     // Look in the default schema, then default catalog, then root schema.
     for (List<String> schemaPath : validator.catalogReader.getSchemaPaths()) {
       resolve_(validator.catalogReader.getRootSchema(), names, schemaPath,
-          nameMatcher, path, resolved);
+          nameMatcher, path, resolved, extensionFields);
       for (Resolve resolve : resolves) {
         if (resolve.remainingNames.isEmpty()) {
           // There is a full match. Return it as the only match.
@@ -134,7 +135,7 @@ class EmptyScope implements SqlValidatorScope {
 
   private void resolve_(final CalciteSchema rootSchema, List<String> names,
       List<String> schemaNames, SqlNameMatcher nameMatcher, Path path,
-      Resolved resolved) {
+      Resolved resolved, List<RelDataTypeField> extensionFields) {
     final List<String> concat = ImmutableList.<String>builder()
         .addAll(schemaNames).addAll(names).build();
     CalciteSchema schema = rootSchema;
@@ -176,7 +177,7 @@ class EmptyScope implements SqlValidatorScope {
           final RelDataType rowType = table.getRowType(validator.typeFactory);
           table2 = RelOptTableImpl.create(relOptSchema, rowType, entry, null);
         }
-        namespace = new TableNamespace(validator, table2);
+        namespace = new TableNamespace(validator, table2, extensionFields);
         resolved.found(namespace, false, null, path, remainingNames);
         return;
       }
