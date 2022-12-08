@@ -1016,18 +1016,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicAggFunction
           .create("ARG_MAX", SqlKind.ARG_MAX, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
               new SqlOperandTypeChecker() {
-                @Override
-                public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+                @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
                   getOperandCountRange().isValidCount(callBinding.getOperandCount());
                   RelDataType type = callBinding.getOperandType(1);
                   return type.getComparability().ordinal() == RelDataTypeComparability.ALL.ordinal();
                 }
-                @Override
-                public SqlOperandCountRange getOperandCountRange() {
+                @Override public SqlOperandCountRange getOperandCountRange() {
                   return SqlOperandCountRanges.of(2);
                 }
-                @Override
-                public String getAllowedSignatures(SqlOperator op, String opName) {
+                @Override public String getAllowedSignatures(SqlOperator op, String opName) {
                   return "ARG_MAX(<ANY>, <COMPARABLE_TYPE>)";
                 }
               })
@@ -1041,18 +1038,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicAggFunction
           .create("ARG_MIN", SqlKind.ARG_MIN, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
               new SqlOperandTypeChecker() {
-                @Override
-                public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+                @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
                   getOperandCountRange().isValidCount(callBinding.getOperandCount());
                   RelDataType type = callBinding.getOperandType(1);
                   return type.getComparability().ordinal() == RelDataTypeComparability.ALL.ordinal();
                 }
-                @Override
-                public SqlOperandCountRange getOperandCountRange() {
+                @Override public SqlOperandCountRange getOperandCountRange() {
                   return SqlOperandCountRanges.of(2);
                 }
-                @Override
-                public String getAllowedSignatures(SqlOperator op, String opName) {
+                @Override public String getAllowedSignatures(SqlOperator op, String opName) {
                   return "ARG_MIN(<ANY>, <COMPARABLE_TYPE>)";
                 }
               })

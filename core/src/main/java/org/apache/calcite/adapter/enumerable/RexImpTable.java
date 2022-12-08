@@ -181,9 +181,9 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARG_MAX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARG_MIN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASCII;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
@@ -1209,8 +1209,7 @@ public class RexImpTable {
 
   /** Implementor for the {@code ARG_MIN} and {@code ARG_MAX} aggregate functions. */
   static class ARGMinMaxImplementor extends StrictAggImplementor {
-    @Override
-    protected void implementNotNullReset(AggContext info,
+    @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
       // acc[0] = null;
       reset.currentBlock().add(
@@ -1229,8 +1228,7 @@ public class RexImpTable {
                   Expressions.constant(inf, compType))));
     }
 
-    @Override
-    public void implementNotNullAdd(AggContext info,
+    @Override public void implementNotNullAdd(AggContext info,
         AggAddContext add) {
       Expression accComp = add.accumulator().get(1);
       Expression argValue = add.arguments().get(0);
@@ -1247,9 +1245,11 @@ public class RexImpTable {
           accComp);
 
       BlockBuilder thenBlock = new BlockBuilder(true, add.currentBlock());
-      thenBlock.add(Expressions.statement(
+      thenBlock.add(
+          Expressions.statement(
           Expressions.assign(add.accumulator().get(0), argValue)));
-      thenBlock.add(Expressions.statement(
+      thenBlock.add(
+          Expressions.statement(
           Expressions.assign(add.accumulator().get(1), argComp)));
 
       add.currentBlock().add(Expressions.ifThen(compareExpression, thenBlock.toBlock()));
