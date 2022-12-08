@@ -48,7 +48,7 @@
       <customization name="CAP_QUERY_TOP_SAMPLE_PERCENT" value="no"/>
       <customization name="CAP_SELECT_INTO" value="no"/>
       <customization name="CAP_SELECT_TOP_INTO" value="no"/>
-      <customization name="CAP_SUPPORTS_UNION" value="yes"/>
+      <customization name="CAP_SUPPORTS_UNION" value="no"/>
       <!-- Semantics still unclear: -->
       <customization name="CAP_QUERY_ALLOW_PARTIAL_AGGREGATION" value="no"/>
       <customization name="CAP_QUERY_TIME_REQUIRES_CAST" value="yes"/>
