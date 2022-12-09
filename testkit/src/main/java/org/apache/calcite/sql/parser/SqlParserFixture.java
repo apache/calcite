@@ -72,10 +72,17 @@ public class SqlParserFixture {
   }
 
   public SqlParserFixture same() {
-    return ok(sap.sql);
+    return ok_(sap.sql);
   }
 
   public SqlParserFixture ok(String expected) {
+    if (expected.equals(sap.sql)) {
+      throw new AssertionError("you should call same()");
+    }
+    return ok_(expected);
+  }
+
+  private SqlParserFixture ok_(String expected) {
     final UnaryOperator<String> converter = SqlParserTest.linux(convertToLinux);
     if (expression) {
       tester.checkExp(factory, sap, converter, expected, parserChecker);

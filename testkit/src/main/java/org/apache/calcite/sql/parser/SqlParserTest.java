@@ -1965,7 +1965,7 @@ public class SqlParserTest {
   }
 
   @Test void testReverseSolidus() {
-    expr("'\\'").ok("'\\'");
+    expr("'\\'").same();
   }
 
   @Test void testSubstring() {
@@ -2440,7 +2440,7 @@ public class SqlParserTest {
         .fails("(?s).*Encountered.*");
 
     f.sql("^\"^x`y`z\"").fails("(?s).*Encountered.*");
-    f.sql("`x``y``z`").ok("`x``y``z`");
+    f.sql("`x``y``z`").same();
     f.sql("`x\\`^y^\\`z`").fails("(?s).*Encountered.*");
 
     f.sql("myMap[field] + myArray[1 + 2]")
@@ -3268,26 +3268,20 @@ public class SqlParserTest {
             + "FROM `EMP`");
 
     // Even though it looks like a date, it's just a string.
-    expr("'2004-06-01'")
-        .ok("'2004-06-01'");
+    expr("'2004-06-01'").same();
     expr("-.25")
         .ok("-0.25");
     expr("TIMESTAMP '2004-06-01 15:55:55'").same();
     expr("TIMESTAMP '2004-06-01 15:55:55.900'").same();
-    expr("TIMESTAMP '2004-06-01 15:55:55.1234'")
-        .ok("TIMESTAMP '2004-06-01 15:55:55.1234'");
-    expr("TIMESTAMP '2004-06-01 15:55:55.1236'")
-        .ok("TIMESTAMP '2004-06-01 15:55:55.1236'");
-    expr("TIMESTAMP '2004-06-01 15:55:55.9999'")
-        .ok("TIMESTAMP '2004-06-01 15:55:55.9999'");
+    expr("TIMESTAMP '2004-06-01 15:55:55.1234'").same();
+    expr("TIMESTAMP '2004-06-01 15:55:55.1236'").same();
+    expr("TIMESTAMP '2004-06-01 15:55:55.9999'").same();
     expr("NULL").same();
   }
 
   @Test void testContinuedLiteral() {
-    expr("'abba'\n'abba'")
-        .ok("'abba'\n'abba'");
-    expr("'abba'\n'0001'")
-        .ok("'abba'\n'0001'");
+    expr("'abba'\n'abba'").same();
+    expr("'abba'\n'0001'").same();
     expr("N'yabba'\n'dabba'\n'doo'")
         .ok("_ISO-8859-1'yabba'\n'dabba'\n'doo'");
     expr("_iso-8859-1'yabba'\n'dabba'\n'don''t'")
@@ -3819,16 +3813,16 @@ public class SqlParserTest {
   // expressions
   @Test void testParseNumber() {
     // Exacts
-    expr("1").ok("1");
+    expr("1").same();
     expr("+1.").ok("1");
-    expr("-1").ok("-1");
+    expr("-1").same();
     expr("- -1").ok("1");
-    expr("1.0").ok("1.0");
-    expr("-3.2").ok("-3.2");
+    expr("1.0").same();
+    expr("-3.2").same();
     expr("1.").ok("1");
     expr(".1").ok("0.1");
-    expr("2500000000").ok("2500000000");
-    expr("5000000000").ok("5000000000");
+    expr("2500000000").same();
+    expr("5000000000").same();
 
     // Approximates
     expr("1e1").ok("1E1");
@@ -3941,14 +3935,10 @@ public class SqlParserTest {
   }
 
   @Test void testQuotesInString() {
-    expr("'a''b'")
-        .ok("'a''b'");
-    expr("'''x'")
-        .ok("'''x'");
-    expr("''")
-        .ok("''");
-    expr("'Quoted strings aren''t \"hard\"'")
-        .ok("'Quoted strings aren''t \"hard\"'");
+    expr("'a''b'").same();
+    expr("'''x'").same();
+    expr("''").same();
+    expr("'Quoted strings aren''t \"hard\"'").same();
   }
 
   @Test void testScalarQueryInWhere() {
@@ -4931,12 +4921,10 @@ public class SqlParserTest {
         .ok("_ISO-8859-1'is it a plane? no it''s superman!'");
     expr("n'lowercase n'")
         .ok("_ISO-8859-1'lowercase n'");
-    expr("'boring string'")
-        .ok("'boring string'");
+    expr("'boring string'").same();
     expr("_iSo-8859-1'bye'")
         .ok("_ISO-8859-1'bye'");
-    expr("'three'\n' blind'\n' mice'")
-        .ok("'three'\n' blind'\n' mice'");
+    expr("'three'\n' blind'\n' mice'").same();
     expr("'three' -- comment\n' blind'\n' mice'")
         .ok("'three'\n' blind'\n' mice'");
     expr("N'bye' \t\r\f\f\n' bye'")
@@ -4947,15 +4935,13 @@ public class SqlParserTest {
         .ok("_UTF8'hi'");
 
     // newline in string literal
-    expr("'foo\rbar'")
-        .ok("'foo\rbar'");
-    expr("'foo\nbar'")
-        .ok("'foo\nbar'");
+    expr("'foo\rbar'").same();
+    expr("'foo\nbar'").same();
 
     expr("'foo\r\nbar'")
         // prevent test infrastructure from converting '\r\n' to '\n'
         .withConvertToLinux(false)
-        .ok("'foo\r\nbar'");
+        .same();
   }
 
   @Test void testStringLiteralFails() {
@@ -5211,80 +5197,65 @@ public class SqlParserTest {
   // check date/time functions.
   @Test void testTimeDate() {
     // CURRENT_TIME - returns time w/ timezone
-    expr("CURRENT_TIME(3)")
-        .ok("CURRENT_TIME(3)");
+    expr("CURRENT_TIME(3)").same();
 
     // checkFails("SELECT CURRENT_TIME() FROM foo",
     //     "SELECT CURRENT_TIME() FROM `FOO`");
 
-    expr("CURRENT_TIME")
-        .ok("CURRENT_TIME");
+    expr("CURRENT_TIME").same();
     expr("CURRENT_TIME(x+y)")
         .ok("CURRENT_TIME((`X` + `Y`))");
 
     // LOCALTIME returns time w/o TZ
-    expr("LOCALTIME(3)")
-        .ok("LOCALTIME(3)");
+    expr("LOCALTIME(3)").same();
 
     // checkFails("SELECT LOCALTIME() FROM foo",
     //     "SELECT LOCALTIME() FROM `FOO`");
 
-    expr("LOCALTIME")
-        .ok("LOCALTIME");
+    expr("LOCALTIME").same();
     expr("LOCALTIME(x+y)")
         .ok("LOCALTIME((`X` + `Y`))");
 
     // LOCALTIMESTAMP - returns timestamp w/o TZ
-    expr("LOCALTIMESTAMP(3)")
-        .ok("LOCALTIMESTAMP(3)");
+    expr("LOCALTIMESTAMP(3)").same();
 
     // checkFails("SELECT LOCALTIMESTAMP() FROM foo",
     //     "SELECT LOCALTIMESTAMP() FROM `FOO`");
 
-    expr("LOCALTIMESTAMP")
-        .ok("LOCALTIMESTAMP");
+    expr("LOCALTIMESTAMP").same();
     expr("LOCALTIMESTAMP(x+y)")
         .ok("LOCALTIMESTAMP((`X` + `Y`))");
 
     // CURRENT_DATE - returns DATE
-    expr("CURRENT_DATE(3)")
-        .ok("CURRENT_DATE(3)");
+    expr("CURRENT_DATE(3)").same();
 
     // checkFails("SELECT CURRENT_DATE() FROM foo",
     //     "SELECT CURRENT_DATE() FROM `FOO`");
-    expr("CURRENT_DATE")
-        .ok("CURRENT_DATE");
+    expr("CURRENT_DATE").same();
 
     // checkFails("SELECT CURRENT_DATE(x+y) FROM foo",
     //     "CURRENT_DATE((`X` + `Y`))");
 
     // CURRENT_TIMESTAMP - returns timestamp w/ TZ
-    expr("CURRENT_TIMESTAMP(3)")
-        .ok("CURRENT_TIMESTAMP(3)");
+    expr("CURRENT_TIMESTAMP(3)").same();
 
     // checkFails("SELECT CURRENT_TIMESTAMP() FROM foo",
     //     "SELECT CURRENT_TIMESTAMP() FROM `FOO`");
 
-    expr("CURRENT_TIMESTAMP")
-        .ok("CURRENT_TIMESTAMP");
+    expr("CURRENT_TIMESTAMP").same();
     expr("CURRENT_TIMESTAMP(x+y)")
         .ok("CURRENT_TIMESTAMP((`X` + `Y`))");
 
     // Date literals
-    expr("DATE '2004-12-01'")
-        .ok("DATE '2004-12-01'");
+    expr("DATE '2004-12-01'").same();
 
     // Time literals
-    expr("TIME '12:01:01'")
-        .ok("TIME '12:01:01'");
+    expr("TIME '12:01:01'").same();
     expr("TIME '12:01:01.'")
         .ok("TIME '12:01:01'");
-    expr("TIME '12:01:01.000'")
-        .ok("TIME '12:01:01.000'");
-    expr("TIME '12:01:01.001'")
-        .ok("TIME '12:01:01.001'");
-    expr("TIME '12:01:01.01023456789'")
-        .ok("TIME '12:01:01.01023456789'");
+    expr("TIME '12:01:01.000'").same();
+    expr("TIME '12:01:01.001'").same();
+    expr("TIME '12:01:01.01023456789'").same();
 
     // Timestamp literals
     expr("TIMESTAMP '2004-12-01 12:01:01'")
@@ -5314,10 +5285,8 @@ public class SqlParserTest {
   @Test void testDateTimeCast() {
     //   checkExp("CAST(DATE '2001-12-21' AS CHARACTER VARYING)",
     // "CAST(2001-12-21)");
-    expr("CAST('2001-12-21' AS DATE)")
-        .ok("CAST('2001-12-21' AS DATE)");
-    expr("CAST(12 AS DATE)")
-        .ok("CAST(12 AS DATE)");
+    expr("CAST('2001-12-21' AS DATE)").same();
+    expr("CAST(12 AS DATE)").same();
     sql("CAST('2000-12-21' AS DATE ^NOT^ NULL)")
         .fails("(?s).*Encountered \"NOT\" at line 1, column 27.*");
     sql("CAST('foo' as ^1^)")
@@ -6617,47 +6586,33 @@ public class SqlParserTest {
    */
   public void subTestIntervalYearFailsValidation() {
     // Qualifier - field mismatches
-    expr("INTERVAL '-' YEAR")
-        .ok("INTERVAL '-' YEAR");
-    expr("INTERVAL '1-2' YEAR")
-        .ok("INTERVAL '1-2' YEAR");
-    expr("INTERVAL '1.2' YEAR")
-        .ok("INTERVAL '1.2' YEAR");
-    expr("INTERVAL '1 2' YEAR")
-        .ok("INTERVAL '1 2' YEAR");
-    expr("INTERVAL '1-2' YEAR(2)")
-        .ok("INTERVAL '1-2' YEAR(2)");
-    expr("INTERVAL 'bogus text' YEAR")
-        .ok("INTERVAL 'bogus text' YEAR");
+    expr("INTERVAL '-' YEAR").same();
+    expr("INTERVAL '1-2' YEAR").same();
+    expr("INTERVAL '1.2' YEAR").same();
+    expr("INTERVAL '1 2' YEAR").same();
+    expr("INTERVAL '1-2' YEAR(2)").same();
+    expr("INTERVAL 'bogus text' YEAR").same();
 
     // negative field values
-    expr("INTERVAL '--1' YEAR")
-        .ok("INTERVAL '--1' YEAR");
+    expr("INTERVAL '--1' YEAR").same();
 
     // Field value out of range
     //  (default, explicit default, alt, neg alt, max, neg max)
     expr("INTERVAL '100' YEAR")
         .ok("INTERVAL '100' YEAR");
-    expr("INTERVAL '100' YEAR(2)")
-        .ok("INTERVAL '100' YEAR(2)");
-    expr("INTERVAL '1000' YEAR(3)")
-        .ok("INTERVAL '1000' YEAR(3)");
-    expr("INTERVAL '-1000' YEAR(3)")
-        .ok("INTERVAL '-1000' YEAR(3)");
-    expr("INTERVAL '2147483648' YEAR(10)")
-        .ok("INTERVAL '2147483648' YEAR(10)");
-    expr("INTERVAL '-2147483648' YEAR(10)")
-        .ok("INTERVAL '-2147483648' YEAR(10)");
+    expr("INTERVAL '100' YEAR(2)").same();
+    expr("INTERVAL '1000' YEAR(3)").same();
+    expr("INTERVAL '-1000' YEAR(3)").same();
+    expr("INTERVAL '2147483648' YEAR(10)").same();
+    expr("INTERVAL '-2147483648' YEAR(10)").same();
 
     // precision > maximum
-    expr("INTERVAL '1' YEAR(11)")
-        .ok("INTERVAL '1' YEAR(11)");
+    expr("INTERVAL '1' YEAR(11)").same();
 
     // precision < minimum allowed)
     // note: parser will catch negative values, here we
     // just need to check for 0
-    expr("INTERVAL '0' YEAR(0)")
-        .ok("INTERVAL '0' YEAR(0)");
+    expr("INTERVAL '0' YEAR(0)").same();
   }
 
   /**
