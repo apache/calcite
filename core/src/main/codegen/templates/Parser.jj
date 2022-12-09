@@ -4034,6 +4034,7 @@ SqlNode AtomicRowExpression() :
 }
 {
     (
+        LOOKAHEAD(2)
         e = LiteralOrIntervalExpression()
     |
         e = DynamicParam()
@@ -4627,6 +4628,28 @@ SqlLiteral DateTimeLiteral() :
 |
     <TIMESTAMP> { s = span(); } <WITH> <LOCAL> <TIME> <ZONE> p = SimpleStringLiteral() {
         return SqlLiteral.createUnknown("TIMESTAMP WITH LOCAL TIME ZONE", p, s.end(this));
+    }
+}
+
+/** Parses a Date/Time constructor function, for example "DATE(1969, 7, 21)"
+ * or "DATETIME(d, t)". Enabled in some libraries (e.g. BigQuery). */
+SqlNode DateTimeConstructorCall() :
+{
+    final SqlFunctionCategory funcType = SqlFunctionCategory.TIMEDATE;
+    final SqlIdentifier qualifiedName;
+    final Span s;
+    final SqlLiteral quantifier;
+    final List<? extends SqlNode> args;
+}
+{
+    (<DATE> | <TIME> | <DATETIME> | <TIMESTAMP>) {
+        s = span();
+        qualifiedName = new SqlIdentifier(unquotedIdentifier(), getPos());
+    }
+    args = FunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+        quantifier = (SqlLiteral) args.get(0);
+        args.remove(0);
+        return createCall(qualifiedName, s.end(this), funcType, quantifier, args);
     }
 }
 
@@ -6097,6 +6120,8 @@ SqlNode BuiltinFunctionCall() :
         <RPAREN> {
             return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
         }
+    |
+        node = DateTimeConstructorCall() { return node; }
     |
         node = DateTruncFunctionCall() { return node; }
     |

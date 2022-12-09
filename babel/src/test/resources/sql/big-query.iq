@@ -15,6 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# In this file (due to the use of 'scott-big-query' below, and unlike typical
+# Quidem tests), types are aliased to be consistent with BigQuery's type names,
+# not Calcite's usual type names. # In particular:
+#  * DATETIME is what Calcite calls TIMESTAMP;
+#  * TIMESTAMP is what Calcite calls TIMESTAMP WITH LOCAL TIME ZONE;
+#  * DATE and TIME are the same as Calcite;
+#  * BYTES means VARBINARY(*);
+#  * STRING means VARCHAR(*).
+#
+# The DATETIME() and TIMESTAMP() functions are also substituted so that they
+# produce values that BigQuery would call DATETIME and TIMESTAMP.
+#
 !use scott-big-query
 !set outputformat mysql
 
@@ -349,15 +361,15 @@ SELECT current_timestamp() AS now, t.current_timestamp FROM t;
 # In the following example, EXTRACT returns a value corresponding to
 # the DAY date part.
 
-!if (false) {
 SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
 +---------+
 | the_day |
 +---------+
-| 25      |
+|      25 |
 +---------+
+(1 row)
+
 !ok
-!}
 
 # In the following example, EXTRACT returns values corresponding to
 # different date parts from a column of dates near the end of the
@@ -647,6 +659,8 @@ SELECT LENGTH("hello") as length;
 #####################################################################
 # DATE
 #
+# 0. DATE(string)
+#   Shorthand for 'CAST(string AS DATE)'
 # 1. DATE(year, month, day)
 #   Constructs a DATE from INT64 values representing the year, month,
 #   and day.
@@ -659,19 +673,88 @@ SELECT LENGTH("hello") as length;
 #
 # Returns DATE
 
-!if (false) {
+# 'date(x) is shorthand for 'cast(x as date)'
+select date('1970-01-01') as d;
++------------+
+| d          |
++------------+
+| 1970-01-01 |
++------------+
+(1 row)
+
+!ok
+
+select date(cast(null as varchar(10))) as d;
++---+
+| d |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
 SELECT
   DATE(2016, 12, 25) AS date_ymd,
   DATE(DATETIME "2016-12-25 23:59:59") AS date_dt,
-  DATE(TIMESTAMP "2016-12-25 05:30:00+07", "America/Los_Angeles") AS date_tstz;
+  DATE(TIMESTAMP "2016-12-24 22:30:00" /* TODO should be "2016-12-25 05:30:00+07" */ , "America/Los_Angeles") AS date_tstz;
 +------------+------------+------------+
 | date_ymd   | date_dt    | date_tstz  |
 +------------+------------+------------+
 | 2016-12-25 | 2016-12-25 | 2016-12-24 |
 +------------+------------+------------+
-!ok
-!}
+(1 row)
 
+!ok
+
+select date(2022, 11, 15) as d1,
+       date(datetime "2008-01-01 01:03:05") as d2,
+       date(datetime(2008, 1, 1, 1, 3, 5)) as d3;
++------------+------------+------------+
+| d1         | d2         | d3         |
++------------+------------+------------+
+| 2022-11-15 | 2008-01-01 | 2008-01-01 |
++------------+------------+------------+
+(1 row)
+
+!ok
+
+# Test timezone conversion when converting TIMESTAMP to DATE.
+# Denver observes DST whereas Phoenix does not.
+# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
+select date(timestamp("2008-06-21 06:30:00")) as sum_utc,
+       date(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
+       date(timestamp("2008-06-21 06:30:00"), "America/Phoenix") as sum_std,
+       date(timestamp("2008-12-21 06:30:00")) as win_utc,
+       date(timestamp("2008-12-21 06:30:00"), "America/Denver") as win_dst,
+       date(timestamp("2008-12-21 06:30:00"), "America/Phoenix") as win_std;
++------------+------------+------------+------------+------------+------------+
+| sum_utc    | sum_dst    | sum_std    | win_utc    | win_dst    | win_std    |
++------------+------------+------------+------------+------------+------------+
+| 2008-06-21 | 2008-06-21 | 2008-06-20 | 2008-12-21 | 2008-12-20 | 2008-12-20 |
++------------+------------+------------+------------+------------+------------+
+(1 row)
+
+!ok
+
+# Date-time literals.
+# As for other tests in this script, data type semantics match BigQuery:
+# DATETIME is what Calcite calls TIMESTAMP;
+# TIMESTAMP is what Calcite calls TIMESTAMP WITH LOCAL TIME ZONE;
+# DATE and TIME are the same as Calcite.
+SELECT
+  DATETIME "1969-07-21 02:56:00" AS dt,
+  TIMESTAMP "1969-07-21 02:56:00" AS ts,
+  DATE "1969-07-21" AS d,
+  TIME "02:56:00" AS t;
++---------------------+---------------------+------------+----------+
+| dt                  | ts                  | d          | t        |
++---------------------+---------------------+------------+----------+
+| 1969-07-21 02:56:00 | 1969-07-21 02:56:00 | 1969-07-21 | 02:56:00 |
++---------------------+---------------------+------------+----------+
+(1 row)
+
+!ok
 
 #####################################################################
 # DATETIME
@@ -689,17 +772,42 @@ SELECT
 #
 # Returns DATETIME
 
-!if (false) {
 SELECT
   DATETIME(2008, 12, 25, 05, 30, 00) as datetime_ymdhms,
-  DATETIME(TIMESTAMP "2008-12-25 05:30:00+00", "America/Los_Angeles") as datetime_tstz;
+  DATETIME(TIMESTAMP "2008-12-25 05:30:00" /* TODO should be "2008-12-25 05:30:00+00" */, "America/Los_Angeles") as datetime_tstz;
 +---------------------+---------------------+
 | datetime_ymdhms     | datetime_tstz       |
 +---------------------+---------------------+
-| 2008-12-25T05:30:00 | 2008-12-24T21:30:00 |
+| 2008-12-25 05:30:00 | 2008-12-24 21:30:00 |
 +---------------------+---------------------+
+(1 row)
+
 !ok
-!}
+
+select datetime(2003, 05, 25, 12, 30, 59) as dt1,
+       datetime(date(2003, 05, 25)) as d2,
+       datetime(date(2003, 05, 25), time(12, 30, 59)) as d3;
++---------------------+---------------------+---------------------+
+| dt1                 | d2                  | d3                  |
++---------------------+---------------------+---------------------+
+| 2003-05-25 12:30:59 | 2003-05-25 00:00:00 | 2003-05-25 12:30:59 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# This tests time zone conversion from a timestamp.
+select datetime(timestamp "2008-01-01 01:03:05") as t_winter,
+       datetime(timestamp "2008-01-01 01:03:05", "America/Los_Angeles") as t_winter_offs,
+       datetime(timestamp "2008-07-01 01:03:05", "America/Los_Angeles") as t_summer_offs;
++---------------------+---------------------+---------------------+
+| t_winter            | t_winter_offs       | t_summer_offs       |
++---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2007-12-31 17:03:05 | 2008-06-30 18:03:05 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIME
@@ -716,20 +824,19 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME(15, 30, 00) as time_hms,
-  TIME(TIMESTAMP "2008-12-25 15:30:00+08", "America/Los_Angeles") as time_tstz;
+  TIME(TIMESTAMP "2008-12-25 07:30:00" /* TODO should be "2008-12-25 15:30:00+08" */, "America/Los_Angeles") as time_tstz;
 
 +----------+-----------+
 | time_hms | time_tstz |
 +----------+-----------+
 | 15:30:00 | 23:30:00  |
 +----------+-----------+
-!ok
-!}
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT TIME(DATETIME "2008-12-25 15:30:00.000000") AS time_dt;
 
 +----------+
@@ -737,8 +844,57 @@ SELECT TIME(DATETIME "2008-12-25 15:30:00.000000") AS time_dt;
 +----------+
 | 15:30:00 |
 +----------+
+(1 row)
+
 !ok
-!}
+
+select time(12, 30, 59) as t1,
+       time(datetime(2008, 01, 01, 12, 30, 59)) as t2,
+       time(datetime(2008, 07, 01, 12, 30, 59)) as t3;
++----------+----------+----------+
+| t1       | t2       | t3       |
++----------+----------+----------+
+| 12:30:59 | 12:30:59 | 12:30:59 |
++----------+----------+----------+
+(1 row)
+
+!ok
+
+# Test timezone conversion when converting TIMESTAMP to TIME.
+# Denver observes DST whereas Phoenix does not.
+# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
+select time(timestamp("2008-06-21 06:30:00")) as sum_utc,
+       time(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
+       time(timestamp("2008-06-21 06:30:00"), "America/Phoenix") as sum_std,
+       time(timestamp("2008-12-21 06:30:00")) as win_utc,
+       time(timestamp("2008-12-21 06:30:00"), "America/Denver") as win_dst,
+       time(timestamp("2008-12-21 06:30:00"), "America/Phoenix") as win_std;
++----------+----------+----------+----------+----------+----------+
+| sum_utc  | sum_dst  | sum_std  | win_utc  | win_dst  | win_std  |
++----------+----------+----------+----------+----------+----------+
+| 06:30:00 | 00:30:00 | 23:30:00 | 06:30:00 | 23:30:00 | 23:30:00 |
++----------+----------+----------+----------+----------+----------+
+(1 row)
+
+!ok
+
+# Test timezone conversion when converting DATE to TIMESTAMP.
+# Denver observes DST whereas Phoenix does not.
+# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
+select timestamp(date(2008, 6, 21)) as sum_utc,
+       timestamp(date(2008, 6, 21), "America/Denver") as sum_dst,
+       timestamp(date(2008, 6, 21), "America/Phoenix") as sum_std,
+       timestamp(date(2008, 12, 21)) as win_utc,
+       timestamp(date(2008, 12, 21), "America/Denver") as win_dst,
+       timestamp(date(2008, 12, 21), "America/Phoenix") as win_std;
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| sum_utc             | sum_dst             | sum_std             | win_utc             | win_dst             | win_std             |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| 2008-06-21 00:00:00 | 2008-06-21 06:00:00 | 2008-06-21 07:00:00 | 2008-12-21 00:00:00 | 2008-12-21 07:00:00 | 2008-12-21 07:00:00 |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIMESTAMP
@@ -795,27 +951,74 @@ SELECT TIMESTAMP("2008-12-25 15:30:00 UTC") AS timestamp_str;
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+#
+# After [CALCITE-5446] is fixed, this and other TIMESTAMP WITH LOCAL TIME
+# values will end in UTC, like this: 2008-12-25 15:30:00 UTC.
+#
 SELECT TIMESTAMP(DATETIME "2008-12-25 15:30:00") AS timestamp_datetime;
-+-------------------------+
-| timestamp_datetime      |
-+-------------------------+
-| 2008-12-25 15:30:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_datetime  |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
 SELECT TIMESTAMP(DATE "2008-12-25") AS timestamp_date;
-+-------------------------+
-| timestamp_date          |
-+-------------------------+
-| 2008-12-25 00:00:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_date      |
++---------------------+
+| 2008-12-25 00:00:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
+
+# All these timestamps should be equal.
+# This tests the BQ timestamp literal string formatter
+# (optional 'T', optional leading zeros, optional offset with conversion).
+select timestamp("2008-01-01 01:03:05+00") as t_space,
+       timestamp("2008-01-01T01:03:05+00") as t_iso,
+       timestamp("2008-01-01 01:03:05") as t_no_offset,
+       timestamp("2008-1-1 3:5:7+02:02:02") as t_offset;
++---------------------+---------------------+---------------------+---------------------+
+| t_space             | t_iso               | t_no_offset         | t_offset            |
++---------------------+---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2008-01-01 01:03:05 | 2008-01-01 01:03:05 | 2008-01-01 01:03:05 |
++---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# Negative and positive offsets.
+select timestamp("2008-01-01 01:03:05+01") as space_01,
+       timestamp("2008-01-01T01:03:05+01") as iso_1,
+       timestamp("2008-01-01T01:03:05+01:00") as iso_1_00,
+       timestamp("2008-01-01T01:03:05-11") as iso_neg_11;
++---------------------+---------------------+---------------------+---------------------+
+| space_01            | iso_1               | iso_1_00            | iso_neg_11          |
++---------------------+---------------------+---------------------+---------------------+
+| 2008-01-01 00:03:05 | 2008-01-01 00:03:05 | 2008-01-01 00:03:05 | 2008-01-01 12:03:05 |
++---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# This tests time zone conversion from a datetime.
+select timestamp(datetime "2008-01-01 01:03:05") as t_winter,
+       timestamp(datetime "2008-01-01 01:03:05", "America/Los_Angeles") as t_winter_offs,
+       timestamp(datetime "2008-07-01 01:03:05", "America/Los_Angeles") as t_summer_offs;
++---------------------+---------------------+---------------------+
+| t_winter            | t_winter_offs       | t_summer_offs       |
++---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2008-01-01 09:03:05 | 2008-07-01 08:03:05 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIMESTAMP_SECONDS
@@ -1102,7 +1305,7 @@ order by v;
 
 !ok
 
-select unix_date(timestamp '2008-12-25') as d;
+select unix_date(datetime '2008-12-25') as d;
 +-------+
 | d     |
 +-------+
@@ -1112,29 +1315,6 @@ select unix_date(timestamp '2008-12-25') as d;
 
 !ok
 
-# DATE
-# 'date(x) is shorthand for 'cast(x as date)'
-select date('1970-01-01') as d;
-+------------+
-| d          |
-+------------+
-| 1970-01-01 |
-+------------+
-(1 row)
-
-!ok
-
-!if (false) {
-select date(cast(null as varchar(10))) as d;
-+---+
-| D |
-+---+
-|   |
-+---+
-(1 row)
-
-!ok
-!}
 
 #####################################################################
 # DATE_ADD

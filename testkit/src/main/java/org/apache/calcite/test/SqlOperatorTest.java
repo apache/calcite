@@ -5100,10 +5100,10 @@ public class SqlOperatorTest {
     f.checkNull("timestamp_micros(cast(null as bigint))");
     f.checkScalar("date_from_unix_date(0)", "1970-01-01", "DATE NOT NULL");
 
-    // Have to quote the "DATE" function because we're not using the Babel
-    // parser. In the regular parser, DATE is a reserved keyword.
-    f.checkNull("\"DATE\"(null)");
-    f.checkScalar("\"DATE\"('1985-12-06')", "1985-12-06", "DATE NOT NULL");
+    // DATE is a reserved keyword, but the parser has special treatment to
+    // allow it as a function.
+    f.checkNull("DATE(null)");
+    f.checkScalar("DATE('1985-12-06')", "1985-12-06", "DATE NOT NULL");
     f.checkType("CURRENT_DATETIME()", "TIMESTAMP(0) NOT NULL");
     f.checkType("CURRENT_DATETIME('America/Los_Angeles')", "TIMESTAMP(0) NOT NULL");
     f.checkType("CURRENT_DATETIME(CAST(NULL AS VARCHAR(20)))", "TIMESTAMP(0)");

@@ -395,7 +395,7 @@ parser: {
 
   # List of methods for parsing builtin function calls.
   # Return type of method implementation should be "SqlNode".
-  # Example: "DateFunctionCall()".
+  # Example: "DateTimeConstructorCall()".
   builtinFunctionCallMethods: [
   ]
 

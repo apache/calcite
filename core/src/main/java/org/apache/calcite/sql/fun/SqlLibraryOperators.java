@@ -482,11 +482,119 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MIN_BY =
       SqlStdOperatorTable.ARG_MIN.withName("MIN_BY");
 
-  /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
+  /** The "DATE" function. It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code DATE(string)} is syntactic sugar for
+   *       {@code CAST(string AS DATE)}
+   *   <li>{@code DATE(year, month, day)}
+   *   <li>{@code DATE(timestampLtz [, timeZone])}
+   *   <li>{@code DATE(timestamp)}
+   * </ul>
+   */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE =
       SqlBasicFunction.create("DATE", ReturnTypes.DATE_NULLABLE,
-          OperandTypes.STRING, SqlFunctionCategory.TIMEDATE);
+          OperandTypes.or(
+              // DATE(string)
+              OperandTypes.STRING,
+              // DATE(year, month, day)
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER),
+              // DATE(timestamp)
+              OperandTypes.TIMESTAMP_NTZ,
+              // DATE(timestampLtz)
+              OperandTypes.TIMESTAMP_LTZ,
+              // DATE(timestampLtz, timeZone)
+              OperandTypes.sequence(
+                  "DATE(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATETIME" function returns a Calcite
+   * {@code TIMESTAMP} (which BigQuery calls a {@code DATETIME}).
+   * It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code DATETIME(year, month, day, hour, minute, second)}
+   *   <li>{@code DATETIME(date[, time])}
+   *   <li>{@code DATETIME(timestampLtz[, timeZone])}
+   * </ul>
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME =
+      SqlBasicFunction.create("DATETIME", ReturnTypes.TIMESTAMP_NULLABLE,
+          OperandTypes.or(
+              // DATETIME(year, month, day, hour, minute, second)
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              // DATETIME(date)
+              OperandTypes.DATE,
+              // DATETIME(date, time)
+              OperandTypes.DATE_TIME,
+              // DATETIME(timestampLtz)
+              OperandTypes.TIMESTAMP_LTZ,
+              // DATETIME(timestampLtz, timeZone)
+              OperandTypes.sequence(
+                  "DATETIME(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIME" function. It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code TIME(hour, minute, second)}
+   *   <li>{@code TIME(timestampLtz [, timeZone])}
+   *   <li>{@code TIME(timestamp)}
+   * </ul>
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME =
+      SqlBasicFunction.create("TIME", ReturnTypes.TIME_NULLABLE,
+          OperandTypes.or(
+              // TIME(hour, minute, second)
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER),
+              // TIME(timestamp)
+              OperandTypes.TIMESTAMP_NTZ,
+              // TIME(timestampLtz)
+              OperandTypes.TIMESTAMP_LTZ,
+              // TIME(timestampLtz, timeZone)
+              OperandTypes.sequence(
+                  "TIME(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP" function returns a Calcite
+   * {@code TIMESTAMP WITH LOCAL TIME ZONE}
+   * (which BigQuery calls a {@code TIMESTAMP}). It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code TIMESTAMP(string[, timeZone])}
+   *   <li>{@code TIMESTAMP(date[, timeZone])}
+   *   <li>{@code TIMESTAMP(timestamp[, timeZone])}
+   * </ul>
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP =
+      SqlBasicFunction.create("TIMESTAMP",
+          ReturnTypes.TIMESTAMP_LTZ.andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.or(
+              // TIMESTAMP(string)
+              OperandTypes.CHARACTER,
+              // TIMESTAMP(string, timeZone)
+              OperandTypes.CHARACTER_CHARACTER,
+              // TIMESTAMP(date)
+              OperandTypes.DATE,
+              // TIMESTAMP(date, timeZone)
+              OperandTypes.DATE_CHARACTER,
+              // TIMESTAMP(timestamp)
+              OperandTypes.TIMESTAMP_NTZ,
+              // TIMESTAMP(timestamp, timeZone)
+              OperandTypes.sequence("TIMESTAMP(TIMESTAMP, VARCHAR)",
+                  OperandTypes.TIMESTAMP_NTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
 
   /** The "CURRENT_DATETIME([timezone])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})

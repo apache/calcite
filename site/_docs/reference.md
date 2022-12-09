@@ -2608,6 +2608,17 @@ The 'C' (compatibility) column contains value:
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
 
+BigQuery's type system uses confusingly different names for types and functions:
+* BigQuery's `DATETIME` type represents a local date time, and corresponds to
+  Calcite's `TIMESTAMP` type;
+* BigQuery's `TIMESTAMP` type represents an instant, and corresponds to
+  Calcite's `TIMESTAMP WITH LOCAL TIME ZONE` type;
+* The *timestampLtz* parameter, for instance in `DATE(timestampLtz)`, has
+  Calcite type `TIMESTAMP WITH LOCAL TIME ZONE`;
+* The `TIMESTAMP(string)` function, designed to be compatible the BigQuery
+  function, return a Calcite `TIMESTAMP WITH LOCAL TIME ZONE`;
+* Similarly, `DATETIME(string)` returns a Calcite `TIMESTAMP`.
+
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
@@ -2624,10 +2635,18 @@ semantics.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
+| b | DATE(timestamp)                                | Extracts the DATE from a *timestamp*
+| b | DATE(timestampLtz)                             | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
+| b | DATE(timestampLtz, timeZone)                   | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type) in *timeZone*
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
+| b | DATE(year, month, day)                         | Returns a DATE value for *year*, *month*, and *day* (all of type INTEGER)
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATETIME(date, time)                           | Converts *date* and *time* to a TIMESTAMP
+| b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
+| b | DATETIME(date, timeZone)                       | Converts *date* to a TIMESTAMP value (at midnight), in *timeZone*
+| b | DATETIME(year, month, day, hour, minute, second) | Creates a TIMESTAMP for *year*, *month*, *day*, *hour*, *minute*, *second* (all of type INTEGER)
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
@@ -2680,6 +2699,16 @@ semantics.
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
+| b | TIME(hour, minute, second)                     | Returns a TIME value *hour*, *minute*, *second* (all of type INTEGER)
+| b | TIME(timestamp)                                | Extracts the TIME from *timestamp* (a local time; BigQuery's DATETIME type)
+| b | TIME(instant)                                  | Extracts the TIME from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
+| b | TIME(instant, timeZone)                        | Extracts the time from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), in *timeZone*
+| b | TIMESTAMP(string)                              | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`
+| b | TIMESTAMP(string, timeZone)                    | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`, converted to *timeZone*
+| b | TIMESTAMP(date)                                | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight)
+| b | TIMESTAMP(date, timeZone)                      | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight), in *timeZone*
+| b | TIMESTAMP(timestamp)                           | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, assuming a UTC
+| b | TIMESTAMP(timestamp, timeZone)                 | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, in *timeZone*
 | b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
 | b | TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*. Equivalent to `TIMESTAMPDIFF(timeUnit, timestamp2, timestamp)` and `(timestamp - timestamp2) timeUnit`
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00

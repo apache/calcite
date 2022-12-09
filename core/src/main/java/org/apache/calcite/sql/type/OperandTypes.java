@@ -50,6 +50,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Strategies for checking operand types.
  *
@@ -128,6 +130,14 @@ public abstract class OperandTypes {
    */
   public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families) {
     return family(families, i -> false);
+  }
+
+  /**
+   * Creates a single-operand checker that passes if the operand's type has a
+   * particular {@link SqlTypeName}.
+   */
+  public static SqlSingleOperandTypeChecker typeName(SqlTypeName typeName) {
+    return new TypeNameChecker(typeName);
   }
 
   /**
@@ -439,8 +449,21 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker TIMESTAMP =
       family(SqlTypeFamily.TIMESTAMP);
 
+  /** Type-checker that matches "TIMESTAMP WITH LOCAL TIME ZONE" but not other
+   * members of the "TIMESTAMP" family (e.g. "TIMESTAMP"). */
+  public static final SqlSingleOperandTypeChecker TIMESTAMP_LTZ =
+      new TypeNameChecker(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+  /** Type-checker that matches "TIMESTAMP" but not other members of the
+   * "TIMESTAMP" family (e.g. "TIMESTAMP WITH LOCAL TIME ZONE"). */
+  public static final SqlSingleOperandTypeChecker TIMESTAMP_NTZ =
+      new TypeNameChecker(SqlTypeName.TIMESTAMP);
+
   public static final SqlSingleOperandTypeChecker INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER);
 
   public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER_DATETIME =
       family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME);
@@ -803,6 +826,12 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker DATE_INTERVAL =
       family(SqlTypeFamily.DATE, SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker DATE_CHARACTER =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.CHARACTER);
+
+  public static final SqlSingleOperandTypeChecker DATE_TIME =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.TIME);
+
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);
 
@@ -1020,6 +1049,39 @@ public abstract class OperandTypes {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
               "PERIOD (DATETIME, DATETIME)"));
+    }
+  }
+
+  /** Checker that passes if the operand's type has a particular
+   * {@link SqlTypeName}. */
+  private static class TypeNameChecker implements SqlSingleOperandTypeChecker,
+      ImplicitCastOperandTypeChecker {
+    final SqlTypeName typeName;
+
+    TypeNameChecker(SqlTypeName typeName) {
+      this.typeName = requireNonNull(typeName, "typeName");
+    }
+
+    @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
+        SqlNode operand, int iFormalOperand, boolean throwOnFailure) {
+      final RelDataType operandType =
+          callBinding.getValidator().getValidatedNodeType(operand);
+      return operandType.getSqlTypeName() == typeName;
+    }
+
+    @Override public boolean checkOperandTypesWithoutTypeCoercion(
+        SqlCallBinding callBinding, boolean throwOnFailure) {
+      // FIXME we assume that there is exactly one operand
+      return checkSingleOperandType(callBinding, callBinding.operand(0), 0,
+          throwOnFailure);
+    }
+
+    @Override public SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand) {
+      return requireNonNull(typeName.getFamily(), "family");
+    }
+
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      return opName + "(" + typeName.getSpaceName() + ")";
     }
   }
 }

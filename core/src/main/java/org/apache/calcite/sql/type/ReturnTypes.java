@@ -329,6 +329,13 @@ public abstract class ReturnTypes {
       TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is TIMESTAMP
+   * WITH LOCAL TIME ZONE.
+   */
+  public static final SqlReturnTypeInference TIMESTAMP_LTZ =
+      explicit(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is Double.
    */
   public static final SqlReturnTypeInference DOUBLE =
