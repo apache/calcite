@@ -76,6 +76,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.SqlUnknownLiteral;
 import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
@@ -6145,6 +6146,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     assert feature.getProperties().get("FeatureDefinition") != null;
   }
 
+  @Override public SqlLiteral resolveLiteral(SqlLiteral literal) {
+    switch (literal.getTypeName()) {
+    case UNKNOWN:
+      final SqlUnknownLiteral unknownLiteral = (SqlUnknownLiteral) literal;
+      // TODO: resolve type name based on type alias map
+      final SqlTypeName typeName =
+          SqlTypeName.valueOf(SqlTypeName.class, unknownLiteral.tag);
+      return unknownLiteral.resolve(typeName);
+
+    default:
+      return literal;
+    }
+  }
+
   public SqlNode expandSelectExpr(SqlNode expr,
       SelectScope scope, SqlSelect select) {
     final Expander expander = new SelectExpander(this, scope, select);
@@ -6443,7 +6458,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public RelDataType visit(SqlLiteral literal) {
-      return literal.createSqlType(typeFactory);
+      return resolveLiteral(literal).createSqlType(typeFactory);
     }
 
     @Override public RelDataType visit(SqlCall call) {
@@ -6590,6 +6605,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode expandedExpr = expandDynamicStar(id, fqId);
       validator.setOriginal(expandedExpr, id);
       return expandedExpr;
+    }
+
+    @Override public @Nullable SqlNode visit(SqlLiteral literal) {
+      return validator.resolveLiteral(literal);
     }
 
     @Override protected SqlNode visitScoped(SqlCall call) {

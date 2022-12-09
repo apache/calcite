@@ -229,6 +229,8 @@ public class SqlLiteral extends SqlNode {
           || (value instanceof SqlSampleSpec);
     case MULTISET:
       return true;
+    case UNKNOWN:
+      return value instanceof String;
     case INTEGER: // not allowed -- use Decimal
     case VARCHAR: // not allowed -- use Char
     case VARBINARY: // not allowed -- use Binary
@@ -824,6 +826,28 @@ public class SqlLiteral extends SqlNode {
     default:
       throw Util.needToImplement(toString() + ", operand=" + value);
     }
+  }
+
+  /** Creates a literal whose type is unknown until validation time.
+   * The literal has a tag that looks like a type name, but the tag cannot be
+   * resolved until validation time, when we have the mapping from type aliases
+   * to types.
+   *
+   * <p>For example,
+   * <blockquote>{@code
+   * TIMESTAMP '1969-07-20 22:56:00'
+   * }</blockquote>
+   * calls {@code createUnknown("TIMESTAMP", "1969-07-20 22:56:00")}; at
+   * validate time, we may discover that "TIMESTAMP" maps to the type
+   * "TIMESTAMP WITH LOCAL TIME ZONE".
+   *
+   * @param tag Type name, e.g. "TIMESTAMP", "TIMESTAMP WITH LOCAL TIME ZONE"
+   * @param value String encoding of the value
+   * @param pos Parser position
+   */
+  public static SqlLiteral createUnknown(String tag, String value,
+      SqlParserPos pos) {
+    return new SqlUnknownLiteral(tag, value, pos);
   }
 
   @Deprecated // to be removed before 2.0

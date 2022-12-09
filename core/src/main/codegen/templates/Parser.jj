@@ -4612,12 +4612,21 @@ SqlLiteral DateTimeLiteral() :
       return SqlParserUtil.parseDateLiteral(p, s.end(this));
     }
 |
+    <DATETIME> { s = span(); } p = SimpleStringLiteral() {
+        return SqlLiteral.createUnknown("DATETIME", p, s.end(this));
+    }
+|
     <TIME> { s = span(); } p = SimpleStringLiteral() {
         return SqlParserUtil.parseTimeLiteral(p, s.end(this));
     }
 |
+    LOOKAHEAD(2)
     <TIMESTAMP> { s = span(); } p = SimpleStringLiteral() {
-        return SqlParserUtil.parseTimestampLiteral(p, s.end(this));
+        return SqlLiteral.createUnknown("TIMESTAMP", p, s.end(this));
+    }
+|
+    <TIMESTAMP> { s = span(); } <WITH> <LOCAL> <TIME> <ZONE> p = SimpleStringLiteral() {
+        return SqlLiteral.createUnknown("TIMESTAMP WITH LOCAL TIME ZONE", p, s.end(this));
     }
 }
 
@@ -7536,6 +7545,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATA: "DATA" >
 |   < DATABASE: "DATABASE" >
 |   < DATE: "DATE" >
+|   < DATETIME: "DATETIME" >
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
 |   < DAY: "DAY" >
