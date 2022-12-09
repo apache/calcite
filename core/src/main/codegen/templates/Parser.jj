@@ -4616,6 +4616,10 @@ SqlLiteral DateTimeLiteral() :
         return SqlLiteral.createUnknown("DATETIME", p, s.end(this));
     }
 |
+    <DATETIME> { s = span(); } p = SimpleStringLiteral() {
+        return SqlLiteral.createUnknown("DATETIME", p, s.end(this));
+    }
+|
     <TIME> { s = span(); } p = SimpleStringLiteral() {
       return SqlLiteral.createUnknown("TIME", p, s.end(this));
     }
