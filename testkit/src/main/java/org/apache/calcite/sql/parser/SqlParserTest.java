@@ -5261,21 +5261,24 @@ public class SqlParserTest {
     // Timestamp literals
     expr("TIMESTAMP '2004-12-01 12:01:01'").same();
     expr("TIMESTAMP '2004-12-01 12:01:01.1'").same();
-    expr("TIMESTAMP '2004-12-01 12:01:01.'")
-        .ok("TIMESTAMP '2004-12-01 12:01:01'");
+    expr("TIMESTAMP '2004-12-01 12:01:01.'").same();
     expr("TIMESTAMP  '2004-12-01 12:01:01.010234567890'")
         .ok("TIMESTAMP '2004-12-01 12:01:01.010234567890'");
     expr("TIMESTAMP '2004-12-01 12:01:01.01023456789'").same();
 
-    // Failures.
+    // Datetime, Timestamp with local time zone literals.
+    expr("DATETIME '2004-12-01 12:01:01'")
+        .same();
+
+    // Value strings that are illegal for their type are considered valid at
+    // parse time, invalid at validate time.
     sql("^DATE '12/21/99'^")
         .fails("(?s).*Illegal DATE literal.*");
     sql("^TIME '1230:33'^")
         .fails("(?s).*Illegal TIME literal.*");
     sql("^TIME '12:00:00 PM'^")
         .fails("(?s).*Illegal TIME literal.*");
-    sql("^TIMESTAMP '12-21-99, 12:30:00'^")
-        .fails("(?s).*Illegal TIMESTAMP literal.*");
+    expr("TIMESTAMP '12-21-99, 12:30:00'").same();
   }
 
   /**

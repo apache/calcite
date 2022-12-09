@@ -251,6 +251,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN");
   }
 
+  @Test void testLiteral() {
+    expr("^DATE '12/21/99'^")
+        .fails("(?s).*Illegal DATE literal.*");
+    expr("^TIME '1230:33'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIME '12:00:00 PM'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIMESTAMP '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP literal.*");
+  }
+
+  /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
+   * date part. */
+  @Test void testShortTimestampLiteral() {
+    sql("select timestamp '1969-07-20'")
+        .ok();
+    // PostgreSQL allows the following. We should too.
+    sql("select ^timestamp '1969-07-20 1:2'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
+    sql("select ^timestamp '1969-07-20:23:'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
+  }
+
   @Test void testBooleans() {
     sql("select TRUE OR unknowN from (values(true))").ok();
     sql("select false AND unknown from (values(true))").ok();
@@ -793,10 +818,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(ANY);
   }
 
-  // FIXME jvs 2-Feb-2005: all collation-related tests are disabled due to
-  // dtbug 280
+  // FIXME jvs 2-Feb-2005:
 
-  public void _testSimpleCollate() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testSimpleCollate() {
     expr("'s' collate latin1$en$1").ok();
     expr("'s' collate latin1$en$1")
         .columnType("CHAR(1)");
@@ -808,19 +833,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             is(SqlCollation.Coercibility.EXPLICIT));
   }
 
-  public void _testCharsetAndCollateMismatch() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testCharsetAndCollateMismatch() {
     // todo
     expr("_UTF16's' collate latin1$en$1")
         .fails("?");
   }
 
-  public void _testDyadicCollateCompare() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCollateCompare() {
     expr("'s' collate latin1$en$1 < 't'").ok();
     expr("'t' > 's' collate latin1$en$1").ok();
     expr("'s' collate latin1$en$1 <> 't' collate latin1$en$1").ok();
   }
 
-  public void _testDyadicCompareCollateFails() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCompareCollateFails() {
     // two different explicit collations. difference in strength
     expr("'s' collate latin1$en$1 <= 't' collate latin1$en$2")
         .fails("(?s).*Two explicit different collations.*are illegal.*");
@@ -830,7 +858,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Two explicit different collations.*are illegal.*");
   }
 
-  public void _testDyadicCollateOperator() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCollateOperator() {
     sql("'a' || 'b'")
         .assertCollation(is("ISO-8859-1$en_US$primary"),
             is(SqlCollation.Coercibility.COERCIBLE));
@@ -911,7 +940,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*not comparable to each other.*");
   }
 
-  public void _testConvertAndTranslate() {
+  @Disabled
+  void testConvertAndTranslate() {
     expr("convert('abc' using conversion)").ok();
     expr("translate('abc' using translation)").ok();
   }
@@ -1053,7 +1083,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN NOT NULL");
   }
 
-  public void _testLikeAndSimilarFails() {
+  @Disabled
+  void testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"
             + " _SHIFT_JIS.b..*");
@@ -2709,7 +2740,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   // test window partition clause. See SQL 2003 specification for detail
-  public void _testWinPartClause() {
+  @Disabled
+  void testWinPartClause() {
     win("window w as (w2 order by deptno), w2 as (^rang^e 100 preceding)")
         .fails("Referenced window cannot have framing declarations");
     // Test specified collation, window clause syntax rule 4,5.
@@ -5883,8 +5915,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Expression 'EMP\\.EMPNO' is not being grouped");
   }
 
-  // todo: enable when correlating variables work
-  public void _testGroupExpressionEquivalenceCorrelated() {
+  @Disabled("todo: enable when correlating variables work")
+  void testGroupExpressionEquivalenceCorrelated() {
     // dname comes from dept, so it is constant within the sub-query, and
     // is so is a valid expr in a group-by query
     sql("select * from dept where exists ("
@@ -5893,8 +5925,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select dname + empno + 1 from emp group by empno, dept.deptno)").ok();
   }
 
-  // todo: enable when params are implemented
-  public void _testGroupExpressionEquivalenceParams() {
+  @Disabled("todo: enable when params are implemented")
+  void testGroupExpressionEquivalenceParams() {
     sql("select cast(? as integer) from emp group by cast(? as integer)").ok();
   }
 
