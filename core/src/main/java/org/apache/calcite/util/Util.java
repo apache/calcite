@@ -40,6 +40,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -113,6 +114,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Miscellaneous utility functions.
@@ -919,12 +922,19 @@ public class Util {
     return new AssertionError("Internal error: " + s, e);
   }
 
+  /** Until we upgrade to Guava 19. */
+  @CanIgnoreReturnValue
+  public static <T> T verifyNotNull(@Nullable T reference) {
+    Bug.upgrade("Remove when minimum Guava version is 17");
+    return requireNonNull(reference, "expected a non-null reference");
+  }
+
   /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
    * which was introduced in Guava 20,
    * but we don't require Guava version 20 yet. */
   public static void throwIfUnchecked(Throwable throwable) {
     Bug.upgrade("Remove when minimum Guava version is 20");
-    Objects.requireNonNull(throwable, "throwable");
+    requireNonNull(throwable, "throwable");
     if (throwable instanceof RuntimeException) {
       throw (RuntimeException) throwable;
     }
@@ -1560,7 +1570,7 @@ public class Util {
   }
 
   private static int groupAsInt(Matcher matcher, int index) {
-    String value = Objects.requireNonNull(
+    String value = requireNonNull(
         matcher.group(index),
         () -> "no group for index " + index + ", matcher " + matcher);
     return Integer.parseInt(value);

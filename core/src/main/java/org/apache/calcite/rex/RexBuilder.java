@@ -75,9 +75,8 @@ import java.util.Objects;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Verify.verifyNotNull;
-
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.util.Util.verifyNotNull;
 
 /**
  * Factory for row expressions.

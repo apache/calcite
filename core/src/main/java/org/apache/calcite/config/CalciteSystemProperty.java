@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.config;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -30,6 +29,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Stream;
+import javax.annotation.CheckForNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -425,9 +425,20 @@ public final class CalciteSystemProperty<T> {
     });
   }
 
+  private static <T> T firstNonEmpty(@CheckForNull T t0, T t1) {
+    //Bug.upgrade("remove when 18.0 is the minimum Guava version");
+    if (t0 != null) {
+      return t0;
+    }
+    if (t1 != null) {
+      return t1;
+    }
+    throw new NullPointerException();
+  }
+
   private static Properties loadProperties() {
     Properties saffronProperties = new Properties();
-    ClassLoader classLoader = MoreObjects.firstNonNull(
+    ClassLoader classLoader = firstNonEmpty(
         Thread.currentThread().getContextClassLoader(),
         CalciteSystemProperty.class.getClassLoader());
     // Read properties from the file "saffron.properties", if it exists in classpath
