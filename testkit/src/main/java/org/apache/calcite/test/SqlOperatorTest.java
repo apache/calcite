@@ -7772,7 +7772,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.TIMESTAMP_DIFF);
-    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-25 15:35:00', MINUTE)",
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-25 15:35:00', SECOND)",
         "5",
         "INTEGER NOT NULL");
   }

@@ -24,7 +24,10 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -62,6 +65,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 class SqlTimestampDiffFunction extends SqlFunction {
   private static RelDataType inferReturnType2(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type = opBinding.getOperandType(1);
     TimeUnit timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
     SqlTypeName sqlTypeName =
         timeUnit == TimeUnit.NANOSECOND
@@ -73,21 +77,11 @@ class SqlTimestampDiffFunction extends SqlFunction {
             || opBinding.getOperandType(2).isNullable());
   }
 
-  private static FamilyOperandTypeChecker inferOperandType(SqlOperatorBinding opBinding) {
-    if (opBinding.getOperandType(0).toString() == "TimeUnit") {
-      return OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
-          SqlTypeFamily.DATETIME);
-    } else {
-      return OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
-          SqlTypeFamily.ANY);
-    }
-  }
-
   /** Creates a SqlTimestampDiffFunction. */
   SqlTimestampDiffFunction(String name) {
     super(name, SqlKind.TIMESTAMP_DIFF,
         SqlTimestampDiffFunction::inferReturnType2, null,
-        SqlTimestampDiffFunction::inferOperandType,
+        OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY),
         SqlFunctionCategory.TIMEDATE);
   }
 
@@ -104,7 +98,11 @@ class SqlTimestampDiffFunction extends SqlFunction {
     //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'.
     //
     // If the latter, check that timeFrameName is valid.
-    validator.validateTimeFrame(
-        (SqlIntervalQualifier) call.getOperandList().get(0));
+    SqlNode op = call.operand(0);
+    if (op instanceof SqlTimestampLiteral) {
+      validator.validateTimeFrame((SqlIntervalQualifier) call.operand(2));
+    } else {
+      validator.validateTimeFrame((SqlIntervalQualifier) call.operand(0));
+    }
   }
 }
