@@ -107,6 +107,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_SUB;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
@@ -713,10 +714,10 @@ public class SparkSqlDialect extends SqlDialect {
       writer.endFunCall(piFrame);
       break;
     case "TRUNC":
-      String truncFrame = getTruncFunctionName(call);
-      switch (truncFrame) {
+      String truncFunctionName = getTruncFunctionName(call);
+      switch (truncFunctionName) {
       case "DATE_TRUNC":
-        SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFrame, false);
+        unparseDateTrunc(writer, call, leftPrec, rightPrec, truncFunctionName);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -746,6 +747,27 @@ public class SparkSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseDateTrunc(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      String truncFunctionName) {
+    if (call.operand(1).toString().equalsIgnoreCase("'DAY'")) {
+      unparseDateTruncWithDayFormat(writer, call, leftPrec, rightPrec);
+    } else {
+      SqlFloorFunction.unparseDatetimeFunction(writer, call, truncFunctionName, false);
+    }
+  }
+
+  private void unparseDateTruncWithDayFormat(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    SqlCall dateTruncOperandCall = DATE_TRUNC.createCall(SqlParserPos.ZERO,
+        call.operand(1), call.operand(0));
+    SqlNode dateNode = getCastSpec(
+        new BasicSqlType(RelDataTypeSystem.DEFAULT,
+            SqlTypeName.DATE));
+    super.unparseCall(
+        writer, CAST.createCall(SqlParserPos.ZERO, dateTruncOperandCall,
+        dateNode), leftPrec, rightPrec);
   }
 
   protected void unparseDateDiff(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -867,5 +889,20 @@ public class SparkSqlDialect extends SqlDialect {
       op.unparse(writer, leftPrec, rightPrec);
     });
     writer.endFunCall(frame);
+  }
+
+  private String getTruncFunctionName(SqlCall call) {
+    String dateFormatOperand = call.operand(1).toString();
+    switch (dateFormatOperand) {
+    case "'DAY'":
+    case "'HOUR'":
+    case "'MINUTE'":
+    case "'SECOND'":
+    case "'MILLISECOND'":
+    case "'MICROSECOND'":
+      return "DATE_TRUNC";
+    default:
+      return "TRUNC";
+    }
   }
 }
