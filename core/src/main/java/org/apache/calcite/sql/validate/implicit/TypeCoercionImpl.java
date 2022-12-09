@@ -94,24 +94,30 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       int columnIndex,
       RelDataType targetType) {
     final SqlKind kind = query.getKind();
-    boolean coerced = false;
     switch (kind) {
     case SELECT:
       SqlSelect selectNode = (SqlSelect) query;
       SqlValidatorScope scope1 = validator.getSelectScope(selectNode);
-      coerced = coerceColumnType(scope1, getSelectList(selectNode), columnIndex, targetType);
-      break;
+      if (!coerceColumnType(scope1, getSelectList(selectNode), columnIndex, targetType)) {
+        return false;
+      }
+      updateInferredColumnType(scope1, query, columnIndex, targetType);
+      return true;
     case VALUES:
+      boolean coerceValues = false;
       for (SqlNode rowConstructor : ((SqlCall) query).getOperandList()) {
         if (coerceOperandType(scope, (SqlCall) rowConstructor, columnIndex, targetType)) {
-          coerced = true;
+          coerceValues = true;
         }
       }
-      break;
+      if (coerceValues) {
+        updateInferredColumnType(
+            requireNonNull(scope, "scope"), query, columnIndex, targetType);
+      }
+      return coerceValues;
     case WITH:
       SqlNode body = ((SqlWith) query).body;
-      coerced = rowTypeCoercion(validator.getOverScope(query), body, columnIndex, targetType);
-      break;
+      return rowTypeCoercion(validator.getOverScope(query), body, columnIndex, targetType);
     case UNION:
     case INTERSECT:
     case EXCEPT:
@@ -123,19 +129,17 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       // INSERT INTO t -- only one column is c(int).
       // SELECT 1 UNION   -- operand0 not need to be coerced.
       // SELECT 1.0  -- operand1 should be coerced.
-      coerced = rowTypeCoercion(scope, operand0, columnIndex, targetType);
-      coerced = rowTypeCoercion(scope, operand1, columnIndex, targetType)
-          || coerced;
-      break;
+      boolean coerced = rowTypeCoercion(scope, operand0, columnIndex, targetType);
+      coerced = rowTypeCoercion(scope, operand1, columnIndex, targetType) || coerced;
+      // Update the nested SET operator node type.
+      if (coerced) {
+        updateInferredColumnType(
+            requireNonNull(scope, "scope"), query, columnIndex, targetType);
+      }
+      return coerced;
     default:
       return false;
     }
-    if (coerced) {
-      // Update the nested SET operator node type.
-      updateInferredColumnType(
-          requireNonNull(scope, "scope"), query, columnIndex, targetType);
-    }
-    return coerced;
   }
 
   /**
