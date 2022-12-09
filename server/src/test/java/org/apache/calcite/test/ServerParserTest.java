@@ -74,7 +74,7 @@ class ServerParserTest extends SqlParserTest {
         + "OPTIONS (`ABOOLEAN` TRUE,"
         + " `ANINTEGER` -45,"
         + " `ADATE` DATE '1970-03-21',"
-        + " `quoted.id` TIMESTAMP '1970-03-21 12:04:56.78',"
+        + " `quoted.id` TIMESTAMP '1970-03-21 12:4:56.78',"
         + " `ASTRING` 'foo''bar')";
     sql(sql).ok(expected);
   }

@@ -251,6 +251,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN");
   }
 
+  /** Tests that date-time literals with invalid strings are considered invalid.
+   * Originally the parser did that checking, but now the parser creates a
+   * {@link org.apache.calcite.sql.SqlUnknownLiteral} and the checking is
+   * deferred to the validator. */
+  @Test void testLiteral() {
+    expr("^DATE '12/21/99'^")
+        .fails("(?s).*Illegal DATE literal.*");
+    expr("^TIME '1230:33'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIME '12:00:00 PM'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIMESTAMP '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP literal.*");
+    expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
+  }
+
+  /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
+   * date part. */
+  @Test void testShortTimestampLiteral() {
+    sql("select timestamp '1969-07-20'")
+        .ok();
+    // PostgreSQL allows the following. We should too.
+    sql("select ^timestamp '1969-07-20 1:2'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
+    sql("select ^timestamp '1969-07-20:23:'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
+  }
+
   @Test void testBooleans() {
     sql("select TRUE OR unknowN from (values(true))").ok();
     sql("select false AND unknown from (values(true))").ok();

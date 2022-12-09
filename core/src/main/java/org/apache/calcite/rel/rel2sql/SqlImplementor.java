@@ -1409,7 +1409,7 @@ public abstract class SqlImplementor {
       return SqlLiteral.createTime(castNonNull(literal.getValueAs(TimeString.class)),
           literal.getType().getPrecision(), POS);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp(
+      return SqlLiteral.createTimestamp(typeName,
           castNonNull(literal.getValueAs(TimestampString.class)),
           literal.getType().getPrecision(), POS);
     case ANY:

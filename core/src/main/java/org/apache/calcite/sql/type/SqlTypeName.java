@@ -298,6 +298,14 @@ public enum SqlTypeName {
     return VALUES_MAP.get(name);
   }
 
+  /** Returns the SqlTypeName value whose name or {@link #getSpaceName()}
+   * matches the given name, or throws {@link IllegalArgumentException}; never
+   * returns null. */
+  public static SqlTypeName lookup(String tag) {
+    String tag2 = tag.replace(' ', '_');
+    return valueOf(tag2);
+  }
+
   public boolean allowsNoPrecNoScale() {
     return (signatures & PrecScale.NO_NO) != 0;
   }
@@ -945,7 +953,7 @@ public enum SqlTypeName {
           ? TimeString.fromCalendarFields((Calendar) o)
           : (TimeString) o, 0 /* todo */, pos);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp(o instanceof Calendar
+      return SqlLiteral.createTimestamp(this, o instanceof Calendar
           ? TimestampString.fromCalendarFields((Calendar) o)
           : (TimestampString) o, 0 /* todo */, pos);
     default:
@@ -955,7 +963,13 @@ public enum SqlTypeName {
 
   /** Returns the name of this type. */
   public String getName() {
-    return toString();
+    return name();
+  }
+
+  /** Returns the name of this type, with underscores converted to spaces,
+   * for example "TIMESTAMP WITH LOCAL TIME ZONE", "DATE". */
+  public String getSpaceName() {
+    return name().replace('_', ' ');
   }
 
   /**

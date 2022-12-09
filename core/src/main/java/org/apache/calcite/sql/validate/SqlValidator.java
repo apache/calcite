@@ -705,6 +705,13 @@ public interface SqlValidator {
    */
   SqlNode expand(SqlNode expr, SqlValidatorScope scope);
 
+  /** Resolves a literal.
+   *
+   * <p>Usually returns the literal unchanged, but if the literal is of type
+   * {@link org.apache.calcite.sql.type.SqlTypeName#UNKNOWN} looks up its type
+   * and converts to the appropriate literal subclass. */
+  SqlLiteral resolveLiteral(SqlLiteral literal);
+
   /**
    * Returns whether a field is a system field. Such fields may have
    * particular properties such as sortedness and nullability.

@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.SqlUnknownLiteral;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
@@ -34,6 +35,7 @@ import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
@@ -207,6 +209,7 @@ public class SqlParserTest {
       "CYCLE",                               "99", "2003", "2011", "2014", "c",
       "DATA",                                "99",
       "DATE",                          "92", "99", "2003", "2011", "2014", "c",
+      "DATETIME",                                                          "c",
       "DAY",                           "92", "99", "2003", "2011", "2014", "c",
       "DAYS",                                              "2011",
       "DEALLOCATE",                    "92", "99", "2003", "2011", "2014", "c",
@@ -5259,8 +5262,7 @@ public class SqlParserTest {
 
     // Time literals
     expr("TIME '12:01:01'").same();
-    expr("TIME '12:01:01.'")
-        .ok("TIME '12:01:01'");
+    expr("TIME '12:01:01.'").same();
     expr("TIME '12:01:01.000'").same();
     expr("TIME '12:01:01.001'").same();
     expr("TIME '12:01:01.01023456789'").same();
@@ -5268,21 +5270,23 @@ public class SqlParserTest {
     // Timestamp literals
     expr("TIMESTAMP '2004-12-01 12:01:01'").same();
     expr("TIMESTAMP '2004-12-01 12:01:01.1'").same();
-    expr("TIMESTAMP '2004-12-01 12:01:01.'")
-        .ok("TIMESTAMP '2004-12-01 12:01:01'");
+    expr("TIMESTAMP '2004-12-01 12:01:01.'").same();
     expr("TIMESTAMP  '2004-12-01 12:01:01.010234567890'")
         .ok("TIMESTAMP '2004-12-01 12:01:01.010234567890'");
     expr("TIMESTAMP '2004-12-01 12:01:01.01023456789'").same();
 
-    // Failures.
-    sql("^DATE '12/21/99'^")
-        .fails("(?s).*Illegal DATE literal.*");
-    sql("^TIME '1230:33'^")
-        .fails("(?s).*Illegal TIME literal.*");
-    sql("^TIME '12:00:00 PM'^")
-        .fails("(?s).*Illegal TIME literal.*");
-    sql("^TIMESTAMP '12-21-99, 12:30:00'^")
-        .fails("(?s).*Illegal TIMESTAMP literal.*");
+    // Datetime, Timestamp with local time zone literals.
+    expr("DATETIME '2004-12-01 12:01:01'")
+        .same();
+
+    // Value strings that are illegal for their type are considered valid at
+    // parse time, invalid at validate time. See SqlValidatorTest.testLiteral.
+    expr("^DATE '12/21/99'^").same();
+    expr("^TIME '1230:33'^").same();
+    expr("^TIME '12:00:00 PM'^").same();
+    expr("TIMESTAMP '12-21-99, 12:30:00'").same();
+    expr("TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'").same();
+    expr("DATETIME '12-21-99, 12:30:00'").same();
   }
 
   /**
@@ -8850,8 +8854,12 @@ public class SqlParserTest {
   protected static String varToStr(Hoist.Variable v) {
     if (v.node instanceof SqlLiteral) {
       SqlLiteral literal = (SqlLiteral) v.node;
+      SqlTypeName typeName = literal.getTypeName();
       return "[" + v.ordinal
-          + ":" + literal.getTypeName()
+          + ":"
+          + (typeName == SqlTypeName.UNKNOWN
+              ? ((SqlUnknownLiteral) literal).tag
+              : typeName.getName())
           + ":" + literal.toValue()
           + "]";
     } else {
