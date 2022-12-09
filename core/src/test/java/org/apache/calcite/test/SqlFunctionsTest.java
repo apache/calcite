@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import static org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
@@ -59,7 +60,9 @@ import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toInt;
+import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
 import static org.apache.calcite.runtime.SqlFunctions.toLong;
+import static org.apache.calcite.runtime.SqlFunctions.toLongOptional;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.apache.calcite.test.Matchers.within;
@@ -1040,11 +1043,59 @@ class SqlFunctionsTest {
   }
 
   /**
+   * Test using a custom {@link TimeZone} to calculate the unix timestamp. Dates created by a
+   * {@link java.sql.Date} method should be converted relative to the local time and not UTC.
+   */
+  @Test public void testToIntWithTimeZone() {
+    // Dates created by a Calendar should be converted to a unix date in that time zone
+    final Calendar utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+    utcCal.set(1970, Calendar.JANUARY, 1, 0, 0, 0);
+    utcCal.set(Calendar.MILLISECOND, 0);
+    assertThat(toInt(new java.sql.Date(utcCal.getTimeInMillis()), utcCal.getTimeZone()), is(0));
+
+    // Dates should be relative to the local time and not UTC
+    final java.sql.Date epoch = java.sql.Date.valueOf("1970-01-01");
+
+    final TimeZone minusDayZone = TimeZone.getDefault();
+    minusDayZone.setRawOffset((int) (minusDayZone.getOffset(0L) - MILLIS_PER_DAY));
+    assertThat(toInt(epoch, minusDayZone), is(-1));
+
+    final TimeZone plusDayZone = TimeZone.getDefault();
+    plusDayZone.setRawOffset((int) (plusDayZone.getOffset(0L) + MILLIS_PER_DAY));
+    assertThat(toInt(epoch, plusDayZone), is(1));
+  }
+
+  /**
+   * Test that a nullable date in the local time zone converts to a unix timestamp in UTC.
+   */
+  @Test void testToIntOptionalWithLocalTimeZone() {
+    assertThat(toIntOptional(java.sql.Date.valueOf("1970-01-01")), is(0));
+    assertThat(toIntOptional((java.sql.Date) null), is(nullValue()));
+  }
+
+  /**
+   * Test that a nullable date in the given time zone converts to a unix timestamp in UTC.
+   */
+  @Test void testToIntOptionalWithCustomTimeZone() {
+    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    assertThat(toIntOptional(new java.sql.Date(0L), utc), is(0));
+    assertThat(toIntOptional(null, utc), is(nullValue()));
+  }
+
+  /**
    * Test that a time in the local time zone converts to a unix time in UTC.
    */
   @Test void testToIntWithSqlTime() {
     assertThat(sqlTime("00:00:00"), is(timeStringToUnixDate("00:00:00")));
     assertThat(sqlTime("23:59:59"), is(timeStringToUnixDate("23:59:59")));
+  }
+
+  /**
+   * Test that a nullable time in the local time zone converts to a unix time in UTC.
+   */
+  @Test void testToIntOptionalWithSqlTime() {
+    assertThat(toIntOptional(Time.valueOf("00:00:00")), is(0));
+    assertThat(toIntOptional((Time) null), is(nullValue()));
   }
 
   /**
@@ -1123,6 +1174,23 @@ class SqlFunctionsTest {
             is(expected));
       }
     }
+  }
+
+  /**
+   * Test that a nullable timestamp in the local time zone converts to a unix timestamp in UTC.
+   */
+  @Test void testToLongOptionalWithLocalTimeZone() {
+    assertThat(toLongOptional(Timestamp.valueOf("1970-01-01 00:00:00")), is(0L));
+    assertThat(toLongOptional(null), is(nullValue()));
+  }
+
+  /**
+   * Test that a nullable timestamp in the given time zone converts to a unix timestamp in UTC.
+   */
+  @Test void testToLongOptionalWithCustomTimeZone() {
+    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    assertThat(toLongOptional(new Timestamp(0L), utc), is(0L));
+    assertThat(toLongOptional(null, utc), is(nullValue()));
   }
 
   /**

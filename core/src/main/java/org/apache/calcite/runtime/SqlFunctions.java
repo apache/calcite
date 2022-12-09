@@ -1947,6 +1947,17 @@ public class SqlFunctions {
    * <p>Since a time zone is not available, the date is converted to represent the same date as a
    * unix date in UTC as the {@link java.sql.Date} value in the local time zone.</p>
    *
+   * @see #toInt(java.sql.Date, TimeZone)
+   * @see #internalToDate(int) converse method
+   */
+  public static int toInt(java.sql.Date v) {
+    return toInt(v, LOCAL_TZ);
+  }
+
+  /**
+   * Converts a SQL DATE value from the Java type ({@link java.sql.Date}) to the internal
+   * representation type (number of days since January 1st, 1970 as {@code int}).
+   *
    * <p>The {@link java.sql.Date} class uses the standard Gregorian calendar which switches from
    * the Julian calendar to the Gregorian calendar in October 1582. For compatibility with
    * ISO-8601, the internal representation is converted to use the proleptic Gregorian calendar.</p>
@@ -1955,30 +1966,44 @@ public class SqlFunctions {
    * milliseconds value. If the milliseconds value is positive, it will be rounded down to the
    * closest full day. If the milliseconds value is negative, it will be rounded up to the closest
    * full day.</p>
-   *
-   * @see #toIntOptional(Date)
-   * @see #internalToDate(int) converse method
    */
-  public static int toInt(java.sql.Date v) {
-    return DateTimeUtils.sqlDateToUnixDate(v, LOCAL_TZ);
+  public static int toInt(java.sql.Date v, TimeZone timeZone) {
+    return DateTimeUtils.sqlDateToUnixDate(v, timeZone);
   }
 
   /**
    * Converts a nullable SQL DATE value from the Java type ({@link java.sql.Date}) to the internal
    * representation type (number of days since January 1st, 1970 as {@link Integer}).
    *
-   * @see #toInt(Date)
+   * <p>Since a time zone is not available, the date is converted to represent the same date as a
+   * unix date in UTC as the {@link java.sql.Date} value in the local time zone.</p>
+   *
+   * @see #toInt(java.sql.Date, TimeZone)
    * @see #internalToDate(Integer) converse method
    */
   public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Date v) {
-    return v == null ? castNonNull(null) : toInt(v);
+    return v == null
+        ? castNonNull(null)
+        : toInt(v);
+  }
+
+  /**
+   * Converts a nullable SQL DATE value from the Java type ({@link java.sql.Date}) to the internal
+   * representation type (number of days since January 1st, 1970 as {@link Integer}).
+   *
+   * @see #toInt(java.sql.Date, TimeZone)
+   */
+  public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Date v, TimeZone timeZone) {
+    return v == null
+        ? castNonNull(null)
+        : toInt(v, timeZone);
   }
 
   /**
    * Converts a SQL TIME value from the Java type ({@link java.sql.Time}) to the internal
    * representation type (number of milliseconds as {@code int}).
    *
-   * @see #toIntOptional(Time)
+   * @see #toIntOptional(java.sql.Time)
    * @see #internalToTime(int) converse method
    */
   public static int toInt(java.sql.Time v) {
@@ -1989,7 +2014,7 @@ public class SqlFunctions {
    * Converts a nullable SQL TIME value from the Java type ({@link java.sql.Time}) to the internal
    * representation type (number of milliseconds as {@link Integer}).
    *
-   * @see #toInt(Time)
+   * @see #toInt(java.sql.Time)
    * @see #internalToTime(Integer) converse method
    */
   public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Time v) {
@@ -2042,8 +2067,6 @@ public class SqlFunctions {
    * and time as a unix timestamp in UTC as the {@link Timestamp} value in the local time zone.</p>
    *
    * @see #toLong(Timestamp, TimeZone)
-   * @see #toLongOptional(Timestamp)
-   * @see #toLongOptional(Timestamp, TimeZone)
    * @see #internalToTimestamp(Long) converse method
    */
   public static long toLong(Timestamp v) {
@@ -2061,10 +2084,6 @@ public class SqlFunctions {
    * <p>The {@link Timestamp} class uses the standard Gregorian calendar which switches from the
    * Julian calendar to the Gregorian calendar in October 1582. For compatibility with ISO-8601,
    * the internal representation is converted to use the proleptic Gregorian calendar.</p>
-   *
-   * @see #toLong(Timestamp)
-   * @see #toLongOptional(Timestamp)
-   * @see #toLongOptional(Timestamp, TimeZone)
    */
   public static long toLong(Timestamp v, TimeZone timeZone) {
     return DateTimeUtils.sqlTimestampToUnixTimestamp(v, timeZone);
@@ -2074,9 +2093,7 @@ public class SqlFunctions {
    * Converts a nullable SQL TIMESTAMP value from the Java type ({@link Timestamp}) to the internal
    * representation type (number of milliseconds since January 1st, 1970 UTC as {@link Long}).
    *
-   * @see #toLong(Timestamp)
    * @see #toLong(Timestamp, TimeZone)
-   * @see #toLongOptional(Timestamp, TimeZone)
    * @see #internalToTimestamp(Long) converse method
    */
   public static @PolyNull Long toLongOptional(@PolyNull Timestamp v) {
@@ -2087,9 +2104,7 @@ public class SqlFunctions {
    * Converts a nullable SQL TIMESTAMP value from the Java type ({@link Timestamp}) to the internal
    * representation type (number of milliseconds since January 1st, 1970 UTC as {@link Long}).
    *
-   * @see #toLong(Timestamp)
    * @see #toLong(Timestamp, TimeZone)
-   * @see #toLongOptional(Timestamp)
    */
   public static @PolyNull Long toLongOptional(@PolyNull Timestamp v, TimeZone timeZone) {
     if (v == null) {
@@ -2186,8 +2201,7 @@ public class SqlFunctions {
    * calendar in October 1582.</p>
    *
    * @see #internalToDate(Integer)
-   * @see #toIntOptional(Date)
-   * @see #toInt(Date) converse method
+   * @see #toInt(java.sql.Date) converse method
    */
   public static java.sql.Date internalToDate(int v) {
     final LocalDate date = LocalDate.ofEpochDay(v);
@@ -2199,8 +2213,7 @@ public class SqlFunctions {
    * January 1st, 1970) to the Java type ({@link java.sql.Date}).
    *
    * @see #internalToDate(int)
-   * @see #toIntOptional(Date)
-   * @see #toIntOptional(Date) converse method
+   * @see #toIntOptional(java.sql.Date) converse method
    */
   public static java.sql.@PolyNull Date internalToDate(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToDate(v.intValue());
@@ -2211,8 +2224,7 @@ public class SqlFunctions {
    * the Java type ({@link java.sql.Time}).
    *
    * @see #internalToTime(Integer)
-   * @see #toIntOptional(Time)
-   * @see #toInt(Time) converse method
+   * @see #toInt(java.sql.Time) converse method
    */
   public static java.sql.Time internalToTime(int v) {
     return new java.sql.Time(v - LOCAL_TZ.getOffset(v));
@@ -2223,8 +2235,7 @@ public class SqlFunctions {
    * milliseconds) to the Java type ({@link java.sql.Time}).
    *
    * @see #internalToTime(Integer)
-   * @see #toInt(Time)
-   * @see #toIntOptional(Time) converse method
+   * @see #toIntOptional(java.sql.Time) converse method
    */
   public static java.sql.@PolyNull Time internalToTime(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
