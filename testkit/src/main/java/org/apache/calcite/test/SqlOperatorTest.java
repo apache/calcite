@@ -7534,6 +7534,10 @@ public class SqlOperatorTest {
     f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
             + "date '2016-02-23')",
         "0", "INTEGER NOT NULL");
+    f.withLibrary(SqlLibrary.BIG_QUERY).setFor(SqlLibraryOperators.TIMESTAMP_DIFF)
+        .checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', "
+            + "timestamp '2008-12-25 16:30:00', \"minute15\")",
+            "4", "INTEGER NOT NULL");
   }
 
   @Test void testFloorFuncInterval() {
@@ -7772,9 +7776,30 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.TIMESTAMP_DIFF);
-    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-25 15:35:00', SECOND)",
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-25 15:35:00', second)",
+        "300",
+        "INTEGER NOT NULL");
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-25 15:35:00', minute)",
         "5",
         "INTEGER NOT NULL");
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-26 15:30:00', hour)",
+        "24",
+        "INTEGER NOT NULL");
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-12-26 15:30:00', day)",
+        "1",
+        "INTEGER NOT NULL");
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2008-5-25 15:30:00', month)",
+        "-7",
+        "INTEGER NOT NULL");
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2009-01-01 15:30:00', week)",
+        "1",
+        "INTEGER NOT NULL");
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', timestamp '2011-12-25 15:30:00', year)",
+        "3",
+        "INTEGER NOT NULL");
+    f.checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', cast(null as timestamp), day)",
+        isNullValue(),
+        "INTEGER");
   }
   @Test void testTimestampDiff() {
     final SqlOperatorFixture f = fixture();

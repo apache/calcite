@@ -24,11 +24,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.SqlTimestampLiteral;
-import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -65,23 +61,34 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 class SqlTimestampDiffFunction extends SqlFunction {
   private static RelDataType inferReturnType2(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    RelDataType type = opBinding.getOperandType(1);
-    TimeUnit timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
+    TimeUnit timeUnit;
+    RelDataType type1;
+    RelDataType type2;
+    if (opBinding.isOperandLiteral(0, true)) {
+      type1 = opBinding.getOperandType(0);
+      type2 = opBinding.getOperandType(1);
+      timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);
+    } else {
+      timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
+      type1 = opBinding.getOperandType(1);
+      type2 = opBinding.getOperandType(2);
+    }
     SqlTypeName sqlTypeName =
         timeUnit == TimeUnit.NANOSECOND
             ? SqlTypeName.BIGINT
             : SqlTypeName.INTEGER;
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(sqlTypeName),
-        opBinding.getOperandType(1).isNullable()
-            || opBinding.getOperandType(2).isNullable());
+        type1.isNullable()
+            || type2.isNullable());
   }
 
   /** Creates a SqlTimestampDiffFunction. */
   SqlTimestampDiffFunction(String name) {
     super(name, SqlKind.TIMESTAMP_DIFF,
         SqlTimestampDiffFunction::inferReturnType2, null,
-        OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY),
+        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)
+            .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY)),
         SqlFunctionCategory.TIMEDATE);
   }
 
@@ -98,8 +105,7 @@ class SqlTimestampDiffFunction extends SqlFunction {
     //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'.
     //
     // If the latter, check that timeFrameName is valid.
-    SqlNode op = call.operand(0);
-    if (op instanceof SqlTimestampLiteral) {
+    if (call.operand(2) instanceof SqlIntervalQualifier) {
       validator.validateTimeFrame((SqlIntervalQualifier) call.operand(2));
     } else {
       validator.validateTimeFrame((SqlIntervalQualifier) call.operand(0));

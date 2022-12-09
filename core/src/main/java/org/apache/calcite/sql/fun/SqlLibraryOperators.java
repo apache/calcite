@@ -648,6 +648,9 @@ public abstract class SqlLibraryOperators {
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
+  /** The "TIMESTAMP_DIFF(timestamp_expression, timestamp_expression, date_time_part)"
+   * function (BigQuery) returns the number of date_time_part between the two timestamp
+   * expressions. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_DIFF =
       new SqlTimestampDiffFunction("TIMESTAMP_DIFF");
