@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.BodoTZInfo;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -253,6 +254,10 @@ public abstract class RelDataTypeImpl
   }
 
   @Override public @Nullable SqlIntervalQualifier getIntervalQualifier() {
+    return null;
+  }
+
+  @Override public @Nullable BodoTZInfo getTZInfo() {
     return null;
   }
 

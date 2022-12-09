@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BodoTZInfo;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
@@ -142,6 +143,14 @@ public interface RelDataTypeFactory {
   RelDataType createMultisetType(
       RelDataType elementType,
       long maxCardinality);
+
+  /**
+   * Creates a TZAware SQL type. This is a Timestamp with particular Timezone information.
+   *
+   * @param tzInfo    The timezone information
+   * @return canonical TZAware SQL type descriptor
+   */
+  RelDataType createTZAwareSqlType(BodoTZInfo tzInfo);
 
   /**
    * Duplicates a type, making a deep copy. Normally, this is a no-op, since

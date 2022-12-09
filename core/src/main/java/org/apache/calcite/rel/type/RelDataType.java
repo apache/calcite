@@ -19,6 +19,7 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.type.BodoTZInfo;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.apiguardian.api.API;
@@ -165,6 +166,14 @@ public interface RelDataType {
    */
   @Pure
   @Nullable SqlIntervalQualifier getIntervalQualifier();
+
+  /**
+   * Gets this type's tzInfo, or null if this is not a TZAwareSqlType.
+   *
+   * @return tzinfo
+   */
+  @Pure
+  @Nullable BodoTZInfo getTZInfo();
 
   /**
    * Gets the JDBC-defined precision for values of this type. Note that this

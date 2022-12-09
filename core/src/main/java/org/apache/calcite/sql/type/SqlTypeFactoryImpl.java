@@ -126,6 +126,17 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  /**
+   * Creates a TZAware SQL type. This is a Timestamp with particular Timezone information.
+   *
+   * @param tzInfo    The timezone information
+   * @return canonical TZAware SQL type descriptor
+   */
+  @Override public RelDataType createTZAwareSqlType(BodoTZInfo tzInfo) {
+    RelDataType newType = new TZAwareSqlType(typeSystem, tzInfo, false);
+    return canonize(newType);
+  }
+
   @Override public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type,
       Charset charset,
@@ -212,6 +223,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       newType = copyIntervalType(type, nullable);
     } else if (type instanceof ObjectSqlType) {
       newType = copyObjectType(type, nullable);
+    } else if (type instanceof TZAwareSqlType) {
+      newType = copyTZAwareSqlType(type, nullable);
     } else {
       return super.createTypeWithNullability(type, nullable);
     }
@@ -526,6 +539,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         requireNonNull(type.getIntervalQualifier(),
             () -> "type.getIntervalQualifier() for " + type),
         nullable);
+  }
+
+  private RelDataType copyTZAwareSqlType(RelDataType type, boolean nullable) {
+    return new TZAwareSqlType(
+        typeSystem, requireNonNull(type.getTZInfo(),
+            () -> "type.getTZInfo() for " + type), nullable);
   }
 
   private static RelDataType copyObjectType(RelDataType type, boolean nullable) {
