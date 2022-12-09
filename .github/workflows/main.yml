@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '19.0' # oldest supported Guava version
+      GUAVA: '16.0.1' # oldest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
