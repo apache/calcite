@@ -2436,13 +2436,6 @@ Not implemented:
 
 #### Geometry projection functions
 
-Projection functions rely on Proj4J to transform the geometries.
-Proj4J is released under the Apache License 2.0, however, it also uses the EPSG dataset,
-which has restricting [terms of use](https://epsg.org/terms-of-use.html).
-As a result, Proj4J is not suitable for inclusion in Apache Calcite
-and some of these functions may throw `ClassNotFoundException`s.
-Users can still use these functions by including Proj4J in their classpath.
-
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_SetSRID(geom, srid) | Returns a copy of *geom* with a new SRID

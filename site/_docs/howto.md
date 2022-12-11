@@ -841,8 +841,6 @@ your key to the keyservers used by Nexus, see above.
   that the `META-INF` directory contains `LICENSE`,
   `NOTICE`
 * Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
-* Check that Proj4J is not among the api and implementation dependencies,
-  as the EPSG database is not redistributable.
 
 Verify the staged artifacts in the Nexus repository:
 
