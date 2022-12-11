@@ -58,6 +58,7 @@ dependencies {
         apiv("org.locationtech.jts:jts-core")
         apiv("org.locationtech.jts.io:jts-io-common")
         apiv("org.locationtech.proj4j:proj4j")
+        apiv("org.locationtech.proj4j:proj4j-epsg", "proj4j")
         apiv("com.fasterxml.jackson.core:jackson-databind")
         apiv("com.github.kstyrc:embedded-redis")
         apiv("com.github.stephenc.jcip:jcip-annotations")

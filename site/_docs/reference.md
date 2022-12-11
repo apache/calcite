@@ -2438,12 +2438,10 @@ Not implemented:
 
 #### Geometry projection functions
 
-Projection functions rely on Proj4J to transform the geometries.
-Proj4J is released under the Apache License 2.0, however, it also uses the EPSG dataset,
-which has restricting [terms of use](https://epsg.org/terms-of-use.html).
-As a result, Proj4J is not suitable for inclusion in Apache Calcite
-and some of these functions may throw `ClassNotFoundException`s.
-Users can still use these functions by including Proj4J in their classpath.
+The EPSG dataset is released separately from Proj4J due
+to its restrictive [terms of use](https://epsg.org/terms-of-use.html).
+In order to use the projection functions in Apache Calcite,
+users must include the EPSG dataset in their dependencies.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------

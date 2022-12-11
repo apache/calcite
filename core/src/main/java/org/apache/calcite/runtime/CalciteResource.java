@@ -66,6 +66,9 @@ public interface CalciteResource {
   @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
   ExInst<SqlValidatorException> geometryDisabled();
 
+  @BaseMessage("Proj4J EPSG is missing from the classpath; to resolve this problem, download the EPSG data set and agree to its terms of use")
+  ExInst<CalciteException> proj4jEpsgIsMissing();
+
   @BaseMessage("Illegal INTERVAL literal {0}; at {1}")
   @Property(name = "SQLSTATE", value = "42000")
   ExInst<CalciteException> illegalIntervalLiteral(String a0, String a1);
