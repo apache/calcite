@@ -6595,7 +6595,7 @@ SqlCall TimestampDiffFunctionCall() :
  * TIMESTAMPDIFF and TIMESTAMP_DIFF are the ordering of the parameters
  * and the arrangement of the subtraction. TIMESTAMPDIFF uses
  * (unit, timestamp1, timestamp2) with (t2 - t1) while TIMESTAMP_DIFF uses
- * (timestamp1, timestamp2, unit)
+ * (timestamp1, timestamp2, unit) with (t1 - t2).
  */
 SqlCall TimestampDiffBQFunctionCall() :
 {
