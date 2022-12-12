@@ -1016,10 +1016,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicAggFunction
           .create("ARG_MAX", SqlKind.ARG_MAX, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
               new SqlOperandTypeChecker() {
-                @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+                @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+                    boolean throwOnFailure) {
                   getOperandCountRange().isValidCount(callBinding.getOperandCount());
                   RelDataType type = callBinding.getOperandType(1);
-                  return type.getComparability().ordinal() == RelDataTypeComparability.ALL.ordinal();
+                  return type.getComparability() == RelDataTypeComparability.ALL;
                 }
                 @Override public SqlOperandCountRange getOperandCountRange() {
                   return SqlOperandCountRanges.of(2);
@@ -1038,10 +1039,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicAggFunction
           .create("ARG_MIN", SqlKind.ARG_MIN, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
               new SqlOperandTypeChecker() {
-                @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+                @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+                    boolean throwOnFailure) {
                   getOperandCountRange().isValidCount(callBinding.getOperandCount());
                   RelDataType type = callBinding.getOperandType(1);
-                  return type.getComparability().ordinal() == RelDataTypeComparability.ALL.ordinal();
+                  return type.getComparability() == RelDataTypeComparability.ALL;
                 }
                 @Override public SqlOperandCountRange getOperandCountRange() {
                   return SqlOperandCountRanges.of(2);
