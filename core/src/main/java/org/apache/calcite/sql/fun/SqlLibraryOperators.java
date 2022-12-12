@@ -107,7 +107,8 @@ public abstract class SqlLibraryOperators {
    * argument. */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
   public static final SqlFunction DATEDIFF =
-      new SqlTimestampDiffFunction("DATEDIFF");
+      new SqlTimestampDiffFunction("DATEDIFF",
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE, SqlTypeFamily.DATE));
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
@@ -653,7 +654,8 @@ public abstract class SqlLibraryOperators {
    * expressions. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_DIFF =
-      new SqlTimestampDiffFunction("TIMESTAMP_DIFF");
+      new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
 
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is

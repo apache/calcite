@@ -1900,6 +1900,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPDIFF(unit, t1, t2)
       //    => (t2 - t1) UNIT
+      // TIMESTAMP_DIFF(t1, t2, unit)
+      //    => (t1 - t2) UNIT
       SqlIntervalQualifier qualifier;
       final RexNode op1;
       final RexNode op2;
@@ -1909,8 +1911,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         op2 = cx.convertExpression(call.operand(2));
       } else {
         qualifier = call.operand(2);
-        op1 = cx.convertExpression(call.operand(0));
-        op2 = cx.convertExpression(call.operand(1));
+        op1 = cx.convertExpression(call.operand(1));
+        op2 = cx.convertExpression(call.operand(0));
       }
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);

@@ -24,9 +24,8 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -84,11 +83,10 @@ class SqlTimestampDiffFunction extends SqlFunction {
   }
 
   /** Creates a SqlTimestampDiffFunction. */
-  SqlTimestampDiffFunction(String name) {
+  SqlTimestampDiffFunction(String name, SqlOperandTypeChecker operandTypeChecker) {
     super(name, SqlKind.TIMESTAMP_DIFF,
         SqlTimestampDiffFunction::inferReturnType2, null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)
-            .or(OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY)),
+        operandTypeChecker,
         SqlFunctionCategory.TIMEDATE);
   }
 
@@ -98,11 +96,14 @@ class SqlTimestampDiffFunction extends SqlFunction {
 
     // This is either a time unit or a time frame:
     //
-    //  * In "TIMESTAMPADD(YEAR, 2, x)" operand 0 is a SqlIntervalQualifier
-    //    with startUnit = YEAR and timeFrameName = null.
+    //  * In "TIMESTAMPDIFF(YEAR, timestamp1, timestamp2)" operand 0 is a SqlIntervalQualifier
+    //    with startUnit = YEAR and timeFrameName = null. The same is true for BigQuery's
+    //    TIMESTAMP_DIFF() however the SqlIntervalQualifier is operand 2 due to differing
+    //    parameter orders.
     //
-    //  * In "TIMESTAMPADD(MINUTE15, 2, x) operand 0 is a SqlIntervalQualifier
-    //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'.
+    //  * In "TIMESTAMP_ADD(MINUTE15, timestamp1, timestamp2) operand 0 is a SqlIntervalQualifier
+    //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'. As above, for BigQuery's
+    //    TIMESTAMP_DIFF() the SqlIntervalQualifier is found in operand 2 instead.
     //
     // If the latter, check that timeFrameName is valid.
     if (call.operand(2) instanceof SqlIntervalQualifier) {

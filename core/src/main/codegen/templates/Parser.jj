@@ -6591,10 +6591,7 @@ SqlCall TimestampDiffFunctionCall() :
 }
 
 /**
- * Parses a call to TIMESTAMP_DIFF
- */
-/**
- * Parses a call to TIME_TRUNC.
+ * Parses a call to BigQuery's TIMESTAMP_DIFF
  */
 SqlCall TimestampDiffBQFunctionCall() :
 {
