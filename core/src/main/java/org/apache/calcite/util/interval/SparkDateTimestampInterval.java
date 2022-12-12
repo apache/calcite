@@ -20,7 +20,6 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
-import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 
@@ -200,13 +199,8 @@ public class SparkDateTimestampInterval {
     String timeUnitTypeName = ((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
         .replaceAll("INTERVAL_", "");
     String timeUnitValue = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
-    writer.print(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName
-        + handleTimeStampWithDayArg(call, timeUnitTypeName));
-  }
-
-  private String handleTimeStampWithDayArg(SqlCall call, String timeUnitTypeName) {
-    return (call.operand(0) instanceof SqlTimestampLiteral
-        && timeUnitTypeName.equalsIgnoreCase("DAY")) ? " " : "";
+    writer.print(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName);
+    writer.setNeedWhitespace(true);
   }
 
   private void handleOperandArg0(SqlWriter writer, SqlCall call,
