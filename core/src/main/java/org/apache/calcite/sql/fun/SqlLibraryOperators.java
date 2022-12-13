@@ -188,6 +188,10 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           OperandTypes.SAME_SAME);
 
+  /** The "IFNULL(value, value)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction IFNULL = new SqlIfNullFunction();
+
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LTRIM =

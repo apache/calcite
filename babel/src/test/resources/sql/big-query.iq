@@ -2596,4 +2596,29 @@ FROM items;
 
 !ok
 
+#####################################################################
+#
+# IFNULL(value1, value2)
+#
+# Returns value1 if not NULL, else value2
+#
+WITH items AS (
+  SELECT IFNULL(null, 5) AS item UNION ALL
+  SELECT IFNULL(2, 1) UNION ALL
+  SELECT IFNULL('b', null) UNION ALL
+  SELECT IFNULL(null, null)
+  )
+SELECT item AS example FROM items;
++---------+
+| example |
++---------+
+| 5       |
+| 2       |
+| b       |
+|         |
++---------+
+(4 rows)
+
+!ok
+
 # End big-query.iq

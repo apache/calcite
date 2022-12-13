@@ -6315,6 +6315,57 @@ public class SqlOperatorTest {
     f12.checkNull("nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
   }
 
+
+  @Test void testIfNullCoalesceFunc() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.IFNULL, VM_EXPAND);
+
+    f.checkString("ifnull('a','b')", "a", "CHAR(1) NOT NULL");
+    f.checkString("ifnull(null,'b')", "b", "CHAR(1)");
+    f.checkScalar("ifnull(4,3)", 4, "INTEGER NOT NULL");
+    f.checkScalar("ifnull(null, 4)", 4, "INTEGER");
+    f.enableTypeCoercion(false)
+        .checkFails("1 + ^ifnull('a', 1)^ + 2",
+            "Illegal mixing of types in CASE or COALESCE statement",
+            false);
+    f.checkType("1 + ifnull(1, null) + 2",
+        "INTEGER");
+    f.checkFails("^ifnull(1,2,3)^",
+        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^ifnull(1)^",
+        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
+        false);
+  }
+
+  @Test void testIfNullFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.IFNULL, VmName.EXPAND);
+    // f.checkScalar("ifnull(1, 2)", "1", "INTEGER NOT NULL");
+    f.checkFails("^ifnull(1, true)^", "Illegal mixing of types in CASE or COALESCE statement",
+        false);
+    f.checkScalar("ifnull(3, 4)", 3, "INTEGER NOT NULL");
+    f.checkScalar("ifnull(null, 4)", 4, "INTEGER");
+    // f.checkScalar("ifnull(false, true)", false, "BOOLEAN NOT NULL");
+    // f.checkString("ifnull('abc', 'de')", "abc", "CHAR(3) NOT NULL");
+    // f.checkString("ifnull('abc', 'defg')", "abc ", "CHAR(4) NOT NULL");
+    // f.checkString("ifnull('abc', CAST(NULL AS VARCHAR(20)))", "abc",
+    //     "VARCHAR(20) NOT NULL");
+    // f.checkString("ifnull(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
+    //     "VARCHAR(20) NOT NULL");
+    // f.checkNull("ifnull(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+
+    // final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
+    // f12.checkString("nvl('abc', 'de')", "abc", "VARCHAR(3) NOT NULL");
+    // f12.checkString("nvl('abc', 'defg')", "abc", "VARCHAR(4) NOT NULL");
+    // f12.checkString("nvl('abc', CAST(NULL AS VARCHAR(20)))", "abc",
+    //     "VARCHAR(20) NOT NULL");
+    // f12.checkString("nvl(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
+    //     "VARCHAR(20) NOT NULL");
+    // f12.checkNull("nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+  }
+
   @Test void testDecodeFunc() {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
   }

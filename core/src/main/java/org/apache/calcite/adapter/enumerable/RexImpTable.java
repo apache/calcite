@@ -132,6 +132,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
@@ -606,6 +607,7 @@ public class RexImpTable {
       map.put(NOT_SUBMULTISET_OF, NotImplementor.of(subMultisetImplementor));
 
       map.put(COALESCE, new CoalesceImplementor());
+      map.put(IFNULL, map.get(COALESCE));
       map.put(CAST, new CastImplementor());
       map.put(DATE, new CastImplementor());
 
