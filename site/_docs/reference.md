@@ -1424,6 +1424,7 @@ Not implemented:
 | CASE<br/>WHEN condition1 THEN result1<br/>[ WHEN conditionN THEN resultN ]*<br/>[ ELSE resultZ ]<br/>END | Searched case
 | NULLIF(value, value) | Returns NULL if the values are the same.<br/><br/>For example, <code>NULLIF(5, 5)</code> returns NULL; <code>NULLIF(5, 0)</code> returns 5.
 | COALESCE(value, value [, value ]*) | Provides a value if the first value is null.<br/><br/>For example, <code>COALESCE(NULL, 5)</code> returns 5.
+| IFNULL(expr, null_result)  | If expr evaluates to NULL, returns null_result. Otherwise, returns expr. If expr doesn't evaluate to NULL, null_result isn't evaluated.<br/><br/>For example, <code>IFNULL(NULL, 5)</code> returns 5.
 
 ### Type conversion
 
