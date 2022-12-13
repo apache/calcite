@@ -6369,6 +6369,31 @@ public class SqlOperatorTest {
     f12.checkNull("nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
   }
 
+  /** Tests {@code IFNULL}, which is a synonym for {@code NVL}, and is related to
+   * {@code COALESCE} but requires precisely two arguments. */
+  @Test void testIfnullFunc() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.IFNULL, VM_EXPAND);
+
+    f.checkString("ifnull('a','b')", "a", "CHAR(1) NOT NULL");
+    f.checkString("ifnull(null,'b')", "b", "CHAR(1) NOT NULL");
+    f.checkScalar("ifnull(4,3)", 4, "INTEGER NOT NULL");
+    f.checkScalar("ifnull(null, 4)", 4, "INTEGER NOT NULL");
+    f.enableTypeCoercion(false)
+        .checkFails("1 + ifnull('a', 1) + 2",
+            "Cannot infer return type for IFNULL; operand types: \\[CHAR\\(1\\), INTEGER\\]",
+            false);
+    f.checkType("1 + ifnull(1, null) + 2",
+        "INTEGER NOT NULL");
+    f.checkFails("^ifnull(1,2,3)^",
+        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^ifnull(1)^",
+        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
+        false);
+  }
+
   @Test void testDecodeFunc() {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
   }
