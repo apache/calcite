@@ -41,13 +41,6 @@ public class SqlIfNullFunction extends SqlFunction {
         null,
         OperandTypes.SAME_SAME,
         SqlFunctionCategory.SYSTEM);
-
-    // private static class IfNullOperandTypeChecker implements SqlOperandTypeChecker {
-    //
-    //   @Override public boolean checkOperandCount(){
-    //     return SqlOperandCountRanges(2)
-    //   }
-    // }
   }
 
   //~ Methods ----------------------------------------------------------------
