@@ -6040,7 +6040,7 @@ SqlNode BuiltinFunctionCall() :
     |
         node = TimestampDiffFunctionCall() { return node; }
     |
-        node = TimestampDiffBQFunctionCall() { return node; }
+        node = TimestampDiff3FunctionCall() { return node; }
     |
         node = TimestampTruncFunctionCall() { return node; }
     |
@@ -6597,7 +6597,7 @@ SqlCall TimestampDiffFunctionCall() :
  * (unit, timestamp1, timestamp2) with (t2 - t1) while TIMESTAMP_DIFF uses
  * (timestamp1, timestamp2, unit) with (t1 - t2).
  */
-SqlCall TimestampDiffBQFunctionCall() :
+SqlCall TimestampDiff3FunctionCall() :
 {
     final List<SqlNode> args = new ArrayList<SqlNode>();
     final Span s;
@@ -6612,7 +6612,7 @@ SqlCall TimestampDiffBQFunctionCall() :
     <COMMA>
     unit = TimeUnitOrName() { args.add(unit); }
     <RPAREN> {
-        return SqlLibraryOperators.TIMESTAMP_DIFF.createCall(s.end(this), args);
+        return SqlLibraryOperators.TIMESTAMP_DIFF3.createCall(s.end(this), args);
     }
 }
 
@@ -7162,7 +7162,7 @@ SqlNode JdbcFunctionCall() :
         }
     |
         LOOKAHEAD(1)
-        call = TimestampDiffBQFunctionCall() {
+        call = TimestampDiff3FunctionCall() {
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
         }

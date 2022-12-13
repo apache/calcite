@@ -653,7 +653,7 @@ public abstract class SqlLibraryOperators {
    * function (BigQuery) returns the number of date_time_part between the two timestamp
    * expressions. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_DIFF =
+  public static final SqlFunction TIMESTAMP_DIFF3 =
       new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
 

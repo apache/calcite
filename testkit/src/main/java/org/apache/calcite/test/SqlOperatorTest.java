@@ -7535,7 +7535,7 @@ public class SqlOperatorTest {
             + "date '2016-02-23')",
         "0", "INTEGER NOT NULL");
     f.withLibrary(SqlLibrary.BIG_QUERY)
-        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF)
+        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3)
         .checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', "
             + "timestamp '2008-12-25 16:30:00', \"minute15\")",
             "-4", "INTEGER NOT NULL");
@@ -7778,9 +7778,9 @@ public class SqlOperatorTest {
    * of the parameters and the ordering of the subtraction between
    * the two timestamps. In {@code TIMESTAMPDIFF} it is (t2 - t1)
    * while for {@code TIMESTAMP_DIFF} is is (t1 - t2). */
-  @Test void testBigQueryTimestampDiff() {
+  @Test void testTimestampDiff3() {
     final SqlOperatorFixture f0 = fixture()
-        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF);
+        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3);
     f0.checkFails("^timestamp_diff(timestamp '2008-12-25 15:30:00', "
             + "timestamp '2008-12-25 16:30:00', "
             + "minute)^",
@@ -7789,7 +7789,7 @@ public class SqlOperatorTest {
 
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
-        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF);
+        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3);
     HOUR_VARIANTS.forEach(s ->
         f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
                 + "timestamp '2016-02-24 15:42:25', "
