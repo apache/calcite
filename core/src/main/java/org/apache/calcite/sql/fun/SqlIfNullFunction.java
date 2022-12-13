@@ -31,6 +31,9 @@ import org.apache.calcite.util.Util;
 
 import java.util.List;
 
+/**
+ * The <code>IFULL</code> function.
+ */
 public class SqlIfNullFunction extends SqlFunction {
   //~ Constructors
 
