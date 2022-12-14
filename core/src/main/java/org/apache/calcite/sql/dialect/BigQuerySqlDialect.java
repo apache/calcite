@@ -1041,6 +1041,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRandomfunction(writer, call, leftPrec, rightPrec);
       break;
     case DateTimestampFormatUtil.WEEKNUMBER_OF_YEAR:
+    case DateTimestampFormatUtil.ISO_WEEKOFYEAR:
     case DateTimestampFormatUtil.YEARNUMBER_OF_CALENDAR:
     case DateTimestampFormatUtil.MONTHNUMBER_OF_YEAR:
     case DateTimestampFormatUtil.QUARTERNUMBER_OF_YEAR:
