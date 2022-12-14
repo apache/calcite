@@ -39,6 +39,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 public class DateTimestampFormatUtil {
 
   public static final String WEEKNUMBER_OF_YEAR = "WEEKNUMBER_OF_YEAR";
+  public static final String ISO_WEEKOFYEAR = "ISOWEEK";
   public static final String YEARNUMBER_OF_CALENDAR = "YEARNUMBER_OF_CALENDAR";
   public static final String MONTHNUMBER_OF_YEAR = "MONTHNUMBER_OF_YEAR";
   public static final String QUARTERNUMBER_OF_YEAR = "QUARTERNUMBER_OF_YEAR";
@@ -59,6 +60,9 @@ public class DateTimestampFormatUtil {
     switch (call.getOperator().getName()) {
     case WEEKNUMBER_OF_YEAR:
       extractCall = unparseWeekNumber(call.operand(0), DateTimeUnit.WEEK);
+      break;
+    case ISO_WEEKOFYEAR:
+      extractCall = unparseWeekNumber(call.operand(0), DateTimeUnit.ISOWEEK);
       break;
     case YEARNUMBER_OF_CALENDAR:
       extractCall = unparseWeekNumber(call.operand(0), DateTimeUnit.YEAR);
@@ -177,6 +181,7 @@ public class DateTimestampFormatUtil {
   private enum DateTimeUnit {
     DAY("DAY"),
     WEEK("WEEK"),
+    ISOWEEK("ISOWEEK"),
     DAYOFYEAR("DAYOFYEAR"),
     MONTH("MONTH"),
     MONTHOFYEAR("MONTHOFYEAR"),
