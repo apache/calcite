@@ -1479,25 +1479,28 @@ public class SqlDialect {
     for (int i = 0; i <= lastIndex; i++) {
       Character currentChar = standardDateFormat.charAt(i);
       if (dateFormatSeparators.contains(currentChar)) {
-        separator.add(currentChar);
-        String token = StringUtils.substring(standardDateFormat, startIndex, i);
-        boolean isNextASeparator = standardDateFormat.length() - 1 > i
-            && dateFormatSeparators.contains(standardDateFormat.charAt(i + 1));
-        if (!token.isEmpty()) {
-          previousIndex = i;
-          dateTimeTokens.add(token);
-          if (!isNextASeparator) {
-            separators.add(separator);
-            separator = new ArrayList<>();
+        if (!(currentChar.toString().equals(".") && (standardDateFormat.charAt(i - 1) == 'A' ||
+            standardDateFormat.charAt(i - 1) == 'M'))) {
+          separator.add(currentChar);
+          String token = StringUtils.substring(standardDateFormat, startIndex, i);
+          boolean isNextASeparator = standardDateFormat.length() - 1 > i
+              && dateFormatSeparators.contains(standardDateFormat.charAt(i + 1));
+          if (!token.isEmpty()) {
+            previousIndex = i;
+            dateTimeTokens.add(token);
+            if (!isNextASeparator) {
+              separators.add(separator);
+              separator = new ArrayList<>();
+            }
+          } else if (previousIndex + 1 == i) {
+            if (!isNextASeparator) {
+              separators.add(separator);
+              separator = new ArrayList<>();
+            }
+            previousIndex = i;
           }
-        } else if (previousIndex + 1 == i) {
-          if (!isNextASeparator) {
-            separators.add(separator);
-            separator = new ArrayList<>();
-          }
-          previousIndex = i;
+          startIndex = i + 1;
         }
-        startIndex = i + 1;
       }
     }
     if (lastIndex >= startIndex) {

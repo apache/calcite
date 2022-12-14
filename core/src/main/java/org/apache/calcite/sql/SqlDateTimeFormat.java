@@ -82,7 +82,8 @@ public enum SqlDateTimeFormat {
   WEEK_OF_YEAR("WW"),
   WEEK_OF_MONTH("W"),
   TIMEOFDAY("TIMEOFDAY"),
-  YYYYDDMM("YYYYDDMM");
+  YYYYDDMM("YYYYDDMM"),
+  YYYYDD("YYYYDD");
 
   public final String value;
 
