@@ -694,7 +694,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  public void unparseWithItemCall(
+  private void unparseWithItemCall(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
