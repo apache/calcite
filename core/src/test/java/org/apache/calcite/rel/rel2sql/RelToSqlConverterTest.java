@@ -8558,6 +8558,38 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testToDateFunctionWithAMInFormat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toDateNode = builder.call(SqlLibraryOperators.TO_DATE,
+        builder.literal("January 15, 1989, 11:00 A.M."),
+        builder.literal("MMMM DD, YYYY, HH: MI A.M."));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toDateNode, "date_value"))
+        .build();
+    final String expectedSparkQuery =
+        "SELECT TO_DATE('JANUARY 15, 1989, 11:00 AM', 'MMMM dd, yyyy, hh: mm a') date_value\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testToDateFunctionWithPMInFormat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toDateNode = builder.call(SqlLibraryOperators.TO_DATE,
+        builder.literal("January 15, 1989, 11:00 P.M."),
+        builder.literal("MMMM DD, YYYY, HH: MI P.M."));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toDateNode, "date_value"))
+        .build();
+    final String expectedSparkQuery =
+        "SELECT TO_DATE('JANUARY 15, 1989, 11:00 PM', 'MMMM dd, yyyy, hh: mm a') date_value\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

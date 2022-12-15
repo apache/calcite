@@ -1479,8 +1479,7 @@ public class SqlDialect {
     for (int i = 0; i <= lastIndex; i++) {
       Character currentChar = standardDateFormat.charAt(i);
       if (dateFormatSeparators.contains(currentChar)) {
-        if (!(currentChar.toString().equals(".") && (standardDateFormat.charAt(i - 1) == 'A' ||
-            standardDateFormat.charAt(i - 1) == 'M'))) {
+        if (!isDotSeperatorInAMPM(currentChar, standardDateFormat, i)) {
           separator.add(currentChar);
           String token = StringUtils.substring(standardDateFormat, startIndex, i);
           boolean isNextASeparator = standardDateFormat.length() - 1 > i
@@ -1507,6 +1506,14 @@ public class SqlDialect {
       dateTimeTokens.add(StringUtils.substring(standardDateFormat, startIndex));
     }
     return new Pair<>(dateTimeTokens, separators);
+  }
+
+  private static boolean isDotSeperatorInAMPM(
+      Character currentChar, String standardDateFormat, int indexofCurrentChar) {
+    return currentChar.toString().equals(".")
+        && (standardDateFormat.charAt(indexofCurrentChar - 1) == 'A'
+            || standardDateFormat.charAt(indexofCurrentChar - 1) == 'P'
+            || standardDateFormat.charAt(indexofCurrentChar - 1) == 'M');
   }
 
   private String getFinalFormat(

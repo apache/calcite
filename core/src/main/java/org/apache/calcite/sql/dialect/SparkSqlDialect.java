@@ -62,7 +62,46 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.SqlDateTimeFormat.*;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR1;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
+import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_4;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
+import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEOFDAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
@@ -145,7 +184,6 @@ public class SparkSqlDialect extends SqlDialect {
         put(MILLISECONDS_5, "SSSSS");
         put(MILLISECONDS_4, "SSSS");
         put(YYYYDDMM, "yyyyddMM");
-        put(YYYYDD, "yyyydd");
       }};
 
   /**
@@ -576,7 +614,7 @@ public class SparkSqlDialect extends SqlDialect {
     switch (call.getOperator().getName()) {
     case "DATE_FORMAT":
       SqlCharStringLiteral formatString =
-          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString());
+          createDateTimeFormatSqlCharLiteral(call.operand(1).toString());
       SqlWriter.Frame dateFormatFrame = writer.startFunCall(call.getOperator().getName());
       call.operand(0).unparse(writer, 0, 0);
       writer.sep(",", true);
@@ -609,7 +647,7 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case "STR_TO_DATE":
       SqlCall toDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
-          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
+          createDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
       unparseCall(writer, toDateCall, leftPrec, rightPrec);
       break;
     case "RPAD":
@@ -703,20 +741,26 @@ public class SparkSqlDialect extends SqlDialect {
       }
       return;
     case "TO_DATE":
-      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("TO_DATE");
-      writer.sep(",");
-      if (call.operand(0) instanceof SqlCharStringLiteral) {
-        writer.sep(removeDotFromAMAndPM(call.operand(0)));
-      } else {
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-      }
-      writer.sep(",");
-      writer.literal(creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()).toString());
-      writer.endFunCall(dateDiffFrame);
+      unparseToDate(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  public void unparseToDate(
+      SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame toDateFrame = writer.startFunCall("TO_DATE");
+    writer.sep(",");
+    if (call.operand(0) instanceof SqlCharStringLiteral) {
+      writer.sep(removeDotFromAMAndPM(call.operand(0)));
+    } else {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.sep(",");
+    writer.literal(createDateTimeFormatSqlCharLiteral(call.operand(1).toString()).toString());
+    writer.endFunCall(toDateFrame);
   }
 
   private void unparseDateTrunc(
@@ -801,7 +845,7 @@ public class SparkSqlDialect extends SqlDialect {
     call.operand(1).unparse(writer, leftPrec, rightPrec);
   }
 
-  private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
+  private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
     String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
         DATE_TIME_FORMAT_MAP);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
@@ -886,7 +930,7 @@ public class SparkSqlDialect extends SqlDialect {
     if (dateString.contains(ANTE_MERIDIAN_INDICATOR1.value)) {
       return dateString.replaceAll(ANTE_MERIDIAN_INDICATOR1.value, ANTE_MERIDIAN_INDICATOR.value);
     } else if (dateString.contains(POST_MERIDIAN_INDICATOR1.value)) {
-      return dateString.replaceAll(POST_MERIDIAN_INDICATOR1.value, POST_MERIDIAN_INDICATOR1.value);
+      return dateString.replaceAll(POST_MERIDIAN_INDICATOR1.value, POST_MERIDIAN_INDICATOR.value);
     }
     return dateString;
   }
