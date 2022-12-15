@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -318,9 +319,23 @@ public class HiveSqlDialect extends SqlDialect {
     case TIMESTAMP_DIFF:
       unparseTimestampDiff(writer, call, leftPrec, rightPrec);
       break;
+    case WITH_ITEM:
+      unparseWithItemCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseWithItemCall(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWithItem withItem = (SqlWithItem) call;
+    withItem.name.unparse(writer, leftPrec, rightPrec);
+    writer.keyword("AS");
+    withItem.query.unparse(writer, 10, 10);
   }
 
   @Override public boolean supportsCharSet() {

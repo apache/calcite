@@ -39,6 +39,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -415,11 +416,25 @@ public class SparkSqlDialect extends SqlDialect {
       case REGEXP_SUBSTR:
         unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
         return;
+      case WITH_ITEM:
+        unparseWithItemCall(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
     return;
+  }
+
+  private void unparseWithItemCall(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWithItem withItem = (SqlWithItem) call;
+    withItem.name.unparse(writer, leftPrec, rightPrec);
+    writer.keyword("AS");
+    withItem.query.unparse(writer, 10, 10);
   }
 
   @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
