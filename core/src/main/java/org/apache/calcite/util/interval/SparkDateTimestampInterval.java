@@ -200,6 +200,7 @@ public class SparkDateTimestampInterval {
         .replaceAll("INTERVAL_", "");
     String timeUnitValue = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
     writer.print(" INTERVAL '" + timeUnitValue + "' " + timeUnitTypeName);
+    writer.setNeedWhitespace(true);
   }
 
   private void handleOperandArg0(SqlWriter writer, SqlCall call,
