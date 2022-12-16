@@ -47,7 +47,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCastFunction;
@@ -354,6 +353,10 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public boolean supportsColumnAliasInSort() {
     return true;
+  }
+
+  @Override public boolean supportsColumnListForWithItem() {
+    return false;
   }
 
   @Override public boolean supportsAliasedValues() {
@@ -686,23 +689,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         call.getOperator().unparse(writer, call, leftPrec, rightPrec);
       }
       break;
-    case WITH_ITEM:
-      unparseWithItemCall(writer, call, leftPrec, rightPrec);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseWithItemCall(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
-      int rightPrec) {
-    final SqlWithItem withItem = (SqlWithItem) call;
-    withItem.name.unparse(writer, leftPrec, rightPrec);
-    writer.keyword("AS");
-    withItem.query.unparse(writer, 10, 10);
   }
 
   private void unparseAsOp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

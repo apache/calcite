@@ -37,7 +37,6 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -237,24 +236,10 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         writer.endFunCall(concatFrame);
         break;
-      case WITH_ITEM:
-        unparseWithItemCall(writer, call, leftPrec, rightPrec);
-        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
-  }
-
-  private void unparseWithItemCall(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
-      int rightPrec) {
-    final SqlWithItem withItem = (SqlWithItem) call;
-    withItem.name.unparse(writer, leftPrec, rightPrec);
-    writer.keyword("AS");
-    withItem.query.unparse(writer, 10, 10);
   }
 
   private void unparseExtract(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -323,6 +308,10 @@ public class MssqlSqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
+  @Override public boolean supportsColumnListForWithItem() {
     return false;
   }
 

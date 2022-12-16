@@ -93,7 +93,8 @@ public class SqlWithItem extends SqlCall {
         int rightPrec) {
       final SqlWithItem withItem = (SqlWithItem) call;
       withItem.name.unparse(writer, getLeftPrec(), getRightPrec());
-      if (withItem.columnList != null) {
+      SqlDialect dialect = writer.getDialect();
+      if (dialect.supportsColumnListForWithItem() && withItem.columnList != null) {
         withItem.columnList.unparse(writer, getLeftPrec(), getRightPrec());
       }
       writer.keyword("AS");
