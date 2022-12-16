@@ -2312,8 +2312,8 @@ public class SqlFunctions {
    */
   public static java.sql.Timestamp internalToTimestamp(long v) {
     final LocalDateTime dateTime = LocalDateTime.ofEpochSecond(
-        v / DateTimeUtils.MILLIS_PER_SECOND,
-        (int) (v % DateTimeUtils.MILLIS_PER_SECOND * 1000000),
+        Math.floorDiv(v, DateTimeUtils.MILLIS_PER_SECOND),
+        (int) (Math.floorMod(v, DateTimeUtils.MILLIS_PER_SECOND) * DateTimeUtils.NANOS_PER_MILLI),
         ZoneOffset.UTC);
     return java.sql.Timestamp.valueOf(dateTime);
   }

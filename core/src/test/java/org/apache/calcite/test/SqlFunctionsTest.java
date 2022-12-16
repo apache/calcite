@@ -1246,8 +1246,8 @@ class SqlFunctionsTest {
         is(Timestamp.valueOf("1970-01-01 00:00:00.0")));
     assertThat(internalToTimestamp(timestampStringToUnixDate("2014-09-30 15:28:27.356")),
         is(Timestamp.valueOf("2014-09-30 15:28:27.356")));
-    assertThat(internalToTimestamp(timestampStringToUnixDate("1500-04-30 12:00:00")),
-        is(Timestamp.valueOf("1500-04-30 12:00:00.0")));
+    assertThat(internalToTimestamp(timestampStringToUnixDate("1500-04-30 12:00:00.123")),
+        is(Timestamp.valueOf("1500-04-30 12:00:00.123")));
   }
 
   /**
