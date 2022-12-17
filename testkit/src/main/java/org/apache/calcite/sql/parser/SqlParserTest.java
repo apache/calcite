@@ -9044,6 +9044,28 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testPivotThroughShuttle() {
+    final String sql = ""
+        + "SELECT *\n"
+        + "FROM (SELECT job, deptno FROM \"EMP\")\n"
+        + "PIVOT (COUNT(*) AS \"COUNT\" FOR deptno IN (10, 50, 20))";
+    final String expected = ""
+        + "SELECT *\n"
+        + "FROM (SELECT `JOB`, `DEPTNO`\n"
+        + "FROM `EMP`) PIVOT (COUNT(*) AS `COUNT` FOR `DEPTNO` IN (10, 50, 20))";
+    final SqlNode sqlNode = sql(sql).node();
+
+    final SqlNode shuttled = sqlNode.accept(new SqlShuttle() {
+      @Override public @Nullable SqlNode visit(final SqlCall call) {
+        // Handler always creates a new copy of 'call'
+        CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
+        call.getOperator().acceptCall(this, call, false, argHandler);
+        return argHandler.result();
+      }
+    });
+    assertThat(toLinux(shuttled.toString()), is(expected));
+  }
+
   @Test void testMatchRecognize1() {
     final String sql = "select *\n"
         + "  from t match_recognize\n"
