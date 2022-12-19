@@ -875,10 +875,9 @@ public class RelToSqlConverter extends SqlImplementor
             .collect(Collectors.toList());
         // "GROUP BY x, y WITH ROLLUP" implicitly sorts by x, y,
         // so skip the ORDER BY.
-        boolean isImplicitlySort = rollupList.subList(0, sortList.size()).equals(sortList);
+        final boolean isImplicitlySort = rollupList.subList(0, sortList.size()).equals(sortList);
         final Builder builder =
-            visitAggregate(aggregate,
-                rollupList,
+            visitAggregate(aggregate, rollupList,
                 Clause.GROUP_BY, Clause.OFFSET, Clause.FETCH);
         Result result = builder.result();
         if (sortList.isEmpty()
@@ -886,15 +885,19 @@ public class RelToSqlConverter extends SqlImplementor
           offsetFetch(e, builder);
           return result;
         }
-        // It does not allow "WITH ROLLUP" in combination with "ORDER BY",
+        // MySQL does not allow "WITH ROLLUP" in combination with "ORDER BY",
         // so generate the grouped result apply ORDER BY to it.
         SqlSelect sqlSelect = result.subSelect();
         SqlNodeList sortExps = exprList(builder.context, e.getSortExps());
         sqlSelect.setOrderBy(sortExps);
-        SqlNode offset = e.offset == null ? null : builder.context.toSql(null, e.offset);
-        sqlSelect.setOffset(offset);
-        SqlNode fetch = e.fetch == null ? null : builder.context.toSql(null, e.fetch);
-        sqlSelect.setFetch(fetch);
+        if (e.offset != null) {
+          SqlNode offset = builder.context.toSql(null, e.offset);
+          sqlSelect.setOffset(offset);
+        }
+        if (e.fetch != null) {
+          SqlNode fetch = builder.context.toSql(null, e.fetch);
+          sqlSelect.setFetch(fetch);
+        }
         return result(sqlSelect, ImmutableList.of(Clause.ORDER_BY), e, null);
       }
     }
