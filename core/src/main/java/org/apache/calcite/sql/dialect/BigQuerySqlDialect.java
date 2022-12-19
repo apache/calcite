@@ -1069,6 +1069,12 @@ public class BigQuerySqlDialect extends SqlDialect {
               daySymbolLiteral, call.operand(0));
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
+    case "HOUR":
+      SqlNode hourSymbolLiteral = SqlLiteral.createSymbol(TimeUnit.HOUR, SqlParserPos.ZERO);
+      SqlCall extractHourCall = EXTRACT.createCall(SqlParserPos.ZERO,
+          hourSymbolLiteral, call.operand(0));
+      unparseExtractFunction(writer, extractHourCall, leftPrec, rightPrec);
+      break;
     case "MONTHS_BETWEEN":
       unparseMonthsBetween(writer, call, leftPrec, rightPrec);
       break;
