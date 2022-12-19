@@ -311,6 +311,10 @@ public class MssqlSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsColumnListForWithItem() {
+    return false;
+  }
+
   private void castGetDateToDateTime(SqlWriter writer, String timeUnit) {
     final SqlWriter.Frame castDateTimeFunc = writer.startFunCall("CAST");
     unparseGetDate(writer);
