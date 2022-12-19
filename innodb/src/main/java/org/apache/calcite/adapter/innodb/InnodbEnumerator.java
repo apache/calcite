@@ -97,6 +97,7 @@ class InnodbEnumerator implements Enumerator<Object> {
     case VARBINARY:
       return new ByteString((byte[]) obj);
     case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       Timestamp timestamp = Utils.convertDateTime((String) obj,
           relDataType.getPrecision());
       return shift(timestamp).getTime();
