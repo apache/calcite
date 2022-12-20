@@ -1906,7 +1906,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //  => timestamp - count * INTERVAL '1' UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final SqlBasicCall operandCall = call.operand(1);
-      SqlIntervalQualifier qualifier = operandCall.operand(1);;
+      SqlIntervalQualifier qualifier = operandCall.operand(1);
       final RexNode op1 = cx.convertExpression(operandCall.operand(0));
       final RexNode op2 = cx.convertExpression(call.operand(0));
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
