@@ -9329,6 +9329,15 @@ class RelToSqlConverterTest {
             .ok(expectedBQ);
   }
 
+  @Test public void testExtractHour() {
+    String query = "SELECT EXTRACT(HOUR FROM TIMESTAMP '1999-06-23 10:30:47')";
+    final String expectedBQ = "SELECT EXTRACT(HOUR FROM CAST('1999-06-23 10:30:47' AS DATETIME))";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
   @Test public void testExtractEpoch() {
     String query = "SELECT EXTRACT(EPOCH FROM DATE '2008-08-29')";
     final String expectedBQ = "SELECT UNIX_SECONDS(CAST(DATE '2008-08-29' AS TIMESTAMP))";
