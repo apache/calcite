@@ -122,6 +122,14 @@ public abstract class SqlLibraryOperators {
         }
       };
 
+  /** The "DATE_SUB(date, interval)" function (BigQuery);
+   * subtracts interval from the date, independent of any time zone. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_SUB =
+      SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.ARG0_NULLABLE,
+           OperandTypes.DATE_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
   /** The "DATEPART(timeUnit, datetime)" function
    * (Microsoft SQL Server). */
   @LibraryOperator(libraries = {MSSQL})
@@ -722,6 +730,18 @@ public abstract class SqlLibraryOperators {
               OperandTypes.DATE, OperandTypes.interval(DATE_UNITS)),
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "TIME_SUB(time, interval)" function (BigQuery);
+   * subtracts an interval from a time, independent of any time zone.
+   *
+   * <p>In BigQuery, the syntax is "TIME_SUB(time, INTERVAL int64 date_part)"
+   * but in Calcite the second argument can be any interval expression, not just
+   * an interval literal. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_SUB =
+      SqlBasicFunction.create(SqlKind.TIME_SUB, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.TIME_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
   /** The "TIME_TRUNC(time, timeUnit)" function (BigQuery);
    * truncates a TIME value to the beginning of a timeUnit. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -731,6 +751,18 @@ public abstract class SqlLibraryOperators {
           OperandTypes.sequence("'TIME_TRUNC(<TIME>, <DATETIME_INTERVAL>)'",
               OperandTypes.TIME, OperandTypes.interval(TIME_UNITS)),
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_SUB(timestamp, interval)" function (BigQuery);
+   * subtracts an interval from a timestamp, independent of any time zone.
+   *
+   * <p>In BigQuery, the syntax is "TIMESTAMP_SUB(timestamp,
+   * INTERVAL int64 date_part)" but in Calcite the second argument can be any
+   * interval expression, not just an interval literal. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_SUB =
+      SqlBasicFunction.create(SqlKind.TIMESTAMP_SUB, ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.TIMESTAMP_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_TRUNC(timestamp, timeUnit[, timeZone])" function (BigQuery);
    * truncates a TIMESTAMP value to the beginning of a timeUnit. */
