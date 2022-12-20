@@ -703,6 +703,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker TIMESTAMP_INTERVAL =
       family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker DATE_INTERVAL =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.DATETIME_INTERVAL);
+
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);
 

@@ -121,6 +121,14 @@ public abstract class SqlLibraryOperators {
         }
       };
 
+  /** The "DATE_SUB(date, interval)" function (BigQuery);
+   * subtracts interval from the date, independent of any time zone. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_SUB =
+      SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.ARG0_NULLABLE,
+           OperandTypes.DATE_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
   /** The "DATEPART(timeUnit, datetime)" function
    * (Microsoft SQL Server). */
   @LibraryOperator(libraries = {MSSQL})
@@ -693,6 +701,44 @@ public abstract class SqlLibraryOperators {
       new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
 
+  /** The "TIME_ADD(time, interval)" function (BigQuery);
+   * adds interval expression to the specified time expression. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_ADD =
+      SqlBasicFunction.create(SqlKind.TIME_ADD, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.TIME_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIME_DIFF(time, time, timeUnit)" function (BigQuery);
+   * returns the number of timeUnit between the two time expressions. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_DIFF =
+      new SqlTimestampDiffFunction("TIME_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME,
+              SqlTypeFamily.ANY));
+
+  /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
+   * truncates a DATE value to the beginning of a timeUnit. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_TRUNC =
+      SqlBasicFunction.create("DATE_TRUNC",
+          ReturnTypes.DATE_NULLABLE,
+          OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
+              OperandTypes.DATE, OperandTypes.interval(DATE_UNITS)),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIME_SUB(time, interval)" function (BigQuery);
+   * subtracts an interval from a time, independent of any time zone.
+   *
+   * <p>In BigQuery, the syntax is "TIME_SUB(time, INTERVAL int64 date_part)"
+   * but in Calcite the second argument can be any interval expression, not just
+   * an interval literal. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_SUB =
+      SqlBasicFunction.create(SqlKind.TIME_SUB, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.TIME_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
    * always rounded to the beginning of time_part. */
@@ -703,6 +749,18 @@ public abstract class SqlLibraryOperators {
           OperandTypes.sequence("'TIME_TRUNC(<TIME>, <DATETIME_INTERVAL>)'",
               OperandTypes.TIME, OperandTypes.interval(TIME_UNITS)),
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_SUB(timestamp, interval)" function (BigQuery);
+   * subtracts an interval from a timestamp, independent of any time zone.
+   *
+   * <p>In BigQuery, the syntax is "TIMESTAMP_SUB(timestamp,
+   * INTERVAL int64 date_part)" but in Calcite the second argument can be any
+   * interval expression, not just an interval literal. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_SUB =
+      SqlBasicFunction.create(SqlKind.TIMESTAMP_SUB, ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.TIMESTAMP_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])"
    * function (BigQuery); truncates a TIMESTAMP value to the granularity of
