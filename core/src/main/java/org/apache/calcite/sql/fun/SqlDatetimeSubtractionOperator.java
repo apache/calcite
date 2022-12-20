@@ -16,14 +16,19 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
@@ -37,17 +42,23 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
  * additional interval qualifier specification, when in {@link SqlCall} form.
  * In {@link org.apache.calcite.rex.RexNode} form, it has only two parameters,
  * and the return type describes the desired type of interval.
+ *
+ * When being used for BigQuery's TIMESTAMP_SUB, TIME_SUB, and DATE_SUB, the
+ * return type differs due to differing number of parameters and ordering. This
+ * is accounted for by passing in a SqlReturnTypeInference which is passed in
+ * by the standard MINUS_DATE and the library MINUS_DATE2 operators at their
+ * respective initializations.
  */
 public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlDatetimeSubtractionOperator() {
+  public SqlDatetimeSubtractionOperator(SqlReturnTypeInference returnTypeInference) {
     super(
         "-",
         SqlKind.MINUS,
         40,
         true,
-        ReturnTypes.ARG2_NULLABLE,
+        returnTypeInference,
         InferTypes.FIRST_KNOWN, OperandTypes.MINUS_DATE_OPERATOR);
   }
 

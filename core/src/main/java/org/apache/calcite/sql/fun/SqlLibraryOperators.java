@@ -120,6 +120,15 @@ public abstract class SqlLibraryOperators {
         }
       };
 
+  /** The "DATE_SUB(date_expression, INTERVAL int64_expression date_part)"
+   * function (BigQuery) subtracts int64_expression units of date_part from
+   * the date, independent of any time zone. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_SUB =
+      SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.ARG0_NULLABLE,
+           OperandTypes.DATE_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
   /** The "DATEPART(timeUnit, datetime)" function
    * (Microsoft SQL Server). */
   @LibraryOperator(libraries = {MSSQL})
@@ -660,6 +669,24 @@ public abstract class SqlLibraryOperators {
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
+  /** The "TIME_SUB(time_expression, INTERVAL int64_expression date_part)"
+   * function (BigQuery) subtracts int64_expression units of date_part from
+   * the time, independent of any time zone. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_SUB =
+      SqlBasicFunction.create(SqlKind.TIME_SUB, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.TIME_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP_SUB(timestamp_expression, INTERVAL int64_expression date_part)"
+   * function (BigQuery) subtracts int64_expression units of date_part from
+   * the timestamp, independent of any time zone. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_SUB =
+      SqlBasicFunction.create(SqlKind.TIMESTAMP_SUB, ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.TIMESTAMP_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
    * always rounded to the beginning of time_part. */
@@ -699,6 +726,14 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("TIMESTAMP_MILLIS",
           ReturnTypes.TIMESTAMP_NULLABLE, OperandTypes.INTEGER,
           SqlFunctionCategory.TIMEDATE);
+
+  /** 2-argument form of the special minus-date operator
+   * to be used with BigQuery subtraction functions. It differs from
+   * the standard MINUS_DATE operator in that it has 2 arguments,
+   * and subtracts an interval from a datetime. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlDatetimeSubtractionOperator MINUS_DATE2 =
+      new SqlDatetimeSubtractionOperator(ReturnTypes.ARG0_NULLABLE);
 
   /** The "TIMESTAMP_MICROS(bigint)" function; returns a TIMESTAMP value
    * a given number of micro-seconds after 1970-01-01 00:00:00. */

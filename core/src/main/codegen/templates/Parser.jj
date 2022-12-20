@@ -4853,6 +4853,15 @@ TimeUnit Year() :
     <YEARS> { return warn(TimeUnit.YEAR); }
 }
 
+TimeUnit Quarter() :
+{
+}
+{
+    <QUARTER> { return TimeUnit.QUARTER; }
+|
+    <QUARTERS> { return warn(TimeUnit.QUARTER); }
+}
+
 TimeUnit Month() :
 {
 }
@@ -4860,6 +4869,15 @@ TimeUnit Month() :
     <MONTH> { return TimeUnit.MONTH; }
 |
     <MONTHS> { return warn(TimeUnit.MONTH); }
+}
+
+TimeUnit Week() :
+{
+}
+{
+    <WEEK> { return TimeUnit.WEEK; }
+|
+    <WEEKS> { return warn(TimeUnit.WEEK); }
 }
 
 TimeUnit Day() :
@@ -4977,7 +4995,9 @@ SqlIntervalQualifier IntervalQualifierStart() :
     (
         (
             start = Year()
+        |   start = Quarter()
         |   start = Month()
+        |   start = Week()
         |   start = Day()
         |   start = Hour()
         |   start = Minute()
@@ -7800,6 +7820,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < PROCEDURE: "PROCEDURE" >
 |   < PUBLIC: "PUBLIC" >
 |   < QUARTER: "QUARTER" >
+|   < QUARTERS: "QUARTERS" >
 |   < RANGE: "RANGE" >
 |   < RANK: "RANK" >
 |   < READ: "READ" >
@@ -8040,6 +8061,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < VERSIONING: "VERSIONING" >
 |   < VIEW: "VIEW" >
 |   < WEEK: "WEEK" >
+|   < WEEKS: "WEEKS" >
 |   < WHEN: "WHEN" >
 |   < WHENEVER: "WHENEVER" >
 |   < WHERE: "WHERE" >

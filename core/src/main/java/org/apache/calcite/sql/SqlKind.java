@@ -424,12 +424,20 @@ public enum SqlKind {
   /** {@code LEAST} function (Oracle). */
   LEAST,
 
+  /** {@code DATE_SUB} function (BigQuery Semantics). */
+  DATE_SUB,
+
   /** {@code TIMESTAMP_ADD} function (ODBC, SQL Server, MySQL). */
   TIMESTAMP_ADD,
 
   /** {@code TIMESTAMP_DIFF} function (ODBC, SQL Server, MySQL). */
   TIMESTAMP_DIFF,
 
+  /** {@code TIMESTAMP_SUB} function (BigQuery Semantics). */
+  TIMESTAMP_SUB,
+
+  /** {@code TIME_SUB} function (BigQuery Semantics). */
+  TIME_SUB,
   // prefix operators
 
   /** Logical {@code NOT} operator. */
@@ -1196,8 +1204,8 @@ public enum SqlKind {
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
-                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
-                  TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT, INTERVAL,
+                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL, DATE_SUB,
+                  TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB, TIME_SUB, EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,

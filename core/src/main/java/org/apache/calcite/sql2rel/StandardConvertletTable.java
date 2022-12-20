@@ -167,6 +167,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     registerOp(SqlLibraryOperators.TIMESTAMP_ADD2,
         new TimestampAddConvertlet());
+    registerOp(SqlLibraryOperators.TIMESTAMP_SUB,
+        new TimestampSubConvertlet());
+    registerOp(SqlLibraryOperators.TIME_SUB,
+        new TimestampSubConvertlet());
+    registerOp(SqlLibraryOperators.DATE_SUB,
+        new TimestampSubConvertlet());
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
@@ -1890,6 +1896,39 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
       return rexBuilder.makeCall(SqlStdOperatorTable.DATETIME_PLUS,
           op2, interval2Add);
+    }
+  }
+
+  /** Convertlet that handles the BigQuery {@code TIMESTAMP_SUB} function. */
+  private static class TimestampSubConvertlet implements SqlRexConvertlet {
+    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      // TIMESTAMP_SUB(timestamp, interval)
+      //  => timestamp - count * INTERVAL '1' UNIT
+      final RexBuilder rexBuilder = cx.getRexBuilder();
+      final SqlBasicCall operandCall = call.operand(1);
+      SqlIntervalQualifier qualifier = operandCall.operand(1);;
+      final RexNode op1 = cx.convertExpression(operandCall.operand(0));
+      final RexNode op2 = cx.convertExpression(call.operand(0));
+      final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
+      final TimeUnit unit = timeFrame.unit();
+      RexNode interval2Sub;
+      switch (unit) {
+      case MICROSECOND:
+      case NANOSECOND:
+        interval2Sub =
+            divide(rexBuilder,
+                multiply(rexBuilder,
+                    rexBuilder.makeIntervalLiteral(BigDecimal.ONE, qualifier), op1),
+                BigDecimal.ONE.divide(unit.multiplier,
+                    RoundingMode.UNNECESSARY));
+        break;
+      default:
+        interval2Sub = multiply(rexBuilder,
+            rexBuilder.makeIntervalLiteral(unit.multiplier, qualifier), op1);
+      }
+
+      return rexBuilder.makeCall(SqlLibraryOperators.MINUS_DATE2,
+          op2, interval2Sub);
     }
   }
 
