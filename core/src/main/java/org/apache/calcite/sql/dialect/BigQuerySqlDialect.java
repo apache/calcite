@@ -282,6 +282,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(SEC_FROM_MIDNIGHT, "SEC_FROM_MIDNIGHT");
         put(QUARTER, "%Q");
         put(TIMEOFDAY, "%c");
+        put(WEEK_OF_YEAR, "%W");
       }};
 
   private static final String OR = "|";
@@ -354,6 +355,10 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public boolean supportsColumnAliasInSort() {
     return true;
+  }
+
+  @Override public boolean supportsColumnListForWithItem() {
+    return false;
   }
 
   @Override public boolean supportsAliasedValues() {
