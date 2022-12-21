@@ -9330,7 +9330,7 @@ class RelToSqlConverterTest {
   }
 
   @Test public void testExtractHour() {
-    String query = "SELECT EXTRACT(HOUR FROM TIMESTAMP '1999-06-23 10:30:47')";
+    String query = "SELECT HOUR(TIMESTAMP '1999-06-23 10:30:47')";
     final String expectedBQ = "SELECT EXTRACT(HOUR FROM CAST('1999-06-23 10:30:47' AS DATETIME))";
 
     sql(query)
