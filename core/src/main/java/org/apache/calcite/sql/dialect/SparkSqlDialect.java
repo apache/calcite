@@ -62,46 +62,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
-import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
-import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
-import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
-import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR1;
-import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
-import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
-import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
-import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
-import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
-import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
-import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
-import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_4;
-import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
-import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
-import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
-import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
-import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR1;
-import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
-import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEOFDAY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
-import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
-import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
-import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
-import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.*;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
@@ -179,8 +140,8 @@ public class SparkSqlDialect extends SqlDialect {
         put(TIMEZONE, "z");
         put(POST_MERIDIAN_INDICATOR, "a");
         put(ANTE_MERIDIAN_INDICATOR, "a");
-        put(POST_MERIDIAN_INDICATOR1, "a");
-        put(ANTE_MERIDIAN_INDICATOR1, "a");
+        put(POST_MERIDIAN_INDICATOR_WITH_DOT, "a");
+        put(ANTE_MERIDIAN_INDICATOR_WITH_DOT, "a");
         put(MILLISECONDS_5, "SSSSS");
         put(MILLISECONDS_4, "SSSS");
         put(YYYYDDMM, "yyyyddMM");
@@ -927,10 +888,10 @@ public class SparkSqlDialect extends SqlDialect {
 
   private String removeDotFromAMAndPM(SqlNode dateStringSqlNode) {
     String dateString = ((SqlCharStringLiteral) dateStringSqlNode).getValue().toString();
-    if (dateString.contains(ANTE_MERIDIAN_INDICATOR1.value)) {
-      return dateString.replaceAll(ANTE_MERIDIAN_INDICATOR1.value, ANTE_MERIDIAN_INDICATOR.value);
-    } else if (dateString.contains(POST_MERIDIAN_INDICATOR1.value)) {
-      return dateString.replaceAll(POST_MERIDIAN_INDICATOR1.value, POST_MERIDIAN_INDICATOR.value);
+    if (dateString.contains(ANTE_MERIDIAN_INDICATOR_WITH_DOT.value)) {
+      return dateString.replaceAll(ANTE_MERIDIAN_INDICATOR_WITH_DOT.value, ANTE_MERIDIAN_INDICATOR.value);
+    } else if (dateString.contains(POST_MERIDIAN_INDICATOR_WITH_DOT.value)) {
+      return dateString.replaceAll(POST_MERIDIAN_INDICATOR_WITH_DOT.value, POST_MERIDIAN_INDICATOR.value);
     }
     return dateString;
   }
