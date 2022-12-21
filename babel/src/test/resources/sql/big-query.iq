@@ -630,6 +630,19 @@ SELECT STRING(TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS string;
 !ok
 !}
 
+#####################################################################
+# LENGTH(string)
+#
+# Returns the number of characters in the provided string.
+SELECT LENGTH("hello") as length;
++--------+
+| length |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
 
 #####################################################################
 # DATE

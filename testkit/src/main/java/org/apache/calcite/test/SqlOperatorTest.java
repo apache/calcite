@@ -3632,6 +3632,23 @@ public class SqlOperatorTest {
     f.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
   }
 
+  @Test void testLengthFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LENGTH);
+    f0.checkFails("^length('hello')^",
+        "No match found for function signature LENGTH\\(<CHARACTER>\\)",
+        false);
+
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("length('hello')", "5", "INTEGER NOT NULL");
+      f.checkScalar("length('')", "0", "INTEGER NOT NULL");
+      f.checkScalar("length(CAST('x' as CHAR(3)))", "3", "INTEGER NOT NULL");
+      f.checkScalar("length(CAST('x' as VARCHAR(4)))", "1", "INTEGER NOT NULL");
+      f.checkNull("length(CAST(NULL as CHAR(5)))");
+    };
+
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY), consumer);
+  }
+
   @Test void testOctetLengthFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.OCTET_LENGTH, VmName.EXPAND);

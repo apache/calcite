@@ -115,6 +115,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // Register aliases (operators which have a different name but
     // identical behavior to other operators).
+    addAlias(SqlLibraryOperators.LENGTH,
+        SqlStdOperatorTable.CHAR_LENGTH);
     addAlias(SqlStdOperatorTable.CHARACTER_LENGTH,
         SqlStdOperatorTable.CHAR_LENGTH);
     addAlias(SqlStdOperatorTable.IS_UNKNOWN,

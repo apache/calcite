@@ -1395,34 +1395,37 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_TYPE = SqlLibraryOperators.JSON_TYPE;
+  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_DEPTH = SqlLibraryOperators.JSON_DEPTH;
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_LENGTH = SqlLibraryOperators.JSON_LENGTH;
+  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_KEYS = SqlLibraryOperators.JSON_KEYS;
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_PRETTY = SqlLibraryOperators.JSON_PRETTY;
+  public static final SqlFunction JSON_PRETTY = new SqlJsonPrettyFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_REMOVE = SqlLibraryOperators.JSON_REMOVE;
+  public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_STORAGE_SIZE = SqlLibraryOperators.JSON_STORAGE_SIZE;
+  public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_INSERT = SqlLibraryOperators.JSON_INSERT;
+  public static final SqlFunction JSON_INSERT =
+      new SqlJsonModifyFunction("JSON_INSERT");
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_REPLACE = SqlLibraryOperators.JSON_REPLACE;
+  public static final SqlFunction JSON_REPLACE =
+      new SqlJsonModifyFunction("JSON_REPLACE");
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_SET = SqlLibraryOperators.JSON_SET;
+  public static final SqlFunction JSON_SET =
+      new SqlJsonModifyFunction("JSON_SET");
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,

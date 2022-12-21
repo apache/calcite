@@ -193,6 +193,11 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction IFNULL = NVL.withName("IFNULL");
 
+  /** The "LENGTH(string)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction LENGTH =
+      SqlStdOperatorTable.CHAR_LENGTH.withName("LENGTH");
+
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LTRIM =
