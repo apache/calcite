@@ -188,6 +188,11 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           OperandTypes.SAME_SAME);
 
+  /** THE "LENGTH(string)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction LENGTH =
+      SqlStdOperatorTable.CHAR_LENGTH.withName("LENGTH");
+
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LTRIM =

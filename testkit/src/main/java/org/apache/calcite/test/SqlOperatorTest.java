@@ -6231,6 +6231,28 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
+  @Test void testLengthFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LENGTH);
+    f0.checkFails("^length('hello')^",
+        "No match found for function signature LENGTH\\(<CHARACTER>\\)",
+        false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("length('hello')",
+        "5",
+        "INTEGER NOT NULL");
+    f.checkScalar("length('')",
+        "0",
+        "INTEGER NOT NULL");
+    f.checkScalar("length(CAST('x' as CHAR(3)))",
+        "3",
+        "INTEGER NOT NULL");
+    f.checkScalar("length(CAST('x' as VARCHAR(4)))",
+        "1",
+        "INTEGER NOT NULL");
+    f.checkNull("length(CAST(NULL as CHAR(5)))");
+  }
+
   @Test void testLtrimFunc() {
     final SqlOperatorFixture f0 = fixture()
         .setFor(SqlLibraryOperators.LTRIM, VmName.EXPAND);

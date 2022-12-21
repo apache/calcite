@@ -1771,6 +1771,7 @@ period:
 | {fn LENGTH(string)} | Returns the number of characters in a string
 | {fn LOCATE(string1, string2 [, integer])} | Returns the position in *string2* of the first occurrence of *string1*. Searches from the beginning of *string2*, unless *integer* is specified.
 | {fn LEFT(string, length)} | Returns the leftmost *length* characters from *string*
+| {fn LENGTH(string)} | Returns the number of characters in *string*
 | {fn LTRIM(string)} | Returns *string* with leading space characters removed
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
 | {fn REVERSE(string)} | Returns *string* with the order of the characters reversed
@@ -2634,6 +2635,7 @@ semantics.
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
 | b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
 | b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
+| b | LENGTH(string)                                 | Returns the number of characters in the *string*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start

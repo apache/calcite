@@ -2596,4 +2596,18 @@ FROM items;
 
 !ok
 
+#####################################################################
+# LENGTH(string)
+#
+# Returns the number of characters in the provided string.
+SELECT LENGTH("hello") as length;
++--------+
+| length |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
+
 # End big-query.iq
