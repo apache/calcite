@@ -111,6 +111,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsColumnListForWithItem() {
+    return false;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }

@@ -192,6 +192,10 @@ public class SparkSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsColumnListForWithItem() {
+    return false;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }

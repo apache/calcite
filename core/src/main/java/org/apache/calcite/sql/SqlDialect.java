@@ -1165,6 +1165,9 @@ public class SqlDialect {
     return false;
   }
 
+  public boolean supportsColumnListForWithItem() {
+    return true;
+  }
   /**
    * Returns whether this dialect supports "WITH ROLLUP" in the "GROUP BY"
    * clause.

@@ -8215,6 +8215,23 @@ class RelToSqlConverterTest {
             isLinux(expectedDOMBiqQuery));
   }
 
+  @Test public void testYYYYWW() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayOfYearWithYYYYRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
+        builder.literal("YYYY-WW"), builder.scan("EMP").field(4));
+
+    final RelNode doyRoot = builder
+        .scan("EMP")
+        .project(builder.alias(dayOfYearWithYYYYRexNode, "FD"))
+        .build();
+
+    final String expectedDOYBiqQuery = "SELECT FORMAT_DATE('%Y-%W', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedDOYBiqQuery));
+  }
+
   @Test public void testFormatTimestampRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
