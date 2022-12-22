@@ -1868,10 +1868,18 @@ public class SqlOperatorTest {
   }
 
   @Test void testModOperator() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
-    f.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    // "%" is allowed under BIG_QUERY, MYSQL_5 SQL conformance levels
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    final List<SqlConformanceEnum> conformances =
+        list(SqlConformanceEnum.BIG_QUERY, SqlConformanceEnum.MYSQL_5);
+    f0.forEachConformance(conformances, this::checkModOperator);
+    f0.forEachConformance(conformances, this::checkModPrecedence);
+    f0.forEachConformance(conformances, this::checkModOperatorNull);
+    f0.forEachConformance(conformances, this::checkModOperatorDivByZero);
+  }
+
+  void checkModOperator(SqlOperatorFixture f) {
     f.checkScalarExact("4%2", 0);
     f.checkScalarExact("8%5", 3);
     f.checkScalarExact("-12%7", -5);
@@ -1890,19 +1898,12 @@ public class SqlOperatorTest {
         "DECIMAL(1, 0) NOT NULL", "-2");
   }
 
-  @Test void testModPrecedence() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
-    f.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+  void checkModPrecedence(SqlOperatorFixture f) {
     f.checkScalarExact("1 + 5 % 3 % 4 * 14 % 17", 12);
     f.checkScalarExact("(1 + 5 % 3) % 4 + 14 % 17", 17);
   }
 
-  @Test void testModOperatorNull() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
+  void checkModOperatorNull(SqlOperatorFixture f) {
     f.checkNull("cast(null as integer) % 2");
     f.checkNull("4 % cast(null as tinyint)");
     if (!DECIMAL) {
@@ -1911,13 +1912,10 @@ public class SqlOperatorTest {
     f.checkNull("4 % cast(null as decimal(12,0))");
   }
 
-  @Test void testModOperatorDivByZero() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
+  void checkModOperatorDivByZero(SqlOperatorFixture f) {
     // The extra CASE expression is to fool Janino.  It does constant
     // reduction and will throw the divide by zero exception while
-    // compiling the expression.  The test frame work would then issue
+    // compiling the expression.  The test framework would then issue
     // unexpected exception occurred during "validation".  You cannot
     // submit as non-runtime because the janino exception does not have
     // error position information and the framework is unhappy with that.
@@ -2706,12 +2704,17 @@ public class SqlOperatorTest {
         "Bang equal '!=' is not allowed under the current SQL conformance level",
         false);
 
-    // "!=" is allowed under ORACLE_10 SQL conformance level
-    final SqlOperatorFixture f1 =
-        f.withConformance(SqlConformanceEnum.ORACLE_10);
-    f1.checkBoolean("1 <> 1", false);
-    f1.checkBoolean("1 != 1", false);
-    f1.checkBoolean("1 != null", null);
+    final Consumer<SqlOperatorFixture> consumer = f1 -> {
+      f1.checkBoolean("1 <> 1", false);
+      f1.checkBoolean("1 != 1", false);
+      f1.checkBoolean("2 != 1", true);
+      f1.checkBoolean("1 != null", null);
+    };
+
+    // "!=" is allowed under BigQuery, ORACLE_10 SQL conformance levels
+    final List<SqlConformanceEnum> conformances =
+        list(SqlConformanceEnum.BIG_QUERY, SqlConformanceEnum.ORACLE_10);
+    f.forEachConformance(conformances, consumer);
   }
 
   @Test void testNotEqualsOperatorIntervals() {
