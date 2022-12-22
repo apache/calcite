@@ -5847,6 +5847,27 @@ public class SqlOperatorTest {
     f.checkNull("last_day(cast(null as timestamp))");
   }
 
+  @Test void testLpadFunction() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.LPAD);
+    f.check("select lpad('12345', 8, 'a')", "VARCHAR(5) NOT NULL", "aaa12345");
+    f.checkString("lpad('12345', 8)", "   12345", "VARCHAR(5) NOT NULL");
+    f.checkString("lpad('12345', 8, 'ab')", "aba12345", "VARCHAR(5) NOT NULL");
+    f.checkString("lpad('12345', 3, 'a')", "123", "VARCHAR(5) NOT NULL");
+    f.checkFails("lpad('12345', -3, 'a')", "Second argument for LPAD/RPAD cannot be negative", true);
+    f.checkFails("lpad('12345', -3)", "Second argument for LPAD/RPAD cannot be negative", true);
+    f.checkFails("lpad('12345', 3, '')", "Third argument (pad pattern) for LPAD/RPAD cannot be empty", true);
+
+    f.checkString("lpad(x'aa', 4, x'bb')", "bbbbbbaa", "VARBINARY(1) NOT NULL");
+    f.checkString("lpad(x'aa', 4)", "202020aa", "VARBINARY(1) NOT NULL");
+    f.checkString("lpad(x'aaaaaa', 2)", "aaaa", "VARBINARY(3) NOT NULL");
+    f.checkString("lpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY(3) NOT NULL");
+    f.checkString("lpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY(3) NOT NULL");
+    f.checkFails("lpad(x'aa', -3, x'bb')", "Second argument for LPAD/RPAD cannot be negative", true);
+    f.checkFails("lpad(x'aa', -3)", "Second argument for LPAD/RPAD cannot be negative", true);
+    f.checkFails("lpad(x'aa', 3, x'')", "Third argument (pad pattern) for LPAD/RPAD cannot be empty", true);
+  }
+
   @Test void testStartsWithFunction() {
     final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
     f.setFor(SqlLibraryOperators.STARTS_WITH);
