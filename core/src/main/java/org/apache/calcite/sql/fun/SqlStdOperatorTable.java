@@ -2191,7 +2191,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * {@code PERCENTILE_CONT} inverse distribution aggregate function.
    *
    * <p>The argument must be a numeric literal in the range 0 to 1 inclusive
-   * (representing a percentage), and the return type is {@code DOUBLE}.
+   * (representing a percentage), and the return type is the type of the
+   * {@code ORDER BY} expression.
    */
   public static final SqlAggFunction PERCENTILE_CONT =
       SqlBasicAggFunction
