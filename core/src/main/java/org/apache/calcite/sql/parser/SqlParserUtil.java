@@ -40,6 +40,7 @@ import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
@@ -338,6 +339,17 @@ public final class SqlParserUtil {
 
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
+    return parseTimestampLiteral(SqlTypeName.TIMESTAMP, s, pos);
+  }
+
+  public static SqlTimestampLiteral parseTimestampLtzLiteral(String s,
+      SqlParserPos pos) {
+    return parseTimestampLiteral(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, s,
+        pos);
+  }
+
+  private static SqlTimestampLiteral parseTimestampLiteral(SqlTypeName typeName,
+      String s, SqlParserPos pos) {
     final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
@@ -352,13 +364,13 @@ public final class SqlParserUtil {
     }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("TIMESTAMP", s,
+          RESOURCE.illegalLiteral(typeName.getName(), s,
               RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
     }
     final TimestampString ts =
         TimestampString.fromCalendarFields(pt.getCalendar())
             .withFraction(pt.getFraction());
-    return SqlLiteral.createTimestamp(ts, pt.getPrecision(), pos);
+    return SqlLiteral.createTimestamp(typeName, ts, pt.getPrecision(), pos);
   }
 
   public static SqlIntervalLiteral parseIntervalLiteral(SqlParserPos pos,

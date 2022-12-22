@@ -15,6 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# In this file (due to the use of 'scott-big-query' below, and unlike typical
+# Quidem tests), types are aliased to be consistent with BigQuery's type names,
+# not Calcite's usual type names. # In particular:
+#  * DATETIME is what Calcite calls TIMESTAMP;
+#  * TIMESTAMP is what Calcite calls TIMESTAMP WITH LOCAL TIME ZONE;
+#  * DATE and TIME are the same as Calcite;
+#  * BYTES means VARBINARY(*);
+#  * STRING means VARCHAR(*).
+#
+# The DATETIME() and TIMESTAMP() functions are also substituted so that they
+# produce values that BigQuery would call DATETIME and TIMESTAMP.
+#
 !use scott-big-query
 !set outputformat mysql
 
@@ -612,6 +624,25 @@ SELECT
 !}
 
 
+# Date-time literals.
+# As for other tests in this script, data type semantics match BigQuery:
+# DATETIME is what Calcite calls TIMESTAMP;
+# TIMESTAMP is what Calcite calls TIMESTAMP WITH LOCAL TIME ZONE;
+# DATE and TIME are the same as Calcite.
+SELECT
+  DATETIME "1969-07-21 02:56:00" AS dt,
+  TIMESTAMP "1969-07-21 02:56:00" AS ts,
+  DATE "1969-07-21" AS d,
+  TIME "02:56:00" AS t;
++---------------------+---------------------+------------+----------+
+| dt                  | ts                  | d          | t        |
++---------------------+---------------------+------------+----------+
+| 1969-07-21 02:56:00 | 1969-07-21 02:56:00 | 1969-07-21 | 02:56:00 |
++---------------------+---------------------+------------+----------+
+(1 row)
+
+!ok
+
 #####################################################################
 # DATETIME
 #
@@ -1041,7 +1072,7 @@ order by v;
 
 !ok
 
-select unix_date(timestamp '2008-12-25') as d;
+select unix_date(datetime '2008-12-25') as d;
 +-------+
 | d     |
 +-------+

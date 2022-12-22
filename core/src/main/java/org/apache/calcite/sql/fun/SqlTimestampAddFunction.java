@@ -93,11 +93,8 @@ public class SqlTimestampAddFunction extends SqlFunction {
             MICROSECOND_PRECISION);
         break;
       default:
-        if (operandType2.getSqlTypeName() == SqlTypeName.TIME) {
-          type = typeFactory.createSqlType(SqlTypeName.TIME);
-        } else {
-          type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
-        }
+        final SqlTypeName typeName = sanitize(operandType2.getSqlTypeName());
+        type = typeFactory.createSqlType(typeName);
       }
       break;
     default:
@@ -107,6 +104,16 @@ public class SqlTimestampAddFunction extends SqlFunction {
     return typeFactory.createTypeWithNullability(type,
         operandType1.isNullable()
             || operandType2.isNullable());
+  }
+
+  private static SqlTypeName sanitize(SqlTypeName typeName) {
+    switch (typeName) {
+    case TIME:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return typeName;
+    default: // usually DATE or TIMESTAMP
+      return SqlTypeName.TIMESTAMP;
+    }
   }
 
   @Override public void validateCall(SqlCall call, SqlValidator validator,

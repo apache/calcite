@@ -1832,6 +1832,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       // TIMESTAMPADD(unit, count, timestamp)
       //  => timestamp + count * INTERVAL '1' UNIT
+      // TIMESTAMP_ADD(timestamp, interval)
+      //  => timestamp + interval
+      // "timestamp" may be of type TIMESTAMP or TIMESTAMP WITH LOCAL TIME ZONE.
       final RexBuilder rexBuilder = cx.getRexBuilder();
       SqlIntervalQualifier qualifier;
       final RexNode op1;

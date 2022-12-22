@@ -34,9 +34,11 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
   //~ Constructors -----------------------------------------------------------
 
   SqlTimestampLiteral(TimestampString ts, int precision,
-      boolean hasTimeZone, SqlParserPos pos) {
-    super(ts, hasTimeZone, SqlTypeName.TIMESTAMP, precision, pos);
+      SqlTypeName typeName, SqlParserPos pos) {
+    super(ts, false, typeName, precision, pos);
     Preconditions.checkArgument(this.precision >= 0);
+    Preconditions.checkArgument(typeName == SqlTypeName.TIMESTAMP
+        || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -45,11 +47,11 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
     return new SqlTimestampLiteral(
         (TimestampString) Objects.requireNonNull(value, "value"),
         precision,
-        hasTimeZone, pos);
+        getTypeName(), pos);
   }
 
   @Override public String toString() {
-    return "TIMESTAMP '" + toFormattedString() + "'";
+    return getTypeName() + " '" + toFormattedString() + "'";
   }
 
   /**

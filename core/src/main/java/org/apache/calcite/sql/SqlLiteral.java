@@ -868,15 +868,25 @@ public class SqlLiteral extends SqlNode {
       Calendar calendar,
       int precision,
       SqlParserPos pos) {
-    return createTimestamp(TimestampString.fromCalendarFields(calendar),
-        precision, pos);
+    return createTimestamp(SqlTypeName.TIMESTAMP,
+        TimestampString.fromCalendarFields(calendar), precision, pos);
   }
 
+  @Deprecated // to be removed before 2.0
   public static SqlTimestampLiteral createTimestamp(
       TimestampString ts,
       int precision,
       SqlParserPos pos) {
-    return new SqlTimestampLiteral(ts, precision, false, pos);
+    return createTimestamp(SqlTypeName.TIMESTAMP, ts, precision, pos);
+  }
+
+  /** Creates a TIMESTAMP or TIMESTAMP WITH TIME ZONE literal. */
+  public static SqlTimestampLiteral createTimestamp(
+      SqlTypeName typeName,
+      TimestampString ts,
+      int precision,
+      SqlParserPos pos) {
+    return new SqlTimestampLiteral(ts, precision, typeName, pos);
   }
 
   @Deprecated // to be removed before 2.0
