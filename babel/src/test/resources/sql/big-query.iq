@@ -2596,4 +2596,52 @@ FROM items;
 
 !ok
 
+#####################################################################
+# NOT EQUAL Operator (value1 != value2)
+#
+# Compares value1 and value2 and returns TRUE if not equal.
+SELECT (5 != 3) as result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT (5 != 5) as result;
++--------+
+| result |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
+# MODULO % OPERATOR (value1 % value2)
+#
+# Returns the remainder of dividing value1 by value2.
+SELECT (5 % 3) as result;
++--------+
+| result |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+SELECT (19 % 19) as result;
++--------+
+| result |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
 # End big-query.iq

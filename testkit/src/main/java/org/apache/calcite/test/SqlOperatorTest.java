@@ -2712,6 +2712,14 @@ public class SqlOperatorTest {
     f1.checkBoolean("1 <> 1", false);
     f1.checkBoolean("1 != 1", false);
     f1.checkBoolean("1 != null", null);
+
+    // "!=" is allowed under BIG_QUERY SQL conformance level
+    final SqlOperatorFixture f2 =
+        f.withConformance(SqlConformanceEnum.BIG_QUERY);
+    f2.checkBoolean("1 <> 1", false);
+    f2.checkBoolean("1 != 1", false);
+    f2.checkBoolean("2 != 1", true);
+    f2.checkBoolean("1 != null", null);
   }
 
   @Test void testNotEqualsOperatorIntervals() {
