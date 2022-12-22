@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-
 import java.util.Objects;
 
 import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
@@ -27,7 +25,6 @@ import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_
  * tz information.
  */
 public class TZAwareSqlType extends AbstractSqlType {
-  private final RelDataTypeSystem typeSystem;
   // The tz info
   private final BodoTZInfo tzInfo;
 
@@ -37,13 +34,11 @@ public class TZAwareSqlType extends AbstractSqlType {
    * Constructs a tzAware sql type. This should only be called from a factory
    * method.
    *
-   * @param typeSystem Type system
    * @param tzInfo Timezone information
    * @param nullable Does this contain null values?
    */
-  public TZAwareSqlType(RelDataTypeSystem typeSystem, BodoTZInfo tzInfo, boolean nullable) {
+  public TZAwareSqlType(BodoTZInfo tzInfo, boolean nullable) {
     super(TIMESTAMP_WITH_LOCAL_TIME_ZONE, nullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
     this.tzInfo = Objects.requireNonNull(tzInfo, "tzInfo");
     computeDigest();
   }

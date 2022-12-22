@@ -1425,10 +1425,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature CURRENT_TIMESTAMP..");
     // should type be 'TIMESTAMP with TZ'?
     expr("CURRENT_TIMESTAMP")
-        .columnType("TIMESTAMP(0) NOT NULL");
+        .columnType("TIMESTAMP('UTC') NOT NULL");
     // should type be 'TIMESTAMP with TZ'?
     expr("CURRENT_TIMESTAMP(2)")
-        .columnType("TIMESTAMP(2) NOT NULL");
+        .columnType("TIMESTAMP('UTC') NOT NULL");
     wholeExpr("CURRENT_TIMESTAMP(-1)")
         .fails("Argument to function 'CURRENT_TIMESTAMP' must be a positive "
             + "integer literal");
@@ -4038,7 +4038,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
 
     expr("timestampadd(SQL_TSI_WEEK, 2, current_timestamp)")
-        .columnType("TIMESTAMP(0) NOT NULL");
+        .columnType("TIMESTAMP('UTC') NOT NULL");
     expr("timestampadd(SQL_TSI_WEEK, 2, cast(null as timestamp))")
         .columnType("TIMESTAMP(0)");
     expr("timestampdiff(SQL_TSI_WEEK, current_timestamp, current_timestamp)")
@@ -4058,7 +4058,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("TIMESTAMP(0)");
     expr("timestampadd(SQL_TSI_DAY, cast(NULL AS INTEGER),"
         + " current_timestamp)")
-        .columnType("TIMESTAMP(0)");
+        .columnType("TIMESTAMP('UTC')");
   }
 
   @Test void testNumericOperators() {
@@ -9110,7 +9110,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.withSql("values (current_timestamp, floor(2.5), ceil (3.5))").ok();
     s.withSql("values (CURRENT_TIMESTAMP, FLOOR(2.5), CEIL (3.5))").ok();
     s.withSql("values (CURRENT_TIMESTAMP, CEIL (3.5))")
-        .type("RecordType(TIMESTAMP(0) NOT NULL CURRENT_TIMESTAMP, "
+        .type("RecordType(TIMESTAMP('UTC') NOT NULL CURRENT_TIMESTAMP, "
             + "DECIMAL(2, 0) NOT NULL EXPR$1) NOT NULL");
   }
 

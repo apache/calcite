@@ -94,7 +94,12 @@ public abstract class Snapshot extends SingleRel  {
 
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     RelDataType dataType = period.getType();
-    if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+    // NOTE: The original code was just checking SqlTypeName.TIMESTAMP, but since
+    // we changed CURRENT_TIMESTAMP to return a TZ-Aware Timestamp we had to
+    // update this to also allow SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE to
+    // pass the tests.
+    if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP
+        && dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
       return litmus.fail("The system time period specification expects Timestamp type but is '"
           + dataType.getSqlTypeName() + "'");
     }

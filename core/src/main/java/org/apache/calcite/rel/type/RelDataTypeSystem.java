@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.sql.type.BodoTZInfo;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Glossary;
@@ -405,6 +406,17 @@ public interface RelDataTypeSystem {
       }
     }
     return null;
+  }
+
+  /**
+   * Gets the Default TZ info for this TypeSystem. This is used to support
+   * adding information about the local Timezone for functions like
+   * CURRENT_TIMESTAMP
+   *
+   * @return The default TZ info.
+   */
+  default BodoTZInfo getDefaultTZInfo() {
+    return BodoTZInfo.UTC;
   }
 
 }

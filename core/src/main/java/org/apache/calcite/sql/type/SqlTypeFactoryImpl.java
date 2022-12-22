@@ -133,7 +133,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
    * @return canonical TZAware SQL type descriptor
    */
   @Override public RelDataType createTZAwareSqlType(BodoTZInfo tzInfo) {
-    RelDataType newType = new TZAwareSqlType(typeSystem, tzInfo, false);
+    RelDataType newType = new TZAwareSqlType(tzInfo, false);
     return canonize(newType);
   }
 
@@ -543,7 +543,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   private RelDataType copyTZAwareSqlType(RelDataType type, boolean nullable) {
     return new TZAwareSqlType(
-        typeSystem, requireNonNull(type.getTZInfo(),
+        requireNonNull(type.getTZInfo(),
             () -> "type.getTZInfo() for " + type), nullable);
   }
 

@@ -33,6 +33,8 @@ public class BodoTZInfo {
   // zone should be an integer.
   private final String pyType;
 
+  public static final BodoTZInfo UTC = new BodoTZInfo("UTC", "str");
+
   public BodoTZInfo(String zone, String pyType) {
     this.zone = zone;
     // Standardize to lower case.

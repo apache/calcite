@@ -6693,6 +6693,17 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSelectCurrentTimestamp">
+    <Resource name="sql">
+      <![CDATA[select CURRENT_TIMESTAMP from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(CURRENT_TIMESTAMP=[CURRENT_TIMESTAMP])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSelectDistinct">
     <Resource name="sql">
       <![CDATA[select distinct sal + 5 from emp]]>

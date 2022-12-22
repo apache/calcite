@@ -1974,7 +1974,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The <code>CURRENT_TIMESTAMP [(<i>precision</i>)]</code> function.
    */
   public static final SqlFunction CURRENT_TIMESTAMP =
-      new SqlAbstractTimeFunction("CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+      new SqlAbstractTZSessionFunction("CURRENT_TIMESTAMP");
 
   /**
    * The <code>CURRENT_DATE</code> function.

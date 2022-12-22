@@ -27,6 +27,8 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import static java.lang.Math.floorMod;
+
 /**
  * Timestamp with time-zone literal.
  *
@@ -169,7 +171,7 @@ public class TimestampWithTimeZoneString
   public static TimestampWithTimeZoneString fromMillisSinceEpoch(long millis) {
     return new TimestampWithTimeZoneString(
         DateTimeUtils.unixTimestampToString(millis) + " " + DateTimeUtils.UTC_ZONE.getID())
-            .withMillis((int) DateTimeUtils.floorMod(millis, 1000));
+            .withMillis((int) floorMod(millis, 1000L));
   }
 
   /** Converts this TimestampWithTimeZoneString to a string, truncated or padded with

@@ -89,7 +89,8 @@ class LexEscapeTest {
     assertThat(fields.get(0).getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
     assertThat(fields.get(1).getType().getSqlTypeName(), is(SqlTypeName.TIME));
     assertThat(fields.get(2).getType().getSqlTypeName(), is(SqlTypeName.INTEGER));
-    assertThat(fields.get(3).getType().getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(fields.get(3).getType().getSqlTypeName(),
+        is(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE));
   }
 
   @Test void testCalciteEscapeOracle()
