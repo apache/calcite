@@ -2644,6 +2644,7 @@ semantics.
 | b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
 | b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
 | b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
+| b o | LPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
@@ -2657,6 +2658,7 @@ semantics.
 | b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
 | h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
+| b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*

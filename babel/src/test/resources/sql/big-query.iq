@@ -1288,6 +1288,78 @@ SELECT
 !ok
 
 #####################################################################
+# LPAD(original_value, return_length, pattern)
+#
+# Returns a STRING or BYTES value that consists of original_value prepended
+# with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT LPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT LPAD('12345', 8), "8", " " UNION ALL
+  SELECT LPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
+  SELECT LPAD('12345', 3), "3", " " UNION ALL
+  SELECT LPAD(x'aa', 4, x'bb'), "4", "x'bb'" UNION ALL
+  SELECT LPAD(x'aa', 4), "4", "20" UNION ALL
+  SELECT LPAD(x'aaaaaa', 2), "2", "20" UNION ALL
+  SELECT LPAD(x'aaaaaa', 2, x'bb'), "2", "x'bb'"
+)
+SELECT
+  *
+FROM Examples;
++----------+------------+-------+
+| result   | pad_length | p     |
++----------+------------+-------+
+| aaa12345 | 8          | a     |
+|    12345 | 8          |       |
+| aba12345 | 8          | aba   |
+| 123      | 3          |       |
+| bbbbbbaa | 4          | x'bb' |
+| 202020aa | 4          | 20    |
+| aaaa     | 2          | 20    |
+| aaaa     | 2          | x'bb' |
++----------+------------+-------+
+(8 rows)
+
+!ok
+
+#####################################################################
+# RPAD(original_value, return_length, pattern)
+#
+# Returns a STRING or BYTES value that consists of original_value prepended
+# with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT RPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT RPAD('12345', 8), "8", " " UNION ALL
+  SELECT RPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
+  SELECT RPAD('12345', 3), "3", " " UNION ALL
+  SELECT RPAD(x'aa', 4, x'bb'), "4", "x'bb'" UNION ALL
+  SELECT RPAD(x'aa', 4), "4", "20" UNION ALL
+  SELECT RPAD(x'aaaaaa', 2), "2", "20" UNION ALL
+  SELECT RPAD(x'aaaaaa', 2, x'bb'), "2", "x'bb'"
+)
+SELECT
+  *
+FROM Examples;
++----------+------------+-------+
+| result   | pad_length | p     |
++----------+------------+-------+
+| 12345aaa | 8          | a     |
+| 12345    | 8          |       |
+| 12345aba | 8          | aba   |
+| 123      | 3          |       |
+| aabbbbbb | 4          | x'bb' |
+| aa202020 | 4          | 20    |
+| aaaa     | 2          | 20    |
+| aaaa     | 2          | x'bb' |
++----------+------------+-------+
+(8 rows)
+
+!ok
+
+#####################################################################
 # DATE_SUB
 #
 # DATE_SUB(date_expression, INTERVAL int64_expression date_part)
@@ -2691,5 +2763,6 @@ FROM items;
 (4 rows)
 
 !ok
+
 
 # End big-query.iq

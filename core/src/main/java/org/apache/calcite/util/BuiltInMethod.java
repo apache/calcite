@@ -400,6 +400,8 @@ public enum BuiltInMethod {
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),
+  LPAD(SqlFunctions.class, "lpad", String.class, int.class, String.class),
+  RPAD(SqlFunctions.class, "rpad", String.class, int.class, String.class),
   STARTS_WITH(SqlFunctions.class, "startsWith", String.class, String.class),
   ENDS_WITH(SqlFunctions.class, "endsWith", String.class, String.class),
   OCTET_LENGTH(SqlFunctions.class, "octetLength", ByteString.class),
