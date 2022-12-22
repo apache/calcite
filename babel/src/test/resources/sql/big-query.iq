@@ -2596,4 +2596,39 @@ FROM items;
 
 !ok
 
+#####################################################################
+# LPAD(original_value, return_length, pattern) {
+#
+# Returns a STRING or BYTES value that consists of original_value prepended with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT LPAD('12345', 8, 'a') as example UNION ALL
+  SELECT LPAD('12345', 8) UNION ALL
+  SELECT LPAD('12345', 8, 'aba') UNION ALL
+  SELECT LPAD('12345', 3) UNION ALL
+  SELECT LPAD(x'aa', 4, x'bb') UNION ALL
+  SELECT LPAD(x'aa', 4) UNION ALL
+  SELECT LPAD(x'aaaaaa', 2) UNION ALL
+  SELECT LPAD(x'aaaaaa', 2, x'bb')
+)
+SELECT
+  *
+FROM Examples;
++----------+
+| example  |
++----------+
+| aaa12345 |
+|    12345 |
+| aba12345 |
+| 123      |
+| bbbbbbaa |
+| 202020aa |
+| aaaa     |
+| aaaa     |
++----------+
+(8 rows)
+
+!ok
+
 # End big-query.iq
