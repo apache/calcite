@@ -6150,9 +6150,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     switch (literal.getTypeName()) {
     case UNKNOWN:
       final SqlUnknownLiteral unknownLiteral = (SqlUnknownLiteral) literal;
-      // TODO: resolve type name based on type alias map
-      final SqlTypeName typeName =
-          SqlTypeName.valueOf(SqlTypeName.class, unknownLiteral.tag);
+      final SqlIdentifier identifier =
+          new SqlIdentifier(unknownLiteral.tag, SqlParserPos.ZERO);
+      final @Nullable RelDataType type = catalogReader.getNamedType(identifier);
+      final SqlTypeName typeName;
+      if (type != null) {
+        typeName = type.getSqlTypeName();
+      } else {
+        typeName = SqlTypeName.lookup(unknownLiteral.tag);
+      }
       return unknownLiteral.resolve(typeName);
 
     default:

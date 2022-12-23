@@ -4609,7 +4609,7 @@ SqlLiteral DateTimeLiteral() :
     }
 |
     <DATE> { s = span(); } p = SimpleStringLiteral() {
-      return SqlParserUtil.parseDateLiteral(p, s.end(this));
+      return SqlLiteral.createUnknown("DATE", p, s.end(this));
     }
 |
     <DATETIME> { s = span(); } p = SimpleStringLiteral() {
@@ -4617,7 +4617,7 @@ SqlLiteral DateTimeLiteral() :
     }
 |
     <TIME> { s = span(); } p = SimpleStringLiteral() {
-        return SqlParserUtil.parseTimeLiteral(p, s.end(this));
+      return SqlLiteral.createUnknown("TIME", p, s.end(this));
     }
 |
     LOOKAHEAD(2)

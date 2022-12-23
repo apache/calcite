@@ -251,6 +251,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN");
   }
 
+  /** Tests that date-time literals with invalid strings are considered invalid.
+   * Originally the parser did that checking, but now the parser creates a
+   * {@link org.apache.calcite.sql.SqlUnknownLiteral} and the checking is
+   * deferred to the validator. */
   @Test void testLiteral() {
     expr("^DATE '12/21/99'^")
         .fails("(?s).*Illegal DATE literal.*");
@@ -260,6 +264,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Illegal TIME literal.*");
     expr("^TIMESTAMP '12-21-99, 12:30:00'^")
         .fails("(?s).*Illegal TIMESTAMP literal.*");
+    expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
   }
 
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
