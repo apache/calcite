@@ -5273,14 +5273,13 @@ public class SqlParserTest {
         .same();
 
     // Value strings that are illegal for their type are considered valid at
-    // parse time, invalid at validate time.
-    sql("^DATE '12/21/99'^")
-        .fails("(?s).*Illegal DATE literal.*");
-    sql("^TIME '1230:33'^")
-        .fails("(?s).*Illegal TIME literal.*");
-    sql("^TIME '12:00:00 PM'^")
-        .fails("(?s).*Illegal TIME literal.*");
+    // parse time, invalid at validate time. See SqlValidatorTest.testLiteral.
+    expr("^DATE '12/21/99'^").same();
+    expr("^TIME '1230:33'^").same();
+    expr("^TIME '12:00:00 PM'^").same();
     expr("TIMESTAMP '12-21-99, 12:30:00'").same();
+    expr("TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'").same();
+    expr("DATETIME '12-21-99, 12:30:00'").same();
   }
 
   /**
