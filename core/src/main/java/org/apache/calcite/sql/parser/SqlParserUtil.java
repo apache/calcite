@@ -342,8 +342,8 @@ public final class SqlParserUtil {
     return parseTimestampLiteral(SqlTypeName.TIMESTAMP, s, pos);
   }
 
-  public static SqlTimestampLiteral parseTimestampLtzLiteral(String s,
-      SqlParserPos pos) {
+  public static SqlTimestampLiteral parseTimestampWithLocalTimeZoneLiteral(
+      String s, SqlParserPos pos) {
     return parseTimestampLiteral(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, s,
         pos);
   }
@@ -364,7 +364,7 @@ public final class SqlParserUtil {
     }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral(typeName.getName(), s,
+          RESOURCE.illegalLiteral(typeName.getName().replace('_', ' '), s,
               RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
     }
     final TimestampString ts =

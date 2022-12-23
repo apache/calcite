@@ -6157,7 +6157,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (type != null) {
         typeName = type.getSqlTypeName();
       } else {
-        typeName = SqlTypeName.valueOf(SqlTypeName.class, unknownLiteral.tag);
+        typeName = SqlTypeName.lookup(unknownLiteral.tag);
       }
       return unknownLiteral.resolve(typeName);
 

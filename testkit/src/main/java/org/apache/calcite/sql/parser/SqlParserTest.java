@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.SqlUnknownLiteral;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
@@ -34,6 +35,7 @@ import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
@@ -207,6 +209,7 @@ public class SqlParserTest {
       "CYCLE",                               "99", "2003", "2011", "2014", "c",
       "DATA",                                "99",
       "DATE",                          "92", "99", "2003", "2011", "2014", "c",
+      "DATETIME",                                                          "c",
       "DAY",                           "92", "99", "2003", "2011", "2014", "c",
       "DAYS",                                              "2011",
       "DEALLOCATE",                    "92", "99", "2003", "2011", "2014", "c",
@@ -5252,8 +5255,7 @@ public class SqlParserTest {
 
     // Time literals
     expr("TIME '12:01:01'").same();
-    expr("TIME '12:01:01.'")
-        .ok("TIME '12:01:01'");
+    expr("TIME '12:01:01.'").same();
     expr("TIME '12:01:01.000'").same();
     expr("TIME '12:01:01.001'").same();
     expr("TIME '12:01:01.01023456789'").same();
@@ -8839,8 +8841,12 @@ public class SqlParserTest {
   protected static String varToStr(Hoist.Variable v) {
     if (v.node instanceof SqlLiteral) {
       SqlLiteral literal = (SqlLiteral) v.node;
+      SqlTypeName typeName = literal.getTypeName();
       return "[" + v.ordinal
-          + ":" + literal.getTypeName()
+          + ":"
+          + (typeName == SqlTypeName.UNKNOWN
+              ? ((SqlUnknownLiteral) literal).tag
+              : typeName.getName())
           + ":" + literal.toValue()
           + "]";
     } else {
