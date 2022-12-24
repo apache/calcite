@@ -463,6 +463,7 @@ data: {
       "TEMPORARY"
 #     "THEN"
 #     "TIME"
+      "TIME_DIFF"
       "TIME_TRUNC"
 #     "TIMESTAMP"
       "TIMESTAMP_DIFF"

@@ -8153,6 +8153,77 @@ public class SqlOperatorTest {
         false);
   }
 
+  /** Tests BigQuery's {@code TIME_ADD}, which adds an interval to a time
+   * expression. */
+  @Test void testTimeAdd() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIME_ADD);
+    f0.checkFails("^time_add(time '15:30:00', interval 5 minute)^",
+        "No match found for function signature TIME_ADD\\(<TIME>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    if (Bug.CALCITE_5422_FIXED) {
+      f.checkScalar("time_add(time '15:30:00', interval 5000000 millisecond)",
+          "15:30:05", "TIME(3) NOT NULL");
+      f.checkScalar("time_add(time '15:30:00', interval 5000000000 microsecond)",
+          "15:30:05", "TIME(3) NOT NULL");
+    }
+    f.checkScalar("time_add(time '23:59:59', interval 2 second)",
+        "00:00:01", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '23:59:59', interval 86402 second)",
+        "00:00:01", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 5 minute)",
+        "15:35:00", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 1445 minute)",
+        "15:35:00", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 3 hour)",
+        "18:30:00", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 27 hour)",
+        "18:30:00", "TIME(0) NOT NULL");
+    f.checkNull("time_add(cast(null as time), interval 5 minute)");
+  }
+
+  @Test void testTimeDiff() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIME_DIFF);
+    f0.checkFails("^time_diff(time '15:30:00', "
+            + "time '16:30:00', "
+            + "minute)^",
+        "No match found for function signature "
+            + "TIME_DIFF\\(<TIME>, <TIME>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("time_diff(time '15:30:00', "
+            + "time '15:30:05', "
+            + "millisecond)",
+        "-5000", "INTEGER NOT NULL");
+    MICROSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '15:30:05', "
+                + s + ")",
+            "-5000000", "INTEGER NOT NULL"));
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '15:29:00', "
+                + s + ")",
+            "60", "INTEGER NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '15:29:00', "
+                + s + ")",
+            "1", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '16:30:00', "
+                + s + ")",
+            "-1", "INTEGER NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "cast(null as time), "
+                + s + ")",
+            isNullValue(), "INTEGER"));
+  }
+
   @Test void testTimeTrunc() {
     SqlOperatorFixture nonBigQuery = fixture()
         .setFor(SqlLibraryOperators.TIME_TRUNC);
