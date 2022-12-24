@@ -314,6 +314,7 @@ parser: {
     "TABLE_NAME"
     "TEMPORARY"
     "TIES"
+    "TIME_DIFF"
     "TIME_TRUNC"
     "TIMESTAMPADD"
     "TIMESTAMPDIFF"

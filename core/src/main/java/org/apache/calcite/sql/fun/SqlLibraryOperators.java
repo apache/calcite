@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -670,6 +671,22 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TIMESTAMP_DIFF3 =
       new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
+
+  /** The "TIME_ADD(time_expression, interval_expression)" function (BigQuery);
+   * adds interval expression to the specified time expression. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_ADD =
+      SqlBasicFunction.create(SqlKind.TIME_ADD, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.TIME_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIME_DIFF(time_expression, time_expression, date_time_part)"
+   * function (BigQuery) returns the number of date_time_part between the two time
+   * expressions. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_DIFF =
+      new SqlTimestampDiffFunction("TIME_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME, SqlTypeFamily.ANY));
 
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
