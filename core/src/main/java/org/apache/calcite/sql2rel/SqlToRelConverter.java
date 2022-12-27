@@ -4574,10 +4574,14 @@ public class SqlToRelConverter {
      */
 
     // The final input to the logicalTableModify we create will have the same number of columns
-    // as the destination table, plus one additional. The additional column will be appended
-    // as the last column,it will be a tinyint enum which controls which operation
+    // as the destination table, plus two additional columns. The additional columns will be
+    // appended
+    // as the last final two columns. The second to last column is the tinyint enum which controls
+    // which
+    // operation
     // will be performed for the given row:
     // INSERT, DELETE or UPDATE.
+    // The last column will the bodo row id column, which will keep track of the original row id
 
     // The other values in the input table will be the columns to write back to the destination
     // table if we have an update or insert.
@@ -4820,6 +4824,10 @@ public class SqlToRelConverter {
         relBuilder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
         Arrays.asList(isUpdateRow, updateEnumLiteral, isDeleteRow, deleteEnumLiteral,
             isInsertRow, insertEnumLiteral, nullTinyIntLiteral)));
+
+    // Add Bodo Row ID to final projects
+    int row_id_index = mergeSourceRel.getRowType().getFieldNames().indexOf("_bodo_row_id");
+    finalProjects.add(relBuilder.getRexBuilder().makeInputRef(mergeSourceRel, row_id_index));
 
     relBuilder.project(finalProjects);
 
