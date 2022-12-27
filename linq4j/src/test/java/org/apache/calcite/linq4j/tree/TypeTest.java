@@ -62,4 +62,11 @@ class TypeTest {
     assertEquals(Object.class, Types.gcd(String.class, int.class));
     java.io.Serializable o = true ? "x" : 1;
   }
+
+  // CHECKSTYLE: IGNORE 2;
+  class InnerClass$ { }
+  @Test void testClassNameForInnerClass() {
+    assertEquals(Types.className(InnerClass$.class),
+        "org.apache.calcite.linq4j.tree.TypeTest.InnerClass$");
+  }
 }
