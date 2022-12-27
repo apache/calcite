@@ -24,9 +24,13 @@ import org.apache.calcite.tools.Frameworks;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.calcite.rel.metadata.RelMdUtil.numDistinctVals;
+import static org.apache.calcite.test.Matchers.within;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test cases for {@link RelMdUtil}.
@@ -42,29 +46,55 @@ public class RelMdUtilTest {
     return fixture().withSql(sql);
   }
 
+  private static final double EPSILON = 1e-5;
+
   @Test void testNumDistinctVals() {
     // the first element must be distinct, the second one has half chance of being distinct
-    assertEquals(1.5, RelMdUtil.numDistinctVals(2.0, 2.0), 1e-5);
+    assertThat(numDistinctVals(2.0, 2.0), within(1.5, EPSILON));
 
     // when no selection is made, we get no distinct value
     double domainSize = 100;
-    assertEquals(0, RelMdUtil.numDistinctVals(domainSize, 0.0), 1e-5);
+    assertThat(numDistinctVals(domainSize, 0.0), within(0, EPSILON));
 
     // when we perform one selection, we always have 1 distinct value,
     // regardless of the domain size
     for (double dSize = 1; dSize < 100; dSize += 1) {
-      assertEquals(1.0, RelMdUtil.numDistinctVals(dSize, 1.0), 1e-5);
+      assertThat(numDistinctVals(dSize, 1.0), within(1.0, EPSILON));
     }
 
     // when we select n objects from a set with n values
     // we get no more than n distinct values
     for (double dSize = 1; dSize < 100; dSize += 1) {
-      assertTrue(RelMdUtil.numDistinctVals(dSize, dSize) <= dSize);
+      assertThat(numDistinctVals(dSize, dSize), lessThanOrEqualTo(dSize));
     }
 
     // when the number of selections is large enough
     // we get all distinct values, w.h.p.
-    assertEquals(domainSize, RelMdUtil.numDistinctVals(domainSize, domainSize * 100), 1e-5);
+    assertThat(numDistinctVals(domainSize, domainSize * 100), within(domainSize, EPSILON));
+
+    assertThat(numDistinctVals(100.0, 2.0), within(1.99, EPSILON));
+    assertThat(numDistinctVals(1000.0, 2.0), within(1.999, EPSILON));
+    assertThat(numDistinctVals(10000.0, 2.0), within(1.9999, EPSILON));
+  }
+
+  @Test void testNumDistinctValsWithLargeDomain() {
+    double[] domainSizes = {1e18, 1e20};
+    double[] numSels = {1e2, 1e4, 1e6, 1e8, 1e10, 1e12};
+    double res;
+    for (double domainSize : domainSizes) {
+      for (double numSel : numSels) {
+        res = numDistinctVals(domainSize, numSel);
+        assertThat(res, not(0));
+        // due to the possible duplicate selections, the distinct values
+        // must be smaller than or equal to the number of selections
+        assertThat(res, lessThanOrEqualTo(numSel));
+      }
+      res = numDistinctVals(domainSize, 1.0);
+      assertThat(res, within(1.0, EPSILON));
+
+      res = numDistinctVals(domainSize, 2.0);
+      assertThat(res, within(2.0, EPSILON));
+    }
   }
 
   @Test void testDynamicParameterInLimitOffset() {
