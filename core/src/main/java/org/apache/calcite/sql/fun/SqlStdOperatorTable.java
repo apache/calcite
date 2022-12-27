@@ -1962,7 +1962,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The <code>LOCALTIMESTAMP [(<i>precision</i>)]</code> function.
    */
   public static final SqlFunction LOCALTIMESTAMP =
-      new SqlAbstractTimeFunction("LOCALTIMESTAMP", SqlTypeName.TIMESTAMP);
+      new SqlAbstractTZSessionFunction("LOCALTIMESTAMP");
 
   /**
    * The <code>CURRENT_TIME [(<i>precision</i>)]</code> function.

@@ -1357,7 +1357,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature LOCALTIMESTAMP..");
     // with TZ?
     expr("LOCALTIMESTAMP")
-        .columnType("TIMESTAMP(0) NOT NULL");
+        .columnType("TIMESTAMP('UTC') NOT NULL");
     wholeExpr("LOCALTIMESTAMP(-1)")
         .fails("Argument to function 'LOCALTIMESTAMP' must be a positive "
             + "integer literal");
