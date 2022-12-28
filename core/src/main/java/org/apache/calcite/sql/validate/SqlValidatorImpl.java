@@ -278,7 +278,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new SqlValidatorImpl.ValidationErrorFunction();
 
   // TypeCoercion instance used for implicit type coercion.
-  private TypeCoercion typeCoercion;
+  private final TypeCoercion typeCoercion;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -331,7 +331,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           .add(SqlTypeName.CHAR)
           .build();
 
-      Map<SqlTypeName, ImmutableSet<SqlTypeName>> mapping = new HashMap(rules.getTypeMapping());
+      Map<SqlTypeName, ImmutableSet<SqlTypeName>> mapping = new HashMap<>(rules.getTypeMapping());
       mapping.replace(SqlTypeName.ARRAY, arrayMapping);
       rules = SqlTypeCoercionRule.instance(mapping);
 
@@ -376,8 +376,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean includeSystemVars) {
     final List<SqlNode> list = new ArrayList<>();
     final List<Map.Entry<String, RelDataType>> types = new ArrayList<>();
-    for (int i = 0; i < selectList.size(); i++) {
-      final SqlNode selectItem = selectList.get(i);
+    for (final SqlNode selectItem : selectList) {
       final RelDataType originalType = getValidatedNodeTypeIfKnown(selectItem);
       expandSelectItem(
           selectItem,
@@ -409,7 +408,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SelectScope cursorScope = new SelectScope(parentScope, null, select);
     clauseScopes.put(IdPair.of(select, Clause.CURSOR), cursorScope);
     final SelectNamespace selectNs = createSelectNamespace(select, select);
-    final String alias = SqlValidatorUtil.alias(select, nextGeneratedId++);
+    String alias = deriveAlias(select, nextGeneratedId++);
     registerNamespace(cursorScope, alias, selectNs, false);
   }
 
@@ -463,13 +462,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // calls.
     SqlNode expanded = expandSelectExpr(selectItem, scope, select);
     final String alias =
-        SqlValidatorUtil.alias(selectItem, aliases.size());
+        deriveAliasNonNull(
+            selectItem,
+            aliases.size());
 
     // If expansion has altered the natural alias, supply an explicit 'AS'.
     final SqlValidatorScope selectScope = getSelectScope(select);
     if (expanded != selectItem) {
       String newAlias =
-          SqlValidatorUtil.alias(expanded, aliases.size());
+          deriveAliasNonNull(
+              expanded,
+              aliases.size());
       if (!Objects.equals(newAlias, alias)) {
         expanded =
             SqlStdOperatorTable.AS.createCall(
@@ -1766,7 +1769,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final List<String> aliasList = new ArrayList<>();
       final List<RelDataType> typeList = new ArrayList<>();
       for (Ord<SqlNode> column : Ord.zip(rowConstructor.getOperandList())) {
-        final String alias = SqlValidatorUtil.alias(column.e, column.i);
+        final String alias = deriveAliasNonNull(column.e, column.i);
         aliasList.add(alias);
         final RelDataType type = deriveType(scope, column.e);
         typeList.add(type);
@@ -2119,6 +2122,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         : SqlValidatorUtil.alias(node, ordinal);
   }
 
+  private String deriveAliasNonNull(SqlNode node, int ordinal) {
+    return requireNonNull(
+        deriveAlias(node, ordinal),
+        () -> "non-null alias expected for node = " + node + ", ordinal = " + ordinal);
+  }
+
   protected boolean shouldAllowIntermediateOrderBy() {
     return true;
   }
@@ -2288,9 +2297,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       switch (kind) {
       case IDENTIFIER:
       case OVER:
-        alias = SqlValidatorUtil.alias(node);
+        alias = deriveAlias(node, -1);
         if (alias == null) {
-          alias = SqlValidatorUtil.alias(node, nextGeneratedId++);
+          alias = deriveAliasNonNull(node, nextGeneratedId++);
         }
         if (config.identifierExpansion()) {
           newNode = SqlValidatorUtil.addAlias(node, alias);
@@ -2311,7 +2320,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
         // give this anonymous construct a name since later
         // query processing stages rely on it
-        alias = SqlValidatorUtil.alias(node, nextGeneratedId++);
+        alias = deriveAliasNonNull(node, nextGeneratedId++);
         if (config.identifierExpansion()) {
           // Since we're expanding identifiers, we should make the
           // aliases explicit too, otherwise the expanded query
@@ -2546,7 +2555,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case WITH:
     case OTHER_FUNCTION:
       if (alias == null) {
-        alias = SqlValidatorUtil.alias(node, nextGeneratedId++);
+        alias = deriveAliasNonNull(node, nextGeneratedId++);
       }
       registerQuery(
           parentScope,
@@ -3015,7 +3024,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       CollectScope cs = new CollectScope(parentScope, usingScope, call);
       final CollectNamespace tableConstructorNs =
           new CollectNamespace(call, cs, enclosingNode);
-      final String alias2 = SqlValidatorUtil.alias(node, nextGeneratedId++);
+      final String alias2 = deriveAliasNonNull(node, nextGeneratedId++);
       registerNamespace(
           usingScope,
           alias2,
@@ -3864,8 +3873,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             || !isRolledUpColumnAllowedInAgg(id, scope, (SqlCall) parent, grandParent)) {
           String context = contextClause != null ? contextClause : parent.getKind().toString();
           throw newValidationError(id,
-              RESOURCE.rolledUpNotAllowed(SqlValidatorUtil.alias(id, 0),
-                  context));
+              RESOURCE.rolledUpNotAllowed(deriveAliasNonNull(id, 0), context));
         }
       }
     }
@@ -4655,7 +4663,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Get or generate alias and add to list.
     final String alias =
-        SqlValidatorUtil.alias(selectItem, aliasList.size());
+        deriveAliasNonNull(
+            selectItem,
+            aliasList.size());
     aliasList.add(alias);
 
     final SelectScope scope = (SelectScope) getWhereScope(parentSelect);
@@ -5678,7 +5688,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     for (SqlNode measure : measures) {
       assert measure instanceof SqlCall;
-      final String alias = SqlValidatorUtil.alias(measure, aliases.size());
+      final String alias = deriveAliasNonNull(measure, aliases.size());
       aliases.add(alias);
 
       SqlNode expand = expand(measure, scope);

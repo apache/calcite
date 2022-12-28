@@ -351,7 +351,7 @@ public class SqlValidatorUtil {
 
     case OVER:
       // E.g. "bids over w" --> "bids"
-      return getAlias(((SqlCall) node).operand(0), ordinal);
+      return alias_(((SqlCall) node).operand(0), ordinal);
 
     case IDENTIFIER:
       // E.g. "foo.bar" --> "bar"
