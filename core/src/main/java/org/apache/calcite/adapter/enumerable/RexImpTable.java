@@ -151,6 +151,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -397,6 +398,7 @@ public class RexImpTable {
       defineMethod(LEFT, BuiltInMethod.LEFT.method, NullPolicy.ANY);
       defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
       defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.STRICT);
+      defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.STRICT);
       defineMethod(STARTS_WITH, BuiltInMethod.STARTS_WITH.method, NullPolicy.STRICT);
       defineMethod(ENDS_WITH, BuiltInMethod.ENDS_WITH.method, NullPolicy.STRICT);
       defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);

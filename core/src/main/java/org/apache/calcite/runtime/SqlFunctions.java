@@ -328,6 +328,65 @@ public class SqlFunctions {
     return lpad(originalValue, returnLength, ByteString.of("20", 16) );
   }
 
+  /** SQL {@code RPAD(original_value, return_length, pattern)} function. */
+  public static String rpad(String originalValue, int returnLength, String pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.isEmpty()){
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    if (returnLength <= originalValue.length()){
+      return originalValue.substring(0, returnLength);
+    }
+    int paddingLengthRequired = returnLength - originalValue.length();
+    int patternLength = pattern.length();
+    final StringBuilder paddedS = new StringBuilder();
+    paddedS.append(originalValue);
+    for (int i=0; i<paddingLengthRequired; i++){
+      char curChar = pattern.charAt(i%patternLength);
+      paddedS.append(curChar);
+    }
+    return paddedS.toString();
+  }
+
+  /** SQL {@code RPAD(original_value, return_length)} function. */
+  public static String rpad(String originalValue, int returnLength){
+    return rpad(originalValue, returnLength, " ");
+  }
+
+  /** SQL {@code RPAD(original_value, return_length, pattern)} function. */
+  public static ByteString rpad(ByteString originalValue, int returnLength, ByteString pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.length() == 0){
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    int originalLength = originalValue.length();
+    if (returnLength <= originalLength){
+      return originalValue.substring(0, returnLength);
+    }
+
+    int paddingLengthRequired = returnLength - originalLength;
+    int patternLength = pattern.length();
+    byte[] bytes = new byte[returnLength];
+    for (int i = 0; i < originalLength; i++ ){
+      bytes[i] = originalValue.byteAt(i);
+    }
+    for (int i=returnLength-paddingLengthRequired; i < returnLength; i++){
+      Byte curByte = pattern.byteAt(i%patternLength);
+      bytes[i] = curByte;
+    }
+    return new ByteString(bytes);
+  }
+
+  /** SQL {@code RPAD(original_value, return_length, pattern)} function. */
+  public static ByteString rpad(ByteString originalValue, int returnLength) {
+    // 0x20 is the hexadecimal character for space ' '
+    return rpad(originalValue, returnLength, ByteString.of("20", 16) );
+  }
+
   /** SQL {@code ENDS_WITH(string, string)} function. */
   public static boolean endsWith(String s0, String s1) {
     return s0.endsWith(s1);

@@ -2631,4 +2631,39 @@ FROM Examples;
 
 !ok
 
+#####################################################################
+# RPAD(original_value, return_length, pattern) {
+#
+# Returns a STRING or BYTES value that consists of original_value prepended with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT RPAD('12345', 8, 'a') as example UNION ALL
+  SELECT RPAD('12345', 8) UNION ALL
+  SELECT RPAD('12345', 8, 'aba') UNION ALL
+  SELECT RPAD('12345', 3) UNION ALL
+  SELECT RPAD(x'aa', 4, x'bb') UNION ALL
+  SELECT RPAD(x'aa', 4) UNION ALL
+  SELECT RPAD(x'aaaaaa', 2) UNION ALL
+  SELECT RPAD(x'aaaaaa', 2, x'bb')
+)
+SELECT
+  *
+FROM Examples;
++----------+
+| example  |
++----------+
+| 12345aaa |
+| 12345    |
+| 12345aba |
+| 123      |
+| aabbbbbb |
+| aa202020 |
+| aaaa     |
+| aaaa     |
++----------+
+(8 rows)
+
+!ok
+
 # End big-query.iq

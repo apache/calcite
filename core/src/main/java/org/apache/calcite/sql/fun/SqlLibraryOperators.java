@@ -198,6 +198,16 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING
       );
 
+  /**The "RPAD(original_value, return_length[, pattern])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction RPAD =
+      SqlBasicFunction.create(
+          "RPAD",
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING
+      );
+
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LTRIM =

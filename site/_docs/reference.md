@@ -2647,6 +2647,7 @@ semantics.
 | b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
 | h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
+| b | RPAD(string, length[, pattern])                | Returns a string or bytes value that consists of *string* appended with *pattern*.
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
