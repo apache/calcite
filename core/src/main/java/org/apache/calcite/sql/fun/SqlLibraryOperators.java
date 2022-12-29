@@ -189,7 +189,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.SAME_SAME);
 
   /**The "LPAD(original_value, return_length[, pattern])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LPAD =
       SqlBasicFunction.create(
           "LPAD",
@@ -199,7 +199,7 @@ public abstract class SqlLibraryOperators {
       );
 
   /**The "RPAD(original_value, return_length[, pattern])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction RPAD =
       SqlBasicFunction.create(
           "RPAD",
