@@ -1093,6 +1093,16 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_MATCH_COUNT":
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_SIMILAR":
+      SqlNode regexpContainsCall = REGEXP_CONTAINS.createCall(SqlParserPos.ZERO, call.operand(0),
+          call.operand(1));
+      SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+      SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+      SqlParserPos pos = call.getParserPosition();
+      SqlNode[] ifOperands = new SqlNode[]{regexpContainsCall, oneLiteral, zeroLiteral};
+      SqlCall ifCall = new SqlBasicCall(SqlLibraryOperators.IF, ifOperands, pos);
+      super.unparseCall(writer, ifCall, leftPrec, rightPrec);
+      break;
     case "COT":
       unparseCot(writer, call, leftPrec, rightPrec);
       break;

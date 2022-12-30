@@ -1404,4 +1404,13 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction REGEXP_SIMILAR =
+      new SqlFunction("REGEXP_SIMILAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.STRING_STRING_OPTIONAL_INTEGER,
+          SqlFunctionCategory.NUMERIC);
 }

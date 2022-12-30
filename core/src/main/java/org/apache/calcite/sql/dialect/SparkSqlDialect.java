@@ -722,6 +722,16 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
+    case "REGEXP_SIMILAR":
+      SqlCall rLikeCall = SqlStdOperatorTable.RLIKE.createCall(SqlParserPos.ZERO,
+          call.getOperandList());
+      SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+      SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+      SqlParserPos pos = call.getParserPosition();
+      SqlNode[] ifOperands = new SqlNode[]{rLikeCall, oneLiteral, zeroLiteral};
+      SqlCall ifCall = new SqlBasicCall(SqlLibraryOperators.IF, ifOperands, pos);
+      super.unparseCall(writer, ifCall, leftPrec, rightPrec);
+      break;
     case "TRUNC":
       String truncFunctionName = getTruncFunctionName(call);
       switch (truncFunctionName) {

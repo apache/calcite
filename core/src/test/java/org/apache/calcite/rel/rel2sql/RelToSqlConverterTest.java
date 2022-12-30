@@ -11068,4 +11068,35 @@ class RelToSqlConverterTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
+  @Test public void testForRegexpSimilarFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+        builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('12-12-2000', "
+        + "'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS A\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpSimilarFunctionForSpark() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+        builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT IF('12-12-2000' RLIKE '^\\d\\d-\\w{2}-\\d{4}$', 1, 0) A"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
